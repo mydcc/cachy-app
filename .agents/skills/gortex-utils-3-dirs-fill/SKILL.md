@@ -26,21 +26,21 @@ Use this skill when working on files in:
 | File | Symbols |
 |------|---------|
 | `` | fill |
-| `src/components/shared/backgrounds/engines/BlockEngine.ts` | cleanupResources, dispose |
+| `src/components/shared/backgrounds/engines/BlockEngine.ts` | dispose, cleanupResources |
 | `src/components/shared/backgrounds/engines/GalaxyFlowEngine.ts` | onSymbolChange |
 | `src/components/shared/backgrounds/engines/RaindropsEngine.ts` | context, constructor |
 | `src/utils/indicatorTypes.ts` | NumberArray |
-| `src/utils/indicators.ts` | outMiddle, sumLoss, lowestLows, period, result, ... |
-| `src/utils/mfi_correctness.test.ts` | i, period, mfiLegacy, moneyFlow, mfr, ... |
-| `src/utils/slidingWindow.ts` | out, deque, period, tail, len, ... |
-| `tests/benchmarks/mfi_optimization.bench.ts` | j, negFlow, tp, i, posFlow, ... |
-| `tests/benchmarks/wma_optimization.bench.ts` | j, data, out, sum, result, ... |
+| `src/utils/indicators.ts` | JSIndicators.psar, spanBPeriod, JSIndicators.superTrend, combined, convLow, ... |
+| `src/utils/mfi_correctness.test.ts` | sumPos, i, volume, tp, high, ... |
+| `src/utils/slidingWindow.ts` | tail, period, slidingWindowMax, out, head, ... |
+| `tests/benchmarks/mfi_optimization.bench.ts` | i, volume, period, j, tp, ... |
+| `tests/benchmarks/wma_optimization.bench.ts` | period, data, sum, wmaLegacy, denominator, ... |
 
 ## Connected Communities
 
 - **utils +10 dirs** (3 cross-edges)
 - **utils · calculateADXSeries** (1 cross-edges)
-- **services +4 dirs · queueSubscription** (1 cross-edges)
+- **services +5 dirs · safeDecimal** (1 cross-edges)
 - **calculators +12 dirs** (1 cross-edges)
 - **services +14 dirs** (1 cross-edges)
 

@@ -21,12 +21,12 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `docs/architecture/cachy-architecture.dataflow.html` | journeyButtons, releaseForNode, semanticIds, clearChapterPreviewIntent, startShareCueProgress, ... |
+| `docs/architecture/cachy-architecture.dataflow.html` | detailLevel, syncViewportClip, reset, routeOverviewStatus, renderFacts, ... |
 | `src/components/settings/OrderAuditSettings.svelte` | clearLog, confirmed |
 | `src/components/settings/PaperTradingSettings.svelte` | resetBook, confirmed |
-| `src/components/settings/RiskLimitsSettings.svelte` | resetAll, value, confirmed, engage, confirmed, ... |
+| `src/components/settings/RiskLimitsSettings.svelte` | RiskLimitsSettings, event, resetAll, confirmed, engage, ... |
 | `src/service-worker.ts` | addFilesToCache, cache |
-| `tests/gpu/webGpuParity.spec.ts` | result, bundleParityCases |
+| `tests/gpu/webGpuParity.spec.ts` | bundleParityCases, result |
 
 ## Connected Communities
 

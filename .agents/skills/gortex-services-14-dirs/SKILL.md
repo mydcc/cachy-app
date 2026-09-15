@@ -72,63 +72,63 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `` | sort, values, keys, reverse, filter |
-| `docs/backlog/backlog.generated.ts` | getBacklogByArea, getBacklogByMilestone, BacklogItem, area, getBacklogItem, ... |
-| `src/components/shared/FundingRatePopover.svelte` | updatePosition, side, y, middlewareData, arrowY, ... |
+| `` | values, sort, filter, keys, reverse |
+| `docs/backlog/backlog.generated.ts` | getBacklogItem, area, BacklogItem, milestone, getBacklogByMilestone, ... |
+| `src/components/shared/FundingRatePopover.svelte` | y, placement, result, side, middlewareData, ... |
 | `src/components/shared/PositionsSidebar.dedup.component.test.ts` | accountPostCount |
 | `src/components/shared/journal/JournalTable.svelte` | Props |
 | `src/components/shared/journal/TradeDetailDrawer.svelte` | Props |
 | `src/lib/alerts/indicatorCatalogue.test.ts` | cumulativeIds |
-| `src/lib/alerts/indicatorCatalogue.ts` | indicatorsInGroup, group |
+| `src/lib/alerts/indicatorCatalogue.ts` | group, indicatorsInGroup |
 | `src/lib/alerts/indicatorSettingsSeed.ts` | alertableIndicatorKeys, mappedIndicatorKeys |
-| `src/lib/alerts/priceFormLeaf.ts` | entries, record, canonicalise, value |
+| `src/lib/alerts/priceFormLeaf.ts` | record, value, entries, canonicalise |
 | `src/lib/calculator_charts.test.ts` | createTrade, overrides |
-| `src/lib/calculators/aggregator.ts` | journal, closedTrades, getJournalAnalysis, journal, context, ... |
-| `src/lib/calculators/charts.ts` | closedTrades, getPerformanceData, context, count, sumFunding, ... |
-| `src/lib/calculators/core.ts` | getTradePnL, t, val |
-| `src/lib/calculators/getQualityData.test.ts` | createTrade, status, id, dateStr, risk, ... |
-| `src/lib/calculators/new_charts.test.ts` | overrides, createTrade |
+| `src/lib/calculators/aggregator.ts` | context, getJournalAnalysis, journal, openTrades, journal, ... |
+| `src/lib/calculators/charts.ts` | won, countShort, pf, winRateShort, avgWin, ... |
+| `src/lib/calculators/core.ts` | t, val, getTradePnL |
+| `src/lib/calculators/getQualityData.test.ts` | dateStr, createTrade, pnl, risk, status, ... |
+| `src/lib/calculators/new_charts.test.ts` | createTrade, overrides |
 | `src/lib/calculators/rolling_stats.test.ts` | overrides, createTrade |
 | `src/lib/calculators/stats.test.ts` | createTrade, overrides |
-| `src/lib/calculators/stats.ts` | symbolPerformance, totalLoss, labels, waterfallData, totalRRSum, ... |
-| `src/lib/calculators/types.ts` | JournalContext, PerformanceStats, JournalStats |
-| `src/lib/marketDashboard.ts` | measured, rows, bullish, marketBreadth |
-| `src/lib/rules/types.ts` | Refused, RuleRefusal |
+| `src/lib/calculators/stats.ts` | context, risks, closedTrades, totalRRSum, avgWin, ... |
+| `src/lib/calculators/types.ts` | JournalContext, JournalStats, PerformanceStats |
+| `src/lib/marketDashboard.ts` | measured, bullish, marketBreadth, rows |
+| `src/lib/rules/types.ts` | RuleRefusal, Refused |
 | `src/services/alertEngine/alertEngine.test.ts` | remove_alert, id |
-| `src/services/alertEngine/alertEngine.ts` | heldAlertsFor, symbol |
-| `src/services/alertEngine/legacyReplayCoordinator.test.ts` | alert, id, makeSource, arm, initialHistory, ... |
-| `src/services/alertEngine/legacyReplayCoordinator.ts` | from, from, candidates, a, symbols, ... |
+| `src/services/alertEngine/alertEngine.ts` | symbol, heldAlertsFor |
+| `src/services/alertEngine/legacyReplayCoordinator.test.ts` | initialHistory, held, history, EvaluateCall, symbol, ... |
+| `src/services/alertEngine/legacyReplayCoordinator.ts` | from, from, symbol, report, replayScoped, ... |
 | `src/services/alertEngine/replayClosedCandles.ts` | ReplayReport |
 | `src/services/alertEngine/ruleEvaluationLoop.ts` | unevaluableRules |
-| `src/services/alertEngine/ruleLoopWiring.ts` | e, klines, symbol, readAvailableKlineTimeframes |
-| `src/services/alertEngine/shadowLedger.ts` | emptyShadowLedger, shadow, compareShadowLedger, consumed, record, ... |
-| `src/services/apiService.ts` | evicted, now, nextTask, next, removedCount, ... |
-| `src/services/cloudService.rateLimit.test.ts` | senderActivity.iter, row, globalMessage.delete |
-| `src/services/dataRepairService.ts` | timestamp, t, reqStart, total, onProgress, ... |
-| `src/services/marketWatcher/subscriptionRegistry.ts` | intendedTargets, intended, marketData |
-| `src/services/notificationService.svelte.ts` | key, remember, oldest |
+| `src/services/alertEngine/ruleLoopWiring.ts` | readAvailableKlineTimeframes, klines, symbol, e |
+| `src/services/alertEngine/shadowLedger.ts` | counterpart, queue, keyOf, key, shadowQueues, ... |
+| `src/services/apiService.ts` | now, key, pruneCache, nextTask, nextTask, ... |
+| `src/services/cloudService.rateLimit.test.ts` | globalMessage.delete, row, senderActivity.iter |
+| `src/services/dataRepairService.ts` | processed, promises, groupTrades, t, t, ... |
+| `src/services/marketWatcher/subscriptionRegistry.ts` | intendedTargets, marketData, intended |
+| `src/services/notificationService.svelte.ts` | oldest, key, remember |
 | `src/services/omsService.ts` | getAllOrders |
-| `src/services/orderGate.test.ts` | echo, key, options, options, t, ... |
-| `src/services/paperAccountFeed.ts` | startTime, endTime, query, HistoryQuery, historyOrders |
-| `src/services/technicalsService.ts` | now, staleKeys, cleanupStaleCache |
+| `src/services/orderGate.test.ts` | t, key, options, echo, options, ... |
+| `src/services/paperAccountFeed.ts` | endTime, query, historyOrders, startTime, HistoryQuery |
+| `src/services/technicalsService.ts` | cleanupStaleCache, now, staleKeys |
 | `src/services/technicalsTypes.ts` | ConfluenceData |
-| `src/services/tradeService.ts` | closeAllPositions, provider, results, e, failedSymbols, ... |
-| `src/stores/alertPanel.svelte.ts` | refusalsForField, claimedFields, field, refusals, refusals, ... |
+| `src/services/tradeService.ts` | failedSymbols, closeAllPositions, symbol, e, provider, ... |
+| `src/stores/alertPanel.svelte.ts` | claimedFields, refusals, unclaimedRefusals, refusalsForField, field, ... |
 | `src/stores/alerts.svelte.ts` | heldAlertsFor, symbol |
-| `src/stores/alerts_engineWiring.test.ts` | resyncs, id, remove_alert |
-| `src/stores/analysis.svelte.ts` | lastUpdate, sortedByScore, AnalysisManager, symbol, enforceCacheLimit, ... |
+| `src/stores/alerts_engineWiring.test.ts` | remove_alert, id, resyncs |
+| `src/stores/analysis.svelte.ts` | isAnalyzing, maxSize, data, sortedByScore, toRemove, ... |
 | `src/stores/externalDeliveryLog.svelte.ts` | failureCount |
-| `src/stores/journal_paperTrades.test.ts` | isPaper, entry, id, pnl |
-| `src/stores/journal_persistence.test.ts` | pnl, id, isPaper, createTestEntry |
-| `src/stores/quiz.test.ts` | value.key, index |
-| `src/stores/types.ts` | FeeRateType, JournalEntry |
+| `src/stores/journal_paperTrades.test.ts` | entry, id, isPaper, pnl |
+| `src/stores/journal_persistence.test.ts` | pnl, isPaper, createTestEntry, id |
+| `src/stores/quiz.test.ts` | index, value.key |
+| `src/stores/types.ts` | JournalEntry, FeeRateType |
 | `src/tests/performance/startup_benchmark.test.ts` | attempts, waitForAnalysis |
-| `src/utils/circularBuffer.ts` | i, callback, forEach |
-| `src/utils/confluenceAnalyzer.ts` | divScore, amount, adjust, score, analyze, ... |
+| `src/utils/circularBuffer.ts` | i, forEach, callback |
+| `src/utils/confluenceAnalyzer.ts` | buyCount, adjust, analyze, score, ConfluenceAnalyzer, ... |
 | `src/utils/scheduler.ts` | flush |
-| `src/utils/server/bitunix.test.ts` | body, nonce, body, signAsPositionsPathDid, signAsBalancePathDid, ... |
-| `src/utils/statefulTechnicalsCalculator.ts` | shift, lastClose, newCandle |
-| `vitest.setup.ts` | mock, store, ownKeys, createStorageMock, mock.length |
+| `src/utils/server/bitunix.test.ts` | queryParamsStr, body, apiKey, apiKey, timestamp, ... |
+| `src/utils/statefulTechnicalsCalculator.ts` | lastClose, newCandle, shift |
+| `vitest.setup.ts` | mock, mock.length, ownKeys, createStorageMock, store |
 
 ## Entry Points
 
@@ -138,37 +138,37 @@ Use this skill when working on files in:
 ## Connected Communities
 
 - **utils +10 dirs** (30 cross-edges)
-- **services +42 dirs** (11 cross-edges)
 - **services +5 dirs · calculateIndicatorsFromArrays** (11 cross-edges)
+- **services +42 dirs** (11 cross-edges)
 - **services +10 dirs · slice** (9 cross-edges)
 - **rules +10 dirs** (7 cross-edges)
 - **services/alertEngine +4 dirs** (6 cross-edges)
-- **services +6 dirs · encrypt** (6 cross-edges)
-- **benchmarks +13 dirs** (6 cross-edges)
+- **benchmarks +11 dirs** (6 cross-edges)
+- **services +5 dirs · encrypt** (6 cross-edges)
 - **utils +2 dirs** (5 cross-edges)
-- **services +3 dirs · calculate** (4 cross-edges)
 - **components/shared +13 dirs** (4 cross-edges)
-- **services +5 dirs · ensureHistory** (4 cross-edges)
 - **services/alertEngine · push** (4 cross-edges)
-- **services +30 dirs** (3 cross-edges)
+- **services +5 dirs · ensureHistory** (4 cross-edges)
+- **services +2 dirs · set** (4 cross-edges)
 - **services +6 dirs · dispatchMessage** (3 cross-edges)
-- **services +6 dirs · BitunixWebSocketService** (2 cross-edges)
+- **services +30 dirs** (3 cross-edges)
+- **calculators +12 dirs** (2 cross-edges)
 - **services +2 dirs · syncService.syncBitunixPositions** (2 cross-edges)
 - **services +6 dirs · processNext** (2 cross-edges)
-- **calculators +12 dirs** (2 cross-edges)
-- **stores/market +1 dirs** (1 cross-edges)
-- **stores +1 dirs · safeDecimal** (1 cross-edges)
-- **alerts · parsePriceThreshold** (1 cross-edges)
-- **services · checkOpfsSnapshotOnStartup** (1 cross-edges)
-- **services +3 dirs · delete** (1 cross-edges)
-- **services +4 dirs · normalizeTpSlRow** (1 cross-edges)
-- **services · ensurePositionFreshness** (1 cross-edges)
-- **. +2 dirs · parseDateString** (1 cross-edges)
-- **server/venues +22 dirs** (1 cross-edges)
-- **services/exchange +2 dirs · closePosition** (1 cross-edges)
-- **components/shared +5 dirs · formatApiNum** (1 cross-edges)
-- **services/alertEngine +1 dirs · withAlertsWithheld** (1 cross-edges)
+- **services +6 dirs · BitunixWebSocketService** (2 cross-edges)
 - **services +1 dirs · app.init** (1 cross-edges)
+- **. +2 dirs · parseDateString** (1 cross-edges)
+- **services +4 dirs · normalizeTpSlRow** (1 cross-edges)
+- **services/exchange +2 dirs · closePosition** (1 cross-edges)
+- **alerts · parsePriceThreshold** (1 cross-edges)
+- **services +3 dirs · delete** (1 cross-edges)
+- **components/shared +5 dirs · formatApiNum** (1 cross-edges)
+- **server/venues +22 dirs** (1 cross-edges)
+- **services/alertEngine +1 dirs · withAlertsWithheld** (1 cross-edges)
+- **services · ensurePositionFreshness** (1 cross-edges)
+- **stores/market +1 dirs** (1 cross-edges)
+- **services · checkOpfsSnapshotOnStartup** (1 cross-edges)
+- **services +5 dirs · safeDecimal** (1 cross-edges)
 
 ## How to Explore
 

@@ -28,15 +28,15 @@ Use this skill when working on files in:
 |------|---------|
 | `src/components/shared/OpenOrdersList.svelte` | Props |
 | `src/components/shared/OrderHistoryList.svelte` | Props |
-| `src/components/shared/TpSlCreateModal.svelte` | handleCreatePartial, qty, e |
-| `src/services/exchange/bitgetAdapter.ts` | trading.addToPosition, symbol, params, trading.cancelAllOrders, throwOnError, ... |
-| `src/services/exchange/bitunixAdapter.ts` | params, trading.placePositionTpSl, params, params, trading.addToPosition, ... |
-| `src/services/tradeService.ts` | result, rand, positionSide, onBehalfOf, params, ... |
+| `src/components/shared/TpSlCreateModal.svelte` | e, qty, handleCreatePartial |
+| `src/services/exchange/bitgetAdapter.ts` | params, symbol, trading.placeOrder, throwOnError, trading.cancelAllOrders, ... |
+| `src/services/exchange/bitunixAdapter.ts` | throwOnError, trading.placeTpSlOrder, params, trading.addToPosition, trading.placePositionTpSl, ... |
+| `src/services/tradeService.ts` | meta, qty, PlaceOrderParams, params, positionSide, ... |
 | `src/types/exchange.ts` | NormalizedOrder |
-| `src/utils/server/venues/bitget.ts` | symbol, signature, passphrase, timestamp, apiKey, ... |
-| `src/utils/server/venues/bitunix.ts` | symbol, response, data, baseUrl, timestamp, ... |
+| `src/utils/server/venues/bitget.ts` | apiKey, baseUrl, orders, limit, timestamp, ... |
+| `src/utils/server/venues/bitunix.ts` | creds, res, queryString, mapped, text, ... |
 | `src/utils/server/venues/types.ts` | ExchangeAccountData |
-| `src/utils/utils.ts` | formatApiNum, val, d |
+| `src/utils/utils.ts` | d, val, formatApiNum |
 
 ## Connected Communities
 
@@ -47,17 +47,17 @@ Use this skill when working on files in:
 - **utils +10 dirs** (5 cross-edges)
 - **services +42 dirs** (4 cross-edges)
 - **services +10 dirs · appFetch** (2 cross-edges)
-- **services +6 dirs · processNext** (2 cross-edges)
 - **services +10 dirs · slice** (2 cross-edges)
-- **utils +15 dirs** (1 cross-edges)
+- **services +6 dirs · processNext** (2 cross-edges)
+- **services +2 dirs · capabilitiesOf** (1 cross-edges)
+- **benchmarks +11 dirs** (1 cross-edges)
+- **services · ensurePositionFreshness** (1 cross-edges)
+- **services +6 dirs · BitunixWebSocketService** (1 cross-edges)
 - **calculators** (1 cross-edges)
 - **services +3 dirs · verify** (1 cross-edges)
-- **services +6 dirs · BitunixWebSocketService** (1 cross-edges)
-- **benchmarks +13 dirs** (1 cross-edges)
-- **services · ensurePositionFreshness** (1 cross-edges)
-- **services +2 dirs · capabilitiesOf** (1 cross-edges)
-- **services · handle** (1 cross-edges)
+- **utils +15 dirs** (1 cross-edges)
 - **calculators +12 dirs** (1 cross-edges)
+- **services · handle** (1 cross-edges)
 
 ## How to Explore
 

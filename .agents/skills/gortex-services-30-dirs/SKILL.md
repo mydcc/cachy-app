@@ -117,24 +117,24 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `` | parse, stringify, error |
+| `` | stringify, error, parse |
 | `.pi/extensions/gortex/index.ts` | out, envelope, callHook, PiDecision |
-| `evals/hook-guard.eval.test.ts` | result, runGuard, payload |
+| `evals/hook-guard.eval.test.ts` | runGuard, result, payload |
 | `external-call::stdlib:dompurify` | dompurify |
-| `src/components/inputs/PortfolioInputs.component.test.ts` | safeJsonParse, text |
+| `src/components/inputs/PortfolioInputs.component.test.ts` | text, safeJsonParse |
 | `src/components/settings/tabs/SystemTab.svelte` | clearAppCache |
-| `src/lib/academy/usePatternFavorites.svelte.ts` | next, id, toggle |
-| `src/lib/alerts/indicatorCatalogue.test.ts` | refusalOf, document, lookback, e, valid, ... |
-| `src/lib/alerts/patternCatalogue.test.ts` | patternDoc, timeframe, pattern |
-| `src/lib/chartSetup.ts` | err, plugin, initZoomPlugin |
-| `src/lib/rules/ruleEvaluationGate.ts` | document, ctx, verdict, evaluate, lastAnchorMs, ... |
-| `src/lib/rules/ruleSchema.test.ts` | rule_validate, rule_schema_version, rule_validate, rule_warmup_candles, rule_evaluate, ... |
-| `src/lib/rules/ruleSchema.ts` | document, contentHash, timeframes, core, document, ... |
+| `src/lib/academy/usePatternFavorites.svelte.ts` | id, next, toggle |
+| `src/lib/alerts/indicatorCatalogue.test.ts` | lookback, document, valid, e, refusalOf, ... |
+| `src/lib/alerts/patternCatalogue.test.ts` | timeframe, patternDoc, pattern |
+| `src/lib/chartSetup.ts` | initZoomPlugin, err, plugin |
+| `src/lib/rules/ruleEvaluationGate.ts` | evaluate, ctx, anchorMs, closedCandles, lastAnchorMs, ... |
+| `src/lib/rules/ruleSchema.test.ts` | rule_evaluate, rule_authorise, rule_timeframes, rule_warmup_candles, rule_schema_version, ... |
+| `src/lib/rules/ruleSchema.ts` | isReady, authorise, require, validate, core, ... |
 | `src/lib/rules/ruleSentence.test.ts` | overrides, ruleWith, conditions |
-| `src/lib/rules/types.ts` | TriggerFrequency, Provenance, RuleDocument, Verdict, RuleAction, ... |
-| `src/lib/utils/sanitizer.ts` | dirty, sanitizeHtml |
+| `src/lib/rules/types.ts` | RuleDocument, Verdict, TriggerFrequency, Provenance, ConsequenceLevel, ... |
+| `src/lib/utils/sanitizer.ts` | sanitizeHtml, dirty |
 | `src/lib/windows/implementations/MarkdownView.svelte` | MarkdownView |
-| `src/routes/api/account-settings/account_settings.test.ts` | url, text, init, text, sentRequest |
+| `src/routes/api/account-settings/account_settings.test.ts` | init, text, sentRequest, text, url |
 | `src/routes/api/funding-rate/funding-rate.test.ts` | mockFetch.text, mockFetch.text |
 | `src/routes/api/klines/klines.test.ts` | text, text, text, text, text, ... |
 | `src/routes/api/orders/orders_bitget_history.test.ts` | text, text |
@@ -145,118 +145,118 @@ Use this skill when working on files in:
 | `src/routes/api/orders/orders_leverage_marginmode.test.ts` | text, text, text |
 | `src/routes/api/orders/orders_native_bulk.test.ts` | text, text, text, text, text, ... |
 | `src/routes/api/orders/orders_place_order_hedge.test.ts` | text, text |
-| `src/routes/api/orders/orders_place_order_ordertype.test.ts` | text, sentBody, options, text |
+| `src/routes/api/orders/orders_place_order_ordertype.test.ts` | text, options, sentBody, text |
 | `src/routes/api/positions/positions_positionId.test.ts` | text |
 | `src/routes/api/sentiment/sentiment.test.ts` | response.text |
-| `src/routes/api/stream-logs/+server.ts` | stream.start, controller, initMsg, cleanup, stream.cancel |
+| `src/routes/api/stream-logs/+server.ts` | controller, initMsg, stream.start, stream.cancel, cleanup |
 | `src/routes/api/sync/positions-history/positions_history_security.test.ts` | text |
 | `src/routes/api/tickers/tickers.test.ts` | text, text, text, text |
 | `src/routes/api/tpsl/tpsl_paths.test.ts` | text |
-| `src/services/alertEngine/alertEngine.test.ts` | add_alert, alert, failNextSet, HoldingWasm, alerts, ... |
+| `src/services/alertEngine/alertEngine.test.ts` | free, set_alerts, failNextSet, fireOnEvaluate, HoldingWasm, ... |
 | `src/services/alertEngine/alertEngine.ts` | WasmAlertEngineInstance |
-| `src/services/alertEngine/armRule.test.ts` | id, rule, threshold, stored |
-| `src/services/alertEngine/armRule.ts` | next, index, armRule, parsed, rules, ... |
-| `src/services/alertEngine/correctedCandle.integration.test.ts` | alwaysFiringRule, loop.readRules |
+| `src/services/alertEngine/armRule.test.ts` | rule, stored, threshold, id |
+| `src/services/alertEngine/armRule.ts` | document, next, parsed, index, armRule, ... |
+| `src/services/alertEngine/correctedCandle.integration.test.ts` | loop.readRules, alwaysFiringRule |
 | `src/services/alertEngine/cutoverNotice.test.ts` | withCoveredAlert |
-| `src/services/alertEngine/indicatorContext.test.ts` | loop.readRules, loopFor, ruleReading, id, loop.readRules, ... |
-| `src/services/alertEngine/legacyReplayCoordinator.ts` | configureLegacyReplay, next |
-| `src/services/alertEngine/migrateAlertsToRules.test.ts` | createdAtMs, readRules, readLedger, timeframe, raw, ... |
-| `src/services/alertEngine/migrateAlertsToRules.ts` | migratedIds, e, e, existingRules, existingIndex, ... |
-| `src/services/alertEngine/reconcileOrphanedRules.test.ts` | id, rule, enabled |
-| `src/services/alertEngine/reconcileOrphanedRules.ts` | raw, e, reconcileStoredRules, result, parsed, ... |
-| `src/services/alertEngine/ruleCoverage.ts` | releaseCoverage, parsed, parsed, updated, e, ... |
-| `src/services/alertEngine/ruleEvaluation.integration.test.ts` | timeframe, loop.readRules, loop.readRules, threshold, alert, ... |
-| `src/services/alertEngine/ruleEvaluationLoop.test.ts` | loop.readRules, timeframe, reading, markCross, loop.readRules, ... |
-| `src/services/alertEngine/ruleEvaluationLoop.ts` | verdict, timeframe, timeframe, RuleFiring, markCandles, ... |
-| `src/services/alertEngine/ruleLifecycleView.test.ts` | ruleDoc, origins, overrides, entries, seed, ... |
-| `src/services/alertEngine/ruleLifecycleView.ts` | raw, e, parsed, readRules |
-| `src/services/alertEngine/ruleLoopWiring.ts` | readStoredRules, parsed, e, raw |
-| `src/services/alertEngine/ruleOriginLedger.test.ts` | storedLedger, raw, entries, ledgerWith |
-| `src/services/alertEngine/ruleOriginLedger.ts` | version, entry, e, ledger, value, ... |
+| `src/services/alertEngine/indicatorContext.test.ts` | rule, ruleReading, loop.readRules, loop.readRules, params, ... |
+| `src/services/alertEngine/legacyReplayCoordinator.ts` | next, configureLegacyReplay |
+| `src/services/alertEngine/migrateAlertsToRules.test.ts` | readMigratedAlertIds, raw, threshold, readLedger, conditionKey, ... |
+| `src/services/alertEngine/migrateAlertsToRules.ts` | rule, value, createdAtMs, freshRule, rule, ... |
+| `src/services/alertEngine/reconcileOrphanedRules.test.ts` | rule, enabled, id |
+| `src/services/alertEngine/reconcileOrphanedRules.ts` | nothing, parsed, reconcileStoredRules, e, result, ... |
+| `src/services/alertEngine/ruleCoverage.ts` | ledger, alertId, ruleIds, updated, e, ... |
+| `src/services/alertEngine/ruleEvaluation.integration.test.ts` | loop.readRules, timeframe, migratedRule, loop.readRules, alert, ... |
+| `src/services/alertEngine/ruleEvaluationLoop.test.ts` | reading, onFiring, loop.readRules, overrides, loop.readRules, ... |
+| `src/services/alertEngine/ruleEvaluationLoop.ts` | rule, e, rule, record, firing, ... |
+| `src/services/alertEngine/ruleLifecycleView.test.ts` | origins, entries, ruleDoc, seed, overrides, ... |
+| `src/services/alertEngine/ruleLifecycleView.ts` | readRules, parsed, raw, e |
+| `src/services/alertEngine/ruleLoopWiring.ts` | parsed, readStoredRules, raw, e |
+| `src/services/alertEngine/ruleOriginLedger.test.ts` | raw, entries, storedLedger, ledgerWith |
+| `src/services/alertEngine/ruleOriginLedger.ts` | emptyLedger, added, migratedAtMs, skipped, parseEntry, ... |
 | `src/services/apiService_fundingRate.test.ts` | text, text, text, text, text |
 | `src/services/apiService_infinity.test.ts` | text |
-| `src/services/apiService_rateLimit.test.ts` | fetchMock.text, fetchMock.json, fetchMock.text, fetchMock.json |
+| `src/services/apiService_rateLimit.test.ts` | fetchMock.json, fetchMock.json, fetchMock.text, fetchMock.text |
 | `src/services/app.test.ts` | json, json, json |
-| `src/services/app.ts` | s, app.deletePreset, app.savePreset, app.getInputsAsObject, name, ... |
-| `src/services/bitgetWs.ts` | ws, payload, sendUnsubscribe, symbol, channel |
+| `src/services/app.ts` | presets, app.getInputsAsObject, presets, s, presets, ... |
+| `src/services/bitgetWs.ts` | channel, sendUnsubscribe, payload, symbol, ws |
 | `src/services/calculationStrategy.test.ts` | makeStrategy, caps |
 | `src/services/exchange/adapterConformance.harness.ts` | bitgetHarness.simulateLogin, inject |
 | `src/services/exchange/bitgetAdapter.ts` | account.fetchFundingRateHistory |
-| `src/services/marketWatcher/syntheticHistory.test.ts` | body, jsonResponse, text, text, installFakeExchange |
+| `src/services/marketWatcher/syntheticHistory.test.ts` | body, text, installFakeExchange, jsonResponse, text |
 | `src/services/newsService_limit.test.ts` | mockResponse.text, mockResponse.text |
 | `src/services/newsService_sentiment.test.ts` | text, text |
 | `src/services/orderPlacementService.test.ts` | effectOf |
-| `src/services/paperTrading_modeSwitchRace.test.ts` | body, respond, hold, text, resolve, ... |
+| `src/services/paperTrading_modeSwitchRace.test.ts` | respond, hold, body, resolve, text, ... |
 | `src/services/paperTrading_seam.test.ts` | text |
 | `src/services/paperTrading_tracking.test.ts` | text |
-| `src/services/serializationService.ts` | chunks, chunkSize, total, content, T, ... |
+| `src/services/serializationService.ts` | chunkStr, content, end, total, i, ... |
 | `src/services/syncService.parallel.test.ts` | lastJournalWrite, calls |
-| `src/services/tradeService_accountSettings.test.ts` | text, calls, text |
+| `src/services/tradeService_accountSettings.test.ts` | text, text, calls |
 | `src/services/tradeService_flashClose.test.ts` | text, text, text |
 | `src/services/tradeService_hardening.test.ts` | text, text, text |
-| `src/services/tradeService_hedgeClose.test.ts` | fetchSpy.text, call, lastBody, calls |
+| `src/services/tradeService_hedgeClose.test.ts` | fetchSpy.text, calls, call, lastBody |
 | `src/services/tradeService_race.test.ts` | text |
-| `src/services/tradeService_requestFields.test.ts` | call, fetchSpy.text, lastBody |
+| `src/services/tradeService_requestFields.test.ts` | lastBody, fetchSpy.text, call |
 | `src/services/tradeService_serialization.test.ts` | fetchSpy.text |
-| `src/services/tradeService_tpslModify.test.ts` | spy, spyRequest, body, sentParams |
-| `src/services/tradeService_tpslPlacement.test.ts` | body, sentParams, spyRequest, spy |
-| `src/stores/ai.svelte.ts` | e, stored, constructor, parsed, load |
-| `src/stores/alertPanel.svelte.ts` | blankDraft, e, symbol, validateDraft, accepted |
-| `src/stores/alerts.svelte.ts` | e, covered, replayed, resyncCoverage, t, ... |
-| `src/stores/alerts_engineWiring.test.ts` | env, seedCoveredRule, closes, armMidSessionThenReceiveHistory, alertJson, ... |
-| `src/stores/alerts_firingSink.test.ts` | overrides, ruleDoc, run, _.subscribe |
-| `src/stores/journal.svelte.ts` | autoCalculateMissingAtr, parsedData, count, current, sliced, ... |
+| `src/services/tradeService_tpslModify.test.ts` | sentParams, body, spyRequest, spy |
+| `src/services/tradeService_tpslPlacement.test.ts` | spyRequest, spy, sentParams, body |
+| `src/stores/ai.svelte.ts` | e, constructor, parsed, stored, load |
+| `src/stores/alertPanel.svelte.ts` | symbol, accepted, blankDraft, validateDraft, e |
+| `src/stores/alerts.svelte.ts` | initAlertEngine, startRuleEvaluationLoop, readAvailableKlineTimeframes, e, readClosedCandles, ... |
+| `src/stores/alerts_engineWiring.test.ts` | resetModulesAndFlush, seedCoveredRule, seedCoveredRule, importFreshAlertsModule, FakeAlertEngineWasm, ... |
+| `src/stores/alerts_firingSink.test.ts` | _.subscribe, overrides, run, ruleDoc |
+| `src/stores/journal.svelte.ts` | data, current, json, load, e, ... |
 | `src/stores/modal.test.ts` | browser |
-| `src/stores/notes.svelte.ts` | constructor, clearNotes, load, NotesManager, e, ... |
+| `src/stores/notes.svelte.ts` | messages, clearNotes, e, addNote, e, ... |
 | `src/stores/settings.credentialStore.test.ts` | storedPayload |
 | `src/tests/flash-close.confirmation.test.ts` | text |
 | `src/tests/flash-close.test.ts` | text, text |
 | `src/tests/security/credential_transport.test.ts` | text, text, text |
 | `src/tests/tradeService_race.test.ts` | text |
-| `src/types/apiSchemas.money.test.ts` | mustParse, result, T |
-| `src/utils/markdownUtils.ts` | raw, renderTrustedMarkdown, cleaned, text, e, ... |
-| `src/utils/storageHelper.ts` | e, cacheKeys, retryError, size, safeSave, ... |
-| `src/utils/storageUtils.ts` | oldValue, key, storedCache, keys, key, ... |
-| `src/utils/storageWrapper.ts` | SafeLocalStorage, key, key, options, e, ... |
-| `tests/unit/verify_tpsl_validation.test.ts` | text, request.text, request.text, request.text, request.text, ... |
+| `src/types/apiSchemas.money.test.ts` | T, mustParse, result |
+| `src/utils/markdownUtils.ts` | cleaned, e, e, text, text, ... |
+| `src/utils/storageHelper.ts` | key, cacheKeys, e, value, retryError, ... |
+| `src/utils/storageUtils.ts` | key, calculateUsage, scheduleCacheUpdate, oldValue, storageUtils.checkQuota, ... |
+| `src/utils/storageWrapper.ts` | isAvailable, getEstimatedAvailableSpace, getItem, e, e, ... |
+| `tests/unit/verify_tpsl_validation.test.ts` | request.text, request.text, request.text, text, request.text, ... |
 
 ## Connected Communities
 
-- **services +42 dirs** (12 cross-edges)
 - **services +6 dirs · dispatchMessage** (12 cross-edges)
+- **services +42 dirs** (12 cross-edges)
 - **services +14 dirs** (11 cross-edges)
 - **services/alertEngine · push** (7 cross-edges)
 - **services/alertEngine +4 dirs** (6 cross-edges)
+- **stores +3 dirs** (5 cross-edges)
 - **services +10 dirs · slice** (5 cross-edges)
 - **services +5 dirs · ensureHistory** (5 cross-edges)
-- **stores +3 dirs** (5 cross-edges)
 - **utils +15 dirs** (5 cross-edges)
 - **server/venues +22 dirs** (4 cross-edges)
-- **services · checkOpfsSnapshotOnStartup** (3 cross-edges)
+- **services +6 dirs · processNext** (3 cross-edges)
 - **services/alertEngine +1 dirs · readCoveredAlertIds** (3 cross-edges)
 - **services/alertEngine +1 dirs · refresh** (3 cross-edges)
-- **services +6 dirs · processNext** (3 cross-edges)
-- **benchmarks +13 dirs** (2 cross-edges)
-- **services +4 dirs · parseDecimal** (1 cross-edges)
-- **alerts/tabs +4 dirs** (1 cross-edges)
-- **rules +3 dirs** (1 cross-edges)
-- **services/alertEngine · reconcileOrphanedRules** (1 cross-edges)
-- **services/alertEngine +1 dirs · ensureLoaded** (1 cross-edges)
-- **calculators +12 dirs** (1 cross-edges)
-- **alerts/tabs +2 dirs · AlertsManager** (1 cross-edges)
-- **services/alertEngine · RuleEvaluationLoop** (1 cross-edges)
-- **services +3 dirs · calculate** (1 cross-edges)
-- **utils +10 dirs** (1 cross-edges)
-- **. +2 dirs · repeat** (1 cross-edges)
-- **services/alertEngine +1 dirs · firingMessage** (1 cross-edges)
-- **components/shared +2 dirs · handleScreenshotUpload** (1 cross-edges)
-- **scripts +6 dirs** (1 cross-edges)
-- **services +2 dirs · syncService.syncBitunixPositions** (1 cross-edges)
-- **services +1 dirs · show** (1 cross-edges)
-- **services +6 dirs · BitunixWebSocketService** (1 cross-edges)
-- **services +4 dirs · queueSubscription** (1 cross-edges)
+- **services · checkOpfsSnapshotOnStartup** (3 cross-edges)
+- **benchmarks +11 dirs** (2 cross-edges)
 - **services +10 dirs · appFetch** (1 cross-edges)
+- **rules +3 dirs** (1 cross-edges)
+- **services +4 dirs · parseDecimal** (1 cross-edges)
+- **services +2 dirs · syncService.syncBitunixPositions** (1 cross-edges)
+- **calculators +12 dirs** (1 cross-edges)
+- **services/alertEngine +1 dirs · ensureLoaded** (1 cross-edges)
+- **services/alertEngine +1 dirs · firingMessage** (1 cross-edges)
+- **scripts +6 dirs** (1 cross-edges)
+- **services +2 dirs · set** (1 cross-edges)
+- **services +6 dirs · BitunixWebSocketService** (1 cross-edges)
+- **services +1 dirs · show** (1 cross-edges)
+- **alerts/tabs +2 dirs · AlertsManager** (1 cross-edges)
+- **. +2 dirs · repeat** (1 cross-edges)
+- **services/alertEngine · reconcileOrphanedRules** (1 cross-edges)
+- **alerts/tabs +4 dirs** (1 cross-edges)
+- **services +5 dirs · safeDecimal** (1 cross-edges)
+- **utils +10 dirs** (1 cross-edges)
 - **services +2 dirs · restoreFromBackup** (1 cross-edges)
+- **services/alertEngine · RuleEvaluationLoop** (1 cross-edges)
+- **components/shared +2 dirs · handleScreenshotUpload** (1 cross-edges)
 
 ## How to Explore
 

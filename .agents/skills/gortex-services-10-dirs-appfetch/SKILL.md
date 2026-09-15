@@ -56,79 +56,79 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `src/components/inputs/ExchangeAccountControls.svelte` | e, base, raw, refreshModes, lines, ... |
+| `src/components/inputs/ExchangeAccountControls.svelte` | forSymbol, now, failed, confirmModes, report, ... |
 | `src/components/inputs/PortfolioInputs.component.test.ts` | paperAccountFeed |
-| `src/components/inputs/PortfolioInputs.svelte` | handleLockClick, silent, handleFetchBalance, keys, provider, ... |
-| `src/components/results/PlaceOrderPanel.svelte` | typeLabel, submit, isAccountStateStale, confirmed, at, ... |
-| `src/components/settings/AccountList.svelte` | confirmed, handleRemove, account |
-| `src/components/settings/ExternalChannelSettings.svelte` | chats, lookupChats |
-| `src/components/shared/AddToPositionModal.svelte` | e, handleAdd |
+| `src/components/inputs/PortfolioInputs.svelte` | mappedKey, provider, PortfolioInputs, e, keys, ... |
+| `src/components/results/PlaceOrderPanel.svelte` | isPaper, typeLabel, isAccountStateStale, submit, e, ... |
+| `src/components/settings/AccountList.svelte` | confirmed, account, handleRemove |
+| `src/components/settings/ExternalChannelSettings.svelte` | lookupChats, chats |
+| `src/components/shared/AddToPositionModal.svelte` | handleAdd, e |
 | `src/components/shared/PositionsSidebar.dedup.component.test.ts` | paperAccountFeed |
-| `src/components/shared/PositionsSidebar.svelte` | handleLoadMoreHistory, orderId, info, translateError, endTime, ... |
+| `src/components/shared/PositionsSidebar.svelte` | response, orderId, keys, endTime, handleCancelOrder, ... |
 | `src/components/shared/Tooltip.svelte` | show |
 | `src/components/shared/TpSlCreateModal.svelte` | e, handleCreatePositionWide |
 | `src/components/shared/TpSlEditModal.svelte` | handleSave, e |
-| `src/lib/appAuth.ts` | appAuthHeaders, body, isClientTokenError, issueAccessToken, response, ... |
+| `src/lib/appAuth.ts` | issueAccessToken, appAuthHeaders, extra, token, appFetch, ... |
 | `src/lib/windows/implementations/CandleChartView.component.test.ts` | json |
-| `src/lib/windows/implementations/CandleChartView.svelte` | keys, response, keys, e, e, ... |
-| `src/services/accountEpoch.svelte.ts` | seq, AccountEpochStore, AccountSession, isCurrent, current, ... |
-| `src/services/accountFetchSingleflight.ts` | existing, runAccountFetchOnce, accountFetchKey, flight, key, ... |
-| `src/services/accountReadOrder.ts` | ticket, issued, begin, AccountReadOrder, applied, ... |
-| `src/services/aiModelsService.ts` | params, err, fetchFromServer, headers, opts, ... |
+| `src/lib/windows/implementations/CandleChartView.svelte` | e, keys, json, hydratePositionsIfEmpty, provider, ... |
+| `src/services/accountEpoch.svelte.ts` | AccountEpochStore, AccountSession, session, seq, isCurrent, ... |
+| `src/services/accountFetchSingleflight.ts` | existing, flight, accountId, fn, accountFetchKey, ... |
+| `src/services/accountReadOrder.ts` | issued, mayApply, AccountReadTicket, AccountReadOrder, begin, ... |
+| `src/services/aiModelsService.ts` | res, fetchFromServer, err, headers, provider, ... |
 | `src/services/apiService_syntheticTimeframes.test.ts` | json |
 | `src/services/app_realtimeUpdates.test.ts` | withOnePosition |
-| `src/services/exchange/bitgetAdapter.ts` | account.fetchPositionMode, symbol, account.fetchTradingPairInfo, symbol, account.fetchLeverageMarginMode |
-| `src/services/exchange/bitunixAdapter.ts` | account.changeLeverage, leverage, account.fetchLeverageMarginMode, symbol, positionMode, ... |
+| `src/services/exchange/bitgetAdapter.ts` | symbol, account.fetchLeverageMarginMode, account.fetchPositionMode, account.fetchTradingPairInfo, symbol |
+| `src/services/exchange/bitunixAdapter.ts` | symbol, account.changePositionMode, account.fetchTradingPairInfo, account.changeLeverage, symbol, ... |
 | `src/services/exchange/registry.ts` | activeExchange |
-| `src/services/externalDelivery.ts` | token, body, response, fetchTelegramChats, botToken, ... |
-| `src/services/feeRateService.ts` | clearDerivedRates, payload, refreshDerivedFeeRates, rates, rates, ... |
-| `src/services/frameSupportService.ts` | checkDomainSupport, domain, res, data, urlStr |
-| `src/services/imgbbService.ts` | expiration, config, formData, apiKey, errorData, ... |
-| `src/services/paperAccountFeed.ts` | accountInfo, PaperAccountFeed, balance, PaperAccountInfo, unrealizedTotal, ... |
-| `src/services/paperTradingService.ts` | resetBook, account, feed, syncToStores |
-| `src/services/rssParserService.ts` | error, data, body, rssParserService.parseRssFeed, timeoutId, ... |
+| `src/services/externalDelivery.ts` | botToken, e, controller, token, fetchTelegramChats, ... |
+| `src/services/feeRateService.ts` | clearDerivedRates, rates, payload, refreshDerivedFeeRates, applyDerivedRates, ... |
+| `src/services/frameSupportService.ts` | checkDomainSupport, data, urlStr, res, domain |
+| `src/services/imgbbService.ts` | config, errorData, file, apiKey, formData, ... |
+| `src/services/paperAccountFeed.ts` | PaperAccountFeed, positions, paperAccountFeed, PaperAccountInfo, unrealizedTotal, ... |
+| `src/services/paperTradingService.ts` | resetBook, syncToStores, feed, account |
+| `src/services/rssParserService.ts` | timeoutId, controller, data, response, rssParserService.parseRssFeed, ... |
 | `src/services/syncService.parallel.test.ts` | journalState.entries |
-| `src/services/technicalsTypes.test.ts` | relPath, read |
-| `src/services/toastService.svelte.ts` | duration, success, message, warning, message, ... |
-| `src/services/tradeService.ts` | e, symbol, e, data, validation, ... |
-| `src/stores/entitlement.svelte.ts` | keys, hasApiKeys, capabilities, provider |
-| `src/stores/settings.svelte.ts` | effectiveShowSidebarActivity, bitunix, hasBitunixKeys, hasApiKeys, bitget, ... |
-| `src/stores/settings/accounts.ts` | accounts, activeAccountId, exchange, keysForActiveAccount |
-| `src/utils/errorUtils.ts` | venue, t, getDisplayMessage, e, e, ... |
-| `src/utils/marginMode.ts` | normalizeMarginMode, value, text |
-| `src/utils/utils.ts` | ApiEnvelope, T, body, unwrapApiEnvelope |
+| `src/services/technicalsTypes.test.ts` | read, relPath |
+| `src/services/toastService.svelte.ts` | success, message, message, duration, warning, ... |
+| `src/services/tradeService.ts` | validation, keys, ticket, changeMarginMode, response, ... |
+| `src/stores/entitlement.svelte.ts` | keys, hasApiKeys, provider, capabilities |
+| `src/stores/settings.svelte.ts` | hasApiKeys, hasBitunixKeys, hasBitgetKeys, bitget, bitunix, ... |
+| `src/stores/settings/accounts.ts` | activeAccountId, accounts, exchange, keysForActiveAccount |
+| `src/utils/errorUtils.ts` | e, e, venue, getDisplayMessage, t, ... |
+| `src/utils/marginMode.ts` | value, text, normalizeMarginMode |
+| `src/utils/utils.ts` | unwrapApiEnvelope, body, T, ApiEnvelope |
 
 ## Connected Communities
 
 - **services +42 dirs** (14 cross-edges)
+- **services +2 dirs · set** (6 cross-edges)
 - **utils +10 dirs** (5 cross-edges)
 - **services +30 dirs** (5 cross-edges)
-- **services +3 dirs · calculate** (5 cross-edges)
 - **services +6 dirs · processNext** (5 cross-edges)
-- **services/alertEngine +4 dirs** (4 cross-edges)
-- **services +5 dirs · ensureHistory** (3 cross-edges)
 - **. +9 dirs** (3 cross-edges)
-- **utils +15 dirs** (2 cross-edges)
+- **services +5 dirs · ensureHistory** (3 cross-edges)
+- **services/alertEngine +4 dirs** (3 cross-edges)
 - **services +10 dirs · slice** (2 cross-edges)
 - **server/venues +22 dirs** (2 cross-edges)
-- **services +1 dirs · t** (2 cross-edges)
-- **services +14 dirs** (2 cross-edges)
-- **stores/settings +2 dirs** (2 cross-edges)
-- **services +6 dirs · dispatchMessage** (2 cross-edges)
 - **services +3 dirs · delete** (2 cross-edges)
-- **components/shared +24 dirs** (2 cross-edges)
 - **services · markPrice** (2 cross-edges)
-- **calculators +12 dirs** (2 cross-edges)
+- **components/shared +24 dirs** (2 cross-edges)
+- **services +6 dirs · dispatchMessage** (2 cross-edges)
+- **services +14 dirs** (2 cross-edges)
+- **services +1 dirs · t** (2 cross-edges)
+- **stores/settings +2 dirs** (2 cross-edges)
+- **utils +15 dirs** (2 cross-edges)
 - **services +5 dirs · calculateIndicatorsFromArrays** (2 cross-edges)
-- **services +1 dirs · newsService.fetchNews** (1 cross-edges)
-- **components/shared +13 dirs** (1 cross-edges)
-- **services +2 dirs · syncService.syncBitunixPositions** (1 cross-edges)
+- **calculators +12 dirs** (2 cross-edges)
+- **services +2 dirs · newsService.fetchNews** (1 cross-edges)
 - **services/exchange · getExchangeAdapter** (1 cross-edges)
-- **services +3 dirs · verify** (1 cross-edges)
-- **fees** (1 cross-edges)
-- **windows/implementations +1 dirs** (1 cross-edges)
-- **services · confirmProtection** (1 cross-edges)
 - **services +6 dirs · BitunixWebSocketService** (1 cross-edges)
+- **services +3 dirs · verify** (1 cross-edges)
+- **components/shared +13 dirs** (1 cross-edges)
+- **windows/implementations +1 dirs** (1 cross-edges)
+- **fees** (1 cross-edges)
+- **services +2 dirs · syncService.syncBitunixPositions** (1 cross-edges)
+- **services · confirmProtection** (1 cross-edges)
 
 ## How to Explore
 

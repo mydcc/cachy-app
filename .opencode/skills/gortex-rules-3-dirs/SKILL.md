@@ -35,47 +35,47 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `src/components/alerts/tabs/IndicatorsTab.svelte` | subjectRef, ref, chooseField, next, chosen |
-| `src/lib/alerts/indicatorCatalogue.ts` | name, CatalogueParam, value, factor |
-| `src/lib/alerts/indicatorSettingsSeed.test.ts` | leftOf, seed |
-| `src/lib/alerts/indicatorSettingsSeed.ts` | mapping, drawn, ref, entry, declared, ... |
-| `src/lib/rules/alertPathIndicators.ts` | indicatorId, field, indicator, effectiveFieldOf, referenceFieldFor |
-| `src/lib/rules/indicatorMath.test.ts` | output, id, result, params, values |
-| `src/lib/rules/indicatorRequests.ts` | field, found, takeOperand, timeframe, collectIndicators, ... |
-| `src/lib/rules/indicatorSeries.test.ts` | bands, read, result, candlesIn, ref, ... |
-| `src/lib/rules/indicatorSeries.ts` | low, period, low, close, singleLine, ... |
-| `src/lib/rules/ruleEvaluationGate.test.ts` | lastAnchor, ctx, candles |
-| `src/lib/rules/ruleSentence.test.ts` | field, cci |
-| `src/lib/rules/types.ts` | AccountSnapshot, SizeBasis, IndicatorRef, EvaluationContext, DecimalString, ... |
-| `src/services/alertEngine/correctedCandle.integration.test.ts` | contextFor, series, sma, result, series |
-| `src/services/alertEngine/crossPathParity.test.ts` | jsSeries, ref, result |
-| `src/services/alertEngine/indicatorConditions.integration.test.ts` | candles, indicator, indicators, output, rule, ... |
+| `src/components/alerts/tabs/IndicatorsTab.svelte` | chosen, ref, subjectRef, chooseField, next |
+| `src/lib/alerts/indicatorCatalogue.ts` | value, factor, name, CatalogueParam |
+| `src/lib/alerts/indicatorSettingsSeed.test.ts` | seed, leftOf |
+| `src/lib/alerts/indicatorSettingsSeed.ts` | ref, drawn, mapping, refFor, declared, ... |
+| `src/lib/rules/alertPathIndicators.ts` | effectiveFieldOf, field, indicator, indicatorId, referenceFieldFor |
+| `src/lib/rules/indicatorMath.test.ts` | id, output, params, values, result |
+| `src/lib/rules/indicatorRequests.ts` | params, IndicatorRequest, walk, field, indicatorKey, ... |
+| `src/lib/rules/indicatorSeries.test.ts` | volumes, result, closes, result, series, ... |
+| `src/lib/rules/indicatorSeries.ts` | SeriesResult, increment, id, right, start, ... |
+| `src/lib/rules/ruleEvaluationGate.test.ts` | candles, lastAnchor, ctx |
+| `src/lib/rules/ruleSentence.test.ts` | cci, field |
+| `src/lib/rules/types.ts` | DecimalString, AccountSnapshot, EvaluationIndicatorSeries, PriceField, EvaluationCandle, ... |
+| `src/services/alertEngine/correctedCandle.integration.test.ts` | series, result, series, sma, contextFor |
+| `src/services/alertEngine/crossPathParity.test.ts` | result, ref, jsSeries |
+| `src/services/alertEngine/indicatorConditions.integration.test.ts` | indicator, params, request, candles, contextAt, ... |
 | `src/services/alertEngine/indicatorContext.test.ts` | readCandles, contextPassedToGate |
 | `src/services/alertEngine/indicatorWarmup.ts` | IndicatorWarmup |
-| `src/services/alertEngine/markCandleCache.test.ts` | close, time, candle |
-| `src/services/alertEngine/recordedHistoryConditions.test.ts` | output, fullSeries, tail, candles, ruleWith, ... |
-| `src/services/alertEngine/ruleEvaluationLoop.ts` | symbol, rule, triggerTimeframe, ctx, timeframe, ... |
+| `src/services/alertEngine/markCandleCache.test.ts` | time, close, candle |
+| `src/services/alertEngine/recordedHistoryConditions.test.ts` | request, index, ruleWith, output, indicators, ... |
+| `src/services/alertEngine/ruleEvaluationLoop.ts` | contextFor, symbol, state, request, series, ... |
 
 ## Connected Communities
 
-- **alerts +2 dirs · cardAlertField** (4 cross-edges)
 - **services +10 dirs · slice** (4 cross-edges)
+- **alerts +2 dirs · cardAlertField** (4 cross-edges)
 - **utils +3 dirs · fill** (3 cross-edges)
 - **services/alertEngine +4 dirs** (3 cross-edges)
 - **utils +10 dirs** (3 cross-edges)
-- **rules · takeOperand** (2 cross-edges)
 - **services/alertEngine · push** (2 cross-edges)
-- **services/alertEngine +1 dirs · refresh** (2 cross-edges)
-- **calculators +12 dirs** (2 cross-edges)
 - **services +14 dirs** (2 cross-edges)
+- **rules · takeOperand** (2 cross-edges)
+- **calculators +12 dirs** (2 cross-edges)
 - **services +30 dirs** (2 cross-edges)
-- **services +4 dirs · normalizeTpSlRow** (1 cross-edges)
+- **services/alertEngine +1 dirs · refresh** (2 cross-edges)
 - **services/alertEngine +1 dirs · readRuleStates** (1 cross-edges)
-- **alerts/tabs +4 dirs** (1 cross-edges)
-- **services +5 dirs · ensureHistory** (1 cross-edges)
-- **benchmarks +13 dirs** (1 cross-edges)
-- **utils · calculateADXSeries** (1 cross-edges)
+- **benchmarks +11 dirs** (1 cross-edges)
 - **services +3 dirs · verify** (1 cross-edges)
+- **services +5 dirs · ensureHistory** (1 cross-edges)
+- **alerts/tabs +4 dirs** (1 cross-edges)
+- **utils · calculateADXSeries** (1 cross-edges)
+- **services +4 dirs · normalizeTpSlRow** (1 cross-edges)
 - **rules +10 dirs** (1 cross-edges)
 
 ## How to Explore

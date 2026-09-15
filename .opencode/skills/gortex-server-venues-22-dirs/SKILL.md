@@ -60,51 +60,51 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `` | concat, replaceAll, charCodeAt |
+| `` | charCodeAt, replaceAll, concat |
 | `src/components/settings/tabs/IndicatorAlertAction.component.test.ts` | source, reason |
-| `src/lib/server/cache.ts` | ttlMs, getOrFetch, key, now, entry, ... |
-| `src/lib/server/logger.ts` | error, message, data |
-| `src/routes/api/account-settings/+server.ts` | errorMsg, result, payload, keyError, creds, ... |
-| `src/routes/api/account-settings/account_settings.test.ts` | getClientAddress, text |
-| `src/routes/api/ai/gemini/+server.ts` | baseUrl, GeminiPayload, errJson, encodedModel, errMsg, ... |
+| `src/lib/server/cache.ts` | promise, entry, getOrFetch, ttlMs, fetchFn, ... |
+| `src/lib/server/logger.ts` | data, error, message |
+| `src/routes/api/account-settings/+server.ts` | secret, payload, errorCode, apiKey, sanitizedMsg, ... |
+| `src/routes/api/account-settings/account_settings.test.ts` | text, getClientAddress |
+| `src/routes/api/ai/gemini/+server.ts` | url, apiKey, msg, baseUrl, contents, ... |
 | `src/routes/api/ai/gemini/gemini.test.ts` | getClientAddress |
-| `src/routes/api/balance/+server.ts` | exchange, venue, body, validation, balance, ... |
-| `src/routes/api/funding-rate/+server.ts` | isStatusError, error, symbol, GET, provider, ... |
-| `src/routes/api/klines/+server.ts` | ApiError, provider, start, apiError, startParam, ... |
-| `src/routes/api/leverage-margin-mode/+server.ts` | res, LeverageMarginModeData, params, signature, data, ... |
-| `src/routes/api/orders/+server.ts` | body, exchange, result, apiSecret, errorMsg, ... |
+| `src/routes/api/balance/+server.ts` | exchange, body, text, apiSecret, passphrase, ... |
+| `src/routes/api/funding-rate/+server.ts` | data, isStatusError, GET, cacheKey, message, ... |
+| `src/routes/api/klines/+server.ts` | message, symbol, limit, ApiError, GET, ... |
+| `src/routes/api/leverage-margin-mode/+server.ts` | apiKey, baseUrl, queryString, apiSecret, data, ... |
+| `src/routes/api/orders/+server.ts` | sanitizedDetails, apiKey, text, exchange, payload, ... |
 | `src/routes/api/orders/orders_bitget_history.test.ts` | text, getClientAddress |
-| `src/routes/api/position-tiers/+server.ts` | data, cacheKey, error, error, message, ... |
-| `src/routes/api/sync/+server.ts` | limit, fetchBitunixHistory, limit, validation, text, ... |
-| `src/routes/api/sync/order-detail/+server.ts` | POST, apiKey, apiSecret, orderId, text, ... |
-| `src/routes/api/sync/orders/+server.ts` | i, startTime, sanitizeMsg, apiKey, planResult, ... |
+| `src/routes/api/position-tiers/+server.ts` | message, isStatusError, GET, cacheKey, data, ... |
+| `src/routes/api/sync/+server.ts` | fetchBitunixHistory, startTime, creds, apiSecret, startTime, ... |
+| `src/routes/api/sync/order-detail/+server.ts` | text, body, authError, result, rawMsg, ... |
+| `src/routes/api/sync/orders/+server.ts` | planResult, regularResult, accumulated, apiKey, allOrders, ... |
 | `src/routes/api/sync/orders/security.test.ts` | getClientAddress |
-| `src/routes/api/sync/positions-history/+server.ts` | path, nonce, creds, apiKey, limit, ... |
-| `src/routes/api/sync/positions-history/positions_history_security.test.ts` | getClientAddress, json, text |
-| `src/routes/api/sync/positions-pending/+server.ts` | apiKey, params, fetchBitunixPendingPositions, data, body, ... |
-| `src/routes/api/sync/sync_security.test.ts` | getClientAddress, json, text |
-| `src/routes/api/tickers/+server.ts` | symbols, error, provider, GET, isStatusError, ... |
+| `src/routes/api/sync/positions-history/+server.ts` | apiSecret, signature, rawMsg, body, data, ... |
+| `src/routes/api/sync/positions-history/positions_history_security.test.ts` | text, getClientAddress, json |
+| `src/routes/api/sync/positions-pending/+server.ts` | baseUrl, positions, timestamp, params, text, ... |
+| `src/routes/api/sync/sync_security.test.ts` | text, json, getClientAddress |
+| `src/routes/api/tickers/+server.ts` | type, provider, message, data, isStatusError, ... |
 | `src/routes/api/tickers/tickers.test.ts` | text |
-| `src/routes/api/trading-pairs/+server.ts` | cacheKey, isStatusError, data, error, symbols, ... |
-| `src/stores/settings/aiProviders.ts` | flavorOf, id, id, BuiltinProviderPreset, builtinPreset |
+| `src/routes/api/trading-pairs/+server.ts` | message, error, cacheKey, error, symbols, ... |
+| `src/stores/settings/aiProviders.ts` | id, BuiltinProviderPreset, builtinPreset, flavorOf, id |
 | `src/types/accountSettingsSchemas.ts` | AccountSettingsAction, AccountSettingsPayload |
 | `src/types/bitget.ts` | BitgetOrderPayload |
-| `src/types/bitunix.ts` | BitunixOrderListWrapper, BitunixResponse, BitunixOrder, BitunixOrderPayload |
+| `src/types/bitunix.ts` | BitunixOrderPayload, BitunixResponse, BitunixOrder, BitunixOrderListWrapper |
 | `src/types/exchange.ts` | NormalizedPosition |
 | `src/types/orderSchemas.ts` | OrderRequestPayload |
-| `src/utils/circularBuffer.ts` | index, get |
-| `src/utils/safeJson.ts` | safeJsonParse, c, len, j, lastIndex, ... |
-| `src/utils/server/bitunix.ts` | body, generateBitunixSignature, apiKey, signature, apiSecret, ... |
+| `src/utils/circularBuffer.ts` | get, index |
+| `src/utils/safeJson.ts` | result, char, jsonString, backslashCount, i, ... |
+| `src/utils/server/bitunix.ts` | bodyStr, apiSecret, queryString, sortedKeys, body, ... |
 | `src/utils/server/exchangeResponse.test.ts` | text |
-| `src/utils/server/exchangeResponse.ts` | T, response, readExchangeJson |
-| `src/utils/server/fetchWithTimeout.ts` | timer, url, init, fetchImpl, upstreamErrorStatus, ... |
-| `src/utils/server/requestUtils.ts` | passphrase, apiSecret, body, apiKey, ApiCredentials, ... |
-| `src/utils/server/venues/bitget.ts` | passphrase, apiKey, executeAccountSetting, marginCoin, apiKey, ... |
-| `src/utils/server/venues/bitunix.ts` | data, postBitunixAccount, creds, payload, details, ... |
+| `src/utils/server/exchangeResponse.ts` | response, T, readExchangeJson |
+| `src/utils/server/fetchWithTimeout.ts` | error, timer, upstreamErrorStatus, timeoutMs, e, ... |
+| `src/utils/server/requestUtils.ts` | b, request, extractApiCredentials, apiSecret, apiKey, ... |
+| `src/utils/server/venues/bitget.ts` | cleanedBody, creds, body, baseUrl, params, ... |
+| `src/utils/server/venues/bitunix.ts` | payload, postBitunixAccount, timestamp, baseUrl, apiKey, ... |
 | `src/utils/server/venues/index.ts` | id, resolveVenue |
-| `src/utils/server/venues/orderErrors.ts` | payload, ExchangeError, T, cleanPayload, cleaned |
-| `src/utils/server/venues/types.ts` | KlinePriceSource, VenueCredentials, VenueKline, VenueModule, KlineQuery, ... |
-| `src/utils/server/venues/upstreamRetry.ts` | upstreamRetryDelayMs, sleep, attempt, ms, isRetryableUpstreamStatus, ... |
+| `src/utils/server/venues/orderErrors.ts` | payload, cleaned, cleanPayload, T, ExchangeError |
+| `src/utils/server/venues/types.ts` | VenueCredentials, VenueId, KlinePriceSource, VenueModule, VenueKline, ... |
+| `src/utils/server/venues/upstreamRetry.ts` | sleep, upstreamRetryDelayMs, isRetryableUpstreamStatus, attempt, status, ... |
 
 ## Connected Communities
 
@@ -119,13 +119,13 @@ Use this skill when working on files in:
 - **external/news +2 dirs** (4 cross-edges)
 - **api/sentiment +3 dirs** (3 cross-edges)
 - **utils +15 dirs** (2 cross-edges)
-- **server · ServerLogger** (1 cross-edges)
-- **utils/server · validateBitunixKeys** (1 cross-edges)
-- **. +2 dirs · calculateStep** (1 cross-edges)
-- **scripts +6 dirs** (1 cross-edges)
-- **calculators +12 dirs** (1 cross-edges)
-- **services +6 dirs · encrypt** (1 cross-edges)
+- **services +5 dirs · encrypt** (1 cross-edges)
 - **services +1 dirs · app.init** (1 cross-edges)
+- **calculators +12 dirs** (1 cross-edges)
+- **scripts +6 dirs** (1 cross-edges)
+- **. +2 dirs · calculateStep** (1 cross-edges)
+- **utils/server · validateBitunixKeys** (1 cross-edges)
+- **server · ServerLogger** (1 cross-edges)
 
 ## How to Explore
 

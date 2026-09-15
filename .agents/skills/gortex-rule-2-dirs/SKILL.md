@@ -27,11 +27,11 @@ Use this skill when working on files in:
 | `src/lib/chart/indicatorLayer.ts` | ManagedSeries |
 | `src/services/chartPatterns.types.ts` | ChartPatternDefinition, ChartPatternRef |
 | `src/services/storageService.test.ts` | StoredRecord |
-| `technicals-wasm/src/rule/condition.rs` | op, Compare, None, side, is_last, ... |
-| `technicals-wasm/src/rule/evaluate.rs` | timeframe, closed_candles_from, Expired, back, open, ... |
+| `technicals-wasm/src/rule/condition.rs` | Gt, Any, Low, Eq, open, ... |
+| `technicals-wasm/src/rule/evaluate.rs` | s, candles_from, feed, market, timeframe, ... |
 | `technicals-wasm/src/rule/indicator.rs` | an_indicator_with_a_price_choice_accepts_every_price_field |
-| `technicals-wasm/src/rule/lifecycle.rs` | anchor_close_ms, after_firing_returns_a_new_state_and_leaves_the_old_one_alone, after_firing |
-| `technicals-wasm/src/rule/pattern.rs` | an_unknown_pattern_name_is_refused_by_name, needs_trend_context, ShootingStar, ThreeWhiteSoldiers, HangingMan, ... |
+| `technicals-wasm/src/rule/lifecycle.rs` | after_firing, after_firing_returns_a_new_state_and_leaves_the_old_one_alone, anchor_close_ms |
+| `technicals-wasm/src/rule/pattern.rs` | BearishEngulfing, an_unknown_pattern_name_is_refused_by_name, ThreeWhiteSoldiers, PiercingLine, InvertedHammer, ... |
 | `technicals-wasm/src/rule/timeframe.rs` | milliseconds |
 
 ## Entry Points
@@ -44,8 +44,8 @@ Use this skill when working on files in:
 ## Connected Communities
 
 - **rule · detect** (6 cross-edges)
-- **rule +1 dirs · may_announce** (3 cross-edges)
 - **rule · indicator** (3 cross-edges)
+- **rule +1 dirs · may_announce** (3 cross-edges)
 - **rule · new** (2 cross-edges)
 - **rule +1 dirs · parse** (2 cross-edges)
 

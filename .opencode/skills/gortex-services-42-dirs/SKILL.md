@@ -111,102 +111,102 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `` | localeCompare, entries, endsWith, any, toLowerCase, ... |
-| `scripts/lib/backlog-flip.ts` | hit, findItemFile, itemId, repoFiles |
-| `scripts/lib/issue-sync-payload.ts` | assignable, raw, AssigneeSanitization, assignableLogins, invalid, ... |
-| `scripts/sync-github-issues.ts` | hasOpenPR, status, mapStatusToOptionName |
-| `src/components/alerts/tabs/ManageTab.component.test.ts` | path, key, current, translate, _.subscribe, ... |
-| `src/components/settings/tabs/ConnectionsTab.svelte` | res, data, createAccessToken |
-| `src/components/shared/OfflineBanner.component.test.ts` | options, current, k, translate, v, ... |
-| `src/components/shared/PositionsSidebar.dedup.component.test.ts` | routeFetchDeferred, json, json |
-| `src/components/shared/PositionsSidebar.svelte` | lastPrice, live, p, symbolData, resolveMarkPrice |
+| `` | startsWith, catch, replace, any, endsWith, ... |
+| `scripts/lib/backlog-flip.ts` | findItemFile, itemId, hit, repoFiles |
+| `scripts/lib/issue-sync-payload.ts` | raw, invalid, assignableLogins, sanitizeAssignees, assignable, ... |
+| `scripts/sync-github-issues.ts` | hasOpenPR, mapStatusToOptionName, status |
+| `src/components/alerts/tabs/ManageTab.component.test.ts` | current, options, part, _.subscribe, key, ... |
+| `src/components/settings/tabs/ConnectionsTab.svelte` | data, createAccessToken, res |
+| `src/components/shared/OfflineBanner.component.test.ts` | fn, v, options, getNestedTranslation, current, ... |
+| `src/components/shared/PositionsSidebar.dedup.component.test.ts` | json, json, routeFetchDeferred |
+| `src/components/shared/PositionsSidebar.svelte` | live, resolveMarkPrice, lastPrice, symbolData, p |
 | `src/components/shared/TimeframeSelector.component.test.ts` | input, normalizeTimeframeInput |
-| `src/config/rssPresets.ts` | ids, getRSSUrlsByIds, p, urls |
+| `src/config/rssPresets.ts` | getRSSUrlsByIds, ids, p, urls |
 | `src/lib/actions/tooltip.ts` | updatePosition |
-| `src/lib/ai/directRequest.ts` | relativePath, trimmed, hostname, baseUrl, isLoopback, ... |
-| `src/lib/alerts/indicatorFormLeaf.ts` | params, ref, canonicalRef |
-| `src/lib/notificationPolicy.ts` | isNotificationCategory, value |
-| `src/lib/physics/StressLogic.ts` | path, ammoInstance.locateFile |
-| `src/lib/server/aiEndpoint.ts` | extraParams, relativePath, trimmed, subPath, customBaseUrl, ... |
-| `src/lib/server/clientToken.ts` | clientAddress, hash, record, request, unauthorized, ... |
-| `src/lib/server/logger.ts` | key, lowerKey, eqRegex, sanitizeString, str, ... |
-| `src/lib/server/ollamaBaseUrl.ts` | resolveBaseUrl, candidate, parsed, raw |
-| `src/lib/server/rateLimit.ts` | now, consume, entry, key |
-| `src/lib/server/urlValidator.test.ts` | lookupWith, DispatcherLookup, lookup, getSafeDispatcher, resolved |
-| `src/lib/server/urlValidator.ts` | Agent, isUrlAllowed, match, dottedParts, u, ... |
-| `src/lib/staleDeploymentRecovery.ts` | scheduleStaleReload, normalized, message, error, isStaleChunkError, ... |
+| `src/lib/ai/directRequest.ts` | hostname, resolveDirectUrl, rel, trimmed, baseUrl, ... |
+| `src/lib/alerts/indicatorFormLeaf.ts` | ref, params, canonicalRef |
+| `src/lib/notificationPolicy.ts` | value, isNotificationCategory |
+| `src/lib/physics/StressLogic.ts` | ammoInstance.locateFile, path |
+| `src/lib/server/aiEndpoint.ts` | customBaseUrl, trimmed, resolveProviderEndpoint, qs, baseWithoutQuery, ... |
+| `src/lib/server/clientToken.ts` | rateLimited, checkClientToken, unauthorized, rawToken, clientAddress, ... |
+| `src/lib/server/logger.ts` | key, sanitizeString, s, isSensitiveKey, lowerKey, ... |
+| `src/lib/server/ollamaBaseUrl.ts` | resolveBaseUrl, parsed, candidate, raw |
+| `src/lib/server/rateLimit.ts` | consume, now, key, entry |
+| `src/lib/server/urlValidator.test.ts` | lookup, resolved, getSafeDispatcher, DispatcherLookup, lookupWith |
+| `src/lib/server/urlValidator.ts` | isUrlAllowedAsync, isUrlAllowed, allowed, dispatcher, url, ... |
+| `src/lib/staleDeploymentRecovery.ts` | normalized, scheduleStaleReload, isStaleChunkError, error, message, ... |
 | `src/lib/themeBackgrounds.ts` | themeName, isLightTheme |
-| `src/lib/windows/implementations/IframeWindow.svelte.ts` | options, title, constructor, url |
+| `src/lib/windows/implementations/IframeWindow.svelte.ts` | constructor, url, title, options |
 | `src/locales/i18n.ts` | syncDocumentLang, value |
 | `src/params/lang.ts` | param, match |
-| `src/routes/api/ai/anthropic/+server.ts` | AnthropicMessageParam, tools, model, targetUrl, parseResult, ... |
-| `src/routes/api/ai/anthropic/models/+server.ts` | e, baseUrl, data, AnthropicModel, headers, ... |
-| `src/routes/api/ai/gemini/models/+server.ts` | err, targetUrl, baseUrl, response, headers, ... |
-| `src/routes/api/ai/ollama/+server.ts` | rawBaseUrl, baseUrl, POST, hint, response, ... |
-| `src/routes/api/ai/ollama/models/+server.ts` | response, rawBaseUrl, data, e, OllamaModel, ... |
+| `src/routes/api/ai/anthropic/+server.ts` | headers, parseResult, model, err, parsed, ... |
+| `src/routes/api/ai/anthropic/models/+server.ts` | AnthropicModel, apiKey, data, authError, models, ... |
+| `src/routes/api/ai/gemini/models/+server.ts` | GeminiModel, targetUrl, GET, baseUrl, response, ... |
+| `src/routes/api/ai/ollama/+server.ts` | rawBody, apiKey, POST, response, e, ... |
+| `src/routes/api/ai/ollama/models/+server.ts` | response, rawBaseUrl, authError, GET, e, ... |
 | `src/routes/api/ai/ollama/models/ollama_models.test.ts` | getClientAddress |
-| `src/routes/api/ai/ollama/models/server.test.ts` | baseUrl, url, request, get, qs |
+| `src/routes/api/ai/ollama/models/server.test.ts` | baseUrl, get, qs, request, url |
 | `src/routes/api/ai/ollama/ollama.test.ts` | getClientAddress |
-| `src/routes/api/ai/openai-responses/+server.ts` | rawBody, e, parseResult, err, authError, ... |
+| `src/routes/api/ai/openai-responses/+server.ts` | parseResult, POST, apiKey, err, tools, ... |
 | `src/routes/api/ai/openai-responses/server.test.ts` | getClientAddress |
-| `src/routes/api/ai/openai/+server.ts` | rawBody, isOpenRouterTarget, messages, authError, e, ... |
-| `src/routes/api/ai/openai/models/+server.ts` | apiKey, err, baseUrl, withScheme, e, ... |
+| `src/routes/api/ai/openai/+server.ts` | baseUrl, headers, rawBody, targetUrl, e, ... |
+| `src/routes/api/ai/openai/models/+server.ts` | apiKey, data, isVendorCatalog, models, targetUrl, ... |
 | `src/routes/api/ai/openai/server.test.ts` | getClientAddress |
-| `src/routes/api/ai/openrouter/+server.ts` | messages, parseResult, POST, model, targetUrl, ... |
-| `src/routes/api/ai/openrouter/models/+server.ts` | authError, targetUrl, models, OpenRouterModel, data, ... |
-| `src/routes/api/external/article-content/+server.ts` | url, bestTarget, targetUrl, doc, response, ... |
+| `src/routes/api/ai/openrouter/+server.ts` | targetUrl, POST, headers, authError, response, ... |
+| `src/routes/api/ai/openrouter/models/+server.ts` | baseUrl, GET, response, err, headers, ... |
+| `src/routes/api/external/article-content/+server.ts` | message, html, candidates, extractArticleContent, bestTarget, ... |
 | `src/routes/api/external/article-content/article_content.test.ts` | getClientAddress, text |
-| `src/routes/api/external/check-frame-support/+server.ts` | authError, GET, controller, timeoutId, response, ... |
-| `src/routes/api/external/cmc/+server.ts` | GET, response, cmcApiKey, ALLOWED_ENDPOINTS, queryParams, ... |
+| `src/routes/api/external/check-frame-support/+server.ts` | controller, csp, authError, hostname, xfo, ... |
+| `src/routes/api/external/cmc/+server.ts` | endpoint, response, errorBody, queryParams, ALLOWED_ENDPOINTS, ... |
 | `src/routes/api/external/cmc/cmc_auth.test.ts` | getClientAddress |
-| `src/routes/api/rss-fetch/+server.ts` | lower, response, result, url, timeout, ... |
-| `src/service-worker.ts` | isCacheable, response, cache, response, response, ... |
+| `src/routes/api/rss-fetch/+server.ts` | controller, POST, timeout, id, uas, ... |
+| `src/service-worker.ts` | cache, response, err, response, respond, ... |
 | `src/services/alertEngine/indicatorWarmup.ts` | sortedParams, params |
-| `src/services/alertEngine/legacyReplayCoordinator.ts` | attempt, report, symbol, Attempt |
-| `src/services/apiQuotaTracker.svelte.ts` | errorMsg, entry, provider, recordError |
-| `src/services/apiService.ts` | waitForToken, symbol, executeWithRetry, symbol, attempt, ... |
-| `src/services/app.ts` | suggestions, app.updateSymbolSuggestions, input |
-| `src/services/backupService.ts` | lower, value, url, trimmed, isSafeHostOrUrl |
-| `src/services/bitgetWs.ts` | channel, map, sendSubscribe, channel, bitgetChannel, ... |
-| `src/services/bitunixWs.ts` | targetChannel, map, resubscribePublic, subKey, resolved, ... |
+| `src/services/alertEngine/legacyReplayCoordinator.ts` | Attempt, symbol, attempt, report |
+| `src/services/apiQuotaTracker.svelte.ts` | recordError, errorMsg, provider, entry |
+| `src/services/apiService.ts` | provider, key, limit, startFetch, symbol, ... |
+| `src/services/app.ts` | suggestions, input, app.updateSymbolSuggestions |
+| `src/services/backupService.ts` | value, isSafeHostOrUrl, trimmed, url, lower |
+| `src/services/bitgetWs.ts` | symbol, subKey, normalizedSymbol, symbol, symbol, ... |
+| `src/services/bitunixWs.ts` | resolved, args, symbol, channel, symbol, ... |
 | `src/services/capabilityDetection.ts` | mobileKeywords, userAgent, isMobileDevice |
 | `src/services/cloudService.rateLimit.test.ts` | sender, senderActivity.find |
-| `src/services/csvService.ts` | csvService.cleanCSVValue, val |
-| `src/services/dataRepairService.ts` | t, clean, targets, trades, allTrades, ... |
-| `src/services/dbService.ts` | T, key, get, storeName, db |
-| `src/services/exchange/bitgetAdapter.ts` | marketData.channelsForRequirement, marketData.normalizeSymbol, symbol, requirement |
-| `src/services/exchange/bitunixAdapter.ts` | marketData.normalizeSymbol, symbol, requirement, onTrade, marketData.subscribeTrades, ... |
-| `src/services/frameSupportService.ts` | FrameSupportService, supported, obj, isDomainFrameSupported, k, ... |
-| `src/services/hotkeyService.ts` | count, state, cycleTakeProfitFocus, targets, HOTKEY_ACTIONS.action, ... |
-| `src/services/markdownLoader.ts` | id, renderer.heading, slugify, text |
+| `src/services/csvService.ts` | val, csvService.cleanCSVValue |
+| `src/services/dataRepairService.ts` | total, dataRepairService.scanForInvalidSymbols, onProgress, symbol, targets, ... |
+| `src/services/dbService.ts` | key, get, storeName, db, T |
+| `src/services/exchange/bitgetAdapter.ts` | marketData.normalizeSymbol, symbol, requirement, marketData.channelsForRequirement |
+| `src/services/exchange/bitunixAdapter.ts` | marketData.normalizeSymbol, marketData.subscribeTrades, symbol, symbol, onTrade, ... |
+| `src/services/frameSupportService.ts` | isDomainFrameSupported, loadCache, supported, parsed, obj, ... |
+| `src/services/hotkeyService.ts` | nextIndex, cycleTakeProfitFocus, count, HOTKEY_ACTIONS.action, currentIndex, ... |
+| `src/services/markdownLoader.ts` | slugify, renderer.heading, text, id |
 | `src/services/marketWatcher.ts` | refreshActiveHistory |
-| `src/services/marketWatcher/subscriptionRegistry.ts` | requirement, totalChannelCount, symbol, channels, requirement, ... |
-| `src/services/marketWatcher_resync.test.ts` | marketData.channelsForRequirement, requirement |
+| `src/services/marketWatcher/subscriptionRegistry.ts` | requirement, normSymbol, register, channels, channel, ... |
+| `src/services/marketWatcher_resync.test.ts` | requirement, marketData.channelsForRequirement |
 | `src/services/rmsService_riskLimits.test.ts` | journalState.entries |
 | `src/services/syncService.parallel.test.ts` | run, _.subscribe |
-| `src/services/wasmCalculator.ts` | macdGroups, params, parts, action, fromWasmDecimal, ... |
-| `src/stores/ai.svelte.ts` | idx, confirmNeeded, mult, executeAction, currentTargets, ... |
-| `src/stores/chat.svelte.ts` | destroy, unsubscribe |
-| `src/stores/quiz.svelte.ts` | loadQuestions, FlashCard, e, text, path, ... |
+| `src/services/wasmCalculator.ts` | lower, key, pre, middle, convertResult, ... |
+| `src/stores/ai.svelte.ts` | executeAction, e, idx, mult, confirmNeeded, ... |
+| `src/stores/chat.svelte.ts` | unsubscribe, destroy |
+| `src/stores/quiz.svelte.ts` | text, loadQuestions, regex, e, lines, ... |
 | `src/stores/quiz.test.ts` | text |
 | `src/stores/tpsl.svelte.ts` | planTypeOf, order, raw |
-| `src/stores/trade.svelte.ts` | symbol, normalized, provider, setSymbol |
-| `src/stores/ui.svelte.ts` | bgColor, e, themeName, applyThemeToDom, expectedClass, ... |
-| `src/tests/architecture/order_gate_bypass.test.ts` | file, found, source, i, action, ... |
+| `src/stores/trade.svelte.ts` | normalized, setSymbol, symbol, provider |
+| `src/stores/ui.svelte.ts` | themeName, setTheme, bgColor, html, applyThemeToDom, ... |
+| `src/tests/architecture/order_gate_bypass.test.ts` | findBypasses, window, file, found, i, ... |
 | `src/tests/flash-close.confirmation.test.ts` | orderCalls, cancelCalls |
 | `src/types/ai.ts` | AiModelInfo |
-| `src/types/bitgetValidation.ts` | ch, AllowedBitgetChannel, isAllowedBitgetChannel |
-| `src/utils/colors.ts` | n, hexToRgba, c, alpha, hex |
-| `src/utils/errorUtils.ts` | lowerMsg, msg, code, codeStr, mapApiErrorToLabel, ... |
-| `src/utils/heatmapUtils.ts` | getCoinankHeatmapSymbol, symbol |
+| `src/types/bitgetValidation.ts` | AllowedBitgetChannel, ch, isAllowedBitgetChannel |
+| `src/utils/colors.ts` | hexToRgba, alpha, c, hex, n |
+| `src/utils/errorUtils.ts` | msg, code, error, lowerMsg, codeStr, ... |
+| `src/utils/heatmapUtils.ts` | symbol, getCoinankHeatmapSymbol |
 | `src/utils/redact.ts` | input, out, redactString |
-| `src/utils/server/venues/bitunix.ts` | body, data, bitunixIsSymbolNotFoundBody |
-| `src/utils/symbolUtils.ts` | provider, formatSymbolForDisplay, symbol, symbol, normalizeSymbol, ... |
-| `src/utils/technicalsPresenter.ts` | getActionColor, a, action |
-| `src/utils/utils.ts` | str, match, parts, lastDot, suffix, ... |
-| `tests/benchmarks/safeJson.bench.ts` | jsonString, protectedJson, safeJsonParseLegacy |
+| `src/utils/server/venues/bitunix.ts` | data, body, bitunixIsSymbolNotFoundBody |
+| `src/utils/symbolUtils.ts` | normalizeSymbol, formatSymbolForDisplay, symbol, provider, s, ... |
+| `src/utils/technicalsPresenter.ts` | getActionColor, action, a |
+| `src/utils/utils.ts` | suffix, input, normalizeTimeframeInput, match, d, ... |
+| `tests/benchmarks/safeJson.bench.ts` | protectedJson, safeJsonParseLegacy, jsonString |
 | `tests/gpu/webGpuParity.spec.ts` | b, rawText.setup |
-| `vite.config.ts` | id, output.manualChunks |
+| `vite.config.ts` | output.manualChunks, id |
 
 ## Connected Communities
 
@@ -215,45 +215,46 @@ Use this skill when working on files in:
 - **components/shared +13 dirs** (25 cross-edges)
 - **services +10 dirs · slice** (21 cross-edges)
 - **services +30 dirs** (16 cross-edges)
-- **services +3 dirs · calculate** (13 cross-edges)
 - **services +5 dirs · calculateIndicatorsFromArrays** (13 cross-edges)
+- **services +2 dirs · set** (12 cross-edges)
 - **services +6 dirs · processNext** (10 cross-edges)
 - **services +5 dirs · ensureHistory** (9 cross-edges)
-- **services +6 dirs · BitunixWebSocketService** (8 cross-edges)
 - **utils +10 dirs** (8 cross-edges)
+- **services +6 dirs · BitunixWebSocketService** (8 cross-edges)
 - **server/venues +22 dirs** (7 cross-edges)
 - **services +3 dirs · delete** (6 cross-edges)
 - **rules +10 dirs** (5 cross-edges)
 - **components/shared +6 dirs · querySelectorAll** (4 cross-edges)
-- **services +6 dirs · encrypt** (4 cross-edges)
-- **scripts +6 dirs** (4 cross-edges)
-- **services +1 dirs · newsService.fetchNews** (4 cross-edges)
 - **services +10 dirs · appFetch** (4 cross-edges)
+- **scripts +6 dirs** (4 cross-edges)
+- **services +2 dirs · newsService.fetchNews** (4 cross-edges)
+- **services +5 dirs · encrypt** (4 cross-edges)
+- **services +5 dirs · safeDecimal** (3 cross-edges)
 - **stores +2 dirs · ResultsManager** (3 cross-edges)
-- **services +4 dirs · queueSubscription** (3 cross-edges)
-- **. +9 dirs** (2 cross-edges)
-- **services +6 dirs · dispatchMessage** (2 cross-edges)
 - **services · RateLimiter** (2 cross-edges)
+- **services +6 dirs · dispatchMessage** (2 cross-edges)
+- **. +9 dirs** (2 cross-edges)
 - **services · connect** (1 cross-edges)
-- **services · resetIfNeeded** (1 cross-edges)
-- **stores +1 dirs · find** (1 cross-edges)
-- **benchmarks +13 dirs** (1 cross-edges)
-- **services · MarketWatcher** (1 cross-edges)
-- **. +2 dirs · GET** (1 cross-edges)
-- **services +4 dirs · toNumFast** (1 cross-edges)
-- **services +2 dirs · restoreFromBackup** (1 cross-edges)
-- **src/lib +1 dirs · updateThemeColor** (1 cross-edges)
-- **stores +3 dirs** (1 cross-edges)
-- **calculators +12 dirs** (1 cross-edges)
-- **server · sanitize** (1 cross-edges)
-- **server · evictExpired** (1 cross-edges)
-- **rules +3 dirs** (1 cross-edges)
-- **components/shared +11 dirs** (1 cross-edges)
 - **services · checkOpfsSnapshotOnStartup** (1 cross-edges)
+- **services +2 dirs · restoreFromBackup** (1 cross-edges)
 - **services · getAll** (1 cross-edges)
+- **services +1 dirs · calculate** (1 cross-edges)
+- **components/shared +11 dirs** (1 cross-edges)
+- **benchmarks +11 dirs** (1 cross-edges)
+- **server · evictExpired** (1 cross-edges)
+- **server · sanitize** (1 cross-edges)
+- **services · resetIfNeeded** (1 cross-edges)
 - **services +3 dirs · handleHeatmapClick** (1 cross-edges)
-- **services · manualReset** (1 cross-edges)
+- **stores +3 dirs** (1 cross-edges)
 - **auth/token +2 dirs** (1 cross-edges)
+- **. +2 dirs · GET** (1 cross-edges)
+- **services · MarketWatcher** (1 cross-edges)
+- **services · manualReset** (1 cross-edges)
+- **src/lib +1 dirs · updateThemeColor** (1 cross-edges)
+- **calculators +12 dirs** (1 cross-edges)
+- **rules +3 dirs** (1 cross-edges)
+- **services +4 dirs · toNumFast** (1 cross-edges)
+- **stores +1 dirs · find** (1 cross-edges)
 
 ## How to Explore
 

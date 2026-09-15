@@ -29,35 +29,35 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `src/components/shared/OrderHistoryList.svelte` | startTime, ed, sy, applyCustomRange, ey, ... |
-| `src/lib/calculators/charts.ts` | shortCurve, getDirectionData, shortPnl, sortedSymbols, closedTrades, ... |
-| `src/lib/calculators/stats.ts` | dayNetPnl, winRateData, journal, reorder, getDurationStats, ... |
-| `src/lib/chart/indicatorLayer.test.ts` | result, bandValues, bandSeries, alertLine, chart, ... |
-| `src/lib/rules/indicatorSeries.test.ts` | bars, rows |
+| `src/components/shared/OrderHistoryList.svelte` | endTime, em, startTime, ed, ey, ... |
+| `src/lib/calculators/charts.ts` | sortedByDate, topSymbols, bottomSymbols, journal, longCurve, ... |
+| `src/lib/calculators/stats.ts` | closedTrades, journal, tradesToIterate, reorder, hourlyNetPnl, ... |
+| `src/lib/chart/indicatorLayer.test.ts` | lineOpts, bandValues, calls, alertLine, subPaneIndices, ... |
+| `src/lib/rules/indicatorSeries.test.ts` | rows, bars |
 | `src/lib/windows/implementations/CandleChartView.component.test.ts` | appliedChartOptions |
-| `src/services/wasmIndicatorWindows.test.ts` | i, mismatch, c, compared, check, ... |
+| `src/services/wasmIndicatorWindows.test.ts` | history, wrong, check, walkWasm, i, ... |
 | `src/utils/appReset.test.ts` | databaseNames |
-| `src/utils/circularBuffer.ts` | callback, result, map, i, U |
-| `src/utils/indicators.ts` | low, indicators.calculateMFI, period, res, h, ... |
+| `src/utils/circularBuffer.ts` | U, map, callback, i, result |
+| `src/utils/indicators.ts` | spanBPeriod, c, close, v, idx, ... |
 | `static/wasm/technicals_wasm.d.ts` | TechnicalsCalculator |
-| `tests/benchmarks/wasm_parity.bench.ts` | roundTrip, history, series, calc, last |
-| `tests/gpu/parityCases.ts` | up, v, v, up |
-| `tests/integration/wasm_parity.test.ts` | calc, runWasm |
+| `tests/benchmarks/wasm_parity.bench.ts` | roundTrip, last, series, calc, history |
+| `tests/gpu/parityCases.ts` | up, up, v, v |
+| `tests/integration/wasm_parity.test.ts` | runWasm, calc |
 
 ## Connected Communities
 
 - **services +14 dirs** (19 cross-edges)
 - **utils +3 dirs · fill** (17 cross-edges)
 - **utils +2 dirs** (5 cross-edges)
-- **services +10 dirs · slice** (4 cross-edges)
 - **services +5 dirs · calculateIndicatorsFromArrays** (4 cross-edges)
+- **services +10 dirs · slice** (4 cross-edges)
 - **services +30 dirs** (4 cross-edges)
-- **calculators +12 dirs** (1 cross-edges)
-- **utils · calculateADXSeries** (1 cross-edges)
-- **rules +3 dirs** (1 cross-edges)
-- **services +6 dirs · encrypt** (1 cross-edges)
-- **utils · calculateAwesomeOscillator** (1 cross-edges)
+- **services +5 dirs · encrypt** (1 cross-edges)
 - **stores +1 dirs · find** (1 cross-edges)
+- **calculators +12 dirs** (1 cross-edges)
+- **rules +3 dirs** (1 cross-edges)
+- **utils · calculateAwesomeOscillator** (1 cross-edges)
+- **utils · calculateADXSeries** (1 cross-edges)
 - **utils +3 dirs · release** (1 cross-edges)
 - **chart +3 dirs** (1 cross-edges)
 

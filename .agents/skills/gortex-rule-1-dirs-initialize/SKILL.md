@@ -18,8 +18,8 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `technicals-wasm/src/lib.rs` | wma_states, prev1_high, k_len, test_initialize_and_update_are_exact, test_rsi_all_gains_is_exactly_100, ... |
-| `technicals-wasm/src/rule/consequence.rs` | as_str, requested, authorise |
+| `technicals-wasm/src/lib.rs` | initialized, value_of, TechnicalsCalculator, test_supertrend_multiplier, VolMaState, ... |
+| `technicals-wasm/src/rule/consequence.rs` | requested, authorise, as_str |
 | `technicals-wasm/src/rule/refusal.rs` | every_code_keeps_its_historical_wire_spelling |
 
 ## Entry Points
