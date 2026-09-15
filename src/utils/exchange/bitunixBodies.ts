@@ -31,7 +31,7 @@ import { Decimal } from "decimal.js";
 import { formatApiNum } from "../utils";
 import type { BitunixOrderPayload } from "../../types/bitunix";
 import type { PlaceOrderPayload } from "../../types/orderSchemas";
-import { ORDER_ERRORS, cleanPayload } from "../server/venues/orderErrors";
+import { ORDER_ERRORS, cleanPayload } from "./orderErrors";
 
 /** The shape `modifyBitunixOrder` accepts (FEAT-0065). */
 export interface BitunixModifyData {
@@ -85,6 +85,29 @@ export function buildBitunixOrderPayload(payload: PlaceOrderPayload): BitunixOrd
     slStopType: payload.slStopType,
     slOrderType: payload.slOrderType,
     slOrderPrice: payload.slOrderPrice,
+  };
+}
+
+/**
+ * The close-position request, expressed as the same intermediate payload a
+ * place-order produces.
+ *
+ * Key order matters for the same reason as `buildBitunixOrderPayload`: the
+ * place-order body is built by spreading this object, so reordering here
+ * reorders the bytes the exchange signs. `reduceOnly` is always `true` — a
+ * close that could open is not a close.
+ */
+export function buildBitunixClosePositionPayload(order: {
+  symbol: string;
+  side: string;
+  qty: string;
+}): BitunixOrderPayload {
+  return {
+    symbol: order.symbol,
+    side: order.side,
+    orderType: "MARKET",
+    qty: order.qty,
+    reduceOnly: true,
   };
 }
 

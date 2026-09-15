@@ -25,11 +25,12 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  buildBitunixClosePositionPayload,
   buildBitunixModifyOrderBody,
   buildBitunixOrderPayload,
   buildBitunixPlaceOrderBody,
 } from "./bitunixBodies";
-import { ORDER_ERRORS, cleanPayload } from "../server/venues/orderErrors";
+import { ORDER_ERRORS, cleanPayload } from "./orderErrors";
 import type { PlaceOrderPayload } from "../../types/orderSchemas";
 
 const asRequest = (value: Record<string, unknown>): PlaceOrderPayload =>
@@ -236,6 +237,80 @@ describe("buildBitunixPlaceOrderBody", () => {
         tpOrderType: "LIMIT",
       }),
     ).toThrow(ORDER_ERRORS.INVALID_PRICE);
+  });
+
+  it("serialises a STOP_LIMIT order with its trigger price", () => {
+    const body = buildBitunixPlaceOrderBody(
+      buildBitunixOrderPayload(
+        asRequest({
+          type: "place-order",
+          symbol: "BTCUSDT",
+          side: "SELL",
+          orderType: "STOP_LIMIT",
+          qty: "1",
+          price: "58000",
+          triggerPrice: "58500",
+          effect: "GTC",
+        }),
+      ),
+    );
+
+    expect(JSON.stringify(body)).toBe(
+      '{"symbol":"BTCUSDT","side":"SELL","orderType":"STOP_LIMIT","qty":"1","price":"58000","reduceOnly":false,"triggerPrice":"58500","effect":"GTC"}',
+    );
+  });
+
+  it("serialises a TAKE_PROFIT_LIMIT order with its trigger price", () => {
+    const body = buildBitunixPlaceOrderBody(
+      buildBitunixOrderPayload(
+        asRequest({
+          type: "place-order",
+          symbol: "BTCUSDT",
+          side: "SELL",
+          orderType: "TAKE_PROFIT_LIMIT",
+          qty: "1",
+          price: "62000",
+          triggerPrice: "61500",
+          effect: "GTC",
+        }),
+      ),
+    );
+
+    expect(JSON.stringify(body)).toBe(
+      '{"symbol":"BTCUSDT","side":"SELL","orderType":"TAKE_PROFIT_LIMIT","qty":"1","price":"62000","reduceOnly":false,"triggerPrice":"61500","effect":"GTC"}',
+    );
+  });
+});
+
+describe("buildBitunixClosePositionPayload", () => {
+  it("builds a reduce-only MARKET payload in the signed key order", () => {
+    const payload = buildBitunixClosePositionPayload({
+      symbol: "BTCUSDT",
+      side: "SELL",
+      qty: "1",
+    });
+
+    expect(Object.keys(payload)).toEqual([
+      "symbol",
+      "side",
+      "orderType",
+      "qty",
+      "reduceOnly",
+    ]);
+  });
+
+  it("serialises the close-position body to the exact signed bytes", () => {
+    const body = buildBitunixPlaceOrderBody(
+      buildBitunixClosePositionPayload({
+        symbol: "BTCUSDT",
+        side: "SELL",
+        qty: "0.25",
+      }),
+    );
+
+    expect(JSON.stringify(body)).toBe(
+      '{"symbol":"BTCUSDT","side":"SELL","orderType":"MARKET","qty":"0.25","reduceOnly":true}',
+    );
   });
 });
 

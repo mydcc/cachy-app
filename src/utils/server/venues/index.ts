@@ -27,7 +27,7 @@ export type {
   VenueKline,
   VenueModule,
 } from "./types";
-export { ORDER_ERRORS, type ExchangeError } from "./orderErrors";
+export { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
 
 /**
  * The venue registry (FEAT-0228). Adding a venue means adding one module

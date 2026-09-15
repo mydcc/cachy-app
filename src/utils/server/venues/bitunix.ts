@@ -37,8 +37,9 @@ import {
   DEFAULT_UPSTREAM_TIMEOUT_MS,
   type UpstreamApiError,
 } from "../fetchWithTimeout";
-import { ORDER_ERRORS, type ExchangeError } from "./orderErrors";
+import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
 import {
+  buildBitunixClosePositionPayload,
   buildBitunixModifyOrderBody,
   buildBitunixOrderPayload,
   buildBitunixPlaceOrderBody,
@@ -1051,14 +1052,15 @@ async function executeOrder(
     const safeAmount = formatApiNum(payload.amount);
     if (!safeAmount || new Decimal(safeAmount).lte(0)) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
 
-    const closeOrder: BitunixOrderPayload = {
-      symbol: payload.symbol,
-      side: payload.side,
-      orderType: "MARKET",
-      qty: safeAmount,
-      reduceOnly: true,
-    };
-    return await placeBitunixOrder(apiKey, apiSecret, closeOrder);
+    return await placeBitunixOrder(
+      apiKey,
+      apiSecret,
+      buildBitunixClosePositionPayload({
+        symbol: payload.symbol,
+        side: payload.side,
+        qty: safeAmount,
+      }),
+    );
   }
   if (payload.type === "close-all-positions") {
     return await closeAllBitunixPositions(apiKey, apiSecret, payload.symbol);
