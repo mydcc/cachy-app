@@ -2,7 +2,7 @@
 id: BUG-0474
 title: Parsed AI actions are executed without schema validation
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]

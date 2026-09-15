@@ -2,7 +2,7 @@
 id: BUG-0473
 title: News headlines enter the AI prompt unquoted with no data-only instruction
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
