@@ -16,43 +16,239 @@
 -->
 
 <!--
-  FEAT-0389 -- placeholder for the template library builder, which is FEAT-0391.
+  FEAT-0391 -- the template library.
 
-  This file exists as its own module rather than as an inline branch in the
-  shell because the acceptance criterion is that tabs are code-split: opening
-  the panel must not pull in every builder. A real chunk here means the split
-  is exercised now, and FEAT-0391 replaces the body of this
-  component without touching the shell's loader.
+  Picking a template does not arm anything. It loads the template into the
+  Combo tab, where every value is visible and editable, because a strategy a
+  trader has not read is not one they should be alerted on.
+
+  The library is data (`templateLibrary.ts`); this tab only filters and loads
+  it. Loading over a rule the trader is still building asks once first: the
+  draft has no undo, and a stray click should not cost five conditions.
 -->
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+    import { alertPanelState } from "../../../stores/alertPanel.svelte";
+    import { nameKey } from "../../../lib/alerts/indicatorCatalogue";
+    import {
+        ALERT_TEMPLATES,
+        offeredCategories,
+        templateCategoryKey,
+        templateDescriptionKey,
+        templateIndicators,
+        templateNameKey,
+        templatesIn,
+        type AlertTemplate,
+        type TemplateCategory,
+    } from "../../../lib/alerts/templateLibrary";
+    import type { TranslationKey } from "../../../locales/schema";
 
     let { symbol: _symbol }: { symbol: string } = $props();
+
+    // The keys are built from ids, so the cast is unavoidable here;
+    // `templateLibrary.test.ts` resolves every one against both locales.
+    const key = (raw: string): TranslationKey => raw as TranslationKey;
+
+    const CATEGORIES = offeredCategories();
+
+    /** Indicator ids per template, derived once: the library never changes at runtime. */
+    const INDICATORS_BY_TEMPLATE = new Map(
+        ALERT_TEMPLATES.map((entry) => [entry.id, templateIndicators(entry)]),
+    );
+
+    /** `null` shows every category. */
+    let category = $state<TemplateCategory | null>(null);
+
+    let shown = $derived(templatesIn(category));
+
+    /** The template waiting for confirmation because loading it would replace a rule in progress. */
+    let pendingId = $state<string | null>(null);
+
+    let hasRuleInProgress = $derived(
+        alertPanelState.draft.conditions.kind !== "group" ||
+            alertPanelState.draft.conditions.of.length > 0,
+    );
+
+    function chooseCategory(next: TemplateCategory | null) {
+        category = next;
+        pendingId = null;
+    }
+
+    function usesLine(entry: AlertTemplate): string {
+        const names = (INDICATORS_BY_TEMPLATE.get(entry.id) ?? []).map((id) => $_(key(nameKey(id))));
+        return $_("dashboard.alerts.templates.uses", { values: { indicators: names.join(", ") } });
+    }
+
+    function load(entry: AlertTemplate) {
+        if (hasRuleInProgress && pendingId !== entry.id) {
+            pendingId = entry.id;
+            return;
+        }
+        pendingId = null;
+        alertPanelState.loadTemplate(entry, $_(key(templateNameKey(entry.id))));
+    }
 </script>
 
-<div class="pending" role="status">
-    <h4>{$_("dashboard.alerts.panel.pendingTitle")}</h4>
-    <p>{$_("dashboard.alerts.panel.pendingBody", { values: { item: "FEAT-0391" } })}</p>
+<div class="templates-tab">
+    <p class="intro">{$_("dashboard.alerts.templates.intro")}</p>
+
+    <div class="filter" role="group" aria-label={$_("dashboard.alerts.templates.filterLabel")}>
+        <button
+            type="button"
+            class="chip"
+            class:selected={category === null}
+            aria-pressed={category === null}
+            onclick={() => chooseCategory(null)}
+        >
+            {$_("dashboard.alerts.templates.all")}
+        </button>
+        {#each CATEGORIES as option (option)}
+            <button
+                type="button"
+                class="chip"
+                class:selected={category === option}
+                aria-pressed={category === option}
+                data-category={option}
+                onclick={() => chooseCategory(option)}
+            >
+                {$_(key(templateCategoryKey(option)))}
+            </button>
+        {/each}
+    </div>
+
+    <ul class="cards">
+        {#each shown as entry (entry.id)}
+            <li class="card" data-template={entry.id}>
+                <div class="card-head">
+                    <h4 class="card-name">{$_(key(templateNameKey(entry.id)))}</h4>
+                    <span class="badge">{entry.timeframe}</span>
+                </div>
+                <p class="card-description">{$_(key(templateDescriptionKey(entry.id)))}</p>
+                <p class="card-uses">{usesLine(entry)}</p>
+
+                {#if pendingId === entry.id}
+                    <p class="replace-hint" role="alert">
+                        {$_("dashboard.alerts.templates.replaceHint")}
+                    </p>
+                    <div class="actions">
+                        <button type="button" class="primary" data-action="replace" onclick={() => load(entry)}>
+                            {$_("dashboard.alerts.templates.replace")}
+                        </button>
+                        <button type="button" data-action="cancel" onclick={() => (pendingId = null)}>
+                            {$_("dashboard.alerts.templates.cancel")}
+                        </button>
+                    </div>
+                {:else}
+                    <div class="actions">
+                        <button type="button" class="primary" data-action="load" onclick={() => load(entry)}>
+                            {$_("dashboard.alerts.templates.load")}
+                        </button>
+                    </div>
+                {/if}
+            </li>
+        {/each}
+    </ul>
 </div>
 
 <style>
-    .pending {
-        padding: var(--space-6) var(--space-4);
-        text-align: center;
-        color: var(--text-secondary);
-        background: var(--bg-secondary);
-        border-radius: var(--radius-sm);
-        border: 1px dashed var(--border);
+    .templates-tab {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        padding: var(--space-1);
     }
-    .pending h4 {
-        margin: 0 0 var(--space-2) 0;
-        color: var(--text-primary);
-        font-size: 0.9rem;
-    }
-    .pending p {
+    .intro {
         margin: 0;
+        font-size: 0.8rem;
         line-height: 1.5;
+        color: var(--text-secondary);
+    }
+    .filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+    .chip {
+        padding: 0.2rem var(--space-3);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+    .chip.selected {
+        border-color: var(--accent-color);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+    .cards {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+        gap: var(--space-2);
+    }
+    .card {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        padding: var(--space-3);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: var(--bg-primary);
+        min-width: 0;
+    }
+    .card-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-2);
+    }
+    .card-name {
+        margin: 0;
         font-size: 0.85rem;
+        line-height: 1.3;
+        color: var(--text-primary);
+    }
+    .badge {
+        flex: none;
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 0 var(--space-1);
+    }
+    .card-description,
+    .card-uses,
+    .replace-hint {
+        margin: 0;
+        font-size: 0.75rem;
+        line-height: 1.4;
+        color: var(--text-secondary);
+    }
+    .replace-hint {
+        color: var(--text-primary);
+    }
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-top: auto;
+        padding-top: var(--space-2);
+    }
+    .actions button {
+        padding: var(--space-1) var(--space-3);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+    .actions button.primary {
+        border-color: var(--accent-color);
     }
 </style>
