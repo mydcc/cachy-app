@@ -8,8 +8,11 @@
  * links carry no information; they only widen the prompt-injection surface.
  * Cosmetic only: the real boundary is the CURRENT DATA delimiter in
  * formatDynamicContext plus the data-trust rule in safetyRules.
+ * Total: non-string input (e.g. a missing feed field) yields "" instead of
+ * throwing, so one bad item can never drop the whole news block.
  */
-export function stripMarkdownLinks(value: string): string {
+export function stripMarkdownLinks(value: unknown): string {
+  if (typeof value !== "string") return "";
   return value
     .replace(/\[([^\]\n]*)\]\(\s*[^)\n]+\s*\)/g, "$1")
     .replace(/https?:\/\/\S+/g, "[link]");

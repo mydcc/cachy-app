@@ -820,10 +820,11 @@ class AiManager {
         if (newsItems && newsItems.length > 0) {
           // Limit to top 5 headlines to save tokens
           newsContext = newsItems.slice(0, 5).map((n) => ({
-            // BUG-0473: strip markdown links/URLs — headlines are untrusted
-            // third-party data and must not smuggle prompt content.
+            // BUG-0473: strip markdown links/URLs — headlines and source
+            // names are untrusted third-party data and must not smuggle
+            // prompt content.
             title: stripMarkdownLinks(n.title),
-            source: n.source,
+            source: stripMarkdownLinks(n.source),
             publishedAt: n.published_at, // ISO timestamp for reference
             ago: getRelativeTimeString(n.published_at, lang), // Correctly calculated relative time
           }));

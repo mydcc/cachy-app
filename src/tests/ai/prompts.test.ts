@@ -90,6 +90,8 @@ describe('BUG-0473 news prompt hygiene', () => {
     expect(stripMarkdownLinks('plain headline, BTC breaks $100k')).toBe(
       'plain headline, BTC breaks $100k'
     );
+    expect(stripMarkdownLinks(undefined)).toBe('');
+    expect(stripMarkdownLinks(null)).toBe('');
   });
 
   it('flags the news capability as untrusted third-party data', () => {
