@@ -29,7 +29,7 @@ import {
   fetchWithTimeout,
   DEFAULT_UPSTREAM_TIMEOUT_MS,
 } from "../fetchWithTimeout";
-import { ORDER_ERRORS, cleanPayload, type ExchangeError } from "./orderErrors";
+import { ORDER_ERRORS, cleanPayload, type ExchangeError } from "../../exchange/orderErrors";
 import type {
   ExchangeAccountData,
   KlineQuery,
