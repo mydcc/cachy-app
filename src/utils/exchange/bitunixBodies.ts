@@ -58,6 +58,11 @@ export interface BitunixModifyData {
  * meaningless otherwise, so a market order sends none rather than a value the
  * exchange ignores (FEAT-0069), and HEDGE-mode closes carry `tradeSide` /
  * `positionId` (BUG-0062).
+ *
+ * The result still holds `undefined` fields. It is an intermediate value, not
+ * signable bytes: pass it through `buildBitunixPlaceOrderBody`, which formats
+ * and strips them. Signing this object directly would produce a body the
+ * exchange rejects.
  */
 export function buildBitunixOrderPayload(payload: OrderRequestPayload): BitunixOrderPayload {
   return {
