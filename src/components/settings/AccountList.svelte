@@ -151,6 +151,7 @@
 
                 <div class="flex items-end gap-2">
                     <button
+                        type="button"
                         class="action bg-accent-paired"
                         disabled={account.id === settingsState.activeAccountId}
                         onclick={() => handleSwitch(account)}
@@ -158,6 +159,7 @@
                         {$_("settings.connections.accounts.makeActive")}
                     </button>
                     <button
+                        type="button"
                         class="action bg-danger-paired"
                         disabled={!canRemove}
                         title={canRemove
@@ -180,6 +182,7 @@
         >
         {#each EXCHANGES as exchange (exchange)}
             <button
+                type="button"
                 class="action bg-accent-paired"
                 onclick={() => settingsState.addAccount(exchange)}
             >
