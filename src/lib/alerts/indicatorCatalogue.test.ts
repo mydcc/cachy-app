@@ -49,9 +49,16 @@ import {
     REGISTRY_CATALOGUE,
     catalogueEntry,
     defaultRef,
+    groupHintKey,
+    groupKey,
     indicatorsInGroup,
+    nameKey,
+    outputKey,
+    paramKey,
     type CatalogueEntry,
 } from "./indicatorCatalogue";
+import de from "../../locales/locales/de.json";
+import en from "../../locales/locales/en.json";
 import { MAX_WINDOW_LOOKBACK, MIN_WINDOW_LOOKBACK } from "./indicatorConditionForm";
 import { ALERT_PATH_INDICATORS, defaultFieldOf } from "../rules/alertPathIndicators";
 import { computeIndicatorSeries } from "../rules/indicatorSeries";
@@ -315,5 +322,64 @@ describe("what the alert panel offers", () => {
         for (const group of INDICATOR_GROUP_ORDER) {
             expect(indicatorsInGroup(group).some((entry) => hidden.includes(entry.id)), group).toBe(false);
         }
+    });
+});
+
+/**
+ * FEAT-0028 AC5. The tab builds most of its keys at runtime -- `nameKey(id)`,
+ * `outputKey(line)`, `paramKey(param)` -- and casts them to `TranslationKey`,
+ * so the type checks none of them, and it checks the literal ones only against
+ * the key list, never against German. An indicator added to the registry
+ * without its strings would render its raw key while CI stayed green.
+ */
+describe("indicator alert strings", () => {
+    type Bundle = Record<string, unknown>;
+    const LOCALES: readonly (readonly [string, Bundle])[] = [
+        ["de", de],
+        ["en", en],
+    ];
+    const SUBTREE = "dashboard.alerts.indicators";
+
+    const lookup = (bundle: Bundle, key: string): unknown =>
+        key.split(".").reduce<unknown>((node, part) => (node as Bundle | undefined)?.[part], bundle);
+
+    const leafKeys = (node: unknown, prefix: string): string[] =>
+        typeof node === "object" && node !== null
+            ? Object.entries(node).flatMap(([part, child]) => leafKeys(child, `${prefix}.${part}`))
+            : [prefix];
+
+    /** Every key the catalogue can hand the tab, over the registry rather than the offered subset. */
+    const catalogueKeys = (): string[] => [
+        ...INDICATOR_GROUP_ORDER.flatMap((group) => [groupKey(group), groupHintKey(group)]),
+        ...REGISTRY_CATALOGUE.flatMap((entry) => [
+            nameKey(entry.id),
+            ...entry.outputs.map((output) => outputKey(output.name)),
+            ...entry.params.map((param) => paramKey(param.name)),
+        ]),
+    ];
+
+    it.each(LOCALES)("has a non-empty %s string for every key the catalogue builds", (_, bundle) => {
+        const keys = [...new Set(catalogueKeys())];
+        expect(keys.length).toBeGreaterThan(0);
+        const missing = keys.filter((key) => {
+            const value = lookup(bundle, key);
+            return typeof value !== "string" || value.trim() === "";
+        });
+        expect(missing).toEqual([]);
+    });
+
+    it("carries the same strings in German and English", () => {
+        for (const [name, bundle] of LOCALES) {
+            const subtree = lookup(bundle, SUBTREE);
+            expect(subtree, `${name} ${SUBTREE}`).toBeTypeOf("object");
+            expect(subtree, `${name} ${SUBTREE}`).not.toBeNull();
+        }
+        const keysOf = (bundle: Bundle): string[] => leafKeys(lookup(bundle, SUBTREE), SUBTREE).sort();
+        expect(keysOf(de).length).toBeGreaterThan(0);
+        expect(keysOf(de)).toEqual(keysOf(en));
+        const empty = keysOf(de).filter((key) =>
+            LOCALES.some(([, bundle]) => String(lookup(bundle, key)).trim() === ""),
+        );
+        expect(empty).toEqual([]);
     });
 });
