@@ -6807,7 +6807,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0478",
     "title": "Indicator i18n guard misses runtime keys built from condition enums",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -6822,7 +6822,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0028"
     ],
     "assignee": "claude",
-    "branch": "docs/bug-0478-indicator-i18n-enum-keys",
+    "branch": "fix/bug-0478-indicator-i18n-guard",
     "file": "bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md"
   },
   {
