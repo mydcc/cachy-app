@@ -1602,6 +1602,7 @@
         "count": "{enabled} von {total} erlaubt",
         "confirmBadge": "fragt",
         "blockedNotice": "Durch deine Agent-Berechtigungen blockiert: {actions}",
+        "malformedCount": "{count} ungültig",
         "group": {
           "setup": "Trade-Setup",
           "risk": "Risiko-Position",

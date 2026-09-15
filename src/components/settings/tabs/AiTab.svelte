@@ -26,6 +26,7 @@
         AI_ACTION_CATALOG,
         AI_ACTION_GROUPS,
         requiresConfirmation,
+        sanitizeAllowedActions,
         type AiActionGroup,
     } from "../../../lib/ai/actionPolicy";
     import type { TranslationKey } from "../../../locales/schema";
@@ -176,9 +177,12 @@
 
     function toggleAction(id: string) {
         const current = settingsState.aiAllowedActions ?? [];
-        settingsState.aiAllowedActions = current.includes(id)
+        const next = current.includes(id)
             ? current.filter((candidate) => candidate !== id)
             : [...current, id];
+        // Sanitize on write so stale or duplicate ids never persist in the
+        // store (load-time sanitizing alone leaves them until a reload).
+        settingsState.aiAllowedActions = sanitizeAllowedActions(next);
     }
 </script>
 

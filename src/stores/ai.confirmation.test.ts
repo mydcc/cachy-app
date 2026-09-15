@@ -132,4 +132,29 @@ describe("AI action confirmation (BUG-0472)", () => {
     expect(tradeState.symbol).toBe("");
     expect(aiState.pendingActions.size).toBe(0);
   });
+
+  it("drops malformed shapes with a notice instead of crashing", async () => {
+    vi.mocked(appFetch).mockResolvedValue(
+      streamResponse(
+        actionBatch([
+          { action: "setNotes", value: "watch the wick" },
+          null,
+          { action: "setTags", value: "scalp" },
+        ]),
+      ),
+    );
+
+    await aiState.sendMessage("broken batch");
+
+    expect(tradeState.tradeNotes).toBe("watch the wick");
+    expect(aiState.pendingActions.size).toBe(0);
+    expect(
+      aiState.messages.some(
+        (message) =>
+          message.role === "system" &&
+          (message.content.includes("malformed") ||
+            message.content.includes("ungültig")),
+      ),
+    ).toBe(true);
+  });
 });

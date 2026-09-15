@@ -1574,6 +1574,7 @@
         "count": "{enabled} of {total} allowed",
         "confirmBadge": "asks",
         "blockedNotice": "Blocked by your agent permissions: {actions}",
+        "malformedCount": "{count} malformed",
         "group": {
           "setup": "Trade setup",
           "risk": "Risk posture",

@@ -1397,6 +1397,7 @@ export type TranslationKey =
   | "settings.ai.permissions.count"
   | "settings.ai.permissions.confirmBadge"
   | "settings.ai.permissions.blockedNotice"
+  | "settings.ai.permissions.malformedCount"
   | "settings.ai.permissions.group.setup"
   | "settings.ai.permissions.group.risk"
   | "settings.ai.permissions.group.notes"

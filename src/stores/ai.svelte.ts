@@ -609,6 +609,15 @@ class AiManager {
               typeof action.action === "string",
           );
 
+          // Dropped shape: the regex path casts JSON, so non-objects carry no
+          // action name to show — warn loudly instead of swallowing them.
+          const malformedCount = actions.length - candidateActions.length;
+          if (malformedCount > 0) {
+            logger.warn("ai", "AI actions dropped as malformed", {
+              count: malformedCount,
+            });
+          }
+
           // 1. Permission policy (BUG-0472): drop actions the catalog never
           // offered, and actions the user switched off, before they can reach
           // `executeAction`.
@@ -695,9 +704,18 @@ class AiManager {
           }
 
           // 5. One system notice when the model asked for something it may not
-          // do, so a silently dropped action never looks like a no-op bug.
-          if (blocked.length > 0) {
+          // do (or sent an unreadable shape), so a dropped action never looks
+          // like a no-op bug.
+          if (blocked.length > 0 || malformedCount > 0) {
             const t = get(_);
+            const blockedNames = blocked.map((action) => action.action);
+            if (malformedCount > 0) {
+              blockedNames.push(
+                t("settings.ai.permissions.malformedCount", {
+                  values: { count: malformedCount },
+                }),
+              );
+            }
             this.messages = [
               ...this.messages,
               {
@@ -705,7 +723,7 @@ class AiManager {
                 role: "system",
                 content: `⛔ ${t("settings.ai.permissions.blockedNotice", {
                   values: {
-                    actions: blocked.map((action) => action.action).join(", "),
+                    actions: blockedNames.join(", "),
                   },
                 })}`,
                 timestamp: Date.now(),
