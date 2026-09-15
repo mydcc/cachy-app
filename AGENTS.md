@@ -177,6 +177,10 @@ This is unconditional, not just for "true parallel work": a single agent working
 
 Every task follows the same three phases. The point is proactive conflict avoidance: with several agents working this repo in parallel, collisions are prevented *before* code is written, not discovered at merge time.
 
+**0. Ownership (clarified before anything else):**
+- Every agent touches only their own work: their own session worktree, their own task branch, items they claimed themselves. Never edit, delete, retire, or otherwise clean up another agent's worktree, branch, or claim — even if it looks stale or abandoned — unless explicitly instructed otherwise by the user, naming that exact work.
+- When in doubt whether something is yours: `git worktree list` and the item `assignee` decide. If it is not yours, hands off and report instead of acting.
+
 **1. Before starting (conflict check):**
 1. `git fetch origin develop && git worktree list` — if another worktree or branch already covers your item or its files, coordinate instead of duplicating.
 2. Read `docs/backlog/INDEX.md`: if the item is `in-progress` with an `assignee` that is not you, **stop** — the item is claimed.
@@ -186,8 +190,11 @@ Every task follows the same three phases. The point is proactive conflict avoida
 - In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
 
 **3. After finishing (mandatory cleanup — also when abandoning):**
-- Retire your session worktree at session end with plain git: `git worktree remove .worktrees/<session>` from the main checkout, then `git branch -D <branch>` (squash-merges leave no ancestry, so `-d` refuses an already-merged branch). Push the branch first if its commits should be preserved.
-- Delete the branch once merged or abandoned; push first if its commits should be preserved.
+- Retire your session worktree at session end with plain git: `git worktree remove .worktrees/<session>` from the main checkout. Never retire another agent's worktree (see Ownership above).
+- Delete your task branch once merged or abandoned — and only yours. Squash-merges leave no ancestry, so `-d` refuses an already-merged branch while harness safety rules block a bare `-D`. Use the session-scoped exception instead, and only for your own branch:
+  1. At session start, register an exact-match permission for your branch and nothing else (e.g. a Claude Code `permissions.allow` entry `Bash(git branch -D <branch>)` in the gitignored `.claude/settings.local.json`). Never a wildcard, never another agent's branch, never a user-global file.
+  2. Before deleting, prove the branch is spent: its PR is MERGED with head == branch tip, its content is contained in the merge, the remote branch is gone, its worktree is removed. Push first if any commit should be preserved.
+  3. Delete with the permitted exact command, verify the branch is gone, then remove the permission entry again — also on the abort path (then the branch stays, but the exception still dies).
 - Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
 
