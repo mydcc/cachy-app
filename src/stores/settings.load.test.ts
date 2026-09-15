@@ -492,3 +492,53 @@ describe("SettingsManager feeRates (FEAT-0253) -- defaults, merge, serialize", (
     });
   });
 });
+
+describe("SettingsManager.load() -- AI action permissions (BUG-0472)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+  });
+
+  it("roundtrips aiAllowedActions through storage and toJSON", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ aiAllowedActions: ["setNotes", "setLeverage"] }),
+    );
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+
+    const settings = new SettingsManager();
+
+    // Catalog order, not storage order.
+    expect(settings.aiAllowedActions).toEqual(["setLeverage", "setNotes"]);
+    expect(settings.toJSON().aiAllowedActions).toEqual([
+      "setLeverage",
+      "setNotes",
+    ]);
+  });
+
+  it("drops unknown action ids from storage", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ aiAllowedActions: ["setSymbol", "setLeverage"] }),
+    );
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+
+    const settings = new SettingsManager();
+
+    expect(settings.aiAllowedActions).toEqual(["setLeverage"]);
+  });
+
+  it("falls back to the default permission set when storage predates the field", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ aiConfirmActions: false }),
+    );
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+
+    const settings = new SettingsManager();
+
+    expect(settings.aiAllowedActions).toContain("setEntryPrice");
+    expect(settings.aiAllowedActions).toContain("setNotes");
+    expect(settings.aiAllowedActions).not.toContain("setLeverage");
+  });
+});

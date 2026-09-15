@@ -22,6 +22,13 @@
         BUILTIN_ENTRY_IDS,
         isBuiltinEntryId,
     } from "../../../stores/settings/aiProviders";
+    import {
+        AI_ACTION_CATALOG,
+        AI_ACTION_GROUPS,
+        requiresConfirmation,
+        type AiActionGroup,
+    } from "../../../lib/ai/actionPolicy";
+    import type { TranslationKey } from "../../../locales/schema";
     import Toggle from "../../shared/Toggle.svelte";
     import AiProviderManager from "../AiProviderManager.svelte";
     import ProviderCard from "../ProviderCard.svelte";
@@ -126,6 +133,53 @@
         { id: "behavior", label: $_("settings.ai.behavior") },
         { id: "agents", label: $_("settings.ai.agents") },
     ];
+
+    const ACTION_LABEL_KEYS: Record<string, TranslationKey> = {
+        setEntryPrice: "settings.ai.permissions.action.setEntryPrice",
+        setStopLoss: "settings.ai.permissions.action.setStopLoss",
+        setTakeProfit: "settings.ai.permissions.action.setTakeProfit",
+        addTakeProfit: "settings.ai.permissions.action.addTakeProfit",
+        removeTakeProfit: "settings.ai.permissions.action.removeTakeProfit",
+        setTradeType: "settings.ai.permissions.action.setTradeType",
+        setAtrMultiplier: "settings.ai.permissions.action.setAtrMultiplier",
+        setUseAtrSl: "settings.ai.permissions.action.setUseAtrSl",
+        setRisk: "settings.ai.permissions.action.setRisk",
+        setLeverage: "settings.ai.permissions.action.setLeverage",
+        setNotes: "settings.ai.permissions.action.setNotes",
+        setTags: "settings.ai.permissions.action.setTags",
+    };
+
+    const GROUP_LABEL_KEYS: Record<AiActionGroup, TranslationKey> = {
+        setup: "settings.ai.permissions.group.setup",
+        risk: "settings.ai.permissions.group.risk",
+        notes: "settings.ai.permissions.group.notes",
+    };
+
+    const permissionGroups = AI_ACTION_GROUPS.map((group) => ({
+        id: group,
+        labelKey: GROUP_LABEL_KEYS[group],
+        entries: AI_ACTION_CATALOG.filter(
+            (entry) => entry.group === group,
+        ).map((entry) => ({
+            id: entry.id,
+            labelKey: ACTION_LABEL_KEYS[entry.id],
+            alwaysConfirms: requiresConfirmation(entry.id),
+        })),
+    }));
+
+    const totalActions = AI_ACTION_CATALOG.length;
+    const allowedCount = $derived(settingsState.aiAllowedActions?.length ?? 0);
+
+    function isActionAllowed(id: string): boolean {
+        return settingsState.aiAllowedActions?.includes(id) ?? false;
+    }
+
+    function toggleAction(id: string) {
+        const current = settingsState.aiAllowedActions ?? [];
+        settingsState.aiAllowedActions = current.includes(id)
+            ? current.filter((candidate) => candidate !== id)
+            : [...current, id];
+    }
 </script>
 
 <div class="ai-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-ai">
@@ -375,6 +429,53 @@
                         <Toggle bind:checked={settingsState.aiAllowSettingsChanges} />
                     </label>
 
+                    <details class="permissions-dropdown col-span-full">
+                        <summary class="permissions-summary">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.ai.permissions.label")}</span
+                            >
+                            <span class="text-xs text-[var(--text-secondary)]">
+                                {$_("settings.ai.permissions.count", {
+                                    values: {
+                                        enabled: allowedCount,
+                                        total: totalActions,
+                                    },
+                                })}
+                            </span>
+                        </summary>
+                        <div class="permissions-body">
+                            <p class="text-xs text-[var(--text-secondary)]">
+                                {$_("settings.ai.permissions.desc")}
+                            </p>
+                            {#each permissionGroups as group (group.id)}
+                                <fieldset class="permission-group">
+                                    <legend class="permission-group-title"
+                                        >{$_(group.labelKey)}</legend
+                                    >
+                                    {#each group.entries as entry (entry.id)}
+                                        <label class="permission-row">
+                                            <input
+                                                type="checkbox"
+                                                checked={isActionAllowed(entry.id)}
+                                                onchange={() =>
+                                                    toggleAction(entry.id)}
+                                            />
+                                            <span class="permission-label"
+                                                >{$_(entry.labelKey)}</span
+                                            >
+                                            {#if entry.alwaysConfirms}
+                                                <span class="permission-badge"
+                                                    >{$_(
+                                                        "settings.ai.permissions.confirmBadge",
+                                                    )}</span
+                                                >
+                                            {/if}
+                                        </label>
+                                    {/each}
+                                </fieldset>
+                            {/each}
+                        </div>
+                    </details>
 
                     <label class="toggle-card gap-3">
                         <div class="flex flex-col min-w-0 flex-1">
@@ -559,5 +660,62 @@
         border: 1px solid var(--border-color);
         border-radius: var(--radius-xl);
         cursor: pointer;
+    }
+    .permissions-dropdown {
+        padding: var(--space-4);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+    }
+    .permissions-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        list-style: none;
+    }
+    .permissions-summary::-webkit-details-marker {
+        display: none;
+    }
+    .permissions-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+    }
+    .permission-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin: 0;
+        padding: 0;
+        border: none;
+    }
+    .permission-group-title {
+        font-size: var(--text-xs);
+        font-weight: var(--font-semibold);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        padding: 0;
+        margin-bottom: 0.25rem;
+    }
+    .permission-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+    .permission-label {
+        font-size: var(--text-sm);
+        color: var(--text-primary);
+    }
+    .permission-badge {
+        font-size: var(--text-xs);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        padding: 0 0.35rem;
     }
 </style>
