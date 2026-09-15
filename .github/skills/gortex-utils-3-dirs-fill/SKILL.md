@@ -28,26 +28,26 @@ Use this skill when working on files in:
 | `` | fill |
 | `src/components/shared/backgrounds/engines/BlockEngine.ts` | cleanupResources, dispose |
 | `src/components/shared/backgrounds/engines/GalaxyFlowEngine.ts` | onSymbolChange |
-| `src/components/shared/backgrounds/engines/RaindropsEngine.ts` | constructor, context |
+| `src/components/shared/backgrounds/engines/RaindropsEngine.ts` | context, constructor |
 | `src/utils/indicatorTypes.ts` | NumberArray |
-| `src/utils/indicators.ts` | upIdx, i, totalVol, highestHighs, spanA, ... |
-| `src/utils/mfi_correctness.test.ts` | volume, i, j, len, negFlow, ... |
-| `src/utils/slidingWindow.ts` | deque, i, bufferSize, len, len, ... |
-| `tests/benchmarks/mfi_optimization.bench.ts` | sumNeg, low, period, volume, tp, ... |
-| `tests/benchmarks/wma_optimization.bench.ts` | j, period, result, denominator, wmaLegacy, ... |
+| `src/utils/indicators.ts` | outMiddle, sumLoss, lowestLows, period, result, ... |
+| `src/utils/mfi_correctness.test.ts` | i, period, mfiLegacy, moneyFlow, mfr, ... |
+| `src/utils/slidingWindow.ts` | out, deque, period, tail, len, ... |
+| `tests/benchmarks/mfi_optimization.bench.ts` | j, negFlow, tp, i, posFlow, ... |
+| `tests/benchmarks/wma_optimization.bench.ts` | j, data, out, sum, result, ... |
 
 ## Connected Communities
 
 - **utils +10 dirs** (3 cross-edges)
 - **utils · calculateADXSeries** (1 cross-edges)
 - **services +4 dirs · queueSubscription** (1 cross-edges)
-- **backgrounds/engines +11 dirs** (1 cross-edges)
-- **services +15 dirs** (1 cross-edges)
+- **calculators +12 dirs** (1 cross-edges)
+- **services +14 dirs** (1 cross-edges)
 
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-745")
+analyze(operation:"communities", id:"community-751")
 explore(operation:"context", task:"understand utils +3 dirs · fill", format:"gcx")
 ```
 

@@ -21,35 +21,35 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `src/lib/chart/indicatorLayer.test.ts` | layer, close, reportedPanes, panes, onPanesChanged, ... |
-| `src/lib/chart/indicatorLayer.ts` | rows, isCollapsed, source, price, CandleColumns, ... |
-| `src/lib/chart/seriesMap.ts` | out, ChartRow, zipToLine, n, i, ... |
-| `src/lib/rules/indicatorSeries.test.ts` | column, field, flattenedTo |
-| `src/lib/windows/implementations/CandleChartView.svelte` | instance, border, accent, syncPaneHeaders, panes, ... |
+| `src/lib/chart/indicatorLayer.test.ts` | fullRender, makeChart, MockPane, env, height, ... |
+| `src/lib/chart/indicatorLayer.ts` | last, stripsClaimed, createdPaneIndices, source, s, ... |
+| `src/lib/chart/seriesMap.ts` | out, rows, SourceKind, i, rows, ... |
+| `src/lib/rules/indicatorSeries.test.ts` | field, column, flattenedTo |
+| `src/lib/windows/implementations/CandleChartView.svelte` | el, instance, name, instance, danger, ... |
 | `src/services/paperTrading_seam.test.ts` | symbol, position |
 
 ## Connected Communities
 
 - **utils +10 dirs** (11 cross-edges)
-- **services +15 dirs** (5 cross-edges)
-- **services +5 dirs · calculateIndicatorsFromArrays** (3 cross-edges)
+- **services +14 dirs** (5 cross-edges)
 - **services +4 dirs · queueSubscription** (3 cross-edges)
-- **chart · makeState** (2 cross-edges)
-- **services +6 dirs · ensureHistory** (2 cross-edges)
+- **services +5 dirs · calculateIndicatorsFromArrays** (3 cross-edges)
 - **chart · subPaneContent** (2 cross-edges)
-- **components/shared +2 dirs · handleTpSlDrop** (1 cross-edges)
-- **benchmarks +11 dirs** (1 cross-edges)
+- **chart · makeState** (2 cross-edges)
+- **services +5 dirs · ensureHistory** (2 cross-edges)
+- **benchmarks +13 dirs** (1 cross-edges)
 - **utils · calculatePivotsFromValues** (1 cross-edges)
-- **components/shared +6 dirs · querySelectorAll** (1 cross-edges)
 - **. +2 dirs · calculateStep** (1 cross-edges)
+- **components/shared +6 dirs · querySelectorAll** (1 cross-edges)
 - **src/lib +2 dirs · readCssColor** (1 cross-edges)
-- **stores +3 dirs · ResultsManager** (1 cross-edges)
-- **backgrounds/engines +11 dirs** (1 cross-edges)
+- **calculators +12 dirs** (1 cross-edges)
+- **stores +2 dirs · ResultsManager** (1 cross-edges)
+- **components/shared +2 dirs · handleTpSlDrop** (1 cross-edges)
 
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-297")
+analyze(operation:"communities", id:"community-310")
 explore(operation:"context", task:"understand chart +3 dirs", format:"gcx")
 ```
 

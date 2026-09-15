@@ -186,7 +186,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 - In the item's front matter set `status: in-progress`, `assignee: <agent-name>` (`jules`, `codex`, `cursor`, `claude`, `opencode`, `human`, …), and note the branch name in the item. `npm run backlog:check` fails while an `in-progress` item has no `assignee` — that is intentional, so stale claims surface immediately.
 
 **3. After finishing (mandatory cleanup — also when abandoning):**
-- Retire your session worktree at session end: `bash scripts/worktree-cleanup.sh <branch>` from the main checkout removes the directory and deletes the merged branch in one step. Gortex discovers linked worktrees on its own, so no tracking call is involved. The script refuses anything dirty, unmerged, never worked on or in use — a task you abandon before its first commit is retired with `--abandon <branch>` — never pass `--force` to work around that (`--force` only after saving uncommitted work as a patch outside the repo).
+- Retire your session worktree at session end with plain git: `git worktree remove .worktrees/<session>` from the main checkout, then `git branch -D <branch>` (squash-merges leave no ancestry, so `-d` refuses an already-merged branch). Push the branch first if its commits should be preserved.
 - Delete the branch once merged or abandoned; push first if its commits should be preserved.
 - Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
@@ -216,25 +216,25 @@ Architecture overview: `docs/architecture/cachy-architecture.dataflow.html` (sou
 
 | Area | Description | Explore |
 |------|-------------|---------|
-| Services 46 Dirs | 924 symbols | `analyze(operation:"communities", id:"community-633")` |
-| Services 15 Dirs | 627 symbols | `analyze(operation:"communities", id:"community-739")` |
-| Services 29 Dirs | 584 symbols | `analyze(operation:"communities", id:"community-439")` |
-| Server Venues 16 Dirs | 499 symbols | `analyze(operation:"communities", id:"community-761")` |
-| Components Shared 24 Dirs | 454 symbols | `analyze(operation:"communities", id:"community-778")` |
-| Utils 3 Dirs Fill | 450 symbols | `analyze(operation:"communities", id:"community-745")` |
-| Components Settings 3 Dirs Viewertext | 395 symbols | `analyze(operation:"communities", id:"community-6")` |
-| Services 5 Dirs Calculateindicatorsfromarrays | 353 symbols | `analyze(operation:"communities", id:"community-773")` |
-| Services 10 Dirs Appfetch | 342 symbols | `analyze(operation:"communities", id:"community-410")` |
-| Benchmarks 11 Dirs | 335 symbols | `analyze(operation:"communities", id:"community-505")` |
-| Rules 3 Dirs | 288 symbols | `analyze(operation:"communities", id:"community-317")` |
-| Rule 2 Dirs | 284 symbols | `analyze(operation:"communities", id:"community-806")` |
-| Services 1 Dirs Calculate | 274 symbols | `analyze(operation:"communities", id:"community-636")` |
-| Backgrounds Engines 11 Dirs | 268 symbols | `analyze(operation:"communities", id:"community-289")` |
-| Utils 15 Dirs | 266 symbols | `analyze(operation:"communities", id:"community-38")` |
-| Services 5 Dirs Encrypt | 263 symbols | `analyze(operation:"communities", id:"community-701")` |
-| Services 6 Dirs Bitunixwebsocketservice | 257 symbols | `analyze(operation:"communities", id:"community-478")` |
-| Components Shared 5 Dirs Formatapinum | 252 symbols | `analyze(operation:"communities", id:"community-777")` |
-| Chart 3 Dirs | 237 symbols | `analyze(operation:"communities", id:"community-297")` |
-| Utils 10 Dirs | 226 symbols | `analyze(operation:"communities", id:"community-740")` |
+| Services 42 Dirs | 856 symbols | `analyze(operation:"communities", id:"community-641")` |
+| Server Venues 22 Dirs | 717 symbols | `analyze(operation:"communities", id:"community-767")` |
+| Services 30 Dirs | 682 symbols | `analyze(operation:"communities", id:"community-447")` |
+| Services 14 Dirs | 605 symbols | `analyze(operation:"communities", id:"community-745")` |
+| Components Shared 24 Dirs | 454 symbols | `analyze(operation:"communities", id:"community-784")` |
+| Utils 3 Dirs Fill | 450 symbols | `analyze(operation:"communities", id:"community-751")` |
+| Components Settings 3 Dirs Viewertext | 395 symbols | `analyze(operation:"communities", id:"community-11")` |
+| Benchmarks 13 Dirs | 366 symbols | `analyze(operation:"communities", id:"community-513")` |
+| Services 5 Dirs Calculateindicatorsfromarrays | 350 symbols | `analyze(operation:"communities", id:"community-779")` |
+| Services 10 Dirs Appfetch | 342 symbols | `analyze(operation:"communities", id:"community-419")` |
+| Services 3 Dirs Calculate | 334 symbols | `analyze(operation:"communities", id:"community-644")` |
+| Rules 3 Dirs | 297 symbols | `analyze(operation:"communities", id:"community-330")` |
+| Rule 2 Dirs | 284 symbols | `analyze(operation:"communities", id:"community-813")` |
+| Services 6 Dirs Encrypt | 268 symbols | `analyze(operation:"communities", id:"community-708")` |
+| Utils 15 Dirs | 267 symbols | `analyze(operation:"communities", id:"community-45")` |
+| Services 6 Dirs Bitunixwebsocketservice | 257 symbols | `analyze(operation:"communities", id:"community-487")` |
+| Chart 3 Dirs | 237 symbols | `analyze(operation:"communities", id:"community-310")` |
+| Components Shared 5 Dirs Formatapinum | 230 symbols | `analyze(operation:"communities", id:"community-783")` |
+| Utils 10 Dirs | 226 symbols | `analyze(operation:"communities", id:"community-746")` |
+| Rule 1 Dirs Initialize | 221 symbols | `analyze(operation:"communities", id:"community-810")` |
 
 <!-- gortex:communities:end -->

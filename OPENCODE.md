@@ -40,12 +40,13 @@ cd .worktrees/<branch-name>
 
 **Why:** Claude, Antigravity, OpenCode, and jCodeMunch's reindex-on-edit hook all share the same directory. Working directly in the shared checkout causes HEAD conflicts, index races, and uncommitted-change collisions.
 
-**Cleanup after merge/abandon (both halves, mandatory):**
+**Cleanup after merge/abandon (mandatory):**
 ```bash
-bash scripts/worktree-cleanup.sh <branch-name>
+git worktree remove .worktrees/<branch-name>
+git branch -D <branch-name>
 ```
 
-See `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up" for the full rationale (the script removes the directory and deletes the merged branch).
+See `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up".
 
 ## Non-Negotiable Rules (from AGENTS.md + CLAUDE.md)
 

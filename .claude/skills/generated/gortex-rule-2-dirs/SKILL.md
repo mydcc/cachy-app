@@ -27,11 +27,11 @@ Use this skill when working on files in:
 | `src/lib/chart/indicatorLayer.ts` | ManagedSeries |
 | `src/services/chartPatterns.types.ts` | ChartPatternDefinition, ChartPatternRef |
 | `src/services/storageService.test.ts` | StoredRecord |
-| `technicals-wasm/src/rule/condition.rs` | Gt, Open, right, Last, op, ... |
-| `technicals-wasm/src/rule/evaluate.rs` | indicator_at, account, conditions, closed_index_in, anchor_close_ms, ... |
+| `technicals-wasm/src/rule/condition.rs` | op, Compare, None, side, is_last, ... |
+| `technicals-wasm/src/rule/evaluate.rs` | timeframe, closed_candles_from, Expired, back, open, ... |
 | `technicals-wasm/src/rule/indicator.rs` | an_indicator_with_a_price_choice_accepts_every_price_field |
-| `technicals-wasm/src/rule/lifecycle.rs` | after_firing, anchor_close_ms, after_firing_returns_a_new_state_and_leaves_the_old_one_alone |
-| `technicals-wasm/src/rule/pattern.rs` | ShootingStar, PiercingLine, EveningStar, BearishHarami, DarkCloudCover, ... |
+| `technicals-wasm/src/rule/lifecycle.rs` | anchor_close_ms, after_firing_returns_a_new_state_and_leaves_the_old_one_alone, after_firing |
+| `technicals-wasm/src/rule/pattern.rs` | an_unknown_pattern_name_is_refused_by_name, needs_trend_context, ShootingStar, ThreeWhiteSoldiers, HangingMan, ... |
 | `technicals-wasm/src/rule/timeframe.rs` | milliseconds |
 
 ## Entry Points
@@ -44,15 +44,15 @@ Use this skill when working on files in:
 ## Connected Communities
 
 - **rule · detect** (6 cross-edges)
-- **rule · indicator** (3 cross-edges)
 - **rule +1 dirs · may_announce** (3 cross-edges)
+- **rule · indicator** (3 cross-edges)
 - **rule · new** (2 cross-edges)
 - **rule +1 dirs · parse** (2 cross-edges)
 
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-806")
+analyze(operation:"communities", id:"community-813")
 explore(operation:"context", task:"understand rule +2 dirs", format:"gcx")
 relations(operation:"usages", target:{symbol:"technicals-wasm/src/rule/evaluate.rs::insertion_order_into_the_market_does_not_affect_the_verdict"}, format:"gcx")
 ```

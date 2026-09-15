@@ -1,11 +1,11 @@
 ---
 name: gortex-utils-15-dirs
-description: "Work in the utils +15 dirs area — 266 symbols across 29 files (66% cohesion)"
+description: "Work in the utils +15 dirs area — 267 symbols across 28 files (66% cohesion)"
 ---
 
 # utils +15 dirs
 
-266 symbols | 29 files | 66% cohesion
+267 symbols | 28 files | 66% cohesion
 
 ## When to Use
 
@@ -15,7 +15,6 @@ Use this skill when working on files in:
 - `scripts/lib/markdown-text.ts`
 - `scripts/lib/pr-issue-match.ts`
 - `scripts/sync-github-issues.ts`
-- `scripts/worktree-cleanup.squash.test.ts`
 - `src/components/alerts/tabs/ManageTab.component.test.ts`
 - `src/components/settings/AiModelPicker.svelte`
 - `src/components/settings/AiProviderManager.svelte`
@@ -44,33 +43,32 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `` | race, parseInt, trim, match |
-| `scripts/lib/backlog-flip.ts` | match, match, readStatus, content, num, ... |
-| `scripts/lib/markdown-text.ts` | fence, lines, line, kept, stripCodeBlocks, ... |
-| `scripts/lib/pr-issue-match.ts` | body, closingReferences, scanned, parsed, found, ... |
-| `scripts/sync-github-issues.ts` | start_date, editionsMatch, assigneesMatch, target_date, depends_on, ... |
-| `scripts/worktree-cleanup.squash.test.ts` | tip, ref |
-| `src/components/alerts/tabs/ManageTab.component.test.ts` | el, listTabs |
+| `` | parseInt, trim, match, race |
+| `scripts/lib/backlog-flip.ts` | match, findClosingTrailer, content, body, match, ... |
+| `scripts/lib/markdown-text.ts` | stripCodeBlocks, line, text, open, core, ... |
+| `scripts/lib/pr-issue-match.ts` | closingReferences, body, scanned, parsed, pattern, ... |
+| `scripts/sync-github-issues.ts` | size, title, status, area, editionsMatch, ... |
+| `src/components/alerts/tabs/ManageTab.component.test.ts` | listTabs, el |
 | `src/components/settings/AiModelPicker.svelte` | Props |
-| `src/components/settings/AiProviderManager.svelte` | activate, id, AiProviderManager |
+| `src/components/settings/AiProviderManager.svelte` | activate, AiProviderManager, id |
 | `src/components/settings/EngineDebugPanel.component.test.ts` | text |
 | `src/components/shared/ActiveAccountChip.component.test.ts` | text |
 | `src/components/shared/JournalContent.svelte` | updateThemeColors |
-| `src/lib/ai/directRequest.ts` | DirectModelsRequest, DirectModelsParams, url, buildDirectModelsRequest, headers, ... |
-| `src/lib/ai/streamAdapters.ts` | buffer, flavor, fragment, appendToolCallFragment, StreamUsage |
-| `src/lib/alerts/indicatorConditionForm.ts` | committedWindowLookback, previous, raw, value |
-| `src/lib/notifications/externalChannels.ts` | config, value, validateEmail, parsed, config, ... |
+| `src/lib/ai/directRequest.ts` | buildDirectModelsRequest, DirectModelsRequest, flavor, params, headers, ... |
+| `src/lib/ai/streamAdapters.ts` | appendToolCallFragment, fragment, flavor, StreamUsage, buffer |
+| `src/lib/alerts/indicatorConditionForm.ts` | previous, committedWindowLookback, value, raw |
+| `src/lib/notifications/externalChannels.ts` | url, ConfigProblem, domain, validateEmail, config, ... |
 | `src/lib/server/ollamaBaseUrl.ts` | raw, usesConfiguredDefault |
-| `src/lib/windows/zLayers.test.ts` | match, readCssVar, name |
-| `src/services/backupService.ts` | cleaned, raw, validateTheme |
+| `src/lib/windows/zLayers.test.ts` | name, match, readCssVar |
+| `src/services/backupService.ts` | raw, cleaned, validateTheme |
 | `src/services/chartPatterns.locales.test.ts` | nonEmpty, value |
-| `src/stores/ai.svelte.ts` | trimmed, price, userProvider, err, parseActions, ... |
-| `src/stores/externalChannels.svelte.ts` | problem, channel |
-| `src/stores/settings/accounts.ts` | existing, taken, newAccountId, id |
-| `src/stores/settings/aiProviders.ts` | flavor, isLoopbackBaseUrl, AiApiFlavor, baseUrl, BuiltinDef, ... |
-| `src/tests/architecture/exchange_boundary.test.ts` | lines, findDirectChannelCalls, source, tail, segments, ... |
-| `src/utils/colors.ts` | element, getComputedColor, value, variableName, target |
-| `src/utils/inputUtils.ts` | rawValue, val, event, inputElement, handleBlur |
+| `src/stores/ai.svelte.ts` | safeContent, parsed, chunk, context, singleMatch, ... |
+| `src/stores/externalChannels.svelte.ts` | channel, problem |
+| `src/stores/settings/accounts.ts` | existing, id, newAccountId, taken |
+| `src/stores/settings/aiProviders.ts` | modelProviderForFlavor, baseUrl, existing, AiApiFlavor, id, ... |
+| `src/tests/architecture/exchange_boundary.test.ts` | findSocketImports, specifier, i, file, findDirectChannelCalls, ... |
+| `src/utils/colors.ts` | value, variableName, element, target, getComputedColor |
+| `src/utils/inputUtils.ts` | val, rawValue, handleBlur, event, inputElement |
 | `src/utils/utils.test.ts` | randomUUID |
 | `src/utils/utils.ts` | generateId |
 
@@ -80,37 +78,37 @@ Use this skill when working on files in:
 
 ## Connected Communities
 
-- **services +46 dirs** (27 cross-edges)
+- **services +42 dirs** (27 cross-edges)
 - **components/shared +13 dirs** (11 cross-edges)
-- **services +15 dirs** (8 cross-edges)
-- **services +29 dirs** (8 cross-edges)
+- **services +14 dirs** (8 cross-edges)
+- **services +30 dirs** (8 cross-edges)
 - **services +6 dirs · dispatchMessage** (4 cross-edges)
+- **stores +1 dirs · find** (3 cross-edges)
 - **utils +10 dirs** (3 cross-edges)
 - **services +4 dirs · queueSubscription** (3 cross-edges)
-- **stores +1 dirs · find** (3 cross-edges)
-- **components/settings +1 dirs · removeProvider** (2 cross-edges)
-- **benchmarks +11 dirs** (2 cross-edges)
-- **services +6 dirs · ensureHistory** (2 cross-edges)
-- **services +10 dirs · slice** (2 cross-edges)
-- **stores +3 dirs · MarketManager** (2 cross-edges)
+- **benchmarks +13 dirs** (2 cross-edges)
 - **stores · AiManager** (2 cross-edges)
-- **services +5 dirs · encrypt** (2 cross-edges)
-- **server/venues +16 dirs** (1 cross-edges)
+- **services +5 dirs · ensureHistory** (2 cross-edges)
+- **stores +3 dirs** (2 cross-edges)
+- **services +6 dirs · encrypt** (2 cross-edges)
+- **services +10 dirs · slice** (2 cross-edges)
+- **components/settings +1 dirs · removeProvider** (2 cross-edges)
+- **server/venues +22 dirs** (1 cross-edges)
 - **ai · parseStreamChunk** (1 cross-edges)
-- **services +10 dirs · appFetch** (1 cross-edges)
 - **ai · buildAnthropic** (1 cross-edges)
-- **rules +9 dirs** (1 cross-edges)
-- **components/shared +6 dirs · querySelectorAll** (1 cross-edges)
-- **stores · resolveActiveProvider** (1 cross-edges)
-- **ai/prompts +1 dirs** (1 cross-edges)
 - **services +3 dirs · verify** (1 cross-edges)
+- **services +10 dirs · appFetch** (1 cross-edges)
+- **stores · resolveActiveProvider** (1 cross-edges)
+- **components/shared +6 dirs · querySelectorAll** (1 cross-edges)
 - **. +2 dirs · envVarsIn** (1 cross-edges)
 - **services · getModels** (1 cross-edges)
+- **ai/prompts +1 dirs** (1 cross-edges)
+- **rules +10 dirs** (1 cross-edges)
 
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-38")
+analyze(operation:"communities", id:"community-45")
 explore(operation:"context", task:"understand utils +15 dirs", format:"gcx")
 relations(operation:"usages", target:{symbol:"src/stores/ai.svelte.ts::AiManager.sendMessage"}, format:"gcx")
 ```

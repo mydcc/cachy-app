@@ -1,11 +1,11 @@
 ---
 name: gortex-services-5-dirs-calculateindicatorsfromarrays
-description: "Work in the services +5 dirs · calculateIndicatorsFromArrays area — 353 symbols across 17 files (78% cohesion)"
+description: "Work in the services +5 dirs · calculateIndicatorsFromArrays area — 350 symbols across 17 files (78% cohesion)"
 ---
 
 # services +5 dirs · calculateIndicatorsFromArrays
 
-353 symbols | 17 files | 78% cohesion
+350 symbols | 17 files | 78% cohesion
 
 ## When to Use
 
@@ -32,23 +32,23 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `src/lib/calculators/charts.ts` | medianPath, horizon, simulations, closedTrades, idx50, ... |
-| `src/lib/calculators/stats.ts` | rCount, journal, pf, getRollingData, sqnValues, ... |
-| `src/lib/notificationPolicy.ts` | orderId, notificationKey, category |
+| `src/lib/calculators/charts.ts` | idx10, randomPaths, journal, simulations, horizon, ... |
+| `src/lib/calculators/stats.ts` | startIdx, grossLoss, variance, journal, pf, ... |
+| `src/lib/notificationPolicy.ts` | notificationKey, category, orderId |
 | `src/services/incrementalCache.test.ts` | generateMockResult |
 | `src/services/incrementalCache.ts` | IncrementalCacheEntry |
 | `src/services/marketAnalyst.ts` | AnalystTechEntry |
-| `src/services/notificationService.svelte.ts` | last, request, key, delivered, key, ... |
+| `src/services/notificationService.svelte.ts` | key, isDuplicate, last, request, external, ... |
 | `src/services/technicalsService.ts` | TechnicalsResultCacheEntry |
-| `src/services/technicalsTypes.ts` | TechnicalsData, DivergenceItem, SerializedIndicatorResult, IndicatorResult, SerializedDivergenceItem, ... |
-| `src/services/uiManager.ts` | visualBarContent, lowestPrice, totalRange, highestPrice, VisualBarData, ... |
-| `src/stores/market/klineBuffers.ts` | effectiveLimit, mergedHistory, newKlines, j, isAppend, ... |
-| `src/stores/settings/aiProviders.ts` | validateProviderConfig, value, ProviderConfigError, errors, url, ... |
-| `src/utils/appReset.test.ts` | constructor, name |
-| `src/utils/circularBuffer.ts` | push, item |
-| `src/utils/divergenceScanner.ts` | center, i, j, min, pivots, ... |
-| `src/utils/indicators.ts` | oversold, v, overbought, val, getRsiAction |
-| `src/utils/technicalsCalculator.ts` | divergences, srsiD, mult, key, fac, ... |
+| `src/services/technicalsTypes.ts` | DivergenceItem, SerializedDivergenceItem, IndicatorResult, SerializedTechnicalsData, TechnicalsData, ... |
+| `src/services/uiManager.ts` | values, visualBarContent, slPos, entryPos, highestPrice, ... |
+| `src/stores/market/klineBuffers.ts` | isAppend, offset, newKlines, j, i, ... |
+| `src/stores/settings/aiProviders.ts` | validateProviderConfig, errors, baseUrl, ValidateProviderConfigOptions, ProviderConfigError, ... |
+| `src/utils/appReset.test.ts` | name, constructor |
+| `src/utils/circularBuffer.ts` | item, push |
+| `src/utils/divergenceScanner.ts` | j, pivots, DivergenceScanner, key, end, ... |
+| `src/utils/indicators.ts` | v, oversold, getRsiAction, overbought, val |
+| `src/utils/technicalsCalculator.ts` | fac, last, bVal, stochSmooth, sbVal, ... |
 
 ## Entry Points
 
@@ -56,35 +56,35 @@ Use this skill when working on files in:
 
 ## Connected Communities
 
-- **services +15 dirs** (15 cross-edges)
+- **services +14 dirs** (15 cross-edges)
 - **services +4 dirs · parseDecimal** (6 cross-edges)
-- **utils +10 dirs** (5 cross-edges)
 - **utils +15 dirs** (5 cross-edges)
-- **services +46 dirs** (4 cross-edges)
+- **utils +10 dirs** (5 cross-edges)
 - **stores/settings · sanitizeUserProviders** (4 cross-edges)
-- **backgrounds/engines +11 dirs** (3 cross-edges)
+- **services +42 dirs** (4 cross-edges)
+- **calculators +12 dirs** (3 cross-edges)
 - **services +10 dirs · slice** (3 cross-edges)
-- **services +3 dirs · deliverExternal** (2 cross-edges)
-- **benchmarks +11 dirs** (2 cross-edges)
-- **services +6 dirs · ensureHistory** (2 cross-edges)
-- **rules +9 dirs** (2 cross-edges)
+- **services +5 dirs · ensureHistory** (2 cross-edges)
 - **services +6 dirs · dispatchMessage** (2 cross-edges)
+- **services +3 dirs · deliverExternal** (2 cross-edges)
 - **utils +3 dirs · fill** (2 cross-edges)
-- **services +2 dirs · syncService.syncBitunixPositions** (1 cross-edges)
-- **utils · calculateAwesomeOscillator** (1 cross-edges)
-- **utils +3 dirs · release** (1 cross-edges)
-- **settings/tabs +1 dirs · NotificationService** (1 cross-edges)
-- **services +10 dirs · appFetch** (1 cross-edges)
-- **services +5 dirs · encrypt** (1 cross-edges)
-- **services +2 dirs · schedule** (1 cross-edges)
-- **utils · calculateADXSeries** (1 cross-edges)
+- **benchmarks +13 dirs** (2 cross-edges)
+- **rules +10 dirs** (2 cross-edges)
 - **services +1 dirs · t** (1 cross-edges)
+- **services +6 dirs · encrypt** (1 cross-edges)
+- **services +2 dirs · schedule** (1 cross-edges)
+- **services +10 dirs · appFetch** (1 cross-edges)
+- **services +2 dirs · syncService.syncBitunixPositions** (1 cross-edges)
 - **utils · calculatePivotsFromValues** (1 cross-edges)
+- **utils · calculateADXSeries** (1 cross-edges)
+- **utils · calculateAwesomeOscillator** (1 cross-edges)
+- **settings/tabs +1 dirs · NotificationService** (1 cross-edges)
+- **utils +3 dirs · release** (1 cross-edges)
 
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-773")
+analyze(operation:"communities", id:"community-779")
 explore(operation:"context", task:"understand services +5 dirs · calculateIndicatorsFromArrays", format:"gcx")
 relations(operation:"usages", target:{symbol:"src/services/uiManager.ts::updateVisualBar"}, format:"gcx")
 ```

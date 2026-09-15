@@ -30,19 +30,19 @@ Use this skill when working on files in:
 | File | Symbols |
 |------|---------|
 | `external-call::stdlib:crypto-js` | crypto-js |
-| `src/lib/staleDeploymentRecovery.test.ts` | listener, type, addEventListener |
-| `src/services/alertEngine/reconcileOrphanedRules.test.ts` | ids, present, store |
-| `src/services/alertEngine/reconcileOrphanedRules.ts` | AlertStoreSnapshot, entry, empty, parsed, id, ... |
-| `src/services/apiService.ts` | startTime, limit, errData, fetchPage, lowerErr, ... |
-| `src/services/bitgetWs.ts` | sign, timestamp, apiKey, e, signInput, ... |
-| `src/services/bitunixWs.ts` | lastWatchdogResetPrivate, isReconnectingPublic, payload, now, activeInstance, ... |
-| `src/services/bitunixWs/messageParser.ts` | channel, criticalFields, isCritical, normalized, e, ... |
+| `src/lib/staleDeploymentRecovery.test.ts` | listener, addEventListener, type |
+| `src/services/alertEngine/reconcileOrphanedRules.test.ts` | present, ids, store |
+| `src/services/alertEngine/reconcileOrphanedRules.ts` | parsed, AlertStoreSnapshot, e, raw, ids, ... |
+| `src/services/apiService.ts` | startTime, res, mapped, endTime, pageEndTime, ... |
+| `src/services/bitgetWs.ts` | signInput, sign, passphrase, apiSecret, e, ... |
+| `src/services/bitunixWs.ts` | connect, awaitingPongPublic, lastWatchdogResetPublic, message, isReconnectingPrivate, ... |
+| `src/services/bitunixWs/messageParser.ts` | revMap, bitunixTf, priceRes, d, criticalFields, ... |
 | `src/services/dbService.ts` | close |
-| `src/services/logger.ts` | prefix, message, data, warn, force, ... |
-| `src/services/newsService.ts` | newsHash, news, SentimentAnalysis, newsService.analyzeSentiment |
-| `src/services/trackingService.ts` | data, e, eventData, pushToDataLayer |
+| `src/services/logger.ts` | data, message, force, category, warn, ... |
+| `src/services/newsService.ts` | SentimentAnalysis, newsHash, newsService.analyzeSentiment, news |
+| `src/services/trackingService.ts` | data, e, pushToDataLayer, eventData |
 | `src/stores/settings.svelte.ts` | constructor |
-| `src/utils/retryPolicy.ts` | name, execute, fn, RetryConfig, config, ... |
+| `src/utils/retryPolicy.ts` | fn, name, jitterFactor, T, execute, ... |
 
 ## Entry Points
 
@@ -50,41 +50,41 @@ Use this skill when working on files in:
 
 ## Connected Communities
 
-- **services +46 dirs** (18 cross-edges)
+- **services +42 dirs** (18 cross-edges)
 - **services +6 dirs · processNext** (13 cross-edges)
-- **services +29 dirs** (10 cross-edges)
-- **services +5 dirs · encrypt** (7 cross-edges)
-- **services +15 dirs** (6 cross-edges)
+- **services +30 dirs** (10 cross-edges)
+- **services +6 dirs · encrypt** (7 cross-edges)
+- **services +14 dirs** (6 cross-edges)
 - **services +6 dirs · dispatchMessage** (6 cross-edges)
-- **services +2 dirs · newsService.fetchNews** (5 cross-edges)
 - **services +10 dirs · slice** (5 cross-edges)
-- **server/venues +16 dirs** (3 cross-edges)
-- **utils +10 dirs** (3 cross-edges)
-- **stores +1 dirs · safeDecimal** (3 cross-edges)
+- **services +1 dirs · newsService.fetchNews** (5 cross-edges)
 - **services +10 dirs · appFetch** (3 cross-edges)
-- **backgrounds/engines +11 dirs** (2 cross-edges)
+- **server/venues +22 dirs** (3 cross-edges)
+- **stores +1 dirs · safeDecimal** (3 cross-edges)
+- **utils +10 dirs** (3 cross-edges)
 - **utils +15 dirs** (2 cross-edges)
+- **services +5 dirs · ensureHistory** (2 cross-edges)
+- **rules +10 dirs** (2 cross-edges)
+- **services +5 dirs · calculateIndicatorsFromArrays** (2 cross-edges)
+- **services · MarketWatcher** (2 cross-edges)
 - **services/alertEngine +4 dirs** (2 cross-edges)
 - **services +2 dirs · destroy** (2 cross-edges)
-- **services · MarketWatcher** (2 cross-edges)
-- **services +5 dirs · calculateIndicatorsFromArrays** (2 cross-edges)
-- **rules +9 dirs** (2 cross-edges)
-- **services +6 dirs · ensureHistory** (2 cross-edges)
-- **services +3 dirs · performCalculation** (1 cross-edges)
-- **. +9 dirs** (1 cross-edges)
-- **components/shared +13 dirs** (1 cross-edges)
-- **services · checkOpfsSnapshotOnStartup** (1 cross-edges)
-- **services +3 dirs · delete** (1 cross-edges)
-- **services · isTelemetryEnabled** (1 cross-edges)
-- **stores +3 dirs · ResultsManager** (1 cross-edges)
-- **services · getAll** (1 cross-edges)
-- **stores +1 dirs · SettingsManager** (1 cross-edges)
+- **calculators +12 dirs** (2 cross-edges)
 - **. +2 dirs · parseDateString** (1 cross-edges)
+- **services · getAll** (1 cross-edges)
+- **services +3 dirs · delete** (1 cross-edges)
+- **services +3 dirs · performCalculation** (1 cross-edges)
+- **stores +1 dirs · SettingsManager** (1 cross-edges)
+- **services · checkOpfsSnapshotOnStartup** (1 cross-edges)
+- **services · isTelemetryEnabled** (1 cross-edges)
+- **. +9 dirs** (1 cross-edges)
+- **stores +2 dirs · ResultsManager** (1 cross-edges)
+- **components/shared +13 dirs** (1 cross-edges)
 
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-478")
+analyze(operation:"communities", id:"community-487")
 explore(operation:"context", task:"understand services +6 dirs · BitunixWebSocketService", format:"gcx")
 relations(operation:"usages", target:{symbol:"src/services/newsService.ts::newsService.analyzeSentiment@433"}, format:"gcx")
 ```

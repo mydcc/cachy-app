@@ -21,11 +21,11 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `docs/architecture/cachy-architecture.dataflow.html` | reflectUnavailable, copyStoryMomentLink, sample, close, nodeLabel, ... |
+| `docs/architecture/cachy-architecture.dataflow.html` | journeyButtons, releaseForNode, semanticIds, clearChapterPreviewIntent, startShareCueProgress, ... |
 | `src/components/settings/OrderAuditSettings.svelte` | clearLog, confirmed |
 | `src/components/settings/PaperTradingSettings.svelte` | resetBook, confirmed |
-| `src/components/settings/RiskLimitsSettings.svelte` | release, resetAll, RiskLimitsSettings, onMaxPositionsInput, confirmed, ... |
-| `src/service-worker.ts` | cache, addFilesToCache |
+| `src/components/settings/RiskLimitsSettings.svelte` | resetAll, value, confirmed, engage, confirmed, ... |
+| `src/service-worker.ts` | addFilesToCache, cache |
 | `tests/gpu/webGpuParity.spec.ts` | result, bundleParityCases |
 
 ## Connected Communities
@@ -36,7 +36,7 @@ Use this skill when working on files in:
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-6")
+analyze(operation:"communities", id:"community-11")
 explore(operation:"context", task:"understand components/settings +3 dirs · viewerText", format:"gcx")
 ```
 

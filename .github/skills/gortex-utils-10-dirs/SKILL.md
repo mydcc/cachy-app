@@ -29,42 +29,42 @@ Use this skill when working on files in:
 
 | File | Symbols |
 |------|---------|
-| `src/components/shared/OrderHistoryList.svelte` | em, applyCustomRange, sd, sm, sy, ... |
-| `src/lib/calculators/charts.ts` | topSymbols, shortPnl, cumShort, context, getDirectionData, ... |
-| `src/lib/calculators/stats.ts` | getTimingData, reorder, hourlyGrossLoss, context, arr, ... |
-| `src/lib/chart/indicatorLayer.test.ts` | result, output, subPaneIndices, lineOpts, alertLine, ... |
+| `src/components/shared/OrderHistoryList.svelte` | startTime, ed, sy, applyCustomRange, ey, ... |
+| `src/lib/calculators/charts.ts` | shortCurve, getDirectionData, shortPnl, sortedSymbols, closedTrades, ... |
+| `src/lib/calculators/stats.ts` | dayNetPnl, winRateData, journal, reorder, getDurationStats, ... |
+| `src/lib/chart/indicatorLayer.test.ts` | result, bandValues, bandSeries, alertLine, chart, ... |
 | `src/lib/rules/indicatorSeries.test.ts` | bars, rows |
 | `src/lib/windows/implementations/CandleChartView.component.test.ts` | appliedChartOptions |
-| `src/services/wasmIndicatorWindows.test.ts` | history, calc, compared, mismatch, walkWasm, ... |
+| `src/services/wasmIndicatorWindows.test.ts` | i, mismatch, c, compared, check, ... |
 | `src/utils/appReset.test.ts` | databaseNames |
-| `src/utils/circularBuffer.ts` | callback, map, U, result, i |
-| `src/utils/indicators.ts` | high, l, res, v, low, ... |
+| `src/utils/circularBuffer.ts` | callback, result, map, i, U |
+| `src/utils/indicators.ts` | low, indicators.calculateMFI, period, res, h, ... |
 | `static/wasm/technicals_wasm.d.ts` | TechnicalsCalculator |
-| `tests/benchmarks/wasm_parity.bench.ts` | history, last, calc, series, roundTrip |
-| `tests/gpu/parityCases.ts` | up, up, v, v |
+| `tests/benchmarks/wasm_parity.bench.ts` | roundTrip, history, series, calc, last |
+| `tests/gpu/parityCases.ts` | up, v, v, up |
 | `tests/integration/wasm_parity.test.ts` | calc, runWasm |
 
 ## Connected Communities
 
-- **services +15 dirs** (19 cross-edges)
+- **services +14 dirs** (19 cross-edges)
 - **utils +3 dirs · fill** (17 cross-edges)
 - **utils +2 dirs** (5 cross-edges)
-- **services +5 dirs · calculateIndicatorsFromArrays** (4 cross-edges)
-- **services +29 dirs** (4 cross-edges)
 - **services +10 dirs · slice** (4 cross-edges)
-- **services +5 dirs · encrypt** (1 cross-edges)
-- **chart +3 dirs** (1 cross-edges)
-- **utils · calculateAwesomeOscillator** (1 cross-edges)
-- **utils +3 dirs · release** (1 cross-edges)
+- **services +5 dirs · calculateIndicatorsFromArrays** (4 cross-edges)
+- **services +30 dirs** (4 cross-edges)
+- **calculators +12 dirs** (1 cross-edges)
 - **utils · calculateADXSeries** (1 cross-edges)
 - **rules +3 dirs** (1 cross-edges)
+- **services +6 dirs · encrypt** (1 cross-edges)
+- **utils · calculateAwesomeOscillator** (1 cross-edges)
 - **stores +1 dirs · find** (1 cross-edges)
-- **backgrounds/engines +11 dirs** (1 cross-edges)
+- **utils +3 dirs · release** (1 cross-edges)
+- **chart +3 dirs** (1 cross-edges)
 
 ## How to Explore
 
 ```
-analyze(operation:"communities", id:"community-740")
+analyze(operation:"communities", id:"community-746")
 explore(operation:"context", task:"understand utils +10 dirs", format:"gcx")
 ```
 
