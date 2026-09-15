@@ -104,13 +104,9 @@ Use for code analysis, action routing, and semantic understanding.
 - `jcodemunch_guide` — full catalogue and rules.
 - **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
 
-### Working inside a git worktree
+### Worktrees
 
-**A worktree needs no registration.** The daemon reads `git worktree list` itself: a linked checkout is discovered automatically and served as a layer over its family's primary graph, so nothing is indexed twice. Verify with `gortex repos families` — every worktree must appear as `automatic/checkout_ready`. Gortex must be v0.64 or newer for this; older releases predate checkout families.
-
-**Never track a worktree.** `gortex track <worktree>` (or the equivalent `track_repository --arg as_worktree=true`) promotes it to a `dedicated` checkout with its own full graph — the exact duplicate this rule prevents. If `gortex repos families` shows a worktree as `dedicated`, demote it with `gortex untrack <path>`; that returns it to the automatic lane, where `gortex repos forget` would remove it outright.
-
-**The client's working directory decides, not the tracking.** The MCP server reports its own process cwd to the daemon, so a client that spawns `gortex mcp` from a non-repo directory (typically `$HOME`) fails every call with `repository not tracked: <path>`. Passing a `path` or `repo` argument does not help: resolution happens before they are read. Diagnose it with `gortex daemon status` — read the `cwd` column under **MCP sessions** — and fix it in that client's launch configuration. Some clients ignore an MCP config's `cwd` field entirely, so the directory may have to be forced in the launch command or wrapper script itself. A parent directory that holds the repos as direct children resolves in multi-repo mode and works as a general fallback.
+Gortex reads `git worktree list` and serves each linked checkout as a layer over its family's primary graph, so a linked worktree needs no setup of its own. `gortex repos families` shows the resulting layout.
 
 Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
 

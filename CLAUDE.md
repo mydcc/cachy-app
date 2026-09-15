@@ -88,7 +88,7 @@ Five things asked means five things delivered, no matter how long they take. If 
 
 Both MCP servers are mandatory (see `AGENTS.md` → Tools & MCP). Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository. Use Gortex graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) for all code navigation and impact analysis.
 
-**Gortex — Worktree Session Start:** No registration step exists. Gortex discovers linked worktrees from `git worktree list` and serves each one as a layer over its family's primary graph, so nothing is indexed twice. Verify with `gortex repos families`: every worktree must read `automatic/checkout_ready`, never `dedicated`. **Never run `gortex track` on a worktree** — that promotes it to a `dedicated` checkout with its own full graph. If Gortex reports "cwd is not covered by any tracked repo", the MCP client was launched from outside a tracked repo; see `AGENTS.md` → "Working inside a git worktree". Requires Gortex v0.64 or newer.
+**Gortex — worktrees:** Gortex reads `git worktree list` and serves each linked checkout as a layer over its family's primary graph, so a linked worktree needs no setup of its own.
 
 ## Commits & Branches
 

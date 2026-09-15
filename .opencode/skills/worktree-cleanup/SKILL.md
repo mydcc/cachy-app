@@ -72,5 +72,4 @@ Prefer the targeted form over `--all` for exactly this reason.
 
 ## Related
 
-- `AGENTS.md` § "Working inside a git worktree" — why a worktree needs no
-  registration, and why `gortex track` on one must never be used
+- `AGENTS.md` § "Worktrees" — how Gortex serves linked checkouts

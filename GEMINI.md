@@ -10,7 +10,7 @@ Two MCP servers are active in this workspace. **Both must be initialized** at th
 
 The Gortex MCP `instructions.md` is loaded automatically. Its core rule: **MUST use Gortex MCP** for all code navigation, exploration, and impact analysis.
 
-**Worktree sessions:** no registration step exists. Gortex discovers linked worktrees from `git worktree list` and serves each as a layer over its family's primary graph, so nothing is indexed twice. Verify with `gortex repos families` — every worktree must read `automatic/checkout_ready`, never `dedicated`. **Never run `gortex track` on a worktree.** Requires Gortex v0.64 or newer.
+**Worktree sessions:** Gortex reads `git worktree list` and serves each linked checkout as a layer over its family's primary graph, so a linked worktree needs no setup of its own.
 
 ### 2. jCodeMunch — Code Analysis & Semantic Routing
 

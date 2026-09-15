@@ -22,10 +22,7 @@ Use jCodeMunch for deeper code analysis, action routing, and improvement suggest
 
 **Rule:** Prefer jCodeMunch (`route`/`order`) over grep/find for code understanding and navigation.
 ### Worktree sessions
-**A linked worktree needs no registration.** The daemon reads `git worktree list` itself: the checkout is discovered automatically and served as a layer over its family's primary graph, so nothing is indexed twice. jCodeMunch already maps any worktree path to the indexed root repo via `resolve_repo .`.
-- Verify with `gortex repos families` — every worktree must appear as `automatic/checkout_ready`, never `dedicated`. Requires Gortex v0.64 or newer.
-- **Never run `gortex track` on a worktree.** That promotes it to a `dedicated` checkout with its own full graph — the duplicate this rule exists to prevent. If `gortex repos families` shows one as `dedicated`, demote it with `gortex untrack <path>`.
-- If graph calls fail with `repository not tracked: <path>`, the client started the MCP server outside a repo and the tracking is not at fault — see "Working inside a git worktree" in `AGENTS.md` for the diagnosis.
+Gortex reads `git worktree list` and serves each linked checkout as a layer over its family's primary graph, so a linked worktree needs no setup of its own. jCodeMunch maps any worktree path to the indexed root repo via `resolve_repo .`.
 
 
 ## Git Worktree — Non-Negotiable
