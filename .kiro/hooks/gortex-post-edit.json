@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Gortex: Post-Edit Check",
+      "description": "Check impact and tests after a source edit.",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(go|ts|tsx|js|jsx|py|rs|java|kt|scala|swift|rb|cs|php)$",
+      "action": {
+        "type": "agent",
+        "prompt": "Call Gortex change with operation detect for unstaged changes. Use its affected symbol IDs with operations tests, guards, and contract; run the selected tests and report every result."
+      }
+    }
+  ]
+}

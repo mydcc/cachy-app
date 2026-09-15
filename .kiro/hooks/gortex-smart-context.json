@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Gortex: Task Context",
+      "description": "Localize each coding task with the graph before opening files.",
+      "trigger": "UserPromptSubmit",
+      "action": {
+        "type": "agent",
+        "prompt": "For a coding task, call Gortex explore with operation task and the user's task text before reading or searching files. Skip this only for non-coding conversation."
+      }
+    }
+  ]
+}

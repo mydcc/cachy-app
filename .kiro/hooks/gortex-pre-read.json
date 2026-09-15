@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Gortex: Enrich Source Read",
+      "description": "Use indexed source context before a raw source-file read.",
+      "trigger": "PreToolUse",
+      "matcher": "read",
+      "action": {
+        "type": "agent",
+        "prompt": "For indexed source code, use Gortex read with operation editing_context or source instead of a raw file read. Skip generated files, metadata, documentation, configuration, and non-source assets."
+      }
+    }
+  ]
+}
