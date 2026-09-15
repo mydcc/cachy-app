@@ -45,7 +45,13 @@
  */
 import { createHash, createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { ROUTE_SIGNING_PLAN, type MigratedRoute, type Venue } from "./restSigningPlan";
+import {
+  ROUTE_SIGNING_PLAN,
+  canonicalQueryParamsInput,
+  canonicalQueryString,
+  type MigratedRoute,
+  type Venue,
+} from "./restSigningPlan";
 import { exchangeSignedFetch, signCachyRequest } from "./browserSigning";
 import { signBitgetRequest, signBitunixRequest } from "../crypto/exchangeSigning";
 import { generateBitunixSignature } from "../server/bitunix";
@@ -247,6 +253,24 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
       } else {
         expect(signed.headers["x-api-query"]).toBe(serverBytes.queryString);
         expect(signed.body).toBeUndefined();
+
+        // The plan table exports its own canonicalisers, meant to be what the
+        // server side rebuilds with in A3/A4. They are only safe to use if they
+        // produce exactly the bytes the signers do: two canonicalisers that
+        // disagree is ADR-0013's second failure mode, and it stays invisible
+        // until a request is rejected mid-trade. Nothing in production consumes
+        // the table's pair yet, so this gate is the only thing comparing them.
+        //
+        // Bitunix only. `canonicalQueryString` sorts by `localeCompare`, which
+        // is Bitunix's rule; Bitget's prehash takes the parameters in insertion
+        // order, so asserting the table's form on the Bitget half would fail on
+        // any route with more than one parameter — the pair is not
+        // venue-agnostic, and A3/A4 must not reach for it on the Bitget routes.
+        // The Bitget bytes are pinned by the signature oracle below instead,
+        // which is the property that actually has to hold.
+        if (venue === "bitunix") {
+          expect(signed.headers["x-api-query"]).toBe(canonicalQueryString(sample.params ?? {}));
+        }
       }
 
       // The signature itself, against the spec oracle rather than against the
@@ -267,6 +291,7 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
           .sort()
           .map((key) => key + (sample.params ?? {})[key])
           .join("");
+        expect(digestParams).toBe(canonicalQueryParamsInput(sample.params ?? {}));
         expect(signed.headers["x-api-sign"]).toBe(
           docBitunixSign(signed.headers["x-api-nonce"], timestamp, KEYS.apiKey, KEYS.apiSecret, digestParams, body),
         );
