@@ -29,6 +29,7 @@ import {
 import { buildDirectRequest } from "../lib/ai/directRequest";
 import { peekCachedModel } from "../services/aiModelsService";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
+import { stripMarkdownLinks } from "../lib/ai/prompts/contextFormatter";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
 import {
   AI_ALLOWED_ACTIONS_DEFAULT,
@@ -819,8 +820,11 @@ class AiManager {
         if (newsItems && newsItems.length > 0) {
           // Limit to top 5 headlines to save tokens
           newsContext = newsItems.slice(0, 5).map((n) => ({
-            title: n.title,
-            source: n.source,
+            // BUG-0473: strip markdown links/URLs — headlines and source
+            // names are untrusted third-party data and must not smuggle
+            // prompt content.
+            title: stripMarkdownLinks(n.title),
+            source: stripMarkdownLinks(n.source),
             publishedAt: n.published_at, // ISO timestamp for reference
             ago: getRelativeTimeString(n.published_at, lang), // Correctly calculated relative time
           }));

@@ -2,7 +2,7 @@
 id: BUG-0473
 title: News headlines enter the AI prompt unquoted with no data-only instruction
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -58,11 +58,11 @@ handling.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect (a headline containing an injection marker
+- [x] A test reproduces the defect (a headline containing an injection marker
       lands unquoted in the built prompt) and fails without the fix
-- [ ] With the fix, headlines in the built prompt are quoted/delimited and a
+- [x] With the fix, headlines in the built prompt are quoted/delimited and a
       data-only instruction is present in the system prompt
-- [ ] Existing prompt-builder tests still pass unchanged in intent
+- [x] Existing prompt-builder tests still pass unchanged in intent
 
 ## Out of scope
 
@@ -70,8 +70,26 @@ handling.
 - Output-side XSS (already handled by DOMPurify)
 - The confirmation default (see BUG-0472)
 
+## What shipped
+
+- Data-boundary delimiters in `formatDynamicContext`: the JSON context is
+  wrapped in `### CURRENT DATA (UNTRUSTED ...)` + ` ```json ` ... ` ``` ` +
+  `### END DATA`.
+- `stripMarkdownLinks` in `contextFormatter.ts`, applied to news titles and
+  source names in `gatherContext` (links, bare URLs and backticks stripped;
+  non-string input yields ""; count and `ago` handling untouched).
+- `DATA TRUST BOUNDARY` rule in `safetyRules.ts` plus an untrusted qualifier
+  on the `LATEST NEWS` capability line.
+- Three tests in `src/tests/ai/prompts.test.ts`: injection marker lands
+  inside the delimited block with the data-only rule present (RED without the
+  fix), markdown-link/URL stripping, capability qualifier.
+
+Lands via the PR that closes #3317 (squash-merge into `develop`); the release
+version is set at merge time.
+
 ## Links
 
 - `src/stores/ai.svelte.ts` (`gatherContext` news mapping)
 - `src/lib/ai/prompts/contextFormatter.ts`, `src/lib/ai/prompts/safetyRules.ts`
 - `src/utils/markdownUtils.ts` (why display is not part of this item)
+- GitHub Issue: #3317

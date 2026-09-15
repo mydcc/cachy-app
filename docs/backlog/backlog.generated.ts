@@ -4148,7 +4148,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0473",
     "title": "News headlines enter the AI prompt unquoted with no data-only instruction",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
