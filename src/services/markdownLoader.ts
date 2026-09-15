@@ -150,6 +150,13 @@ export async function loadInstruction(
     | "whitepaper",
   lang?: string
 ): Promise<InstructionContent> {
+  // Dynamically load KaTeX CSS on demand when markdown is viewed
+  try {
+    await import("katex/dist/katex.min.css");
+  } catch {
+    // Ignore error if CSS fails to load dynamically
+  }
+
   const currentLocale = lang || get(locale);
   // Path relative to project root for module lookup
   const relativePath = `/src/lib/assets/content/${name}.${currentLocale}.md`;

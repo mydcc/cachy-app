@@ -22,8 +22,8 @@ import { applySecurityHeaders, cacheControlFor } from './server-headers.js';
 
 const app = express();
 
-// Use compression to improve Lighthouse Performance Score
-app.use(compression());
+// Use level 6 compression for all responses to improve Lighthouse Performance Score
+app.use(compression({ level: 6, threshold: 0 }));
 
 // Apply security headers to all requests.
 app.use((req, res, next) => {
