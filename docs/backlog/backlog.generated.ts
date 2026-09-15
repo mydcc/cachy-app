@@ -4234,7 +4234,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0028",
     "title": "Alerts on indicator conditions",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "M4",
     "editions": [
@@ -7454,6 +7454,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "branch": "feat/feat-0454-card-price-source",
     "start_date": "2026-09-14",
     "file": "features/FEAT-0454-alert-on-indicator-price-source.md"
+  },
+  {
+    "id": "FEAT-0477",
+    "title": "Offer intra-candle evaluation as an explicit per-alert opt-in",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [
+      "FEAT-0028"
+    ],
+    "file": "features/FEAT-0477-intra-candle-alert-evaluation.md"
   },
   {
     "id": "IDEA-0036",
