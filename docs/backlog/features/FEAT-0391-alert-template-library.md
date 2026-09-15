@@ -2,7 +2,9 @@
 id: FEAT-0391
 title: A template library for alert rules
 type: feature
-status: specced
+status: in-progress
+assignee: claude
+branch: feat/feat-0391-alert-template-library
 priority: P3
 milestone: M4
 editions: [community, pro, private]
@@ -57,11 +59,11 @@ Every template ships at `consequence_level: notify` and
 - [ ] German and English names and descriptions for every template
 
 
-## Blocked by
+## State (2026-09-15)
 
-[`FEAT-0030`](FEAT-0030-combined-alerts.md) is currently `status: idea`. This item cannot
-load a template into the Combo builder without the Combo tab itself, which FEAT-0030 owns.
-This item remains specced and ready to implement once FEAT-0030 shifts from idea to ready.
+Unblocked: [`FEAT-0030`](FEAT-0030-combined-alerts.md), [`FEAT-0028`](FEAT-0028-indicator-alerts.md)
+and [`FEAT-0389`](FEAT-0389-super-alert-panel.md) are all `done`. In progress on
+`feat/feat-0391-alert-template-library`.
 
 ## Out of scope
 
