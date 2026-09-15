@@ -4167,7 +4167,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0474",
     "title": "Parsed AI actions are executed without schema validation",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
     "priority": "P2",
     "milestone": "none",
     "editions": [

@@ -37,6 +37,10 @@ import {
   isKnownAiAction,
   shouldForceConfirm,
 } from "../lib/ai/actionPolicy";
+import {
+  validateAiAction,
+  type ValidatedAiAction,
+} from "../lib/ai/actionValidation";
 import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
@@ -620,11 +624,29 @@ class AiManager {
             });
           }
 
-          // 1. Permission policy (BUG-0472): drop actions the catalog never
+          // 1a. Schema validation (BUG-0474): drop actions whose values do
+          // not match the declared tool schema before the lenient parsers
+          // (`parseAiValue` maps garbage to Decimal(0)) can see them. The
+          // regex path and the tool-buffer path converge here, so one step
+          // covers both.
+          const validActions: ValidatedAiAction[] = [];
+          const invalidActions: AiAction[] = [];
+          for (const candidate of candidateActions) {
+            const valid = validateAiAction(candidate);
+            if (valid) validActions.push(valid);
+            else invalidActions.push(candidate);
+          }
+          if (invalidActions.length > 0) {
+            logger.warn("ai", "AI actions dropped as invalid", {
+              invalid: invalidActions.map((action) => action.action),
+            });
+          }
+
+          // 1b. Permission policy (BUG-0472): drop actions the catalog never
           // offered, and actions the user switched off, before they can reach
           // `executeAction`.
           const { permitted, blocked } = filterPermittedActions(
-            candidateActions,
+            validActions,
             settings.aiAllowedActions ?? AI_ALLOWED_ACTIONS_DEFAULT,
           );
 
@@ -706,15 +728,25 @@ class AiManager {
           }
 
           // 5. One system notice when the model asked for something it may not
-          // do (or sent an unreadable shape), so a dropped action never looks
-          // like a no-op bug.
-          if (blocked.length > 0 || malformedCount > 0) {
+          // do (or sent an unreadable or invalid shape), so a dropped action
+          // never looks like a no-op bug.
+          if (
+            blocked.length > 0 ||
+            malformedCount > 0 ||
+            invalidActions.length > 0
+          ) {
             const t = get(_);
             const blockedNames = blocked.map((action) => action.action);
-            if (malformedCount > 0) {
+            const droppedCount = malformedCount + invalidActions.length;
+            if (invalidActions.length > 0) {
+              blockedNames.push(
+                ...invalidActions.map((action) => action.action),
+              );
+            }
+            if (droppedCount > 0) {
               blockedNames.push(
                 t("settings.ai.permissions.malformedCount", {
-                  values: { count: malformedCount },
+                  values: { count: droppedCount },
                 }),
               );
             }
@@ -1369,12 +1401,33 @@ class AiManager {
     const pending = this.pendingActions.get(actionId);
     if (!pending) return;
 
+    // Re-validate the shape (BUG-0474): the batch may have been injected
+    // into the queue directly, bypassing the sendMessage filter, so a value
+    // that the lenient parsers would silently turn into 0 must not execute.
+    const revalidated: ValidatedAiAction[] = [];
+    const invalidNames: string[] = [];
+    for (const queued of pending.actions) {
+      const valid = validateAiAction(queued);
+      if (valid) {
+        revalidated.push(valid);
+      } else {
+        invalidNames.push(
+          typeof queued?.action === "string" ? queued.action : "(malformed)",
+        );
+      }
+    }
+    if (invalidNames.length > 0) {
+      logger.warn("ai", "AI actions dropped as invalid before confirm", {
+        invalid: invalidNames,
+      });
+    }
+
     // Re-validate against the live permission set (BUG-0472): an action may
     // have been allowed when queued but switched off before confirm, or the
     // batch may have been injected into the queue directly, bypassing the
     // sendMessage filter. Only still-permitted actions may execute.
     const { permitted, blocked } = filterPermittedActions(
-      pending.actions,
+      revalidated,
       settingsState.aiAllowedActions ?? AI_ALLOWED_ACTIONS_DEFAULT,
     );
 
@@ -1382,6 +1435,8 @@ class AiManager {
       logger.warn("ai", "AI actions revoked before confirm", {
         blocked: blocked.map((action) => action.action),
       });
+    }
+    if (blocked.length > 0 || invalidNames.length > 0) {
       const t = get(_);
       this.messages = [
         ...this.messages,
@@ -1390,7 +1445,10 @@ class AiManager {
           role: "system",
           content: `⛔ ${t("settings.ai.permissions.blockedNotice", {
             values: {
-              actions: blocked.map((action) => action.action).join(", "),
+              actions: [
+                ...blocked.map((action) => action.action),
+                ...invalidNames,
+              ].join(", "),
             },
           })}`,
           timestamp: Date.now(),

@@ -2,7 +2,8 @@
 id: BUG-0474
 title: Parsed AI actions are executed without schema validation
 type: bug
-status: ready
+status: done
+assignee: opencode
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -59,12 +60,12 @@ guard.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect (an unknown action name, and a
+- [x] A test reproduces the defect (an unknown action name, and a
       `setLeverage` with a non-numeric value, reach `executeAction` today)
       and fails without the fix
-- [ ] With the fix, both are dropped with a warning and valid actions still
+- [x] With the fix, both are dropped with a warning and valid actions still
       execute
-- [ ] `setSymbol` rejects strings outside the safe pattern in a unit test
+- [x] `setSymbol` rejects strings outside the safe pattern in a unit test
 
 ## Out of scope
 
@@ -77,3 +78,8 @@ guard.
 - `src/stores/ai.svelte.ts` (`parseActions`, tool-buffer handling, `executeAction`)
 - `src/lib/ai/prompts/actionSchema.ts` (the schema to enforce)
 - `src/utils/utils.ts` (`parseAiValue` leniency the validator must sit in front of)
+
+## Claim
+
+- Branch: `fix/bug-0474-3318`
+- Assignee: `opencode` (issue #3318)
