@@ -2,7 +2,7 @@
 id: BUG-0474
 title: Parsed AI actions are executed without schema validation
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 priority: P2
 milestone: none
@@ -60,12 +60,12 @@ guard.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect (an unknown action name, and a
+- [x] A test reproduces the defect (an unknown action name, and a
       `setLeverage` with a non-numeric value, reach `executeAction` today)
       and fails without the fix
-- [ ] With the fix, both are dropped with a warning and valid actions still
+- [x] With the fix, both are dropped with a warning and valid actions still
       execute
-- [ ] `setSymbol` rejects strings outside the safe pattern in a unit test
+- [x] `setSymbol` rejects strings outside the safe pattern in a unit test
 
 ## Out of scope
 
