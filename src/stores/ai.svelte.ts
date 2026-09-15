@@ -30,6 +30,12 @@ import { buildDirectRequest } from "../lib/ai/directRequest";
 import { peekCachedModel } from "../services/aiModelsService";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { executeTradeActionsTool } from "../lib/ai/prompts/actionSchema";
+import {
+  AI_ALLOWED_ACTIONS_DEFAULT,
+  filterPermittedActions,
+  isKnownAiAction,
+  shouldForceConfirm,
+} from "../lib/ai/actionPolicy";
 import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
@@ -595,10 +601,42 @@ class AiManager {
         }
 
         if (Array.isArray(actions) && actions.length > 0) {
-          // 1. Code-level R:R guard: block execution if the suggested setup is mathematically poor
-          const entryAction = actions.find((a) => a.action === "setEntryPrice");
-          const slAction = actions.find((a) => a.action === "setStopLoss");
-          const tp1Action = actions.find((a) => (a.action === "setTakeProfit" && (a.index ?? -1) === 0) || a.action === "addTakeProfit");
+          // 0. Shield against malformed model output before anything reads a
+          // property off it (the regex path casts JSON, so shape is not given).
+          const candidateActions = actions.filter(
+            (action): action is AiAction =>
+              !!action &&
+              typeof action === "object" &&
+              typeof action.action === "string",
+          );
+
+          // Dropped shape: the regex path casts JSON, so non-objects carry no
+          // action name to show — warn loudly instead of swallowing them.
+          const malformedCount = actions.length - candidateActions.length;
+          if (malformedCount > 0) {
+            logger.warn("ai", "AI actions dropped as malformed", {
+              count: malformedCount,
+            });
+          }
+
+          // 1. Permission policy (BUG-0472): drop actions the catalog never
+          // offered, and actions the user switched off, before they can reach
+          // `executeAction`.
+          const { permitted, blocked } = filterPermittedActions(
+            candidateActions,
+            settings.aiAllowedActions ?? AI_ALLOWED_ACTIONS_DEFAULT,
+          );
+
+          if (blocked.length > 0) {
+            logger.warn("ai", "AI actions blocked by permission policy", {
+              blocked: blocked.map((action) => action.action),
+            });
+          }
+
+          // 2. Code-level R:R guard: block execution if the suggested setup is mathematically poor
+          const entryAction = permitted.find((a) => a.action === "setEntryPrice");
+          const slAction = permitted.find((a) => a.action === "setStopLoss");
+          const tp1Action = permitted.find((a) => (a.action === "setTakeProfit" && (a.index ?? -1) === 0) || a.action === "addTakeProfit");
 
           let forceConfirm = false;
 
@@ -621,7 +659,7 @@ class AiManager {
             }
           }
 
-          // 2. Hide ALL JSON code blocks that contain trading actions
+          // 3. Hide ALL JSON code blocks that contain trading actions
           const cleanedContent = safeContent
             .replace(/```json\s*[\s\S]*?"action"[\s\S]*?```/g, "")
             .trim();
@@ -631,33 +669,67 @@ class AiManager {
             this.messages[idx].content = cleanedContent;
           }
 
-          // 3. Execute Actions
-          const confirmActions = (settings.aiConfirmActions ?? false) || forceConfirm;
+          // 4. Execute or queue the permitted actions. Every trade-changing
+          // action always asks for confirmation; only the benign note/tag
+          // pair follows the `aiConfirmActions` toggle.
+          const confirmActions =
+            (settings.aiConfirmActions ?? false) ||
+            forceConfirm ||
+            shouldForceConfirm(permitted);
 
-          if (confirmActions) {
-            // Create a batch pending action
-            const actionId = this.addPendingAction(actions);
+          if (permitted.length > 0) {
+            if (confirmActions) {
+              // Create a batch pending action
+              const actionId = this.addPendingAction(permitted);
 
-            // Add ONE system message for the whole batch
-            const sysMsg: AiMessage = {
-              id: generateId(),
-              role: "system",
-              content: `[PENDING:${actionId}]`,
-              timestamp: Date.now(),
-            };
-            this.messages = [...this.messages, sysMsg];
-          } else {
-            // Execute immediately
-            actions.forEach((action) => {
-              if (!action) return;
-              try {
-                this.executeAction(action, false);
-              } catch (err) {
-                if (import.meta.env.DEV) {
-                  console.error("Single action failed", err);
+              // Add ONE system message for the whole batch
+              const sysMsg: AiMessage = {
+                id: generateId(),
+                role: "system",
+                content: `[PENDING:${actionId}]`,
+                timestamp: Date.now(),
+              };
+              this.messages = [...this.messages, sysMsg];
+            } else {
+              // Benign-only batch and the toggle is off: apply immediately.
+              permitted.forEach((action) => {
+                try {
+                  this.executeAction(action, false);
+                } catch (err) {
+                  if (import.meta.env.DEV) {
+                    console.error("Single action failed", err);
+                  }
                 }
-              }
-            });
+              });
+            }
+          }
+
+          // 5. One system notice when the model asked for something it may not
+          // do (or sent an unreadable shape), so a dropped action never looks
+          // like a no-op bug.
+          if (blocked.length > 0 || malformedCount > 0) {
+            const t = get(_);
+            const blockedNames = blocked.map((action) => action.action);
+            if (malformedCount > 0) {
+              blockedNames.push(
+                t("settings.ai.permissions.malformedCount", {
+                  values: { count: malformedCount },
+                }),
+              );
+            }
+            this.messages = [
+              ...this.messages,
+              {
+                id: generateId(),
+                role: "system",
+                content: `⛔ ${t("settings.ai.permissions.blockedNotice", {
+                  values: {
+                    actions: blockedNames.join(", "),
+                  },
+                })}`,
+                timestamp: Date.now(),
+              },
+            ];
           }
         }
       } catch (actionErr) {
@@ -1105,7 +1177,20 @@ class AiManager {
     // confirmNeeded is now handled at the batch level in processResponse
     if (confirmNeeded) return false;
 
+    // Defense in depth (BUG-0472): sendMessage only queues catalog actions,
+    // but refuse unknown ones here as well so a future direct caller can
+    // never replay a dropped action (setSymbol, resetSetup, …).
+    if (!isKnownAiAction(action.action)) {
+      logger.warn("ai", "AI action refused: unknown to permission policy", {
+        action: action.action,
+      });
+      return false;
+    }
+
     try {
+      // Cases mirror AI_ACTION_CATALOG — anything else is refused by the
+      // guard above, so adding a new executable action means adding the
+      // catalog entry and its case here together.
       switch (action.action) {
         case "setEntryPrice":
           if (action.value !== undefined) {
@@ -1152,13 +1237,7 @@ class AiManager {
             tradeState.riskPercentage = String(parseAiValue(action.value as string));
           }
           break;
-        case "setSymbol":
-          if (action.value !== undefined) {
-            tradeState.symbol = String(action.value);
-          }
-          break;
-        case "setAtrMultiplier":
-        case "setStopLossATR": {
+        case "setAtrMultiplier": {
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
             // parseAiValue returns Decimal, convert to string for tradeState
@@ -1192,34 +1271,6 @@ class AiManager {
           if (typeof action.index === "number" && tradeState.targets.length > 1) {
             app.removeTakeProfitRow(action.index);
           }
-          break;
-        case "setAtrMode":
-          if (action.value === "auto" || action.value === "manual") {
-            tradeState.atrMode = action.value;
-          }
-          break;
-        case "setAtrTimeframe":
-          if (typeof action.value === "string") {
-            tradeState.atrTimeframe = action.value;
-          }
-          break;
-        case "setAnalysisTimeframe":
-          if (typeof action.value === "string") {
-            tradeState.analysisTimeframe = action.value;
-          }
-          break;
-        case "setAutoPrice":
-          if (typeof action.value === "boolean" && settingsState.aiAllowSettingsChanges) {
-            settingsState.autoUpdatePriceInput = action.value;
-          }
-          break;
-        case "setAccountSize":
-          if (action.value !== undefined) {
-            tradeState.accountSize = String(parseAiValue(action.value as string));
-          }
-          break;
-        case "resetSetup":
-          tradeState.resetInputs(true, true);
           break;
         case "setNotes":
           if (typeof action.value === "string") {
@@ -1314,16 +1365,49 @@ class AiManager {
     const pending = this.pendingActions.get(actionId);
     if (!pending) return;
 
-    // Execute all actions in batch
-    pending.actions.forEach((action) => {
+    // Re-validate against the live permission set (BUG-0472): an action may
+    // have been allowed when queued but switched off before confirm, or the
+    // batch may have been injected into the queue directly, bypassing the
+    // sendMessage filter. Only still-permitted actions may execute.
+    const { permitted, blocked } = filterPermittedActions(
+      pending.actions,
+      settingsState.aiAllowedActions ?? AI_ALLOWED_ACTIONS_DEFAULT,
+    );
+
+    if (blocked.length > 0) {
+      logger.warn("ai", "AI actions revoked before confirm", {
+        blocked: blocked.map((action) => action.action),
+      });
+      const t = get(_);
+      this.messages = [
+        ...this.messages,
+        {
+          id: generateId(),
+          role: "system",
+          content: `⛔ ${t("settings.ai.permissions.blockedNotice", {
+            values: {
+              actions: blocked.map((action) => action.action).join(", "),
+            },
+          })}`,
+          timestamp: Date.now(),
+        },
+      ];
+    }
+
+    // Execute all still-permitted actions in batch
+    permitted.forEach((action) => {
       this.executeAction(action, false);
     });
 
     // Remove from pending
     this.pendingActions.delete(actionId);
 
-    // Update message to show confirmed status
-    this.updateActionMessage(actionId, "confirmed");
+    // Update message to show confirmed status — "rejected" when nothing was
+    // still permitted, so a revoked batch never looks confirmed.
+    this.updateActionMessage(
+      actionId,
+      permitted.length > 0 ? "confirmed" : "rejected",
+    );
     this.save();
   }
 

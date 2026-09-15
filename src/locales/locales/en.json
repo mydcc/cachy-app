@@ -1530,7 +1530,7 @@
         "active": "Active",
         "delete": "Delete provider",
         "relay": "Allow server relay",
-        "relayDesc": "Only needed when a provider blocks browser requests (CORS). Off (default): the browser talks to the provider directly and your key never reaches the Cachy server."
+        "relayDesc": "Only needed when a provider blocks browser requests (CORS). Off (default): the browser talks to the provider directly and your key never reaches the Cachy server. On: your prompts and shared context travel via Cachy infrastructure to reach the provider."
       },
       "provider": {
         "openai": "OpenAI",
@@ -1567,7 +1567,34 @@
       "historyDesc": "Number of recent trades sent to AI for context",
       "safetyTitle": "Safety & Verifications",
       "confirmActions": "Confirm Actions",
-      "confirmActionsDesc": "Requires confirmation before AI actions",
+      "confirmActionsDesc": "Also asks before notes and tags. Actions that change your trade setup always ask for confirmation.",
+      "permissions": {
+        "label": "Agent permissions",
+        "desc": "Choose which trade changes the assistant may request. Actions you switch off are refused outright; the ones marked \"asks\" always wait for your confirmation.",
+        "count": "{enabled} of {total} allowed",
+        "confirmBadge": "asks",
+        "blockedNotice": "Blocked by your agent permissions: {actions}",
+        "malformedCount": "{count} malformed",
+        "group": {
+          "setup": "Trade setup",
+          "risk": "Risk posture",
+          "notes": "Notes"
+        },
+        "action": {
+          "setEntryPrice": "Entry price",
+          "setStopLoss": "Stop-loss",
+          "setTakeProfit": "Take-profit",
+          "addTakeProfit": "Add take-profit",
+          "removeTakeProfit": "Remove take-profit",
+          "setTradeType": "Direction (long/short)",
+          "setAtrMultiplier": "ATR stop multiplier",
+          "setUseAtrSl": "Enable ATR stop-loss",
+          "setRisk": "Risk %",
+          "setLeverage": "Leverage",
+          "setNotes": "Trade notes",
+          "setTags": "Tags"
+        }
+      },
       "allowSettingsChanges": "Allow Settings Changes",
       "allowSettingsChangesDesc": "Allows the AI to modify general settings (e.g. live price)",
       "confirmClearHistory": "Confirm Clear History",

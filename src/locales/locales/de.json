@@ -1558,7 +1558,7 @@
         "active": "Aktiv",
         "delete": "Provider löschen",
         "relay": "Server-Relay erlauben",
-        "relayDesc": "Nur nötig, wenn ein Provider Browser-Anfragen blockiert (CORS). Aus (Standard): Der Browser spricht direkt mit dem Provider, dein Schlüssel erreicht den Cachy-Server nie."
+        "relayDesc": "Nur nötig, wenn ein Provider Browser-Anfragen blockiert (CORS). Aus (Standard): Der Browser spricht direkt mit dem Provider, dein Schlüssel erreicht den Cachy-Server nie. An: Deine Prompts und der geteilte Kontext laufen über die Cachy-Infrastruktur, um den Provider zu erreichen."
       },
       "provider": {
         "openai": "OpenAI",
@@ -1595,7 +1595,34 @@
       "historyDesc": "Anzahl der letzten Trades im KI-Kontext",
       "safetyTitle": "Sicherheit & Bestätigungen",
       "confirmActions": "Aktionen bestätigen",
-      "confirmActionsDesc": "Fordert Bestätigung vor KI-Aktionen",
+      "confirmActionsDesc": "Fragt zusätzlich vor Notizen und Tags. Aktionen, die dein Trade-Setup ändern, fragen immer nach Bestätigung.",
+      "permissions": {
+        "label": "Agent-Berechtigungen",
+        "desc": "Wähle, welche Trade-Änderungen der Assistent anfragen darf. Abgewählte Aktionen werden abgelehnt; mit \"fragt\" markierte warten immer auf deine Bestätigung.",
+        "count": "{enabled} von {total} erlaubt",
+        "confirmBadge": "fragt",
+        "blockedNotice": "Durch deine Agent-Berechtigungen blockiert: {actions}",
+        "malformedCount": "{count} ungültig",
+        "group": {
+          "setup": "Trade-Setup",
+          "risk": "Risiko-Position",
+          "notes": "Notizen"
+        },
+        "action": {
+          "setEntryPrice": "Einstiegspreis",
+          "setStopLoss": "Stop-Loss",
+          "setTakeProfit": "Take-Profit",
+          "addTakeProfit": "Take-Profit hinzufügen",
+          "removeTakeProfit": "Take-Profit entfernen",
+          "setTradeType": "Richtung (Long/Short)",
+          "setAtrMultiplier": "ATR-Stop-Multiplikator",
+          "setUseAtrSl": "ATR-Stop-Loss aktivieren",
+          "setRisk": "Risiko %",
+          "setLeverage": "Hebel",
+          "setNotes": "Trade-Notizen",
+          "setTags": "Tags"
+        }
+      },
       "allowSettingsChanges": "Einstellungen ändern",
       "allowSettingsChangesDesc": "Erlaubt der KI, allgemeine Einstellungen zu ändern (z.B. Live-Preis)",
       "confirmClearHistory": "Verlauf löschen bestätigen",

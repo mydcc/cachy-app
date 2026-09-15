@@ -1646,7 +1646,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0472",
     "title": "AI trade-setup actions execute immediately unless the user opted into confirmation",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [

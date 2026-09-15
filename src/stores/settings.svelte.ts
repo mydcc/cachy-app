@@ -29,6 +29,10 @@ import type { SwitchAuthorization } from "../lib/confirmationPolicy";
 import { normalizeQuality, type VisualQuality } from "../lib/three/quality";
 import type { AiAnalysisMode } from "../types/ai";
 import {
+  AI_ALLOWED_ACTIONS_DEFAULT,
+  sanitizeAllowedActions,
+} from "../lib/ai/actionPolicy";
+import {
   accountForExchange,
   blankKeysFor,
   CREDENTIAL_SCHEMA_VERSION,
@@ -410,6 +414,8 @@ export interface Settings {
   analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
   aiAllowSettingsChanges: boolean;
+  /** Action ids the AI may request; see `lib/ai/actionPolicy`. */
+  aiAllowedActions: string[];
   aiTradeHistoryLimit: number;
   aiShareTradeContext: boolean;
   aiConfirmClear: boolean;
@@ -648,6 +654,7 @@ const defaultSettings: Settings = {
   analysisDepth: "standard",
   aiConfirmActions: false,
   aiAllowSettingsChanges: false,
+  aiAllowedActions: [...AI_ALLOWED_ACTIONS_DEFAULT],
   aiTradeHistoryLimit: 50,
   aiShareTradeContext: false,
   aiAnalysisMode: "risk" as AiAnalysisMode,
@@ -986,6 +993,7 @@ export class SettingsManager {
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
+  aiAllowedActions = $state<string[]>([...defaultSettings.aiAllowedActions]);
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
   aiShareTradeContext = $state<boolean>(defaultSettings.aiShareTradeContext);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
@@ -2073,6 +2081,7 @@ export class SettingsManager {
     this.analysisDepth = merged.analysisDepth;
     this.aiConfirmActions = merged.aiConfirmActions;
     this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
+    this.aiAllowedActions = sanitizeAllowedActions(merged.aiAllowedActions);
     this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
     this.aiShareTradeContext = merged.aiShareTradeContext ?? defaultSettings.aiShareTradeContext;
     this.aiConfirmClear = merged.aiConfirmClear;
@@ -2452,6 +2461,7 @@ export class SettingsManager {
       analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
       aiAllowSettingsChanges: this.aiAllowSettingsChanges,
+      aiAllowedActions: [...this.aiAllowedActions],
       aiTradeHistoryLimit: this.aiTradeHistoryLimit,
       aiShareTradeContext: this.aiShareTradeContext,
       aiConfirmClear: this.aiConfirmClear,
