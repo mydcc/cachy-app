@@ -45,6 +45,7 @@
         type OperandDimension,
     } from "../../../lib/alerts/indicatorCatalogue";
     import {
+        CROSS_DIRECTIONS,
         MAX_WINDOW_LOOKBACK,
         MIN_WINDOW_LOOKBACK,
         buildIndicatorCondition,
@@ -76,8 +77,6 @@
     import type { TranslationKey } from "../../../locales/schema";
 
     let { symbol: _symbol }: { symbol: string } = $props();
-
-    const CROSS_DIRECTIONS: readonly CrossDirection[] = ["above", "below", "any"];
 
     // Read once at init, like every other builder: from here the form owns the
     // document, and re-reading would fight the write-through effect below.

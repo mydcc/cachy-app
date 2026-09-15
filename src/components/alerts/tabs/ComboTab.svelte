@@ -37,6 +37,7 @@
         type CatalogueEntry,
     } from "../../../lib/alerts/indicatorCatalogue";
     import {
+        CROSS_DIRECTIONS,
         MAX_WINDOW_LOOKBACK,
         MIN_WINDOW_LOOKBACK,
         committedWindowLookback,
@@ -68,7 +69,6 @@
 
     let { symbol: _symbol }: { symbol: string } = $props();
 
-    const CROSS_DIRECTIONS: readonly CrossDirection[] = ["above", "below", "any"];
     const PRICE_FIELDS: readonly PriceField[] = ["open", "high", "low", "close", "hl2", "hlc3"];
 
     // Read once at init, like every other builder in this panel.

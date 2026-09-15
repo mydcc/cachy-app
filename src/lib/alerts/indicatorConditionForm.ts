@@ -117,7 +117,13 @@ export function committedWindowLookback(raw: string, previous: number): number {
     return Math.min(MAX_WINDOW_LOOKBACK, Math.max(MIN_WINDOW_LOOKBACK, value));
 }
 
-const ALL_COMPARE_OPS: readonly CompareOp[] = ["gt", "gte", "lt", "lte", "eq", "neq"];
+/**
+ * The crossing directions a relation may carry. Exported as the one list both
+ * builder tabs render, so the tab and the i18n guard read the same values.
+ */
+export const CROSS_DIRECTIONS: readonly CrossDirection[] = ["above", "below", "any"];
+
+export const ALL_COMPARE_OPS: readonly CompareOp[] = ["gt", "gte", "lt", "lte", "eq", "neq"];
 
 /**
  * The comparisons worth offering against `reference`.
