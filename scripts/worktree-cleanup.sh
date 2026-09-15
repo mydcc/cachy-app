@@ -102,10 +102,9 @@ is_pr_merged() {
 # True when the branch tip was itself a tip of origin/develop at some point,
 # i.e. the branch was cut from develop and never received a commit. Such a
 # tip is an ancestor of develop, so ancestry alone reads a brand-new task
-# worktree as "merged" — on 2026-09-14 an --all --apply sweep removed one
-# three minutes after it was created. A branch merged with a merge commit
-# enters develop as a second parent, so its tip is never on the first-parent
-# line and stays retirable without asking GitHub.
+# worktree as "merged". A branch merged with a merge commit enters develop as
+# a second parent, so its tip is never on the first-parent line and stays
+# retirable without asking GitHub.
 is_unworked() {
     local tip=""
     tip="$(git rev-parse --verify --quiet "$1^{commit}")" || return 1

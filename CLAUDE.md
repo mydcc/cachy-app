@@ -92,4 +92,4 @@ Both MCP servers are mandatory (see `AGENTS.md` → Tools & MCP). Call the `jcod
 
 ## Commits & Branches
 
-Commit/PR standards — English-only, Conventional Commits, no tool-attribution footers, never push to `develop`/`main`, `Fixes #<issue>` PR linking, and the BUG-0220 closing-keyword hazard — are defined once in `AGENTS.md` → Commits & Branches and apply here in full.
+Commit/PR standards — English-only, Conventional Commits, no tool-attribution footers, never push to `develop`/`main`, `Fixes #<issue>` PR linking, and the closing-keyword hazard — are defined once in `AGENTS.md` → Commits & Branches and apply here in full.
