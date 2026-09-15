@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md
 
 Cachy — Local-First web app for crypto traders (Position Size Calculator, Risk Management, Trade Journal, real-time market data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
@@ -88,14 +90,6 @@ Five things asked means five things delivered, no matter how long they take. If 
 
 Both MCP servers are mandatory (see `AGENTS.md` → Tools & MCP). Call the `jcodemunch_guide` tool and strictly follow its instructions. This tool provides code analysis and improvements and is preferred for understanding and refactoring code in this repository. Use Gortex graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) for all code navigation and impact analysis.
 
-**Gortex — Worktree Session Start (AUTOMATIC):** Every agent MUST run this before any other tool call — non-negotiable:
-
-```bash
-bash scripts/index-worktree.sh
-```
-
-This registers the worktree with Gortex so all graph tools (`gortex__explore`, `gortex__search`, `gortex__impact`, etc.) resolve correctly. The script is a safe no-op on the main checkout and idempotent on re-run. Skipping this step causes Gortex to report "cwd is not covered by any tracked repo" and fall back to plain file tools — losing all graph-based analysis.
-
 ## Commits & Branches
 
-Commit/PR standards — English-only, Conventional Commits, no tool-attribution footers, never push to `develop`/`main`, `Fixes #<issue>` PR linking, and the BUG-0220 closing-keyword hazard — are defined once in `AGENTS.md` → Commits & Branches and apply here in full.
+Commit/PR standards — English-only, Conventional Commits, no tool-attribution footers, never push to `develop`/`main`, `Fixes #<issue>` PR linking, and the closing-keyword hazard — are defined once in `AGENTS.md` → Commits & Branches and apply here in full.

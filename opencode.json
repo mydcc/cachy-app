@@ -14,9 +14,7 @@
         "--proxy"
       ],
       "enabled": true,
-      "environment": {
-        "GORTEX_INDEX_WORKERS": "8"
-      },
+      "environment": {},
       "type": "local"
     },
     "jcodemunch": {
