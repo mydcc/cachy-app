@@ -37,6 +37,7 @@ const HISTORY_LIMIT_DEFAULT = 50;
 const POSITIONS_HISTORY_LIMIT_MAX = 100;
 const SYNC_LIMIT_DEFAULT = 50;
 const SYNC_LIMIT_MAX = 100;
+const SYNC_ORDERS_LIMIT_DEFAULT = 100;
 
 export function buildOrderDetailQueryParams(orderId: string): Record<string, string> {
   return { orderId };
@@ -104,12 +105,20 @@ export function buildSyncQueryParams(input: {
  * Pagination is the caller's: each page carries a different `endTime` derived
  * from the previous response, so each page is a different signed query and no
  * single envelope can cover the walk.
+ *
+ * `limit` is clamped like the sibling builders — the venue documents
+ * Maximum: 100 (`docs/bitunix-api/07_trade.md`), and an out-of-range value
+ * passes the route's `z.number().optional()` unchecked.
  */
 export function buildSyncOrdersQueryParams(input: {
   limit?: number;
   endTime?: number;
 }): Record<string, string> {
-  const params: Record<string, string> = { limit: String(input.limit ?? 100) };
+  const requested = Number(input.limit ?? SYNC_ORDERS_LIMIT_DEFAULT);
+  const limit = Number.isNaN(requested)
+    ? SYNC_ORDERS_LIMIT_DEFAULT
+    : Math.min(Math.max(requested, 1), SYNC_LIMIT_MAX);
+  const params: Record<string, string> = { limit: String(limit) };
   if (input.endTime) params.endTime = String(input.endTime);
   return params;
 }
