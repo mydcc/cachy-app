@@ -546,6 +546,10 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     it("starts up normally when no history is available", async () => {
       const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // Pinned: this test is about missing history, not about the core — and
+      // without a ready core the status is now "failed" (see the FEAT-0406
+      // disarm test below), which would assert the wrong thing here.
+      mockRuleSchemaIsReady.mockReturnValue(true);
       mockReadClosedCandles.mockReturnValue([]);
 
       await initAlertEngine(fakeLoader);
@@ -557,6 +561,9 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
     it("still reaches ready when reading history throws", async () => {
       const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // Pinned for the same reason as the test above: a throwing history
+      // read must not be conflated with an unready core.
+      mockRuleSchemaIsReady.mockReturnValue(true);
       mockReadClosedCandles.mockImplementation(() => {
         throw new Error("market store gone");
       });
@@ -1037,7 +1044,7 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       mockIsSeriesObserved.mockReturnValue(true);
       const { disarm } = armLoopWithDisarm();
 
-      const { initAlertEngine } = await importFreshAlertsModule();
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
       await initAlertEngine(fakeLoader);
 
       mockRuleSchemaIsReady.mockReturnValue(false);
@@ -1045,6 +1052,10 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
       expect(disarm).toHaveBeenCalledTimes(1);
       expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+      // Mirrors `resyncCoverage`'s not-ready branch: the loop is stopped and
+      // the alerts are back, but a panel-created rule with no legacy alert
+      // behind it is evaluated by nothing — so the banner must show.
+      expect(alertState.engineStatus).toBe("failed");
     });
   });
 
@@ -1101,6 +1112,9 @@ describe("BUG-0382 — alert engine startup wiring", () => {
     it("reports ready on success, and raises no error toast", async () => {
       const { toastService } = await import("../services/toastService.svelte");
       const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      // Pinned: "success" here includes a ready rule core — without one the
+      // status is now "failed" (see the FEAT-0406 disarm test above).
+      mockRuleSchemaIsReady.mockReturnValue(true);
 
       await initAlertEngine(fakeLoader);
 

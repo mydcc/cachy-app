@@ -511,8 +511,6 @@ export async function initAlertEngine(
         );
     }
 
-    alertState.engineStatus = "ready";
-
     // FEAT-0387 cutover: coverage above is a startup snapshot, but the market
     // store keeps subscribing and unsubscribing to series for as long as the
     // session runs — a symbol the trader charts at 4h when the app opens can
@@ -590,6 +588,7 @@ export async function initAlertEngine(
     // every later tick re-decides both together (see `resyncCoverage`). This
     // no longer rests on `ruleSchema.isReady()` being monotonic — FEAT-0406.
     if (ready) {
+        alertState.engineStatus = "ready";
         disarmRuleLoop = startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink, onClose);
 
         // The half of the re-sync that survives a series going quiet. Started
@@ -598,5 +597,12 @@ export async function initAlertEngine(
         if (mode === "live") {
             coverageResyncTimer = setInterval(resyncCoverage, COVERAGE_RESYNC_INTERVAL_MS);
         }
+    } else {
+        // Mirrors `resyncCoverage`'s not-ready branch: the loop is already
+        // disarmed (via `disarmRuleEngine()` just above) and the alerts are
+        // back on the legacy engine — but a rule the panel armed without a
+        // legacy alert behind it is now evaluated by nothing at all. That is
+        // the BUG-0382 shape, and it must not stay silent behind "ready".
+        alertState.engineStatus = "failed";
     }
 }
