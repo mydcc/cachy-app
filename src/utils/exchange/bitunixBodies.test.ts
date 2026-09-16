@@ -345,4 +345,48 @@ describe("buildBitunixModifyOrderBody", () => {
       "slPrice",
     ]);
   });
+
+  it("formats price-like fields without exponent notation", () => {
+    const body = buildBitunixModifyOrderBody({
+      orderId: "42",
+      symbol: "PEPEUSDT",
+      qty: "1000",
+      price: "0.000001",
+    });
+
+    expect(String(body.price)).not.toContain("e");
+    expect(JSON.stringify(body)).toContain('"price":"0.000001"');
+  });
+
+  it("rejects a non-positive quantity with the ORDER_ERRORS code", () => {
+    expect(() =>
+      buildBitunixModifyOrderBody({
+        orderId: "42",
+        symbol: "BTCUSDT",
+        qty: "0",
+      }),
+    ).toThrow(ORDER_ERRORS.INVALID_QTY);
+  });
+
+  it("rejects a non-positive price with the ORDER_ERRORS code", () => {
+    expect(() =>
+      buildBitunixModifyOrderBody({
+        orderId: "42",
+        symbol: "BTCUSDT",
+        qty: "0.5",
+        price: "0",
+      }),
+    ).toThrow(ORDER_ERRORS.INVALID_PRICE);
+  });
+
+  it("rejects a LIMIT take-profit without its order price", () => {
+    expect(() =>
+      buildBitunixModifyOrderBody({
+        orderId: "42",
+        symbol: "BTCUSDT",
+        qty: "0.5",
+        tpOrderType: "LIMIT",
+      }),
+    ).toThrow(ORDER_ERRORS.INVALID_PRICE);
+  });
 });
