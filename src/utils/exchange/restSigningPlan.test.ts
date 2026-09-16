@@ -81,6 +81,22 @@ describe("planForRoute", () => {
   it("does not match a prefix of a migrated route", () => {
     expect(planForRoute("/api/sync/positions-pending-x")).toBeNull();
   });
+
+  // The guard answers a miss with a silent `return`, so a path variant the
+  // lookup cannot see is a route the guard cannot protect. SvelteKit's
+  // `trailingSlash: 'never'` already 308s these before a handler runs; these
+  // pin the lookup's own normalisation so it does not depend on that holding.
+  it("resolves a path with a trailing slash", () => {
+    expect(planForRoute("/api/orders/")?.signed).toBe("body");
+  });
+
+  it("resolves a path with repeated leading slashes", () => {
+    expect(planForRoute("//api/orders")?.signed).toBe("body");
+  });
+
+  it("resolves a variant that still carries a query string", () => {
+    expect(planForRoute("/api/sync/orders/?limit=500")?.signed).toBe("query");
+  });
 });
 
 describe("routeTakesPassphrase", () => {

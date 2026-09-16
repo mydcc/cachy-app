@@ -78,7 +78,14 @@ const MIGRATED_ROUTES = Object.keys(ROUTE_SIGNING_PLAN) as MigratedRoute[];
  */
 export function planForRoute(path: string): RouteSigningPlan | null {
   const [pathname] = path.split(/[?#]/);
-  const match = MIGRATED_ROUTES.find((route) => route === pathname);
+  // Normalise before the lookup: a caller that cannot see a path variant cannot
+  // protect it, and this function's miss becomes a silent `return` in the guard.
+  // SvelteKit's `trailingSlash: 'never'` answers a trailing slash with a 308
+  // before any handler runs, but that is the first line of defence, not this
+  // one — a future endpoint may export `trailingSlash: 'ignore'`, and then the
+  // request arrives here verbatim.
+  const normalized = pathname.replace(/^\/+/, "/").replace(/(.)\/+$/, "$1");
+  const match = MIGRATED_ROUTES.find((route) => route === normalized);
   return match ? ROUTE_SIGNING_PLAN[match] : null;
 }
 
@@ -96,9 +103,14 @@ export function routeTakesPassphrase(route: RouteSigningPlan): boolean {
 }
 
 /**
- * `localeCompare`, not `<`, on purpose: this reproduces the ordering the server
- * signers use, and a different comparator reorders the query string and
- * therefore changes the signature.
+ * Bitunix only. `localeCompare`, not `<`, on purpose: this reproduces the
+ * ordering `generateBitunixSignature` uses, and a different comparator reorders
+ * the query string and therefore changes the signature.
+ *
+ * It is *not* the Bitget rule. `signBitgetRequest` and `generateBitgetSignature`
+ * take the parameters in insertion order and do not sort at all, so this
+ * comparator applied to a Bitget route would reorder the prehash. A3/A4 must not
+ * reach for it on the Bitget half of the table.
  */
 export function canonicalQueryString(params: Record<string, string>): string {
   return new URLSearchParams(

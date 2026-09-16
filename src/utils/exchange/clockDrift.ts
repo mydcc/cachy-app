@@ -32,6 +32,11 @@
  * cannot distinguish it from the app being broken.
  *
  * Browser-safe: no `node:*` imports, no SvelteKit-only modules.
+ *
+ * The sample list below is module state, shared per JS realm. That is correct
+ * in the browser — one user, one clock — and wrong on the server, where an
+ * import from an `/api/*` handler would let one client's offset steer every
+ * other request in the process. Keep this module client-side.
  */
 
 export interface DriftSample {

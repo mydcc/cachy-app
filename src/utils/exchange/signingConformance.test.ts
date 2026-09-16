@@ -305,6 +305,63 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
       }
     }
   });
+
+  // A body-signed route can be reached with no payload at all — a caller that
+  // has not decided what to send yet, or a handler reading a field that is not
+  // there. The signer then signs an *absent* body, and the server has to rebuild
+  // that same absence.
+  //
+  // The sweep above cannot see this: every sample there carries a payload on the
+  // body-signed half, so an absent body only reaches the signers on the
+  // query-signed half, where it is ignored by construction.
+  //
+  // Worth pinning because the two sides reach `""` by different routes. The
+  // client spells the guard out (`!== null && !== undefined && !== ""`); the
+  // server relies on its parameter default, which rewrites a bare `undefined`
+  // argument to `null` before the guard runs. That default is load-bearing, not
+  // decoration: without it `JSON.stringify(undefined)` returns the value
+  // `undefined`, which concatenates into the prehash as the literal
+  // `"undefined"` — a divergence no signature test can localise, surfacing only
+  // as a venue rejection.
+  it.each(ROUTES.filter((route) => ROUTE_SIGNING_PLAN[route].signed === "body"))(
+    "%s signs an absent body as the empty string, on both sides",
+    async (route) => {
+      const plan = ROUTE_SIGNING_PLAN[route];
+      const sample = SAMPLES[route];
+
+      for (const venue of plan.venues as readonly Venue[]) {
+        const signed = await signCachyRequest({
+          cachyPath: route,
+          keys: venue === "bitunix" ? BITUNIX_KEYS : KEYS,
+          venue,
+          payload: undefined,
+          queryParams: sample.params,
+          upstreamPath: sample.upstreamPath,
+          now: FIXED,
+        });
+
+        const serverBytes =
+          venue === "bitunix"
+            ? generateBitunixSignature(KEYS.apiKey, KEYS.apiSecret, sample.params ?? {}, undefined)
+            : generateBitgetSignature(
+                KEYS.apiSecret,
+                "POST",
+                sample.upstreamPath ?? route,
+                sample.params ?? {},
+                undefined,
+              );
+
+        // The client signs the absence as an empty string, and puts that same
+        // empty string on the wire.
+        expect(signed.body).toBe("");
+
+        // The server must rebuild it the same way. `""` and `"undefined"` are
+        // both strings, so nothing upstream of this assertion can tell them
+        // apart — only the venue would, by rejecting the signature.
+        expect(serverBytes.bodyStr).toBe("");
+      }
+    },
+  );
 });
 
 describe("A2 — the bytes on the wire are the bytes that were signed", () => {
