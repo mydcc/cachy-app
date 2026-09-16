@@ -24,7 +24,6 @@ import type {
   BitunixResponse,
   BitunixOrder,
   BitunixOrderListWrapper,
-  BitunixOrderPayload,
 } from "../../../types/bitunix";
 import type { NormalizedOrder, NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
@@ -38,12 +37,7 @@ import {
   type UpstreamApiError,
 } from "../fetchWithTimeout";
 import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
-import {
-  buildBitunixClosePositionPayload,
-  buildBitunixModifyOrderBody,
-  buildBitunixOrderPayload,
-  buildBitunixPlaceOrderBody,
-} from "../../exchange/bitunixBodies";
+import { buildVenueBody } from "../../exchange/venueBodies";
 import {
   UPSTREAM_RETRY_ATTEMPTS,
   isRetryableUpstreamStatus,
@@ -273,27 +267,12 @@ async function fetchBitunixOrderDetail(
 async function modifyBitunixOrder(
     apiKey: string,
     apiSecret: string,
-    modifyData: {
-        orderId?: string;
-        clientId?: string;
-        symbol?: string;
-        qty: string;
-        price?: string;
-        tpPrice?: string;
-        tpStopType?: string;
-        tpOrderType?: string;
-        tpOrderPrice?: string;
-        slPrice?: string;
-        slStopType?: string;
-        slOrderType?: string;
-        slOrderPrice?: string;
-    },
+    body: string,
 ) {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/modify_order";
 
-    const finalPayload = buildBitunixModifyOrderBody(modifyData);
-    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
+    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, body);
 
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
@@ -319,17 +298,23 @@ async function modifyBitunixOrder(
     return res.data;
 }
 
+/**
+ * Posts an already-built body.
+ *
+ * The body arrives as a string from `buildVenueBody`, and both signers take a
+ * string verbatim — re-serialising an object here would be a second chance to
+ * disagree with the client about the signed bytes, which is the one thing the
+ * shared builder exists to rule out (FEAT-0405 AC4).
+ */
 async function placeBitunixOrder(
   apiKey: string,
   apiSecret: string,
-  orderData: BitunixOrderPayload,
+  body: string,
 ): Promise<BitunixOrder> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
-  const finalPayload = buildBitunixPlaceOrderBody(orderData);
-
-  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
+  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, body);
 
   const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     method: "POST",
@@ -1046,21 +1031,12 @@ async function executeOrder(
     return { orders };
   }
   if (payload.type === "place-order") {
-    return await placeBitunixOrder(apiKey, apiSecret, buildBitunixOrderPayload(payload));
+    return await placeBitunixOrder(apiKey, apiSecret, buildVenueBody("bitunix", payload));
   }
   if (payload.type === "close-position") {
-    const safeAmount = formatApiNum(payload.amount);
-    if (!safeAmount || new Decimal(safeAmount).lte(0)) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
-
-    return await placeBitunixOrder(
-      apiKey,
-      apiSecret,
-      buildBitunixClosePositionPayload({
-        symbol: payload.symbol,
-        side: payload.side,
-        qty: safeAmount,
-      }),
-    );
+    // The zero-amount refusal lives in `buildVenueBody` now, next to the
+    // serialisation both sides share rather than on this side alone.
+    return await placeBitunixOrder(apiKey, apiSecret, buildVenueBody("bitunix", payload));
   }
   if (payload.type === "close-all-positions") {
     return await closeAllBitunixPositions(apiKey, apiSecret, payload.symbol);
@@ -1078,7 +1054,7 @@ async function executeOrder(
     return await fetchBitunixOrderDetail(apiKey, apiSecret, payload.orderId, payload.clientId);
   }
   if (payload.type === "modify-order") {
-    return await modifyBitunixOrder(apiKey, apiSecret, payload);
+    return await modifyBitunixOrder(apiKey, apiSecret, buildVenueBody("bitunix", payload));
   }
 
   return null;
@@ -1098,7 +1074,7 @@ async function postBitunixAccount(
   apiKey: string,
   apiSecret: string,
   path: string,
-  body: Record<string, unknown>,
+  body: string,
 ): Promise<unknown> {
   const baseUrl = "https://fapi.bitunix.com";
   const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
@@ -1147,57 +1123,30 @@ async function postBitunixAccount(
   return res.data ?? null;
 }
 
-async function adjustBitunixPositionMargin(
-  apiKey: string,
-  apiSecret: string,
-  payload: Extract<AccountSettingsPayload, { type: "adjust-position-margin" }>,
-): Promise<unknown> {
-  // "Entweder `side` oder `positionId` erforderlich" (02_account.md). Checked
-  // here rather than in the Zod union, which cannot hold a refined object —
-  // and checked at all because in HEDGE mode an unaddressed request would let
-  // the exchange pick a side, moving margin on a position the trader was not
-  // looking at.
-  if (!payload.side && !payload.positionId) {
-    const error: ExchangeError = new Error(ORDER_ERRORS.VALIDATION_ERROR);
-    error.code = "VALIDATION_ERROR";
-    throw error;
-  }
-
-  return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/adjust_position_margin", {
-    symbol: payload.symbol,
-    marginCoin: payload.marginCoin,
-    amount: payload.amount,
-    ...(payload.side ? { side: payload.side } : {}),
-    ...(payload.positionId ? { positionId: payload.positionId } : {}),
-  });
-}
+/**
+ * One endpoint per action. The bodies these endpoints carry are no longer
+ * assembled here — they come from `buildVenueBody`, so the client signs the
+ * same bytes this posts. The "either `side` or `positionId`" rule for
+ * `adjust-position-margin` moved with them.
+ */
+const ACCOUNT_SETTING_PATHS: Record<AccountSettingsPayload["type"], string> = {
+  "change-leverage": "/api/v1/futures/account/change_leverage",
+  "change-margin-mode": "/api/v1/futures/account/change_margin_mode",
+  "change-position-mode": "/api/v1/futures/account/change_position_mode",
+  "adjust-position-margin": "/api/v1/futures/account/adjust_position_margin",
+};
 
 async function executeAccountSetting(
   creds: VenueCredentials,
   payload: AccountSettingsPayload,
 ): Promise<unknown> {
   const { apiKey, apiSecret } = creds;
-
-  if (payload.type === "change-leverage") {
-    return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/change_leverage", {
-      symbol: payload.symbol,
-      marginCoin: payload.marginCoin,
-      leverage: payload.leverage,
-    });
-  }
-  if (payload.type === "change-margin-mode") {
-    return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/change_margin_mode", {
-      symbol: payload.symbol,
-      marginCoin: payload.marginCoin,
-      marginMode: payload.marginMode,
-    });
-  }
-  if (payload.type === "change-position-mode") {
-    return postBitunixAccount(apiKey, apiSecret, "/api/v1/futures/account/change_position_mode", {
-      positionMode: payload.positionMode,
-    });
-  }
-  return adjustBitunixPositionMargin(apiKey, apiSecret, payload);
+  return postBitunixAccount(
+    apiKey,
+    apiSecret,
+    ACCOUNT_SETTING_PATHS[payload.type],
+    buildVenueBody("bitunix", payload),
+  );
 }
 
 export const bitunixVenue: VenueModule = {

@@ -19,7 +19,6 @@ import {
   generateBitgetSignature,
   validateBitgetKeys,
 } from "../bitget";
-import type { BitgetOrderPayload } from "../../../types/bitget";
 import type { NormalizedOrder, NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import { formatApiNum } from "../../utils";
@@ -29,7 +28,8 @@ import {
   fetchWithTimeout,
   DEFAULT_UPSTREAM_TIMEOUT_MS,
 } from "../fetchWithTimeout";
-import { ORDER_ERRORS, cleanPayload, type ExchangeError } from "../../exchange/orderErrors";
+import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
+import { buildVenueBody } from "../../exchange/venueBodies";
 import type {
   ExchangeAccountData,
   KlineQuery,
@@ -62,44 +62,23 @@ interface BitgetRawOrder {
 
 // --- Bitget Helpers ---
 
+/**
+ * Posts an already-built body.
+ *
+ * The body arrives as a string from `buildVenueBody` and the signer takes it
+ * verbatim, so the client and the server cannot disagree about the bytes that
+ * were signed (FEAT-0405 AC4).
+ */
 async function placeBitgetOrder(
     apiKey: string,
     apiSecret: string,
     passphrase: string,
-    payload: BitgetOrderPayload & { marginCoin?: string }
+    body: string
 ): Promise<unknown> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/order/placeOrder";
 
-    // 1. Map Side
-    let bitgetSide = "";
-    const rawSide = payload.side.toLowerCase();
-
-    // Robust mapping for One-Way Mode (Standard)
-    if (payload.reduceOnly) {
-        // Closing a position
-        if (rawSide === "buy") bitgetSide = "close_short"; // Buying to close Short
-        else if (rawSide === "sell") bitgetSide = "close_long"; // Selling to close Long
-    } else {
-        // Opening a position
-        if (rawSide === "buy") bitgetSide = "open_long";
-        else if (rawSide === "sell") bitgetSide = "open_short";
-    }
-
-    // 2. Build Payload
-    const bitgetBody = {
-        symbol: payload.symbol,
-        marginCoin: payload.marginCoin || "USDT",
-        side: bitgetSide,
-        orderType: payload.orderType, // limit, market
-        price: payload.price,
-        size: payload.size,
-        timInForceValue: payload.force // normal, gtc, etc
-    };
-
-    const cleanedBody = cleanPayload(bitgetBody);
-
-    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, cleanedBody);
+    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, body);
 
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
@@ -248,18 +227,10 @@ async function cancelBitgetOrder(
     apiKey: string,
     apiSecret: string,
     passphrase: string,
-    symbol: string,
-    orderId: string,
-    marginCoin = "USDT"
+    body: string
 ) {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/order/cancel-order";
-
-    const body = {
-        symbol,
-        marginCoin,
-        orderId
-    };
 
     const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, body);
 
@@ -570,36 +541,13 @@ async function executeOrder(
     return { orders };
   }
   if (payload.type === "place-order") {
-    const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
-      symbol: payload.symbol,
-      side: payload.side.toLowerCase(),
-      orderType: payload.orderType.toLowerCase(),
-      size: payload.qty,
-      price: payload.price,
-      force: "normal",
-      reduceOnly: Boolean(payload.reduceOnly),
-      marginCoin: payload.marginCoin
-    };
-
-    return await placeBitgetOrder(apiKey, apiSecret, passphrase, bitgetPayload);
+    return await placeBitgetOrder(apiKey, apiSecret, passphrase, buildVenueBody("bitget", payload));
   }
   if (payload.type === "close-position") {
-    const safeAmount = formatApiNum(payload.amount);
-    if (!safeAmount) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
-
-    const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
-      symbol: payload.symbol,
-      side: payload.side.toLowerCase(), // Schema ensures it's BUY/SELL (opposite of position)
-      orderType: "market",
-      size: safeAmount,
-      force: "normal",
-      reduceOnly: true,
-      marginCoin: payload.marginCoin
-    };
-    return await placeBitgetOrder(apiKey, apiSecret, passphrase, bitgetPayload);
+    return await placeBitgetOrder(apiKey, apiSecret, passphrase, buildVenueBody("bitget", payload));
   }
   if (payload.type === "cancel-order") {
-    return await cancelBitgetOrder(apiKey, apiSecret, passphrase, payload.symbol, payload.orderId, payload.marginCoin);
+    return await cancelBitgetOrder(apiKey, apiSecret, passphrase, buildVenueBody("bitget", payload));
   }
 
   return null;
