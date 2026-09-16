@@ -20,6 +20,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { POST as syncPositionsPending } from "./sync/positions-pending/+server";
 import { POST as syncPositionsHistory } from "./sync/positions-history/+server";
+import { POST as syncOrderDetail } from "./sync/order-detail/+server";
+import { POST as leverageMarginMode } from "./leverage-margin-mode/+server";
 import * as clientToken from "../../lib/server/clientToken";
 import { signedEnvelopeRequest } from "../../tests/helpers/signedEnvelopeRequest";
 
@@ -124,5 +126,48 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
     } as unknown as Parameters<typeof syncPositionsPending>[0]);
 
     expect(response.status).toBe(200);
+  });
+
+  // The hard-cutover rule, on the three routes that had no live test of it.
+  // A route reachable without an envelope is one that would have to fall back
+  // to a transmitted secret, so "no envelope" and "no fallback" are the same
+  // assertion seen from two sides.
+  type RouteHandler = (event: {
+    request: Request;
+    getClientAddress: () => string;
+  }) => Promise<Response>;
+
+  it.each([
+    [
+      "/api/leverage-margin-mode",
+      leverageMarginMode as unknown as RouteHandler,
+      { exchange: "bitunix", symbol: "BTCUSDT" },
+    ],
+    [
+      "/api/sync/order-detail",
+      syncOrderDetail as unknown as RouteHandler,
+      { orderId: "1" },
+    ],
+    [
+      "/api/sync/positions-pending",
+      syncPositionsPending as unknown as RouteHandler,
+      {},
+    ],
+  ])("%s answers 400 with no envelope", async (path, handler, body) => {
+    const request = new Request(`http://localhost${path}`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+
+    const response = await handler({ request, getClientAddress });
+
+    expect(response.status).toBe(400);
+    // The rejection code, not the envelope shape: these routes answer either a
+    // flat `{error}` or the `{success,error:{code}}` envelope, and the property
+    // under test here is that the request never reaches the venue.
+    expect(JSON.stringify(await response.json())).toContain(
+      "PRESIGNED_ENVELOPE_MISSING",
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

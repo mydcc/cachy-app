@@ -30,6 +30,7 @@ import {
   type PresignedEnvelope,
 } from "../../../../utils/server/presignedEnvelope";
 import { canonicalQueryString } from "../../../../utils/exchange/restSigningPlan";
+import { buildOrderDetailQueryParams } from "../../../../utils/exchange/venueQueries";
 
 const CACHY_PATH = "/api/sync/order-detail";
 const BITUNIX_BASE_URL = "https://fapi.bitunix.com";
@@ -62,7 +63,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
   const check = checkPresignedRequest(request, {
     cachyPath: CACHY_PATH,
-    rebuilt: canonicalQueryString({ orderId }),
+    rebuilt: canonicalQueryString(buildOrderDetailQueryParams(orderId)),
   });
   if (!check.ok) {
     return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });

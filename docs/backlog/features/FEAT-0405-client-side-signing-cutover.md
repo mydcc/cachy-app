@@ -156,6 +156,15 @@ Notes from A3 for whoever picks up A4:
 - `src/utils/exchange/venueQueries.ts` is new: the query-shaped counterpart of
   `venueBodies.ts`, applied by *both* sides so defaults, clamps and empty-value
   filters cannot drift.
+- Review follow-up (A3): every route now rebuilds through the shared builder
+  (`venueQueries.ts`), including `leverage-margin-mode` and `sync/order-detail`,
+  which had inlined the query object. The `marginCoin` default moved out of
+  `leverage-margin-mode`'s Zod schema into `buildLeverageMarginModeQueryParams`,
+  so there is one owner for it instead of two that could drift.
+- `/api/sync/order-detail` is migrated but has no client call site —
+  `tradeService` reaches order detail through `/api/orders`. Harmless until A5
+  cuts that route over; the endpoint is then reachable only if `/api/orders`
+  gains a use for it.
 - `/api/tpsl` is the one route whose signature shape is a property of the `action`
   riding in the URL, so its Cachy body is asymmetric by design: a **read** sends
   the `{ exchange, action, params }` wrapper (which `TpSlRequestSchema` validates),

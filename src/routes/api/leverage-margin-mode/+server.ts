@@ -28,6 +28,7 @@ import {
   type PresignedEnvelope,
 } from "../../../utils/server/presignedEnvelope";
 import { canonicalQueryString } from "../../../utils/exchange/restSigningPlan";
+import { buildLeverageMarginModeQueryParams } from "../../../utils/exchange/venueQueries";
 
 const CACHY_PATH = "/api/leverage-margin-mode";
 const BITUNIX_BASE_URL = "https://fapi.bitunix.com";
@@ -36,9 +37,11 @@ const BITUNIX_PATH = "/api/v1/futures/account/get_leverage_margin_mode";
 // Read-only: GET /api/v1/futures/account/get_leverage_margin_mode. There is
 // no write counterpart here — change_leverage/change_margin_mode are a
 // separate, later execution feature (FEAT-0068).
+// `marginCoin` carries no default: `buildLeverageMarginModeQueryParams` owns
+// it, so there is one place the client and the server can disagree about.
 const LeverageMarginModeRequestSchema = BaseRequestSchema.extend({
   symbol: z.string().min(1),
-  marginCoin: z.string().min(1).optional().default("USDT"),
+  marginCoin: z.string().min(1).optional(),
 });
 
 interface LeverageMarginModeData {
@@ -74,12 +77,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   }
 
   // The signature covers the venue query, so the rebuild is the canonical
-  // serialisation of exactly those parameters — the same function the client's
-  // signer orders them with.
-  const venueParams: Record<string, string> = { symbol, marginCoin };
+  // serialisation of exactly those parameters — built by the same function the
+  // client signs with, so a default or filter added to the builder reaches both
+  // sides at once instead of silently diverging.
   const check = checkPresignedRequest(request, {
     cachyPath: CACHY_PATH,
-    rebuilt: canonicalQueryString(venueParams),
+    rebuilt: canonicalQueryString(
+      buildLeverageMarginModeQueryParams({ symbol, marginCoin }),
+    ),
   });
   if (!check.ok) {
     return jsonError(`Signature envelope rejected: ${check.code}`, check.code, 400);
