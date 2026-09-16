@@ -78,6 +78,18 @@ const assumeNothingObserved: SeriesObservedPredicate = () => false;
  */
 export function readCoveredAlertIds(
   isSeriesObserved: SeriesObservedPredicate = assumeNothingObserved,
+  /**
+   * Whether the rule evaluator can produce a verdict — FEAT-0406.
+   *
+   * A parameter with a default rather than an unconditional read, so a caller
+   * that also decides *arming* from the same answer can pass the one read it
+   * made. Arming and coverage disagreeing is the double fire this module
+   * exists to make unconstructable: a loop armed against coverage computed
+   * from a second, later read of `isReady()` would evaluate rules for alerts
+   * the legacy engine had just been handed back. Every other caller keeps the
+   * safe default and reads it here.
+   */
+  ready: boolean = ruleSchema.isReady(),
 ): ReadonlySet<string> {
   const none: ReadonlySet<string> = new Set();
   if (!browser) return none;
@@ -88,7 +100,7 @@ export function readCoveredAlertIds(
   // that state would take the alert off the legacy path for an engine that
   // will never evaluate it: the double failure this whole module exists to
   // rule out, arrived at through two subsystems that load independently.
-  if (!ruleSchema.isReady()) {
+  if (!ready) {
     logger.warn("alerts", "[Cutover] Rule schema core not loaded — no alert reported as covered");
     return none;
   }

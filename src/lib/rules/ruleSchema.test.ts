@@ -172,6 +172,28 @@ describe("ruleSchema", () => {
         expect(isRuleRefusedError(e)).toBe(false);
       }
     });
+
+    it("turns an evaluate refusal into an error carrying the field and the i18n key", async () => {
+      ruleSchema.setLoader(
+        async () =>
+          fakeCore({
+            rule_evaluate: () => {
+              throw { refusals: [refusal] };
+            },
+          }) as never,
+      );
+      await ruleSchema.load();
+
+      try {
+        ruleSchema.evaluate(DOCUMENT, CTX);
+        expect.unreachable("evaluate should have refused");
+      } catch (e) {
+        expect(isRuleRefusedError(e)).toBe(true);
+        const err = e as RuleRefusedError;
+        expect(err.translationKey).toBe("rules.refusal.consequenceLevelTooLow");
+        expect(err.refusals[0].field).toBe("action.consequence_level");
+      }
+    });
   });
 
   it("returns the parsed verdict the core hands back", async () => {
