@@ -32,6 +32,8 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { keysForActiveAccount } from "../stores/settings/accounts";
+import { exchangeSignedFetch } from "../utils/exchange/browserSigning";
+import { buildSyncQueryParams } from "../utils/exchange/venueQueries";
 import { tradeState } from "../stores/trade.svelte";
 import { appFetch } from "../lib/appAuth";
 import {
@@ -111,14 +113,12 @@ export async function refreshDerivedFeeRates(): Promise<DerivedFeeRates | null> 
   }
 
   try {
-    const response = await appFetch("/api/sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": keys.key,
-        "X-Api-Secret": keys.secret,
-      },
-      body: JSON.stringify({ limit: FILL_SAMPLE_LIMIT }),
+    const response = await exchangeSignedFetch({
+      cachyPath: "/api/sync",
+      keys: { apiKey: keys.key, apiSecret: keys.secret },
+      fetchFn: appFetch,
+      payload: { limit: FILL_SAMPLE_LIMIT },
+      queryParams: buildSyncQueryParams({ limit: FILL_SAMPLE_LIMIT }),
       signal: AbortSignal.timeout(FILL_REQUEST_TIMEOUT_MS),
     });
     if (!response.ok) return null;

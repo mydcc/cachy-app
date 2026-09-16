@@ -31,7 +31,22 @@ import { trackCustomEvent } from "./trackingService";
 import { appFetch } from "../lib/appAuth";
 import { calculator } from "../lib/calculator";
 import { refreshDerivedFeeRates } from "./feeRateService";
+import { exchangeSignedFetch } from "../utils/exchange/browserSigning";
+import {
+  buildPositionsHistoryQueryParams,
+  buildSyncOrdersQueryParams,
+} from "../utils/exchange/venueQueries";
 import type { Kline } from "./technicalsTypes";
+
+/** Page size for the order-history walk; the venue's own ceiling is lower. */
+const ORDERS_PAGE_SIZE = 100;
+/**
+ * A walk bound, not a target: a corrupt cursor could otherwise keep the loop
+ * asking for pages forever. 50 pages is five thousand orders, well past what
+ * a journal wants in one sync, and a page that stops yielding a cursor ends
+ * the walk long before this.
+ */
+const ORDERS_MAX_PAGES = 50;
 
 // Raw Bitunix position payload as returned by /api/sync/positions-history and
 // /api/sync/positions-pending, before it is normalized into a JournalEntry.
@@ -212,30 +227,86 @@ export const syncService = {
     uiState.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
 
     try {
-      const syncHeaders = {
-        "Content-Type": "application/json",
-        "X-Api-Key": bitunixKeys.key,
-        "X-Api-Secret": bitunixKeys.secret,
+      // FEAT-0405 — signing happens here, so the secret never leaves the
+      // device; the route only checks that the bytes it forwards are the bytes
+      // this envelope covered.
+      const signingKeys = {
+        apiKey: bitunixKeys.key,
+        apiSecret: bitunixKeys.secret,
       };
-      const fetchSync = (path: string, body: unknown) =>
-        appFetch(path, {
-          method: "POST",
-          headers: syncHeaders,
-          body: JSON.stringify(body),
-        });
 
-      // FEAT-0370 — the three endpoints are independent, so dispatch them
+      /**
+       * The order history, one signed page at a time.
+       *
+       * Bitunix derives the next page's `endTime` from the page it just
+       * returned, so only a caller holding that response can sign the next
+       * request. That caller is this loop now; `/api/sync/orders` answers one
+       * page plus the cursor and keeps no state between calls.
+       */
+      const fetchOrderPages = async (): Promise<RawSyncOrder[]> => {
+        const collected: RawSyncOrder[] = [];
+        let endTime: number | undefined;
+
+        for (let page = 0; page < ORDERS_MAX_PAGES; page++) {
+          const body = endTime === undefined
+            ? { limit: ORDERS_PAGE_SIZE }
+            : { limit: ORDERS_PAGE_SIZE, endTime };
+
+          const response = await exchangeSignedFetch({
+            cachyPath: "/api/sync/orders",
+            keys: signingKeys,
+            fetchFn: appFetch,
+            payload: body,
+            queryParams: buildSyncOrdersQueryParams(body),
+          });
+          if (!response.ok) throw new Error("apiErrors.fetchFailed");
+
+          const result = (await response.json()) as {
+            data?: RawSyncOrder[];
+            nextEndTime?: number | null;
+          };
+          if (Array.isArray(result.data)) collected.push(...result.data);
+
+          // `null` is the venue saying there is nothing older; a missing
+          // cursor is a route that predates FEAT-0405, and continuing from a
+          // cursor we do not have would just refetch the same page.
+          if (result.nextEndTime === null || result.nextEndTime === undefined) {
+            break;
+          }
+          endTime = result.nextEndTime;
+        }
+
+        return collected;
+      };
+
+      // FEAT-0370 — the endpoints are independent, so dispatch them
       // concurrently and settle them as one batch: total sync time drops
-      // from the sum of three turnarounds to roughly the slowest single one.
-      const [historySettled, pendingSettled, ordersSettled] =
-        await Promise.allSettled([
-          // 1. History Positions
-          fetchSync("/api/sync/positions-history", { limit: 500 }),
-          // 2. Pending Positions
-          fetchSync("/api/sync/positions-pending", {}),
-          // 3. Orders
-          fetchSync("/api/sync/orders", { limit: 500 }),
-        ]);
+      // from the sum of turnarounds to roughly the slowest single one.
+      const ordersPromise = fetchOrderPages().then(
+        (data) => ({ ok: true as const, data }),
+        (reason: unknown) => ({ ok: false as const, reason }),
+      );
+
+      const [historySettled, pendingSettled] = await Promise.allSettled([
+        // 1. History Positions
+        exchangeSignedFetch({
+          cachyPath: "/api/sync/positions-history",
+          keys: signingKeys,
+          fetchFn: appFetch,
+          payload: { limit: 500 },
+          queryParams: buildPositionsHistoryQueryParams({ limit: 500 }),
+        }),
+        // 2. Pending Positions — the signed query is empty, which is a shape
+        // the envelope can represent only because `x-api-query` is read
+        // present-or-absent rather than truthy.
+        exchangeSignedFetch({
+          cachyPath: "/api/sync/positions-pending",
+          keys: signingKeys,
+          fetchFn: appFetch,
+          payload: {},
+          queryParams: {},
+        }),
+      ]);
 
       // History is the critical endpoint: without it there is nothing to import.
       if (historySettled.status === "rejected")
@@ -282,10 +353,13 @@ export const syncService = {
           ? (pendingResult.data as RawSyncPosition[])
           : [];
 
-      // 3. Orders (non-critical)
-      const orderResult = await unwrapOptional(ordersSettled, "Order");
-      const orders: RawSyncOrder[] = (orderResult?.data ||
-        []) as RawSyncOrder[];
+      // 3. Orders (non-critical) — the walk ran alongside the batch above.
+      const ordersResult = await ordersPromise;
+      if (!ordersResult.ok) {
+        console.warn("Order sync failed (non-critical):", ordersResult.reason);
+        isPartialSync = true;
+      }
+      const orders: RawSyncOrder[] = ordersResult.ok ? ordersResult.data : [];
 
       // FEAT-0253 — learn this account's real maker/taker rates from the fills
       // the broker actually charged it. Awaited so the calculator has the

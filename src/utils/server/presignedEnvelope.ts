@@ -34,7 +34,13 @@
  * bytes Cachy forwards, and that no credential rides where it may not.
  */
 
-import { planForRoute, routeTakesPassphrase } from "../exchange/restSigningPlan";
+import {
+  cachyAction,
+  planForRoute,
+  routeTakesNonce,
+  routeTakesPassphrase,
+  signatureShapeFor,
+} from "../exchange/restSigningPlan";
 
 export interface PresignedEnvelope {
   apiKey: string;
@@ -82,18 +88,30 @@ export function readPresignedEnvelope(request: Request): PresignedEnvelope | nul
 
   if (!apiKey || !signature || !timestamp) return null;
 
+  // Read as *present or absent*, not as truthy or not. A route that signs no
+  // parameters at all (`/api/sync/positions-pending`) has an empty query string,
+  // and an empty string is therefore what its client sends; collapsing that to
+  // "absent" would make the empty query unrepresentable and that route
+  // unmigratable. Absent still means absent — `null`, not `""`.
+  const rawQuery = request.headers.get("x-api-query");
+
   return {
     apiKey,
     signature,
     timestamp,
     nonce: header(request, "x-api-nonce"),
-    query: header(request, "x-api-query"),
+    query: rawQuery === null ? undefined : rawQuery,
     passphrase: header(request, "x-api-passphrase"),
   };
 }
 
 export interface PresignedConsistencyInput {
-  /** Cachy route, e.g. `/api/orders`. Used to look up the shared plan row. */
+  /**
+   * Cachy route, e.g. `/api/orders`. Used to look up the shared plan row, and —
+   * on a route whose shape varies with the action it carries — to resolve that
+   * shape from the URL. A caller on such a route passes the URL it received,
+   * query string included; every other route passes its bare path.
+   */
   cachyPath: string;
   envelope: PresignedEnvelope;
   /** The server's own rebuild of the signed bytes for this route. */
@@ -128,7 +146,14 @@ export function assertPresignedConsistency(input: PresignedConsistencyInput): vo
     }
   }
 
-  const sent = plan.signed === "query" ? input.envelope.query : input.rawBody;
+  // Checked after the passphrase so that a request carrying a credential this
+  // route may not have is reported as that, not as a missing nonce.
+  if (routeTakesNonce(plan) && input.envelope.nonce === undefined) {
+    throw new Error(PRESIGNED_ERRORS.MISSING_ENVELOPE);
+  }
+
+  const shape = signatureShapeFor(plan, cachyAction(input.cachyPath));
+  const sent = shape === "query" ? input.envelope.query : input.rawBody;
 
   if (sent === undefined) {
     throw new Error(PRESIGNED_ERRORS.MISSING_ENVELOPE);
@@ -136,4 +161,63 @@ export function assertPresignedConsistency(input: PresignedConsistencyInput): vo
   if (sent !== input.rebuilt) {
     throw new Error(PRESIGNED_ERRORS.DIVERGENCE);
   }
+}
+
+/** A request that may proceed, and the envelope the route forwards upstream. */
+export type PresignedCheck =
+  | { ok: true; envelope: PresignedEnvelope }
+  | { ok: false; code: string };
+
+/**
+ * Reads the envelope and checks it against the server's rebuild in one step,
+ * reporting a `PRESIGNED_ERRORS` code instead of throwing.
+ *
+ * The route handlers share this so that "no envelope" and "divergent bytes"
+ * cannot be mapped to different statuses on different routes — a migrated route
+ * answers `400` and never falls back to signing with a transmitted secret.
+ */
+export function checkPresignedRequest(
+  request: Request,
+  input: PresignedConsistencyInput,
+): PresignedCheck {
+  const envelope = readPresignedEnvelope(request);
+  if (!envelope) return { ok: false, code: PRESIGNED_ERRORS.MISSING_ENVELOPE };
+
+  try {
+    assertPresignedConsistency({ ...input, envelope });
+  } catch (error) {
+    return {
+      ok: false,
+      code: error instanceof Error ? error.message : PRESIGNED_ERRORS.DIVERGENCE,
+    };
+  }
+
+  return { ok: true, envelope };
+}
+
+/**
+ * The five headers a forwarded Bitunix call carries, built from the client's
+ * envelope rather than from a signature this server computed.
+ *
+ * One place, because both halves matter and both are easy to get wrong by hand:
+ * the venue sees exactly the credential material the client signed with, and
+ * `api-key` is the only credential among them — there is no secret to leak here,
+ * and none to add.
+ *
+ * `nonce` is narrowed here rather than at each call site because
+ * `assertPresignedConsistency` has already refused a Bitunix request that
+ * arrived without one; the throw is unreachable from a route that called
+ * `checkPresignedRequest` first, and keeps the header from silently going out
+ * empty if that ever stops being true.
+ */
+export function bitunixCallHeaders(envelope: PresignedEnvelope): Record<string, string> {
+  if (envelope.nonce === undefined) throw new Error(PRESIGNED_ERRORS.MISSING_ENVELOPE);
+
+  return {
+    "api-key": envelope.apiKey,
+    timestamp: envelope.timestamp,
+    nonce: envelope.nonce,
+    sign: envelope.signature,
+    "Content-Type": "application/json",
+  };
 }

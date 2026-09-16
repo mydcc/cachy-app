@@ -135,8 +135,15 @@ describe("syncBitunixPositions — concurrent dispatch", () => {
 
         const done = syncService.syncBitunixPositions();
 
-        // Sequential code would stop after the first dispatch and wait for
-        // its response; concurrent code has all three in flight already.
+        // Since FEAT-0405 each request is signed before it is dispatched, and
+        // signing resolves on a real macrotask. Yield until all three have
+        // landed rather than guessing how many hops that takes; the property
+        // under test is unchanged, because sequential code would still stop
+        // after the first dispatch and wait for its response.
+        for (let attempt = 0; attempt < 50 && resolvers.size < 3; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+
         expect([...resolvers.keys()].sort()).toEqual([
             "/api/sync/orders",
             "/api/sync/positions-history",
