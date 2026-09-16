@@ -23,20 +23,34 @@ WebCrypto signing engine (`src/utils/crypto/exchangeSigning.ts`) and byte-matchi
 conformance tests — but no production caller was ever wired up. Raw exchange
 secrets still transit the Cachy server on every signed REST request:
 
-- `src/services/tradeService.ts`: `X-Api-Key` / `X-Api-Secret` header pair at
-  **5** request sites — order lifecycle (placement, cancel, modify and TP/SL
-  share one endpoint selector), `leverage-margin-mode`, `account`,
-  `account-settings`, `sync/positions-pending`
-- `src/services/syncService.ts`: one shared header object reused by **3** sync
-  sub-requests (orders, positions-pending, positions-history)
-- `src/services/feeRateService.ts`: same header pair at 1 request site
+- **14 client call sites across 6 files** carry the pair:
+
+  | File | Sites | Endpoints |
+  |---|---|---|
+  | `src/services/tradeService.ts` | 5 | `signedRequest` transport :303 (all order writes + `/api/tpsl`), :375 `leverage-margin-mode`, :440 `account`, :496 `account-settings`, :1192 `sync/positions-pending` |
+  | `src/services/syncService.ts` | 1 header object :217 | reused by 3 concurrent POSTs — `sync/orders`, `sync/positions-history`, `sync/positions-pending` |
+  | `src/services/feeRateService.ts` | 1 :114 | `sync` |
+  | `src/components/inputs/PortfolioInputs.svelte` | 1 :189 | `balance` |
+  | `src/components/shared/PositionsSidebar.svelte` | 4 :306, :368, :458, :576 | `positions`, `orders` ×2, `account` |
+  | `src/lib/windows/implementations/CandleChartView.svelte` | 2 :283, :312 | `positions`, `orders` |
+
+  The last three were missing from earlier scope notes — an acceptance check
+  written against a three-file list passes while seven sites still transmit.
 
 On the server side the pair is read via `extractApiCredentials`
-(`src/utils/server/requestUtils.ts`) by **12** proxy routes: `orders`, `balance`,
-`positions`, `leverage-margin-mode`, `account`, `account-settings`, `tpsl`,
-`sync`, `sync/orders`, `sync/order-detail`, `sync/positions-history`,
-`sync/positions-pending`. (`api/external/news` also calls the helper but carries
-an unrelated key — not in scope.)
+(`src/utils/server/requestUtils.ts`) by **12** proxy routes, in two groups:
+
+- **Bitunix-hardwired (7)** — no `exchange` parameter; each calls
+  `generateBitunixSignature` directly: `tpsl` (`+server.ts:59` rejects
+  `exchange !== "bitunix"`), `leverage-margin-mode` (`:64`, same guard), `sync`,
+  `sync/orders`, `sync/order-detail`, `sync/positions-history`,
+  `sync/positions-pending`.
+- **Reachable by both venues (5)** — dispatch through `resolveVenue(exchange)`
+  and gate on `venue.requiresPassphrase`: `orders`, `balance`, `positions`,
+  `account`, `account-settings`.
+
+(`api/external/news` also calls the helper but carries an unrelated key — not in
+scope.)
 
 The WebSocket private-channel login was audited 2026-09-06 and needs no change:
 `src/services/bitunixWs.ts` (`login()`) and `src/services/bitgetWs.ts` (`login()`)
@@ -62,6 +76,35 @@ without a valid pre-signed envelope is rejected (`400`); the server never
 silently re-signs with a transmitted secret. Operators of an old client must
 update the client to talk to a new server. This keeps the ADR-0013 boundary
 absolute instead of reintroducing a secret-carrying branch behind a flag.
+
+### Decision: named Bitget passphrase exception (recorded 2026-09-15)
+
+The naive acceptance criterion — *no raw exchange credential crosses the wire* —
+is **not satisfiable for Bitget while Cachy proxies it**. The passphrase is a
+transport header, not a signing input: the Bitget prehash is
+`timestamp + method + requestPath + bodyStr`
+(`src/utils/server/bitget.ts:104`), `generateBitgetSignature` takes no
+passphrase (`:75-117`), yet Bitget upstream requires the header on every
+authenticated request and all seven outbound builders set it unconditionally
+(`src/utils/server/venues/bitget.ts:110,154,210,272,310,352,484`). No client-side
+computation removes it.
+
+[`ADR-0013`](../../adr/0013-client-side-exchange-signing.md) was therefore
+amended with a **named, bounded exception**: on the five Bitget-reachable routes
+the passphrase continues to transit as a header; the **secret** continues to
+transit on none.
+
+This is not a no-op. Post-cutover a compromised Cachy runtime holds at most
+`apiKey` + `passphrase` for Bitget — a pair that cannot produce a valid
+signature, because the secret is the HMAC key and stays client-side. Credential
+exfiltration stops yielding signable material, on both venues. Scoping Bitget
+out of the item instead would have left all three credentials on the wire for
+the highest-value path (`signedRequest` :303 is the funnel for every order
+write), which is the outcome this item exists to prevent.
+
+The exception is Bitget-only and closed: no new passphrase-accepting route may
+be added on its strength, and it is removed once Bitget REST becomes reachable
+client-direct.
 
 ### The constraint that dictates the order of work
 
@@ -98,9 +141,15 @@ signature verification.
 
 ## Acceptance criteria
 
-- [ ] No REST trade/sync request carries a raw exchange secret out of the browser,
-      across all **7** client call sites / **12** migrated proxy routes
-      (asserted by test: signature material only, `X-Api-Secret` absent)
+- [ ] No REST trade/sync request carries a raw exchange **signing secret** out of
+      the browser, across all **14** client call sites / **6** files and all **12**
+      migrated proxy routes (asserted by test: signature material present,
+      `X-Api-Secret` absent). The passphrase is a separate case — see the next
+      criterion.
+- [ ] The Bitget passphrase transits **only** through the ADR-0013 named
+      exception, and only as a header: the secret-absence test must hold on all
+      **12** routes, while an explicit passphrase-absence test holds on the **7**
+      Bitunix-hardwired ones. No passphrase in a query string, body, or log.
 - [ ] The server proxy has **no silent dual path**: a migrated route receiving no
       valid pre-signed envelope answers `400`, never re-signs with a transmitted
       secret
@@ -119,20 +168,31 @@ signature verification.
 
 - Changing venue signing algorithms themselves
 - AI routes and backup encryption (unrelated at-rest concern)
-- ADR-0013 itself (exists)
 - `api/external/news` route (calls the credential helper but carries an unrelated
   key — not a credential-transit path)
 - A backward-compatible dual path for old self-hosted clients (decided against —
   see hard cutover above)
+- **Removing the Bitget passphrase from the wire.** Structurally impossible while
+  Cachy proxies Bitget; covered by the named ADR-0013 exception instead. A
+  client-direct Bitget path is the real fix and belongs in its own item.
+- **Stale open tab after cutover.** A tab loaded before the deploy keeps sending
+  the pre-cutover format and 400s until reloaded. Wants a client-side
+  "version changed — reload" prompt; tracked separately, not part of this item's
+  criteria.
 
 ## Links
 
 - [`FEAT-0285`](FEAT-0285-credential-transit-boundary.md)
 - [`docs/adr/0013-client-side-exchange-signing.md`](../../adr/0013-client-side-exchange-signing.md)
+  — amended 2026-09-15 with the named Bitget passphrase exception
 - [`docs/adr/0001-local-first-boundary.md`](../../adr/0001-local-first-boundary.md)
-- `src/services/tradeService.ts`, `src/services/syncService.ts`,
-  `src/services/feeRateService.ts`
+- Client callers: `src/services/tradeService.ts`, `src/services/syncService.ts`,
+  `src/services/feeRateService.ts`, `src/components/inputs/PortfolioInputs.svelte`,
+  `src/components/shared/PositionsSidebar.svelte`,
+  `src/lib/windows/implementations/CandleChartView.svelte`
 - `src/utils/crypto/exchangeSigning.ts`, `src/utils/crypto/exchangeSigning.test.ts`
+- `src/utils/exchange/bitunixBodies.ts`, `src/utils/exchange/bitunixBodies.test.ts`
+  — shared Bitunix body construction, landed as this item's first phase (#3409)
 - `src/utils/server/venues/bitunix.ts`, `src/utils/server/venues/bitget.ts`
   (server-side body build + signing to be split)
 - `src/utils/server/requestUtils.ts` (`extractApiCredentials`)
