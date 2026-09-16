@@ -3,6 +3,7 @@ id: FEAT-0405
 title: Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)
 type: feature
 status: in-progress
+branch: feat/feat-0405-a4-multi-venue
 assignee: claude
 priority: P1
 milestone: none
@@ -147,7 +148,7 @@ Delivered as four PRs; only the last one flips this item to `done`.
 |---|---|---|
 | A1 | `ROUTE_SIGNING_PLAN` (12 routes), `signCachyRequest` / `exchangeSignedFetch`, `clockDrift`, `assertPresignedConsistency` | merged (#3416) — deliberately inert: no route and no call site wired up |
 | A2 | `buildVenueBody` plus the Bitget counterpart, for the two body-signed multi-venue routes | merged (#3421) |
-| A3 | The 7 Bitunix-hardwired query routes and their client call sites | open (#3424) |
+| A3 | The 7 Bitunix-hardwired query routes and their client call sites | merged (#3424) |
 | A4 + A5 | The 5 multi-venue routes (3 query, 2 body) | not started |
 | A6 | Absence test over all 12 routes, whitepaper, WS audit, item flip | not started |
 
@@ -177,9 +178,37 @@ Notes from A3 for whoever picks up A4:
 - `tradeService.signedRequest` carries a temporary `ENVELOPE_SIGNED_ROUTES` set
   (`/api/tpsl`). It exists only while `/api/orders` is unmigrated and goes away
   with it in A5.
-- Carried over from the plan: `account-settings` is a **body** route in
-  `ROUTE_SIGNING_PLAN`, but the ACs list it among the query routes. The table is
-  the reference for both sides — settle this before A5.
+- `account-settings` is a **body** route — settled 2026-09-16, before A5. Bitunix
+  builds it through `buildVenueBody("bitunix", payload)`
+  (`src/utils/server/venues/bitunix.ts`), and Bitget has no implementation for it
+  at all (`executeAccountSetting` returns `null`). `ROUTE_SIGNING_PLAN` was right
+  and the AC list was wrong; the AC has been corrected. Two independent sources
+  beat one line of prose.
+
+Notes for A4 + A5 (added 2026-09-16, on starting them):
+
+- The delta is `VenueCredentials` → a pre-signed envelope on five `VenueModule`
+  methods: `fetchAccount`, `fetchBalance`, `fetchPositions` (the three query
+  routes) and `executeOrder`, `executeAccountSetting` (the two body routes). The
+  venues stop signing and start forwarding the client's headers, the way
+  `bitunixCallHeaders` already does for the A3 routes.
+- `validateKeys(creds)` needs the secret, so it cannot survive as written, and it
+  is called by three of the five routes (`account`, `orders`, `account-settings`
+  — not `balance`, which never ran it). Bitget's implementation is worse than a
+  shape check: it *signs a dummy request* with the secret to prove the signing
+  chain works, which has no server-side equivalent once the secret is gone. Decide
+  whether the remaining key-shape check moves client-side or is dropped — a
+  deleted check that used to produce a legible error must not turn into a worse
+  failure message from the venue.
+- Roughly a dozen *route* test files break the same way A3 broke
+  `tests/unit/verify_tpsl_validation.test.ts`: they build requests with `apiSecret`
+  in the body and usually no `url`, which is the contract these routes stop
+  accepting. Affected: `account-settings/account_settings.test.ts`,
+  `account/account.test.ts`, `balance/balance.timeout.test.ts`, the nine
+  `orders/*.test.ts` and `positions/positions_positionId.test.ts`.
+  `sync/orders/security.test.ts`, `sync/sync_security.test.ts` and
+  `tpsl/tpsl_paths.test.ts` are already on `signedEnvelopeRequest` and are the
+  pattern to copy.
 
 ## Acceptance criteria
 
@@ -198,9 +227,10 @@ Notes from A3 for whoever picks up A4:
 - [ ] One shared `buildVenueBody` produces the signed bytes for both sides; the
       server answers `400` when its rebuild diverges from the client-supplied body
       (covered by a test)
-- [ ] Query-string routes (`balance`, `positions`, `account`, `account-settings`,
-      `sync` reads) migrated with their own envelope shape — not only the
-      body-signing routes
+- [ ] Query-string routes (`balance`, `positions`, `account`, `sync` reads)
+      migrated with their own envelope shape — not only the body-signing routes.
+      (`account-settings` is *body*-signed, per `ROUTE_SIGNING_PLAN` and the
+      venue builders; it was listed here as a query route in error.)
 - [ ] Existing `exchangeSigning` conformance vectors still pass; order lifecycle
       and sync happy paths covered by integration tests
 - [ ] WS private login recorded as audited-clean (documentation only, no code change)
