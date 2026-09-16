@@ -29,9 +29,10 @@
  */
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../utils";
+import type { AccountSettingsPayload } from "../../types/accountSettingsSchemas";
 import type { BitunixOrderPayload } from "../../types/bitunix";
 import type { PlaceOrderPayload } from "../../types/orderSchemas";
-import { ORDER_ERRORS, cleanPayload } from "./orderErrors";
+import { ORDER_ERRORS, cleanPayload, type ExchangeError } from "./orderErrors";
 
 /** The shape `modifyBitunixOrder` accepts (FEAT-0065). */
 export interface BitunixModifyData {
@@ -170,23 +171,125 @@ export function buildBitunixPlaceOrderBody(orderData: BitunixOrderPayload): Reco
   return cleanPayload(payload);
 }
 
-/** Validates and formats a modify-order request into the signed object. */
+/**
+ * Validates and formats a modify-order request into the signed object.
+ *
+ * Key order is the signature input order — do not reorder. Every price-like
+ * field goes through `formatApiNum` for the same reason as
+ * `buildBitunixPlaceOrderBody`: without it a low-priced level serialises as
+ * `"1e-7"`, which the exchange rejects. There is no order-type context here,
+ * so `price` is validated whenever it is present rather than only for LIMIT.
+ */
 export function buildBitunixModifyOrderBody(
   modifyData: BitunixModifyData,
 ): Record<string, unknown> {
+  const normalized: BitunixModifyData = { ...modifyData };
+
+  if (normalized.qty !== undefined) {
+    const safeQty = formatApiNum(normalized.qty);
+    if (!safeQty || new Decimal(safeQty).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
+    normalized.qty = safeQty;
+  }
+
+  if (normalized.price !== undefined) {
+    const safePrice = formatApiNum(normalized.price);
+    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    normalized.price = safePrice;
+  }
+
+  for (const field of [
+    "tpPrice",
+    "tpOrderPrice",
+    "slPrice",
+    "slOrderPrice",
+  ] as const) {
+    const raw = normalized[field] as string | number | undefined;
+    if (raw === undefined) continue;
+    const safe = formatApiNum(raw);
+    if (!safe || new Decimal(safe).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    normalized[field] = safe;
+  }
+
+  // A LIMIT take-profit or stop needs the price it will be placed at —
+  // same rule as the place path, where learning it from a rejection costs a
+  // round trip with a position already open behind it.
+  if (normalized.tpOrderType === "LIMIT" && normalized.tpOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+  if (normalized.slOrderType === "LIMIT" && normalized.slOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+
   return cleanPayload({
-    orderId: modifyData.orderId,
-    clientId: modifyData.clientId,
-    symbol: modifyData.symbol,
-    qty: modifyData.qty,
-    price: modifyData.price,
-    tpPrice: modifyData.tpPrice,
-    tpStopType: modifyData.tpStopType,
-    tpOrderType: modifyData.tpOrderType,
-    tpOrderPrice: modifyData.tpOrderPrice,
-    slPrice: modifyData.slPrice,
-    slStopType: modifyData.slStopType,
-    slOrderType: modifyData.slOrderType,
-    slOrderPrice: modifyData.slOrderPrice,
+    orderId: normalized.orderId,
+    clientId: normalized.clientId,
+    symbol: normalized.symbol,
+    qty: normalized.qty,
+    price: normalized.price,
+    tpPrice: normalized.tpPrice,
+    tpStopType: normalized.tpStopType,
+    tpOrderType: normalized.tpOrderType,
+    tpOrderPrice: normalized.tpOrderPrice,
+    slPrice: normalized.slPrice,
+    slStopType: normalized.slStopType,
+    slOrderType: normalized.slOrderType,
+    slOrderPrice: normalized.slOrderPrice,
   });
+}
+
+/**
+ * The account-settings write family's signed bodies (FEAT-0068).
+ *
+ * Field names and the `ISOLATION`/`CROSS` and `ONE_WAY`/`HEDGE` spellings are
+ * Bitunix's own (docs/bitunix-api/02_account.md) — this module maps nothing,
+ * the route validates, and the vehicle here is only the key order the
+ * signature covers.
+ *
+ * `adjust-position-margin` carries the "either side or positionId" rule rather
+ * than the Zod union, which cannot hold a refined object, and rather than the
+ * venue module, which would be the only side enforcing it: in HEDGE mode an
+ * unaddressed request would let the exchange pick a side, moving margin on a
+ * position the trader was not looking at.
+ */
+export function buildBitunixAccountSettingBody(
+  payload: AccountSettingsPayload,
+): Record<string, unknown> {
+  if (payload.type === "change-leverage") {
+    return {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      leverage: payload.leverage,
+    };
+  }
+  if (payload.type === "change-margin-mode") {
+    return {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      marginMode: payload.marginMode,
+    };
+  }
+  if (payload.type === "change-position-mode") {
+    return {
+      positionMode: payload.positionMode,
+    };
+  }
+  if (payload.type === "adjust-position-margin") {
+    if (!payload.side && !payload.positionId) {
+      // Carries `code` as well as the message: the route reads the former to
+      // pick the trader-facing string, and it used to be set at the throw site
+      // in `adjustBitunixPositionMargin`. Moving the check without the code
+      // would have swapped a specific refusal for a generic one.
+      const error: ExchangeError = new Error(ORDER_ERRORS.VALIDATION_ERROR);
+      error.code = "VALIDATION_ERROR";
+      throw error;
+    }
+    return {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      amount: payload.amount,
+      ...(payload.side ? { side: payload.side } : {}),
+      ...(payload.positionId ? { positionId: payload.positionId } : {}),
+    };
+  }
+  throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
 }
