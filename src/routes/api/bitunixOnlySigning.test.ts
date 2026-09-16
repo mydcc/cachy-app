@@ -24,6 +24,10 @@ import { POST as syncOrderDetail } from "./sync/order-detail/+server";
 import { POST as leverageMarginMode } from "./leverage-margin-mode/+server";
 import * as clientToken from "../../lib/server/clientToken";
 import { signedEnvelopeRequest } from "../../tests/helpers/signedEnvelopeRequest";
+import {
+  buildLeverageMarginModeQueryParams,
+  buildOrderDetailQueryParams,
+} from "../../utils/exchange/venueQueries";
 
 /**
  * FEAT-0405 A3 — the acceptance evidence for the seven Bitunix-only routes.
@@ -65,17 +69,16 @@ describe("FEAT-0405 A3 — the Bitunix-only routes take no secret", () => {
 
 describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
   const getClientAddress = () => "127.0.0.1";
+  const fetchMock = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(clientToken, "checkClientToken").mockReturnValue(null);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        text: async () => JSON.stringify({ code: 0, data: { positionList: [] } }),
-      }),
-    );
+    fetchMock.mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ code: 0, data: { positionList: [] } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
   });
 
   it("refuses a passphrase on a route Bitunix-only in the plan table", async () => {
@@ -170,4 +173,44 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
     );
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  // Byte fidelity is the failure that only shows up as a venue rejection
+  // mid-trade, so the happy path is asserted, not just the rejection: what the
+  // client signed is what the venue receives, and the two defaults the builders
+  // own (`marginCoin`) resolve identically on both sides.
+  it.each([
+    [
+      "/api/leverage-margin-mode",
+      leverageMarginMode as unknown as RouteHandler,
+      { exchange: "bitunix", symbol: "BTCUSDT" },
+      buildLeverageMarginModeQueryParams({ symbol: "BTCUSDT" }),
+      // Keys are sorted, so this also pins the canonical form the venue is
+      // handed — a change to the sort order is a change to every signature.
+      "marginCoin=USDT&symbol=BTCUSDT",
+    ],
+    [
+      "/api/leverage-margin-mode",
+      leverageMarginMode as unknown as RouteHandler,
+      { exchange: "bitunix", symbol: "ETHUSDT", marginCoin: "USDC" },
+      buildLeverageMarginModeQueryParams({ symbol: "ETHUSDT", marginCoin: "USDC" }),
+      "marginCoin=USDC&symbol=ETHUSDT",
+    ],
+    [
+      "/api/sync/order-detail",
+      syncOrderDetail as unknown as RouteHandler,
+      { orderId: "1" },
+      buildOrderDetailQueryParams("1"),
+      "orderId=1",
+    ],
+  ])(
+    "%s forwards the query it was given, byte for byte",
+    async (path, handler, body, query, expectedQuery) => {
+      const { request } = await signedEnvelopeRequest(path, body, query);
+
+      const response = await handler({ request, getClientAddress });
+
+      expect(response.status).toBe(200);
+      expect(String(fetchMock.mock.calls[0]?.[0])).toContain(expectedQuery);
+    },
+  );
 });
