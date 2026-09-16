@@ -29,9 +29,10 @@
  */
 import { Decimal } from "decimal.js";
 import { formatApiNum } from "../utils";
+import type { AccountSettingsPayload } from "../../types/accountSettingsSchemas";
 import type { BitunixOrderPayload } from "../../types/bitunix";
 import type { PlaceOrderPayload } from "../../types/orderSchemas";
-import { ORDER_ERRORS, cleanPayload } from "./orderErrors";
+import { ORDER_ERRORS, cleanPayload, type ExchangeError } from "./orderErrors";
 
 /** The shape `modifyBitunixOrder` accepts (FEAT-0065). */
 export interface BitunixModifyData {
@@ -189,4 +190,61 @@ export function buildBitunixModifyOrderBody(
     slOrderType: modifyData.slOrderType,
     slOrderPrice: modifyData.slOrderPrice,
   });
+}
+
+/**
+ * The account-settings write family's signed bodies (FEAT-0068).
+ *
+ * Field names and the `ISOLATION`/`CROSS` and `ONE_WAY`/`HEDGE` spellings are
+ * Bitunix's own (docs/bitunix-api/02_account.md) — this module maps nothing,
+ * the route validates, and the vehicle here is only the key order the
+ * signature covers.
+ *
+ * `adjust-position-margin` carries the "either side or positionId" rule rather
+ * than the Zod union, which cannot hold a refined object, and rather than the
+ * venue module, which would be the only side enforcing it: in HEDGE mode an
+ * unaddressed request would let the exchange pick a side, moving margin on a
+ * position the trader was not looking at.
+ */
+export function buildBitunixAccountSettingBody(
+  payload: AccountSettingsPayload,
+): Record<string, unknown> {
+  if (payload.type === "change-leverage") {
+    return {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      leverage: payload.leverage,
+    };
+  }
+  if (payload.type === "change-margin-mode") {
+    return {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      marginMode: payload.marginMode,
+    };
+  }
+  if (payload.type === "change-position-mode") {
+    return {
+      positionMode: payload.positionMode,
+    };
+  }
+  if (payload.type === "adjust-position-margin") {
+    if (!payload.side && !payload.positionId) {
+      // Carries `code` as well as the message: the route reads the former to
+      // pick the trader-facing string, and it used to be set at the throw site
+      // in `adjustBitunixPositionMargin`. Moving the check without the code
+      // would have swapped a specific refusal for a generic one.
+      const error: ExchangeError = new Error(ORDER_ERRORS.VALIDATION_ERROR);
+      error.code = "VALIDATION_ERROR";
+      throw error;
+    }
+    return {
+      symbol: payload.symbol,
+      marginCoin: payload.marginCoin,
+      amount: payload.amount,
+      ...(payload.side ? { side: payload.side } : {}),
+      ...(payload.positionId ? { positionId: payload.positionId } : {}),
+    };
+  }
+  throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
 }
