@@ -145,6 +145,18 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("still holds a modify's legs to its own refinement", async () => {
+    // `modify` carries a rule the other writers do not: at least one of
+    // tpPrice/slPrice, the same field the venue reads as "which leg is being
+    // touched". A shared "invalid write" case would exercise `cancel`'s shape
+    // and leave this one free to drift.
+    const response = await callAction("modify", { orderId: "1" });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Validation Error");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("still holds a read's params to the shape that action signs", async () => {
     // The read path validates before it looks at the envelope, so a bad param
     // is answered as a validation error rather than as a signature problem —
@@ -164,6 +176,20 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     expect(options.headers["sign"]).toBeTruthy();
     expect(JSON.stringify(options.headers)).not.toContain(TEST_SIGNING_KEYS.apiSecret);
     expect(String(url)).not.toContain(TEST_SIGNING_KEYS.apiSecret);
+  });
+
+  it("rejects a request that names no action", async () => {
+    // The first guard on the route, and the one no envelope can answer for:
+    // shape, venue and endpoint are all properties of the action, so a request
+    // without one is answered before any of them is resolved.
+    const url = new URL("http://localhost/api/tpsl");
+    const request = new Request(url, { method: "POST", body: "{}" });
+
+    const response = await handler({ request, url });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Missing action");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects an unknown action", async () => {
@@ -191,7 +217,8 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     expect(JSON.stringify(await response.json())).not.toContain("LEAKED-SECRET-12345");
   });
 
-  it("rejects a write with no envelope", async () => {    const url = new URL("http://localhost/api/tpsl?action=cancel");
+  it("rejects a write with no envelope", async () => {
+    const url = new URL("http://localhost/api/tpsl?action=cancel");
     const request = new Request(url, {
       method: "POST",
       body: JSON.stringify({ orderId: "1", symbol: "BTCUSDT" }),
