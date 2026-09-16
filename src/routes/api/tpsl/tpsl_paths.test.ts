@@ -145,6 +145,17 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("still holds a read's params to the shape that action signs", async () => {
+    // The read path validates before it looks at the envelope, so a bad param
+    // is answered as a validation error rather than as a signature problem —
+    // and never reaches the venue.
+    const response = await callAction("pending", { symbol: 123 });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Validation Error");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("a read forwards the client envelope and never the secret", async () => {
     await callAction("pending", {});
 
