@@ -389,6 +389,12 @@
         const tier = concreteQuality(settingsState.visualQuality);
         if (!renderer) return;
         renderer.setPixelRatio(effectivePixelRatio(tier, window.devicePixelRatio));
+        // setPixelRatio resets the drawing buffer. When the animation loop is
+        // parked (idle duck, no effects), nothing would repaint the canvas and
+        // the duck stays invisible until the next event — so render one frame.
+        if (!animationId && scene && camera) {
+            renderer.render(scene, camera);
+        }
     });
 
     // Keep the effect palette in step with the theme. The shared palette cache
