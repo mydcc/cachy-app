@@ -1979,7 +1979,11 @@ class TradeService {
              final.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
              return final;
         } else {
-             // Generic provider
+             // Generic provider — live-Bitget never arrives here: its adapter
+             // gates this read on SUPPORTS.tpSl (false) and resolves empty, so
+             // no Bitunix-only envelope is ever signed with Bitget keys outside
+             // paper mode, where the seam below answers simulated. Removal rides
+             // with the A5 cleanup that deletes ENVELOPE_SIGNED_ROUTES.
              const data = await this.signedRequest<Record<string, unknown>>(
                   "POST",
                   "/api/tpsl",
