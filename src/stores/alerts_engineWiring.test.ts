@@ -902,6 +902,150 @@ describe("BUG-0382 — alert engine startup wiring", () => {
       // recreating the exact gap the mode split exists to close.
       expect(mockStartRuleEvaluationLoop.mock.calls[0][1]).toBeUndefined();
     });
+
+    /**
+     * FEAT-0406 — arming is a decision, not a startup event.
+     *
+     * Coverage was already recomputed on every close and every timer tick;
+     * arming was decided once and never revisited. The two share
+     * `ruleSchema.isReady()`, and the whole no-double-fire property rested on
+     * that read never going back to `false`. These tests drive it back to
+     * `false` mid-session — what a reloadable core would do — and assert that
+     * both halves move together.
+     *
+     * The loop mock returns a disarm spy here, the way the real
+     * `startRuleEvaluationLoop` returns its disposer. Tests above leave it
+     * returning `undefined`, which is the honest shape of a caller that never
+     * disarms and must keep working.
+     */
+    function armLoopWithDisarm(onDisarm?: () => void) {
+      const disarm = vi.fn(onDisarm);
+      let capturedOnClose: (() => void) | undefined;
+      mockStartRuleEvaluationLoop.mockImplementation((_sink: unknown, onClose?: () => void) => {
+        capturedOnClose = onClose;
+        return disarm;
+      });
+      return { disarm, tick: () => capturedOnClose?.() };
+    }
+
+    it("never lets both engines hold the same alert while the core stops being ready", async () => {
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+
+      // What the legacy engine held at the instant the loop stopped. This is
+      // the "at any point" half of the assertion: if the alert were already
+      // back on the legacy engine here, there would have been a moment with
+      // both an armed loop and a legacy alert for the same id.
+      let legacyHeldAtDisarm: string[] | undefined;
+      const { disarm, tick } = armLoopWithDisarm(() => {
+        legacyHeldAtDisarm = fakeInstance.alerts.map((a) => a.id);
+      });
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+
+      // Covered at startup: the rule path serves it, the legacy engine does not.
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+
+      // The core stops being ready — a reload, a hot-swap, a version upgrade
+      // that nulls the core before re-fetching it.
+      mockRuleSchemaIsReady.mockReturnValue(false);
+      tick();
+
+      // Fails on the un-fixed code in the first assertion: the loop had no
+      // stop at all, so the tick would hand the alert back to the legacy
+      // engine while the loop kept evaluating and notifying for it.
+      expect(disarm).toHaveBeenCalledTimes(1);
+      expect(legacyHeldAtDisarm).not.toContain(ARMED_BEFORE_RELOAD.id);
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+    });
+
+    it("hands every alert back when the loop is disarmed, so none is served by neither", async () => {
+      // The mirror of the test above, and the reason freezing coverage would
+      // have been no better than leaving the loop armed: a disarmed loop with
+      // stale coverage evaluates nothing while the alerts are still off the
+      // legacy engine — BUG-0382 from the other side.
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+      const { tick } = armLoopWithDisarm();
+
+      const { alertState, initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+      expect(fakeInstance.alerts.map((a) => a.id)).not.toContain(ARMED_BEFORE_RELOAD.id);
+
+      mockRuleSchemaIsReady.mockReturnValue(false);
+      tick();
+
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+      // And the trader is told: a rule armed from the panel has no legacy
+      // alert behind it, so for that one a disarm really is "nothing is
+      // evaluating this" — the state the panel's banner exists for.
+      expect(alertState.engineStatus).toBe("failed");
+    });
+
+    it("stops the coverage re-sync timer as part of disarming", async () => {
+      // A disarmed session must stop ticking too: a timer re-syncing coverage
+      // for an evaluator that is gone would recompute empty coverage once a
+      // minute and log a warning for the life of the tab.
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+      armLoopWithDisarm();
+      const { resyncs, cleared } = captureResyncTimer();
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+      expect(resyncs()).toHaveLength(1);
+
+      mockRuleSchemaIsReady.mockReturnValue(false);
+      resyncs()[0].tick();
+
+      expect(cleared).toContain(1);
+    });
+
+    it("reads isReady once per tick, and decides both halves from that one read", async () => {
+      // The acceptance criterion in so many words. Two reads per tick would
+      // be two chances to disagree, which is exactly how arming and coverage
+      // drifted apart before this item.
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+      const { tick } = armLoopWithDisarm();
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+
+      const readsBefore = mockRuleSchemaIsReady.mock.calls.length;
+      tick();
+      expect(mockRuleSchemaIsReady.mock.calls.length - readsBefore).toBe(1);
+
+      mockRuleSchemaIsReady.mockReturnValue(false);
+      const readsBeforeFlip = mockRuleSchemaIsReady.mock.calls.length;
+      tick();
+      expect(mockRuleSchemaIsReady.mock.calls.length - readsBeforeFlip).toBe(1);
+    });
+
+    it("disarms a previous run's loop when a second init finds no ready core", async () => {
+      // The re-init hazard, now that arming is revisited: the first run armed
+      // a loop, the second run's core failed to load. Without the disarm the
+      // first loop would keep notifying against coverage the second run has
+      // just recomputed as empty.
+      seedCoveredRule();
+      mockRuleSchemaIsReady.mockReturnValue(true);
+      mockIsSeriesObserved.mockReturnValue(true);
+      const { disarm } = armLoopWithDisarm();
+
+      const { initAlertEngine } = await importFreshAlertsModule();
+      await initAlertEngine(fakeLoader);
+
+      mockRuleSchemaIsReady.mockReturnValue(false);
+      await initAlertEngine(fakeLoader);
+
+      expect(disarm).toHaveBeenCalledTimes(1);
+      expect(fakeInstance.alerts.map((a) => a.id)).toContain(ARMED_BEFORE_RELOAD.id);
+    });
   });
 
   it("does not initialise during SSR", async () => {

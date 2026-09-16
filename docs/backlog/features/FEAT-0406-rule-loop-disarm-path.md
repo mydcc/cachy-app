@@ -2,7 +2,9 @@
 id: FEAT-0406
 title: Give the rule evaluation loop a disarm path, coupled to coverage
 type: feature
-status: idea
+status: done
+assignee: claude
+branch: feat/feat-0406-rule-loop-disarm-path
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -69,24 +71,54 @@ a loop tests must work around, and `alerts_engineWiring.test.ts` already mocks
 
 ## Acceptance criteria
 
-- [ ] The rule evaluation loop can be disarmed, and a disarmed loop evaluates nothing
-- [ ] Arming and coverage are computed from one `ruleSchema.isReady()` read per tick
-- [ ] A test drives `isReady()` from `true` to `false` mid-session and asserts that no
-      alert is served by both engines at any point
-- [ ] A test asserts the mirror case: a disarmed loop hands every alert back to the
-      legacy engine, so none is served by neither
-- [ ] `stopCoverageResync()` runs as part of disarming
+- [x] The rule evaluation loop can be disarmed, and a disarmed loop evaluates nothing —
+      `RuleEvaluationLoop.disarm()` puts every injected reader back to its unconfigured
+      default; `ruleEvaluationLoop.test.ts` → "evaluates nothing on a close once
+      disarmed", "stops telling the caller about closes"
+- [x] Arming and coverage are computed from one `ruleSchema.isReady()` read per tick —
+      `readCoveredAlertIds` takes the answer as a parameter (defaulted, so every other
+      caller keeps its own safe read); `alerts_engineWiring.test.ts` → "reads isReady
+      once per tick, and decides both halves from that one read"
+- [x] A test drives `isReady()` from `true` to `false` mid-session and asserts that no
+      alert is served by both engines at any point — `alerts_engineWiring.test.ts` →
+      "never lets both engines hold the same alert while the core stops being ready",
+      which records what the legacy engine held at the instant the loop stopped
+- [x] A test asserts the mirror case: a disarmed loop hands every alert back to the
+      legacy engine, so none is served by neither — `alerts_engineWiring.test.ts` →
+      "hands every alert back when the loop is disarmed, so none is served by neither"
+- [x] `stopCoverageResync()` runs as part of disarming — `disarmRuleEngine()` does both;
+      `alerts_engineWiring.test.ts` → "stops the coverage re-sync timer as part of
+      disarming"
 
 ## Out of scope
 
 Making the rule core actually reloadable. This item supplies the half that a reload
 would need; it does not add one, and adding one without this is the hazard above.
 
-## Open questions
+## Decisions (2026-09-16)
 
-- Should a disarm be visible to the trader, the way `engineStatus: "failed"` is? A
-  session that silently drops back to the legacy engine is correct but slower, and the
-  FEAT-0387 argument for surfacing `failed` may apply here too.
+- **A disarm is visible, and reuses the existing banner.** The open question asked
+  whether a trader should see it. They should: an alert the panel armed as a rule has no
+  legacy alert behind it, so after a disarm it is evaluated by nothing at all — BUG-0382
+  exactly. `resyncCoverage` therefore sets `engineStatus: "failed"`, which
+  `AlertPanelView` already renders. It overstates the case for *migrated* alerts, which
+  really are being served again by the legacy engine, and that is the side to err on:
+  a banner too many is recoverable, a silent alert is not. No new string was needed.
+- **`isArmed()` asks the rule reader, not a flag.** `NO_RULES` is the unconfigured
+  sentinel `configure` always replaces and `disarm` always restores, so the answer
+  cannot drift from the thing that actually decides whether a verdict is possible. A
+  loop configured with a reader that happens to return `[]` is still armed.
+- **The disarm runs before the alerts go back.** `disarmRuleEngine()` stops the loop
+  first and calls `syncEngine` afterwards, so there is no instant — however short — in
+  which an armed loop and the legacy engine both hold the same alert. The test asserts
+  that ordering rather than only the end state.
+- **`disarm()` keeps the series high-water marks; `reset()` still drops them.** Dropping
+  them would make the next candle of each series look like its first, and the first
+  candle of a series closes nothing — a re-armed loop would sit out the very crossing it
+  was re-armed for.
+- **Shadow mode is unchanged.** It has no tick at all (no `onClose`, no timer), and it
+  cannot double-fire: coverage is forced empty and `ledgerSink` notifies nobody. Wiring
+  a tick there would start moving alerts for a sink that never tells the trader.
 
 ## Links
 
