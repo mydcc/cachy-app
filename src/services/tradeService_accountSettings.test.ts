@@ -346,15 +346,34 @@ describe("BUG-0410 — the position-mode write refreshes without a sidebar", () 
  * seconds. Fake timers advance past every attempt and flush the awaits in
  * between; the returned promise is settled by the time this resolves.
  */
+/** Real `setTimeout`, captured before fake timers replace it. */
+const realSetTimeout = globalThis.setTimeout;
+
+/** One fake-time window, wide enough for every `READ_BACK_DELAYS_MS` gap. */
+const READ_BACK_WINDOW_MS = 10_000;
+
 async function runWithReadBack<T>(pending: Promise<T>): Promise<T> {
     vi.useFakeTimers();
     try {
+        let result:
+            | { ok: true; value: T }
+            | { ok: false; error: unknown }
+            | undefined;
         const settled = pending.then(
-            (value) => ({ ok: true as const, value }),
-            (error) => ({ ok: false as const, error }),
+            (value) => (result = { ok: true as const, value }),
+            (error) => (result = { ok: false as const, error }),
         );
-        await vi.advanceTimersByTimeAsync(10_000);
-        const result = await settled;
+        // Advance and yield in turns: a migrated read signs before it
+        // dispatches (FEAT-0405), and signing resolves on a real macrotask
+        // that fake timers never run. A single upfront advance returns before
+        // the first retry has scheduled its delay, so the delay is never
+        // reached and the promise stays pending forever.
+        for (let round = 0; round < 20 && !result; round++) {
+            await vi.advanceTimersByTimeAsync(READ_BACK_WINDOW_MS);
+            await new Promise((resolve) => realSetTimeout(resolve, 0));
+        }
+        if (!result) throw new Error("read-back never settled");
+        await settled;
         if (!result.ok) throw result.error;
         return result.value;
     } finally {

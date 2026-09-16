@@ -2,9 +2,9 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,6 +18,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import {
+  signedEnvelopeRequest,
+  TEST_SIGNING_KEYS,
+} from "../../../tests/helpers/signedEnvelopeRequest";
+import { buildTpslReadQueryParams } from "../../../utils/exchange/venueQueries";
 
 // Regression test for the wrong Bitunix TP/SL paths (tp_sl/*_tp_sl_order
 // instead of tpsl/*_order(s)) that made every TP/SL request 404/error at
@@ -29,14 +34,34 @@ vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
-}
+const handler = ({ request, url }: { request: Request; url: URL }) =>
+  POST({ request, url, getClientAddress } as unknown as Parameters<typeof POST>[0]);
 
-const creds = { apiKey: "validApiKey123", apiSecret: "validSecret123456" };
+/**
+ * FEAT-0405 — `/api/tpsl` is the one route whose signature shape is a property
+ * of the action, not of the route: the two readers sign a query, the four
+ * writers sign a body. The action therefore rides in the URL, which is where
+ * the handler learns which of the two it is looking at.
+ */
+const WRITE_ACTIONS = new Set(["cancel", "modify", "place", "place-position"]);
+
+function callAction(action: string, params: Record<string, unknown>) {
+  const writes = WRITE_ACTIONS.has(action);
+  // A writer's Cachy body *is* the venue body: the route forwards the signed
+  // bytes unchanged, so the `{ exchange, action, params }` wrapper the callers
+  // build is transport only and never travels. A reader still sends it, which
+  // is what its schema validates.
+  const payload = writes ? params : { exchange: "bitunix", action, params };
+
+  // A writer signs its body and sends no query at all, so it must sign an
+  // empty one: signing a query the venue never receives is a signature the
+  // venue cannot reproduce.
+  return signedEnvelopeRequest(
+    `/api/tpsl?action=${action}`,
+    payload,
+    writes ? {} : buildTpslReadQueryParams(params),
+  ).then(handler);
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -49,21 +74,16 @@ beforeEach(() => {
 
 describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
   it("pending -> GET /api/v1/futures/tpsl/get_pending_orders", async () => {
-    const response = await POST({
-      request: makeRequest({ exchange: "bitunix", action: "pending", params: {}, ...creds }),
-      getClientAddress,
-    } as unknown as Parameters<typeof POST>[0]);
+    const response = await callAction("pending", {});
 
     expect(response.status).toBe(200);
-    const [url] = fetchMock.mock.calls[0];
+    const [url, options] = fetchMock.mock.calls[0];
     expect(url).toContain("https://fapi.bitunix.com/api/v1/futures/tpsl/get_pending_orders");
+    expect(options.method).toBe("GET");
   });
 
   it("history -> GET /api/v1/futures/tpsl/get_history_orders", async () => {
-    const response = await POST({
-      request: makeRequest({ exchange: "bitunix", action: "history", params: {}, ...creds }),
-      getClientAddress,
-    } as unknown as Parameters<typeof POST>[0]);
+    const response = await callAction("history", {});
 
     expect(response.status).toBe(200);
     const [url] = fetchMock.mock.calls[0];
@@ -71,15 +91,7 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
   });
 
   it("cancel -> POST /api/v1/futures/tpsl/cancel_order", async () => {
-    const response = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        action: "cancel",
-        params: { orderId: "1", symbol: "BTCUSDT" },
-        ...creds,
-      }),
-      getClientAddress,
-    } as unknown as Parameters<typeof POST>[0]);
+    const response = await callAction("cancel", { orderId: "1", symbol: "BTCUSDT" });
 
     expect(response.status).toBe(200);
     const [url, options] = fetchMock.mock.calls[0];
@@ -88,19 +100,134 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
   });
 
   it("modify -> POST /api/v1/futures/tpsl/modify_order", async () => {
-    const response = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        action: "modify",
-        params: { orderId: "1", tpPrice: "50000", tpStopType: "MARK_PRICE" },
-        ...creds,
-      }),
-      getClientAddress,
-    } as unknown as Parameters<typeof POST>[0]);
+    const response = await callAction("modify", {
+      orderId: "1",
+      tpPrice: "50000",
+      tpStopType: "MARK_PRICE",
+    });
 
     expect(response.status).toBe(200);
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe("https://fapi.bitunix.com/api/v1/futures/tpsl/modify_order");
     expect(options.method).toBe("POST");
+  });
+
+  it("a write forwards the signed bytes verbatim", async () => {
+    // The body *is* what the client signed, so the route must not re-serialise
+    // it — a second JSON.stringify would drop whitespace and the venue would
+    // reject a signature over different bytes than the ones it received.
+    const params = { orderId: "1", symbol: "BTCUSDT" };
+    const { request, url } = await signedEnvelopeRequest("/api/tpsl?action=cancel", params, {});
+
+    const response = await handler({ request, url });
+
+    expect(response.status).toBe(200);
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.body).toBe(JSON.stringify(params));
+    // The wrapper is transport, not payload: Bitunix reads `orderId` at the top
+    // level, and `exchange`/`action` are Cachy's own.
+    expect(JSON.parse(options.body)).not.toHaveProperty("params");
+  });
+
+  it("still holds a write body to the shape that action signs", async () => {
+    // The wrapper the schema discriminates on no longer travels, so the route
+    // rebuilds it — without that, a write would reach Bitunix unchecked.
+    const { request, url } = await signedEnvelopeRequest(
+      "/api/tpsl?action=cancel",
+      { orderId: "1" },
+      {},
+    );
+
+    const response = await handler({ request, url });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Validation Error");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("still holds a modify's legs to its own refinement", async () => {
+    // `modify` carries a rule the other writers do not: at least one of
+    // tpPrice/slPrice, the same field the venue reads as "which leg is being
+    // touched". A shared "invalid write" case would exercise `cancel`'s shape
+    // and leave this one free to drift.
+    const response = await callAction("modify", { orderId: "1" });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Validation Error");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("still holds a read's params to the shape that action signs", async () => {
+    // The read path validates before it looks at the envelope, so a bad param
+    // is answered as a validation error rather than as a signature problem —
+    // and never reaches the venue.
+    const response = await callAction("pending", { symbol: 123 });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Validation Error");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("a read forwards the client envelope and never the secret", async () => {
+    await callAction("pending", {});
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(options.headers["api-key"]).toBe(TEST_SIGNING_KEYS.apiKey);
+    expect(options.headers["sign"]).toBeTruthy();
+    expect(JSON.stringify(options.headers)).not.toContain(TEST_SIGNING_KEYS.apiSecret);
+    expect(String(url)).not.toContain(TEST_SIGNING_KEYS.apiSecret);
+  });
+
+  it("rejects a request that names no action", async () => {
+    // The first guard on the route, and the one no envelope can answer for:
+    // shape, venue and endpoint are all properties of the action, so a request
+    // without one is answered before any of them is resolved.
+    const url = new URL("http://localhost/api/tpsl");
+    const request = new Request(url, { method: "POST", body: "{}" });
+
+    const response = await handler({ request, url });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Missing action");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown action", async () => {
+    const { request, url } = await signedEnvelopeRequest("/api/tpsl?action=nonsense", {});
+    const response = await handler({ request, url });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Unknown action");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes the venue's credential leak out of the error response", async () => {
+    // Bitunix answers a bad credential with "Invalid API Key: <the key>" —
+    // the log line is redacted, and the client response must be too. Sibling
+    // sync routes sanitize both; this pins the same for /api/tpsl.
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "Invalid API Key: LEAKED-SECRET-12345",
+    });
+
+    const response = await callAction("pending", {});
+
+    expect(response.status).toBe(502);
+    expect(JSON.stringify(await response.json())).not.toContain("LEAKED-SECRET-12345");
+  });
+
+  it("rejects a write with no envelope", async () => {
+    const url = new URL("http://localhost/api/tpsl?action=cancel");
+    const request = new Request(url, {
+      method: "POST",
+      body: JSON.stringify({ orderId: "1", symbol: "BTCUSDT" }),
+    });
+
+    const response = await handler({ request, url });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("PRESIGNED_ENVELOPE_MISSING");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

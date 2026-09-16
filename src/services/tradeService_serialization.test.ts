@@ -84,7 +84,13 @@ describe("TradeService - Serialization Hardening", () => {
 
         // Without serializePayload, this might be serialized as an object or number (losing precision)
         // With serializePayload, it must be a string.
-        expect(body.params.orderId).toBe("1234567890123456789.123");
+        //
+        // FEAT-0405 made the Cachy body the venue body on a write — the route
+        // forwards the signed bytes to Bitunix verbatim, so the wrapper the
+        // caller builds is unwrapped on the way out — hence `orderId` at the
+        // top level rather than under `params`.
+        expect(body.orderId).toBe("1234567890123456789.123");
+        expect(body).not.toHaveProperty("params");
     });
 
     it("should recursively serialize nested objects", async () => {

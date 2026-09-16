@@ -403,7 +403,10 @@ export function sanitizeErrorMessage(
   // Enhanced sanitization to handle JSON, mixed quotes, and various separators
   // Matches: key="value", "key": "value", key: value, etc.
 
-  const keys = "api[_-]?key|secret|token|password|passphrase";
+  // `\s*` inside the name as well as after it: an exchange answers a bad key
+  // with "Invalid API Key: <the key>", and the space is what let the value
+  // through unmasked.
+  const keys = "api\\s*[_-]?\\s*key|secret|token|password|passphrase";
   // Regex explanation:
   // 1. (["']?) : Group 1 (q1) - Optional quote for key
   // 2. (${keys}) : Group 2 (key) - Sensitive key name
