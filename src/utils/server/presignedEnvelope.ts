@@ -121,6 +121,16 @@ export interface PresignedConsistencyInput {
 }
 
 /**
+ * What `checkPresignedRequest` accepts: everything `assertPresignedConsistency`
+ * needs except the envelope, which the request carries and the caller therefore
+ * has no way to supply. Split from `PresignedConsistencyInput` rather than
+ * making `envelope` optional, so the guard that *does* need it cannot be called
+ * without one. A1 shipped with the field required and no caller, which is why
+ * the mismatch only surfaced when A3 wired the first route up.
+ */
+export type PresignedCheckInput = Omit<PresignedConsistencyInput, "envelope">;
+
+/**
  * Checks the envelope against the server's rebuild and against the route's
  * credential rules. Throws an `Error` carrying a `PRESIGNED_ERRORS` code.
  *
@@ -178,7 +188,7 @@ export type PresignedCheck =
  */
 export function checkPresignedRequest(
   request: Request,
-  input: PresignedConsistencyInput,
+  input: PresignedCheckInput,
 ): PresignedCheck {
   const envelope = readPresignedEnvelope(request);
   if (!envelope) return { ok: false, code: PRESIGNED_ERRORS.MISSING_ENVELOPE };

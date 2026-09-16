@@ -188,7 +188,13 @@ export async function signCachyRequest(
  */
 export async function exchangeSignedFetch(
   input: SignCachyRequestInput & {
-    fetchFn?: typeof fetch;
+    /**
+     * Typed to the call this function actually makes — a string path plus
+     * `RequestInit` — not to `typeof fetch`. The app's authenticated fetch
+     * takes only a string, so the wider type rejected every real caller while
+     * this one describes nothing the function needs.
+     */
+    fetchFn?: (input: string, init?: RequestInit) => Promise<Response>;
     headers?: Record<string, string>;
     /** Passed through to `fetch`; a caller with its own deadline needs it. */
     signal?: AbortSignal;

@@ -399,7 +399,15 @@ class TradeService {
                   // Still named here: the route reads the provider to resolve
                   // its venue, and the envelope only carries credentials.
                   headers: { "X-Provider": provider },
-                  payload: bodyBuilder ? bodyBuilder(serializedPayload) : serializedPayload,
+                  // `bodyBuilder` is set only on a body-signed route, where the
+                  // payload is the venue's JSON object by construction — the
+                  // shape `serializePayload` cannot express because it walks
+                  // arrays and nested values too. The route re-validates the
+                  // result with Zod, so a payload that is not an object is
+                  // refused there rather than forwarded.
+                  payload: bodyBuilder
+                      ? bodyBuilder(serializedPayload as Record<string, unknown>)
+                      : serializedPayload,
                   queryParams,
               })
             : await appFetch(routeUrl, {
