@@ -34,6 +34,7 @@
 
 /** Bitunix's page-size ceiling for the history endpoints. */
 const HISTORY_LIMIT_DEFAULT = 50;
+const POSITIONS_HISTORY_LIMIT_MAX = 100;
 const SYNC_LIMIT_DEFAULT = 50;
 const SYNC_LIMIT_MAX = 100;
 
@@ -57,10 +58,21 @@ export function buildLeverageMarginModeQueryParams(input: {
   };
 }
 
+/**
+ * History of positions. `limit` is clamped to the venue's page-size ceiling
+ * (Maximum: 100 per the Bitunix docs) rather than rejected — the client and
+ * the server both build through this function, so a clamp keeps the two sides
+ * in agreement and the request always venue-valid. Callers asking for more
+ * than one page need the walk, not a bigger number.
+ */
 export function buildPositionsHistoryQueryParams(input: {
   limit?: number;
 }): Record<string, string> {
-  return { limit: String(input.limit ?? HISTORY_LIMIT_DEFAULT) };
+  const requested = Number(input.limit ?? HISTORY_LIMIT_DEFAULT);
+  const limit = Number.isNaN(requested)
+    ? HISTORY_LIMIT_DEFAULT
+    : Math.min(Math.max(requested, 1), POSITIONS_HISTORY_LIMIT_MAX);
+  return { limit: String(limit) };
 }
 
 /**

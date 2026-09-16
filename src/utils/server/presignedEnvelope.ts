@@ -136,9 +136,10 @@ export type PresignedCheckInput = Omit<PresignedConsistencyInput, "envelope">;
  *
  * On a query-signed route a missing `x-api-query` is a missing envelope, not a
  * divergence: the client never told us what it signed, so there is nothing to
- * compare. Note that this makes an empty query string unrepresentable — a
- * future route that signs no parameters at all needs the header sent as an
- * explicit empty value, which is a deliberate trip rather than an oversight.
+ * compare. An empty query string is representable — `readPresignedEnvelope`
+ * reads the header as present-or-absent, so an explicit empty value arrives as
+ * `""` and only a truly absent header is `undefined`. `/api/sync/positions-pending`
+ * signs no parameters at all and proves the path works.
  */
 export function assertPresignedConsistency(input: PresignedConsistencyInput): void {
   const plan = planForRoute(input.cachyPath);
