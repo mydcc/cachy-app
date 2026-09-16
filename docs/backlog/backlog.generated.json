@@ -1633,6 +1633,690 @@
       "file": "bugs/BUG-0472-ai-actions-execute-without-confirmation.md"
     },
     {
+      "id": "BUG-0479",
+      "title": "Native number arithmetic on financial value in marketDashboard.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "dashboard",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0479-marketdashboard-ts.md"
+    },
+    {
+      "id": "BUG-0480",
+      "title": "Native number arithmetic on financial value in charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculator",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0480-charts-ts.md"
+    },
+    {
+      "id": "BUG-0481",
+      "title": "Native number arithmetic on financial value in charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculator",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0481-charts-ts.md"
+    },
+    {
+      "id": "BUG-0482",
+      "title": "Native number arithmetic on financial value in charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculator",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0482-charts-ts.md"
+    },
+    {
+      "id": "BUG-0483",
+      "title": "Native number arithmetic on financial value in charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculator",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0483-charts-ts.md"
+    },
+    {
+      "id": "BUG-0484",
+      "title": "Native number arithmetic on financial value in charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculator",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0484-charts-ts.md"
+    },
+    {
+      "id": "BUG-0485",
+      "title": "Native number arithmetic on financial value in stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculator",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0485-stats-ts.md"
+    },
+    {
+      "id": "BUG-0486",
+      "title": "Native number arithmetic on financial value in stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculator",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0486-stats-ts.md"
+    },
+    {
+      "id": "BUG-0487",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0487-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0488",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0488-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0489",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0489-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0490",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0490-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0491",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0491-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0492",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0492-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0493",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0493-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0494",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0494-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0495",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0495-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0496",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0496-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0497",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0497-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0498",
+      "title": "Native number arithmetic on financial value in SymbolPickerView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0498-symbolpickerview-svelte.md"
+    },
+    {
+      "id": "BUG-0499",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0499-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0500",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0500-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0501",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0501-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0502",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0502-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0503",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0503-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0504",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0504-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0505",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0505-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0506",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0506-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0507",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0507-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0508",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0508-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0509",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0509-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0510",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0510-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0511",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0511-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0512",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0512-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0513",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0513-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0514",
+      "title": "Native number arithmetic on financial value in CandleChartView.svelte",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0514-candlechartview-svelte.md"
+    },
+    {
+      "id": "BUG-0515",
+      "title": "Native number arithmetic on financial value in +server.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "api",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0515--server-ts.md"
+    },
+    {
+      "id": "BUG-0516",
+      "title": "Native f64 on financial value in indicator_settings.rs",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "wasm",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0516-indicator-settings-rs.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -7783,5 +8467,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 360
+  "count": 398
 }

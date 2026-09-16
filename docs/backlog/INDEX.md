@@ -2,9 +2,9 @@
 
 # Backlog index
 
-360 items. How to read and add them: [README.md](README.md).
+398 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 19 · 🟡 in-progress 1 · ✅ done 311 · ⛔ dropped 1
+Counts by status: 💡 idea 28 · 📋 specced 57 · 🟡 in-progress 1 · ✅ done 311 · ⛔ dropped 1
 
 ---
 
@@ -247,6 +247,44 @@ Counts by status: 💡 idea 28 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | security |
+| [BUG-0479](bugs/BUG-0479-marketdashboard-ts.md) | Native number arithmetic on financial value in marketDashboard.ts | P1 | 📋 specced | dashboard |
+| [BUG-0480](bugs/BUG-0480-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | calculator |
+| [BUG-0481](bugs/BUG-0481-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | calculator |
+| [BUG-0482](bugs/BUG-0482-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | calculator |
+| [BUG-0483](bugs/BUG-0483-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | calculator |
+| [BUG-0484](bugs/BUG-0484-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | calculator |
+| [BUG-0485](bugs/BUG-0485-stats-ts.md) | Native number arithmetic on financial value in stats.ts | P1 | 📋 specced | calculator |
+| [BUG-0486](bugs/BUG-0486-stats-ts.md) | Native number arithmetic on financial value in stats.ts | P1 | 📋 specced | calculator |
+| [BUG-0487](bugs/BUG-0487-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0488](bugs/BUG-0488-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0489](bugs/BUG-0489-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0490](bugs/BUG-0490-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0491](bugs/BUG-0491-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0492](bugs/BUG-0492-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0493](bugs/BUG-0493-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0494](bugs/BUG-0494-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0495](bugs/BUG-0495-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0496](bugs/BUG-0496-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0497](bugs/BUG-0497-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0498](bugs/BUG-0498-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | ui |
+| [BUG-0499](bugs/BUG-0499-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0500](bugs/BUG-0500-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0501](bugs/BUG-0501-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0502](bugs/BUG-0502-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0503](bugs/BUG-0503-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0504](bugs/BUG-0504-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0505](bugs/BUG-0505-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0506](bugs/BUG-0506-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0507](bugs/BUG-0507-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0508](bugs/BUG-0508-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0509](bugs/BUG-0509-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0510](bugs/BUG-0510-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0511](bugs/BUG-0511-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0512](bugs/BUG-0512-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0513](bugs/BUG-0513-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0514](bugs/BUG-0514-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | ui |
+| [BUG-0515](bugs/BUG-0515--server-ts.md) | Native number arithmetic on financial value in +server.ts | P1 | 📋 specced | api |
+| [BUG-0516](bugs/BUG-0516-indicator-settings-rs.md) | Native f64 on financial value in indicator_settings.rs | P1 | 📋 specced | wasm |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -508,6 +546,44 @@ Counts by status: 💡 idea 28 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0479](bugs/BUG-0479-marketdashboard-ts.md) | Native number arithmetic on financial value in marketDashboard.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0480](bugs/BUG-0480-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0481](bugs/BUG-0481-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0482](bugs/BUG-0482-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0483](bugs/BUG-0483-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0484](bugs/BUG-0484-charts-ts.md) | Native number arithmetic on financial value in charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0485](bugs/BUG-0485-stats-ts.md) | Native number arithmetic on financial value in stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0486](bugs/BUG-0486-stats-ts.md) | Native number arithmetic on financial value in stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0487](bugs/BUG-0487-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0488](bugs/BUG-0488-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0489](bugs/BUG-0489-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0490](bugs/BUG-0490-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0491](bugs/BUG-0491-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0492](bugs/BUG-0492-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0493](bugs/BUG-0493-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0494](bugs/BUG-0494-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0495](bugs/BUG-0495-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0496](bugs/BUG-0496-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0497](bugs/BUG-0497-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0498](bugs/BUG-0498-symbolpickerview-svelte.md) | Native number arithmetic on financial value in SymbolPickerView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0499](bugs/BUG-0499-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0500](bugs/BUG-0500-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0501](bugs/BUG-0501-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0502](bugs/BUG-0502-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0503](bugs/BUG-0503-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0504](bugs/BUG-0504-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0505](bugs/BUG-0505-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0506](bugs/BUG-0506-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0507](bugs/BUG-0507-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0508](bugs/BUG-0508-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0509](bugs/BUG-0509-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0510](bugs/BUG-0510-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0511](bugs/BUG-0511-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0512](bugs/BUG-0512-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0513](bugs/BUG-0513-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0514](bugs/BUG-0514-candlechartview-svelte.md) | Native number arithmetic on financial value in CandleChartView.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0515](bugs/BUG-0515--server-ts.md) | Native number arithmetic on financial value in +server.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0516](bugs/BUG-0516-indicator-settings-rs.md) | Native f64 on financial value in indicator_settings.rs | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -794,4 +870,4 @@ Counts by status: 💡 idea 28 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0479**
+Next free number: **0517**
