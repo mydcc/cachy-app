@@ -4,7 +4,7 @@
 
 360 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 28 · 📋 specced 19 · 🟡 in-progress 1 · ✅ done 311 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 19 · 🟡 in-progress 1 · ✅ done 312 · ⛔ dropped 1
 
 ---
 
@@ -410,7 +410,7 @@ Counts by status: 💡 idea 28 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0375](features/FEAT-0375-chat-rate-limit.md) | Rate-limit the send_message reducer to stop message flooding in global chat | P3 | ✅ done | chat |
 | [FEAT-0376](features/FEAT-0376-deterministic-timestamp-in-send-message.md) | Replace Date.now() with ctx.timestamp in the send_message reducer | P3 | ✅ done | chat |
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | ai |
-| [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | alerts |
+| [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | ✅ done | alerts |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | docs |
 | [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | ✅ done | alerts |
 | [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | ci |
@@ -770,7 +770,7 @@ Counts by status: 💡 idea 28 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P3 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0030](features/FEAT-0030-combined-alerts.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | ✅ done | M3 | community, pro, private | none | none | — |
 | [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 💡 idea | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
-| [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
+| [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | ✅ done | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | ✅ done | none | community, pro, private | none | ADR-0012 | — |
 | [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | none | community, pro, private | none | none | — |

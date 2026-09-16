@@ -554,6 +554,49 @@ export class RuleEvaluationLoop {
     }
   }
 
+  /**
+   * Stop evaluating, without forgetting which candles have already closed —
+   * FEAT-0406.
+   *
+   * Every injected reader goes back to its unconfigured default, so a
+   * disarmed loop reads no rules and therefore produces no verdict and no
+   * firing, and `onClose` stops telling a caller about closes it can no
+   * longer act on. `observeCandles` reads these fields per call, so a disarm
+   * performed inside `onClose` already silences the very close that triggered
+   * it — the ordering the cutover needs, since that hook is where the store
+   * notices a core that stopped being ready.
+   *
+   * Series state survives for the same reason `configure` keeps it: the
+   * high-water marks are the truth about what has closed, and dropping them
+   * would make the next candle of each series look like its first and skip a
+   * close — a re-arm must not cost a crossing. Use `reset()` when that state
+   * really should go.
+   */
+  disarm(): void {
+    this.readCandles = NO_CANDLES;
+    this.readMarkCandles = NO_CANDLES;
+    this.readRules = NO_RULES;
+    this.readRuleState = NO_STATE;
+    this.onFiring = shadowSink;
+    this.onClose = () => {};
+    this.onUnevaluable = logUnevaluable;
+  }
+
+  /**
+   * Whether the loop is configured to evaluate anything.
+   *
+   * Asks the rule reader rather than a separate flag, so the answer cannot
+   * drift from the thing that actually decides whether a verdict is possible:
+   * `NO_RULES` is the unconfigured sentinel, and it is the one reader
+   * `configure` always replaces and `disarm` always restores. A loop
+   * configured with a reader that happens to answer `[]` is still armed —
+   * "nothing to evaluate right now" is a different state from "will never
+   * evaluate anything".
+   */
+  isArmed(): boolean {
+    return this.readRules !== NO_RULES;
+  }
+
   /** Drop all series state. Used by HMR teardown and by tests. */
   reset(): void {
     this.highestOpenMs.clear();

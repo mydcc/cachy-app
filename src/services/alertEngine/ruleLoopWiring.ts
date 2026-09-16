@@ -287,8 +287,28 @@ export const settingsAwareUnevaluableSink: UnevaluableSink = (rule) => {
   );
 };
 
-export function startRuleEvaluationLoop(onFiring: FiringSink = ledgerSink, onClose?: SeriesCloseHook): void {
-  if (!browser) return;
+/**
+ * Returns the disarm — FEAT-0406.
+ *
+ * Arming used to be a one-way door: the caller decided once, at startup, and
+ * the loop kept evaluating for the rest of the session no matter what happened
+ * to the evaluator underneath it. Coverage, the other half of the cutover, is
+ * recomputed on every close and every minute. Handing the caller a disposer is
+ * what lets the two halves be decided together on every tick instead of once
+ * each, which is the whole point of the item: a covered alert is off the legacy
+ * engine, so a loop that cannot be stopped can only be balanced by a coverage
+ * decision that is never revisited.
+ *
+ * The disposer is idempotent and safe to call on a loop that was never armed —
+ * `disarm()` only writes the unconfigured defaults back.
+ */
+export function startRuleEvaluationLoop(
+  onFiring: FiringSink = ledgerSink,
+  onClose?: SeriesCloseHook,
+): () => void {
+  // A no-op disposer rather than `undefined`: SSR must not hand the caller a
+  // value it has to null-check, and there is nothing armed to stop.
+  if (!browser) return () => {};
 
   ruleEvaluationLoop.configure({
     readCandles: readClosedCandles,
@@ -307,4 +327,18 @@ export function startRuleEvaluationLoop(onFiring: FiringSink = ledgerSink, onClo
       ? "[Shadow] Rule evaluation loop armed in shadow mode"
       : "[Cutover] Rule evaluation loop armed and notifying",
   );
+
+  return () => {
+    if (!ruleEvaluationLoop.isArmed()) return;
+    ruleEvaluationLoop.disarm();
+    // `error`, not `log`: every alert the loop was serving has to be back on
+    // the legacy engine by the time this runs, and a rule the panel created
+    // without a legacy alert behind it is now evaluated by nothing at all.
+    // That is the BUG-0382 shape, and it does not belong in a category the
+    // trader has to have switched on to see.
+    logger.error(
+      "alerts",
+      "[Cutover] Rule evaluation loop disarmed — every alert is back on the legacy engine",
+    );
+  };
 }
