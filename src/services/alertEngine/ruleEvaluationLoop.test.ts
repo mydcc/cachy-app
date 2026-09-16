@@ -61,6 +61,77 @@ describe("RuleEvaluationLoop", () => {
     gateEvaluate.mockReturnValue(FIRES);
   });
 
+  describe("disarming — FEAT-0406", () => {
+    it("starts armed once configured, and reports itself disarmed afterwards", () => {
+      const { loop } = loopWith([rule()]);
+
+      expect(loop.isArmed()).toBe(true);
+
+      loop.disarm();
+
+      expect(loop.isArmed()).toBe(false);
+    });
+
+    it("evaluates nothing on a close once disarmed", () => {
+      const { loop, onFiring } = loopWith([rule()]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+
+      loop.disarm();
+      const firings = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      // The close is real — the armed loop fires on exactly this one, see
+      // "anchors on the previous candle once a later one appears".
+      expect(firings).toEqual([]);
+      expect(gateEvaluate).not.toHaveBeenCalled();
+      expect(onFiring).not.toHaveBeenCalled();
+    });
+
+    it("stops telling the caller about closes", () => {
+      // The store re-syncs legacy coverage from this hook. A disarmed loop
+      // that kept calling it would drive coverage decisions on behalf of an
+      // evaluator that no longer evaluates anything.
+      const onClose = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule()],
+        onClose,
+      });
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+
+      loop.disarm();
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    it("keeps its series state, so a re-arm does not skip a close", () => {
+      // `disarm()` is not `reset()`. Dropping the high-water marks would make
+      // the next candle of each series look like its first, and the first
+      // candle of a series closes nothing — a re-armed loop would sit out the
+      // crossing it was re-armed for.
+      const { loop, onFiring } = loopWith([rule()]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.disarm();
+
+      loop.configure({ readCandles: () => [], readRules: () => [rule()], onFiring });
+      const firings = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      expect(firings).toHaveLength(1);
+      expect(firings[0].anchorMs).toBe(1_000);
+    });
+
+    it("is idempotent, and safe on a loop that was never configured", () => {
+      const loop = new RuleEvaluationLoop();
+
+      expect(loop.isArmed()).toBe(false);
+      expect(() => {
+        loop.disarm();
+        loop.disarm();
+      }).not.toThrow();
+      expect(loop.isArmed()).toBe(false);
+    });
+  });
+
   describe("close detection", () => {
     it("does not evaluate on the first candle of a series", () => {
       const { loop } = loopWith([rule()]);
