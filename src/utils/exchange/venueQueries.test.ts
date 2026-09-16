@@ -18,6 +18,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildPositionsHistoryQueryParams,
+  buildSyncOrdersQueryParams,
   buildSyncQueryParams,
 } from "./venueQueries";
 
@@ -47,5 +48,29 @@ describe("buildPositionsHistoryQueryParams", () => {
 
   it("agrees with buildSyncQueryParams on the shared ceiling", () => {
     expect(buildSyncQueryParams({ limit: 500 }).limit).toBe("100");
+  });
+});
+
+describe("buildSyncOrdersQueryParams", () => {
+  it("defaults to 100 when no limit is given", () => {
+    expect(buildSyncOrdersQueryParams({})).toEqual({ limit: "100" });
+  });
+
+  it("clamps to the venue ceiling of 100", () => {
+    // Same ceiling as the sibling builders (`docs/bitunix-api/07_trade.md`:
+    // Maximum 100); the real caller already sends 100, so the clamp only
+    // guards out-of-range values the route schema lets through.
+    expect(buildSyncOrdersQueryParams({ limit: 500 })).toEqual({ limit: "100" });
+  });
+
+  it("clamps a non-positive limit up to 1", () => {
+    expect(buildSyncOrdersQueryParams({ limit: 0 })).toEqual({ limit: "1" });
+  });
+
+  it("falls back to the default on NaN and keeps endTime", () => {
+    expect(buildSyncOrdersQueryParams({ limit: NaN, endTime: 123 })).toEqual({
+      limit: "100",
+      endTime: "123",
+    });
   });
 });
