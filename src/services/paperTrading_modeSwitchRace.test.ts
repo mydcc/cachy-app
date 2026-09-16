@@ -97,6 +97,20 @@ function release(url: string, body: unknown): void {
     held.resolve(body);
 }
 
+/**
+ * Lets a signed request reach `appFetch`.
+ *
+ * FEAT-0405 made signing an `await` on the way to the fetch, and signing
+ * resolves on a real macrotask, so a request is no longer in flight at the
+ * moment the call returns. Yield real macrotasks until the held request has
+ * actually arrived rather than guessing a fixed count of them.
+ */
+async function settleDispatch(): Promise<void> {
+    for (let attempt = 0; attempt < 50 && pending.length === 0; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+}
+
 beforeEach(() => {
     pending = [];
     appFetchMock.mockReset();
@@ -143,6 +157,9 @@ describe("BUG-0419 — a read in flight across a mode switch is discarded", () =
     it("drops a live /api/leverage-margin-mode response that lands after switching to paper", async () => {
         hold("/api/leverage-margin-mode");
         const read = tradeService.fetchLeverageMarginMode("BTCUSDT");
+        // FEAT-0405 signs before dispatching, so the request reaches `appFetch`
+        // a tick later. The race under test only exists once it is out.
+        await settleDispatch();
 
         paperTradingService.setEnabled(true);
         expect(tradeState.remoteLeverage).toBeUndefined();
@@ -159,6 +176,10 @@ describe("BUG-0419 — a read in flight across a mode switch is discarded", () =
         paperTradingService.setEnabled(true);
         hold("/api/leverage-margin-mode");
         const read = tradeService.fetchLeverageMarginMode("BTCUSDT");
+        // Signed before dispatched (FEAT-0405): the read has to be in flight
+        // *under the paper epoch* before the switch back, or the switch is not
+        // what the assertion is about.
+        await settleDispatch();
 
         paperTradingService.setEnabled(false);
 

@@ -17,34 +17,32 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
-import { logger } from "$lib/server/logger";
+import * as clientToken from '../../../../lib/server/clientToken';
+import { logger } from '$lib/server/logger';
+import {
+  signedEnvelopeRequest,
+  TEST_SIGNING_KEYS,
+} from '../../../../tests/helpers/signedEnvelopeRequest';
+import { buildPositionsHistoryQueryParams } from '../../../../utils/exchange/venueQueries';
 
-vi.mock('../../../../lib/server/clientToken', () => ({
-  checkClientToken: vi.fn(() => null)
-}));
-
-const getClientAddress = () => '127.0.0.1';
-
-
-// Mock fetch globally
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
-// Import the real signature function to mock if needed, or just let it run
-// Since the refactor uses generateBitunixSignature, we might need to mock crypto or ensure it works.
-// Node's crypto is available in vitest environment usually.
+const getClientAddress = () => '127.0.0.1';
+
+const handler = (request: Request) =>
+  POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
 
 describe('POST /api/sync/positions-history - Security', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
   });
 
   it('should sanitize API key in logs and response on error', async () => {
-    const apiKey = 'SENSITIVE_API_KEY_12345';
-    const apiSecret = 'SENSITIVE_API_SECRET_67890';
-    const errorMsg = `Invalid API Key: ${apiKey}`; // Simulate upstream error leaking key
+    // Simulate an upstream error that quotes the credential back at us.
+    const errorMsg = `Invalid API Key: ${TEST_SIGNING_KEYS.apiKey}`;
 
-    // Mock fetch to fail with sensitive info in the body
     fetchMock.mockResolvedValueOnce({
       ok: false,
       text: async () => errorMsg,
@@ -53,44 +51,56 @@ describe('POST /api/sync/positions-history - Security', () => {
 
     const loggerSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
-    const request = {
-      json: async () => ({ apiKey, apiSecret, limit: 10 }),
-    } as Request;
+    const body = { limit: 10 };
+    const { request } = await signedEnvelopeRequest(
+      '/api/sync/positions-history',
+      body,
+      buildPositionsHistoryQueryParams(body),
+    );
 
-    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-    const body = await response.json();
+    const response = await handler(request);
+    const payload = await response.json();
 
-    // Verify fetch was called
     expect(fetchMock).toHaveBeenCalledTimes(1);
-
-    // Verify logger.error was called
     expect(loggerSpy).toHaveBeenCalled();
-    const loggedArgs = loggerSpy.mock.calls[0];
-    const loggedMessage = typeof loggedArgs[0] === 'string' ? loggedArgs[0] : loggedArgs.join(' ');
 
-    // Vulnerability Check: Ideally, we want these to NOT contain the key.
-    expect(loggedMessage).not.toContain(apiKey);
-    expect(loggedMessage).toContain('***'); // Check for mask
-    expect(body.error).not.toContain(apiKey);
-    expect(body.error).toContain('***');
+    const loggedArgs = loggerSpy.mock.calls[0];
+    const loggedMessage =
+      typeof loggedArgs[0] === 'string' ? loggedArgs[0] : loggedArgs.join(' ');
+
+    expect(loggedMessage).not.toContain(TEST_SIGNING_KEYS.apiKey);
+    expect(payload.error).not.toContain(TEST_SIGNING_KEYS.apiKey);
   });
 
-  it('should work correctly with valid credentials', async () => {
-     fetchMock.mockResolvedValueOnce({
+  it('should work correctly with a valid envelope', async () => {
+    fetchMock.mockResolvedValueOnce({
       ok: true,
       // See readExchangeJson: the route uses text() + safeJsonParse to preserve
       // numeric precision on exchange data.
       text: async () => JSON.stringify({ code: 0, data: { positionList: [] } }),
-      json: async () => ({ code: 0, data: { positionList: [] } }),
     });
 
-    const request = {
-      json: async () => ({ apiKey: 'validApiKey', apiSecret: 'validSecret', limit: 10 }),
-    } as Request;
+    const body = { limit: 10 };
+    const { request } = await signedEnvelopeRequest(
+      '/api/sync/positions-history',
+      body,
+      buildPositionsHistoryQueryParams(body),
+    );
 
-    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+    const response = await handler(request);
     expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body.data).toEqual([]);
+    expect((await response.json()).data).toEqual([]);
+  });
+
+  it('should reject a request that carries no envelope', async () => {
+    const request = new Request('http://localhost/api/sync/positions-history', {
+      method: 'POST',
+      body: JSON.stringify({ limit: 10 }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain('PRESIGNED_ENVELOPE_MISSING');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

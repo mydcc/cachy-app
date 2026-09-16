@@ -19,6 +19,8 @@ import { describe, it, expect } from "vitest";
 import {
   PRESIGNED_ERRORS,
   assertPresignedConsistency,
+  bitunixCallHeaders,
+  checkPresignedRequest,
   readPresignedEnvelope,
 } from "./presignedEnvelope";
 
@@ -81,7 +83,7 @@ describe("assertPresignedConsistency — query-signed routes", () => {
   const consistency = (query: string | undefined, rebuilt: string) =>
     assertPresignedConsistency({
       cachyPath: "/api/sync",
-      envelope: { apiKey: "k", signature: "s", timestamp: "1", query },
+      envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query },
       rebuilt,
     });
 
@@ -96,13 +98,31 @@ describe("assertPresignedConsistency — query-signed routes", () => {
   it("treats an absent x-api-query as a missing envelope, not a divergence", () => {
     expect(() => consistency(undefined, "a=1")).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
   });
+
+  it("accepts an empty query string, which a route with no parameters signs", () => {
+    expect(() => consistency("", "")).not.toThrow();
+  });
+});
+
+describe("readPresignedEnvelope — an empty query is not an absent one", () => {
+  it("reads an explicitly empty x-api-query as an empty string", () => {
+    const envelope = readPresignedEnvelope(
+      requestWith({ ...VALID_HEADERS, "x-api-query": "" }),
+    );
+
+    expect(envelope?.query).toBe("");
+  });
+
+  it("still reads a query header that is not sent at all as absent", () => {
+    expect(readPresignedEnvelope(requestWith(VALID_HEADERS))?.query).toBeUndefined();
+  });
 });
 
 describe("assertPresignedConsistency — body-signed routes", () => {
   const consistency = (rawBody: string | undefined, rebuilt: string) =>
     assertPresignedConsistency({
       cachyPath: "/api/orders",
-      envelope: { apiKey: "k", signature: "s", timestamp: "1" },
+      envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n" },
       rebuilt,
       rawBody,
     });
@@ -125,7 +145,7 @@ describe("assertPresignedConsistency — body-signed routes", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/orders",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1" },
         rebuilt: "{}",
         rawBody: "{}",
       }),
@@ -138,7 +158,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/tpsl",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1", passphrase: "p" },
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1", passphrase: "p" },
         rebuilt: "a=1",
       }),
     ).toThrow(PRESIGNED_ERRORS.UNEXPECTED_PASSPHRASE);
@@ -159,7 +179,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
       expect(() =>
         assertPresignedConsistency({
           cachyPath,
-          envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "q", passphrase: "p" },
+          envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "q", passphrase: "p" },
           rebuilt: "q",
           rawBody: shape === "body" ? "q" : undefined,
         }),
@@ -171,7 +191,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/balance",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1", passphrase: "p" },
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1", passphrase: "p" },
         rebuilt: "a=1",
       }),
     ).not.toThrow();
@@ -181,7 +201,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/sync",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1" },
         rebuilt: "a=1",
       }),
     ).not.toThrow();
@@ -197,5 +217,153 @@ describe("assertPresignedConsistency — unmigrated routes", () => {
         rebuilt: "",
       }),
     ).not.toThrow();
+  });
+});
+
+describe("assertPresignedConsistency — a route whose shape follows the action", () => {
+  const envelope = { apiKey: "k", signature: "s", timestamp: "1", nonce: "n" };
+
+  it("checks the query on a read action", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/tpsl?action=pending",
+        envelope: { ...envelope, query: "symbol=BTCUSDT" },
+        rebuilt: "symbol=BTCUSDT",
+      }),
+    ).not.toThrow();
+  });
+
+  it("checks the body on a write action, where no query is sent at all", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/tpsl?action=place",
+        envelope,
+        rebuilt: '{"a":1}',
+        rawBody: '{"a":1}',
+      }),
+    ).not.toThrow();
+  });
+
+  it("refuses a write action whose body diverged", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/tpsl?action=place",
+        envelope,
+        rebuilt: '{"a":1}',
+        rawBody: '{"a":2}',
+      }),
+    ).toThrow(PRESIGNED_ERRORS.DIVERGENCE);
+  });
+
+  it("refuses a write action that carried no body", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/tpsl?action=place",
+        envelope,
+        rebuilt: '{"a":1}',
+      }),
+    ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
+  });
+
+  it("falls back to the route's shape for an action it does not name", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/tpsl?action=something-new",
+        envelope: { ...envelope, query: "a=1" },
+        rebuilt: "a=1",
+      }),
+    ).not.toThrow();
+  });
+});
+
+describe("assertPresignedConsistency — the nonce Bitunix signs with", () => {
+  it("refuses a Bitunix request that arrived without one", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/sync",
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        rebuilt: "a=1",
+      }),
+    ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
+  });
+
+  it("asks a mixed-venue route for one, because its Bitunix half needs it", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/balance",
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        rebuilt: "a=1",
+      }),
+    ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
+  });
+});
+
+describe("checkPresignedRequest", () => {
+  const headers = {
+    "x-api-key": "key-0001",
+    "x-api-sign": "deadbeef",
+    "x-api-timestamp": "1700000000000",
+    "x-api-nonce": "abcd",
+    "x-api-query": "a=1",
+  };
+
+  const post = (sentHeaders: Record<string, string>) =>
+    new Request("http://localhost/api/sync", { method: "POST", headers: sentHeaders });
+
+  it("hands the route the envelope when the bytes match", () => {
+    const check = checkPresignedRequest(post(headers), {
+      cachyPath: "/api/sync",
+      rebuilt: "a=1",
+    });
+
+    expect(check).toMatchObject({
+      ok: true,
+      envelope: { apiKey: "key-0001", signature: "deadbeef", nonce: "abcd" },
+    });
+  });
+
+  it("reports a missing envelope rather than throwing", () => {
+    const check = checkPresignedRequest(post({}), {
+      cachyPath: "/api/sync",
+      rebuilt: "a=1",
+    });
+
+    expect(check).toEqual({ ok: false, code: PRESIGNED_ERRORS.MISSING_ENVELOPE });
+  });
+
+  it("reports divergent bytes rather than throwing", () => {
+    const check = checkPresignedRequest(post(headers), {
+      cachyPath: "/api/sync",
+      rebuilt: "a=2",
+    });
+
+    expect(check).toEqual({ ok: false, code: PRESIGNED_ERRORS.DIVERGENCE });
+  });
+});
+
+describe("bitunixCallHeaders", () => {
+  it("forwards the client's credential material and nothing else", () => {
+    const headers = bitunixCallHeaders({
+      apiKey: "key-0001",
+      signature: "deadbeef",
+      timestamp: "1700000000000",
+      nonce: "abcd",
+      passphrase: "must-not-travel",
+    });
+
+    expect(headers).toEqual({
+      "api-key": "key-0001",
+      timestamp: "1700000000000",
+      nonce: "abcd",
+      sign: "deadbeef",
+      "Content-Type": "application/json",
+    });
+    expect(Object.values(headers)).not.toContain("must-not-travel");
+  });
+
+  it("refuses an envelope with no nonce", () => {
+    expect(() =>
+      bitunixCallHeaders({ apiKey: "k", signature: "s", timestamp: "1" }),
+    ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
   });
 });

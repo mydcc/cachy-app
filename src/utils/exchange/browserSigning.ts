@@ -37,7 +37,12 @@
 
 import { signBitgetRequest, signBitunixRequest } from "../crypto/exchangeSigning";
 import { correctedNow } from "./clockDrift";
-import { planForRoute, type Venue } from "./restSigningPlan";
+import {
+  cachyAction,
+  planForRoute,
+  signatureShapeFor,
+  type Venue,
+} from "./restSigningPlan";
 
 export interface ExchangeKeys {
   apiKey: string;
@@ -111,6 +116,10 @@ export async function signCachyRequest(
     throw new Error(SIGNING_ERRORS.VENUE_NOT_SUPPORTED);
   }
 
+  // Resolved from the same URL the server will read it from, so the two sides
+  // cannot disagree about which shape a request has (ADR-0013, failure mode 2).
+  const shape = signatureShapeFor(plan, cachyAction(input.cachyPath));
+
   const timestamp = (input.now ?? correctedNow)().toString();
   const headers: Record<string, string> = { "x-api-key": input.keys.apiKey };
 
@@ -119,36 +128,36 @@ export async function signCachyRequest(
       input.keys.apiKey,
       input.keys.apiSecret,
       input.queryParams ?? {},
-      plan.signed === "body" ? input.payload : null,
+      shape === "body" ? input.payload : null,
       { timestamp },
     );
 
     headers["x-api-sign"] = result.signature;
     headers["x-api-timestamp"] = result.timestamp;
     headers["x-api-nonce"] = result.nonce;
-    if (plan.signed === "query") headers["x-api-query"] = result.queryString;
+    if (shape === "query") headers["x-api-query"] = result.queryString;
 
     return {
       headers,
       // The signer's own serialisation, not a second `JSON.stringify` of the
       // same object. Identical today, and staying identical is the whole point.
-      body: plan.signed === "body" ? result.bodyStr : undefined,
+      body: shape === "body" ? result.bodyStr : undefined,
     };
   }
 
-  const method = input.method ?? (plan.signed === "body" ? "POST" : "GET");
+  const method = input.method ?? (shape === "body" ? "POST" : "GET");
   const result = await signBitgetRequest(
     input.keys.apiSecret,
     method,
     input.upstreamPath ?? input.cachyPath,
     input.queryParams ?? {},
-    plan.signed === "body" ? input.payload : null,
+    shape === "body" ? input.payload : null,
     { timestamp },
   );
 
   headers["x-api-sign"] = result.signature;
   headers["x-api-timestamp"] = result.timestamp;
-  if (plan.signed === "query") headers["x-api-query"] = result.queryString;
+  if (shape === "query") headers["x-api-query"] = result.queryString;
 
   // The ADR-0013 named exception, and the only place the passphrase is read.
   // No guard on `plan` here on purpose: this line is reachable only on the
@@ -163,7 +172,11 @@ export async function signCachyRequest(
 
   return {
     headers,
-    body: plan.signed === "body" ? result.bodyStr : undefined,
+    // `shape`, not `plan.signed`: on a route whose shape varies per action the
+    // two differ, and the server reads the shape back off the URL. Resolving it
+    // twice — once here from `plan`, once above into `shape` — is how those two
+    // answers drift apart.
+    body: shape === "body" ? result.bodyStr : undefined,
   };
 }
 
@@ -175,8 +188,16 @@ export async function signCachyRequest(
  */
 export async function exchangeSignedFetch(
   input: SignCachyRequestInput & {
-    fetchFn?: typeof fetch;
+    /**
+     * Typed to the call this function actually makes — a string path plus
+     * `RequestInit` — not to `typeof fetch`. The app's authenticated fetch
+     * takes only a string, so the wider type rejected every real caller while
+     * this one describes nothing the function needs.
+     */
+    fetchFn?: (input: string, init?: RequestInit) => Promise<Response>;
     headers?: Record<string, string>;
+    /** Passed through to `fetch`; a caller with its own deadline needs it. */
+    signal?: AbortSignal;
   },
 ): Promise<Response> {
   const signed = await signCachyRequest(input);
@@ -196,5 +217,6 @@ export async function exchangeSignedFetch(
     method: "POST",
     headers,
     body: signed.body ?? JSON.stringify(input.payload ?? {}),
+    signal: input.signal,
   });
 }

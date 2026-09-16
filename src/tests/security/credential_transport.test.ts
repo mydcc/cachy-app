@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { RequestEvent } from "@sveltejs/kit";
 import { logger } from "$lib/server/logger";
+import { signedEnvelopeRequest } from "../helpers/signedEnvelopeRequest";
 
 // Mock client token check to pass
 vi.mock("$lib/server/clientToken", () => ({
@@ -198,23 +199,20 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     expect(response.status).toBe(200);
   });
 
-  it("POST /api/sync should accept credentials via headers", async () => {
+  it("POST /api/sync accepts a pre-signed envelope instead of credentials", async () => {
+    // FEAT-0405 migrated this route: `/api/sync` is Bitunix-only, so its client
+    // signs in the browser and the secret never reaches this side. The header
+    // form above is deliberately *not* still accepted — there is no fallback.
     const { POST } = await import("../../routes/api/sync/+server");
-    const request = new Request("http://localhost/api/sync", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": "test-key-12345",
-        "X-Api-Secret": "test-secret-12345",
-      },
-      body: JSON.stringify({ limit: 50 }),
+    const { request } = await signedEnvelopeRequest("/api/sync", { limit: 50 }, {
+      limit: "50",
     });
 
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        text: async () => JSON.stringify({ code: 0, msg: "Success", data: [] }),
+        text: async () => JSON.stringify({ code: 0, msg: "Success", data: { tradeList: [] } }),
       }),
     );
 
@@ -226,5 +224,25 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.data).toEqual([]);
+  });
+
+  it("POST /api/sync rejects a request that still carries X-Api-Secret", async () => {
+    const { POST } = await import("../../routes/api/sync/+server");
+    const request = new Request("http://localhost/api/sync", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": "test-key-12345",
+        "X-Api-Secret": "test-secret-12345",
+      },
+      body: JSON.stringify({ limit: 50 }),
+    });
+
+    const response = await POST({
+      request,
+      getClientAddress: () => "127.0.0.1",
+    } as unknown as RequestEvent);
+
+    expect(response.status).toBe(400);
   });
 });

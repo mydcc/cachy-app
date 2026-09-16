@@ -125,7 +125,7 @@ describe("refreshDerivedFeeRates — the happy path", () => {
         expect(activeAccountArgs.seen[2]).toBe("bitunix");
     });
 
-    it("sends the credentials as headers and bounds the request", async () => {
+    it("sends a pre-signed envelope, never the secret, and bounds the request", async () => {
         respondWith({ data: [fillAt("TAKER", "0.06")] });
 
         await refreshDerivedFeeRates();
@@ -133,7 +133,12 @@ describe("refreshDerivedFeeRates — the happy path", () => {
         const [url, init] = appFetchMock.mock.calls[0];
         expect(url).toBe("/api/sync");
         expect(init.method).toBe("POST");
-        expect(init.headers["X-Api-Key"]).toBe("test-key-value");
+        // FEAT-0405: the route is Bitunix-only and now reads an envelope built
+        // here, so the key travels for identification and the signature for
+        // proof — the secret itself has no header to occupy.
+        expect(init.headers["x-api-key"]).toBe("test-key-value");
+        expect(init.headers["x-api-sign"]).toBeTruthy();
+        expect(JSON.stringify(init.headers)).not.toContain("test-secret-value");
         // The journal sync holds its lock across this call, so it must not be
         // able to hang there indefinitely.
         expect(init.signal).toBeDefined();
