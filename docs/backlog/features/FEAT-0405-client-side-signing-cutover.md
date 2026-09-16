@@ -139,6 +139,48 @@ the drift tracking it describes (client offset derived from response `Date`
 headers / market WS timestamps) or live orders will intermittently fail
 signature verification.
 
+## Progress
+
+Delivered as four PRs; only the last one flips this item to `done`.
+
+| Phase | Scope | State |
+|---|---|---|
+| A1 | `ROUTE_SIGNING_PLAN` (12 routes), `signCachyRequest` / `exchangeSignedFetch`, `clockDrift`, `assertPresignedConsistency` | merged (#3416) — deliberately inert: no route and no call site wired up |
+| A2 | `buildVenueBody` plus the Bitget counterpart, for the two body-signed multi-venue routes | merged (#3421) |
+| A3 | The 7 Bitunix-hardwired query routes and their client call sites | open (#3424) |
+| A4 + A5 | The 5 multi-venue routes (3 query, 2 body) | not started |
+| A6 | Absence test over all 12 routes, whitepaper, WS audit, item flip | not started |
+
+Notes from A3 for whoever picks up A4:
+
+- `src/utils/exchange/venueQueries.ts` is new: the query-shaped counterpart of
+  `venueBodies.ts`, applied by *both* sides so defaults, clamps and empty-value
+  filters cannot drift.
+- Review follow-up (A3): every route now rebuilds through the shared builder
+  (`venueQueries.ts`), including `leverage-margin-mode` and `sync/order-detail`,
+  which had inlined the query object. The `marginCoin` default moved out of
+  `leverage-margin-mode`'s Zod schema into `buildLeverageMarginModeQueryParams`,
+  so there is one owner for it instead of two that could drift.
+- `/api/sync/order-detail` is migrated but has no client call site —
+  `tradeService` reaches order detail through `/api/orders`. Harmless until A5
+  cuts that route over; the endpoint is then reachable only if `/api/orders`
+  gains a use for it.
+- `/api/tpsl` is the one route whose signature shape is a property of the `action`
+  riding in the URL, so its Cachy body is asymmetric by design: a **read** sends
+  the `{ exchange, action, params }` wrapper (which `TpSlRequestSchema` validates),
+  a **write** sends the *venue* body (`params`) — because the handler forwards the
+  bytes it received to Bitunix verbatim. Signing or sending the wrapper on a write
+  would hand the venue `{ exchange, action, … }` where it expects `{ orderId, … }`.
+- The enveloped client path now passes `venue: provider` explicitly. `signCachyRequest`
+  refuses a route that does not accept that venue, which replaces the server-side
+  `exchange !== "bitunix"` guard that left with the secret.
+- `tradeService.signedRequest` carries a temporary `ENVELOPE_SIGNED_ROUTES` set
+  (`/api/tpsl`). It exists only while `/api/orders` is unmigrated and goes away
+  with it in A5.
+- Carried over from the plan: `account-settings` is a **body** route in
+  `ROUTE_SIGNING_PLAN`, but the ACs list it among the query routes. The table is
+  the reference for both sides — settle this before A5.
+
 ## Acceptance criteria
 
 - [ ] No REST trade/sync request carries a raw exchange **signing secret** out of

@@ -2,9 +2,9 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,29 +12,36 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { generateBitunixSignature } from "../../../../utils/server/bitunix";
-import { checkClientToken } from "../../../../lib/server/clientToken";
 import { z } from "zod";
+import { checkClientToken } from "../../../../lib/server/clientToken";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
-import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../../utils/redact";
 import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
+import {
+  bitunixCallHeaders,
+  checkPresignedRequest,
+  type PresignedEnvelope,
+} from "../../../../utils/server/presignedEnvelope";
 
 // SECURITY NOTE: This endpoint acts as a Backend-For-Frontend (BFF) proxy.
-// It receives API keys from the client to perform a signed request to Bitunix.
-// Ensure strictly HTTPS is used. Request bodies are NOT logged on error.
+// The signature is built in the browser (FEAT-0405); this route carries the
+// envelope and the request body, never the API secret.
 
-const RequestSchema = z.object({
-  apiKey: z.string().optional(),
-  apiSecret: z.string().optional(),
-});
+const CACHY_PATH = "/api/sync/positions-pending";
+const BITUNIX_BASE_URL = "https://fapi.bitunix.com";
+const BITUNIX_PATH = "/api/v1/futures/position/get_pending_positions";
+
+// No fields: the venue reads every pending position and the signature covers an
+// empty query. Anything the body carries is ignored, and unknown keys are the
+// client's business, not this route's.
+const RequestSchema = z.object({});
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -42,11 +49,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
   let body: unknown;
   try {
-    if (typeof request.text === "function") {
-      body = safeJsonParse(await request.text());
-    } else if (typeof request.json === "function") {
-      body = await request.json();
-    }
+    body = safeJsonParse(await request.text());
   } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -59,22 +62,23 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
   }
 
-  const creds = extractApiCredentials(request, result.data);
-  const apiKey = creds.apiKey;
-  const apiSecret = creds.apiSecret;
-
-  if (!apiKey || !apiSecret) {
-      return json({ error: "Missing API Credentials" }, { status: 401 });
+  // This endpoint takes no parameters, so the query string it signs is empty.
+  // The client sends `x-api-query` as an explicitly empty header for that; the
+  // reader keeps "empty" apart from "absent" so this route stays representable.
+  const check = checkPresignedRequest(request, {
+    cachyPath: CACHY_PATH,
+    rebuilt: "",
+  });
+  if (!check.ok) {
+    return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });
   }
 
   try {
-    const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
+    const positions = await fetchBitunixPendingPositions(check.envelope);
     return json({ data: positions });
   } catch (e) {
     const rawMsg = e instanceof Error ? e.message : String(e);
-    let safeMsg = redactString(rawMsg);
-    if (apiKey && apiKey.length > 4) safeMsg = safeMsg.replaceAll(apiKey, "***");
-    if (apiSecret && apiSecret.length > 4) safeMsg = safeMsg.replaceAll(apiSecret, "***");
+    const safeMsg = redactString(rawMsg);
     logger.error(`[Sync] Error fetching pending positions from Bitunix: ${safeMsg}`);
     return json(
       { error: safeMsg || "Failed to fetch pending positions" },
@@ -84,38 +88,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 };
 
 async function fetchBitunixPendingPositions(
-  apiKey: string,
-  apiSecret: string,
+  envelope: PresignedEnvelope,
 ): Promise<unknown[]> {
-  const baseUrl = "https://fapi.bitunix.com";
-  const path = "/api/v1/futures/position/get_pending_positions";
-
-  // Params for the request (empty for all pending positions)
-  const params: Record<string, string> = {};
-
-  // FEAT-0321: this route used to hand-roll the signing algorithm inline. It
-  // signed byte-for-byte identically to `generateBitunixSignature`, which
-  // `src/utils/server/bitunix.test.ts` records and now guards.
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    params,
-    "",
-  );
-
-  const url = queryString
-    ? `${baseUrl}${path}?${queryString}`
-    : `${baseUrl}${path}`;
+  const { query } = envelope;
+  const url = query
+    ? `${BITUNIX_BASE_URL}${BITUNIX_PATH}?${query}`
+    : `${BITUNIX_BASE_URL}${BITUNIX_PATH}`;
 
   const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) {

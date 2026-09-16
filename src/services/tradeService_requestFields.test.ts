@@ -123,9 +123,37 @@ describe("TradeService request bodies include exchange (and type for place-order
 
   it("fetchTpSlOrders sends exchange on /api/tpsl", async () => {
     await tradeService.fetchTpSlOrders("pending");
-    const call = fetchSpy.mock.calls.find((c) => c[0] === "/api/tpsl");
+    // FEAT-0405 — the action rides in the URL now, because it is what tells the
+    // route whether this request signs a query or a body.
+    const call = fetchSpy.mock.calls.find((c) =>
+      String(c[0]).startsWith("/api/tpsl?action=pending"),
+    );
     expect(call).toBeDefined();
     const body = JSON.parse(call![1]?.body as string);
     expect(body.exchange).toBe("bitunix");
+  });
+
+  it("sends the venue body, not the Cachy wrapper, on a TP/SL write", async () => {
+    // The two shapes are not symmetric: the route forwards what it receives to
+    // Bitunix verbatim, so sending the wrapper would hand the venue
+    // `{ exchange, action, … }` in place of `{ orderId, … }`.
+    await tradeService.cancelTpSlOrder({
+      orderId: "1-tp",
+      sourceOrderId: "1",
+      symbol: "BTCUSDT",
+      planType: "PROFIT",
+      triggerPrice: "50000",
+      status: "PENDING",
+    });
+
+    const call = fetchSpy.mock.calls.find((c) =>
+      String(c[0]).startsWith("/api/tpsl?action=cancel"),
+    );
+    expect(call).toBeDefined();
+    expect(JSON.parse(call![1]?.body as string)).toEqual({
+      orderId: "1",
+      symbol: "BTCUSDT",
+      planType: "PROFIT",
+    });
   });
 });

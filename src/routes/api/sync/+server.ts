@@ -12,37 +12,37 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { z } from "zod";
 import { checkClientToken } from "../../../lib/server/clientToken";
-import {
-  generateBitunixSignature,
-  validateBitunixKeys,
-} from "../../../utils/server/bitunix";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
-import { extractApiCredentials } from "../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../utils/redact";
 import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
+import {
+  bitunixCallHeaders,
+  checkPresignedRequest,
+  type PresignedEnvelope,
+} from "../../../utils/server/presignedEnvelope";
+import { canonicalQueryString } from "../../../utils/exchange/restSigningPlan";
+import { buildSyncQueryParams } from "../../../utils/exchange/venueQueries";
 
-// Define Validation Schema
+const CACHY_PATH = "/api/sync";
+const BITUNIX_BASE_URL = "https://fapi.bitunix.com";
+const BITUNIX_PATH = "/api/v1/futures/trade/get_history_trades";
+
+// Define Validation Schema. `limit`'s default and clamp live in
+// `buildSyncQueryParams`, not here: the client has to apply the same rule for
+// the signature to match, so there is one implementation rather than two.
 const SyncRequestSchema = z.object({
-  apiKey: z.string().min(5).optional(),
-  apiSecret: z.string().min(5).optional(),
   startTime: z.number().int().optional(),
   endTime: z.number().int().optional(),
-  limit: z.union([z.number(), z.string()])
-    .transform((val) => {
-      const num = Number(val);
-      return isNaN(num) ? 50 : Math.min(Math.max(num, 1), 100);
-    })
-    .optional()
-    .default(50),
+  limit: z.union([z.number(), z.string()]).optional(),
 });
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
@@ -52,11 +52,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   try {
     let body: unknown;
     try {
-      if (typeof request.text === "function") {
-        body = safeJsonParse(await request.text());
-      } else if (typeof request.json === "function") {
-        body = await request.json();
-      }
+      body = safeJsonParse(await request.text());
     } catch {
       return json({ error: "Invalid JSON" }, { status: 400 });
     }
@@ -70,31 +66,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       );
     }
 
-    const creds = extractApiCredentials(request, validation.data);
-    const apiKey = creds.apiKey;
-    const apiSecret = creds.apiSecret;
-    const { startTime, endTime, limit } = validation.data;
+    const venueParams = buildSyncQueryParams(validation.data);
 
-    if (!apiKey || !apiSecret) {
-      return json(
-        { error: "Validation Error: Missing API credentials", details: "Missing API credentials" },
-        { status: 400 },
-      );
+    const check = checkPresignedRequest(request, {
+      cachyPath: CACHY_PATH,
+      rebuilt: canonicalQueryString(venueParams),
+    });
+    if (!check.ok) {
+      return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });
     }
 
-    // 2. Additional Security Check (Redundant but explicit)
-    const keyError = validateBitunixKeys(apiKey, apiSecret);
-    if (keyError) {
-      return json({ error: keyError }, { status: 400 });
-    }
-
-    const history = await fetchBitunixHistory(
-      apiKey,
-      apiSecret,
-      startTime,
-      endTime,
-      limit,
-    );
+    const history = await fetchBitunixHistory(check.envelope);
     return json({ data: history });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
@@ -107,39 +89,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 };
 
 async function fetchBitunixHistory(
-  apiKey: string,
-  apiSecret: string,
-  startTime?: number,
-  endTime?: number,
-  limit: number = 50,
+  envelope: PresignedEnvelope,
 ): Promise<Record<string, unknown>[]> {
-  const baseUrl = "https://fapi.bitunix.com";
-  const path = "/api/v1/futures/trade/get_history_trades";
+  const { query } = envelope;
+  const url = query
+    ? `${BITUNIX_BASE_URL}${BITUNIX_PATH}?${query}`
+    : `${BITUNIX_BASE_URL}${BITUNIX_PATH}`;
 
-  // Params for the request
-  const params: Record<string, string> = {
-    limit: limit.toString(),
-  };
-  if (startTime) params.startTime = startTime.toString();
-  if (endTime) params.endTime = endTime.toString();
-
-  // Use centralized signature generation
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    params,
-    "" // Empty body for GET
-  );
-
-  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) {

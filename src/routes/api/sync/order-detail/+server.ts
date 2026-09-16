@@ -12,24 +12,31 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { generateBitunixSignature } from "../../../../utils/server/bitunix";
 import { z } from "zod";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
-import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../../utils/redact";
 import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
+import {
+  bitunixCallHeaders,
+  checkPresignedRequest,
+  type PresignedEnvelope,
+} from "../../../../utils/server/presignedEnvelope";
+import { canonicalQueryString } from "../../../../utils/exchange/restSigningPlan";
+import { buildOrderDetailQueryParams } from "../../../../utils/exchange/venueQueries";
+
+const CACHY_PATH = "/api/sync/order-detail";
+const BITUNIX_BASE_URL = "https://fapi.bitunix.com";
+const BITUNIX_PATH = "/api/v1/futures/trade/get_order_detail";
 
 const RequestSchema = z.object({
-  apiKey: z.string().min(1).optional(),
-  apiSecret: z.string().min(1).optional(),
   orderId: z.string().min(1),
 });
 
@@ -39,11 +46,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
   let body: unknown;
   try {
-    if (typeof request.text === "function") {
-      body = safeJsonParse(await request.text());
-    } else if (typeof request.json === "function") {
-      body = await request.json();
-    }
+    body = safeJsonParse(await request.text());
   } catch {
     return json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -56,17 +59,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     );
   }
 
-  const creds = extractApiCredentials(request, result.data);
-  const apiKey = creds.apiKey;
-  const apiSecret = creds.apiSecret;
   const { orderId } = result.data;
 
-  if (!apiKey || !apiSecret) {
-    return json({ error: "Missing API credentials" }, { status: 400 });
+  const check = checkPresignedRequest(request, {
+    cachyPath: CACHY_PATH,
+    rebuilt: canonicalQueryString(buildOrderDetailQueryParams(orderId)),
+  });
+  if (!check.ok) {
+    return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });
   }
 
   try {
-    const order = await fetchBitunixOrderDetail(apiKey, apiSecret, orderId);
+    const order = await fetchBitunixOrderDetail(check.envelope);
     return json({ data: order });
   } catch (e) {
     const rawMsg = e instanceof Error ? e.message : String(e);
@@ -81,37 +85,19 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 };
 
 async function fetchBitunixOrderDetail(
-  apiKey: string,
-  apiSecret: string,
-  orderId: string,
+  envelope: PresignedEnvelope,
 ): Promise<unknown> {
-  const baseUrl = "https://fapi.bitunix.com";
-  const path = "/api/v1/futures/trade/get_order_detail";
+  // The venue signature covers this query, and the guard has already compared
+  // the client's copy of it against this route's rebuild, so what is forwarded
+  // is verbatim what was signed.
+  const { query } = envelope;
+  const url = query
+    ? `${BITUNIX_BASE_URL}${BITUNIX_PATH}?${query}`
+    : `${BITUNIX_BASE_URL}${BITUNIX_PATH}`;
 
-  // Params for the request
-  const params: Record<string, string> = {
-    orderId: orderId,
-  };
-
-  // FEAT-0321: this route used to hand-roll the signing algorithm inline. It
-  // signed byte-for-byte identically to `generateBitunixSignature`, which
-  // `src/utils/server/bitunix.test.ts` records and now guards.
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    params,
-    "",
-  );
-
-  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) {
