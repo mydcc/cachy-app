@@ -147,7 +147,7 @@ Delivered as four PRs; only the last one flips this item to `done`.
 |---|---|---|
 | A1 | `ROUTE_SIGNING_PLAN` (12 routes), `signCachyRequest` / `exchangeSignedFetch`, `clockDrift`, `assertPresignedConsistency` | merged (#3416) — deliberately inert: no route and no call site wired up |
 | A2 | `buildVenueBody` plus the Bitget counterpart, for the two body-signed multi-venue routes | merged (#3421) |
-| A3 | The 7 Bitunix-hardwired query routes and their client call sites | branch `feat/feat-0405-a3-bitunix-routes` |
+| A3 | The 7 Bitunix-hardwired query routes and their client call sites | open (#3424) |
 | A4 + A5 | The 5 multi-venue routes (3 query, 2 body) | not started |
 | A6 | Absence test over all 12 routes, whitepaper, WS audit, item flip | not started |
 
