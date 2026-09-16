@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-26
+- **Amended:** 2026-09-15 — named exception for the Bitget `ACCESS-PASSPHRASE` transport header (see below)
 - **Deciders:** @mydcc, Antigravity
 
 ## Context
@@ -33,6 +34,23 @@ We adopt **Option A**: **All authenticated exchange requests are signed client-s
    - **Bitunix:** Computed using WebCrypto SHA-256 (`SHA256(SHA256(nonce + timestamp + apiKey + queryParamsStr + bodyStr) + apiSecret)`).
    - **Bitget:** Computed using WebCrypto HMAC-SHA256 (`Base64(HMAC-SHA256(timestamp + method + requestPath + bodyStr, apiSecret))`).
 
+### Named exception: the Bitget `ACCESS-PASSPHRASE` transport header
+
+Recorded 2026-09-15, while planning [`FEAT-0405`](../backlog/features/FEAT-0405-client-side-signing-cutover.md).
+
+**The exception.** On Bitget-reachable proxy routes, the API **passphrase** may continue to transit the Cachy server as a request header (`X-Api-Passphrase` client→Cachy, `ACCESS-PASSPHRASE` Cachy→Bitget). The API **secret** may not, on any route, for any venue.
+
+**Why a client-side computation cannot remove it.** The passphrase is not a signing input. §3 above states the Bitget prehash as `timestamp + method + requestPath + bodyStr`, and the implementation confirms it — `generateBitgetSignature(apiSecret, method, path, params, body)` takes no passphrase (`src/utils/server/bitget.ts:75-117`). Bitget upstream nonetheless requires the header on every authenticated request; all seven outbound builders set it unconditionally (`src/utils/server/venues/bitget.ts:110,154,210,272,310,352,484`). Cachy must proxy because the browser cannot reach the Bitget REST API directly. There is therefore no client-side computation that keeps the passphrase off the wire.
+
+**Why the residual exposure is acceptable.** Post-cutover, a compromised Cachy runtime holds at most `apiKey` + `passphrase` for Bitget — a pair that cannot produce a valid signature, because the secret is the HMAC key and remains exclusively client-side. Credential exfiltration no longer yields signable material. The passphrase degrades from a signing credential to an additional identifier travelling with the request. Bitunix has no passphrase, so nothing changes there; the exception is Bitget-only.
+
+**Boundary conditions — the exception is narrow.**
+
+- Confined to the passphrase. The secret stays forbidden everywhere.
+- Confined to a request header. The passphrase remains forbidden in query strings, request bodies, and any log output; the server-side redaction from [`BUG-0272`](../backlog/bugs/BUG-0272-proxy-route-credential-transport-drift.md) continues to cover it.
+- No new passphrase-accepting route may be added on the strength of this exception. It covers the five Bitget-reachable routes that exist (`orders`, `balance`, `positions`, `account`, `account-settings`) and nothing further.
+- Removed the moment Bitget REST becomes reachable client-direct, which is the outcome the exception is a stopgap for.
+
 ## Failure Modes & Mitigations
 
 1. **Clock Skew (NTP Drift):**
@@ -57,10 +75,12 @@ We adopt **Option A**: **All authenticated exchange requests are signed client-s
 
 - Client-side signing implementations must be maintained and verified against exchange API updates across all supported venues.
 - Conformance suites must continuously assert byte-for-byte output equivalence against recorded exchange test vectors.
+- The Bitget passphrase continues to transit the Cachy server. The "zero-transit" promise in this ADR therefore holds in full for the signing secret on every route and for every credential on Bitunix, but not for the Bitget passphrase, which the named exception above covers.
 
 ### What is now forbidden
 
-- Adding new proxy routes or modifying existing routes to accept raw API secrets or passphrases.
+- Accepting a raw API **secret** on any proxy route, new or existing. No exception exists for this.
+- Adding new proxy routes or modifying existing routes to accept a raw passphrase. The Bitget exception above is a closed list of five pre-existing routes, not a precedent.
 - Logging, echoing, or caching signature prehash payloads containing secrets.
 
 ## References
