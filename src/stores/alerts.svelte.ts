@@ -342,6 +342,39 @@ function stopCoverageResync(): void {
 }
 
 /**
+ * The disarm for the loop this module armed, or `null` while nothing is armed
+ * — FEAT-0406.
+ *
+ * Module-scope for the same reason the timer above is: the loop outlives every
+ * component, and a second `initAlertEngine()` has to be able to stop the *first*
+ * run's loop. Without this, a re-init whose core failed to load would leave the
+ * previous run's loop evaluating and notifying while the coverage it was
+ * balanced against had just been recomputed as empty — both engines serving
+ * the same alert.
+ */
+let disarmRuleLoop: (() => void) | null = null;
+
+/**
+ * Stops the rule path: the loop first, then the timer that kept its coverage
+ * fresh — FEAT-0406.
+ *
+ * The loop goes first because that ordering is the whole no-double-fire
+ * argument: from the moment it returns, nothing on the rule path can notify,
+ * so handing the alerts back to the legacy engine afterwards cannot overlap
+ * with a rule firing for the same alert. The reverse order would leave a
+ * window — short, but a window — in which both engines hold it.
+ *
+ * Cleared before it is called so a disarm that throws cannot leave a stale
+ * disposer behind to be called a second time.
+ */
+function disarmRuleEngine(): void {
+    const disarm = disarmRuleLoop;
+    disarmRuleLoop = null;
+    disarm?.();
+    stopCoverageResync();
+}
+
+/**
  * Brings the alert engine up at client startup. BUG-0382: without this, every
  * method on `alertEngine` early-returns on a null instance and no alert can
  * ever fire, even though the market hot path calls `evaluate()` on every tick.
@@ -434,10 +467,13 @@ export async function initAlertEngine(
     // FEAT-0387 cutover: real coverage only in live mode. A shadow run must
     // remove nothing from the legacy engine — that is what makes it a pure
     // addition rather than a second, quieter cutover.
+    // FEAT-0406: read once, decide both halves from it. Everything from here
+    // to the arming decision at the end of this function runs synchronously —
+    // the last `await` is above — so this one answer is the same answer the
+    // arming would compute for itself, and now it provably is.
+    const ready = ruleSchema.isReady();
     const covered =
-        mode === "live" && ruleSchema.isReady()
-            ? readCoveredAlertIds(isSeriesObserved)
-            : new Set<string>();
+        mode === "live" && ready ? readCoveredAlertIds(isSeriesObserved, ready) : new Set<string>();
     alertState.syncEngine(covered);
 
     // BUG-0441: give the legacy engine the history it lost across a reload.
@@ -475,8 +511,6 @@ export async function initAlertEngine(
         );
     }
 
-    alertState.engineStatus = "ready";
-
     // FEAT-0387 cutover: coverage above is a startup snapshot, but the market
     // store keeps subscribing and unsubscribing to series for as long as the
     // session runs — a symbol the trader charts at 4h when the app opens can
@@ -505,7 +539,37 @@ export async function initAlertEngine(
     // closed. What a close cannot do is fire once there are no closes left,
     // which is why `COVERAGE_RESYNC_INTERVAL_MS` drives this same re-sync on a
     // timer too.
-    const resyncCoverage = () => alertState.syncEngine(readCoveredAlertIds(isSeriesObserved));
+    // FEAT-0406: one tick, one `isReady()` read, both halves decided from it.
+    //
+    // Before this item the tick only recomputed coverage, and arming was a
+    // startup decision nothing revisited. The two shared an input and could
+    // not be kept in step: a core that stopped being ready mid-session would
+    // push every alert back onto the legacy engine here while the loop, armed
+    // since startup, kept evaluating and notifying for the same alerts — a
+    // double fire reached through staleness rather than construction.
+    //
+    // So the not-ready branch does the other half too, and does it first: the
+    // loop is stopped before the alerts are handed back, never after. The
+    // mirror gap — alerts off the legacy engine with nothing evaluating them —
+    // is closed by the same ordering, because `syncEngine` with empty coverage
+    // is what puts every one of them back.
+    //
+    // `engineStatus` is set for the trader's sake, not the store's: a rule the
+    // panel armed without a legacy alert behind it is evaluated by nothing
+    // after a disarm, which is BUG-0382 exactly, and the panel already renders
+    // a banner for `failed`. Overstating it slightly for migrated alerts (they
+    // really are being served, by the legacy engine) is the right side to err
+    // on for an alert system.
+    const resyncCoverage = () => {
+        const stillReady = ruleSchema.isReady();
+        if (!stillReady) {
+            disarmRuleEngine();
+            alertState.syncEngine(new Set<string>());
+            alertState.engineStatus = "failed";
+            return;
+        }
+        alertState.syncEngine(readCoveredAlertIds(isSeriesObserved, stillReady));
+    };
     const onClose = mode === "live" ? resyncCoverage : undefined;
 
     // FEAT-0387 cutover: last, and only once the legacy engine is up, and only
@@ -518,15 +582,14 @@ export async function initAlertEngine(
     // `initAlertEngine()` whose schema failed to load this time must not leave
     // the previous run's timer re-syncing coverage on behalf of an evaluator
     // that is no longer there.
-    stopCoverageResync();
+    disarmRuleEngine();
 
-    // Arming is decided once, here; coverage is recomputed on every close and
-    // every timer tick above. The two only stay in agreement because
-    // `ruleSchema.isReady()` never goes back to `false` — see the invariant on
-    // `isReady()` itself, and FEAT-0406 for the disarm path a reloadable core
-    // would need first.
-    if (ruleSchema.isReady()) {
-        startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink, onClose);
+    // Arming and coverage now come from the same `ready` read taken above, and
+    // every later tick re-decides both together (see `resyncCoverage`). This
+    // no longer rests on `ruleSchema.isReady()` being monotonic — FEAT-0406.
+    if (ready) {
+        alertState.engineStatus = "ready";
+        disarmRuleLoop = startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink, onClose);
 
         // The half of the re-sync that survives a series going quiet. Started
         // only alongside the loop, because coverage is empty without a ready
@@ -534,5 +597,12 @@ export async function initAlertEngine(
         if (mode === "live") {
             coverageResyncTimer = setInterval(resyncCoverage, COVERAGE_RESYNC_INTERVAL_MS);
         }
+    } else {
+        // Mirrors `resyncCoverage`'s not-ready branch: the loop is already
+        // disarmed (via `disarmRuleEngine()` just above) and the alerts are
+        // back on the legacy engine — but a rule the panel armed without a
+        // legacy alert behind it is now evaluated by nothing at all. That is
+        // the BUG-0382 shape, and it must not stay silent behind "ready".
+        alertState.engineStatus = "failed";
     }
 }

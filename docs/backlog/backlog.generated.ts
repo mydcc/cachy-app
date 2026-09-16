@@ -7382,7 +7382,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0406",
     "title": "Give the rule evaluation loop a disarm path, coupled to coverage",
     "type": "feature",
-    "status": "idea",
+    "status": "done",
+    "assignee": "claude",
+    "branch": "feat/feat-0406-rule-loop-disarm-path",
     "priority": "P3",
     "milestone": "none",
     "editions": [
