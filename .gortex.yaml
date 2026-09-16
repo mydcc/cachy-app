@@ -1,0 +1,10 @@
+semantic:
+  enabled: true
+  mode: typecheck
+  providers:
+    - name: tsgo
+      enabled: true
+    - name: typescript-language-server
+      enabled: true
+    - name: rust-analyzer
+      enabled: true
