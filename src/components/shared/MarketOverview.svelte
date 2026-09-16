@@ -580,7 +580,8 @@
     <!-- Real Data State -->
     <div in:fade={{ duration: 400 }} class="flex flex-col gap-1 mt-1">
       <div class="flex justify-between items-baseline">
-        <div class="text-2xl font-bold tracking-tight flex">
+        <!-- aria-live="off" prevents screen readers from announcing every price tick -->
+        <div class="text-2xl font-bold tracking-tight flex" aria-live="off">
           {#each priceParts as part}
             {#key part.changed ? animationKey : 'static'}
               <span
