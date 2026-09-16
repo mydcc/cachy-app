@@ -288,13 +288,15 @@ export const syncService = {
       );
 
       const [historySettled, pendingSettled] = await Promise.allSettled([
-        // 1. History Positions
+        // 1. History Positions — ask for what the venue serves: the shared
+        // builder clamps to the 100 ceiling, so sending more would promise a
+        // page the venue never sees.
         exchangeSignedFetch({
           cachyPath: "/api/sync/positions-history",
           keys: signingKeys,
           fetchFn: appFetch,
-          payload: { limit: 500 },
-          queryParams: buildPositionsHistoryQueryParams({ limit: 500 }),
+          payload: { limit: 100 },
+          queryParams: buildPositionsHistoryQueryParams({ limit: 100 }),
         }),
         // 2. Pending Positions — the signed query is empty, which is a shape
         // the envelope can represent only because `x-api-query` is read
