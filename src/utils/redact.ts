@@ -114,14 +114,18 @@ export function redactString(input: string): string {
     let out = input;
 
     // key=value / key: value in query strings and log lines
+    // `\s*` inside the key name, not just around the separator: an exchange
+    // error reads "Invalid API Key: <the key>" — the space is what used to let
+    // the value through, and an api key in a log line is the Class A transfer
+    // FEAT-0405 exists to stop. Same for the `"key": "value"` rule below.
     out = out.replace(
-        /\b([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api[-_]?key|signature|authorization|bearer)[\w-]*|sign)\s*[=:]\s*([^\s&,;"'}]+)/gi,
+        /\b([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api\s*[-_]?\s*key|signature|authorization|bearer)[\w-]*|sign)\s*[=:]\s*([^\s&,;"'}]+)/gi,
         (_match, key: string) => `${key}=${REDACTED}`,
     );
 
     // "key": "value" in embedded JSON
     out = out.replace(
-        /(["'])([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api[-_]?key|signature|authorization|bearer)[\w-]*|sign)\1(\s*:\s*)(["'])(?:[^"'\\]|\\.)*\4/gi,
+        /(["'])([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api\s*[-_]?\s*key|signature|authorization|bearer)[\w-]*|sign)\1(\s*:\s*)(["'])(?:[^"'\\]|\\.)*\4/gi,
         (_match, q: string, key: string, sep: string, vq: string) =>
             `${q}${key}${q}${sep}${vq}${REDACTED}${vq}`,
     );

@@ -8,29 +8,40 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import type { RequestHandler } from "./$types";
 import { z } from "zod";
-import { generateBitunixSignature, validateBitunixKeys } from "../../../utils/server/bitunix";
-import { extractApiCredentials } from "../../../utils/server/requestUtils";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 import { fetchWithTimeout } from "../../../utils/server/fetchWithTimeout";
+import {
+  bitunixCallHeaders,
+  checkPresignedRequest,
+  type PresignedEnvelope,
+} from "../../../utils/server/presignedEnvelope";
+import { canonicalQueryString } from "../../../utils/exchange/restSigningPlan";
+import { buildLeverageMarginModeQueryParams } from "../../../utils/exchange/venueQueries";
+
+const CACHY_PATH = "/api/leverage-margin-mode";
+const BITUNIX_BASE_URL = "https://fapi.bitunix.com";
+const BITUNIX_PATH = "/api/v1/futures/account/get_leverage_margin_mode";
 
 // Read-only: GET /api/v1/futures/account/get_leverage_margin_mode. There is
 // no write counterpart here — change_leverage/change_margin_mode are a
 // separate, later execution feature (FEAT-0068).
+// `marginCoin` carries no default: `buildLeverageMarginModeQueryParams` owns
+// it, so there is one place the client and the server can disagree about.
 const LeverageMarginModeRequestSchema = BaseRequestSchema.extend({
   symbol: z.string().min(1),
-  marginCoin: z.string().min(1).optional().default("USDT"),
+  marginCoin: z.string().min(1).optional(),
 });
 
 interface LeverageMarginModeData {
@@ -65,18 +76,22 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     return jsonError("Unsupported exchange", "UNSUPPORTED_EXCHANGE", 400);
   }
 
-  const creds = extractApiCredentials(request, validation.data);
-  const apiKey = creds.apiKey;
-  const apiSecret = creds.apiSecret;
-  if (!apiKey || !apiSecret) {
-    return jsonError("Missing API Credentials", "MISSING_CREDENTIALS", 401);
+  // The signature covers the venue query, so the rebuild is the canonical
+  // serialisation of exactly those parameters — built by the same function the
+  // client signs with, so a default or filter added to the builder reaches both
+  // sides at once instead of silently diverging.
+  const check = checkPresignedRequest(request, {
+    cachyPath: CACHY_PATH,
+    rebuilt: canonicalQueryString(
+      buildLeverageMarginModeQueryParams({ symbol, marginCoin }),
+    ),
+  });
+  if (!check.ok) {
+    return jsonError(`Signature envelope rejected: ${check.code}`, check.code, 400);
   }
 
-  const validationError = validateBitunixKeys(apiKey, apiSecret);
-  if (validationError) return jsonError(validationError, "INVALID_KEYS", 400);
-
   try {
-    const data = await fetchLeverageMarginMode(apiKey, apiSecret, symbol, marginCoin);
+    const data = await fetchLeverageMarginMode(check.envelope);
     return jsonSuccess(data);
   } catch (e) {
     return handleApiError(e);
@@ -84,31 +99,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 };
 
 async function fetchLeverageMarginMode(
-  apiKey: string,
-  apiSecret: string,
-  symbol: string,
-  marginCoin: string,
+  envelope: PresignedEnvelope,
 ): Promise<LeverageMarginModeData> {
-  const baseUrl = "https://fapi.bitunix.com";
-  const path = "/api/v1/futures/account/get_leverage_margin_mode";
+  const queryString = envelope.query ?? "";
+  const url = queryString
+    ? `${BITUNIX_BASE_URL}${BITUNIX_PATH}?${queryString}`
+    : `${BITUNIX_BASE_URL}${BITUNIX_PATH}`;
 
-  const params: Record<string, string> = { symbol, marginCoin };
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    params,
-    null,
-  );
-
-  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp,
-      nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) {

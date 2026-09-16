@@ -18,72 +18,94 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
 import * as clientToken from '../../../lib/server/clientToken';
+import {
+  signedEnvelopeRequest,
+  TEST_SIGNING_KEYS,
+} from '../../../tests/helpers/signedEnvelopeRequest';
+import { buildSyncQueryParams } from '../../../utils/exchange/venueQueries';
 
-// Mock fetch globally
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
 
 const getClientAddress = () => '127.0.0.1';
 
+const handler = (request: Request) =>
+  POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
 describe('POST /api/sync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
-  });
-
-  it('should return 400 if apiKey is missing', async () => {
-    const request = {
-      json: async () => ({ apiSecret: 'secret123' }),
-    } as Request;
-
-    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-    expect(response.status).toBe(400);
-    const body = await response.json();
-    expect(body.error).toContain('Validation Error'); // Or specific Zod error
-  });
-
-  it('should return 400 if apiSecret is missing', async () => {
-    const request = {
-      json: async () => ({ apiKey: 'key123' }),
-    } as Request;
-
-    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-    expect(response.status).toBe(400);
-  });
-
-  it('should return 400 if apiKey is too short (security hardening)', async () => {
-    const request = {
-      json: async () => ({ apiKey: '123', apiSecret: 'secret123' }),
-    } as Request;
-
-    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
-    expect(response.status).toBe(400);
-  });
-
-  it('should return 200 and call fetch with correct headers for valid input', async () => {
-    fetchMock.mockResolvedValueOnce({
+    fetchMock.mockResolvedValue({
       ok: true,
       // The route reads the exchange body via readExchangeJson (text() +
-      // safeJsonParse) so long numeric IDs keep their precision. A real Response
-      // offers both, so the mock must too.
+      // safeJsonParse) so long numeric IDs keep their precision. A real
+      // Response offers both, so the mock must too.
       text: async () => JSON.stringify({ code: 0, data: { tradeList: [] } }),
-      json: async () => ({ code: 0, data: { tradeList: [] } }),
     });
+  });
 
-    const request = {
-      json: async () => ({ apiKey: 'validApiKey123', apiSecret: 'validSecret123', limit: 10 }),
-    } as Request;
+  it('forwards the client envelope upstream and never the secret', async () => {
+    const payload = { limit: 10 };
+    const { request } = await signedEnvelopeRequest(
+      '/api/sync',
+      payload,
+      buildSyncQueryParams(payload),
+    );
 
-    const response = await POST({ request, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+    const response = await handler(request);
     expect(response.status).toBe(200);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
 
     expect(url).toContain('https://fapi.bitunix.com/api/v1/futures/trade/get_history_trades');
-    expect(options.headers['api-key']).toBe('validApiKey123');
-    expect(options.headers['sign']).toBeDefined();
-    expect(options.headers['nonce']).toBeDefined();
-    expect(options.headers['timestamp']).toBeDefined();
+    // The venue sees the client's credential material, not one this server
+    // minted — there is nothing here for the server to have signed with.
+    expect(options.headers['api-key']).toBe(TEST_SIGNING_KEYS.apiKey);
+    expect(options.headers['sign']).toBeTruthy();
+    expect(options.headers['nonce']).toBeTruthy();
+    expect(options.headers['timestamp']).toBeTruthy();
+    expect(JSON.stringify(options.headers)).not.toContain(TEST_SIGNING_KEYS.apiSecret);
+    expect(String(url)).not.toContain(TEST_SIGNING_KEYS.apiSecret);
+  });
+
+  it('rejects a request that carries no envelope', async () => {
+    const request = new Request('http://localhost/api/sync', {
+      method: 'POST',
+      body: JSON.stringify({ limit: 10 }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain('PRESIGNED_ENVELOPE_MISSING');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a body whose parameters diverge from the signed query', async () => {
+    // Signed for `limit=10`, delivered asking for `limit=90`: forwarding this
+    // would send the venue a query the client never signed.
+    const { request } = await signedEnvelopeRequest(
+      '/api/sync',
+      { limit: 90 },
+      buildSyncQueryParams({ limit: 10 }),
+    );
+
+    const response = await handler(request);
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain('PRESIGNED_DIVERGENCE');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a body that is not JSON', async () => {
+    const { request } = await signedEnvelopeRequest('/api/sync', { limit: 10 });
+    const broken = new Request(request.url, {
+      method: 'POST',
+      headers: request.headers,
+      body: '{"limit":',
+    });
+
+    const response = await handler(broken);
+    expect(response.status).toBe(400);
   });
 });
