@@ -208,6 +208,80 @@ describe("buildVenueBody refuses a venue/action pair with no body", () => {
   });
 });
 
+describe("buildVenueBody refuses silently-dropped protection on Bitget", () => {
+  const bitgetPlace = (extra: Record<string, unknown>) =>
+    PlaceOrderSchema.parse({
+      exchange: "bitget",
+      type: "place-order",
+      symbol: "BTCUSDT",
+      side: "buy",
+      orderType: "LIMIT",
+      qty: "0.5",
+      price: "60000",
+      ...extra,
+    });
+
+  it.each([
+    ["triggerPrice", { triggerPrice: "59000" }],
+    ["stopPrice", { stopPrice: "59000" }],
+    ["tpPrice", { tpPrice: "70000" }],
+    ["tpOrderPrice", { tpOrderType: "LIMIT", tpOrderPrice: "70000" }],
+    ["slPrice", { slPrice: "50000" }],
+    ["slOrderPrice", { slOrderType: "LIMIT", slOrderPrice: "50000" }],
+  ])("refuses a Bitget place-order carrying %s instead of dropping it", (_field, extra) => {
+    expect(() => buildVenueBody("bitget", bitgetPlace(extra))).toThrow();
+  });
+
+  it("rejects a Bitget place-order with non-positive size", () => {
+    expect(() => buildVenueBody("bitget", bitgetPlace({ qty: "0" }))).toThrow();
+  });
+
+  it("rejects a Bitget LIMIT order with no price", () => {
+    expect(() =>
+      buildVenueBody(
+        "bitget",
+        PlaceOrderSchema.parse({
+          exchange: "bitget",
+          type: "place-order",
+          symbol: "BTCUSDT",
+          side: "buy",
+          orderType: "LIMIT",
+          qty: "0.5",
+        }),
+      ),
+    ).toThrow();
+  });
+
+  it("rejects a Bitget close-position with zero amount", () => {
+    expect(() =>
+      buildVenueBody(
+        "bitget",
+        ClosePositionSchema.parse({
+          exchange: "bitget",
+          type: "close-position",
+          symbol: "BTCUSDT",
+          side: "sell",
+          amount: "0",
+        }),
+      ),
+    ).toThrow();
+  });
+
+  it("rejects a Bitunix modify-order with non-positive quantity", () => {
+    expect(() =>
+      buildVenueBody(
+        "bitunix",
+        ModifyOrderSchema.parse({
+          exchange: "bitunix",
+          type: "modify-order",
+          orderId: "77",
+          qty: "0",
+        }),
+      ),
+    ).toThrow();
+  });
+});
+
 describe("the client and the server sign the bytes the builder produced", () => {
   const cases: Array<[string, string, OrderRequestPayload | ReturnType<typeof accountSetting>]> = [
     ["bitunix", "/api/v1/futures/trade/place_order", placeOrder()],

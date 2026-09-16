@@ -95,7 +95,11 @@ function venueBody(
           }),
         );
       }
-      if (!safeAmount) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
+      // Same zero-close guard as the Bitunix branch above: a close that
+      // carries no quantity is not a close.
+      if (!safeAmount || new Decimal(safeAmount).lte(0)) {
+        throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
+      }
       return buildBitgetPlaceOrderBody(
         buildBitgetClosePositionPayload({
           symbol: payload.symbol,

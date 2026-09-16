@@ -171,24 +171,69 @@ export function buildBitunixPlaceOrderBody(orderData: BitunixOrderPayload): Reco
   return cleanPayload(payload);
 }
 
-/** Validates and formats a modify-order request into the signed object. */
+/**
+ * Validates and formats a modify-order request into the signed object.
+ *
+ * Key order is the signature input order — do not reorder. Every price-like
+ * field goes through `formatApiNum` for the same reason as
+ * `buildBitunixPlaceOrderBody`: without it a low-priced level serialises as
+ * `"1e-7"`, which the exchange rejects. There is no order-type context here,
+ * so `price` is validated whenever it is present rather than only for LIMIT.
+ */
 export function buildBitunixModifyOrderBody(
   modifyData: BitunixModifyData,
 ): Record<string, unknown> {
+  const normalized: BitunixModifyData = { ...modifyData };
+
+  if (normalized.qty !== undefined) {
+    const safeQty = formatApiNum(normalized.qty);
+    if (!safeQty || new Decimal(safeQty).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
+    normalized.qty = safeQty;
+  }
+
+  if (normalized.price !== undefined) {
+    const safePrice = formatApiNum(normalized.price);
+    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    normalized.price = safePrice;
+  }
+
+  for (const field of [
+    "tpPrice",
+    "tpOrderPrice",
+    "slPrice",
+    "slOrderPrice",
+  ] as const) {
+    const raw = normalized[field] as string | number | undefined;
+    if (raw === undefined) continue;
+    const safe = formatApiNum(raw);
+    if (!safe || new Decimal(safe).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    normalized[field] = safe;
+  }
+
+  // A LIMIT take-profit or stop needs the price it will be placed at —
+  // same rule as the place path, where learning it from a rejection costs a
+  // round trip with a position already open behind it.
+  if (normalized.tpOrderType === "LIMIT" && normalized.tpOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+  if (normalized.slOrderType === "LIMIT" && normalized.slOrderPrice === undefined) {
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+  }
+
   return cleanPayload({
-    orderId: modifyData.orderId,
-    clientId: modifyData.clientId,
-    symbol: modifyData.symbol,
-    qty: modifyData.qty,
-    price: modifyData.price,
-    tpPrice: modifyData.tpPrice,
-    tpStopType: modifyData.tpStopType,
-    tpOrderType: modifyData.tpOrderType,
-    tpOrderPrice: modifyData.tpOrderPrice,
-    slPrice: modifyData.slPrice,
-    slStopType: modifyData.slStopType,
-    slOrderType: modifyData.slOrderType,
-    slOrderPrice: modifyData.slOrderPrice,
+    orderId: normalized.orderId,
+    clientId: normalized.clientId,
+    symbol: normalized.symbol,
+    qty: normalized.qty,
+    price: normalized.price,
+    tpPrice: normalized.tpPrice,
+    tpStopType: normalized.tpStopType,
+    tpOrderType: normalized.tpOrderType,
+    tpOrderPrice: normalized.tpOrderPrice,
+    slPrice: normalized.slPrice,
+    slStopType: normalized.slStopType,
+    slOrderType: normalized.slOrderType,
+    slOrderPrice: normalized.slOrderPrice,
   });
 }
 
