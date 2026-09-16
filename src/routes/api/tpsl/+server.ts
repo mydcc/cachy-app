@@ -19,6 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { TpSlRequestSchema, sanitizeErrorMessage } from "../../../types/apiSchemas";
+import { redactString } from "../../../utils/redact";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { readExchangeJson } from "../../../utils/server/exchangeResponse";
 import { fetchWithTimeout, upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
@@ -157,7 +158,8 @@ export const POST: RequestHandler = async ({ request, url, getClientAddress }) =
         // Non-serialisable (circular) error object — keep the String(e) fallback.
       }
     }
-    console.error(`Error processing TP/SL request:`, sanitizeErrorMessage(rawMsg, 1000));
+    const safeMsg = sanitizeErrorMessage(redactString(rawMsg), 1000);
+    console.error(`Error processing TP/SL request:`, safeMsg);
 
     // Determine appropriate status code
     let status = upstreamErrorStatus(e) ?? 500;
@@ -176,7 +178,7 @@ export const POST: RequestHandler = async ({ request, url, getClientAddress }) =
 
     return json(
       {
-        error: message,
+        error: safeMsg || "Internal Server Error",
         stack: process.env.NODE_ENV === "development" && e instanceof Error ? e.stack : undefined,
       },
       { status },

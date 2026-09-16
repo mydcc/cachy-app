@@ -175,8 +175,23 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a write with no envelope", async () => {
-    const url = new URL("http://localhost/api/tpsl?action=cancel");
+  it("sanitizes the venue's credential leak out of the error response", async () => {
+    // Bitunix answers a bad credential with "Invalid API Key: <the key>" —
+    // the log line is redacted, and the client response must be too. Sibling
+    // sync routes sanitize both; this pins the same for /api/tpsl.
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => "Invalid API Key: LEAKED-SECRET-12345",
+    });
+
+    const response = await callAction("pending", {});
+
+    expect(response.status).toBe(502);
+    expect(JSON.stringify(await response.json())).not.toContain("LEAKED-SECRET-12345");
+  });
+
+  it("rejects a write with no envelope", async () => {    const url = new URL("http://localhost/api/tpsl?action=cancel");
     const request = new Request(url, {
       method: "POST",
       body: JSON.stringify({ orderId: "1", symbol: "BTCUSDT" }),
