@@ -3,7 +3,7 @@ name: backlog-review
 description: Review open PRs against backlog acceptance criteria and Cachy rules, reconcile with bot review, fix findings, commit, push, and re-trigger bot review
 ---
 
-Review open PRs in `mydcc/cachy-app` against their backlog item (if linked) and Cachy's non-negotiable rules (CLAUDE.md, AGENTS.md). This is review, reconcile, then fix: list findings first, reconcile them with the bot review, then fix, commit, and push — never merge.
+Review open PRs in `mydcc/cachy-app` against their backlog item (if linked) and Cachy's non-negotiable rules (CLAUDE.md, AGENTS.md). This is a binding pipeline — review, reconcile, then fix: list all findings first, reconcile them with the bot review, present a fix plan, fix every confirmed finding, commit, push, comment, and re-trigger the bot review — never merge. There is no report-only mode: a run is complete only when every finding is fixed and pushed or the run aborted with its blocker stated.
 
 **This command works for any agent** (Jules, Claude Code, Cursor, Codex, Antigravity, etc.), not Jules-specific. It uses backlog item metadata to structure the review.
 
@@ -11,6 +11,7 @@ Review open PRs in `mydcc/cachy-app` against their backlog item (if linked) and 
 
 - **Chat with the user: German.** Every message addressed to the user — status updates, questions, summaries, explanations, triage notes — is written in German. The user communicates in German; answering in English is a rule violation, not a style choice. This applies to all agents running this skill, with no exceptions.
 - **Artifacts stay English.** PR review comments (step 11), commit messages, code, identifiers, and technical terms remain in English per the repo's Commits & Branches rule. Never translate code identifiers or technical terms into German — only the conversation around them is German.
+- **Chat summary ends with a before/after table.** After step 11, the German chat summary closes with a table listing every fixed finding: finding (severity) | before | after. No finding is omitted from this table.
 
 ## Model & Token Efficiency
 
@@ -98,13 +99,14 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
 
 9. **Reconcile with the bot review.**
    - Fetch the latest bot review comment on the PR (`gh pr view <nr> --comments`), identified by the `Code Review for <sha>` marker or an `LGTM` from the review bot. If none exists yet, continue with your own findings and note that.
-   - Match finding by finding: confirm what both reviews agree on, adopt bot findings that hold up, drop yours or theirs with a one-line reason when refuted. On conflict, Cachy rules (step 5) always win. Drop anything below `MEDIUM` unless the bot confirms it.
+   - Match finding by finding: confirm what both reviews agree on, adopt bot findings that hold up, drop yours or theirs with a one-line reason when refuted. On conflict, Cachy rules (step 5) always win. Keep findings of every severity — including `LOW` — in the fix backlog; nothing is dropped for being minor.
    - The reconciled list is the fix backlog for step 10 — nothing else gets fixed.
 
-10. **Plan and apply fixes (interactive sessions only).**
+10. **Plan and apply fixes (always — no report-only).**
     - In CI/unattended runs (bash denied, e.g. the `opencode.yml` review job) skip this step entirely — the skill stays report-only there.
     - Work on the PR's head branch in an isolated worktree. Never touch `develop`/`main`, never merge, never edit backlog files.
-    - Excluded from auto-fix, report-only with the step 7 flag instead: anything in `area: execution`, `area: security`, `area: exchange`, or `priority: P0` code paths. Everything else confirmed in step 9 gets fixed, in severity order `CRITICAL` → `HIGH` → `MEDIUM`; `LOW` only when trivial.
+    - Fix every confirmed finding from step 9, in severity order `CRITICAL` → `HIGH` → `MEDIUM` → `LOW`. No exclusions: sensitive code paths (`area: execution`, `area: security`, `area: exchange`, `priority: P0`) are fixed like everything else; the step 7 gentle human-review note stays as an info line but never blocks a fix.
+    - Present the fix plan in chat before applying it, then apply it.
     - Touch only files related to the findings. Before pushing, run the targeted tests covering your changes (AGENTS.md "Verification Standard: Fast & Targeted"); on failure, fix or leave the finding reported-but-unfixed — never push red.
     - Push only when CI is green on the PR branch — on red, stay report-only and say so.
     - Before pushing, `git fetch` the PR branch and rebase your fix commit(s) onto it; on conflict abort the push and report — never force-push someone else's branch.
@@ -116,7 +118,7 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
      - **Header:** `Code Review for <sha>` (short SHA is fine) — this marker lets step 2 skip if already reviewed.
      - **Verdict:** One-line summary (e.g., "Clean by CLAUDE.md rules, but acceptance criterion #2 not met").
      - **Findings:** Grouped by the checks above (Acceptance Criteria, CI-independent findings, OCR Pre-Filter, Bot Reconcile, Non-Negotiable Rules, Correctness, Sensitive Areas). Tag each finding with its severity, e.g. `- [HIGH] Missing $effect cleanup in …`.
-     - **Fixed & Pushed:** Which reconciled findings you fixed and pushed on the PR branch, and which you left reported-but-unfixed (with reason). Omit this section when nothing was pushed.
+      - **Fixed & Pushed:** Which reconciled findings you fixed and pushed on the PR branch. Nothing is left unfixed — if a finding could not be fixed, the run is incomplete and the blocker is stated here instead. Omit this section when nothing was pushed.
      - **Footer:** Friendly tone, collegial ("Looks good!" or "Worth a quick human double-check on the decimal.js usage here"). A light, humorous closing line is welcome, especially in back-and-forth threads between agents. No tool-attribution line required.
     - If the diff is clean and no backlog item exists, skip the comment entirely (no noise).
     - Only when step 10 pushed fixes: after the review comment, post a **separate** comment whose body starts with `/review`. The workflow trigger matches `startsWith('/review')`, so it must be its own comment — this asks the bot for a fresh review of the fixed state.
@@ -140,7 +142,7 @@ Code Review for a1b2c3d
 
 **Sensitivity Check:** `area: execution` applies here. 👤 Human review recommended before merge (the position calc is core-critical).
 
-**Fixed & Pushed:** 2 findings fixed on this branch (missing $effect cleanup, dead i18n key); 1 sensitive finding left for human review. Re-triggered bot review with /review.
+**Fixed & Pushed:** 3 findings fixed on this branch (missing $effect cleanup, dead i18n key, stale liveSummary). Re-triggered bot review with /review.
 
 Nice work on this one — the fractional-contract edge case is easy to miss. 🎯
 ```
