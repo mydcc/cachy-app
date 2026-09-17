@@ -207,6 +207,28 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
     async (path, handler, body, query, expectedQuery) => {
       const { request } = await signedEnvelopeRequest(path, body, query);
 
+      if (path === "/api/leverage-margin-mode") {
+        // The proxy validates the venue payload at the source (BUG-0515),
+        // so byte-fidelity needs a well-formed venue answer behind it.
+        const symbol =
+          typeof (body as { symbol?: unknown }).symbol === "string"
+            ? (body as { symbol: string }).symbol
+            : "BTCUSDT";
+        fetchMock.mockResolvedValue({
+          ok: true,
+          text: async () =>
+            JSON.stringify({
+              code: 0,
+              data: {
+                symbol,
+                marginCoin: "USDT",
+                leverage: 10,
+                marginMode: "cross",
+              },
+            }),
+        });
+      }
+
       const response = await handler({ request, getClientAddress });
 
       expect(response.status).toBe(200);
