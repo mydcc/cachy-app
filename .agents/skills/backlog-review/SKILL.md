@@ -7,6 +7,11 @@ Review open PRs in `mydcc/cachy-app` against their backlog item (if linked) and 
 
 **This command works for any agent** (Jules, Claude Code, Cursor, Codex, Antigravity, etc.), not Jules-specific. It uses backlog item metadata to structure the review.
 
+## Language (non-negotiable)
+
+- **Chat with the user: German.** Every message addressed to the user — status updates, questions, summaries, explanations, triage notes — is written in German. The user communicates in German; answering in English is a rule violation, not a style choice. This applies to all agents running this skill, with no exceptions.
+- **Artifacts stay English.** PR review comments (step 11), commit messages, code, identifiers, and technical terms remain in English per the repo's Commits & Branches rule. Never translate code identifiers or technical terms into German — only the conversation around them is German.
+
 ## Model & Token Efficiency
 
 **Recommended Model:** Claude Sonnet 5 / Gemini Pro (best cost/quality balance for code review)
