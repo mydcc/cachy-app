@@ -32,6 +32,8 @@
   import { safeJsonParse } from "../../utils/safeJson";
   import { mapApiErrorToLabel } from "../../utils/errorUtils";
   import { appFetch } from "../../lib/appAuth";
+  import { exchangeSignedFetch } from "../../utils/exchange/browserSigning";
+  import { buildBalanceQueryParams } from "../../utils/exchange/venueQueries";
   import { paperAccountFeed } from "../../services/paperAccountFeed";
   import { paperState } from "../../stores/paperTrading.svelte";
 
@@ -186,17 +188,16 @@
 
     isFetchingBalance = true;
     try {
-      const res = await appFetch("/api/balance", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": keys.key,
-          "X-Api-Secret": keys.secret,
-          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-        },
-        body: JSON.stringify({
-          exchange: provider,
-        }),
+      // FEAT-0405 A4 — signed in the browser; the route rebuilds the query
+      // through the same builder, so the two sides cannot disagree about it.
+      const res = await exchangeSignedFetch({
+        cachyPath: "/api/balance",
+        keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+        venue: provider,
+        payload: { exchange: provider },
+        queryParams: buildBalanceQueryParams(provider),
+        headers: { "X-Provider": provider },
+        fetchFn: appFetch,
       });
 
       const text = await res.text();

@@ -18,6 +18,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
+import { buildPositionsQueryParams } from "../../../utils/exchange/venueQueries";
 
 // Regression: the Bitunix "Get Pending Positions" response includes
 // positionId (docs/bitunix-api/05_position.md), but the normalizer dropped
@@ -30,13 +32,6 @@ const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
-
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
-}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -64,12 +59,15 @@ describe("POST /api/positions includes positionId in the normalized response", (
         }),
     });
 
+    const { request } = await signedEnvelopeRequest(
+      "/api/positions",
+      { exchange: "bitunix" },
+      buildPositionsQueryParams("bitunix"),
+      "bitunix",
+    );
+
     const response = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 

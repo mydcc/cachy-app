@@ -48,7 +48,11 @@ const settings = vi.hoisted(() => ({
             id: "acc-1",
             name: "test",
             exchange: "bitunix",
-            keys: { key: "k", secret: "s" },
+            // FEAT-0405 A5 — same reason as
+            // PositionsSidebar.live-position.component.test.ts: the signer runs
+            // the venue key-shape check client-side now, so one-character
+            // placeholders are refused before dispatch.
+            keys: { key: "test-key-0123456789", secret: "test-secret-0123456789" },
         },
     ],
     hideUnfilledOrders: false,
@@ -111,6 +115,14 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import PositionsSidebar from "./PositionsSidebar.svelte";
+import { webcrypto } from "node:crypto";
+
+// happy-dom ships no `crypto.subtle`, and `signCachyRequest` refuses to run
+// without it (browserSigning.ts — INSECURE_CONTEXT, ADR-0013 failure mode 3),
+// so every signed request would be swallowed by the component's catch. Node's
+// WebCrypto is the same API the browser exposes, so the component signs a real
+// envelope here exactly as it does in production.
+Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true });
 
 type PendingAccount = { mode: string; resolve: (body: unknown) => void };
 let pendingAccounts: PendingAccount[] = [];
@@ -141,12 +153,46 @@ function routeFetch(firstMode: string, restMode: string) {
     });
 }
 
-async function settle(rounds = 8) {
-    for (let i = 0; i < rounds; i++) {
+/**
+ * Let the component's signed requests reach `appFetch`.
+ *
+ * A macrotask, not just a microtask: the signer's WebCrypto call
+ * (`crypto.subtle.sign`) resolves off the microtask queue, so a microtask-only
+ * flush returns while the request is still in flight.
+ *
+ * Budgeted in wall-clock time rather than in turns. How many macrotasks the
+ * signer needs is decided by when its libuv threadpool callback comes back,
+ * which stretches past any fixed turn count when the suite runs parallel to
+ * other files. A deferred response cannot land however long this waits — the
+ * mock holds it open — so the budget is an upper bound on the wait, not a
+ * race against one.
+ */
+async function settle(budgetMs = 200) {
+    const deadline = Date.now() + budgetMs;
+    do {
         flushSync();
-        await Promise.resolve();
-    }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    } while (Date.now() < deadline);
     flushSync();
+}
+
+/**
+ * Yield macrotasks until `condition` holds — for the reads whose *number* is
+ * what the test asserts on, not their timing.
+ *
+ * Waiting a fixed budget and hoping two reads arrived is what made these tests
+ * flaky once signing landed: how long the signer's WebCrypto callback takes is
+ * not bounded by a turn count, so a budget long enough on an idle machine is
+ * still short on a loaded one. Waiting for the count itself removes the guess.
+ */
+async function settleUntil(condition: () => boolean, budgetMs = 3000): Promise<void> {
+    const deadline = Date.now() + budgetMs;
+    while (Date.now() < deadline) {
+        flushSync();
+        if (condition()) return;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    throw new Error("settleUntil: condition never held");
 }
 
 async function resolvePending(mode: string | null) {
@@ -176,9 +222,22 @@ afterEach(() => {
 });
 
 describe("BUG-0412 — overlapping account reads", () => {
-    it("control: a fresh response landing last wins", async () => {
+    /**
+     * Two overlapping account reads, the older one first: the mount read takes
+     * the first ticket and the first answer, and a sync read — a *different*
+     * single-flight key, so BUG-0423 cannot coalesce it — takes the second of
+     * both. Two *mount* reads would sometimes coalesce into one flight, and a
+     * test left holding a single response has nothing to order.
+     */
+    async function twoOverlappingReads() {
         routeFetch("HEDGE", "ONE_WAY");
         await mountSidebar();
+        accountState.requestSync();
+        await settleUntil(() => pendingAccounts.length >= 2);
+    }
+
+    it("control: a fresh response landing last wins", async () => {
+        await twoOverlappingReads();
 
         // Stale first, fresh after: final state follows the last landing.
         await resolvePending("HEDGE");
@@ -188,9 +247,7 @@ describe("BUG-0412 — overlapping account reads", () => {
     });
 
     it("a stale response landing last must not overwrite a fresher one", async () => {
-        routeFetch("HEDGE", "ONE_WAY");
-        await mountSidebar();
-        await mountSidebar();
+        await twoOverlappingReads();
 
         // Fresh responses land first...
         await resolvePending("ONE_WAY");

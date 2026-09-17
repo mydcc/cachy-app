@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createHash } from "node:crypto";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
 
@@ -68,6 +69,18 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
       symbol: "BTCUSDT",
       orderList: [{ orderId: "42" }],
     });
+    // Conformance: the signature covers the posted body bytes (body-signed),
+    // not a query string. Bitunix documents `cancel_orders` as a POST whose
+    // parameters ride in the body (`docs/bitunix-api/07_trade.md`), so the
+    // signature input is `nonce + timestamp + apiKey + "" + body` — recomputed
+    // here from the exact bytes that went out, which also pins their order.
+    const sentBody = options.body as string;
+    const digest = createHash("sha256")
+      .update(`${options.headers.nonce}${options.headers.timestamp}validApiKey123${sentBody}`)
+      .digest("hex");
+    expect(options.headers.sign).toBe(
+      createHash("sha256").update(digest + "validSecret123456").digest("hex"),
+    );
   });
 
   it("surfaces a rejected order from failureList as an error", async () => {

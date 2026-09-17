@@ -53,6 +53,8 @@ import {
   type Venue,
 } from "./restSigningPlan";
 import { exchangeSignedFetch, signCachyRequest } from "./browserSigning";
+import { buildVenueBody } from "./venueBodies";
+import { ORDER_ERRORS } from "./orderErrors";
 import { signBitgetRequest, signBitunixRequest } from "../crypto/exchangeSigning";
 import { generateBitunixSignature } from "../server/bitunix";
 import { generateBitgetSignature } from "../server/bitget";
@@ -124,12 +126,22 @@ interface RouteSample {
  * passes, not the route's choice of path.
  */
 const SAMPLES: Record<MigratedRoute, RouteSample> = {
+  // `type` is load-bearing on the two body rows since A4: the client builds the
+  // venue body itself (`buildVenueBody`), and that dispatch is on `type`. A
+  // sample without one is a payload the signer is right to refuse.
   "/api/orders": {
-    payload: { exchange: "bitunix", symbol: "BTCUSDT", side: "BUY", orderType: "MARKET", qty: "1" },
+    payload: {
+      exchange: "bitunix",
+      type: "place-order",
+      symbol: "BTCUSDT",
+      side: "BUY",
+      orderType: "MARKET",
+      qty: "1",
+    },
     upstreamPath: "/api/mix/v1/order/place-order",
   },
   "/api/account-settings": {
-    payload: { exchange: "bitunix", marginMode: "CROSS" },
+    payload: { exchange: "bitunix", type: "change-margin-mode", symbol: "BTCUSDT", marginCoin: "USDT", marginMode: "CROSS" },
     upstreamPath: "/api/mix/v1/account/setMarginMode",
   },
   "/api/balance": { params: { marginCoin: "USDT" }, upstreamPath: "/api/mix/v1/account/accounts" },
@@ -220,7 +232,7 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
     const sample = SAMPLES[route];
 
     for (const venue of plan.venues as readonly Venue[]) {
-      const signed = await signCachyRequest({
+      const signInput = {
         cachyPath: route,
         keys: venue === "bitunix" ? BITUNIX_KEYS : KEYS,
         venue,
@@ -228,27 +240,51 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
         queryParams: sample.params,
         upstreamPath: sample.upstreamPath,
         now: FIXED,
-      });
+      };
+
+      // A4: on a body row the signature covers the *venue* body, which from the
+      // cutover on is built on this side — `buildVenueBody` dispatches on `type`,
+      // which no venue body carries. Where no venue body exists for the action
+      // (Bitget implements none of the account-settings family) there are no
+      // bytes to compare, and the property that has to hold instead is that the
+      // client refuses rather than signing something the server's own rebuild
+      // cannot produce.
+      let venueBody: string | null = null;
+      if (plan.signed === "body") {
+        try {
+          venueBody = buildVenueBody(venue, sample.payload as never);
+        } catch (e) {
+          // An unexpected throw is a broken sample, not an absent body: only the
+          // documented refusal may take this exit.
+          expect(e instanceof Error ? e.message : "").toBe(ORDER_ERRORS.VALIDATION_ERROR);
+          await expect(signCachyRequest(signInput)).rejects.toThrow(ORDER_ERRORS.VALIDATION_ERROR);
+          continue;
+        }
+      }
+
+      const signed = await signCachyRequest(signInput);
 
       const serverBytes =
         venue === "bitunix"
-          ? generateBitunixSignature(
-              KEYS.apiKey,
-              KEYS.apiSecret,
-              sample.params ?? {},
-              plan.signed === "body" ? sample.payload : null,
-            )
+          ? generateBitunixSignature(KEYS.apiKey, KEYS.apiSecret, sample.params ?? {}, venueBody)
           : generateBitgetSignature(
               KEYS.apiSecret,
               plan.signed === "body" ? "POST" : "GET",
               sample.upstreamPath ?? route,
               sample.params ?? {},
-              plan.signed === "body" ? sample.payload : null,
+              venueBody,
             );
 
       if (plan.signed === "body") {
-        expect(signed.body).toBe(serverBytes.bodyStr);
-        expect(signed.body).toBe(JSON.stringify(sample.payload));
+        // Signed bytes and transported bytes differ here on purpose: the venue
+        // body rides in `venueBody`, and the fields the route Zod-validates ride
+        // beside it. The server forwards the former verbatim and rebuilds it
+        // from the latter, so `venueBody` is what a one-byte disagreement would
+        // show up in.
+        const transmitted = JSON.parse(signed.body as string) as Record<string, unknown>;
+        expect(transmitted.venueBody).toBe(venueBody);
+        expect(transmitted.venueBody).toBe(serverBytes.bodyStr);
+        expect(transmitted).toMatchObject(sample.payload as Record<string, unknown>);
         expect(signed.headers["x-api-query"]).toBeUndefined();
       } else {
         expect(signed.headers["x-api-query"]).toBe(serverBytes.queryString);
@@ -284,7 +320,7 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
       // gate exists for. The samples carry more than one key where the route
       // does, so a broken sort cannot pass by being a no-op.
       const timestamp = signed.headers["x-api-timestamp"];
-      const body = plan.signed === "body" ? JSON.stringify(sample.payload) : "";
+      const body = venueBody ?? "";
 
       if (venue === "bitunix") {
         const digestParams = Object.keys(sample.params ?? {})
@@ -306,39 +342,38 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
     }
   });
 
-  // A body-signed route can be reached with no payload at all — a caller that
-  // has not decided what to send yet, or a handler reading a field that is not
-  // there. The signer then signs an *absent* body, and the server has to rebuild
-  // that same absence.
+  // A body-signed route reached with no payload at all: a caller that has not
+  // decided what to send yet, or a handler reading a field that is not there.
   //
-  // The sweep above cannot see this: every sample there carries a payload on the
-  // body-signed half, so an absent body only reaches the signers on the
-  // query-signed half, where it is ignored by construction.
+  // Up to A3 the signer turned that absence into an empty string, on both sides
+  // (the client spelled the guard out; the server's parameter default rewrote a
+  // bare `undefined` to `null`, which matters because `JSON.stringify(undefined)`
+  // would otherwise concatenate into the prehash as the literal `"undefined"`).
   //
-  // Worth pinning because the two sides reach `""` by different routes. The
-  // client spells the guard out (`!== null && !== undefined && !== ""`); the
-  // server relies on its parameter default, which rewrites a bare `undefined`
-  // argument to `null` before the guard runs. That default is load-bearing, not
-  // decoration: without it `JSON.stringify(undefined)` returns the value
-  // `undefined`, which concatenates into the prehash as the literal
-  // `"undefined"` — a divergence no signature test can localise, surfacing only
-  // as a venue rejection.
+  // A4 makes the absence unrepresentable on the wire instead. The signed bytes
+  // are now the *venue* body, and there is no venue body for a payload with no
+  // action in it, so neither side can produce one: the client refuses, and the
+  // server's rebuild throws in the same place. The signer's half of the old
+  // property is still pinned — an absent body still signs as `""`, never as
+  // `"undefined"` — but it is no longer reachable through a body-signed route.
   it.each(ROUTES.filter((route) => ROUTE_SIGNING_PLAN[route].signed === "body"))(
-    "%s signs an absent body as the empty string, on both sides",
+    "%s refuses an absent body, and the signer still signs it as the empty string",
     async (route) => {
       const plan = ROUTE_SIGNING_PLAN[route];
       const sample = SAMPLES[route];
 
       for (const venue of plan.venues as readonly Venue[]) {
-        const signed = await signCachyRequest({
-          cachyPath: route,
-          keys: venue === "bitunix" ? BITUNIX_KEYS : KEYS,
-          venue,
-          payload: undefined,
-          queryParams: sample.params,
-          upstreamPath: sample.upstreamPath,
-          now: FIXED,
-        });
+        await expect(
+          signCachyRequest({
+            cachyPath: route,
+            keys: venue === "bitunix" ? BITUNIX_KEYS : KEYS,
+            venue,
+            payload: undefined,
+            queryParams: sample.params,
+            upstreamPath: sample.upstreamPath,
+            now: FIXED,
+          }),
+        ).rejects.toThrow(ORDER_ERRORS.VALIDATION_ERROR);
 
         const serverBytes =
           venue === "bitunix"
@@ -351,13 +386,9 @@ describe("A2 — client and server serialise the same bytes, per route", () => {
                 undefined,
               );
 
-        // The client signs the absence as an empty string, and puts that same
-        // empty string on the wire.
-        expect(signed.body).toBe("");
-
-        // The server must rebuild it the same way. `""` and `"undefined"` are
-        // both strings, so nothing upstream of this assertion can tell them
-        // apart — only the venue would, by rejecting the signature.
+        // `""` and `"undefined"` are both strings, so nothing upstream of this
+        // assertion can tell them apart — only the venue would, by rejecting the
+        // signature.
         expect(serverBytes.bodyStr).toBe("");
       }
     },

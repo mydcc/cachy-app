@@ -24,12 +24,14 @@ import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import { formatApiNum } from "../../utils";
 import { safeJsonParse } from "../../safeJson";
 import { readExchangeJson } from "../exchangeResponse";
+import { bitgetCallHeaders, type PresignedEnvelope } from "../presignedEnvelope";
 import {
   fetchWithTimeout,
   DEFAULT_UPSTREAM_TIMEOUT_MS,
 } from "../fetchWithTimeout";
 import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
 import { buildVenueBody } from "../../exchange/venueBodies";
+import { bitgetUpstreamPath } from "../../exchange/restSigningPlan";
 import type {
   ExchangeAccountData,
   KlineQuery,
@@ -262,25 +264,32 @@ async function cancelBitgetOrder(
 
 // --- Account ---
 
+/**
+ * The path Bitget is asked on, read from the same table the browser signs
+ * against (`BITGET_UPSTREAM_PATHS` in `restSigningPlan`).
+ *
+ * Bitget's prehash covers the request path, so a literal here and a literal in
+ * the signer is a divergence whose only symptom is a venue rejection in the
+ * middle of a trade. Thrown rather than defaulted when the table has no entry:
+ * a call sent to Cachy's own path carries a signature Bitget cannot verify.
+ */
+function bitgetPath(cachyPath: string): string {
+    const path = bitgetUpstreamPath(cachyPath);
+    if (path === null) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+    return path;
+}
+
 async function fetchBitgetAccount(
-    apiKey: string,
-    apiSecret: string,
-    passphrase: string
+    envelope: PresignedEnvelope,
 ): Promise<ExchangeAccountData> {
     const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/account/account";
-    const params = { productType: "umcbl", marginCoin: "USDT" };
+    const path = bitgetPath("/api/account");
+    const url = envelope.query
+        ? `${baseUrl}${path}?${envelope.query}`
+        : `${baseUrl}${path}`;
 
-    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
-
-    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        }
+    const response = await fetchWithTimeout(url, {
+        headers: bitgetCallHeaders(envelope)
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
@@ -305,24 +314,16 @@ async function fetchBitgetAccount(
 // --- Balance ---
 
 async function fetchBitgetBalance(
-  apiKey: string,
-  apiSecret: string,
-  passphrase: string
+  envelope: PresignedEnvelope,
 ): Promise<string> {
     const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/account/account";
-    const params = { productType: "umcbl", marginCoin: "USDT" };
+    const path = bitgetPath("/api/balance");
+    const url = envelope.query
+        ? `${baseUrl}${path}?${envelope.query}`
+        : `${baseUrl}${path}`;
 
-    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
-
-    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        }
+    const response = await fetchWithTimeout(url, {
+        headers: bitgetCallHeaders(envelope)
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
@@ -437,24 +438,16 @@ interface BitgetRawPosition {
 }
 
 async function fetchBitgetPositions(
-  apiKey: string,
-  apiSecret: string,
-  passphrase: string
+  envelope: PresignedEnvelope,
 ): Promise<NormalizedPosition[]> {
     const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/position/allPosition";
-    const params = { productType: "umcbl", marginCoin: "USDT" };
+    const path = bitgetPath("/api/positions");
+    const url = envelope.query
+        ? `${baseUrl}${path}?${envelope.query}`
+        : `${baseUrl}${path}`;
 
-    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
-
-    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        }
+    const response = await fetchWithTimeout(url, {
+        headers: bitgetCallHeaders(envelope)
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
@@ -575,12 +568,12 @@ export const bitgetVenue: VenueModule = {
     return validateBitgetKeys(creds.apiKey, creds.apiSecret, creds.passphrase);
   },
 
-  fetchAccount(creds: VenueCredentials): Promise<ExchangeAccountData> {
-    return fetchBitgetAccount(creds.apiKey, creds.apiSecret, creds.passphrase ?? "");
+  fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData> {
+    return fetchBitgetAccount(envelope);
   },
 
-  fetchBalance(creds: VenueCredentials): Promise<string> {
-    return fetchBitgetBalance(creds.apiKey, creds.apiSecret, creds.passphrase ?? "");
+  fetchBalance(envelope: PresignedEnvelope): Promise<string> {
+    return fetchBitgetBalance(envelope);
   },
 
   // `/api/mix/v1/market/candles` serves the last-price series only. Bitget
@@ -599,8 +592,8 @@ export const bitgetVenue: VenueModule = {
     );
   },
 
-  fetchPositions(creds: VenueCredentials): Promise<NormalizedPosition[]> {
-    return fetchBitgetPositions(creds.apiKey, creds.apiSecret, creds.passphrase ?? "");
+  fetchPositions(envelope: PresignedEnvelope): Promise<NormalizedPosition[]> {
+    return fetchBitgetPositions(envelope);
   },
 
   tickersUrl: bitgetTickersUrl,
