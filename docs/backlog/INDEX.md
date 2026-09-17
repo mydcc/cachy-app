@@ -2,9 +2,9 @@
 
 # Backlog index
 
-360 items. How to read and add them: [README.md](README.md).
+361 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 26 · 📋 specced 19 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 312 · ⛔ dropped 1
+Counts by status: 💡 idea 25 · 📋 specced 19 · 🟢 ready 2 · 🟡 in-progress 2 · ✅ done 312 · ⛔ dropped 1
 
 ---
 
@@ -211,6 +211,7 @@ Counts by status: 💡 idea 26 · 📋 specced 19 · 🟢 ready 1 · 🟡 in-pro
 | --- | --- | --- | --- | --- |
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
 | [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | trade-panel |
+| [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | 🟡 in-progress | persistence |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -448,6 +449,7 @@ Counts by status: 💡 idea 26 · 📋 specced 19 · 🟢 ready 1 · 🟡 in-pro
 | [BUG-0412](bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md) | Two mounted sidebars fetch the account concurrently and race | P0 | ✅ done | M4 | community, pro, private | A | none | — |
 | [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
+| [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -794,4 +796,4 @@ Counts by status: 💡 idea 26 · 📋 specced 19 · 🟢 ready 1 · 🟡 in-pro
 
 ---
 
-Next free number: **0479**
+Next free number: **0480**
