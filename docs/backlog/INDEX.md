@@ -2,9 +2,9 @@
 
 # Backlog index
 
-142 items. How to read and add them: [README.md](README.md).
+143 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ done 101
+Counts by status: 💡 idea 16 · 📋 specced 24 · 🟡 in-progress 2 · ✅ done 101
 
 ---
 
@@ -148,6 +148,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0250](bugs/BUG-0250-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | 📋 specced | persistence |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -221,6 +222,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
+| [BUG-0250](bugs/BUG-0250-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -358,4 +360,4 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 ---
 
-Next free number: **0250**
+Next free number: **0251**
