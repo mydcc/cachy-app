@@ -226,6 +226,19 @@ export interface Provenance {
   model?: string;
 }
 
+/**
+ * When inside the trigger timeframe a rule is read — FEAT-0477.
+ *
+ * `close` decides once, when the trigger candle closes; `intrabar` decides on
+ * the candle still forming, at most once per candle. The value an intrabar rule
+ * reads is provisional — the same candle can move back through the level before
+ * it closes — which is why this is opt-in per rule rather than a setting.
+ *
+ * Mirrors `EvaluationMode` in `technicals-wasm/src/rule/document.rs`, which is
+ * where the meaning lives (ADR-0012).
+ */
+export type EvaluationMode = "close" | "intrabar";
+
 export interface RuleDocument {
   schema_version: number;
   id: string;
@@ -237,6 +250,17 @@ export interface RuleDocument {
    * that had already closed at that instant.
    */
   trigger_timeframe: TimeframeString;
+  /**
+   * Whether the trigger candle is read at its close or while it forms.
+   *
+   * Hashed in the core, unlike the lifecycle fields further down: the timeframe
+   * above is hashed because it says at which instant a condition is read, and
+   * this is that same axis at finer grain. Absent means `close`, which is what
+   * every rule written before this field meant — and the core omits the default
+   * from the serialised document, so those rules keep the content hash they
+   * were recorded under.
+   */
+  evaluation_mode?: EvaluationMode;
   conditions: Condition;
   veto?: Condition;
   action: RuleAction;

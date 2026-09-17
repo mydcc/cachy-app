@@ -51,6 +51,10 @@ use super::condition::{
     PriceSource, WindowAgg,
 };
 use super::document::RuleDocument;
+/// Only the test documents below name the mode; evaluation itself reads the
+/// anchor it is handed and never asks how that anchor was chosen.
+#[cfg(test)]
+use super::document::EvaluationMode;
 use super::indicator::IndicatorRef;
 use super::lifecycle::{may_announce, Announce, RuleState};
 use super::pattern::{preceding_trend, Trend};
@@ -868,6 +872,7 @@ mod tests {
                 created_at_ms: 0,
                 model: None,
             },
+            evaluation_mode: EvaluationMode::Close,
             trigger_methods: Vec::new(),
             frequency: TriggerFrequency::Once,
             valid_until_ms: None,
@@ -965,6 +970,7 @@ mod tests {
                 created_at_ms: 0,
                 model: None,
             },
+            evaluation_mode: EvaluationMode::Close,
             trigger_methods: Vec::new(),
             frequency: TriggerFrequency::Once,
             valid_until_ms: None,

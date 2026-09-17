@@ -41,7 +41,7 @@
 
 use super::condition::{Condition, CrossDirection, Operand, PriceField, PriceSource};
 use super::consequence::{ConsequenceLevel, RuleAction};
-use super::document::{AuthoringSource, Provenance, RuleDocument};
+use super::document::{AuthoringSource, EvaluationMode, Provenance, RuleDocument};
 use super::lifecycle::TriggerFrequency;
 use super::refusal::Refused;
 use super::timeframe::Timeframe;
@@ -100,6 +100,10 @@ pub fn rule_from_alert(
             created_at_ms,
             model: None,
         },
+        // A migrated alert keeps close-driven evaluation: FEAT-0388 pinned these
+        // to the close, and silently promoting them to intrabar would change what
+        // every existing alert means.
+        evaluation_mode: EvaluationMode::Close,
         trigger_methods: Vec::new(),
         frequency: TriggerFrequency::Once,
         valid_until_ms: None,

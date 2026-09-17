@@ -80,6 +80,44 @@ pub struct Provenance {
     pub model: Option<String>,
 }
 
+/// When inside the trigger timeframe the rule is read — FEAT-0477.
+///
+/// Hashed, unlike the lifecycle fields next to it. `trigger_timeframe` is
+/// hashed because it says at which instant a condition is read, and this is
+/// that same axis at finer grain: a rule that counts a level as touched the
+/// moment price trades there and a rule that only counts it if the candle
+/// *closes* there are two different strategies, and a journal entry naming one
+/// must not match the other. `frequency` and `trigger_methods` change how
+/// loudly a rule speaks; this changes what it is looking at.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum EvaluationMode {
+    /// Decide once, when the trigger candle closes. The only behaviour that
+    /// existed before this field, and therefore the default.
+    #[default]
+    Close,
+    /// Decide on the candle still forming, at most once per candle.
+    ///
+    /// The value read is provisional: the same candle can move back through the
+    /// level before it closes, so an announcement made here can turn out to
+    /// describe a wick that is no longer there. That is the trade the trader is
+    /// opting into, which is why it is opt-in per rule and not a global setting.
+    Intrabar,
+}
+
+impl EvaluationMode {
+    /// Whether this is the value every document written before the field had.
+    ///
+    /// Drives `skip_serializing_if`, and that is what keeps existing hashes
+    /// intact: the default never reaches the canonical form, so a stored rule
+    /// is byte-identical before and after this field exists. The same mechanism
+    /// carried `PriceSource::Last` (FEAT-0390) and `IndicatorRef.field`
+    /// (FEAT-0454) in without a migration.
+    fn is_close(&self) -> bool {
+        matches!(self, Self::Close)
+    }
+}
+
 /// A serialisable, versioned, schema-validated strategy.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -94,6 +132,10 @@ pub struct RuleDocument {
     /// timeframe, and every condition reads the last candle of its own timeframe
     /// that had already closed at that instant.
     pub trigger_timeframe: Timeframe,
+    /// Whether the trigger candle is read at its close or while it forms.
+    /// Hashed — see [`EvaluationMode`] for why this one is not a lifecycle field.
+    #[serde(default, skip_serializing_if = "EvaluationMode::is_close")]
+    pub evaluation_mode: EvaluationMode,
     pub conditions: Condition,
     /// Optional suppression. External feeds are legal here and only here.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -440,6 +482,7 @@ mod tests {
                 created_at_ms: 1_700_000_000_000,
                 model: None,
             },
+            evaluation_mode: EvaluationMode::Close,
             trigger_methods: Vec::new(),
             frequency: TriggerFrequency::Once,
             valid_until_ms: None,
@@ -734,6 +777,60 @@ mod tests {
             !canonical.contains(r#""source":"last""#),
             "a default price source must not be serialised: {canonical}"
         );
+    }
+
+    // ---- FEAT-0477: when the candle is read is part of the strategy --------
+
+    /// The default must never reach the canonical form.
+    ///
+    /// Every rule stored before this field existed is `close` by definition. If
+    /// `close` serialised, all of them would hash differently the moment the app
+    /// learned the field, and every journal entry naming one would stop matching
+    /// it — the same failure, and the same fix, as the price source above.
+    #[test]
+    fn the_default_evaluation_mode_is_absent_from_the_canonical_form() {
+        let doc = rsi_dip();
+        assert_eq!(doc.evaluation_mode, EvaluationMode::Close);
+        let canonical = doc.canonical_json().unwrap();
+        assert!(
+            !canonical.contains("evaluation_mode"),
+            "a default evaluation mode must not be serialised: {canonical}"
+        );
+    }
+
+    /// Reading the forming candle is a different strategy, and the hash says so.
+    ///
+    /// This is the half that makes the omission above safe: `close` is invisible,
+    /// `intrabar` is not, so the two can never be mistaken for one another in a
+    /// journal. It is also why this field is hashed while `frequency` is not —
+    /// how loudly a rule speaks is labelling, which candle it reads is meaning.
+    #[test]
+    fn reading_the_forming_candle_changes_the_content_hash() {
+        let at_close = rsi_dip();
+        let mut intrabar = rsi_dip();
+        intrabar.evaluation_mode = EvaluationMode::Intrabar;
+
+        assert_ne!(
+            at_close.content_hash().unwrap(),
+            intrabar.content_hash().unwrap(),
+            "deciding on the candle still forming is not the same strategy as \
+             waiting for it to close, and must not share an identity with it"
+        );
+    }
+
+    /// An intrabar document survives the round trip it will actually take.
+    #[test]
+    fn an_intrabar_document_round_trips() {
+        let mut doc = rsi_dip();
+        doc.evaluation_mode = EvaluationMode::Intrabar;
+
+        let json = serialise_document(&doc).unwrap();
+        assert!(json.contains("evaluation_mode"), "{json}");
+        assert!(json.contains("intrabar"), "{json}");
+
+        let parsed = parse_document(&json).unwrap();
+        assert_eq!(parsed.evaluation_mode, EvaluationMode::Intrabar);
+        assert_eq!(parsed.content_hash().unwrap(), doc.content_hash().unwrap());
     }
 
     fn indicator_rule(id: &str, params: &[(&str, u32)], output: &str) -> RuleDocument {
