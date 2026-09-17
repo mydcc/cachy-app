@@ -39,7 +39,7 @@ describe("ROUTE_SIGNING_PLAN", () => {
     expect(Object.keys(ROUTE_SIGNING_PLAN)).toHaveLength(12);
   });
 
-  it("marks exactly the five resolveVenue routes as multi-venue", () => {
+  it("marks exactly the four resolveVenue routes as multi-venue", () => {
     const both = Object.entries(ROUTE_SIGNING_PLAN)
       .filter(([, plan]) => plan.venues.length === 2)
       .map(([route]) => route)
@@ -47,10 +47,21 @@ describe("ROUTE_SIGNING_PLAN", () => {
 
     expect(both).toEqual([
       "/api/account",
-      "/api/account-settings",
       "/api/balance",
       "/api/orders",
       "/api/positions",
+    ]);
+  });
+
+  // `/api/account-settings` is the one route that still takes an `exchange`
+  // field but has a single venue. Bitget implements none of the family —
+  // `executeAccountSetting` answers `null` for every action — so listing it
+  // would let a Bitget account sign a request whose only possible outcome is a
+  // refusal. Naming Bitunix alone is what makes the client refuse while it is
+  // building the envelope, rather than after the route has seen it.
+  it("names Bitunix alone for the family Bitget does not implement", () => {
+    expect(ROUTE_SIGNING_PLAN["/api/account-settings"].venues).toEqual([
+      "bitunix",
     ]);
   });
 

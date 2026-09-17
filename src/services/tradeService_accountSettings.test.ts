@@ -112,6 +112,24 @@ describe("FEAT-0068 — the writes reach the account-settings route", () => {
         });
     });
 
+    it("rides as a pre-signed envelope, and never attaches the secret", async () => {
+        await tradeService.changeLeverage("BTCUSDT", new Decimal(20));
+
+        const [, init] = appFetchMock.mock.calls[0];
+        const headers = (init as RequestInit).headers as Record<string, string>;
+
+        // FEAT-0405 A5: the envelope is the credential now. The key names it,
+        // the signature proves it, and the secret the signature was made with
+        // stays on the device (ADR-0013) — that is what lets the route forward
+        // the client's own bytes instead of signing them itself.
+        expect(headers["x-api-key"]).toBe("test-key-1234");
+        expect(headers["x-api-sign"]).toEqual(expect.any(String));
+        expect(headers["x-api-nonce"]).toEqual(expect.any(String));
+        expect(headers["x-api-timestamp"]).toEqual(expect.any(String));
+        expect(JSON.stringify(headers)).not.toContain("test-secret");
+        expect(String((init as RequestInit).body)).not.toContain("test-secret");
+    });
+
     it("sends change-margin-mode with the venue's spelling", async () => {
         await tradeService.changeMarginMode("BTCUSDT", "ISOLATION");
 

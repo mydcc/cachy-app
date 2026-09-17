@@ -84,7 +84,12 @@ export const ROUTE_SIGNING_PLAN = {
     },
     venues: ["bitunix", "bitget"],
   },
-  "/api/account-settings": { signed: "body", venues: ["bitunix", "bitget"] },
+  // Bitunix alone, although the route still takes an `exchange` field:
+  // `venues/bitget.ts` resolves to `null` for every action in this family
+  // (Bitget wires none of the four), so listing it here would let a Bitget
+  // account sign a request that can only be refused. Naming one venue is what
+  // makes the client refuse before the envelope is built, rather than after.
+  "/api/account-settings": { signed: "body", venues: ["bitunix"] },
   "/api/balance": { signed: "query", venues: ["bitunix", "bitget"] },
   "/api/positions": { signed: "query", venues: ["bitunix", "bitget"] },
   "/api/account": { signed: "query", venues: ["bitunix", "bitget"] },
