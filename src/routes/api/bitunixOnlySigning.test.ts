@@ -22,6 +22,7 @@ import { POST as syncPositionsPending } from "./sync/positions-pending/+server";
 import { POST as syncPositionsHistory } from "./sync/positions-history/+server";
 import { POST as syncOrderDetail } from "./sync/order-detail/+server";
 import { POST as leverageMarginMode } from "./leverage-margin-mode/+server";
+import { POST as accountSettings } from "./account-settings/+server";
 import * as clientToken from "../../lib/server/clientToken";
 import { signedEnvelopeRequest } from "../../tests/helpers/signedEnvelopeRequest";
 import {
@@ -30,13 +31,17 @@ import {
 } from "../../utils/exchange/venueQueries";
 
 /**
- * FEAT-0405 A3 — the acceptance evidence for the seven Bitunix-only routes.
+ * FEAT-0405 — the acceptance evidence for the Bitunix-only routes.
  *
  * The absence of a thing is what this asserts, and absence is not observable
  * from behaviour: a handler that quietly still read `X-Api-Secret` would pass
  * every behavioural test in this repository. So the source is read directly.
  * Each file drops out of this list as it is migrated; when the list is empty
  * the migration is done, which is the point.
+ *
+ * The seven below are A3's and reach Bitunix by construction.
+ * `account-settings` joined them in A5a: it is a multi-venue *route* that only
+ * one venue implements, and `ROUTE_SIGNING_PLAN` now says so.
  */
 const MIGRATED_BITUNIX_ONLY_ROUTES = [
   "tpsl/+server.ts",
@@ -46,6 +51,7 @@ const MIGRATED_BITUNIX_ONLY_ROUTES = [
   "sync/order-detail/+server.ts",
   "sync/positions-history/+server.ts",
   "sync/positions-pending/+server.ts",
+  "account-settings/+server.ts",
 ] as const;
 
 const ROUTE_DIR = resolve(process.cwd(), "src/routes/api");
@@ -155,6 +161,21 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
       "/api/sync/positions-pending",
       syncPositionsPending as unknown as RouteHandler,
       {},
+    ],
+    [
+      // A body-signed route: the payload has to be well-formed, and the signed
+      // bytes have to be present as a string, before the envelope is what is
+      // missing. Both are checked ahead of the guard on purpose — a request
+      // with neither is a wiring bug, not a stale client.
+      "/api/account-settings",
+      accountSettings as unknown as RouteHandler,
+      {
+        exchange: "bitunix",
+        type: "change-leverage",
+        symbol: "BTCUSDT",
+        leverage: 10,
+        venueBody: "{}",
+      },
     ],
   ])("%s answers 400 with no envelope", async (path, handler, body) => {
     const request = new Request(`http://localhost${path}`, {

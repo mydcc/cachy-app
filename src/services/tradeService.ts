@@ -80,6 +80,7 @@ import {
     buildTpslReadQueryParams,
     buildTpslWriteBody,
 } from "../utils/exchange/venueQueries";
+import { AccountSettingsRequestSchema } from "../types/accountSettingsSchemas";
 
 /**
  * FEAT-0405 cutover window — routes whose transport already signs in the
@@ -579,6 +580,9 @@ class TradeService {
      * do — a leverage change that reported nothing would leave the trader
      * sizing a position against a number the exchange never accepted.
      *
+     * FEAT-0405 A5: the credential rides as a pre-signed envelope like every
+     * other migrated route, so the secret never leaves the device.
+     *
      * Paper mode never reaches the network. `paperExchange` simulates orders,
      * not account settings; there is nothing on the far side to change, so
      * this refuses instead of pretending.
@@ -596,16 +600,29 @@ class TradeService {
             throw new Error("apiErrors.missingCredentials");
         }
 
-        const response = await appFetch("/api/account-settings", {
+        // Parsed here as well as in the route, and for the same reason the route
+        // parses: `marginCoin` carries a default and `amount` a transform, so the
+        // two sides only build the same bytes if they build from the same parsed
+        // payload. Signing the raw object instead would be refused as
+        // `PRESIGNED_DIVERGENCE` before anything left Cachy.
+        const parsed = AccountSettingsRequestSchema.safeParse({ exchange: provider, ...payload });
+        if (!parsed.success) {
+            const details = parsed.error.issues
+                .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+                .join(", ");
+            throw new BitunixApiError("VALIDATION_ERROR", "apiErrors.generic", details);
+        }
+
+        const response = await exchangeSignedFetch({
+            cachyPath: "/api/account-settings",
+            keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Provider": provider,
-                "X-Api-Key": keys.key,
-                "X-Api-Secret": keys.secret,
-                ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-            },
-            body: JSON.stringify({ exchange: provider, ...payload }),
+            // Named rather than inferred: the route resolves its venue from the
+            // body, and the envelope itself carries only credentials.
+            venue: provider,
+            fetchFn: appFetch,
+            headers: { "X-Provider": provider },
+            payload: parsed.data,
         });
 
         const text = await response.text();

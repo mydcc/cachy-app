@@ -1010,36 +1010,28 @@ async function executeOrder(
  * FEAT-0068 — the account-settings write family.
  *
  * All four endpoints are POSTs under `/api/v1/futures/account/` that share
- * one shape: a JSON body, the standard signature over it, and a response
- * whose payload nobody needs — success is `code: 0`, and the *state* is read
- * back from the private WebSocket or a refetch rather than believed from
- * this echo (see FEAT-0068's acceptance criteria). So the helper returns the
- * body it sent, and the caller confirms elsewhere.
+ * one shape: a JSON body, a signature over it, and a response whose payload
+ * nobody needs — success is `code: 0`, and the *state* is read back from the
+ * private WebSocket or a refetch rather than believed from this echo (see
+ * FEAT-0068's acceptance criteria). So the helper returns the body it sent,
+ * and the caller confirms elsewhere.
+ *
+ * The signature is the client's, not this process's: the route forwards the
+ * envelope it just verified, and `body` is the same string the client signed.
+ * `bitunixCallHeaders` is the single place that maps an envelope onto Bitunix's
+ * header names, so this cannot drift from the other callers.
  */
 async function postBitunixAccount(
-  apiKey: string,
-  apiSecret: string,
+  envelope: PresignedEnvelope,
   path: string,
   body: string,
 ): Promise<unknown> {
   const baseUrl = "https://fapi.bitunix.com";
-  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    {},
-    body,
-  );
 
   const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     method: "POST",
-    headers: {
-      "api-key": apiKey,
-      timestamp,
-      nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
-    body: bodyStr,
+    headers: bitunixCallHeaders(envelope),
+    body,
   });
 
   if (!response.ok) {
@@ -1070,10 +1062,11 @@ async function postBitunixAccount(
 }
 
 /**
- * One endpoint per action. The bodies these endpoints carry are no longer
- * assembled here — they come from `buildVenueBody`, so the client signs the
- * same bytes this posts. The "either `side` or `positionId`" rule for
- * `adjust-position-margin` moved with them.
+ * One endpoint per action. The bodies these endpoints carry are not assembled
+ * here either: the client builds them through `buildVenueBody`, signs them, and
+ * the route hands the string it received straight to `postBitunixAccount`. The
+ * "either `side` or `positionId`" rule for `adjust-position-margin` moved with
+ * them.
  */
 const ACCOUNT_SETTING_PATHS: Record<AccountSettingsPayload["type"], string> = {
   "change-leverage": "/api/v1/futures/account/change_leverage",
@@ -1083,16 +1076,11 @@ const ACCOUNT_SETTING_PATHS: Record<AccountSettingsPayload["type"], string> = {
 };
 
 async function executeAccountSetting(
-  creds: VenueCredentials,
+  envelope: PresignedEnvelope,
   payload: AccountSettingsPayload,
+  venueBody: string,
 ): Promise<unknown> {
-  const { apiKey, apiSecret } = creds;
-  return postBitunixAccount(
-    apiKey,
-    apiSecret,
-    ACCOUNT_SETTING_PATHS[payload.type],
-    buildVenueBody("bitunix", payload),
-  );
+  return postBitunixAccount(envelope, ACCOUNT_SETTING_PATHS[payload.type], venueBody);
 }
 
 export const bitunixVenue: VenueModule = {

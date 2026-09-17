@@ -21,6 +21,7 @@ import path from "node:path";
 import type { RequestEvent } from "@sveltejs/kit";
 import { logger } from "$lib/server/logger";
 import { signedEnvelopeRequest } from "../helpers/signedEnvelopeRequest";
+import { AccountSettingsRequestSchema } from "../../types/accountSettingsSchemas";
 import {
   buildBalanceQueryParams,
   buildPositionsQueryParams,
@@ -195,6 +196,66 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     } as unknown as RequestEvent);
 
     expect(response.status).toBe(200);
+  });
+
+  it("POST /api/account-settings accepts a pre-signed envelope", async () => {
+    // FEAT-0405 A5 migrated this body-signed route. The signed bytes are the
+    // *venue* body, which the client builds through `buildVenueBody`; the Cachy
+    // body carries it under `venueBody`. Parsing through the schema first is
+    // what the client does too — `marginCoin` has a default, so an unparsed
+    // signature would not match the route's rebuild.
+    const { POST } = await import("../../routes/api/account-settings/+server");
+    const { request } = await signedEnvelopeRequest(
+      "/api/account-settings",
+      AccountSettingsRequestSchema.parse({
+        exchange: "bitunix",
+        type: "change-leverage",
+        symbol: "BTCUSDT",
+        leverage: 10,
+      }),
+      {},
+      "bitunix",
+    );
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => JSON.stringify({ code: 0, msg: "Success", data: [] }),
+      }),
+    );
+
+    const response = await POST({
+      request,
+      getClientAddress: () => "127.0.0.1",
+    } as unknown as RequestEvent);
+
+    expect(response.status).toBe(200);
+  });
+
+  it("POST /api/account-settings rejects a request that still carries X-Api-Secret", async () => {
+    const { POST } = await import("../../routes/api/account-settings/+server");
+    const request = new Request("http://localhost/api/account-settings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": "test-key-12345",
+        "X-Api-Secret": "test-secret-12345",
+      },
+      body: JSON.stringify({
+        exchange: "bitunix",
+        type: "change-leverage",
+        symbol: "BTCUSDT",
+        leverage: 10,
+      }),
+    });
+
+    const response = await POST({
+      request,
+      getClientAddress: () => "127.0.0.1",
+    } as unknown as RequestEvent);
+
+    expect(response.status).toBe(400);
   });
 
   it("POST /api/sync accepts a pre-signed envelope instead of credentials", async () => {

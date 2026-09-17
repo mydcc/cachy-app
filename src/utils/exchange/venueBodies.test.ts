@@ -161,7 +161,7 @@ describe("buildVenueBody dispatches to the module that owns the body", () => {
     );
   });
 
-  it("builds the Bitget cancel body, which Bitunix would sign as a query", () => {
+  it("builds the Bitget cancel body, in Bitget's own field layout", () => {
     const payload = cancelOrder();
 
     expect(buildVenueBody("bitget", payload)).toBe(
@@ -199,7 +199,7 @@ describe("buildVenueBody refuses a venue/action pair with no body", () => {
     ).toThrow();
   });
 
-  it("refuses Bitunix cancel-order, which the venue signs as a query", () => {
+  it("refuses Bitunix cancel-order, whose body builder is not written yet", () => {
     expect(() => buildVenueBody("bitunix", cancelOrder())).toThrow();
   });
 
