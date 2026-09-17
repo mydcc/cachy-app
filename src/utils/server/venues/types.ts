@@ -153,6 +153,10 @@ export interface VenueModule {
    * Runs one account-settings write (FEAT-0068): leverage, margin mode,
    * position mode or an isolated position's margin.
    *
+   * `envelope` is the pre-signed credential the client sent and `venueBody` the
+   * exact bytes it signed; the venue forwards both and computes no signature of
+   * its own, which is what keeps the secret off this process (ADR-0013).
+   *
    * Resolves to `null` for a venue that has none of these wired, and the
    * route answers 400 rather than 200 — unlike `executeOrder`, whose `null`
    * predates this contract and has to stay a 200 for compatibility. A write
@@ -161,7 +165,8 @@ export interface VenueModule {
    * family must never produce.
    */
   executeAccountSetting(
-    creds: VenueCredentials,
+    envelope: PresignedEnvelope,
     payload: AccountSettingsPayload,
+    venueBody: string,
   ): Promise<unknown>;
 }

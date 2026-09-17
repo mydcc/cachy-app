@@ -94,5 +94,9 @@ export function mapApiErrorToLabel(error: unknown): string {
     // Simple mapping for now, can be expanded
     if (msg.includes("429")) return "apiErrors.tooManyRequests";
     if (msg.includes("401")) return "apiErrors.unauthorized";
+    // FEAT-0405 — client-side signing refusals (SIGNING_*) never left the
+    // device, so no trader can act on the code. Map them to the generic
+    // failure label instead of surfacing the raw code in a toast.
+    if (/^SIGNING_[A-Z_]+$/.test(msg.trim())) return "apiErrors.generic";
     return msg;
 }

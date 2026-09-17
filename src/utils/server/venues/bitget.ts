@@ -555,6 +555,12 @@ async function executeOrder(
  * boundary's "I do not implement this", which the route turns into a refusal
  * rather than a 200 — and the client adapter refuses one step earlier still,
  * so this is the backstop, not the message the trader reads.
+ *
+ * `/api/account-settings` names Bitunix alone in `ROUTE_SIGNING_PLAN`, so a
+ * Bitget account is refused while its envelope is being built and never reaches
+ * this. It takes no parameters for that reason: there is nothing to forward to
+ * a venue that has no endpoint, and a shorter signature keeps a call site from
+ * having to invent them.
  */
 async function executeAccountSetting(): Promise<null> {
   return null;
