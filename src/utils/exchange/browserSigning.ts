@@ -208,7 +208,11 @@ export async function signCachyRequest(
   const shape = signatureShapeFor(plan, cachyAction(input.cachyPath));
 
   const venueBody = shape === "body" ? venueBytesFor(venue, input.payload) : undefined;
-  const transmitBody = shape === "body" ? cachyBodyFor(input.payload, venueBody) : undefined;
+  // Narrowed off `venueBody` rather than re-testing `shape`: two ternaries on
+  // the same condition are independent expressions, so the type checker reads
+  // `venueBody` here as `string | undefined` and refuses the call.
+  const transmitBody =
+    venueBody === undefined ? undefined : cachyBodyFor(input.payload, venueBody);
 
   const timestamp = (input.now ?? correctedNow)().toString();
   const headers: Record<string, string> = { "x-api-key": input.keys.apiKey };
