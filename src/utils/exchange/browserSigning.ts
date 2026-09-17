@@ -35,14 +35,24 @@
  * Browser-safe: no `node:*` imports, no SvelteKit-only modules.
  */
 
-import { signBitgetRequest, signBitunixRequest } from "../crypto/exchangeSigning";
+import {
+  signBitgetRequest,
+  signBitunixRequest,
+  validateBitgetKeys,
+  validateBitunixKeys,
+} from "../crypto/exchangeSigning";
 import { correctedNow } from "./clockDrift";
 import {
+  bitgetUpstreamPath,
   cachyAction,
   planForRoute,
   signatureShapeFor,
   type Venue,
 } from "./restSigningPlan";
+import { buildVenueBody } from "./venueBodies";
+import { ORDER_ERRORS } from "./orderErrors";
+import type { AccountSettingsPayload } from "../../types/accountSettingsSchemas";
+import type { OrderRequestPayload } from "../../types/orderSchemas";
 
 export interface ExchangeKeys {
   apiKey: string;
@@ -60,7 +70,10 @@ export interface SignCachyRequestInput {
    * different venue is an error rather than a silent override.
    */
   venue?: Venue;
-  /** JSON payload Cachy receives. The signed bytes for body-signed routes. */
+  /**
+   * JSON payload Cachy receives. On a body-signed route this is *not* what the
+   * signature covers — see `venueBytesFor`.
+   */
   payload?: unknown;
   /** Parameters the signature covers on query-signed routes. */
   queryParams?: Record<string, string>;
@@ -87,7 +100,72 @@ export const SIGNING_ERRORS = {
   VENUE_REQUIRED: "SIGNING_VENUE_REQUIRED",
   VENUE_NOT_SUPPORTED: "SIGNING_VENUE_NOT_SUPPORTED",
   INSECURE_CONTEXT: "SIGNING_INSECURE_CONTEXT",
+  VENUE_PATH_UNKNOWN: "SIGNING_VENUE_PATH_UNKNOWN",
 } as const;
+
+/**
+ * The bytes a venue signature covers on a body-signed action.
+ *
+ * A string payload is already the venue body and travels verbatim: `/api/tpsl`'s
+ * write actions build theirs with `buildTpslWriteBody` and hand the result over,
+ * because the `{ exchange, action, params }` object they start from is the
+ * transport's business and Bitunix reads none of it.
+ *
+ * An object payload is a *Cachy* payload — it carries `type` and `exchange`,
+ * which no venue body does — so `buildVenueBody` is what turns it into the bytes
+ * the venue reads. Absent, or neither shape, is refused rather than signed as an
+ * empty body: there is nothing to send, and the route cannot rebuild a venue
+ * body from a payload that has no action in it either.
+ */
+function venueBytesFor(venue: Venue, payload: unknown): string {
+  if (typeof payload === "string" && payload !== "") return payload;
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  }
+  return buildVenueBody(venue, payload as OrderRequestPayload | AccountSettingsPayload);
+}
+
+/**
+ * Cachy's own body for a body-signed action, which is deliberately *not* the
+ * bytes that were signed (decision 1 in the feature doc).
+ *
+ * A venue body carries neither `type` nor `exchange`, so it cannot be what the
+ * route receives: the route Zod-validates those two before it forwards anything,
+ * and a body that failed to parse would be a 400 on every write. The signed bytes
+ * therefore ride alongside them as `venueBody`, and the route forwards that field
+ * verbatim — one serialisation, produced here, rather than two that must be kept
+ * in step.
+ *
+ * A string payload needs no wrapper: it is already the transport body, which is
+ * the `/api/tpsl` case.
+ */
+function cachyBodyFor(payload: unknown, venueBody: string): string {
+  if (typeof payload === "string") return payload;
+  return JSON.stringify({ ...(payload as Record<string, unknown>), venueBody });
+}
+
+/**
+ * The action a request carries, as the Bitget path table keys it.
+ *
+ * `cachyAction` reads the URL and only the URL, because on a route whose
+ * *shape* varies the discriminator must be there and nowhere else. The Bitget
+ * endpoint varies with the action too, but on `/api/orders` the body-signed
+ * writes carry theirs in `payload.type` — the field the route validates and
+ * `executeOrder` switches on — so the URL alone would leave every Bitget write
+ * with no row. URL first: a route that does vary its shape keeps resolving
+ * from there, which is the property `cachyAction` exists to protect.
+ */
+function pathAction(input: SignCachyRequestInput): string | undefined {
+  const fromUrl = cachyAction(input.cachyPath);
+  if (fromUrl !== undefined) return fromUrl;
+
+  const payload = input.payload;
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+    return undefined;
+  }
+  const type = (payload as Record<string, unknown>).type;
+  return typeof type === "string" ? type : undefined;
+}
 
 /**
  * Builds the pre-signed envelope for one Cachy request.
@@ -116,9 +194,21 @@ export async function signCachyRequest(
     throw new Error(SIGNING_ERRORS.VENUE_NOT_SUPPORTED);
   }
 
+  // The key-shape check the server used to run in `validateKeys`. It needs the
+  // secret, so it cannot survive there — and dropping it would turn a legible
+  // "Invalid API Key" into an opaque venue rejection.
+  const keyError =
+    venue === "bitunix"
+      ? validateBitunixKeys(input.keys.apiKey, input.keys.apiSecret)
+      : validateBitgetKeys(input.keys.apiKey, input.keys.apiSecret, input.keys.passphrase);
+  if (keyError) throw new Error(keyError);
+
   // Resolved from the same URL the server will read it from, so the two sides
   // cannot disagree about which shape a request has (ADR-0013, failure mode 2).
   const shape = signatureShapeFor(plan, cachyAction(input.cachyPath));
+
+  const venueBody = shape === "body" ? venueBytesFor(venue, input.payload) : undefined;
+  const transmitBody = shape === "body" ? cachyBodyFor(input.payload, venueBody) : undefined;
 
   const timestamp = (input.now ?? correctedNow)().toString();
   const headers: Record<string, string> = { "x-api-key": input.keys.apiKey };
@@ -128,7 +218,7 @@ export async function signCachyRequest(
       input.keys.apiKey,
       input.keys.apiSecret,
       input.queryParams ?? {},
-      shape === "body" ? input.payload : null,
+      venueBody ?? null,
       { timestamp },
     );
 
@@ -137,21 +227,32 @@ export async function signCachyRequest(
     headers["x-api-nonce"] = result.nonce;
     if (shape === "query") headers["x-api-query"] = result.queryString;
 
-    return {
-      headers,
-      // The signer's own serialisation, not a second `JSON.stringify` of the
-      // same object. Identical today, and staying identical is the whole point.
-      body: shape === "body" ? result.bodyStr : undefined,
-    };
+    return { headers, body: transmitBody };
   }
 
   const method = input.method ?? (shape === "body" ? "POST" : "GET");
+  // Bitget's prehash covers `method + requestPath + query + body`, so the path
+  // it signs has to be the one Bitget will reconstruct — the *upstream* one,
+  // not Cachy's. Signing `/api/positions` while the server forwards to
+  // `/api/mix/v1/position/allPosition` is a signature Bitget rejects, and the
+  // envelope guard cannot see it: both sides agree on the query string, which
+  // is the only part it compares. Resolved from the same table `bitget.ts`
+  // forwards from, so the two cannot disagree about this string.
+  //
+  // `input.upstreamPath` stays as the explicit override the conformance tests
+  // pin a path with. A route with no entry is refused rather than signed over
+  // the Cachy path: there is no "close enough" here, and the alternative is a
+  // venue rejection in the middle of a trade.
+  const upstreamPath =
+    input.upstreamPath ?? bitgetUpstreamPath(input.cachyPath, pathAction(input));
+  if (!upstreamPath) throw new Error(SIGNING_ERRORS.VENUE_PATH_UNKNOWN);
+
   const result = await signBitgetRequest(
     input.keys.apiSecret,
     method,
-    input.upstreamPath ?? input.cachyPath,
+    upstreamPath,
     input.queryParams ?? {},
-    shape === "body" ? input.payload : null,
+    venueBody ?? null,
     { timestamp },
   );
 
@@ -176,7 +277,7 @@ export async function signCachyRequest(
     // two differ, and the server reads the shape back off the URL. Resolving it
     // twice — once here from `plan`, once above into `shape` — is how those two
     // answers drift apart.
-    body: shape === "body" ? result.bodyStr : undefined,
+    body: transmitBody,
   };
 }
 

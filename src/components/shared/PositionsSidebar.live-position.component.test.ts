@@ -50,7 +50,11 @@ const settings = vi.hoisted(() => ({
             id: "acc-1",
             name: "test",
             exchange: "bitunix",
-            keys: { key: "k", secret: "s" },
+            // FEAT-0405 A5 — the signer now runs the venue's key-shape check
+            // client-side (it replaced the server's `validateKeys`, see
+            // browserSigning.ts), so single-character placeholders are refused
+            // before dispatch and the request never leaves.
+            keys: { key: "test-key-0123456789", secret: "test-secret-0123456789" },
         },
     ],
     hideUnfilledOrders: false,
@@ -119,6 +123,14 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import PositionsSidebar from "./PositionsSidebar.svelte";
+import { webcrypto } from "node:crypto";
+
+// happy-dom ships no `crypto.subtle`, and `signCachyRequest` refuses to run
+// without it (browserSigning.ts — INSECURE_CONTEXT, ADR-0013 failure mode 3),
+// so every signed request would be swallowed by the component's catch. Node's
+// WebCrypto is the same API the browser exposes, so the component signs a real
+// envelope here exactly as it does in production.
+Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true });
 
 let host: HTMLElement;
 let mounted: unknown[] = [];
@@ -160,12 +172,47 @@ function routeFetch() {
     });
 }
 
-async function settle(rounds = 8) {
-    for (let i = 0; i < rounds; i++) {
+/**
+ * Let the component's signed requests reach `appFetch`.
+ *
+ * A macrotask, not just a microtask: the signer's WebCrypto call
+ * (`crypto.subtle.sign`) resolves off the microtask queue, so a microtask-only
+ * flush returns while the request is still in flight and the assertion runs
+ * against an empty store.
+ *
+ * Budgeted in wall-clock time rather than in turns. How many macrotasks the
+ * signer needs is decided by when its libuv threadpool callback comes back,
+ * which stretches past any fixed turn count when the suite runs parallel to
+ * other files. A deferred response cannot land however long this waits — the
+ * mock holds it open — so the budget is an upper bound on the wait, not a
+ * race against one.
+ */
+async function settle(budgetMs = 200) {
+    const deadline = Date.now() + budgetMs;
+    do {
         flushSync();
-        await Promise.resolve();
-    }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    } while (Date.now() < deadline);
     flushSync();
+}
+
+/**
+ * Yield macrotasks until `condition` holds, for the reads whose *result* the
+ * test asserts on.
+ *
+ * `settle`'s budget is a guess at how long the signer's WebCrypto callback
+ * takes, and that guess is only wrong on a loaded machine — which is where
+ * these assertions used to see an empty store. Waiting for the hydration
+ * itself removes the guess.
+ */
+async function settleUntil(condition: () => boolean, budgetMs = 3000): Promise<void> {
+    const deadline = Date.now() + budgetMs;
+    while (Date.now() < deadline) {
+        flushSync();
+        if (condition()) return;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    throw new Error("settleUntil: condition never held");
 }
 
 function text(testid: string): string {
@@ -190,7 +237,7 @@ describe("BUG-0347 — the open dialog follows the live position", () => {
     it("hand the modal a new object when the store's position updates", async () => {
         routeFetch();
         mounted.push(mount(PositionsSidebar, { target: host, props: { fetchEnabled: true } }));
-        await settle();
+        await settleUntil(() => accountState.positions.length > 0);
 
         expect(accountState.positions.map((p) => p.positionId)).toEqual(["id-BTCUSDT"]);
 
@@ -220,7 +267,7 @@ describe("BUG-0347 — the open dialog follows the live position", () => {
     it("closes the dialog when the position disappears", async () => {
         routeFetch();
         mounted.push(mount(PositionsSidebar, { target: host, props: { fetchEnabled: true } }));
-        await settle();
+        await settleUntil(() => accountState.positions.length > 0);
 
         host.querySelector<HTMLButtonElement>('[data-testid="open-close"]')?.click();
         await settle();

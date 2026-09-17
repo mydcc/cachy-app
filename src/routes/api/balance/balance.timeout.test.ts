@@ -17,20 +17,28 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
-import { issueToken, _resetForTests } from '../../../lib/server/clientToken';
+import * as clientToken from '../../../lib/server/clientToken';
+import { signedEnvelopeRequest } from '../../../tests/helpers/signedEnvelopeRequest';
+import { buildBalanceQueryParams } from '../../../utils/exchange/venueQueries';
 
 global.fetch = vi.fn();
 
 describe('POST /api/balance upstream timeout (BUG-0267)', () => {
-  let token: string;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetForTests();
-    token = issueToken();
+    vi.spyOn(clientToken, 'checkClientToken').mockReturnValue(null);
   });
 
   it('answers with a typed 504 when the exchange never responds', async () => {
+    // Signed before the fake clock starts: the envelope covers the parameters
+    // this route rebuilds, and the signer is not what this test is about.
+    const { request } = await signedEnvelopeRequest(
+      '/api/balance',
+      { exchange: 'bitunix' },
+      buildBalanceQueryParams('bitunix'),
+      'bitunix',
+    );
+
     vi.useFakeTimers();
     // Never-resolving upstream that only reacts to abort.
     vi.mocked(global.fetch).mockImplementation((_url, init) => {
@@ -42,15 +50,6 @@ describe('POST /api/balance upstream timeout (BUG-0267)', () => {
           reject(err);
         });
       });
-    });
-
-    const request = new Request('http://localhost/api/balance', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-app-access-token': token,
-      },
-      body: JSON.stringify({ exchange: 'bitunix', apiKey: 'test-api-key', apiSecret: 'test-api-secret' }),
     });
 
     const responsePromise = POST({

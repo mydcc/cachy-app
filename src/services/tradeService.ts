@@ -75,6 +75,7 @@ import {
     signatureShapeFor,
 } from "../utils/exchange/restSigningPlan";
 import {
+    buildAccountQueryParams,
     buildLeverageMarginModeQueryParams,
     buildTpslReadQueryParams,
     buildTpslWriteBody,
@@ -532,17 +533,19 @@ class TradeService {
         }
 
         try {
-            const response = await appFetch("/api/account", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Api-Key": keys.key,
-                    "X-Api-Secret": keys.secret,
-                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-                },
-                body: JSON.stringify({
-                    exchange: provider,
-                }),
+            // FEAT-0405 A5 — this read used to carry the secret, and its failure
+            // is swallowed by every caller (`.catch(() => {})` in
+            // ExchangeAccountControls), which is exactly how an unmigrated call
+            // site here would present: position mode silently stuck on its
+            // default. Signing it in the browser is what keeps that quiet.
+            const response = await exchangeSignedFetch({
+                cachyPath: "/api/account",
+                keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+                venue: provider,
+                payload: { exchange: provider },
+                queryParams: buildAccountQueryParams(provider),
+                headers: { "X-Provider": provider },
+                fetchFn: appFetch,
             });
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positionMode?: unknown }>(json);

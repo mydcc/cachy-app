@@ -18,6 +18,7 @@
 import type { NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import type { AccountSettingsPayload } from "../../../types/accountSettingsSchemas";
+import type { PresignedEnvelope } from "../presignedEnvelope";
 
 /**
  * The server-side venue boundary (FEAT-0228, ADR-0007).
@@ -109,9 +110,9 @@ export interface VenueModule {
    */
   validateKeys(creds: VenueCredentials): string | null;
 
-  fetchAccount(creds: VenueCredentials): Promise<ExchangeAccountData>;
+  fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData>;
 
-  fetchBalance(creds: VenueCredentials): Promise<string>;
+  fetchBalance(envelope: PresignedEnvelope): Promise<string>;
 
   /**
    * Whether this venue can serve mark-price candles.
@@ -126,7 +127,7 @@ export interface VenueModule {
 
   fetchKlines(query: KlineQuery): Promise<VenueKline[]>;
 
-  fetchPositions(creds: VenueCredentials): Promise<NormalizedPosition[]>;
+  fetchPositions(envelope: PresignedEnvelope): Promise<NormalizedPosition[]>;
 
   /** Upstream URL for the public tickers endpoint. Needs no credentials. */
   tickersUrl(query: TickersQuery): string;

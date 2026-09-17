@@ -31,6 +31,7 @@ import type { AccountSettingsPayload } from "../../../types/accountSettingsSchem
 import { formatApiNum } from "../../utils";
 import { safeJsonParse } from "../../safeJson";
 import { readExchangeJson } from "../exchangeResponse";
+import { bitunixCallHeaders, type PresignedEnvelope } from "../presignedEnvelope";
 import {
   fetchWithTimeout,
   DEFAULT_UPSTREAM_TIMEOUT_MS,
@@ -512,34 +513,17 @@ async function fetchBitunixHistoryOrders(
 // --- Account ---
 
 async function fetchBitunixAccount(
-  apiKey: string,
-  apiSecret: string,
+  envelope: PresignedEnvelope,
 ): Promise<ExchangeAccountData> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
-
-  const params: Record<string, string> = {
-    marginCoin: "USDT",
-  };
-
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    params,
-    null,
-  );
-
-  const url = `${baseUrl}${path}?${queryString}`;
+  const url = envelope.query
+    ? `${baseUrl}${path}?${envelope.query}`
+    : `${baseUrl}${path}`;
 
   const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) {
@@ -584,36 +568,17 @@ async function fetchBitunixAccount(
 // --- Balance ---
 
 async function fetchBitunixBalance(
-  apiKey: string,
-  apiSecret: string,
+  envelope: PresignedEnvelope,
 ): Promise<string> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
+  const url = envelope.query
+    ? `${baseUrl}${path}?${envelope.query}`
+    : `${baseUrl}${path}`;
 
-  // Params for the request
-  const params: Record<string, string> = {
-    marginCoin: "USDT",
-  };
-
-  // FEAT-0321: this path used to hand-roll the signing algorithm inline. It
-  // signed byte-for-byte identically to `generateBitunixSignature`, which
-  // `src/utils/server/bitunix.test.ts` records and now guards.
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    params,
-    "",
-  );
-
-  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) {
@@ -868,37 +833,18 @@ interface BitunixRawPosition {
 }
 
 async function fetchBitunixPositions(
-  apiKey: string,
-  apiSecret: string,
+  envelope: PresignedEnvelope,
 ): Promise<NormalizedPosition[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_pending_positions";
-
-  // Params for the request
-  const params: Record<string, string> = {};
-
-  // FEAT-0321: this path used to hand-roll the signing algorithm inline. It
-  // signed byte-for-byte identically to `generateBitunixSignature`, which
-  // `src/utils/server/bitunix.test.ts` records and now guards.
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
-    apiKey,
-    apiSecret,
-    params,
-    "",
-  );
-
-  const url = queryString
-    ? `${baseUrl}${path}?${queryString}`
+  const url = envelope.query
+    ? `${baseUrl}${path}?${envelope.query}`
     : `${baseUrl}${path}`;
 
   const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
+      ...bitunixCallHeaders(envelope),
       // Add User-Agent to avoid potential blocking
       "User-Agent": "CachyApp/1.0",
     },
@@ -1157,12 +1103,12 @@ export const bitunixVenue: VenueModule = {
     return validateBitunixKeys(creds.apiKey, creds.apiSecret);
   },
 
-  fetchAccount(creds: VenueCredentials): Promise<ExchangeAccountData> {
-    return fetchBitunixAccount(creds.apiKey, creds.apiSecret);
+  fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData> {
+    return fetchBitunixAccount(envelope);
   },
 
-  fetchBalance(creds: VenueCredentials): Promise<string> {
-    return fetchBitunixBalance(creds.apiKey, creds.apiSecret);
+  fetchBalance(envelope: PresignedEnvelope): Promise<string> {
+    return fetchBitunixBalance(envelope);
   },
 
   supportsMarkKlines: true,
@@ -1178,8 +1124,8 @@ export const bitunixVenue: VenueModule = {
     );
   },
 
-  fetchPositions(creds: VenueCredentials): Promise<NormalizedPosition[]> {
-    return fetchBitunixPositions(creds.apiKey, creds.apiSecret);
+  fetchPositions(envelope: PresignedEnvelope): Promise<NormalizedPosition[]> {
+    return fetchBitunixPositions(envelope);
   },
 
   tickersUrl: bitunixTickersUrl,

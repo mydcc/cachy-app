@@ -210,6 +210,63 @@ Notes for A4 + A5 (added 2026-09-16, on starting them):
   `tpsl/tpsl_paths.test.ts` are already on `signedEnvelopeRequest` and are the
   pattern to copy.
 
+### A4/A5 design decisions (recorded 2026-09-17)
+
+Four forks were open when A4 started. All four are settled, and the first two
+are not what the phase plan assumed.
+
+1. **Body transport: a wrapper field.** The bytes a venue signature covers on
+   `/api/orders` and `/api/account-settings` are the *venue* body
+   (`buildVenueBody(venue, payload)`), which carries neither `type` nor
+   `exchange` and so cannot be Zod-validated. The Cachy body therefore carries
+   both: `{...cachyPayload, venueBody: "<the string that was signed>"}`. The
+   route parses the wrapper, takes `parsed.venueBody` as `rawBody`, rebuilds
+   through `buildVenueBody(exchange, parsed)` and forwards `parsed.venueBody`
+   verbatim. The rejected alternative — sending the venue body alone and
+   putting `type`/`exchange` in headers — forces the handler to invert a venue
+   body back into a Cachy payload, which puts venue knowledge in the proxy
+   (against ADR-0007) and drops either the Zod check or the rebuild comparison.
+   Consequence: `signCachyRequest`/`exchangeSignedFetch` must now express
+   "signed bytes ≠ transmitted body".
+
+2. **`/api/orders` is not uniformly body-signed.** Three of its eleven actions
+   are query-signed GETs on both venues (`pending`, `history`, `order-detail`),
+   and `cancel-order` is a query on Bitunix but a body on Bitget. The plan row
+   was a bare `signed: "body"`. It now carries `signedByAction` for those three.
+   `cancel-order`'s per-venue split is **not** in the table yet, and neither is
+   its Bitunix body builder (`venueBodies.ts` throws for that pair), so today a
+   Bitunix `cancel-order` through this route is refused rather than signed with
+   the wrong shape. Both land with A5, which needs `signedByAction` to accept a
+   per-venue map — the first shape in the table that is a property of the venue
+   rather than of the action.
+
+3. **Bitget's path is part of the signed bytes.** Bitget's prehash is
+   `timestamp + METHOD + path + body`, so the *client* must sign the real
+   upstream endpoint — which it has no way to know today. `bitgetUpstreamPath`
+   in `restSigningPlan.ts` is now the single source, and `bitget.ts` reads its
+   paths from it too so the two cannot drift. A3's conformance test deliberately
+   carries sample paths and cannot detect a wrong one. `BITGET_ORDER_PATHS`
+   carries the three write actions so far; a Bitget read on this route
+   (`pending`, `history`, `order-detail`) is refused rather than signed over the
+   Cachy path, which is the same A5 gap as above.
+
+4. **`validateKeys` moves to the client**, into `signCachyRequest`, reusing the
+   existing `validateBitunixKeys`/`validateBitgetKeys` shape checks. It needs the
+   secret and so cannot survive server-side; dropping it instead would let a bad
+   key surface as an opaque venue rejection, which is the worse error message
+   the item warns about.
+
+Found while settling (4): the note below that Bitget "signs a dummy request with
+the secret to self-test the signing chain" describes
+`validateBitgetKeysAsync`/`validateBitunixKeysAsync`, which no production path
+calls — dead code with its own unit test. The wired check is the synchronous
+shape check.
+
+Also needed, and not in the phase plan: a venue-aware query serialiser
+(`queryStringForVenue`). Bitunix sorts its query parameters and Bitget does not,
+so a single `canonicalQueryString` would answer `PRESIGNED_DIVERGENCE` on every
+Bitget query route.
+
 ## Acceptance criteria
 
 - [ ] No REST trade/sync request carries a raw exchange **signing secret** out of

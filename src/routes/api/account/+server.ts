@@ -1,4 +1,3 @@
-import { extractApiCredentials } from "../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -23,6 +22,12 @@ import { AccountRequestSchema } from "../../../types/accountSchemas";
 import { logger } from "$lib/server/logger";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 import { resolveVenue } from "../../../utils/server/venues";
+import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";
+import { buildAccountQueryParams } from "../../../utils/exchange/venueQueries";
+import { queryStringForVenue } from "../../../utils/exchange/restSigningPlan";
+import { redactString } from "../../../utils/redact";
+
+const CACHY_PATH = "/api/account";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -44,42 +49,38 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   }
 
   const { exchange } = validation.data;
-    const creds = extractApiCredentials(request, validation.data);
-    const apiKey = creds.apiKey;
-    const apiSecret = creds.apiSecret;
-    const passphrase = creds.passphrase;
-
-    if (!apiKey || !apiSecret) {
-        return jsonError("Missing API Credentials", "MISSING_CREDENTIALS", 401);
-    }
 
   try {
     const venue = resolveVenue(exchange);
     if (!venue) {
         return jsonError("Unsupported exchange", "UNSUPPORTED_EXCHANGE", 400);
     }
-    if (venue.requiresPassphrase && !passphrase) {
+
+    const rebuilt = queryStringForVenue(exchange, buildAccountQueryParams(exchange));
+    const check = checkPresignedRequest(request, {
+      cachyPath: CACHY_PATH,
+      rebuilt,
+    });
+    if (!check.ok) {
+      return jsonError(`Signature envelope rejected: ${check.code}`, "PRESIGNED_REJECTED", 400);
+    }
+    if (venue.requiresPassphrase && check.envelope.passphrase === undefined) {
       return jsonError("Missing passphrase", "MISSING_PASSPHRASE", 400);
     }
 
-    const venueCreds = { apiKey, apiSecret, passphrase };
-    const validationError = venue.validateKeys(venueCreds);
-    if (validationError) return jsonError(validationError, "INVALID_KEYS", 400);
-
-    const account = await venue.fetchAccount(venueCreds);
+    // `validateKeys` used to run here. It needs the secret, which no longer
+    // reaches this process, so the same shape check now runs client-side in
+    // `signCachyRequest` — the only layer that still holds the key material.
+    const account = await venue.fetchAccount(check.envelope);
 
     return jsonSuccess(account);
   } catch (e: unknown) {
-    // Security: Redact sensitive info before logging is handled by handleApiError logic if we customized it,
-    // but here we manually log safely first.
+    // The manual apiKey/apiSecret redaction this block used to do is gone with
+    // the credentials: no secret reaches this process, and `redactString`
+    // covers the key material that does.
     const errorMsg = e instanceof Error ? e.message : String(e);
 
-    // Redact
-    let safeLog = errorMsg;
-    if (apiKey.length > 4) safeLog = safeLog.replaceAll(apiKey, "***");
-    if (apiSecret.length > 4) safeLog = safeLog.replaceAll(apiSecret, "***");
-
-    logger.error(`[Account] Fetch failed for ${exchange}: ${safeLog}`);
+    logger.error(`[Account] Fetch failed for ${exchange}: ${redactString(errorMsg)}`);
 
     return handleApiError(e);
   }

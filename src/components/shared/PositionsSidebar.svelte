@@ -40,6 +40,8 @@
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
+  import { exchangeSignedFetch } from "../../utils/exchange/browserSigning";
+  import { buildAccountQueryParams, buildPositionsQueryParams } from "../../utils/exchange/venueQueries";
   import type { OMSPosition } from "../../services/omsTypes";
   import { calculateLiveUnrealizedPnl } from "../../services/mappers";
   import type { NormalizedOrder, NormalizedPosition } from "../../types/exchange";
@@ -303,17 +305,18 @@
     loadingPositions = true;
     errorPositions = "";
     try {
-      const response = await appFetch("/api/positions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": keys.key,
-          "X-Api-Secret": keys.secret,
-          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-        },
-        body: JSON.stringify({
-          exchange: provider,
-        }),
+      // FEAT-0405 A5 — /api/positions is signed in the browser, so the secret
+      // never reaches this side. The venue query comes from the same
+      // `buildPositionsQueryParams` the route rebuilds its envelope
+      // comparison from; a second serialiser here is the drift this avoids.
+      const response = await exchangeSignedFetch({
+        cachyPath: "/api/positions",
+        keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+        venue: provider,
+        payload: { exchange: provider },
+        queryParams: buildPositionsQueryParams(provider),
+        headers: { "X-Provider": provider },
+        fetchFn: appFetch,
       });
       const json = await response.json();
       // /api/positions responds via jsonSuccess/jsonError
@@ -573,17 +576,17 @@
       const ticket = accountReadOrder.begin();
 
       try {
-        const response = await appFetch("/api/account", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Api-Key": keys.key,
-            "X-Api-Secret": keys.secret,
-            ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-          },
-          body: JSON.stringify({
-            exchange: provider,
-          }),
+        // FEAT-0405 A5 — same cutover as /api/positions above: the browser
+        // signs, the server rebuilds its envelope comparison from
+        // `buildAccountQueryParams`, and the secret stays on this side.
+        const response = await exchangeSignedFetch({
+          cachyPath: "/api/account",
+          keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+          venue: provider,
+          payload: { exchange: provider },
+          queryParams: buildAccountQueryParams(provider),
+          headers: { "X-Provider": provider },
+          fetchFn: appFetch,
         });
         const json = await response.json();
         // /api/account responds via jsonSuccess/jsonError
