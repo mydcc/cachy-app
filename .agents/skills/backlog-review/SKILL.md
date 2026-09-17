@@ -18,7 +18,7 @@ Review open PRs in `mydcc/cachy-app` against their backlog item (if linked) and 
 
 After the first review, subsequent reviews hit the cache → ~60-80% token savings. The cache is valid for 5 minutes; if you run multiple reviews in quick succession, the savings compound.
 
-When to use Haiku 4.5 / Flash instead: For small, routine PRs where you won't run another review within 5 minutes (cache expires, not worth the setup).
+When to use Haiku 4.5 / Flash instead: route by diff size — under ~100 changed lines (`gh pr view <nr> --json additions,deletions`) use Haiku 4.5 / Flash, above that Sonnet 5 / Gemini Pro.
 
 ## Scope: Which PRs to Review
 
@@ -32,7 +32,14 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
 
 ## Steps
 
+**Finding severity (labels every finding in steps 3–6):** `CRITICAL` = block merge, `HIGH` = fix before merge, `MEDIUM` = consider, `LOW` = optional — same scale as the AGENTS.md Code Review Standard.
+
 0. **Workspace Hygiene:** Before starting, ensure your git workspace is clean (`git status`) and you are on the `develop` branch (`git checkout develop`), or that you are using an isolated git worktree. This prevents inheriting broken state from parallel agents.
+
+**Triage (before step 1 — cheapest checks first, any hit ends the run with no PR comment):**
+- Get the changed files (`gh pr view <nr> --json files --jq '.files.[].path'`). Nothing under `src/*`, `scripts/*`, or `technicals-wasm/*` → end the run (same gate as the `opencode.yml` changes job: docs, configs, and lockfiles get no agent review).
+- PR is draft → end the run with a one-line note to the invoker, no PR comment.
+- A `Code Review for <sha>` marker matching the current HEAD SHA is already posted (see step 2) → end the run, no PR comment.
 
 1. **OCR delegation pre-filter (best-effort, read-only).**
    - Run Alibaba `open-code-review` in delegation mode — deterministic file selection + rule matching, no LLM key needed, produces no verdict of its own:
@@ -43,9 +50,11 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
      Single commit: `delegate preview -c <sha>`; uncommitted local changes: bare `delegate preview`.
    - Treat the output as input only: the reviewable-file list scopes steps 2–10, the rule groups are hints. Cachy rules (step 5) always win on conflict; drop OCR-only Low/style nits.
    - **Manually review everything OCR excluded** — it excludes test files via `default_path` (proven gap on PR #3419). Excluded ≠ approved.
+   - Focus your own depth on OCR-excluded files (tests!) and the Cachy-specific checks (steps 4–5); for generic correctness (step 6) review only the delta to the bot review instead of everything twice.
    - If `ocr` or bash is unavailable (e.g. CI review runner with bash disabled) or the command fails: skip silently and continue — never block the review on this step.
 
 2. **Identify the backlog item.**
+   - **Already reviewed?** Search the PR comments for a `Code Review for <sha>` marker matching the current HEAD SHA (`gh pr view <nr> --comments --jq '.[].body'`). On a match, end the run immediately with "already reviewed at <sha>" — no new review, no comment. Steps 9 and 11 reuse this lookup for the bot comment.
    - Read the PR title — often starts with `TASK-123:` or `BUG-456:`.
    - If the PR body contains `Fixes #<issue_number>` (e.g. `Fixes #1770`), that's the linked backlog item. Read `docs/backlog/features/<id>.md` or `docs/backlog/bugs/<id>.md` — especially **Acceptance Criteria** and **Out of Scope**.
    - If no link is found, note it but continue the review (PR may be standalone).
@@ -72,6 +81,7 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
 
 6. **Plain Correctness.**
    - Logic errors, silent failures, unhandled edge cases, missing boundaries (what happens when an API times out? when a balance is zero?).
+   - If the bot review already covers an area with no findings, only check commits newer than its marker SHA — don't re-review clean files.
 
 7. **Sensitive Areas Flag.**
    - If the PR or its backlog item has `area: execution`, `area: security`, `area: exchange`, or `priority: P0`: flag gently as "👤 Human review recommended before merge" (no red dots, no uppercase alarms).
@@ -83,24 +93,26 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
 
 9. **Reconcile with the bot review.**
    - Fetch the latest bot review comment on the PR (`gh pr view <nr> --comments`), identified by the `Code Review for <sha>` marker or an `LGTM` from the review bot. If none exists yet, continue with your own findings and note that.
-   - Match finding by finding: confirm what both reviews agree on, adopt bot findings that hold up, drop yours or theirs with a one-line reason when refuted. On conflict, Cachy rules (step 5) always win.
+   - Match finding by finding: confirm what both reviews agree on, adopt bot findings that hold up, drop yours or theirs with a one-line reason when refuted. On conflict, Cachy rules (step 5) always win. Drop anything below `MEDIUM` unless the bot confirms it.
    - The reconciled list is the fix backlog for step 10 — nothing else gets fixed.
 
 10. **Plan and apply fixes (interactive sessions only).**
     - In CI/unattended runs (bash denied, e.g. the `opencode.yml` review job) skip this step entirely — the skill stays report-only there.
     - Work on the PR's head branch in an isolated worktree. Never touch `develop`/`main`, never merge, never edit backlog files.
-    - Excluded from auto-fix, report-only with the step 7 flag instead: anything in `area: execution`, `area: security`, `area: exchange`, or `priority: P0` code paths. Everything else confirmed in step 9 gets fixed.
+    - Excluded from auto-fix, report-only with the step 7 flag instead: anything in `area: execution`, `area: security`, `area: exchange`, or `priority: P0` code paths. Everything else confirmed in step 9 gets fixed, in severity order `CRITICAL` → `HIGH` → `MEDIUM`; `LOW` only when trivial.
     - Touch only files related to the findings. Before pushing, run the targeted tests covering your changes (AGENTS.md "Verification Standard: Fast & Targeted"); on failure, fix or leave the finding reported-but-unfixed — never push red.
-    - Commit in English, Conventional Commits, no tool-attribution footers. Push only to the PR head branch.
+    - Push only when CI is green on the PR branch — on red, stay report-only and say so.
+    - Before pushing, `git fetch` the PR branch and rebase your fix commit(s) onto it; on conflict abort the push and report — never force-push someone else's branch.
+    - One commit per run (squash-merge flattens history anyway). Commit in English, Conventional Commits, no tool-attribution footers. Push only to the PR head branch.
 
 11. **Post a Comment and re-trigger the bot review.**
    - **GitHub Actions / CI Agent Note:** When running inside GitHub Actions as an automated workflow or bot (where the action runner automatically captures and publishes your final response, such as `opencode.yml`), do NOT run `gh pr comment` or `add_issue_comment` yourself — that creates duplicated comments under two bot identities. Return the complete review markdown directly as your final message.
    - For interactive sessions (CLI, local pairing) where no platform wrapper automatically publishes output, use `add_issue_comment` or post the comment with this structure:
      - **Header:** `Code Review for <sha>` (short SHA is fine) — this marker lets step 2 skip if already reviewed.
      - **Verdict:** One-line summary (e.g., "Clean by CLAUDE.md rules, but acceptance criterion #2 not met").
-      - **Findings:** Grouped by the checks above (Acceptance Criteria, CI-independent findings, OCR Pre-Filter, Bot Reconcile, Non-Negotiable Rules, Correctness, Sensitive Areas).
-      - **Fixed & Pushed:** Which reconciled findings you fixed and pushed on the PR branch, and which you left reported-but-unfixed (with reason). Omit this section when nothing was pushed.
-      - **Footer:** Friendly tone, collegial ("Looks good!" or "Worth a quick human double-check on the decimal.js usage here"). A light, humorous closing line is welcome, especially in back-and-forth threads between agents. No tool-attribution line required.
+     - **Findings:** Grouped by the checks above (Acceptance Criteria, CI-independent findings, OCR Pre-Filter, Bot Reconcile, Non-Negotiable Rules, Correctness, Sensitive Areas). Tag each finding with its severity, e.g. `- [HIGH] Missing $effect cleanup in …`.
+     - **Fixed & Pushed:** Which reconciled findings you fixed and pushed on the PR branch, and which you left reported-but-unfixed (with reason). Omit this section when nothing was pushed.
+     - **Footer:** Friendly tone, collegial ("Looks good!" or "Worth a quick human double-check on the decimal.js usage here"). A light, humorous closing line is welcome, especially in back-and-forth threads between agents. No tool-attribution line required.
     - If the diff is clean and no backlog item exists, skip the comment entirely (no noise).
     - Only when step 10 pushed fixes: after the review comment, post a **separate** comment whose body starts with `/review`. The workflow trigger matches `startsWith('/review')`, so it must be its own comment — this asks the bot for a fresh review of the fixed state.
     - Exactly one fix cycle per run: findings from the re-triggered bot review are only reported, never fixed in the same run (the bot run itself is read-only, so this cannot loop).
