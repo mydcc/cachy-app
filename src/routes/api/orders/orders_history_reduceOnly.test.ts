@@ -18,6 +18,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
+import { buildOrdersHistoryQueryParams } from "../../../utils/exchange/venueQueries";
 
 // Regression: Bitunix's get_history_orders response carries `reduceOnly`
 // (docs/bitunix-api/07_trade.md), but the route dropped it when building
@@ -29,11 +31,14 @@ vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
+async function historyRequest() {
+  const payload = { exchange: "bitunix", type: "history" };
+  return signedEnvelopeRequest(
+    "/api/orders?action=history",
+    payload,
+    buildOrdersHistoryQueryParams("bitunix", payload),
+    "bitunix",
+  );
 }
 
 beforeEach(() => {
@@ -61,13 +66,10 @@ describe("POST /api/orders history maps reduceOnly", () => {
         }),
     });
 
+    const { request, url } = await historyRequest();
     const res = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
@@ -95,13 +97,10 @@ describe("POST /api/orders history maps reduceOnly", () => {
         }),
     });
 
+    const { request, url } = await historyRequest();
     const res = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 

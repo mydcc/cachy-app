@@ -31,7 +31,13 @@ import { Decimal } from "decimal.js";
 import { formatApiNum } from "../utils";
 import type { AccountSettingsPayload } from "../../types/accountSettingsSchemas";
 import type { BitunixOrderPayload } from "../../types/bitunix";
-import type { PlaceOrderPayload } from "../../types/orderSchemas";
+import type {
+  CancelAllPayload,
+  CancelOrderPayload,
+  CloseAllPositionsPayload,
+  FlashClosePositionPayload,
+  PlaceOrderPayload,
+} from "../../types/orderSchemas";
 import { ORDER_ERRORS, cleanPayload, type ExchangeError } from "./orderErrors";
 
 /** The shape `modifyBitunixOrder` accepts (FEAT-0065). */
@@ -235,6 +241,45 @@ export function buildBitunixModifyOrderBody(
     slOrderType: normalized.slOrderType,
     slOrderPrice: normalized.slOrderPrice,
   });
+}
+
+/**
+ * The four order-cancellation and position-closing bodies (FEAT-0405 A5).
+ *
+ * Key order is the wire contract, as everywhere in this module: `cancel_orders`
+ * carries `{ symbol, orderList }` and `flash_close_position` a bare
+ * `{ positionId }`, which is what `bitunix.ts` sent before the cutover and
+ * therefore what the exchange has been reading all along.
+ *
+ * The two "all" endpoints take an optional symbol filter, and an absent symbol
+ * means "every symbol" — so the empty object is a real request, not a body the
+ * builder failed to fill in. A symbol sent as `undefined` would serialise to
+ * nothing anyway, but `JSON.stringify` would drop the key on one side and not
+ * the other if a caller ever passed `null`; omitting it here keeps the two
+ * sides' strings identical by construction.
+ */
+export function buildBitunixCancelOrderBody(
+  payload: CancelOrderPayload,
+): Record<string, unknown> {
+  return { symbol: payload.symbol, orderList: [{ orderId: payload.orderId }] };
+}
+
+export function buildBitunixCancelAllBody(
+  payload: CancelAllPayload,
+): Record<string, unknown> {
+  return payload.symbol ? { symbol: payload.symbol } : {};
+}
+
+export function buildBitunixCloseAllPositionsBody(
+  payload: CloseAllPositionsPayload,
+): Record<string, unknown> {
+  return payload.symbol ? { symbol: payload.symbol } : {};
+}
+
+export function buildBitunixFlashCloseBody(
+  payload: FlashClosePositionPayload,
+): Record<string, unknown> {
+  return { positionId: payload.positionId };
 }
 
 /**
