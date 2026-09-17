@@ -5832,7 +5832,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0396",
     "title": "An Automation settings tab for user-configured bots",
     "type": "feature",
-    "status": "idea",
+    "status": "ready",
     "priority": "P2",
     "milestone": "M9",
     "editions": [
