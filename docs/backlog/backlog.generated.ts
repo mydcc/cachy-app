@@ -392,9 +392,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0479",
     "title": "MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/bug-0479-repair-truncation",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "editions": [
