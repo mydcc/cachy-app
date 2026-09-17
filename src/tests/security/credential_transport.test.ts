@@ -233,7 +233,11 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     expect(response.status).toBe(200);
   });
 
-  it("POST /api/account-settings rejects a request that still carries X-Api-Secret", async () => {
+  it("POST /api/account-settings refuses the pre-cutover shape, secret and all", async () => {
+    // Key and secret in headers with the venue payload alone in the body is the
+    // shape that used to work here. It is refused now, and the reason is
+    // asserted rather than just the status: there is no `venueBody` to compare
+    // a signature against, and nothing on this side can make one.
     const { POST } = await import("../../routes/api/account-settings/+server");
     const request = new Request("http://localhost/api/account-settings", {
       method: "POST",
@@ -256,6 +260,7 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     } as unknown as RequestEvent);
 
     expect(response.status).toBe(400);
+    expect((await response.json()).code).toBe("MISSING_SIGNED_BODY");
   });
 
   it("POST /api/sync accepts a pre-signed envelope instead of credentials", async () => {
