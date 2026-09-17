@@ -15,10 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-  generateBitgetSignature,
-  validateBitgetKeys,
-} from "../bitget";
+import { validateBitgetKeys } from "../bitget";
 import type { NormalizedOrder, NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import { formatApiNum } from "../../utils";
@@ -30,7 +27,6 @@ import {
   DEFAULT_UPSTREAM_TIMEOUT_MS,
 } from "../fetchWithTimeout";
 import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
-import { buildVenueBody } from "../../exchange/venueBodies";
 import { bitgetUpstreamPath } from "../../exchange/restSigningPlan";
 import type {
   ExchangeAccountData,
@@ -72,26 +68,16 @@ interface BitgetRawOrder {
  * were signed (FEAT-0405 AC4).
  */
 async function placeBitgetOrder(
-    apiKey: string,
-    apiSecret: string,
-    passphrase: string,
-    body: string
+    envelope: PresignedEnvelope,
+    venueBody: string,
 ): Promise<unknown> {
     const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/order/placeOrder";
-
-    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, body);
+    const path = bitgetPath("/api/orders", "place-order");
 
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        },
-        body: bodyStr
+        headers: bitgetCallHeaders(envelope),
+        body: venueBody,
     });
 
     if (!response.ok) {
@@ -115,26 +101,19 @@ async function placeBitgetOrder(
 }
 
 async function fetchBitgetPendingOrders(
-    apiKey: string,
-    apiSecret: string,
-    passphrase: string
+    envelope: PresignedEnvelope,
 ): Promise<NormalizedOrder[]> {
     const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/order/current";
-    // productType: umcbl (USDT-M)
-    const params = { productType: "umcbl" };
+    const path = bitgetPath("/api/orders", "pending");
+    // `productType: umcbl` (USDT-M) is one of the parameters the client signed,
+    // so it arrives in the envelope rather than being rebuilt here.
+    const url = envelope.query
+        ? `${baseUrl}${path}?${envelope.query}`
+        : `${baseUrl}${path}`;
 
-    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
-
-    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(url, {
         method: "GET",
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        }
+        headers: bitgetCallHeaders(envelope),
     });
 
     if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
@@ -160,37 +139,21 @@ async function fetchBitgetPendingOrders(
 }
 
 async function fetchBitgetHistoryOrders(
-    apiKey: string,
-    apiSecret: string,
-    passphrase: string,
-    limit = 20,
-    startTime?: number,
-    endTime?: number,
-    symbol?: string
+    envelope: PresignedEnvelope,
+    payload: Extract<OrderRequestPayload, { type: "history" }>,
 ): Promise<NormalizedOrder[]> {
     const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/order/history";
+    const path = bitgetPath("/api/orders", "history");
+    // The query is the client's, built through `buildOrdersHistoryQueryParams`
+    // on both sides. That is also where the endpoint's "last seven days"
+    // default now lives: a default computed here would be dated from *this*
+    // process's clock and would never equal the one the client signed.
+    const url = envelope.query
+        ? `${baseUrl}${path}?${envelope.query}`
+        : `${baseUrl}${path}`;
 
-    const params: Record<string, string> = {
-        productType: "umcbl",
-        pageSize: String(limit),
-        startTime: startTime !== undefined && !isNaN(startTime)
-            ? String(startTime)
-            : String(Date.now() - 7 * 24 * 3600 * 1000) // Last 7 days default
-    };
-    if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
-    if (symbol) params.symbol = symbol;
-
-    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
-
-    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        }
+    const response = await fetchWithTimeout(url, {
+        headers: bitgetCallHeaders(envelope),
     });
 
     if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
@@ -215,6 +178,7 @@ async function fetchBitgetHistoryOrders(
         realizedPNL: formatApiNum(o.totalProfits) || "0",
     }));
 
+    const { startTime, endTime } = payload;
     if (startTime !== undefined && !isNaN(startTime)) {
         mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
     }
@@ -226,26 +190,16 @@ async function fetchBitgetHistoryOrders(
 }
 
 async function cancelBitgetOrder(
-    apiKey: string,
-    apiSecret: string,
-    passphrase: string,
-    body: string
+    envelope: PresignedEnvelope,
+    venueBody: string,
 ) {
     const baseUrl = "https://api.bitget.com";
-    const path = "/api/mix/v1/order/cancel-order";
-
-    const { timestamp, signature, bodyStr } = generateBitgetSignature(apiSecret, "POST", path, {}, body);
+    const path = bitgetPath("/api/orders", "cancel-order");
 
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: {
-            "ACCESS-KEY": apiKey,
-            "ACCESS-SIGN": signature,
-            "ACCESS-TIMESTAMP": timestamp,
-            "ACCESS-PASSPHRASE": passphrase,
-            "Content-Type": "application/json"
-        },
-        body: bodyStr
+        headers: bitgetCallHeaders(envelope),
+        body: venueBody,
     });
 
     if (!response.ok) {
@@ -266,15 +220,16 @@ async function cancelBitgetOrder(
 
 /**
  * The path Bitget is asked on, read from the same table the browser signs
- * against (`BITGET_UPSTREAM_PATHS` in `restSigningPlan`).
+ * against (`BITGET_UPSTREAM_PATHS` and, on `/api/orders`, `BITGET_ORDER_PATHS`
+ * in `restSigningPlan`). `action` is what selects a row on the latter.
  *
  * Bitget's prehash covers the request path, so a literal here and a literal in
  * the signer is a divergence whose only symptom is a venue rejection in the
  * middle of a trade. Thrown rather than defaulted when the table has no entry:
  * a call sent to Cachy's own path carries a signature Bitget cannot verify.
  */
-function bitgetPath(cachyPath: string): string {
-    const path = bitgetUpstreamPath(cachyPath);
+function bitgetPath(cachyPath: string, action?: string): string {
+    const path = bitgetUpstreamPath(cachyPath, action);
     if (path === null) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
     return path;
 }
@@ -507,40 +462,33 @@ function bitgetIsSymbolNotFoundBody(): boolean {
  * rest before this module existed.
  */
 async function executeOrder(
-  creds: VenueCredentials,
+  envelope: PresignedEnvelope,
   payload: OrderRequestPayload,
+  venueBody: string,
 ): Promise<unknown> {
-  const { apiKey, apiSecret, passphrase } = creds;
-
-  // Unreachable from the routes, which reject a Bitget request without a
-  // passphrase before they get here. Kept because it is also what narrows
-  // `passphrase` from `string | undefined` for the calls below.
-  if (!passphrase) throw new Error(ORDER_ERRORS.PASSPHRASE_REQUIRED);
+  // Unreachable from the orders route once the envelope has been read: the
+  // passphrase header is mandatory on a route the plan marks Bitget-reachable,
+  // so `bitgetCallHeaders` below is what refuses a request without one. The
+  // check keeps the message legible rather than letting a missing header read
+  // as a missing envelope.
+  if (!envelope.passphrase) throw new Error(ORDER_ERRORS.PASSPHRASE_REQUIRED);
 
   if (payload.type === "pending") {
-    const orders = await fetchBitgetPendingOrders(apiKey, apiSecret, passphrase);
+    const orders = await fetchBitgetPendingOrders(envelope);
     return { orders };
   }
   if (payload.type === "history") {
-    const orders = await fetchBitgetHistoryOrders(
-      apiKey,
-      apiSecret,
-      passphrase,
-      Number(payload.limit),
-      payload.startTime,
-      payload.endTime,
-      payload.symbol
-    );
+    const orders = await fetchBitgetHistoryOrders(envelope, payload);
     return { orders };
   }
   if (payload.type === "place-order") {
-    return await placeBitgetOrder(apiKey, apiSecret, passphrase, buildVenueBody("bitget", payload));
+    return await placeBitgetOrder(envelope, venueBody);
   }
   if (payload.type === "close-position") {
-    return await placeBitgetOrder(apiKey, apiSecret, passphrase, buildVenueBody("bitget", payload));
+    return await placeBitgetOrder(envelope, venueBody);
   }
   if (payload.type === "cancel-order") {
-    return await cancelBitgetOrder(apiKey, apiSecret, passphrase, buildVenueBody("bitget", payload));
+    return await cancelBitgetOrder(envelope, venueBody);
   }
 
   return null;
