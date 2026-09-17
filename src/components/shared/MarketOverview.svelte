@@ -168,6 +168,37 @@
     };
   });
 
+  // Screen-reader summary (a11y): the ticking prices above are
+  // aria-live="off", so expose a polite summary updated at most every
+  // 30 seconds and only when the readout actually changed.
+  const LIVE_SUMMARY_INTERVAL_MS = 30000;
+  let liveSummary = $state("");
+  let liveSummaryUpdatedAt = $state(0);
+
+  $effect(() => {
+    const priceStr = currentPriceStr;
+    const pct = priceChangePercent;
+    const sym = displaySymbol;
+    if (!priceStr || priceStr === "0.0000" || !sym) return;
+    const summary = $_("marketOverview.liveSummary", {
+      values: {
+        symbol: sym,
+        price: formatValue(currentPrice, 4),
+        change: `${pct && pct.gte(0) ? "+" : ""}${formatValue(pct, 2)}%`,
+      },
+    });
+    const now = Date.now();
+    const prev = untrack(() => liveSummary);
+    const lastUpdate = untrack(() => liveSummaryUpdatedAt);
+    if (
+      !prev ||
+      (summary !== prev && now - lastUpdate >= LIVE_SUMMARY_INTERVAL_MS)
+    ) {
+      liveSummary = summary;
+      liveSummaryUpdatedAt = now;
+    }
+  });
+
   // RSI Timeframe
   let effectiveRsiTimeframe = $derived(
     settingsState.syncRsiTimeframe
@@ -598,8 +629,10 @@
           {/each}
         </div>
         {#if priceChangePercent}
+          <!-- aria-live="off": percent ticks as often as the price -->
           <span
             class="text-sm font-medium"
+            aria-live="off"
             style:color={priceChangePercent.gte(0)
               ? "var(--success-color)"
               : "var(--danger-color)"}
@@ -611,6 +644,13 @@
           </span>
         {/if}
       </div>
+
+      {#if liveSummary}
+        <!-- Throttled polite summary: ticking prices above are aria-live="off" -->
+        <p class="sr-only" aria-live="polite" aria-atomic="true">
+          {liveSummary}
+        </p>
+      {/if}
 
       {#if settingsState.showMarketActivity && depthData}
         <DepthBar bids={depthData.bids} asks={depthData.asks} />

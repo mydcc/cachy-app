@@ -1188,6 +1188,7 @@
     "fundingRateSparklineStart": "vor 7T",
     "fundingRateSparklineEnd": "Jetzt",
     "countdown": "Countdown",
+    "liveSummary": "{symbol}: {price} ({change})",
     "bid": "Bid",
     "ask": "Ask",
     "tooltips": {

@@ -1185,6 +1185,7 @@
     "fundingRateSparklineStart": "7d ago",
     "fundingRateSparklineEnd": "Now",
     "countdown": "Countdown",
+    "liveSummary": "{symbol}: {price} ({change})",
     "bid": "Bid",
     "ask": "Ask",
     "length": "Length",
