@@ -34,23 +34,12 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
 
 0. **Workspace Hygiene:** Before starting, ensure your git workspace is clean (`git status`) and you are on the `develop` branch (`git checkout develop`), or that you are using an isolated git worktree. This prevents inheriting broken state from parallel agents.
 
-1. **OCR delegation pre-filter (best-effort, read-only).**
-   - Run Alibaba `open-code-review` in delegation mode — deterministic file selection + rule matching, no LLM key needed, produces no verdict of its own:
-     ```bash
-     npx -y @alibaba-group/open-code-review delegate preview --from origin/develop --to <pr-head-sha>
-     npx -y @alibaba-group/open-code-review delegate rule <reviewable-path> [<reviewable-path>...]
-     ```
-     Single commit: `delegate preview -c <sha>`; uncommitted local changes: bare `delegate preview`.
-   - Treat the output as input only: the reviewable-file list scopes steps 2–8, the rule groups are hints. Cachy rules (step 5) always win on conflict; drop OCR-only Low/style nits.
-   - **Manually review everything OCR excluded** — it excludes test files via `default_path` (proven gap on PR #3419). Excluded ≠ approved.
-   - If `ocr` or bash is unavailable (e.g. CI review runner with bash disabled) or the command fails: skip silently and continue — never block the review on this step.
-
-2. **Identify the backlog item.**
+1. **Identify the backlog item.**
    - Read the PR title — often starts with `TASK-123:` or `BUG-456:`.
    - If the PR body contains `Fixes #<issue_number>` (e.g. `Fixes #1770`), that's the linked backlog item. Read `docs/backlog/features/<id>.md` or `docs/backlog/bugs/<id>.md` — especially **Acceptance Criteria** and **Out of Scope**.
    - If no link is found, note it but continue the review (PR may be standalone).
 
-3. **Check CI status.**
+2. **Check CI status.**
    - Is the check suite green? If red, note only failures that CI doesn't already enumerate.
    - **CI-independent findings** (flag these if found):
      - Decimal.js violations outside hard-coded audit files (`.github/workflows/audit.yml` only greps `src/services/tradeService.ts`, `src/services/apiService.ts`, `src/lib/calculator.ts`). A native `number` used for prices in a new service/store/component is invisible to CI.
@@ -58,11 +47,11 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
      - Dead translations — a key added to a locale file but never referenced in code.
    - Do not repeat what CI already reported (ESLint, TypeScript, `check-translations`, Conventional Commits failures).
 
-4. **Acceptance Criteria vs. Scope Creep.**
+3. **Acceptance Criteria vs. Scope Creep.**
    - Does the diff satisfy every acceptance criterion? Marked `[x]` is not enough — verify they're actually true.
    - Does the diff stay within "Out of Scope"? Flag any creep.
 
-5. **Non-Negotiable Rules** (from CLAUDE.md / AGENTS.md):
+4. **Non-Negotiable Rules** (from CLAUDE.md / AGENTS.md):
    - **Svelte 5 Runes Only** — no `export let`, `$:`, `createEventDispatcher`, `<slot>`. Use `$props()`, `$derived()`, `$effect()`, snippets instead.
    - **No hardcoded colors** — use `var(--bg-primary)` etc. or paired classes from `src/themes.css`.
    - **Every `$effect` with listeners/subscriptions must return a cleanup function.**
@@ -70,23 +59,23 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
    - **Local-First Boundary** (see `docs/adr/0001-local-first-boundary.md`) — Class A data (Journal, Settings, API Keys, private notes) never leaves the device.
    - **Core code never imports server features** (`src/lib/spacetimedb/`, `src/services/cloudService.ts`) — server is optional, not core.
 
-6. **Plain Correctness.**
+5. **Plain Correctness.**
    - Logic errors, silent failures, unhandled edge cases, missing boundaries (what happens when an API times out? when a balance is zero?).
 
-7. **Sensitive Areas Flag.**
+6. **Sensitive Areas Flag.**
    - If the PR or its backlog item has `area: execution`, `area: security`, `area: exchange`, or `priority: P0`: flag gently as "👤 Human review recommended before merge" (no red dots, no uppercase alarms).
    - These are exactly what the dispatch pipeline intentionally excludes, because mistakes cost real money.
 
-8. **Lifecycle Hygiene.**
+7. **Lifecycle Hygiene.**
    - Is the item's claim consistent? An `in-progress` item needs `assignee` + branch name (missing `assignee` also fails `npm run backlog:check`).
    - If the PR merges the work: was cleanup done — worktree removed, branch deletable, item moved to `done` (or a state note left when abandoning)? Gently flag leftovers per "Agent Lifecycle" in `AGENTS.md`.
 
-9. **Post a Comment** (only if findings exist).
+8. **Post a Comment** (only if findings exist).
    - **GitHub Actions / CI Agent Note:** When running inside GitHub Actions as an automated workflow or bot (where the action runner automatically captures and publishes your final response, such as `opencode.yml`), do NOT run `gh pr comment` or `add_issue_comment` yourself — that creates duplicated comments under two bot identities. Return the complete review markdown directly as your final message.
    - For interactive sessions (CLI, local pairing) where no platform wrapper automatically publishes output, use `add_issue_comment` or post the comment with this structure:
-     - **Header:** `Code Review for <sha>` (short SHA is fine) — this marker lets step 2 skip if already reviewed.
+     - **Header:** `Code Review for <sha>` (short SHA is fine) — this marker lets step 1 skip if already reviewed.
      - **Verdict:** One-line summary (e.g., "Clean by CLAUDE.md rules, but acceptance criterion #2 not met").
-     - **Findings:** Grouped by the checks above (Acceptance Criteria, CI-independent findings, OCR Pre-Filter, Non-Negotiable Rules, Correctness, Sensitive Areas).
+     - **Findings:** Grouped by the checks above (Acceptance Criteria, CI-independent findings, Non-Negotiable Rules, Correctness, Sensitive Areas).
      - **Footer:** Friendly tone, collegial ("Looks good!" or "Worth a quick human double-check on the decimal.js usage here"). A light, humorous closing line is welcome, especially in back-and-forth threads between agents. No tool-attribution line required.
    - If the diff is clean and no backlog item exists, skip the comment entirely (no noise).
 
