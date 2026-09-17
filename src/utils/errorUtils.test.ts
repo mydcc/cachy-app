@@ -107,5 +107,12 @@ describe("errorUtils", () => {
     it("should return original message if no match", () => {
       expect(mapApiErrorToLabel("Unknown error")).toBe("Unknown error");
     });
+
+    it("should map client-side signing refusals to the generic failure label", () => {
+      // FEAT-0405 — SIGNING_* throws never left the device; the raw code is
+      // not actionable, so toasts show the generic label instead.
+      expect(mapApiErrorToLabel(new Error("SIGNING_VENUE_NOT_SUPPORTED"))).toBe("apiErrors.generic");
+      expect(mapApiErrorToLabel("SIGNING_ROUTE_NOT_MIGRATED")).toBe("apiErrors.generic");
+    });
   });
 });
