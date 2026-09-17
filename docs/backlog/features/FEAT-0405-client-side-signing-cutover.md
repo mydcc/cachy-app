@@ -3,7 +3,7 @@ id: FEAT-0405
 title: Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)
 type: feature
 status: in-progress
-branch: feat/feat-0405-a4-multi-venue
+branch: feat/feat-0405-a5a-account-settings
 assignee: claude
 priority: P1
 milestone: none
@@ -124,7 +124,7 @@ read-back comparison is the divergence guard — a faithful client-side replica 
 the server's serialiser is explicitly *not* the plan.
 
 Routes whose signature covers a query string rather than a body (`balance`,
-`positions`, `account`, `account-settings`, `sync` reads) take a second envelope
+`positions`, `account`, `sync` reads) take a second envelope
 shape and are migrated in the same pass.
 
 ### Envelope
@@ -149,8 +149,31 @@ Delivered as four PRs; only the last one flips this item to `done`.
 | A1 | `ROUTE_SIGNING_PLAN` (12 routes), `signCachyRequest` / `exchangeSignedFetch`, `clockDrift`, `assertPresignedConsistency` | merged (#3416) — deliberately inert: no route and no call site wired up |
 | A2 | `buildVenueBody` plus the Bitget counterpart, for the two body-signed multi-venue routes | merged (#3421) |
 | A3 | The 7 Bitunix-hardwired query routes and their client call sites | merged (#3424) |
-| A4 + A5 | The 5 multi-venue routes (3 query, 2 body) | not started |
+| A4 | The 3 multi-venue query routes (`balance`, `positions`, `account`) | merged (#3431) |
+| A5a | `/api/account-settings` — the first body-signed route, and the first reader of the wrapper body | in progress |
+| A5b | `/api/orders` — eleven actions, two venues | not started |
 | A6 | Absence test over all 12 routes, whitepaper, WS audit, item flip | not started |
+
+Notes from A4 for whoever picks up A5b:
+
+- The wrapped body is real now, not theory: `/api/account-settings` is its first
+  production reader. The route parses the wrapper, takes `venueBody` as the
+  signed bytes, rebuilds through `buildVenueBody` and forwards `venueBody`
+  verbatim — the client's rebuild can differ from the route's if the *client*
+  signs an unparsed payload, because `marginCoin` carries a Zod default and
+  `amount` a transform. Hence the client parses before signing
+  (`AccountSettingsRequestSchema`), and there is a divergence test that pins it.
+- `signCachyRequest` resolves a body route's Bitget upstream path from
+  `payload.type` as well as from a `?action=` in the URL — a body-signed route
+  with no action in the URL used to resolve `null` and be refused with
+  `VENUE_PATH_UNKNOWN`.
+- The still-open A5b gaps, unchanged: a per-venue Bitget read path for `pending`
+  / `history` (`BITGET_ORDER_PATHS` carries only the three writes), and the
+  Bitunix body builders for `cancel-order`, `cancel-all`, `close-all-positions`
+  and `flash-close-position`.
+- A migrated read signs before it dispatches, and signing settles on a *macrotask*
+  (`crypto.subtle`). Tests that drive a migrated call under fake timers must
+  yield real macrotasks between advances, or they hang rather than fail.
 
 Notes from A3 for whoever picks up A4:
 
@@ -230,15 +253,20 @@ are not what the phase plan assumed.
    "signed bytes ≠ transmitted body".
 
 2. **`/api/orders` is not uniformly body-signed.** Three of its eleven actions
-   are query-signed GETs on both venues (`pending`, `history`, `order-detail`),
-   and `cancel-order` is a query on Bitunix but a body on Bitget. The plan row
-   was a bare `signed: "body"`. It now carries `signedByAction` for those three.
-   `cancel-order`'s per-venue split is **not** in the table yet, and neither is
-   its Bitunix body builder (`venueBodies.ts` throws for that pair), so today a
-   Bitunix `cancel-order` through this route is refused rather than signed with
-   the wrong shape. Both land with A5, which needs `signedByAction` to accept a
-   per-venue map — the first shape in the table that is a property of the venue
-   rather than of the action.
+   are query-signed GETs on both venues (`pending`, `history`, `order-detail`).
+   The plan row was a bare `signed: "body"`. It now carries `signedByAction` for
+   those three, and the shape is per-action only.
+
+   *Correction (2026-09-17):* an earlier version of this note claimed
+   `cancel-order` was a query on Bitunix and a body on Bitget, and that the table
+   therefore needed a per-venue map. That was wrong. Bitunix documents
+   `cancel_orders` as a `POST` with `{symbol, orderList}` in the body
+   (`docs/bitunix-api/07_trade.md`; `bitunix.ts` already sends it that way; and
+   the regression test pins the path), so both venues agree on the shape and no
+   per-venue override exists anywhere in the table. What A5 owes `cancel-order`
+   is its Bitunix body builder — `venueBodies.ts` throws for that pair today, so
+   the action is refused rather than signed with a shape the venue does not
+   document.
 
 3. **Bitget's path is part of the signed bytes.** Bitget's prehash is
    `timestamp + METHOD + path + body`, so the *client* must sign the real
