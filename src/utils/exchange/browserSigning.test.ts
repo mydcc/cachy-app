@@ -245,6 +245,48 @@ describe("signCachyRequest — Bitget", () => {
   });
 });
 
+describe("signCachyRequest — explicit action", () => {
+  it("resolves a query shape from the explicit action on a bare path", async () => {
+    const signed = await signCachyRequest({
+      cachyPath: "/api/orders",
+      action: "pending",
+      keys: BITUNIX_KEYS,
+      venue: "bitunix",
+      queryParams: { symbol: "BTCUSDT" },
+      now: NOW,
+    });
+
+    expect(signed.body).toBeUndefined();
+    expect(signed.headers["x-api-query"]).toBe("symbol=BTCUSDT");
+  });
+
+  it("keeps resolving the shape from the URL when no action is passed", async () => {
+    const signed = await signCachyRequest({
+      cachyPath: "/api/orders?action=history",
+      keys: BITUNIX_KEYS,
+      venue: "bitunix",
+      queryParams: { limit: "50" },
+      now: NOW,
+    });
+
+    expect(signed.body).toBeUndefined();
+    expect(signed.headers["x-api-query"]).toBe("limit=50");
+  });
+
+  it("refuses an explicit action the URL disagrees with", async () => {
+    await expect(
+      signCachyRequest({
+        cachyPath: "/api/orders?action=pending",
+        action: "history",
+        keys: BITUNIX_KEYS,
+        venue: "bitunix",
+        queryParams: {},
+        now: NOW,
+      }),
+    ).rejects.toThrow(SIGNING_ERRORS.ACTION_MISMATCH);
+  });
+});
+
 describe("signCachyRequest — the secret never rides", () => {
   it("keeps the secret out of the envelope on every route and venue", async () => {
     const cases = [
@@ -405,6 +447,30 @@ describe("exchangeSignedFetch", () => {
 
     expect(captured["x-api-key"]).toBe(KEYS.apiKey);
     expect(captured["x-api-sign"]).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("carries a declared action in the request URL the server reads", async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const fetchFn = (async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return new Response("{}", { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await exchangeSignedFetch({
+      cachyPath: "/api/orders",
+      action: "pending",
+      keys: BITUNIX_KEYS,
+      venue: "bitunix",
+      queryParams: { symbol: "BTCUSDT" },
+      now: NOW,
+      fetchFn,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe("/api/orders?action=pending");
+    expect((calls[0].init.headers as Record<string, string>)["x-api-query"]).toBe(
+      "symbol=BTCUSDT",
+    );
   });
 });
 

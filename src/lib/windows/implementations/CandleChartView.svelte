@@ -282,7 +282,7 @@
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
         try {
-            // FEAT-0405 A5 — the secret stays on this side: the browser signs,
+            // FEAT-0405 A4 — the secret stays on this side: the browser signs,
             // the route rebuilds its comparison from `buildPositionsQueryParams`
             // and forwards the envelope. Same shape as PositionsSidebar's read.
             const response = await exchangeSignedFetch({

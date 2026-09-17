@@ -128,7 +128,12 @@ function venueBody(
       return buildBitunixModifyOrderBody(payload);
 
     case "cancel-order":
-      // The reverse asymmetry: Bitunix signs the cancel as a query.
+      // Bitunix serves the cancel as a body-signed POST (`trade/cancel_orders`
+      // with `{ symbol, orderList }` — `docs/bitunix-api/07_trade.md`, the live
+      // `cancelBitunixOrder`, and `orders_cancel_path.test.ts` all agree), so
+      // there is no query-signed cancel to build here. The Bitunix builder
+      // still lands with the route's cutover (FEAT-0405 A5): until then this
+      // throw is the loud gap, not a shape claim.
       if (venue !== "bitget") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
       return buildBitgetCancelOrderBody(payload);
 

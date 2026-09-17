@@ -188,7 +188,7 @@
 
     isFetchingBalance = true;
     try {
-      // FEAT-0405 A5 — signed in the browser; the route rebuilds the query
+      // FEAT-0405 A4 — signed in the browser; the route rebuilds the query
       // through the same builder, so the two sides cannot disagree about it.
       const res = await exchangeSignedFetch({
         cachyPath: "/api/balance",

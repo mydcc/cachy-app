@@ -61,7 +61,11 @@ export interface ExchangeKeys {
 }
 
 export interface SignCachyRequestInput {
-  /** Cachy proxy path, e.g. `/api/orders`. Query string and hash are ignored. */
+  /**
+   * Cachy proxy path, e.g. `/api/orders`. A hash is ignored. The query string
+   * is *not*: on a shape-varying route the `?action=` parameter is what both
+   * sides resolve the signature shape from — see `action`.
+   */
   cachyPath: string;
   keys: ExchangeKeys;
   /**
@@ -77,6 +81,15 @@ export interface SignCachyRequestInput {
   payload?: unknown;
   /** Parameters the signature covers on query-signed routes. */
   queryParams?: Record<string, string>;
+  /**
+   * The action a shape-varying route (`/api/orders`, `/api/tpsl`) signs as —
+   * `pending`, `place`, and friends. Overrides the `?action=` URL parameter
+   * for shape resolution; a URL that carries a *different* action is refused
+   * rather than signed, because the server resolves from the URL and the two
+   * sides would diverge. `exchangeSignedFetch` also appends it to the request
+   * URL, so a caller that declares it here does not hand-build a query string.
+   */
+  action?: string;
   /**
    * The *venue* method, not the Cachy method. Defaults to `POST` for
    * body-signed routes and `GET` for query-signed ones. A query-signed route
@@ -101,6 +114,7 @@ export const SIGNING_ERRORS = {
   VENUE_NOT_SUPPORTED: "SIGNING_VENUE_NOT_SUPPORTED",
   INSECURE_CONTEXT: "SIGNING_INSECURE_CONTEXT",
   VENUE_PATH_UNKNOWN: "SIGNING_VENUE_PATH_UNKNOWN",
+  ACTION_MISMATCH: "SIGNING_ACTION_MISMATCH",
 } as const;
 
 /**
@@ -168,6 +182,21 @@ function pathAction(input: SignCachyRequestInput): string | undefined {
 }
 
 /**
+ * The URL the envelope is POSTed to. A caller that declares the action
+ * explicitly does not also have to hand-build the query string the server
+ * reads it from: on a shape-varying route the action rides in `?action=`, and
+ * a URL without it would make the server resolve a different shape than the
+ * one just signed. A URL that already carries the action is left alone — a
+ * disagreeing one never reaches here, `signCachyRequest` refuses it first.
+ */
+function requestPathFor(cachyPath: string, action: string | undefined): string {
+  if (action === undefined) return cachyPath;
+  if (cachyAction(cachyPath) !== undefined) return cachyPath;
+  const separator = cachyPath.includes("?") ? "&" : "?";
+  return `${cachyPath}${separator}action=${encodeURIComponent(action)}`;
+}
+
+/**
  * Builds the pre-signed envelope for one Cachy request.
  *
  * Throws `Error` carrying a `SIGNING_ERRORS` code rather than a message, so the
@@ -203,9 +232,18 @@ export async function signCachyRequest(
       : validateBitgetKeys(input.keys.apiKey, input.keys.apiSecret, input.keys.passphrase);
   if (keyError) throw new Error(keyError);
 
-  // Resolved from the same URL the server will read it from, so the two sides
-  // cannot disagree about which shape a request has (ADR-0013, failure mode 2).
-  const shape = signatureShapeFor(plan, cachyAction(input.cachyPath));
+  // The action a shape-varying route signs as. The URL stays the primary source —
+  // it is the one place both sides can read — and the explicit field is the
+  // override for callers that name the action in the payload rather than
+  // hand-building a query string. Both present and disagreeing is a programming
+  // bug with a guaranteed `PRESIGNED_DIVERGENCE` at the end of it, so it is
+  // refused here, before anything is signed (ADR-0013, failure mode 2).
+  const urlAction = cachyAction(input.cachyPath);
+  if (input.action !== undefined && urlAction !== undefined && input.action !== urlAction) {
+    throw new Error(SIGNING_ERRORS.ACTION_MISMATCH);
+  }
+  const action = input.action ?? urlAction;
+  const shape = signatureShapeFor(plan, action);
 
   const venueBody = shape === "body" ? venueBytesFor(venue, input.payload) : undefined;
   // Narrowed off `venueBody` rather than re-testing `shape`: two ternaries on
@@ -248,7 +286,7 @@ export async function signCachyRequest(
   // the Cachy path: there is no "close enough" here, and the alternative is a
   // venue rejection in the middle of a trade.
   const upstreamPath =
-    input.upstreamPath ?? bitgetUpstreamPath(input.cachyPath, pathAction(input));
+    input.upstreamPath ?? bitgetUpstreamPath(input.cachyPath, action ?? pathAction(input));
   if (!upstreamPath) throw new Error(SIGNING_ERRORS.VENUE_PATH_UNKNOWN);
 
   const result = await signBitgetRequest(
@@ -318,7 +356,7 @@ export async function exchangeSignedFetch(
   };
 
   const doFetch = input.fetchFn ?? fetch;
-  return doFetch(input.cachyPath, {
+  return doFetch(requestPathFor(input.cachyPath, input.action), {
     method: "POST",
     headers,
     body: signed.body ?? JSON.stringify(input.payload ?? {}),

@@ -388,6 +388,11 @@ class TradeService {
         const response = plan && ENVELOPE_SIGNED_ROUTES.has(endpoint)
             ? await exchangeSignedFetch({
                   cachyPath: routeUrl,
+                  // Declared, not just embedded: `routeUrl` already carries
+                  // this in its query string, and the mismatch guard inside
+                  // fires if the two ever disagree — one source of truth,
+                  // checked twice.
+                  action: typeof payload.action === "string" ? payload.action : undefined,
                   keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
                   method,
                   // Named rather than inferred. The route used to enforce this

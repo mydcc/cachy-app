@@ -305,7 +305,7 @@
     loadingPositions = true;
     errorPositions = "";
     try {
-      // FEAT-0405 A5 — /api/positions is signed in the browser, so the secret
+      // FEAT-0405 A4 — /api/positions is signed in the browser, so the secret
       // never reaches this side. The venue query comes from the same
       // `buildPositionsQueryParams` the route rebuilds its envelope
       // comparison from; a second serialiser here is the drift this avoids.
@@ -576,7 +576,7 @@
       const ticket = accountReadOrder.begin();
 
       try {
-        // FEAT-0405 A5 — same cutover as /api/positions above: the browser
+        // FEAT-0405 A4 — same cutover as /api/positions above: the browser
         // signs, the server rebuilds its envelope comparison from
         // `buildAccountQueryParams`, and the secret stays on this side.
         const response = await exchangeSignedFetch({
