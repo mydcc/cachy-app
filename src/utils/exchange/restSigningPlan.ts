@@ -65,31 +65,8 @@ export interface RouteSigningPlan {
  * `query` default.
  */
 export const ROUTE_SIGNING_PLAN = {
-  // Eleven actions ride this one route and only three of them reach Bitunix as
-  // a signed GET: `pending`, `history` and `order-detail`, which is why the map
-  // covers those three and nothing else. The other eight — `place-order`,
-  // `close-position`, `modify-order`, `cancel-order`, `cancel-all`,
-  // `close-all-positions`, `flash-close-position` — are signed POST bodies on
-  // *both* venues, so the route's `body` default is their shape and no action
-  // here needs a per-venue override. Bitunix documents the four writes as
-  // `POST` with the parameters in the body (`docs/bitunix-api/07_trade.md`:
-  // `cancel_orders`, `cancel_all_orders`, `close_all_position`,
-  // `flash_close_position`), which is also how `bitunix.ts` sends them.
-  "/api/orders": {
-    signed: "body",
-    signedByAction: {
-      pending: "query",
-      history: "query",
-      "order-detail": "query",
-    },
-    venues: ["bitunix", "bitget"],
-  },
-  // Bitunix alone, although the route still takes an `exchange` field:
-  // `venues/bitget.ts` resolves to `null` for every action in this family
-  // (Bitget wires none of the four), so listing it here would let a Bitget
-  // account sign a request that can only be refused. Naming one venue is what
-  // makes the client refuse before the envelope is built, rather than after.
-  "/api/account-settings": { signed: "body", venues: ["bitunix"] },
+  "/api/orders": { signed: "body", venues: ["bitunix", "bitget"] },
+  "/api/account-settings": { signed: "body", venues: ["bitunix", "bitget"] },
   "/api/balance": { signed: "query", venues: ["bitunix", "bitget"] },
   "/api/positions": { signed: "query", venues: ["bitunix", "bitget"] },
   "/api/account": { signed: "query", venues: ["bitunix", "bitget"] },
@@ -228,72 +205,4 @@ export function canonicalQueryParamsInput(params: Record<string, string>): strin
     .sort()
     .map((key) => key + params[key])
     .join("");
-}
-
-/**
- * The URL form of `params` as **this venue** serialises it.
- *
- * Bitunix sorts; Bitget takes insertion order — see the warning on
- * `canonicalQueryString` above, which is the Bitunix half of this rule and
- * must not be applied to a Bitget route. A server rebuilds a signed query
- * through here so the comparison against `x-api-query` is the same
- * serialisation the client signed rather than a second opinion about it.
- *
- * The parameter *record* is the caller's; only the order differs. That is why
- * the two query-param builders can be shared while this stays venue-aware.
- */
-export function queryStringForVenue(venue: Venue, params: Record<string, string>): string {
-  return venue === "bitunix"
-    ? canonicalQueryString(params)
-    : new URLSearchParams(params).toString();
-}
-
-/**
- * The Bitget endpoint a migrated route proxies.
- *
- * Bitget folds the request path into its prehash
- * (`timestamp + METHOD + path + body`), so the *client* has to sign with the
- * same string the server forwards. That makes the path shared knowledge in a
- * way Bitunix's prehash does not: Bitunix's covers only
- * `nonce + timestamp + apiKey + queryParams + body`, so nothing on the Bitunix
- * half of these routes changes when an upstream path is renamed.
- *
- * Only Bitget's rows live here, and `bitget.ts` reads them from here rather
- * than repeating the literals — a client and a server that disagree about this
- * string produce a venue rejection mid-trade and nothing earlier. A3's
- * conformance test carries its own sample paths on purpose: it pins the
- * serialisation of whatever a route passes, so it cannot detect a wrong path
- * and does not claim to.
- *
- * Returns `null` for a route or action Bitget does not reach, which a caller
- * treats as "this request cannot be signed for Bitget" rather than as an empty
- * path.
- */
-const BITGET_UPSTREAM_PATHS: Record<string, string> = {
-  "/api/account": "/api/mix/v1/account/account",
-  // Bitget serves balance and account data from the same endpoint; the two
-  // Cachy routes differ in how they map the answer, not in where they ask.
-  "/api/balance": "/api/mix/v1/account/account",
-  "/api/positions": "/api/mix/v1/position/allPosition",
-};
-
-/**
- * `/api/orders` is one Cachy route over several endpoints, so its paths are
- * keyed by the action the request carries. Repeating an endpoint is not a
- * redundancy to factor out: `place-order` and `close-position` are genuinely
- * different actions that Bitget happens to serve from one path, and a future
- * divergence between them belongs here, not behind a shared constant.
- */
-const BITGET_ORDER_PATHS: Record<string, string> = {
-  "place-order": "/api/mix/v1/order/placeOrder",
-  "close-position": "/api/mix/v1/order/placeOrder",
-  "cancel-order": "/api/mix/v1/order/cancel-order",
-};
-
-export function bitgetUpstreamPath(cachyPath: string, action?: string): string | null {
-  const [pathname] = cachyPath.split(/[?#]/);
-  if (pathname === "/api/orders") {
-    return action === undefined ? null : (BITGET_ORDER_PATHS[action] ?? null);
-  }
-  return BITGET_UPSTREAM_PATHS[pathname] ?? null;
 }

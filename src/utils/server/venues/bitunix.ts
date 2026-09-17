@@ -31,7 +31,6 @@ import type { AccountSettingsPayload } from "../../../types/accountSettingsSchem
 import { formatApiNum } from "../../utils";
 import { safeJsonParse } from "../../safeJson";
 import { readExchangeJson } from "../exchangeResponse";
-import { bitunixCallHeaders, type PresignedEnvelope } from "../presignedEnvelope";
 import {
   fetchWithTimeout,
   DEFAULT_UPSTREAM_TIMEOUT_MS,
@@ -513,17 +512,34 @@ async function fetchBitunixHistoryOrders(
 // --- Account ---
 
 async function fetchBitunixAccount(
-  envelope: PresignedEnvelope,
+  apiKey: string,
+  apiSecret: string,
 ): Promise<ExchangeAccountData> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
-  const url = envelope.query
-    ? `${baseUrl}${path}?${envelope.query}`
-    : `${baseUrl}${path}`;
+
+  const params: Record<string, string> = {
+    marginCoin: "USDT",
+  };
+
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    null,
+  );
+
+  const url = `${baseUrl}${path}?${queryString}`;
 
   const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: bitunixCallHeaders(envelope),
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
   });
 
   if (!response.ok) {
@@ -568,17 +584,36 @@ async function fetchBitunixAccount(
 // --- Balance ---
 
 async function fetchBitunixBalance(
-  envelope: PresignedEnvelope,
+  apiKey: string,
+  apiSecret: string,
 ): Promise<string> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
-  const url = envelope.query
-    ? `${baseUrl}${path}?${envelope.query}`
-    : `${baseUrl}${path}`;
 
-  const response = await fetchWithTimeout(url, {
+  // Params for the request
+  const params: Record<string, string> = {
+    marginCoin: "USDT",
+  };
+
+  // FEAT-0321: this path used to hand-roll the signing algorithm inline. It
+  // signed byte-for-byte identically to `generateBitunixSignature`, which
+  // `src/utils/server/bitunix.test.ts` records and now guards.
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    "",
+  );
+
+  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
     method: "GET",
-    headers: bitunixCallHeaders(envelope),
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
   });
 
   if (!response.ok) {
@@ -833,18 +868,37 @@ interface BitunixRawPosition {
 }
 
 async function fetchBitunixPositions(
-  envelope: PresignedEnvelope,
+  apiKey: string,
+  apiSecret: string,
 ): Promise<NormalizedPosition[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_pending_positions";
-  const url = envelope.query
-    ? `${baseUrl}${path}?${envelope.query}`
+
+  // Params for the request
+  const params: Record<string, string> = {};
+
+  // FEAT-0321: this path used to hand-roll the signing algorithm inline. It
+  // signed byte-for-byte identically to `generateBitunixSignature`, which
+  // `src/utils/server/bitunix.test.ts` records and now guards.
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    "",
+  );
+
+  const url = queryString
+    ? `${baseUrl}${path}?${queryString}`
     : `${baseUrl}${path}`;
 
   const response = await fetchWithTimeout(url, {
     method: "GET",
     headers: {
-      ...bitunixCallHeaders(envelope),
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
       // Add User-Agent to avoid potential blocking
       "User-Agent": "CachyApp/1.0",
     },
@@ -1010,28 +1064,36 @@ async function executeOrder(
  * FEAT-0068 — the account-settings write family.
  *
  * All four endpoints are POSTs under `/api/v1/futures/account/` that share
- * one shape: a JSON body, a signature over it, and a response whose payload
- * nobody needs — success is `code: 0`, and the *state* is read back from the
- * private WebSocket or a refetch rather than believed from this echo (see
- * FEAT-0068's acceptance criteria). So the helper returns the body it sent,
- * and the caller confirms elsewhere.
- *
- * The signature is the client's, not this process's: the route forwards the
- * envelope it just verified, and `body` is the same string the client signed.
- * `bitunixCallHeaders` is the single place that maps an envelope onto Bitunix's
- * header names, so this cannot drift from the other callers.
+ * one shape: a JSON body, the standard signature over it, and a response
+ * whose payload nobody needs — success is `code: 0`, and the *state* is read
+ * back from the private WebSocket or a refetch rather than believed from
+ * this echo (see FEAT-0068's acceptance criteria). So the helper returns the
+ * body it sent, and the caller confirms elsewhere.
  */
 async function postBitunixAccount(
-  envelope: PresignedEnvelope,
+  apiKey: string,
+  apiSecret: string,
   path: string,
   body: string,
 ): Promise<unknown> {
   const baseUrl = "https://fapi.bitunix.com";
+  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    {},
+    body,
+  );
 
   const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     method: "POST",
-    headers: bitunixCallHeaders(envelope),
-    body,
+    headers: {
+      "api-key": apiKey,
+      timestamp,
+      nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+    body: bodyStr,
   });
 
   if (!response.ok) {
@@ -1062,11 +1124,10 @@ async function postBitunixAccount(
 }
 
 /**
- * One endpoint per action. The bodies these endpoints carry are not assembled
- * here either: the client builds them through `buildVenueBody`, signs them, and
- * the route hands the string it received straight to `postBitunixAccount`. The
- * "either `side` or `positionId`" rule for `adjust-position-margin` moved with
- * them.
+ * One endpoint per action. The bodies these endpoints carry are no longer
+ * assembled here — they come from `buildVenueBody`, so the client signs the
+ * same bytes this posts. The "either `side` or `positionId`" rule for
+ * `adjust-position-margin` moved with them.
  */
 const ACCOUNT_SETTING_PATHS: Record<AccountSettingsPayload["type"], string> = {
   "change-leverage": "/api/v1/futures/account/change_leverage",
@@ -1076,11 +1137,16 @@ const ACCOUNT_SETTING_PATHS: Record<AccountSettingsPayload["type"], string> = {
 };
 
 async function executeAccountSetting(
-  envelope: PresignedEnvelope,
+  creds: VenueCredentials,
   payload: AccountSettingsPayload,
-  venueBody: string,
 ): Promise<unknown> {
-  return postBitunixAccount(envelope, ACCOUNT_SETTING_PATHS[payload.type], venueBody);
+  const { apiKey, apiSecret } = creds;
+  return postBitunixAccount(
+    apiKey,
+    apiSecret,
+    ACCOUNT_SETTING_PATHS[payload.type],
+    buildVenueBody("bitunix", payload),
+  );
 }
 
 export const bitunixVenue: VenueModule = {
@@ -1091,12 +1157,12 @@ export const bitunixVenue: VenueModule = {
     return validateBitunixKeys(creds.apiKey, creds.apiSecret);
   },
 
-  fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData> {
-    return fetchBitunixAccount(envelope);
+  fetchAccount(creds: VenueCredentials): Promise<ExchangeAccountData> {
+    return fetchBitunixAccount(creds.apiKey, creds.apiSecret);
   },
 
-  fetchBalance(envelope: PresignedEnvelope): Promise<string> {
-    return fetchBitunixBalance(envelope);
+  fetchBalance(creds: VenueCredentials): Promise<string> {
+    return fetchBitunixBalance(creds.apiKey, creds.apiSecret);
   },
 
   supportsMarkKlines: true,
@@ -1112,8 +1178,8 @@ export const bitunixVenue: VenueModule = {
     );
   },
 
-  fetchPositions(envelope: PresignedEnvelope): Promise<NormalizedPosition[]> {
-    return fetchBitunixPositions(envelope);
+  fetchPositions(creds: VenueCredentials): Promise<NormalizedPosition[]> {
+    return fetchBitunixPositions(creds.apiKey, creds.apiSecret);
   },
 
   tickersUrl: bitunixTickersUrl,

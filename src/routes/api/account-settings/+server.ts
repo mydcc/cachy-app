@@ -22,31 +22,17 @@
  * hand it the payload, sanitize what comes back (FEAT-0228, ADR-0007). It
  * builds no request and knows no endpoint path.
  *
- * FEAT-0405 A5 — it no longer reads a transmitted secret either. The client
- * signs the body with the secret and sends a pre-signed envelope; this route
- * rebuilds the bytes
- * it was told were signed, compares them, and forwards the client's own string.
- * That comparison *is* the anti-drift mechanism, and it is why the route can no
- * longer sign: the secret stays on the device (ADR-0013).
- *
- * The bytes a venue signature covers here are the *venue* body, which carries
- * neither `type` nor `exchange` and so cannot be validated as a Cachy request.
- * The Cachy body therefore carries both: the payload at the top level, plus the
- * venue string under `venueBody`. The payload is what `buildVenueBody` is
- * rebuilt from — the wrapper itself is never signed, and `venueBody` is never
- * validated, only compared.
- *
  * The read half of this family stays where it already worked, in
  * `/api/leverage-margin-mode` — one working GET is not worth moving into a
  * shared route just to make the family look symmetric, and moving it would
  * put the only currently-shipping account read at risk for no behaviour
- * change.
+ * change. Both speak the same internal contract (`exchange` in the body,
+ * credentials in headers), which is the part that matters.
  *
  * ADR-0001: the API key travels as the credential of a request the trader
  * initiated, and nothing else about them does. No key is stored here, and
- * none appears in a response — the catch below scrubs the key the envelope
- * carries out of upstream error text before it is returned. The secret is not
- * among the values it scrubs because the secret never reached this process.
+ * none appears in a response — the catch below scrubs them out of upstream
+ * error text before it is returned.
  */
 
 import { json } from "@sveltejs/kit";
@@ -54,29 +40,18 @@ import type { RequestHandler } from "./$types";
 import { AccountSettingsRequestSchema } from "../../../types/accountSettingsSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkClientToken } from "../../../lib/server/clientToken";
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
 import { logger } from "$lib/server/logger";
 import { upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
-import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";
-import { buildVenueBody } from "../../../utils/exchange/venueBodies";
 import { ORDER_ERRORS, resolveVenue, type ExchangeError } from "../../../utils/server/venues";
-
-/**
- * The one path this route answers to. A literal for the envelope guard rather
- * than `url.pathname`: the guard's lookup normalises a trailing slash, but a
- * path *variant* this route does not think it serves should be a miss, not a
- * silently different plan row.
- */
-const CACHY_PATH = "/api/account-settings";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  const rawBody = await request.text();
-
   let body: unknown;
   try {
-    body = safeJsonParse(rawBody);
+    body = safeJsonParse(await request.text());
   } catch {
     return json({ error: ORDER_ERRORS.INVALID_JSON }, { status: 400 });
   }
@@ -91,50 +66,26 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   }
 
   const payload = validation.data;
+  const creds = extractApiCredentials(request, payload);
+  const { apiKey, apiSecret, passphrase } = creds;
 
-  // Read off the raw body, not off `validation.data`: the schema strips what it
-  // does not declare, and `venueBody` is deliberately not declared — it is the
-  // venue's payload, not a Cachy field.
-  const venueBody = (body as Record<string, unknown>).venueBody;
-  if (typeof venueBody !== "string") {
-    return json({ error: "Missing signed body", code: "MISSING_SIGNED_BODY" }, { status: 400 });
+  if (!apiKey || !apiSecret) {
+    return json({ error: "Missing API Credentials" }, { status: 401 });
   }
 
-  // The plan row names one venue, so this is checked rather than resolved. A
-  // body still claiming another venue is a client the signer should already
-  // have refused; forwarding it would send a Bitunix envelope the client built
-  // from some other account's keys.
-  const venueId = payload.exchange;
-  if (venueId !== "bitunix") {
-    return json({ error: "Unsupported exchange", code: "UNSUPPORTED_EXCHANGE" }, { status: 400 });
-  }
-
-  const venue = resolveVenue(venueId);
+  const venue = resolveVenue(payload.exchange);
   if (!venue) {
     return json({ error: "Unsupported exchange", code: "UNSUPPORTED_EXCHANGE" }, { status: 400 });
   }
 
-  // Assigned once the envelope has been read, so the failure path can scrub it
-  // without the credential having to exist.
-  let forwardedApiKey: string | undefined;
+  if (venue.requiresPassphrase && !passphrase) {
+    return json({ error: ORDER_ERRORS.PASSPHRASE_REQUIRED }, { status: 400 });
+  }
+  const keyError = venue.validateKeys({ apiKey, apiSecret, passphrase });
+  if (keyError) return json({ error: keyError }, { status: 400 });
 
   try {
-    // Both sides build through `buildVenueBody`, and both build from the payload
-    // *the schema produced* rather than from the raw object. That matters:
-    // `marginCoin` carries a default and `amount` a transform, so a client that
-    // signed its unparsed payload would build a different string and be refused
-    // as `PRESIGNED_DIVERGENCE` before anything reached Bitunix.
-    const check = checkPresignedRequest(request, {
-      cachyPath: CACHY_PATH,
-      rebuilt: buildVenueBody(venueId, payload),
-      rawBody: venueBody,
-    });
-    if (!check.ok) {
-      return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });
-    }
-    forwardedApiKey = check.envelope.apiKey;
-
-    const result = await venue.executeAccountSetting(check.envelope, payload, venueBody);
+    const result = await venue.executeAccountSetting({ apiKey, apiSecret, passphrase }, payload);
 
     // `null` is the venue boundary saying it does not implement this family.
     // Answered as a refusal, not as a 200: a write that reports success
@@ -152,19 +103,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const errorMsg = e instanceof Error ? e.message : String(e);
     const errorCode = (e as ExchangeError).code;
 
-    // The key can appear in upstream error text; the secret cannot, because it
-    // never came this way. Scrub what the envelope actually carried — before
-    // the log line as well as before the response, since a key sitting in a log
-    // file is the same leak with a much longer half-life.
-    let sanitizedMsg = errorMsg;
-    if (forwardedApiKey && forwardedApiKey.length > 3) {
-      sanitizedMsg = sanitizedMsg.replaceAll(forwardedApiKey, "***");
-    }
-
     logger.error(`[API] Account setting failed: ${payload.type}`, {
-      error: sanitizedMsg,
+      error: errorMsg,
       code: errorCode,
     });
+
+    let sanitizedMsg = errorMsg;
+    for (const secret of [apiKey, apiSecret, passphrase]) {
+      if (secret && secret.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(secret, "***");
+    }
 
     // A venue module rejecting the payload is the client's mistake, not the
     // upstream's — answering 500 would send the client looking for an

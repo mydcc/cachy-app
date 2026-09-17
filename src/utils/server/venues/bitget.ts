@@ -24,14 +24,12 @@ import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import { formatApiNum } from "../../utils";
 import { safeJsonParse } from "../../safeJson";
 import { readExchangeJson } from "../exchangeResponse";
-import { bitgetCallHeaders, type PresignedEnvelope } from "../presignedEnvelope";
 import {
   fetchWithTimeout,
   DEFAULT_UPSTREAM_TIMEOUT_MS,
 } from "../fetchWithTimeout";
 import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
 import { buildVenueBody } from "../../exchange/venueBodies";
-import { bitgetUpstreamPath } from "../../exchange/restSigningPlan";
 import type {
   ExchangeAccountData,
   KlineQuery,
@@ -264,32 +262,25 @@ async function cancelBitgetOrder(
 
 // --- Account ---
 
-/**
- * The path Bitget is asked on, read from the same table the browser signs
- * against (`BITGET_UPSTREAM_PATHS` in `restSigningPlan`).
- *
- * Bitget's prehash covers the request path, so a literal here and a literal in
- * the signer is a divergence whose only symptom is a venue rejection in the
- * middle of a trade. Thrown rather than defaulted when the table has no entry:
- * a call sent to Cachy's own path carries a signature Bitget cannot verify.
- */
-function bitgetPath(cachyPath: string): string {
-    const path = bitgetUpstreamPath(cachyPath);
-    if (path === null) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
-    return path;
-}
-
 async function fetchBitgetAccount(
-    envelope: PresignedEnvelope,
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string
 ): Promise<ExchangeAccountData> {
     const baseUrl = "https://api.bitget.com";
-    const path = bitgetPath("/api/account");
-    const url = envelope.query
-        ? `${baseUrl}${path}?${envelope.query}`
-        : `${baseUrl}${path}`;
+    const path = "/api/mix/v1/account/account";
+    const params = { productType: "umcbl", marginCoin: "USDT" };
 
-    const response = await fetchWithTimeout(url, {
-        headers: bitgetCallHeaders(envelope)
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
@@ -314,16 +305,24 @@ async function fetchBitgetAccount(
 // --- Balance ---
 
 async function fetchBitgetBalance(
-  envelope: PresignedEnvelope,
+  apiKey: string,
+  apiSecret: string,
+  passphrase: string
 ): Promise<string> {
     const baseUrl = "https://api.bitget.com";
-    const path = bitgetPath("/api/balance");
-    const url = envelope.query
-        ? `${baseUrl}${path}?${envelope.query}`
-        : `${baseUrl}${path}`;
+    const path = "/api/mix/v1/account/account";
+    const params = { productType: "umcbl", marginCoin: "USDT" };
 
-    const response = await fetchWithTimeout(url, {
-        headers: bitgetCallHeaders(envelope)
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
@@ -438,16 +437,24 @@ interface BitgetRawPosition {
 }
 
 async function fetchBitgetPositions(
-  envelope: PresignedEnvelope,
+  apiKey: string,
+  apiSecret: string,
+  passphrase: string
 ): Promise<NormalizedPosition[]> {
     const baseUrl = "https://api.bitget.com";
-    const path = bitgetPath("/api/positions");
-    const url = envelope.query
-        ? `${baseUrl}${path}?${envelope.query}`
-        : `${baseUrl}${path}`;
+    const path = "/api/mix/v1/position/allPosition";
+    const params = { productType: "umcbl", marginCoin: "USDT" };
 
-    const response = await fetchWithTimeout(url, {
-        headers: bitgetCallHeaders(envelope)
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
     });
 
     if (!response.ok) throw new Error("Bitget API Error");
@@ -555,12 +562,6 @@ async function executeOrder(
  * boundary's "I do not implement this", which the route turns into a refusal
  * rather than a 200 — and the client adapter refuses one step earlier still,
  * so this is the backstop, not the message the trader reads.
- *
- * `/api/account-settings` names Bitunix alone in `ROUTE_SIGNING_PLAN`, so a
- * Bitget account is refused while its envelope is being built and never reaches
- * this. It takes no parameters for that reason: there is nothing to forward to
- * a venue that has no endpoint, and a shorter signature keeps a call site from
- * having to invent them.
  */
 async function executeAccountSetting(): Promise<null> {
   return null;
@@ -574,12 +575,12 @@ export const bitgetVenue: VenueModule = {
     return validateBitgetKeys(creds.apiKey, creds.apiSecret, creds.passphrase);
   },
 
-  fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData> {
-    return fetchBitgetAccount(envelope);
+  fetchAccount(creds: VenueCredentials): Promise<ExchangeAccountData> {
+    return fetchBitgetAccount(creds.apiKey, creds.apiSecret, creds.passphrase ?? "");
   },
 
-  fetchBalance(envelope: PresignedEnvelope): Promise<string> {
-    return fetchBitgetBalance(envelope);
+  fetchBalance(creds: VenueCredentials): Promise<string> {
+    return fetchBitgetBalance(creds.apiKey, creds.apiSecret, creds.passphrase ?? "");
   },
 
   // `/api/mix/v1/market/candles` serves the last-price series only. Bitget
@@ -598,8 +599,8 @@ export const bitgetVenue: VenueModule = {
     );
   },
 
-  fetchPositions(envelope: PresignedEnvelope): Promise<NormalizedPosition[]> {
-    return fetchBitgetPositions(envelope);
+  fetchPositions(creds: VenueCredentials): Promise<NormalizedPosition[]> {
+    return fetchBitgetPositions(creds.apiKey, creds.apiSecret, creds.passphrase ?? "");
   },
 
   tickersUrl: bitgetTickersUrl,

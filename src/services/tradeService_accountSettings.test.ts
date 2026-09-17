@@ -112,24 +112,6 @@ describe("FEAT-0068 — the writes reach the account-settings route", () => {
         });
     });
 
-    it("rides as a pre-signed envelope, and never attaches the secret", async () => {
-        await tradeService.changeLeverage("BTCUSDT", new Decimal(20));
-
-        const [, init] = appFetchMock.mock.calls[0];
-        const headers = (init as RequestInit).headers as Record<string, string>;
-
-        // FEAT-0405 A5: the envelope is the credential now. The key names it,
-        // the signature proves it, and the secret the signature was made with
-        // stays on the device (ADR-0013) — that is what lets the route forward
-        // the client's own bytes instead of signing them itself.
-        expect(headers["x-api-key"]).toBe("test-key-1234");
-        expect(headers["x-api-sign"]).toEqual(expect.any(String));
-        expect(headers["x-api-nonce"]).toEqual(expect.any(String));
-        expect(headers["x-api-timestamp"]).toEqual(expect.any(String));
-        expect(JSON.stringify(headers)).not.toContain("test-secret");
-        expect(String((init as RequestInit).body)).not.toContain("test-secret");
-    });
-
     it("sends change-margin-mode with the venue's spelling", async () => {
         await tradeService.changeMarginMode("BTCUSDT", "ISOLATION");
 
@@ -469,22 +451,21 @@ describe("BUG-0409 — the read-back is bounded and honest", () => {
     });
 
     it("raises the marker while the read-back is still running", async () => {
-        // Observed from inside the reads rather than by stopping the fake clock
-        // mid-gap: a migrated read signs before it dispatches (FEAT-0405) and
-        // signing settles on real macrotasks the fake clock never runs, so any
-        // hand-rolled window can only be advanced blind. Sampling the marker on
-        // each read says the same thing — it is up for every read the read-back
-        // makes, so it was raised before the read-back started and not after.
-        const markers: boolean[] = [];
-        appFetchMock.mockImplementation(async (url: string) => {
-            if (String(url) !== "/api/account") return ok({});
-            markers.push(accountState.positionModeVerifying);
-            return ok({ positionMode: "ONE_WAY" });
-        });
+        appFetchMock.mockImplementation(async (url: string) =>
+            String(url) === "/api/account" ? ok({ positionMode: "ONE_WAY" }) : ok({}),
+        );
 
-        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
-
-        expect(markers).toEqual([true, true, true]);
+        vi.useFakeTimers();
+        try {
+            const pending = tradeService.changePositionMode("HEDGE").catch(() => {});
+            // Past the write and the first read, inside the first gap.
+            await vi.advanceTimersByTimeAsync(100);
+            expect(accountState.positionModeVerifying).toBe(true);
+            await vi.advanceTimersByTimeAsync(10_000);
+            await pending;
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("accepts any spelling the venue uses for the margin mode", async () => {

@@ -32,8 +32,6 @@
  * Browser-safe: no `node:*` imports, no server-only SvelteKit modules.
  */
 
-import type { Venue } from "./restSigningPlan";
-
 /** Bitunix's page-size ceiling for the history endpoints. */
 const HISTORY_LIMIT_DEFAULT = 50;
 const POSITIONS_HISTORY_LIMIT_MAX = 100;
@@ -158,45 +156,4 @@ export function buildTpslWriteBody(params: Record<string, unknown>): string {
     cleaned[key] = value;
   }
   return JSON.stringify(cleaned);
-}
-
-/**
- * The three multi-venue query routes take no caller input: each venue's
- * parameter set is fixed, and every value here is the literal the server's own
- * builder used before the cutover (`bitunix.ts` / `bitget.ts`). Literals on
- * purpose — deriving them from the credentials would change the signed bytes
- * for a request that works today.
- *
- * Bitunix reaches account and balance on one endpoint with one set, and Bitget
- * does the same; only `positions` genuinely differs between the venues.
- *
- * The venue decides the record, not just its order — `queryStringForVenue`
- * handles the ordering half of this rule, and cannot help with this half.
- */
-export function buildAccountQueryParams(venue: Venue): Record<string, string> {
-  return venue === "bitunix"
-    ? { marginCoin: "USDT" }
-    : { productType: "umcbl", marginCoin: "USDT" };
-}
-
-/**
- * Identical to `buildAccountQueryParams` on both venues today — same endpoint,
- * same parameters, different Cachy route. Kept as its own name rather than
- * calling the account builder from the balance route: the two routes differ in
- * how they map the answer, so either may move without the other.
- */
-export function buildBalanceQueryParams(venue: Venue): Record<string, string> {
-  return buildAccountQueryParams(venue);
-}
-
-/**
- * Bitunix signs this one with *no* parameters — the case `readPresignedEnvelope`
- * reads as an empty-but-present `x-api-query` rather than as a missing envelope.
- * An empty record is not the same as a missing one, and collapsing the two would
- * make this route unmigratable. Bitget wants a product type and margin coin.
- */
-export function buildPositionsQueryParams(venue: Venue): Record<string, string> {
-  return venue === "bitunix"
-    ? {}
-    : { productType: "umcbl", marginCoin: "USDT" };
 }

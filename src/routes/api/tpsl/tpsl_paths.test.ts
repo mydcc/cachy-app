@@ -22,7 +22,7 @@ import {
   signedEnvelopeRequest,
   TEST_SIGNING_KEYS,
 } from "../../../tests/helpers/signedEnvelopeRequest";
-import { buildTpslReadQueryParams, buildTpslWriteBody } from "../../../utils/exchange/venueQueries";
+import { buildTpslReadQueryParams } from "../../../utils/exchange/venueQueries";
 
 // Regression test for the wrong Bitunix TP/SL paths (tp_sl/*_tp_sl_order
 // instead of tpsl/*_order(s)) that made every TP/SL request 404/error at
@@ -49,14 +49,9 @@ function callAction(action: string, params: Record<string, unknown>) {
   const writes = WRITE_ACTIONS.has(action);
   // A writer's Cachy body *is* the venue body: the route forwards the signed
   // bytes unchanged, so the `{ exchange, action, params }` wrapper the callers
-  // build is transport only and never travels. It travels already serialised,
-  // by the same builder the route rebuilds it with — `tradeService`'s
-  // `ENVELOPE_BODY_BUILDERS` entry — because since A4 the signer builds a venue
-  // body only from a *Cachy* payload and takes a string verbatim. A reader still
-  // sends the wrapper, which is what its schema validates.
-  const payload = writes
-    ? buildTpslWriteBody(params)
-    : { exchange: "bitunix", action, params };
+  // build is transport only and never travels. A reader still sends it, which
+  // is what its schema validates.
+  const payload = writes ? params : { exchange: "bitunix", action, params };
 
   // A writer signs its body and sends no query at all, so it must sign an
   // empty one: signing a query the venue never receives is a signature the
@@ -122,8 +117,7 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     // it — a second JSON.stringify would drop whitespace and the venue would
     // reject a signature over different bytes than the ones it received.
     const params = { orderId: "1", symbol: "BTCUSDT" };
-    const body = buildTpslWriteBody(params);
-    const { request, url } = await signedEnvelopeRequest("/api/tpsl?action=cancel", body, {});
+    const { request, url } = await signedEnvelopeRequest("/api/tpsl?action=cancel", params, {});
 
     const response = await handler({ request, url });
 
@@ -140,7 +134,7 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     // rebuilds it — without that, a write would reach Bitunix unchecked.
     const { request, url } = await signedEnvelopeRequest(
       "/api/tpsl?action=cancel",
-      buildTpslWriteBody({ orderId: "1" }),
+      { orderId: "1" },
       {},
     );
 

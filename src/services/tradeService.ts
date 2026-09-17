@@ -75,12 +75,10 @@ import {
     signatureShapeFor,
 } from "../utils/exchange/restSigningPlan";
 import {
-    buildAccountQueryParams,
     buildLeverageMarginModeQueryParams,
     buildTpslReadQueryParams,
     buildTpslWriteBody,
 } from "../utils/exchange/venueQueries";
-import { AccountSettingsRequestSchema } from "../types/accountSettingsSchemas";
 
 /**
  * FEAT-0405 cutover window — routes whose transport already signs in the
@@ -389,11 +387,6 @@ class TradeService {
         const response = plan && ENVELOPE_SIGNED_ROUTES.has(endpoint)
             ? await exchangeSignedFetch({
                   cachyPath: routeUrl,
-                  // Declared, not just embedded: `routeUrl` already carries
-                  // this in its query string, and the mismatch guard inside
-                  // fires if the two ever disagree — one source of truth,
-                  // checked twice.
-                  action: typeof payload.action === "string" ? payload.action : undefined,
                   keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
                   method,
                   // Named rather than inferred. The route used to enforce this
@@ -539,19 +532,17 @@ class TradeService {
         }
 
         try {
-            // FEAT-0405 A5 — this read used to carry the secret, and its failure
-            // is swallowed by every caller (`.catch(() => {})` in
-            // ExchangeAccountControls), which is exactly how an unmigrated call
-            // site here would present: position mode silently stuck on its
-            // default. Signing it in the browser is what keeps that quiet.
-            const response = await exchangeSignedFetch({
-                cachyPath: "/api/account",
-                keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
-                venue: provider,
-                payload: { exchange: provider },
-                queryParams: buildAccountQueryParams(provider),
-                headers: { "X-Provider": provider },
-                fetchFn: appFetch,
+            const response = await appFetch("/api/account", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret,
+                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+                },
+                body: JSON.stringify({
+                    exchange: provider,
+                }),
             });
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positionMode?: unknown }>(json);
@@ -580,9 +571,6 @@ class TradeService {
      * do — a leverage change that reported nothing would leave the trader
      * sizing a position against a number the exchange never accepted.
      *
-     * FEAT-0405 A5: the credential rides as a pre-signed envelope like every
-     * other migrated route, so the secret never leaves the device.
-     *
      * Paper mode never reaches the network. `paperExchange` simulates orders,
      * not account settings; there is nothing on the far side to change, so
      * this refuses instead of pretending.
@@ -600,29 +588,16 @@ class TradeService {
             throw new Error("apiErrors.missingCredentials");
         }
 
-        // Parsed here as well as in the route, and for the same reason the route
-        // parses: `marginCoin` carries a default and `amount` a transform, so the
-        // two sides only build the same bytes if they build from the same parsed
-        // payload. Signing the raw object instead would be refused as
-        // `PRESIGNED_DIVERGENCE` before anything left Cachy.
-        const parsed = AccountSettingsRequestSchema.safeParse({ exchange: provider, ...payload });
-        if (!parsed.success) {
-            const details = parsed.error.issues
-                .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-                .join(", ");
-            throw new BitunixApiError("VALIDATION_ERROR", "apiErrors.generic", details);
-        }
-
-        const response = await exchangeSignedFetch({
-            cachyPath: "/api/account-settings",
-            keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+        const response = await appFetch("/api/account-settings", {
             method: "POST",
-            // Named rather than inferred: the route resolves its venue from the
-            // body, and the envelope itself carries only credentials.
-            venue: provider,
-            fetchFn: appFetch,
-            headers: { "X-Provider": provider },
-            payload: parsed.data,
+            headers: {
+                "Content-Type": "application/json",
+                "X-Provider": provider,
+                "X-Api-Key": keys.key,
+                "X-Api-Secret": keys.secret,
+                ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+            },
+            body: JSON.stringify({ exchange: provider, ...payload }),
         });
 
         const text = await response.text();

@@ -1,3 +1,4 @@
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -23,11 +24,6 @@ import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiRespon
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../utils/redact";
 import { resolveVenue } from "../../../utils/server/venues";
-import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";
-import { buildPositionsQueryParams } from "../../../utils/exchange/venueQueries";
-import { queryStringForVenue } from "../../../utils/exchange/restSigningPlan";
-
-const CACHY_PATH = "/api/positions";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -49,28 +45,27 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   }
 
   const { exchange } = validation.data;
+  const creds = extractApiCredentials(request, validation.data);
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
+  const passphrase = creds.passphrase;
+
+  if (!apiKey || !apiSecret) {
+      return jsonError("Missing API Credentials", "MISSING_CREDENTIALS", 401);
+  }
 
   try {
     const venue = resolveVenue(exchange);
     if (!venue) {
       return jsonError("Unsupported exchange", "UNSUPPORTED_EXCHANGE", 400);
     }
-
-    const rebuilt = queryStringForVenue(exchange, buildPositionsQueryParams(exchange));
-    const check = checkPresignedRequest(request, {
-      cachyPath: CACHY_PATH,
-      rebuilt,
-    });
-    if (!check.ok) {
-      return jsonError(`Signature envelope rejected: ${check.code}`, "PRESIGNED_REJECTED", 400);
-    }
-    if (venue.requiresPassphrase && check.envelope.passphrase === undefined) {
+    if (venue.requiresPassphrase && !passphrase) {
       // Bitget is named in the message because it is the message this route
       // has always returned; only Bitget requires a passphrase today.
       return jsonError("Missing passphrase for Bitget", "MISSING_PASSPHRASE", 400);
     }
 
-    const positions = await venue.fetchPositions(check.envelope);
+    const positions = await venue.fetchPositions({ apiKey, apiSecret, passphrase });
 
     return jsonSuccess({ positions });
   } catch (e) {

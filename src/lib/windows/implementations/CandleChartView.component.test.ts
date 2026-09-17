@@ -234,28 +234,6 @@ async function settle(rounds = 4) {
     flushSync();
 }
 
-/**
- * Yield macrotasks until `condition` holds, for reads whose *result* the test
- * asserts on.
- *
- * `settle` above drains the microtask queue, but a signed request resolves
- * off the macrotask one — `crypto.subtle.digest` comes back through libuv, and
- * `signCachyRequest` awaits it before anything reaches `appFetch`. So `settle`
- * returns while the read is still in flight and the assertion sees an empty
- * store. Waiting on the observable removes any guess about how many turns it
- * needs — same shape as the sibling
- * `PositionsSidebar.live-position.component.test.ts`.
- */
-async function settleUntil(condition: () => boolean, budgetMs = 3000): Promise<void> {
-    const deadline = Date.now() + budgetMs;
-    while (Date.now() < deadline) {
-        flushSync();
-        if (condition()) return;
-        await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-    throw new Error("settleUntil: condition never held");
-}
-
 beforeEach(() => {
     vi.clearAllMocks();
     marketState.data = {};
@@ -662,14 +640,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
  */
 describe("FEAT-0247 — chart-only position hydration", () => {
     it("hydrates accountState.positions on mount when it is empty and API keys are configured", async () => {
-        // Key *shapes*, not "k"/"s": this read signs in the browser now, and
-        // `signCachyRequest` refuses a key or secret the venue would already
-        // have rejected — so stub values that short mean the request is never
-        // sent, and the assertion below would fail for the wrong reason.
-        settingsState.accountFor("bitunix").keys = {
-            key: "test-key-0123456789",
-            secret: "test-secret-0123456789",
-        };
+        settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
         appFetchMock.mockResolvedValue({
             json: () =>
                 Promise.resolve({
@@ -700,7 +671,7 @@ describe("FEAT-0247 — chart-only position hydration", () => {
             target: host,
             props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
         }) as never;
-        await settleUntil(() => accountState.positions.length > 0);
+        await settle();
 
         expect(appFetchMock).toHaveBeenCalledWith(
             "/api/positions",

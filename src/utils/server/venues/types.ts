@@ -18,7 +18,6 @@
 import type { NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import type { AccountSettingsPayload } from "../../../types/accountSettingsSchemas";
-import type { PresignedEnvelope } from "../presignedEnvelope";
 
 /**
  * The server-side venue boundary (FEAT-0228, ADR-0007).
@@ -110,9 +109,9 @@ export interface VenueModule {
    */
   validateKeys(creds: VenueCredentials): string | null;
 
-  fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData>;
+  fetchAccount(creds: VenueCredentials): Promise<ExchangeAccountData>;
 
-  fetchBalance(envelope: PresignedEnvelope): Promise<string>;
+  fetchBalance(creds: VenueCredentials): Promise<string>;
 
   /**
    * Whether this venue can serve mark-price candles.
@@ -127,7 +126,7 @@ export interface VenueModule {
 
   fetchKlines(query: KlineQuery): Promise<VenueKline[]>;
 
-  fetchPositions(envelope: PresignedEnvelope): Promise<NormalizedPosition[]>;
+  fetchPositions(creds: VenueCredentials): Promise<NormalizedPosition[]>;
 
   /** Upstream URL for the public tickers endpoint. Needs no credentials. */
   tickersUrl(query: TickersQuery): string;
@@ -153,10 +152,6 @@ export interface VenueModule {
    * Runs one account-settings write (FEAT-0068): leverage, margin mode,
    * position mode or an isolated position's margin.
    *
-   * `envelope` is the pre-signed credential the client sent and `venueBody` the
-   * exact bytes it signed; the venue forwards both and computes no signature of
-   * its own, which is what keeps the secret off this process (ADR-0013).
-   *
    * Resolves to `null` for a venue that has none of these wired, and the
    * route answers 400 rather than 200 — unlike `executeOrder`, whose `null`
    * predates this contract and has to stay a 200 for compatibility. A write
@@ -165,8 +160,7 @@ export interface VenueModule {
    * family must never produce.
    */
   executeAccountSetting(
-    envelope: PresignedEnvelope,
+    creds: VenueCredentials,
     payload: AccountSettingsPayload,
-    venueBody: string,
   ): Promise<unknown>;
 }

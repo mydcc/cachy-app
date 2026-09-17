@@ -19,16 +19,12 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
-import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";
-import { buildBalanceQueryParams } from "../../../utils/exchange/venueQueries";
-import { queryStringForVenue } from "../../../utils/exchange/restSigningPlan";
+import { extractApiCredentials } from "../../../utils/server/requestUtils";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { logger } from "$lib/server/logger";
 import { redactString } from "../../../utils/redact";
 import { upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 import { resolveVenue } from "../../../utils/server/venues";
-
-const CACHY_PATH = "/api/balance";
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
@@ -49,33 +45,25 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   }
 
   const { exchange } = validation.data;
+  const creds = extractApiCredentials(request, validation.data);
+  const apiKey = creds.apiKey;
+  const apiSecret = creds.apiSecret;
+  const passphrase = creds.passphrase;
+
+  if (!apiKey || !apiSecret) {
+    return json({ error: "Missing API credentials" }, { status: 400 });
+  }
 
   try {
     const venue = resolveVenue(exchange);
     if (!venue) {
       return json({ error: "Unsupported exchange" }, { status: 400 });
     }
-
-    // The bytes the client signed are this venue's parameters, serialised the
-    // way this venue serialises them. Rebuilding through the shared builder and
-    // the venue-aware serialiser is the whole comparison — a bitget request
-    // rebuilt with Bitunix's sort order would answer DIVERGENCE on every call.
-    const rebuilt = queryStringForVenue(exchange, buildBalanceQueryParams(exchange));
-    const check = checkPresignedRequest(request, {
-      cachyPath: CACHY_PATH,
-      rebuilt,
-    });
-    if (!check.ok) {
-      return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });
-    }
-    // Checked here rather than in the shared guard, which cannot tell a missing
-    // passphrase from a Bitunix request that rightly carries none — the route
-    // is the level that knows which venue this is.
-    if (venue.requiresPassphrase && check.envelope.passphrase === undefined) {
+    if (venue.requiresPassphrase && !passphrase) {
       return json({ error: "Missing passphrase" }, { status: 400 });
     }
 
-    const balance = await venue.fetchBalance(check.envelope);
+    const balance = await venue.fetchBalance({ apiKey, apiSecret, passphrase });
 
     return json({ balance });
   } catch (e) {

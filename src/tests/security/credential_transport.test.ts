@@ -21,11 +21,6 @@ import path from "node:path";
 import type { RequestEvent } from "@sveltejs/kit";
 import { logger } from "$lib/server/logger";
 import { signedEnvelopeRequest } from "../helpers/signedEnvelopeRequest";
-import { AccountSettingsRequestSchema } from "../../types/accountSettingsSchemas";
-import {
-  buildBalanceQueryParams,
-  buildPositionsQueryParams,
-} from "../../utils/exchange/venueQueries";
 
 // Mock client token check to pass
 vi.mock("$lib/server/clientToken", () => ({
@@ -99,17 +94,17 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     expect(response.status).toBe(400);
   });
 
-  it("POST /api/balance should accept a pre-signed envelope and validate schema", async () => {
+  it("POST /api/balance should accept credentials via headers and validate schema", async () => {
     const { POST } = await import("../../routes/api/balance/+server");
-    // FEAT-0405 migrated this route, so the credentials ride in the envelope and
-    // the header form above is gone — there is no fallback, which the `/api/sync`
-    // cases below assert for the same reason.
-    const { request } = await signedEnvelopeRequest(
-      "/api/balance",
-      { exchange: "bitunix" },
-      buildBalanceQueryParams("bitunix"),
-      "bitunix",
-    );
+    const request = new Request("http://localhost/api/balance", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": "test-key-12345",
+        "X-Api-Secret": "test-secret-12345",
+      },
+      body: JSON.stringify({ exchange: "bitunix" }),
+    });
 
     // Mock fetch for Bitunix balance
     vi.stubGlobal(
@@ -133,12 +128,15 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
   it("POST /api/balance should redact sensitive secrets in error logs when upstream throws", async () => {
     const loggerSpy = vi.spyOn(logger, "error");
     const { POST } = await import("../../routes/api/balance/+server");
-    const { request } = await signedEnvelopeRequest(
-      "/api/balance",
-      { exchange: "bitunix" },
-      buildBalanceQueryParams("bitunix"),
-      "bitunix",
-    );
+    const request = new Request("http://localhost/api/balance", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": "super-secret-key-123",
+        "X-Api-Secret": "super-secret-secret-456",
+      },
+      body: JSON.stringify({ exchange: "bitunix" }),
+    });
 
     vi.stubGlobal(
       "fetch",
@@ -173,14 +171,17 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     expect(response.status).toBe(400);
   });
 
-  it("POST /api/positions should accept a pre-signed envelope", async () => {
+  it("POST /api/positions should accept credentials via headers", async () => {
     const { POST } = await import("../../routes/api/positions/+server");
-    const { request } = await signedEnvelopeRequest(
-      "/api/positions",
-      { exchange: "bitunix" },
-      buildPositionsQueryParams("bitunix"),
-      "bitunix",
-    );
+    const request = new Request("http://localhost/api/positions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": "test-key-12345",
+        "X-Api-Secret": "test-secret-12345",
+      },
+      body: JSON.stringify({ exchange: "bitunix" }),
+    });
 
     vi.stubGlobal(
       "fetch",
@@ -196,71 +197,6 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     } as unknown as RequestEvent);
 
     expect(response.status).toBe(200);
-  });
-
-  it("POST /api/account-settings accepts a pre-signed envelope", async () => {
-    // FEAT-0405 A5 migrated this body-signed route. The signed bytes are the
-    // *venue* body, which the client builds through `buildVenueBody`; the Cachy
-    // body carries it under `venueBody`. Parsing through the schema first is
-    // what the client does too — `marginCoin` has a default, so an unparsed
-    // signature would not match the route's rebuild.
-    const { POST } = await import("../../routes/api/account-settings/+server");
-    const { request } = await signedEnvelopeRequest(
-      "/api/account-settings",
-      AccountSettingsRequestSchema.parse({
-        exchange: "bitunix",
-        type: "change-leverage",
-        symbol: "BTCUSDT",
-        leverage: 10,
-      }),
-      {},
-      "bitunix",
-    );
-
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        text: async () => JSON.stringify({ code: 0, msg: "Success", data: [] }),
-      }),
-    );
-
-    const response = await POST({
-      request,
-      getClientAddress: () => "127.0.0.1",
-    } as unknown as RequestEvent);
-
-    expect(response.status).toBe(200);
-  });
-
-  it("POST /api/account-settings refuses the pre-cutover shape, secret and all", async () => {
-    // Key and secret in headers with the venue payload alone in the body is the
-    // shape that used to work here. It is refused now, and the reason is
-    // asserted rather than just the status: there is no `venueBody` to compare
-    // a signature against, and nothing on this side can make one.
-    const { POST } = await import("../../routes/api/account-settings/+server");
-    const request = new Request("http://localhost/api/account-settings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": "test-key-12345",
-        "X-Api-Secret": "test-secret-12345",
-      },
-      body: JSON.stringify({
-        exchange: "bitunix",
-        type: "change-leverage",
-        symbol: "BTCUSDT",
-        leverage: 10,
-      }),
-    });
-
-    const response = await POST({
-      request,
-      getClientAddress: () => "127.0.0.1",
-    } as unknown as RequestEvent);
-
-    expect(response.status).toBe(400);
-    expect((await response.json()).code).toBe("MISSING_SIGNED_BODY");
   });
 
   it("POST /api/sync accepts a pre-signed envelope instead of credentials", async () => {

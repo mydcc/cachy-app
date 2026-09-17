@@ -232,28 +232,3 @@ export function bitunixCallHeaders(envelope: PresignedEnvelope): Record<string, 
     "Content-Type": "application/json",
   };
 }
-
-/**
- * The five headers a forwarded Bitget call carries, built from the client's
- * envelope. The counterpart of `bitunixCallHeaders`, and for the same reason:
- * these literals are copied from `generateBitgetSignature`'s callers
- * (`venues/bitget.ts`), and a hand-built copy that drifts is a venue rejection
- * mid-trade.
- *
- * `ACCESS-PASSPHRASE` is the ADR-0013 named exception and the only credential
- * here besides `ACCESS-KEY` — the secret never appears, because it is the HMAC
- * key and stayed client-side. Narrowed like the nonce above: a Bitget request
- * that reached this point has already passed `routeTakesPassphrase`, so the
- * throw is unreachable from a route that called `checkPresignedRequest` first.
- */
-export function bitgetCallHeaders(envelope: PresignedEnvelope): Record<string, string> {
-  if (envelope.passphrase === undefined) throw new Error(PRESIGNED_ERRORS.MISSING_ENVELOPE);
-
-  return {
-    "ACCESS-KEY": envelope.apiKey,
-    "ACCESS-SIGN": envelope.signature,
-    "ACCESS-TIMESTAMP": envelope.timestamp,
-    "ACCESS-PASSPHRASE": envelope.passphrase,
-    "Content-Type": "application/json",
-  };
-}

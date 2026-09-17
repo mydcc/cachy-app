@@ -25,7 +25,7 @@ vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
         ...migrateAccounts({ apiKeys: {
-            bitunix: { key: 'test-key-0123456789', secret: 'test-secret-0123456789', passphrase: 'test' }
+            bitunix: { key: 'test', secret: 'test', passphrase: 'test' }
         } })
     }
 }));

@@ -151,30 +151,14 @@ location / {
   cross-origin check on form submissions — the same reason `ORIGIN` exists (§7).
 - **`X-Forwarded-Host`** preserves the host the browser used.
 
-**`add_header` is not inherited by locations.** Nginx drops every `add_header`
+**`add_header` is not inherited by locations.** nginx drops every `add_header`
 declared at the `server` level for a `location` that declares its own. A
-`location /` carrying `add_header X-Cache …` therefore loses server-level
-security headers. Repeat all security headers inside the location block (or include a shared headers file) and add
-`always` so they also apply to error responses:
+`location /` carrying `add_header X-Cache …` therefore loses a server-level
+`Strict-Transport-Security`. Repeat the header inside the location, and add
+`always` so it also applies to error responses:
 
 ```nginx
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https: blob: data:; frame-ancestors 'self'; connect-src 'self' https: https://s.cachy.app https://chat.cachy.app wss://chat.cachy.app https://*.cachy.app wss://*.cachy.app wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://api.telegram.org https://api.mailgun.net https://generativelanguage.googleapis.com https://api.openai.com" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-Frame-Options "SAMEORIGIN" always;
-add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;
-add_header Permissions-Policy "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*" always;
-```
-
-**Gzip compression & asset performance.** Ensure Nginx has Gzip compression enabled to optimize Lighthouse performance scores and prevent serving uncompressed responses:
-
-```nginx
-gzip on;
-gzip_comp_level 6;
-gzip_min_length 1024;
-gzip_proxied any;
-gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
 ```
 
 **Prefer TLS 1.2 and newer.** Leave `TLSv1.1` out of `ssl_protocols`; it is

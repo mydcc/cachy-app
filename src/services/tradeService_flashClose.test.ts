@@ -37,7 +37,7 @@ vi.mock('../stores/settings.svelte', () => ({
   settingsState: {
     apiProvider: 'bitunix',
     accounts: [
-      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: 'test-key-0123456789', secret: 'test-secret-0123456789' } },
+      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: 'test', secret: 'test' } },
     ],
     activeAccountId: "bitunix",
     appAccessToken: 'test-token',

@@ -157,12 +157,8 @@ export function buildBitgetClosePositionPayload(order: {
 }
 
 /**
- * The cancel body. Both venues POST this one, so it is not a transport
- * difference: Bitunix documents `cancel_orders` as a `POST` carrying
- * `{ symbol, orderList }` (`docs/bitunix-api/07_trade.md`) — the same shape
- * family as the Bitget body here, only grouped differently. The Bitunix builder
- * is not written yet, which is the sole reason `buildVenueBody("bitunix", …)`
- * throws for this pair.
+ * The cancel body. Bitget POSTs it, where Bitunix signs the same three values
+ * as a query — the one action whose transport differs between the two venues.
  */
 export function buildBitgetCancelOrderBody(payload: {
   symbol: string;

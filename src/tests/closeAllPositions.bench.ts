@@ -43,7 +43,7 @@ vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
         apiKeys: {
-            bitunix: { key: 'test-key-0123456789', secret: 'test-secret-0123456789' }
+            bitunix: { key: 'test', secret: 'test' }
         }
     }
 }));

@@ -148,10 +148,6 @@ describe("BUG-0419 — a read in flight across a mode switch is discarded", () =
         // put on screen. A late live "ONE_WAY" must not overwrite it.
         expect(accountState.positionMode).toBe("HEDGE");
 
-        // A4 moved this read onto the envelope, so it no longer reaches
-        // `appFetch` before `fetchPositionMode` returns — the same reason the
-        // two reads below already wait here.
-        await settleDispatch();
         release("/api/account", { data: { positionMode: "ONE_WAY" } });
         await read;
 

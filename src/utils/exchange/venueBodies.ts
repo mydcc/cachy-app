@@ -57,21 +57,10 @@ import type { Venue } from "./restSigningPlan";
  * Serialises the request one venue call will carry.
  *
  * Throws rather than returning `null` for a venue/action pair that has no
- * body: the three actions `/api/orders` reaches Bitunix with as a signed GET —
- * `pending`, `history`, `order-detail` — are signed over their query, and a
- * caller that arrives here with one of them has picked the wrong shape.
- *
- * The four write actions Bitunix serves from a signed POST body — `cancel-order`
- * (`trade/cancel_orders`), `cancel-all` (`cancel_all_orders`),
- * `close-all-positions` (`close_all_position`) and `flash-close-position`
- * (`flash_close_position`), all documented as `POST` with the parameters in the
- * body in `docs/bitunix-api/07_trade.md` — are not all built yet, because
- * `/api/orders` is not cut over and nothing signs their bodies in the browser so
- * far. `cancel-order` carries the Bitget body and throws for Bitunix; the other
- * three fall into the `default` throw. Those throws are loud gaps rather than
- * quiet ones, and the missing builders land with the route's cutover
- * (FEAT-0405 A5), not before it: a builder nothing calls is not a smaller gap,
- * it is an untested one.
+ * body: the actions that reach the venue as a signed GET (history, pending,
+ * order-detail, cancel-all, close-all-positions, flash-close-position) are
+ * signed over their query, and a caller that reaches this function with one of
+ * them has picked the wrong shape.
  */
 export function buildVenueBody(
   venue: Venue,
@@ -128,12 +117,7 @@ function venueBody(
       return buildBitunixModifyOrderBody(payload);
 
     case "cancel-order":
-      // Bitunix serves the cancel as a body-signed POST (`trade/cancel_orders`
-      // with `{ symbol, orderList }` — `docs/bitunix-api/07_trade.md`, the live
-      // `cancelBitunixOrder`, and `orders_cancel_path.test.ts` all agree), so
-      // there is no query-signed cancel to build here. The Bitunix builder
-      // still lands with the route's cutover (FEAT-0405 A5): until then this
-      // throw is the loud gap, not a shape claim.
+      // The reverse asymmetry: Bitunix signs the cancel as a query.
       if (venue !== "bitget") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
       return buildBitgetCancelOrderBody(payload);
 

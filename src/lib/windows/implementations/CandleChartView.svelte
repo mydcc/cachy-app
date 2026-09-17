@@ -46,8 +46,6 @@
     import { toastService } from "../../../services/toastService.svelte";
     import { logger } from "../../../services/logger";
     import { appFetch } from "../../appAuth";
-    import { exchangeSignedFetch } from "../../../utils/exchange/browserSigning";
-    import { buildPositionsQueryParams } from "../../../utils/exchange/venueQueries";
     import { unwrapApiEnvelope, formatDynamicDecimal, deriveTickSizeFromPrice } from "../../../utils/utils";
     import {
         buildAxisFormatters,
@@ -282,17 +280,15 @@
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
         try {
-            // FEAT-0405 A4 — the secret stays on this side: the browser signs,
-            // the route rebuilds its comparison from `buildPositionsQueryParams`
-            // and forwards the envelope. Same shape as PositionsSidebar's read.
-            const response = await exchangeSignedFetch({
-                cachyPath: "/api/positions",
-                keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
-                venue: provider,
-                payload: { exchange: provider },
-                queryParams: buildPositionsQueryParams(provider),
-                headers: { "X-Provider": provider },
-                fetchFn: appFetch,
+            const response = await appFetch("/api/positions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Api-Key": keys.key,
+                    "X-Api-Secret": keys.secret,
+                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
+                },
+                body: JSON.stringify({ exchange: provider }),
             });
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
