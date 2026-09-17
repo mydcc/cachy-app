@@ -54,8 +54,7 @@
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import QuizButton from "../components/shared/QuizButton.svelte";
-  import FlashCard from "../components/shared/FlashCard.svelte";
-  import OnboardingSpotlight from "../components/shared/OnboardingSpotlight.svelte";
+  import type { Component } from "svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
   import { effectsState } from "../stores/effects.svelte";
 
@@ -63,6 +62,18 @@
   let guideContent = $state("");
   let privacyContent = $state("");
   let whitepaperContent = $state("");
+
+  let FlashCardComponent: Component | null = $state(null);
+  let OnboardingSpotlightComponent: Component | null = $state(null);
+
+  $effect(() => {
+    import("../components/shared/FlashCard.svelte")
+      .then((m) => (FlashCardComponent = m.default))
+      .catch((err) => console.error("Failed to load FlashCard", err));
+    import("../components/shared/OnboardingSpotlight.svelte")
+      .then((m) => (OnboardingSpotlightComponent = m.default))
+      .catch((err) => console.error("Failed to load OnboardingSpotlight", err));
+  });
 
   // Initialisierung der App-Logik, sobald die Komponente gemountet ist
   onMount(() => {
@@ -871,8 +882,12 @@
 
 <!-- No ModalFrames for Guide/Changelog/Academy etc. anymore - they are managed by WindowManager -->
 
-<FlashCard />
-<OnboardingSpotlight />
+{#if FlashCardComponent}
+  <FlashCardComponent />
+{/if}
+{#if OnboardingSpotlightComponent}
+  <OnboardingSpotlightComponent />
+{/if}
 
 <style>
   /* Brief 3D tilt + accent gloss sweep on the calculator panel when the
