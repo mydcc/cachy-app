@@ -415,7 +415,7 @@ Counts by status: 💡 idea 26 · 📋 specced 19 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | ✅ done | alerts |
 | [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | ci |
 | [FEAT-0454](features/FEAT-0454-alert-on-indicator-price-source.md) | Let an indicator alert compute over the price source its card is set to | P3 | ✅ done | alerts |
-| [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | 💡 idea | alerts |
+| [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | 🟢 ready | alerts |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -775,7 +775,7 @@ Counts by status: 💡 idea 26 · 📋 specced 19 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | ✅ done | none | community, pro, private | none | ADR-0012 | — |
 | [FEAT-0436](features/FEAT-0436-detect-closed-mirror-without-flip.md) | Detect backlog mirror issues that closed without the item being marked done | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0454](features/FEAT-0454-alert-on-indicator-price-source.md) | Let an indicator alert compute over the price source its card is set to | P3 | ✅ done | none | community, pro, private | none | ADR-0012 | [BUG-0453](bugs/BUG-0453-card-alert-ignores-price-source.md) |
-| [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | 💡 idea | none | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
+| [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | 🟢 ready | none | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
