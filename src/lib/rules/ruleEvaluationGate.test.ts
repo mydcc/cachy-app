@@ -196,6 +196,95 @@ describe("RuleEvaluationGate", () => {
     });
   });
 
+  describe("intrabar evaluation — FEAT-0477", () => {
+    /**
+     * The close path dedupes an anchor because a closed candle is decided once
+     * and never changes afterwards. A forming candle changes on every tick, so
+     * the same anchor has to stay answerable — refusing it would let exactly
+     * one tick per candle through and make intrabar a slower, worse close.
+     */
+    it("decides the same forming candle again on every update", () => {
+      const evaluateSpy = vi
+        .spyOn(ruleSchema, "evaluate")
+        .mockReturnValue({ verdict: "does_not_fire" });
+      const ctx = ctxWithCandles(15);
+      const anchorMs = lastAnchor(ctx);
+
+      gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs);
+      gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs);
+      gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs);
+
+      expect(evaluateSpy).toHaveBeenCalledTimes(3);
+    });
+
+    /**
+     * The hazard the second record exists for. An open candle and that same
+     * candle once closed share one `open_time_ms`, so through a single record
+     * the intrabar look would consume the anchor and the real close would come
+     * back as already-decided — intrabar mode silently disabling the close it
+     * was layered on top of.
+     */
+    it("leaves the close of the very same candle still decidable", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(15);
+      const anchorMs = lastAnchor(ctx);
+
+      gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs);
+
+      expect(gate.evaluate(DOCUMENT, ctx, anchorMs)).toEqual({ verdict: "fires" });
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    });
+
+    /**
+     * The mirror image, which matters when a trader switches a live rule from
+     * close to intrabar: the close path must not have left a floor the
+     * intrabar path then trips over.
+     */
+    it("leaves the forming candle decidable after its own close was decided", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(15);
+      const anchorMs = lastAnchor(ctx);
+
+      gate.evaluate(DOCUMENT, ctx, anchorMs);
+
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toEqual({ verdict: "fires" });
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("refuses a forming candle that has already rolled over", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+
+      gate.evaluateIntrabar(DOCUMENT, ctxWithCandles(21), 20 * STEP_MS);
+
+      // A reconnect replays the previous candle. That one is finished, and
+      // reopening it would announce an event the trader already heard about.
+      expect(gate.evaluateIntrabar(DOCUMENT, ctxWithCandles(20), 19 * STEP_MS)).toBeUndefined();
+      expect(evaluateSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("produces no verdict below warmup, the same as the close path", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate");
+      const ctx = ctxWithCandles(3);
+
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, lastAnchor(ctx))).toBeUndefined();
+      expect(evaluateSpy).not.toHaveBeenCalled();
+    });
+
+    it("forget() clears both records, not only the close one", () => {
+      vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+
+      gate.evaluateIntrabar(DOCUMENT, ctxWithCandles(21), 20 * STEP_MS);
+      gate.forget(DOCUMENT.id);
+
+      // Left behind, the forgotten evaluation's floor would still refuse this
+      // older anchor, and an edited rule would go quiet until its series
+      // produced a candle newer than the one it was edited on.
+      expect(gate.evaluateIntrabar(DOCUMENT, ctxWithCandles(20), 19 * STEP_MS)).toEqual({
+        verdict: "fires",
+      });
+    });
+  });
+
   it("forget() clears the remembered anchor so the next call evaluates again", () => {
     const evaluateSpy = vi
       .spyOn(ruleSchema, "evaluate")

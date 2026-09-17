@@ -32,6 +32,7 @@ import {
   ledgerSink,
   readAvailableKlineTimeframes,
   readClosedCandles,
+  readFormingCandles,
   readStoredRules,
   startRuleEvaluationLoop,
 } from "./ruleLoopWiring";
@@ -124,6 +125,39 @@ describe("rule loop wiring", () => {
       stored[1].close = null;
 
       expect(readClosedCandles("BTCUSDT", "1m").map((c) => c.open_time_ms)).toEqual([1_000]);
+    });
+  });
+
+  describe("readFormingCandles — FEAT-0477", () => {
+    /**
+     * The two readers are the same series read to different ends. Asserting
+     * them together is the point: a forming reader that quietly agreed with
+     * the closed one would make intrabar mode a no-op that still looked wired.
+     */
+    it("keeps exactly the candle the closed reader drops", () => {
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+
+      const closed = readClosedCandles("BTCUSDT", "1m").map((c) => c.open_time_ms);
+      const forming = readFormingCandles("BTCUSDT", "1m").map((c) => c.open_time_ms);
+
+      expect(closed).toEqual([1_000, 61_000]);
+      expect(forming).toEqual([1_000, 61_000, 121_000]);
+    });
+
+    it("answers a one-candle series, where the closed reader answers nothing", () => {
+      marketState.applySymbolKlines("BTCUSDT", "1m", [CANDLES[0]]);
+
+      // A rule reading the forming candle is warm one candle earlier than one
+      // waiting for a close, and correctly so: the candle it reads is there.
+      expect(readClosedCandles("BTCUSDT", "1m")).toEqual([]);
+      expect(readFormingCandles("BTCUSDT", "1m")).toHaveLength(1);
+    });
+
+    it("answers nothing for a series the store does not hold", () => {
+      marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
+
+      expect(readFormingCandles("ETHUSDT", "1m")).toEqual([]);
+      expect(readFormingCandles("BTCUSDT", "4h")).toEqual([]);
     });
   });
 

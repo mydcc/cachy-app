@@ -57,12 +57,40 @@ import { readRuleState } from "./ruleStateStore";
  * yields nothing, which the gate reads as "not warmed up" and withholds.
  */
 export function readClosedCandles(symbol: string, timeframe: string): EvaluationCandle[] {
+  return readStoredCandles(symbol, timeframe, false);
+}
+
+/**
+ * The same series with the candle currently forming kept on the end —
+ * FEAT-0477's `evaluation_mode: "intrabar"`.
+ *
+ * The exact opposite end of `readClosedCandles`, and deliberately a second
+ * function rather than a flag on the first: `CandleReader`'s contract is that
+ * it never includes the open candle, and a reader that sometimes does is a
+ * different contract. Which of the two a rule gets is decided once, from its
+ * document, by the loop.
+ *
+ * A one-candle series therefore yields that single forming candle rather than
+ * nothing, which matters for warmup: a rule needing `n` candles is warm one
+ * candle earlier here, and correctly so — the candle it is reading is the one
+ * it has.
+ */
+export function readFormingCandles(symbol: string, timeframe: string): EvaluationCandle[] {
+  return readStoredCandles(symbol, timeframe, true);
+}
+
+function readStoredCandles(
+  symbol: string,
+  timeframe: string,
+  includeForming: boolean,
+): EvaluationCandle[] {
   try {
     const stored = marketState.data[symbol]?.klines?.[timeframe];
-    if (!Array.isArray(stored) || stored.length < 2) return [];
+    if (!Array.isArray(stored) || stored.length < (includeForming ? 1 : 2)) return [];
 
+    const end = includeForming ? stored.length : stored.length - 1;
     const closed: EvaluationCandle[] = [];
-    for (let i = 0; i < stored.length - 1; i++) {
+    for (let i = 0; i < end; i++) {
       const candle = stored[i];
       if (candle === null || typeof candle !== "object") continue;
 
@@ -313,6 +341,9 @@ export function startRuleEvaluationLoop(
   ruleEvaluationLoop.configure({
     readCandles: readClosedCandles,
     readMarkCandles: readMarkCandles,
+    // FEAT-0477: without this every intrabar rule reports itself unevaluable
+    // rather than quietly never firing.
+    readFormingCandles: readFormingCandles,
     readRules: readStoredRules,
     // FEAT-0440: without this the core sees every rule as never-fired, and
     // `frequency` is a field the builder writes and nothing reads.
