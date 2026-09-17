@@ -1040,6 +1040,7 @@ export type TranslationKey =
   | "marketOverview.fundingRateSparklineStart"
   | "marketOverview.fundingRateSparklineEnd"
   | "marketOverview.countdown"
+  | "marketOverview.liveSummary"
   | "marketOverview.bid"
   | "marketOverview.ask"
   | "marketOverview.length"
