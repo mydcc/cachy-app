@@ -210,24 +210,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0064-oms-position-update-wipes-positionid.md"
   },
   {
-    "id": "BUG-0250",
-    "title": "MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P0",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "persistence",
-    "data_class": "A",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0250-repair-truncates-long-trades.md"
-  },
-  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
