@@ -35,6 +35,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { logger } from "../../../lib/server/logger";
 import { AccountSettingsRequestSchema } from "../../../types/accountSettingsSchemas";
 import {
     TEST_SIGNING_KEYS,
@@ -378,6 +379,29 @@ describe("POST /api/account-settings refuses rather than reporting a silent succ
     const body = await response.json();
     expect(body.error).not.toContain(TEST_SIGNING_KEYS.apiKey);
     expect(body.error).toContain("***");
+  });
+
+  it("scrubs the key from the log line too, not only from the answer", async () => {
+    // The venue echoes the key back inside its error text, and the same
+    // sanitised string has to reach both the client and the log — a key left in
+    // a log file is the same leak with a much longer half-life.
+    const loggerSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => `bad signature for key ${TEST_SIGNING_KEYS.apiKey}`,
+    });
+
+    await signedCall({
+      exchange: "bitunix",
+      type: "change-leverage",
+      symbol: "BTCUSDT",
+      leverage: 10,
+    });
+
+    expect(loggerSpy).toHaveBeenCalled();
+    expect(JSON.stringify(loggerSpy.mock.calls)).not.toContain(TEST_SIGNING_KEYS.apiKey);
+    expect(JSON.stringify(loggerSpy.mock.calls)).toContain("***");
   });
 
   it("requires an envelope", async () => {

@@ -152,17 +152,19 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const errorMsg = e instanceof Error ? e.message : String(e);
     const errorCode = (e as ExchangeError).code;
 
-    logger.error(`[API] Account setting failed: ${payload.type}`, {
-      error: errorMsg,
-      code: errorCode,
-    });
-
     // The key can appear in upstream error text; the secret cannot, because it
-    // never came this way. Scrub what the envelope actually carried.
+    // never came this way. Scrub what the envelope actually carried — before
+    // the log line as well as before the response, since a key sitting in a log
+    // file is the same leak with a much longer half-life.
     let sanitizedMsg = errorMsg;
     if (forwardedApiKey && forwardedApiKey.length > 3) {
       sanitizedMsg = sanitizedMsg.replaceAll(forwardedApiKey, "***");
     }
+
+    logger.error(`[API] Account setting failed: ${payload.type}`, {
+      error: sanitizedMsg,
+      code: errorCode,
+    });
 
     // A venue module rejecting the payload is the client's mistake, not the
     // upstream's — answering 500 would send the client looking for an
