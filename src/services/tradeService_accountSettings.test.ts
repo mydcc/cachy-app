@@ -451,21 +451,22 @@ describe("BUG-0409 — the read-back is bounded and honest", () => {
     });
 
     it("raises the marker while the read-back is still running", async () => {
-        appFetchMock.mockImplementation(async (url: string) =>
-            String(url) === "/api/account" ? ok({ positionMode: "ONE_WAY" }) : ok({}),
-        );
+        // Observed from inside the reads rather than by stopping the fake clock
+        // mid-gap: a migrated read signs before it dispatches (FEAT-0405) and
+        // signing settles on real macrotasks the fake clock never runs, so any
+        // hand-rolled window can only be advanced blind. Sampling the marker on
+        // each read says the same thing — it is up for every read the read-back
+        // makes, so it was raised before the read-back started and not after.
+        const markers: boolean[] = [];
+        appFetchMock.mockImplementation(async (url: string) => {
+            if (String(url) !== "/api/account") return ok({});
+            markers.push(accountState.positionModeVerifying);
+            return ok({ positionMode: "ONE_WAY" });
+        });
 
-        vi.useFakeTimers();
-        try {
-            const pending = tradeService.changePositionMode("HEDGE").catch(() => {});
-            // Past the write and the first read, inside the first gap.
-            await vi.advanceTimersByTimeAsync(100);
-            expect(accountState.positionModeVerifying).toBe(true);
-            await vi.advanceTimersByTimeAsync(10_000);
-            await pending;
-        } finally {
-            vi.useRealTimers();
-        }
+        await runWithReadBack(tradeService.changePositionMode("HEDGE"));
+
+        expect(markers).toEqual([true, true, true]);
     });
 
     it("accepts any spelling the venue uses for the margin mode", async () => {

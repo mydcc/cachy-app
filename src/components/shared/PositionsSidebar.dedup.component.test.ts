@@ -50,7 +50,10 @@ const settings = vi.hoisted(() => ({
             id: "acc-1",
             name: "test",
             exchange: "bitunix",
-            keys: { key: "k", secret: "s" },
+            // FEAT-0405 A5 — same reason as the sibling component tests: the
+            // signer runs the venue key-shape check client-side now, so
+            // one-character placeholders are refused before dispatch.
+            keys: { key: "test-key-0123456789", secret: "test-secret-0123456789" },
         },
     ],
     hideUnfilledOrders: false,
@@ -113,6 +116,14 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import PositionsSidebar from "./PositionsSidebar.svelte";
+import { webcrypto } from "node:crypto";
+
+// happy-dom ships no `crypto.subtle`, and `signCachyRequest` refuses to run
+// without it (browserSigning.ts — INSECURE_CONTEXT, ADR-0013 failure mode 3),
+// so every signed request would be swallowed by the component's catch. Node's
+// WebCrypto is the same API the browser exposes, so the component signs a real
+// envelope here exactly as it does in production.
+Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true });
 
 let pendingAccounts: { resolve: (body: unknown) => void }[] = [];
 let host: HTMLElement;
@@ -143,12 +154,52 @@ function routeFetchDeferred() {
     });
 }
 
-async function settle(rounds = 8) {
-    for (let i = 0; i < rounds; i++) {
+/**
+ * Let the component's signed requests reach `appFetch`.
+ *
+ * A macrotask, not just a microtask: the signer's WebCrypto call
+ * (`crypto.subtle.sign`) resolves off the microtask queue, so a microtask-only
+ * flush returns while the requests are still in flight and the POST count is
+ * read as zero.
+ *
+ * Budgeted in wall-clock time rather than in turns. How many macrotasks the
+ * signer needs is decided by when its libuv threadpool callback comes back,
+ * which stretches past any fixed turn count when the suite runs parallel to
+ * other files. No response can land however long this waits, so the budget is
+ * an upper bound on the wait, not a race against one.
+ */
+async function settle(budgetMs = 200) {
+    const deadline = Date.now() + budgetMs;
+    do {
         flushSync();
-        await Promise.resolve();
-    }
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    } while (Date.now() < deadline);
     flushSync();
+}
+
+/**
+ * Yield macrotasks until `read` stops changing.
+ *
+ * The number of requests dispatched is what these tests assert on, and signing
+ * decides only *when* each one reaches `appFetch` — so the count is what to
+ * wait for, and a fixed budget long enough on an idle machine is still short
+ * on a loaded one. Waiting for the count to settle is not the same as waiting
+ * for a threshold: a broken coalescer reaches four and stays there, and the
+ * assertion still sees four.
+ */
+async function settleStable(read: () => number, budgetMs = 3000): Promise<void> {
+    const deadline = Date.now() + budgetMs;
+    let last = -1;
+    let unchanged = 0;
+    while (Date.now() < deadline) {
+        flushSync();
+        const now = read();
+        unchanged = now === last ? unchanged + 1 : 0;
+        last = now;
+        if (unchanged >= 5) return;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    throw new Error("settleStable: request count never settled");
 }
 
 async function resolveAllPending() {
@@ -183,6 +234,7 @@ describe("BUG-0423 — duplicate account fetches", () => {
         routeFetchDeferred();
         await mountSidebar();
         await mountSidebar();
+        await settleStable(accountPostCount);
 
         // Mount trigger coalesced to one POST, keys-change trigger coalesced
         // to one POST: two for two instances. Without the fix this is four.
@@ -195,6 +247,7 @@ describe("BUG-0423 — duplicate account fetches", () => {
     it("a hidden instance issues no fetch of its own", async () => {
         routeFetchDeferred();
         await mountSidebar({ fetchEnabled: false });
+        await settleStable(accountPostCount);
 
         // Without the fix the prop does not exist and the instance fetches
         // on mount and on keys change like a visible one.

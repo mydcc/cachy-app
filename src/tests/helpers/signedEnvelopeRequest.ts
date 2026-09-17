@@ -27,11 +27,19 @@
  */
 
 import { signCachyRequest } from "../../utils/exchange/browserSigning";
+import type { Venue } from "../../utils/exchange/restSigningPlan";
 
-/** Stand-ins with no relation to a real credential, so a leak is obvious. */
+/**
+ * Stand-ins with no relation to a real credential, so a leak is obvious.
+ *
+ * `passphrase` is present even for Bitunix tests on purpose: the Bitunix branch
+ * of `signCachyRequest` returns before it is read, so a Bitunix request cannot
+ * carry it — and a fixture that omitted it could not prove that.
+ */
 export const TEST_SIGNING_KEYS = {
   apiKey: "test-api-key-0123456789",
   apiSecret: "test-api-secret-0123456789",
+  passphrase: "test-api-passphrase-0123456789",
 };
 
 /**
@@ -51,10 +59,12 @@ export async function signedEnvelopeRequest(
   cachyPath: string,
   payload: unknown,
   queryParams: Record<string, string> = {},
+  venue?: Venue,
 ): Promise<SignedEnvelopeRequest> {
   const signed = await signCachyRequest({
     cachyPath,
     keys: TEST_SIGNING_KEYS,
+    venue,
     payload,
     queryParams,
     now: () => FIXED_NOW,
