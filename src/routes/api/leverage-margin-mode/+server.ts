@@ -29,6 +29,7 @@ import {
 } from "../../../utils/server/presignedEnvelope";
 import { canonicalQueryString } from "../../../utils/exchange/restSigningPlan";
 import { buildLeverageMarginModeQueryParams } from "../../../utils/exchange/venueQueries";
+import { BitunixLeverageMarginModeSchema } from "../../../types/apiSchemas";
 
 const CACHY_PATH = "/api/leverage-margin-mode";
 const BITUNIX_BASE_URL = "https://fapi.bitunix.com";
@@ -126,10 +127,21 @@ async function fetchLeverageMarginMode(
   const data = Array.isArray(res.data) ? res.data[0] : res.data;
   if (!data) throw new Error("No leverage/margin-mode data found");
 
-  return {
+  // BUG-0515: a bare Number() here coerced null to 0x and garbage to NaN
+  // (null over JSON) before anything validated it. The venue answers with
+  // an int, so validate the slice at the source with the same schema the
+  // client enforces (BUG-0409) and fail closed instead of forwarding it.
+  const parsed = BitunixLeverageMarginModeSchema.safeParse({
     symbol: data.symbol,
     marginCoin: data.marginCoin,
-    leverage: Number(data.leverage),
+    leverage: data.leverage,
     marginMode: data.marginMode,
-  };
+  });
+  if (!parsed.success) {
+    const details = parsed.error.issues
+      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .join(", ");
+    throw new Error(`Invalid leverage/margin-mode payload: ${details}`);
+  }
+  return parsed.data;
 }
