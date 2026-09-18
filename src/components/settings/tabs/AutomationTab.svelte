@@ -49,10 +49,9 @@
     import {
         deleteBot,
         isBot,
-        readBots,
         setBotEnabled,
     } from "../../../services/alertEngine/botStore";
-    import { AlertNotFoundError, promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
+    import { promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
     import { logger } from "../../../services/logger";
     import Toggle from "../../shared/Toggle.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
@@ -60,8 +59,16 @@
 
     let bots = $state<RuleDocument[]>([]);
     let alerts = $state<RuleDocument[]>([]);
-    /** The refusal to show, as an i18n key. Cleared on the next attempt. */
-    let refusalKey = $state<string | null>(null);
+    /**
+     * What to tell the trader about the last failed promotion: the i18n key and
+     * the field it names. Cleared on the next attempt.
+     *
+     * The field travels with the key rather than being hardcoded at the render
+     * site: the core refuses `action.order.size` most often, but not only, and a
+     * message that always names the size would point at the wrong field the
+     * first time it does not.
+     */
+    let refusal = $state<{ key: string; field: string } | null>(null);
 
     let sourceId = $state("");
     let side = $state<"buy" | "sell">("buy");
@@ -117,25 +124,37 @@
     }
 
     function promote() {
-        refusalKey = null;
+        refusal = null;
         const order: OrderIntent = { side, size_basis: sizeBasis, size };
         try {
             promoteAlertToBot(sourceId, order);
             refresh();
         } catch (e) {
-            // The core reports an i18n key per refusal; the first is the one a
-            // trader has to act on. Anything else is a genuine failure and is
-            // not dressed up as "your rule is invalid".
+            // The core reports an i18n key per refusal, each naming the field a
+            // trader has to change; the first is the one to act on.
             if (isRuleRefusedError(e)) {
-                refusalKey = e.refusals[0]?.i18n_key ?? e.translationKey;
-            } else if (e instanceof AlertNotFoundError) {
-                // The alert was deleted in another tab after the form was
-                // opened: say so, instead of a generic creation failure.
-                refusalKey = e.translationKey;
-            } else {
-                refusalKey = "settings.automation.promoteFailed";
-                logger.error("alerts", "[Automation] Promoting an alert failed", e);
+                const first = e.refusals[0];
+                refusal = {
+                    key: first?.i18n_key ?? e.translationKey,
+                    field: first?.field ?? "",
+                };
+                return;
             }
+            // `AlertNotFoundError` and `RuleStoreUnreadableError` each carry
+            // their own key, and each says something the generic message
+            // cannot: the alert was deleted in another tab, or the store could
+            // not be read and nothing was written. Falling through to
+            // `promoteFailed` would replace a specific answer with a shrug.
+            const keyed = (e as { translationKey?: unknown }).translationKey;
+            if (typeof keyed === "string") {
+                refusal = { key: keyed, field: "" };
+                return;
+            }
+            // Only genuinely unexpected failures reach the log. An alert that
+            // vanished between opening this form and confirming it is a race,
+            // not a fault.
+            refusal = { key: "settings.automation.promoteFailed", field: "" };
+            logger.error("alerts", "[Automation] Promoting an alert failed", e);
         }
     }
 
@@ -299,10 +318,10 @@
                     </label>
                 </div>
 
-                {#if refusalKey}
+                {#if refusal}
                     <p class="text-sm text-[var(--danger-color)]" role="alert">
-                        {$_(refusalKey as TranslationKey, {
-                            values: { field: "action.order.size" },
+                        {$_(refusal.key as TranslationKey, {
+                            values: { field: refusal.field },
                         })}
                     </p>
                 {/if}

@@ -33,6 +33,8 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { isRuleRefusedError, ruleSchema } from "../../lib/rules/ruleSchema";
 import type { OrderIntent, RuleDocument } from "../../lib/rules/types";
+import de from "../../locales/locales/de.json";
+import en from "../../locales/locales/en.json";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { AlertNotFoundError, promoteAlertToBot } from "./promoteAlert";
 
@@ -161,6 +163,36 @@ describe("promoting an alert into a bot", () => {
       AlertNotFoundError,
     );
     expect(stored()).toHaveLength(1);
+  });
+
+  it("names the race in both locales rather than falling back to a shrug", () => {
+    seed(ruleSchema.validate(alertDocument("alert-1")));
+
+    let thrown: unknown;
+    try {
+      promoteAlertToBot("gone", onePercentLong(), PROMOTED_AT_MS);
+    } catch (e) {
+      thrown = e;
+    }
+
+    // An alert deleted in another tab between opening the promote form and
+    // confirming it is a race, not a fault, and it has its own message. A
+    // caller that fell through to a generic "could not be created" would
+    // replace a specific answer with a shrug -- so the key has to exist in
+    // both locale files, which is what this resolves rather than asserts.
+    const key = (thrown as { translationKey?: string }).translationKey;
+    expect(key).toBe("dashboard.alerts.panel.alertNotFound");
+
+    for (const bundle of [de, en] as unknown as Record<string, unknown>[]) {
+      const text = (key as string)
+        .split(".")
+        .reduce<unknown>(
+          (node, part) => (node as Record<string, unknown> | undefined)?.[part],
+          bundle,
+        );
+      expect(typeof text).toBe("string");
+      expect(text).not.toBe("");
+    }
   });
 
   it("gives the bot an identity no stored rule already holds", () => {
