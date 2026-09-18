@@ -143,15 +143,6 @@ export function isSpentAfterFiring(rule: RuleDocument): boolean {
 }
 
 /**
- * The line a trader reads, with their own note on the end — FEAT-0393 AC 6.
- *
- * The note is Class A and stays on the device: this renders into a local toast
- * and a browser notification the user's own browser draws, neither of which
- * leaves the machine. It is appended rather than substituted because the
- * symbol and price are what makes the message scannable at a glance, and the
- * note is what makes it actionable two weeks later.
- */
-/**
  * The threshold of a rule that really is a price against a number — BUG-0481.
  *
  * `ruleThresholdOf` answers for any condition carrying `right.value`, which
@@ -201,6 +192,15 @@ function firedConditionText(
     }
 }
 
+/**
+ * The line a trader reads, with their own note on the end — FEAT-0393 AC 6.
+ *
+ * The note is Class A and stays on the device: this renders into a local toast
+ * and a browser notification the user's own browser draws, neither of which
+ * leaves the machine. It is appended rather than substituted because the
+ * symbol and price are what makes the message scannable at a glance, and the
+ * note is what makes it actionable two weeks later.
+ */
 export function firingMessage(rule: RuleDocument): string {
     const t = get(_) as (key: string, options?: Record<string, unknown>) => string;
 
