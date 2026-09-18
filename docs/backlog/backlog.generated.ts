@@ -5850,9 +5850,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0396",
     "title": "An Automation settings tab for user-configured bots",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "claude-code",
-    "branch": "feat/feat-0396-p4-bot-paper-orders",
+    "branch": "feat/feat-0396-p5-bot-submits",
     "priority": "P2",
     "milestone": "M9",
     "editions": [
