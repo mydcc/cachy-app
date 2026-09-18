@@ -1213,6 +1213,10 @@
       "removeFavorite": "Aus Favoriten entfernen",
       "openChannel": "Kanal öffnen",
       "closeChannel": "Kanal schließen"
+    },
+    "aria": {
+      "loadToCalculator": "{symbol} in Rechner laden",
+      "regionLabel": "Marktübersicht für {symbol}"
     }
   },
   "seo": {
