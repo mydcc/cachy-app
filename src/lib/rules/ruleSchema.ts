@@ -37,6 +37,7 @@ import type {
   RuleRefusal,
   ConsequenceLevel,
   EvaluationContext,
+  OrderIntent,
   Verdict,
 } from "./types";
 
@@ -49,6 +50,12 @@ interface RuleWasmExports {
   rule_warmup_candles(documentJson: string): number;
   rule_timeframes(documentJson: string): string[];
   rule_from_alert_json(alertJson: string, timeframe: string, createdAtMs: number): string;
+  rule_promote(
+    documentJson: string,
+    newId: string,
+    orderJson: string,
+    createdAtMs: number,
+  ): string;
   rule_evaluate(documentJson: string, ctxJson: string): string;
   default: (wasmBinaryPath: string) => Promise<unknown>;
 }
@@ -249,6 +256,44 @@ class RuleSchemaService {
     try {
       return JSON.parse(
         core.rule_from_alert_json(JSON.stringify(alert), timeframe, createdAtMs),
+      ) as RuleDocument;
+    } catch (e) {
+      throw toRefusedError(e);
+    }
+  }
+
+  /**
+   * Derive a bot from an alert: a **new** document at `simulate` proposing
+   * `order`, recording the alert's content hash in its provenance — FEAT-0396.
+   *
+   * Only the bot comes back. The alert is not returned because it is not
+   * changed — the core takes it by reference and the promotion never raises a
+   * level in place — and handing back a copy would invite a caller to store the
+   * copy and believe it had saved something.
+   *
+   * The order intent is a separate argument rather than a field written into
+   * the document first, because a `notify` document carrying an order intent is
+   * refused before it could ever be promoted. Promotion is the moment that
+   * intent becomes legal, so it enters here.
+   *
+   * The bot comes back disarmed. Arming it is a separate act, and the caller
+   * has to make it.
+   */
+  promote(
+    alert: RuleDocument,
+    newId: string,
+    order: OrderIntent,
+    createdAtMs: number,
+  ): RuleDocument {
+    const core = this.require();
+    try {
+      return JSON.parse(
+        core.rule_promote(
+          JSON.stringify(alert),
+          newId,
+          JSON.stringify(order),
+          createdAtMs,
+        ),
       ) as RuleDocument;
     } catch (e) {
       throw toRefusedError(e);

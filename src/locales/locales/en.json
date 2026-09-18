@@ -366,6 +366,7 @@
         "coreUnavailable": "The rule could not be checked because the rule core is not loaded. That does not mean your rule is wrong — it was never checked at all.",
         "otherRefusals": "Other objections",
         "storeUnreadable": "The rule store could not be read. Nothing was armed, so your existing alerts are not overwritten.",
+        "alertNotFound": "That alert is no longer stored, so no bot can be derived from it. It may have been deleted in another tab.",
         "armed": "Alert armed.",
         "armDisabled": "Add a condition first.",
         "tabLoadFailed": "This tab could not be loaded. Reload the page.",
