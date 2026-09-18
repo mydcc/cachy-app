@@ -124,7 +124,7 @@ let rootElement: HTMLElement | null = null;
      *  the open one -- a trader sitting on Manage with a refused condition would
      *  otherwise see nothing at all, which is the BUG-0382 shape this catch-all
      *  exists to prevent. Showing it in both places is the cheaper mistake. */
-    const SHELL_FIELDS = ["symbol", "trigger_timeframe"] as const;
+    const SHELL_FIELDS = ["symbol", "trigger_timeframe", "evaluation_mode"] as const;
 
     let TabComponent = $state<Component<{ symbol: string }> | null>(null);
     let tabLoadFailed = $state(false);
@@ -312,11 +312,19 @@ let rootElement: HTMLElement | null = null;
                 value={alertPanelState.draft.evaluation_mode ?? "close"}
                 onchange={(e) =>
                     alertPanelState.setEvaluationMode(e.currentTarget.value as EvaluationMode)}
+                aria-invalid={refusalsForField(alertPanelState.refusals, "evaluation_mode")
+                    .length > 0}
+                aria-describedby="alert-refusal-evaluation-mode"
             >
                 {#each EVALUATION_MODES as mode (mode)}
                     <option value={mode}>{$_(EVALUATION_MODE_KEYS[mode])}</option>
                 {/each}
             </select>
+            <div class="field-refusals" id="alert-refusal-evaluation-mode">
+                {#each refusalsForField(alertPanelState.refusals, "evaluation_mode") as refusal (refusal.code + refusal.field)}
+                    <span class="refusal">{$_(refusal.i18n_key as TranslationKey)}</span>
+                {/each}
+            </div>
             <!--
               Shown only for `intrabar`, and not as a refusal: nothing is wrong
               with the choice, but a trader has to know *before* arming that

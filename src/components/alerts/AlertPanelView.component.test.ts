@@ -443,6 +443,30 @@ describe("FEAT-0477: choosing when the trigger candle is read", () => {
     expect(el.querySelector(".panel-footer")?.contains(modeField(el))).toBe(false);
   });
 
+  it("anchors a refusal against the evaluation mode instead of the catch-all", () => {
+    const el = render();
+    alertPanelState.refusals = [
+      {
+        code: "evaluation_mode_invalid",
+        field: "evaluation_mode",
+        i18n_key: "rules.refusal.unknownField",
+        detail: "evaluation mode must be close or intrabar",
+      },
+    ];
+    flushSync();
+
+    const anchored = modeField(el).querySelector("#alert-refusal-evaluation-mode");
+    expect(anchored?.textContent?.trim()).not.toBe("");
+
+    const select = modeField(el).querySelector("select") as HTMLSelectElement;
+    expect(select.getAttribute("aria-invalid")).toBe("true");
+    expect(select.getAttribute("aria-describedby")).toBe("alert-refusal-evaluation-mode");
+
+    // Claimed by a rendered control, so it must not *also* appear in the
+    // catch-all block -- a refusal shown twice reads as two problems.
+    expect(el.textContent).not.toContain(en.dashboard.alerts.panel.otherRefusals);
+  });
+
   it("moves the sentence to the forming candle, so the two cannot drift apart", () => {
     const el = render();
     alertPanelState.draft.conditions = {
