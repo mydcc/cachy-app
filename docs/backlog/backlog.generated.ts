@@ -4281,7 +4281,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0029",
     "title": "Alerts on chart drawings",
     "type": "feature",
-    "status": "idea",
+    "status": "done",
+    "assignee": "claude",
+    "branch": "feat/feat-0029-drawing-alerts",
     "priority": "P2",
     "milestone": "M4",
     "editions": [

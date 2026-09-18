@@ -130,6 +130,21 @@ export interface UnevaluableRule {
  */
 export type UnevaluableSink = (rule: UnevaluableRule) => void;
 
+/**
+ * What a rule actually compares against at one anchor — FEAT-0029.
+ *
+ * Returns the document to evaluate, which is usually the one passed in. A
+ * drawing-anchored rule gets a copy whose threshold is the drawing's level at
+ * `anchorMs`, so the alert follows the line rather than a number frozen when
+ * it was created. Returning `unevaluable` withholds the evaluation and gives
+ * the panel a reason — a rule whose drawing is gone must not fall back to its
+ * stored constant, which is a level no longer on the chart.
+ */
+export type ThresholdResolver = (
+  rule: RuleDocument,
+  anchorMs: number,
+) => { rule: RuleDocument } | { unevaluable: string };
+
 export interface RuleEvaluationLoopOptions {
   readCandles: CandleReader;
   readRules: RuleReader;
@@ -169,6 +184,13 @@ export interface RuleEvaluationLoopOptions {
   onFiring?: FiringSink;
   /** No-op by default — most callers have nothing that depends on this. */
   onClose?: SeriesCloseHook;
+  /**
+   * FEAT-0029: where a rule's threshold comes from.
+   *
+   * Absent means every rule evaluates against its own stored constant, which
+   * is the behaviour every rule that is not anchored to a drawing has anyway.
+   */
+  resolveThreshold?: ThresholdResolver;
   /** Defaults to `logUnevaluable`. */
   onUnevaluable?: UnevaluableSink;
 }
@@ -183,6 +205,9 @@ export interface RuleEvaluationLoopOptions {
  */
 const NO_RULES: RuleReader = () => [];
 const NO_CANDLES: CandleReader = () => [];
+/** Every rule compares against the constant it was stored with. */
+const PASS_THROUGH_THRESHOLD: ThresholdResolver = (rule) => ({ rule });
+
 const NO_STATE: RuleStateReader = () => undefined;
 
 /**
@@ -233,6 +258,7 @@ export class RuleEvaluationLoop {
   private onFiring: FiringSink = shadowSink;
   private onClose: SeriesCloseHook = () => {};
   private onUnevaluable: UnevaluableSink = logUnevaluable;
+  private resolveThreshold: ThresholdResolver = PASS_THROUGH_THRESHOLD;
 
   constructor(options?: RuleEvaluationLoopOptions) {
     if (options) this.configure(options);
@@ -256,6 +282,7 @@ export class RuleEvaluationLoop {
     this.onFiring = options.onFiring ?? shadowSink;
     this.onClose = options.onClose ?? (() => {});
     this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
+    this.resolveThreshold = options.resolveThreshold ?? PASS_THROUGH_THRESHOLD;
   }
 
   /**
@@ -469,6 +496,17 @@ export class RuleEvaluationLoop {
     // Read per rule, not once per series: two rules on the same trigger
     // timeframe can still read different timeframes, and the reader is the
     // only thing that knows which series each one needs.
+    // FEAT-0029: a drawing-anchored rule's threshold is the drawing's level at
+    // this anchor, resolved before anything else — a rule whose drawing is
+    // gone must produce no verdict at all rather than one built from the
+    // constant it happened to be stored with.
+    const resolved = this.resolveThreshold(rule, anchorMs);
+    if ("unevaluable" in resolved) {
+      this.reportUnevaluable(rule, resolved.unevaluable);
+      return undefined;
+    }
+    rule = resolved.rule;
+
     const ctx = this.contextFor(rule, symbol, timeframe, intrabar);
     // Undefined means the rule cannot be honestly evaluated at all — not that
     // it did not fire. Skipping is the safe direction; `contextFor` has
