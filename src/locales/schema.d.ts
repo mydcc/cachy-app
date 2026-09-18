@@ -3604,6 +3604,8 @@ export type TranslationKey =
   | "rules.refusal.invalidNote"
   | "rules.refusal.invalidDerivedFromHash"
   | "rules.refusal.duplicateTriggerMethod"
+  | "rules.refusal.stopRequiredForRiskSizing"
+  | "rules.refusal.stopNotHonoured"
   | "rules.sentence.frame"
   | "rules.sentence.frameIntrabar"
   | "rules.sentence.unless"
