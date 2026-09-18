@@ -78,6 +78,75 @@ pub struct Provenance {
     /// of the document — it never leaves the device.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
+    /// The content hash of the document this one was derived from — FEAT-0396.
+    ///
+    /// Set when a trader promotes an alert into a bot. Promotion writes a *new*
+    /// document rather than raising the original's consequence level, because the
+    /// level is hashed and the hash is the strategy's identity: mutating in place
+    /// would leave every past announcement pointing at an identity the document
+    /// no longer has. This field is what keeps "descends from" answerable after
+    /// that split.
+    ///
+    /// The source's **hash**, not its `id`: `id` is local identity a re-import
+    /// can reassign, while the hash is the identity a journal entry already
+    /// records, so the link survives an export and a second device.
+    ///
+    /// Unhashed, like everything under `provenance`, and therefore *nothing may
+    /// gate a decision on it*. Two documents with the same content hash must
+    /// authorise identically, so a field outside the hash cannot be allowed to
+    /// change what a document may do. It records history; it confers no
+    /// permission.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub derived_from_hash: Option<String>,
+}
+
+/// The exact length of a content hash: a hex SHA-256 digest, as `sha256_hex`
+/// produces one.
+///
+/// Named rather than inlined because it is a *contract* and not merely a width —
+/// the validator below refuses a stored hash reference of any other shape, and a
+/// literal at each end would be two numbers that only happen to agree.
+const CONTENT_HASH_HEX_LEN: usize = 64;
+
+impl Provenance {
+    /// Every reason this provenance is not usable, appended to `out`.
+    ///
+    /// Only `derived_from_hash` has a shape to get wrong, and checking it
+    /// strictly is affordable exactly once: no stored document can carry the
+    /// field, because it did not exist before this change. A constraint
+    /// introduced together with its field refuses nothing that validated
+    /// yesterday — which is why the price-source and window additions had to
+    /// stay permissive and this one does not.
+    ///
+    /// Refused rather than normalised, on the grounds `sha256_hex` already
+    /// states for the producing side: `A1B2` and `a1b2` must never be two
+    /// identities for one rule. Lower-casing a caller's value here would also
+    /// rewrite a stored document's bytes without changing its content hash,
+    /// since `provenance` is excluded from the hash — leaving two documents
+    /// identical in the journal and different on disk.
+    fn validate(&self, path: &str, out: &mut Vec<RuleRefusal>) {
+        let Some(hash) = self.derived_from_hash.as_deref() else {
+            return;
+        };
+
+        let is_content_hash = hash.len() == CONTENT_HASH_HEX_LEN
+            && hash.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'));
+
+        if !is_content_hash {
+            // The length, never the value: `detail` reaches logs, and a strategy
+            // hash identifies a trader's own rule — Class A, which ADR-0001
+            // keeps off every wire, a debug log included.
+            out.push(RuleRefusal::new(
+                RefusalCode::InvalidDerivedFromHash,
+                format!("{path}.derived_from_hash"),
+                format!(
+                    "a derivation names its source by content hash, which is \
+                     {CONTENT_HASH_HEX_LEN} lowercase hex characters; got {}",
+                    hash.chars().count()
+                ),
+            ));
+        }
+    }
 }
 
 /// When inside the trigger timeframe the rule is read — FEAT-0477.
@@ -216,6 +285,7 @@ impl RuleDocument {
         }
 
         self.action.validate("action", &mut out);
+        self.provenance.validate("provenance", &mut out);
 
         validate_note(self.note.as_deref(), "note", &mut out);
         validate_validity(
@@ -481,6 +551,7 @@ mod tests {
                 source: AuthoringSource::Human,
                 created_at_ms: 1_700_000_000_000,
                 model: None,
+                derived_from_hash: None,
             },
             evaluation_mode: EvaluationMode::Close,
             trigger_methods: Vec::new(),
@@ -645,6 +716,122 @@ mod tests {
         }
         for included in ["symbol", "trigger_timeframe", "conditions", "action"] {
             assert!(map.contains_key(included), "{included} must be hashed");
+        }
+    }
+
+    // ---- FEAT-0396: a promoted bot records what it descends from -----------
+
+    /// The claim the whole derivation design rests on: recording where a bot
+    /// came from changes no content hash, so a journal entry naming the source
+    /// strategy keeps matching it, and the bot's identity stays the one its
+    /// conditions earn.
+    ///
+    /// A stronger guarantee than the one the price source and the evaluation
+    /// mode rest on. Theirs holds only while the field carries its default,
+    /// because it is `skip_serializing_if` that keeps it out of the canonical
+    /// form; this holds for every value, because `canonical_value` removes the
+    /// whole `provenance` object by key before hashing.
+    #[test]
+    fn recording_a_derivation_changes_no_content_hash() {
+        let base = rsi_dip();
+        let hash = base.content_hash().unwrap();
+
+        let mut derived = base.clone();
+        derived.provenance.derived_from_hash = Some(hash.clone());
+
+        assert_eq!(
+            derived.content_hash().unwrap(),
+            hash,
+            "recording a derivation changed the strategy hash"
+        );
+        assert!(
+            !derived
+                .canonical_value()
+                .unwrap()
+                .as_object()
+                .unwrap()
+                .contains_key("provenance"),
+            "provenance reached the canonical form"
+        );
+    }
+
+    /// A document stored before this field existed carries no such key at all.
+    /// It must parse, mean "no recorded derivation", and hash as it always did.
+    #[test]
+    fn a_document_stored_before_derivations_existed_still_parses() {
+        let original = rsi_dip();
+        let json = serialise_document(&original).unwrap();
+
+        assert!(
+            !json.contains("derived_from_hash"),
+            "an absent derivation must not be serialised, or every stored \
+             document changes shape the moment the app learns the field"
+        );
+
+        let parsed = parse_document(&json).unwrap();
+        assert_eq!(parsed.provenance.derived_from_hash, None);
+        assert_eq!(
+            parsed.content_hash().unwrap(),
+            original.content_hash().unwrap()
+        );
+    }
+
+    /// The positive case, wired to a hash the crate actually produced rather
+    /// than to a hand-typed literal of the right shape. A literal would pass
+    /// even if `content_hash` had stopped producing that shape, which is the one
+    /// thing worth checking here.
+    #[test]
+    fn the_hash_a_document_produces_is_accepted_as_a_derivation() {
+        let source_hash = rsi_dip().content_hash().unwrap();
+
+        let mut bot = rsi_dip();
+        bot.id = "rule-2".to_string();
+        bot.provenance.derived_from_hash = Some(source_hash);
+
+        assert_eq!(bot.validate(), Ok(()));
+        let json = serialise_document(&bot).unwrap();
+        assert_eq!(parse_document(&json).unwrap(), bot);
+    }
+
+    /// Every shape that is not a content hash, refused by name.
+    ///
+    /// Uppercase is refused rather than lower-cased, on the grounds `sha256_hex`
+    /// already states for the producing side — `A1B2` and `a1b2` must never be
+    /// two identities for one rule. Normalising here would also rewrite a stored
+    /// document's bytes without moving its content hash, since `provenance` is
+    /// excluded from the hash, leaving two documents identical in the journal
+    /// and different on disk.
+    #[test]
+    fn a_derivation_that_is_not_a_content_hash_is_refused_by_name() {
+        let valid = rsi_dip().content_hash().unwrap();
+
+        for bad in [
+            String::new(),
+            "abc".to_string(),
+            valid[..CONTENT_HASH_HEX_LEN - 1].to_string(),
+            format!("{valid}0"),
+            "A".repeat(CONTENT_HASH_HEX_LEN),
+            format!("z{}", &valid[1..]),
+            format!("{} ", &valid[..CONTENT_HASH_HEX_LEN - 1]),
+        ] {
+            let mut doc = rsi_dip();
+            doc.provenance.derived_from_hash = Some(bad.clone());
+
+            let refused = doc
+                .validate()
+                .expect_err(&format!("{bad:?} was accepted as a content hash"));
+
+            assert!(
+                refused.has(RefusalCode::InvalidDerivedFromHash),
+                "{bad:?} was refused for the wrong reason: {refused:?}"
+            );
+            assert!(
+                refused
+                    .refusals
+                    .iter()
+                    .any(|r| r.field == "provenance.derived_from_hash"),
+                "the refusal must name the field a caller has to change"
+            );
         }
     }
 
