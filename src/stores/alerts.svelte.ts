@@ -24,6 +24,7 @@ import {
     reconcileStoredRules,
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
+import { reconcileStoredDrawingRules, type DrawingReconciliation } from "../services/alertEngine/reconcileDrawingRules";
 import { ruleThresholdOf } from "../services/alertEngine/migrateAlertsToRules";
 import {
     reportLegacyMigrationState,
@@ -85,6 +86,15 @@ class AlertsManager {
      * "report" half of suspend-and-report missing.
      */
     orphanReport = $state<OrphanReconciliation | null>(null);
+
+    /**
+     * What the FEAT-0029 reconciliation did to drawing-anchored rules at
+     * startup, or `null` before it ran. Held as state for the same reason as
+     * `orphanReport` above: a disabled rule the panel cannot explain is the
+     * "report" half of suspend-and-report missing, and FEAT-0029's acceptance
+     * criteria require the reason to reach the panel.
+     */
+    drawingReport = $state<DrawingReconciliation | null>(null);
 
     /**
      * FEAT-0399's per-device proof that retiring the legacy alert path lost
@@ -377,6 +387,29 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     // engine. That engine is gone, so a rule left disabled by it is evaluated
     // by nothing at all (BUG-0382). Once per device; see `runLegacyHandoff`.
     if (runLegacyHandoff() !== null) alertState.rulesVersion += 1;
+
+    // FEAT-0029: and the rules whose *drawing* is gone. Ordered after the
+    // orphan pass for the same reason that one is ordered after the
+    // migration — each reads the rule set the previous one has finished
+    // writing, and judging a half-written set is how a rule gets disabled for
+    // a reason that was about to stop being true.
+    const drawingReport = reconcileStoredDrawingRules();
+    alertState.drawingReport = drawingReport;
+    if (drawingReport.suspended.length > 0) {
+        logger.warn(
+            "alerts",
+            `[FEAT-0029] ${drawingReport.suspended.length} alert(s) disabled: their drawing is gone`,
+        );
+    }
+    if (drawingReport.withheld.length > 0) {
+        // Withheld is a decision, not a non-event: these rules are still armed
+        // on a level nobody can see, because the drawing store could not be
+        // read and absence proved nothing.
+        logger.warn(
+            "alerts",
+            `[FEAT-0029] ${drawingReport.withheld.length} drawing alert(s) left armed — drawing store unreadable`,
+        );
+    }
 
     // The rule evaluator's own core. A failure here is caught and logged
     // rather than thrown: it decides `ready` below, and the trader is told
