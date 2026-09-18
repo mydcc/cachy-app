@@ -32,9 +32,9 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
 
 ## Steps
 
-This command executes the `backlog-review` skill — triage gates, all review steps, the severity scale, the fix + push rules, and the comment format live in `.agents/skills/backlog-review/SKILL.md` and are normative. Do not duplicate them here.
+This command executes the `backlog-review` skill — triage gates, all review steps, the severity scale, the chat-first confirmation, the fix + push rules, and the comment format live in `.agents/skills/backlog-review/SKILL.md` and are normative. Do not duplicate them here.
 
-- Run the skill end to end for each PR in scope: triage, findings with severity labels, bot reconcile, fix + push on the PR branch (interactive sessions only), review comment, `/review` re-trigger after pushes.
+- Run the skill end to end for each PR in scope: triage, findings with severity labels, bot reconcile, per-finding confirmation in chat (never self-fix on silence), fix + push of confirmed findings on the PR branch (interactive sessions only), review comment only after the fixes are pushed, `/review` re-trigger after pushes.
 - Invocation: `/backlog-review [--pr N] [--author login]`.
 
 ## Notes
