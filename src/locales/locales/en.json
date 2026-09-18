@@ -339,6 +339,8 @@
       "cutoverNoticeDismiss": "Got it",
       "orphanSuspendedHint": "Migrated alarms disabled: {count}. Their original price alert no longer exists, so they were switched off automatically.",
       "orphanWithheldHint": "Migrated alarms with unresolved origin: {count}. We could not tell for certain whether the original price alert was deleted, so they are being kept active as a precaution and can still trigger.",
+      "legacyUnmigratedHint": "Old price alerts that never became alarms: {count}. They are no longer evaluated and have to be re-armed as alarms.",
+      "legacyUnverifiedHint": "Old price alerts could not be checked against the migration record, so we cannot confirm all of them became alarms. Please verify your alarm list.",
       "panel": {
         "title": "Super Alert",
         "open": "Open the Super Alert panel",

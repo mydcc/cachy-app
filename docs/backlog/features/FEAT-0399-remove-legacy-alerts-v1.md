@@ -2,7 +2,9 @@
 id: FEAT-0399
 title: Remove the legacy cachy_alerts_v1 store and evaluation path
 type: feature
-status: idea
+status: in-progress
+assignee: claude
+branch: feat/feat-0399-drop-legacy-alerts
 priority: P3
 milestone: M5
 editions: [community, pro, private]
@@ -44,9 +46,11 @@ rather than re-deciding them at close time.
       in production with no reported regression tied to the migration
 - [ ] `FEAT-0389` (the Super-Alert panel) has shipped, so removing the legacy creation
       form does not leave traders without any way to arm a price alert
-- [ ] Every entry in `cachy_alerts_v1` is present in `cachy_alerts_migrated_v1` (per
+- [x] Every entry in `cachy_alerts_v1` is present in `cachy_alerts_migrated_v1` (per
       `FEAT-0388`) on every edition before the read/write path is deleted, not merely
-      assumed
+      assumed — enforced per device by `verifyLegacyMigration.ts`, which runs after the
+      migration on every start and reports `clean`, `unmigrated` (with ids) or
+      `unreadable`, never folding the last into the first
 - [ ] `cachy_alerts_v1`, the legacy `AlertEngineWasm` path, and the legacy creation form
       are deleted, not merely dead-code-flagged
 - [ ] No existing test still exercises the removed path; tests are deleted or migrated,
@@ -56,7 +60,11 @@ rather than re-deciding them at close time.
 
 Checked rather than assumed: the item above asks for the readiness conditions to be
 restated *with evidence* instead of re-decided at close time, so this is that evidence
-as it stands. **Both conditions are still open, so this item stays `idea`.**
+as it stands. **Both conditions are still open.** The item was started anyway, on an
+explicit decision by the repository owner on 2026-09-18 ("FEAT-0399 wird auch gemacht,
+unabhängig von einer Versionsnummer. Ich entscheide das."). The table stays because it
+is the evidence the item asked for, and because it records what was knowingly accepted
+rather than overlooked.
 
 | Condition | Met | Evidence |
 | --- | --- | --- |
@@ -70,9 +78,18 @@ merged to `develop`. What this item authorises is deleting the only fallback a
 migration regression could be recovered from, so "merged" is not the bar its first two
 criteria are asking for.
 
-Re-check when 1.6.0 leaves beta. The cheap test for the second row is whether
-`migrateAlertsToRules.ts` exists on the released branch — not whether the item says
-`done`.
+The cheap test for the second row is whether `migrateAlertsToRules.ts` exists on the
+released branch — not whether the item says `done`.
+
+What the first two rows were protecting is that a migration regression, discovered after
+release, could be recovered from the untouched legacy store. That protection is not
+waived by starting early, because the deletion removes the *code* that reads and writes
+`cachy_alerts_v1`, never the key: `migrateAlertsToRules.ts` stays as its last remaining
+reader, and it is idempotent, so a device that migrates late still migrates. The residual
+risk the owner accepted is narrower than the table suggests — a legacy alert that never
+converted stops being evaluated, silently. That is exactly what the third criterion
+asks to be proven rather than assumed, and what `verifyLegacyMigration.ts` now proves
+per device.
 
 ## Out of scope
 

@@ -134,6 +134,26 @@
     </div>
 {/if}
 
+<!--
+  FEAT-0399 -- the legacy alert path is gone, so an alert that never became a
+  rule no longer evaluates anywhere. Named rather than counted: the trader
+  cannot re-arm what the app will not tell them it dropped. `unreadable` gets
+  its own line because "could not verify" must never be shown as "verified".
+-->
+{#if alertState.legacyMigrationReport && alertState.legacyMigrationReport.verdict !== "clean"}
+    <div class="engine-warning" role="alert">
+        {#if alertState.legacyMigrationReport.verdict === "unmigrated"}
+            <p>
+                {$_("dashboard.alerts.legacyUnmigratedHint", {
+                    values: { count: alertState.legacyMigrationReport.unmigrated.length },
+                })}
+            </p>
+        {:else}
+            <p>{$_("dashboard.alerts.legacyUnverifiedHint")}</p>
+        {/if}
+    </div>
+{/if}
+
 <div class="list-tabs" role="tablist">
     <button
         role="tab"

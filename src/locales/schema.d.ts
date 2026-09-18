@@ -325,6 +325,8 @@ export type TranslationKey =
   | "dashboard.alerts.cutoverNoticeDismiss"
   | "dashboard.alerts.orphanSuspendedHint"
   | "dashboard.alerts.orphanWithheldHint"
+  | "dashboard.alerts.legacyUnmigratedHint"
+  | "dashboard.alerts.legacyUnverifiedHint"
   | "dashboard.alerts.panel.title"
   | "dashboard.alerts.panel.open"
   | "dashboard.alerts.panel.tabs"

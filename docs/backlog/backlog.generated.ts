@@ -7403,7 +7403,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0399",
     "title": "Remove the legacy cachy_alerts_v1 store and evaluation path",
     "type": "feature",
-    "status": "idea",
+    "status": "in-progress",
+    "assignee": "claude",
+    "branch": "feat/feat-0399-drop-legacy-alerts",
     "priority": "P3",
     "milestone": "M5",
     "editions": [

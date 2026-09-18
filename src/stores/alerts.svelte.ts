@@ -26,6 +26,10 @@ import {
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
 import { ruleThresholdOf } from "../services/alertEngine/migrateAlertsToRules";
+import {
+    reportLegacyMigrationState,
+    type LegacyMigrationReport,
+} from "../services/alertEngine/verifyLegacyMigration";
 import { ruleSchema } from "../lib/rules/ruleSchema";
 import {
     alertsForLegacyEngine,
@@ -80,6 +84,18 @@ class AlertsManager {
      * "report" half of suspend-and-report missing.
      */
     orphanReport = $state<OrphanReconciliation | null>(null);
+
+    /**
+     * FEAT-0399's per-device proof that retiring the legacy alert path lost
+     * nothing, or `null` when this device never had a legacy store to check.
+     *
+     * The acceptance criterion this satisfies asks for every `cachy_alerts_v1`
+     * entry to be accounted for "not merely assumed" — and the only place
+     * that can be established is the device holding the data (Class A, no
+     * telemetry, ADR-0001). Held as state for the same reason `orphanReport`
+     * is: a finding nobody can see is not a finding.
+     */
+    legacyMigrationReport = $state<LegacyMigrationReport | null>(null);
 
     constructor() {
         this.loadFromStorage();
@@ -500,6 +516,13 @@ export async function initAlertEngine(
     // not finished writing and could suspend a rule whose alert is about to
     // be re-linked.
     alertState.orphanReport = reconcileStoredRules();
+
+    // FEAT-0399: ordered after the migration, never before — the migration is
+    // what fills the ledger this reads, so checking first would report every
+    // freshly converted alert as unmigrated. Reporting only; it changes no
+    // storage and can hold nothing back, because by this point the legacy
+    // entries it names have already had their chance to become rules.
+    alertState.legacyMigrationReport = reportLegacyMigrationState();
 
     // FEAT-0387 cutover: the rule evaluator's own core, loaded before coverage
     // is computed. `ruleCoverage.readCoveredAlertIds()` treats an unloaded core
