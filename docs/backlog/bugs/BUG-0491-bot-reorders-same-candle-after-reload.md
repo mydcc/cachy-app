@@ -94,7 +94,7 @@ Leave the `notify` path alone — in-memory dedupe is the right cost there, and
 widening it would make every alert pay for a bot's guarantee.
 
 Do **not** fix this by making every bot one-shot: that silently repurposes
-`frequency` and is its own defect (see BUG-0492's neighbourhood).
+`frequency` and is its own defect (that is FEAT-0488's cooldown question, not this one).
 
 ## Acceptance criteria
 
@@ -111,4 +111,6 @@ Do **not** fix this by making every bot one-shot: that silently repurposes
 - `docs/adr/0012-*` — decision 5, every automated order enters one gate
 - `docs/backlog/features/FEAT-0396-*` — the item that routed orders here
 - `docs/backlog/features/FEAT-0477-*` — the intrabar record this shares a home with
-- BUG-0492 — the gate's invalidation API has no caller at all
+- BUG-0486 — the gate's `forget` is never called (filed in the pre-live review)
+- FEAT-0488 — the submission guard; note its three guards are in-memory too, so
+  none of them closes this bug

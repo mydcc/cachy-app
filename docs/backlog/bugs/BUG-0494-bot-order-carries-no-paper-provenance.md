@@ -116,3 +116,4 @@ matters — shrinking the window is not the fix, closing it is.
 - `docs/backlog/features/FEAT-0396-*` — scope stops at paper
 - `docs/backlog/features/FEAT-0035-*` — the item that would build live sending
 - BUG-0491 — the other way a bot reaches the venue more often than intended
+- FEAT-0488 — the submission guard this sits beside

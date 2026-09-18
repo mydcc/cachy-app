@@ -27,7 +27,7 @@ rule-store mutation. Two consequences, both invisible until they matter:
    `readRuleStore()`, so today it inherits that guard, but the write itself is
    open-coded and the next edit to it will not.
 2. Any invalidation the write path grows applies to every rule *except* a
-   deleted bot — including the `forget()` call BUG-0492 adds.
+   deleted bot — including the `forget()` call BUG-0486 adds.
 
 ## Evidence
 
@@ -94,7 +94,7 @@ Leave the `isBot` refusal exactly as it is — the Automation tab must stay
 unable to delete an alert, and that is what makes this function worth having.
 
 This is a mechanism fix, not a line fix: after it, there is one write to
-`cachy_rules_v1` for removal, so BUG-0492's `forget()` lands in one place
+`cachy_rules_v1` for removal, so BUG-0486's `forget()` lands in one place
 instead of two.
 
 ## Acceptance criteria
@@ -103,10 +103,10 @@ instead of two.
 - [ ] A test asserts `deleteBot` on a `notify` rule's id returns `false` and
       leaves the store untouched
 - [ ] A test asserts `deleteBot` on a bot removes exactly that document
-- [ ] Whatever invalidation `removeRule` performs (BUG-0492) is observable
+- [ ] Whatever invalidation `removeRule` performs (BUG-0486) is observable
       through `deleteBot`
 
 ## Links
 
-- BUG-0492 — the invalidation this consolidation lets land in one place
+- BUG-0486 — the invalidation this consolidation lets land in one place
 - `docs/adr/0001-local-first-boundary.md` — rules are Class A, localStorage only

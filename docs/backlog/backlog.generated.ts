@@ -1698,24 +1698,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0472-ai-actions-execute-without-confirmation.md"
   },
   {
-    "id": "BUG-0492",
-    "title": "ruleEvaluationGate.forget has no production caller, so editing or disarming a rule never clears its anchor",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P1",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "execution",
-    "data_class": "A",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0492-rule-gate-forget-has-no-caller.md"
-  },
-  {
     "id": "BUG-0494",
     "title": "A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between",
     "type": "bug",
