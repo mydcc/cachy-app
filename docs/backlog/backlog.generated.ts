@@ -4293,7 +4293,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [
-      "FEAT-0027"
+      "FEAT-0027",
+      "FEAT-0480"
     ],
     "start_date": "2026-08-01",
     "target_date": "2027-03-15",
@@ -6117,6 +6118,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0467"
     ],
     "file": "features/FEAT-0471-single-provider-registry-five-tabs.md"
+  },
+  {
+    "id": "FEAT-0480",
+    "title": "Persistent, addressable chart drawings",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P2",
+    "milestone": "M4",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "size": "L",
+    "estimate": "8",
+    "file": "features/FEAT-0480-persistent-chart-drawings.md"
   },
   {
     "id": "BUG-0007",
