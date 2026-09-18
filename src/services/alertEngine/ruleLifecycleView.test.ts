@@ -146,4 +146,29 @@ describe("alarmRows", () => {
     seed([null, ruleDoc({ id: "rule-a" })]);
     expect(alarmRows(NOW).map((r) => r.id)).toEqual(["rule-a"]);
   });
+
+  /*
+   * FEAT-0396 keeps bots in this same key as rules with
+   * `consequence_level: "simulate"`, because a bot is an alarm that acts rather
+   * than a second kind of thing. The surfaces are separate though: a bot listed
+   * here would carry a delete button that removes a strategy from the tab meant
+   * for alarms.
+   */
+  it("leaves a bot to the Automation tab", () => {
+    seed([
+      ruleDoc({ id: "alarm" }),
+      ruleDoc({ id: "bot", action: { consequence_level: "simulate" } as RuleDocument["action"] }),
+    ]);
+
+    expect(alarmRows(NOW).map((r) => r.id)).toEqual(["alarm"]);
+  });
+
+  it("still lists a migrated alert, which carries no action at all", () => {
+    // Why the filter asks whether a rule *is* a bot rather than whether it is a
+    // `notify` rule: a rule the migration wrote has no `action`, so a positive
+    // test would hide exactly the alarms FEAT-0399 set out to stop losing.
+    seed([ruleDoc({ id: "migrated", action: undefined })]);
+
+    expect(alarmRows(NOW).map((r) => r.id)).toEqual(["migrated"]);
+  });
 });

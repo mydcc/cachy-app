@@ -35,6 +35,7 @@
 import { browser } from "$app/environment";
 import type { CompareOp, RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
+import { isBot } from "./botStore";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readRuleStates } from "./ruleStateStore";
 
@@ -81,6 +82,13 @@ export type AlertLifecycleStatus = "armed" | "expired" | "fired";
  * with no threshold rather than being hidden. A trader who armed something the
  * list cannot phrase must still be able to see and delete it — silently
  * dropping it would be the same silence FEAT-0399 exists to remove.
+ *
+ * Bots are the one thing filtered out, because a bot is not an alarm. FEAT-0396
+ * stores them in this same key as rules with `consequence_level: "simulate"`,
+ * and the Automation tab is where they are managed — a bot listed here would
+ * carry a delete button that removes a strategy from the wrong surface. The
+ * test is `!isBot`, never a positive test for `"notify"`: a migrated legacy
+ * alert has no `action` at all, so asking what a rule *is* would hide it.
  */
 export interface AlarmRow {
   /** Rule id — what the delete button acts on. */
@@ -99,6 +107,7 @@ export function alarmRows(nowMs: number = Date.now()): AlarmRow[] {
 
   return readRules()
     .filter((rule): rule is RuleDocument => rule !== null && typeof rule === "object" && typeof rule.id === "string")
+    .filter((rule) => !isBot(rule))
     .map((rule) => {
       const compare =
         rule.conditions !== null &&
