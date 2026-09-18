@@ -3650,6 +3650,7 @@ export type TranslationKey =
   | "rules.sentence.position.flat"
   | "rules.sentence.orderSide.buy"
   | "rules.sentence.orderSide.sell"
+  | "rules.sentence.stop.percent_of_entry"
   | "rules.sentence.basis.base_quantity"
   | "rules.sentence.basis.quote_notional"
   | "rules.sentence.basis.percent_of_equity"

@@ -4414,8 +4414,8 @@
       "lead": {
         "notify": "Notifies",
         "simulate": "Simulates an order",
-        "simulateOrder": "Simulates a {side} order for {size} {basis}",
-        "send": "Sends a {side} order for {size} {basis}"
+        "simulateOrder": "Simulates a {side} order for {size} {basis}{stop}",
+        "send": "Sends a {side} order for {size} {basis}{stop}"
       },
       "op": {
         "lt": "below",
@@ -4463,6 +4463,9 @@
       "orderSide": {
         "buy": "buy",
         "sell": "sell"
+      },
+      "stop": {
+        "percent_of_entry": " with a stop {distance}% from the entry"
       },
       "basis": {
         "base_quantity": "in the base asset",

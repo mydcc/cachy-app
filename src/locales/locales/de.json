@@ -4414,8 +4414,8 @@
       "lead": {
         "notify": "Benachrichtigt",
         "simulate": "Simuliert eine Order",
-        "simulateOrder": "Simuliert eine {side}-Order über {size} {basis}",
-        "send": "Sendet eine {side}-Order über {size} {basis}"
+        "simulateOrder": "Simuliert eine {side}-Order über {size} {basis}{stop}",
+        "send": "Sendet eine {side}-Order über {size} {basis}{stop}"
       },
       "op": {
         "lt": "unter",
@@ -4463,6 +4463,9 @@
       "orderSide": {
         "buy": "Kauf",
         "sell": "Verkauf"
+      },
+      "stop": {
+        "percent_of_entry": " mit einem Stopp {distance} % vom Einstieg"
       },
       "basis": {
         "base_quantity": "in der Basiswährung",
