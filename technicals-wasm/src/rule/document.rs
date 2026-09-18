@@ -45,7 +45,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::condition::{Condition, ConditionSite, MAX_CONDITION_DEPTH, MAX_RULE_WARMUP_CANDLES};
-use super::consequence::{ConsequenceLevel, RuleAction};
+use super::consequence::{ConsequenceLevel, OrderIntent, RuleAction};
 use super::lifecycle::{validate_note, validate_validity, TriggerFrequency, TriggerMethod};
 use super::refusal::{RefusalCode, Refused, RuleRefusal};
 use super::sha256::sha256_hex;
@@ -347,6 +347,70 @@ impl RuleDocument {
     /// asking it to send, and the refusal names `action.consequence_level`.
     pub fn authorise(&self, requested: ConsequenceLevel) -> Result<(), RuleRefusal> {
         self.action.consequence_level.authorise(requested)
+    }
+
+    /// Derive a bot from this document: a **new** document that proposes an
+    /// order where this one only announces, recording which strategy it
+    /// descends from — FEAT-0396.
+    ///
+    /// Takes `&self` and returns a new value, so "the source alert is left
+    /// exactly as it was, still armed" is a property of the signature rather
+    /// than a promise a test has to keep watching. The caller stores both.
+    ///
+    /// Why a new document at all, when raising `consequence_level` in place
+    /// would be one assignment: the level is hashed, and the hash *is* the
+    /// strategy's identity. Mutating in place would leave every past
+    /// announcement of that alert pointing at an identity the document no
+    /// longer has, and the surviving history would read as though the bot had
+    /// been proposing orders all along. It would also end the alert the trader
+    /// is still relying on — one document cannot sit at two consequence levels,
+    /// and running both is the entire point of the workflow.
+    ///
+    /// The source is validated before anything is derived from it. A derivation
+    /// that names an unusable document as its origin is worse than one that
+    /// names nothing: it claims a lineage that can never be reproduced.
+    ///
+    /// Not named `promote_in_place` for a reason that is worth stating once:
+    /// there is no in-place form, and there is no method here that raises a
+    /// level. If one is ever wanted, it has to argue with the paragraph above.
+    pub fn promote(
+        &self,
+        new_id: &str,
+        order: OrderIntent,
+        created_at_ms: i64,
+    ) -> Result<Self, Refused> {
+        self.validate()?;
+
+        let derived_from = self
+            .content_hash()
+            .map_err(|e| Refused { refusals: vec![e] })?;
+
+        let bot = Self {
+            id: new_id.to_string(),
+            action: RuleAction {
+                consequence_level: ConsequenceLevel::Simulate,
+                order: Some(order),
+            },
+            // Disarmed. Arming is the trader's own act and a different one from
+            // choosing a size; a bot that started armed would propose its first
+            // simulated order off the same click that authored it. The *source*
+            // keeps whatever `enabled` it had, which is the criterion.
+            enabled: false,
+            provenance: Provenance {
+                // A human clicked promote, even when the alert it descends from
+                // was model-proposed. Carrying `model` forward would credit a
+                // model with a document it never saw — and `source` is what
+                // ADR-0012 decision 8's register counts.
+                source: AuthoringSource::Human,
+                created_at_ms,
+                model: None,
+                derived_from_hash: Some(derived_from),
+            },
+            ..self.clone()
+        };
+
+        bot.validate()?;
+        Ok(bot)
     }
 
     /// The semantic subset of the document, as sorted-key JSON.
@@ -831,6 +895,158 @@ mod tests {
                     .iter()
                     .any(|r| r.field == "provenance.derived_from_hash"),
                 "the refusal must name the field a caller has to change"
+            );
+        }
+    }
+
+    // ---- FEAT-0396: promotion derives, it never raises a level in place ----
+
+    fn order_of(size_basis: SizeBasis, size: &str) -> OrderIntent {
+        OrderIntent {
+            side: OrderSide::Buy,
+            size_basis,
+            size: d(size),
+            reduce_only: false,
+        }
+    }
+
+    fn one_percent_of_equity() -> OrderIntent {
+        order_of(SizeBasis::PercentOfEquity, "1")
+    }
+
+    /// The criterion itself: promotion writes a *new* document, and the alert it
+    /// came from keeps its id, its level, and — the half a trader would actually
+    /// notice — its arming.
+    #[test]
+    fn promoting_an_alert_leaves_it_armed_and_still_announcing() {
+        let alert = rsi_dip();
+        assert!(alert.enabled, "the fixture must start armed for this to mean anything");
+        let before = alert.clone();
+
+        let bot = alert
+            .promote("rule-2", one_percent_of_equity(), 1_700_000_001_000)
+            .unwrap();
+
+        assert_eq!(alert, before, "promotion changed the alert it was derived from");
+        assert_ne!(bot.id, before.id, "the bot reused the alert's local identity");
+        assert_eq!(bot.id, "rule-2");
+        assert_eq!(bot.action.consequence_level, ConsequenceLevel::Simulate);
+        assert_eq!(bot.action.order, Some(one_percent_of_equity()));
+        assert_eq!(bot.validate(), Ok(()));
+        // Everything that is neither identity nor consequence is carried over:
+        // the bot is the strategy the trader tested, not a new one.
+        assert_eq!(bot.conditions, before.conditions);
+        assert_eq!(bot.symbol, before.symbol);
+        assert_eq!(bot.trigger_timeframe, before.trigger_timeframe);
+    }
+
+    /// The lineage points at the source, survives storage, and does not claim
+    /// the bot and the alert are the same strategy — because they are not.
+    #[test]
+    fn a_promoted_bot_records_the_alert_it_descends_from() {
+        let alert = rsi_dip();
+        let alert_hash = alert.content_hash().unwrap();
+
+        let bot = alert
+            .promote("rule-2", one_percent_of_equity(), 1_700_000_001_000)
+            .unwrap();
+
+        assert_eq!(
+            bot.provenance.derived_from_hash.as_deref(),
+            Some(alert_hash.as_str())
+        );
+        assert_ne!(
+            bot.content_hash().unwrap(),
+            alert_hash,
+            "a document that proposes an order is not the same strategy as the \
+             alarm it came from, and the hash has to say so"
+        );
+
+        let json = serialise_document(&bot).unwrap();
+        assert_eq!(parse_document(&json).unwrap(), bot, "the link did not survive storage");
+    }
+
+    /// A promoted bot is disarmed and is a human's document.
+    ///
+    /// Both halves are decisions rather than conveniences. Arming is a separate
+    /// act from choosing a size, so the bot waits; and `provenance.source` is
+    /// what ADR-0012 decision 8's register counts, so a human clicking promote
+    /// must not be logged as a model proposing a bot.
+    #[test]
+    fn a_promoted_bot_starts_disarmed_and_credits_no_model() {
+        let mut proposed = rsi_dip();
+        proposed.provenance.source = AuthoringSource::Model;
+        proposed.provenance.model = Some("a-model".to_string());
+
+        let bot = proposed.promote("rule-2", one_percent_of_equity(), 42).unwrap();
+
+        assert!(!bot.enabled, "a promoted bot armed itself");
+        assert_eq!(bot.provenance.source, AuthoringSource::Human);
+        assert_eq!(bot.provenance.model, None);
+        assert_eq!(bot.provenance.created_at_ms, 42);
+    }
+
+    /// FEAT-0396's third criterion, pinned where the guarantee actually lives.
+    ///
+    /// Not in `validate()` — the bot is a perfectly valid document. What stops
+    /// it reaching an exchange is the ladder: a document authored at `simulate`
+    /// refuses a caller asking it to send, and names the field that would have
+    /// to change. See the item's `## Correction (2026-09-18)` for why building
+    /// this as a validation rule would have been wrong twice over.
+    #[test]
+    fn a_bot_authored_here_refuses_a_caller_asking_it_to_send() {
+        let bot = rsi_dip()
+            .promote("rule-2", one_percent_of_equity(), 1)
+            .unwrap();
+
+        assert_eq!(bot.validate(), Ok(()));
+        assert_eq!(bot.authorise(ConsequenceLevel::Notify), Ok(()));
+        assert_eq!(bot.authorise(ConsequenceLevel::Simulate), Ok(()));
+
+        let refused = bot
+            .authorise(ConsequenceLevel::Send)
+            .expect_err("a `simulate` document authorised a send");
+        assert_eq!(refused.code, RefusalCode::ConsequenceLevelTooLow);
+        assert_eq!(refused.field, "action.consequence_level");
+    }
+
+    /// A derivation whose source could never run is refused rather than
+    /// recorded: a lineage naming an unusable document claims a history nobody
+    /// can reproduce.
+    #[test]
+    fn promoting_an_unusable_alert_is_refused_rather_than_recorded() {
+        let mut broken = rsi_dip();
+        broken.symbol = "   ".to_string();
+
+        let refused = broken
+            .promote("rule-2", one_percent_of_equity(), 1)
+            .expect_err("a document naming no market was promoted anyway");
+
+        assert!(
+            refused.refusals.iter().any(|r| r.field == "symbol"),
+            "the refusal must name the source's broken field: {refused:?}"
+        );
+    }
+
+    /// Everything the promotion itself supplies is validated as part of the
+    /// document it lands in, so a size no account could carry is refused by name
+    /// now — not later, at the moment it would have been submitted.
+    #[test]
+    fn a_promotion_that_could_not_be_stored_is_refused_by_field() {
+        for (new_id, order, field) in [
+            ("", one_percent_of_equity(), "id"),
+            ("rule-2", order_of(SizeBasis::PercentOfEquity, "0"), "action.order.size"),
+            ("rule-2", order_of(SizeBasis::PercentOfEquity, "101"), "action.order.size"),
+            ("rule-2", order_of(SizeBasis::BaseQuantity, "-1"), "action.order.size"),
+        ] {
+            let refused = rsi_dip()
+                .promote(new_id, order, 1)
+                .expect_err("a bot that could never run was produced");
+
+            assert!(
+                refused.refusals.iter().any(|r| r.field == field),
+                "the refusal must name `{field}`, the thing a trader has to \
+                 change: {refused:?}"
             );
         }
     }

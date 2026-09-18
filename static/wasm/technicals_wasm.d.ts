@@ -50,6 +50,8 @@ export function rule_indicator_registry(): string;
 
 export function rule_mark_timeframes(document_json: string): any;
 
+export function rule_promote(document_json: string, new_id: string, order_json: string, created_at_ms: number): string;
+
 /**
  * The schema version this build authors and reads.
  */
@@ -88,6 +90,7 @@ export interface InitOutput {
     readonly rule_from_alert_json: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly rule_indicator_registry: (a: number) => void;
     readonly rule_mark_timeframes: (a: number, b: number, c: number) => void;
+    readonly rule_promote: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
     readonly rule_schema_version: () => number;
     readonly rule_timeframes: (a: number, b: number, c: number) => void;
     readonly rule_validate: (a: number, b: number, c: number) => void;

@@ -14,6 +14,7 @@ export const rule_evaluate: (a: number, b: number, c: number, d: number, e: numb
 export const rule_from_alert_json: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
 export const rule_indicator_registry: (a: number) => void;
 export const rule_mark_timeframes: (a: number, b: number, c: number) => void;
+export const rule_promote: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
 export const rule_schema_version: () => number;
 export const rule_timeframes: (a: number, b: number, c: number) => void;
 export const rule_validate: (a: number, b: number, c: number) => void;

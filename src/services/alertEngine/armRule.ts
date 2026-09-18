@@ -52,7 +52,14 @@ export class RuleStoreUnreadableError extends Error {
   }
 }
 
-function readRules(): RuleDocument[] {
+/**
+ * The stored rule set, or a refusal.
+ *
+ * Exported because promotion reads the same store and must fail the same way:
+ * a promotion that started from an empty array on a store it failed to parse
+ * would write the new bot over every rule the trader has.
+ */
+export function readRuleStore(): RuleDocument[] {
   const raw = localStorage.getItem(RULES_STORAGE_KEY);
   if (raw === null) return [];
   let parsed: unknown;
@@ -78,7 +85,7 @@ function readRules(): RuleDocument[] {
  * because a second opinion on validity is the divergence ADR-0012 forbids.
  */
 export function armRule(document: RuleDocument): RuleDocument[] {
-  const rules = readRules();
+  const rules = readRuleStore();
   const index = rules.findIndex((r) => r.id === document.id);
   const next =
     index === -1
