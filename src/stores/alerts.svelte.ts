@@ -30,6 +30,7 @@ import {
     reportLegacyMigrationState,
     type LegacyMigrationReport,
 } from "../services/alertEngine/verifyLegacyMigration";
+import { runLegacyHandoff } from "../services/alertEngine/legacyHandoff";
 import { ruleSchema } from "../lib/rules/ruleSchema";
 import {
     alertsForLegacyEngine,
@@ -523,6 +524,12 @@ export async function initAlertEngine(
     // storage and can hold nothing back, because by this point the legacy
     // entries it names have already had their chance to become rules.
     alertState.legacyMigrationReport = reportLegacyMigrationState();
+
+    // FEAT-0399: before the loop arms, hand back any alarm the old cutover
+    // parked on the legacy engine — that engine is gone, so a rule left
+    // disabled there is evaluated by nothing at all (BUG-0382). Once per
+    // device; see `runLegacyHandoff` for why it must not repeat.
+    runLegacyHandoff();
 
     // FEAT-0387 cutover: the rule evaluator's own core, loaded before coverage
     // is computed. `ruleCoverage.readCoveredAlertIds()` treats an unloaded core

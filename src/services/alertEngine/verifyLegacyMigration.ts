@@ -45,10 +45,7 @@
 
 import { browser } from "$app/environment";
 import { logger } from "../logger";
-import { ALERTS_STORAGE_KEY } from "./migrateAlertsToRules";
-
-/** FEAT-0388's reconciliation ledger: a sorted JSON array of alert ids. */
-export const MIGRATED_LEDGER_KEY = "cachy_alerts_migrated_v1";
+import { ALERTS_STORAGE_KEY, readMigratedIds } from "./migrateAlertsToRules";
 
 /**
  * - `clean` — every legacy alert has a ledger entry. This is the evidence
@@ -122,38 +119,6 @@ function readLegacyStore(): LegacyRead {
 }
 
 /**
- * Reads the migration ledger.
- *
- * Returns `null` for an unreadable ledger, which is *not* the same as an
- * empty one: an empty ledger next to a populated legacy store is a real
- * finding (nothing was ever migrated), while an unparseable ledger proves
- * nothing and must not manufacture a list of "unmigrated" ids out of a
- * parse error.
- */
-function readMigratedLedger(): Set<string> | null {
-  let raw: string | null;
-  try {
-    raw = localStorage.getItem(MIGRATED_LEDGER_KEY);
-  } catch (e) {
-    logger.warn("alerts", "[FEAT-0399] Migration ledger could not be opened", e);
-    return null;
-  }
-  if (raw === null) return new Set();
-
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      logger.warn("alerts", "[FEAT-0399] Migration ledger is not a list — migration unverified");
-      return null;
-    }
-    return new Set(parsed.filter((id): id is string => typeof id === "string"));
-  } catch (e) {
-    logger.warn("alerts", "[FEAT-0399] Migration ledger did not parse — migration unverified", e);
-    return null;
-  }
-}
-
-/**
  * Checks this device's legacy alert store against the migration ledger.
  *
  * Returns `null` when there is nothing to verify — no legacy key at all,
@@ -174,7 +139,7 @@ export function verifyLegacyMigration(): LegacyMigrationReport | null {
     return { verdict: "unreadable", legacyCount: 0, unmigrated: [], unidentifiable: 0 };
   }
 
-  const ledger = readMigratedLedger();
+  const ledger = readMigratedIds();
   if (ledger === null) {
     return {
       verdict: "unreadable",

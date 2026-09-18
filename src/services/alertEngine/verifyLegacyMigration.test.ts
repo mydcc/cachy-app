@@ -21,12 +21,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // `unit` project unless `$app/environment` says otherwise.
 vi.mock("$app/environment", () => ({ browser: true, dev: false }));
 
-import {
-  MIGRATED_LEDGER_KEY,
-  reportLegacyMigrationState,
-  verifyLegacyMigration,
-} from "./verifyLegacyMigration";
-import { ALERTS_STORAGE_KEY } from "./migrateAlertsToRules";
+import { reportLegacyMigrationState, verifyLegacyMigration } from "./verifyLegacyMigration";
+import { ALERTS_STORAGE_KEY, MIGRATED_LEDGER_KEY } from "./migrateAlertsToRules";
 
 function writeLegacy(entries: unknown[]): void {
   localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(entries));
