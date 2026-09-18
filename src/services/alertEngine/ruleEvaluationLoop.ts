@@ -77,7 +77,7 @@ export type RuleStateReader = (ruleId: string) => RuleState | undefined;
 export interface RuleFiring {
   rule: RuleDocument;
   verdict: Verdict;
-  /** Open time of the closed candle the verdict was computed on. */
+  /** Open time of the candle the verdict was computed on — closed, or still forming for `intrabar` rules. */
   anchorMs: number;
 }
 

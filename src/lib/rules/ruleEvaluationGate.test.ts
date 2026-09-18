@@ -218,6 +218,64 @@ describe("RuleEvaluationGate", () => {
     });
 
     /**
+     * FEAT-0477: an intrabar alert announces at most once per candle, for every
+     * frequency alike. `frequency` cannot carry this half — the core answers
+     * `every_time` with yes however often the rule has fired — so the gate
+     * records the announced anchor itself. Re-evaluation stays allowed (the
+     * test above); only the announcement is deduped.
+     */
+    it("announces a forming candle only once, however often it keeps firing", () => {
+      const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(15);
+      const anchorMs = lastAnchor(ctx);
+
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toEqual({ verdict: "fires" });
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toBeUndefined();
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toBeUndefined();
+
+      expect(evaluateSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("still announces when a re-evaluated candle turns firing", () => {
+      const evaluateSpy = vi
+        .spyOn(ruleSchema, "evaluate")
+        .mockReturnValueOnce({ verdict: "does_not_fire" })
+        .mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(15);
+      const anchorMs = lastAnchor(ctx);
+
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toEqual({
+        verdict: "does_not_fire",
+      });
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toEqual({ verdict: "fires" });
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toBeUndefined();
+      expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("announces again once the candle rolls over", () => {
+      vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+
+      expect(gate.evaluateIntrabar(DOCUMENT, ctxWithCandles(16), 15 * STEP_MS)).toEqual({
+        verdict: "fires",
+      });
+      expect(gate.evaluateIntrabar(DOCUMENT, ctxWithCandles(17), 16 * STEP_MS)).toEqual({
+        verdict: "fires",
+      });
+    });
+
+    it("forget() re-arms a forming candle that already announced", () => {
+      vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+      const ctx = ctxWithCandles(15);
+      const anchorMs = lastAnchor(ctx);
+
+      gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs);
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toBeUndefined();
+
+      gate.forget(DOCUMENT.id);
+      expect(gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs)).toEqual({ verdict: "fires" });
+    });
+
+    /**
      * The hazard the second record exists for. An open candle and that same
      * candle once closed share one `open_time_ms`, so through a single record
      * the intrabar look would consume the anchor and the real close would come
@@ -270,7 +328,7 @@ describe("RuleEvaluationGate", () => {
       expect(evaluateSpy).not.toHaveBeenCalled();
     });
 
-    it("forget() clears both records, not only the close one", () => {
+    it("forget() clears all records, not only the close one", () => {
       vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
 
       gate.evaluateIntrabar(DOCUMENT, ctxWithCandles(21), 20 * STEP_MS);

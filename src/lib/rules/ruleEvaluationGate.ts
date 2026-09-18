@@ -51,6 +51,20 @@ export class RuleEvaluationGate {
    * mid-session, which a single record could not.
    */
   private readonly lastIntrabarAnchorMs = new Map<string, number>();
+  /**
+   * The anchors this rule has already announced on through the intrabar path,
+   * kept apart from the evaluation record above on purpose — FEAT-0477.
+   *
+   * Re-evaluating a forming candle on every tick is the mode (repaint: a
+   * condition false now may hold on the next tick), but announcing is at most
+   * once per candle, for every frequency alike. `frequency` cannot carry this:
+   * the core answers `every_time` with yes however often it has fired, so
+   * without this record such a rule would announce on every tick of the
+   * candle — the stream of contradictory alerts about one candle FEAT-0477
+   * decided against. Across candles nothing changes: a newer anchor is a new
+   * decision, and `frequency` keeps its current meaning there.
+   */
+  private readonly lastIntrabarFiredAnchorMs = new Map<string, number>();
 
   /**
    * Evaluate `document` against `ctx`, unless `anchorMs` — the open time of
@@ -105,10 +119,13 @@ export class RuleEvaluationGate {
    * tick per candle through and turn intrabar back into a slower, less
    * accurate close.
    *
-   * What stops a rule announcing itself on every tick is `frequency`, which
-   * the core already applies from `ctx.state` (FEAT-0440). Re-implementing a
-   * second suppression here would give one rule two disagreeing answers to the
-   * same question.
+   * What stops a rule announcing itself on every tick is split in two: a rule
+   * whose conditions stop holding is simply re-evaluated (repaint), while a
+   * rule that fired is recorded in a separate announced-record below and not
+   * announced again on the same candle. `frequency`, which the core applies
+   * from `ctx.state` (FEAT-0440), still governs across candles — but it cannot
+   * carry the within-candle half, because the core answers `every_time` with
+   * yes however often the rule has fired.
    *
    * The monotonic half is kept: a forming candle that already rolled over
    * cannot be reopened by a replayed or corrected update after a reconnect.
@@ -124,21 +141,29 @@ export class RuleEvaluationGate {
     const lastAnchorMs = this.lastIntrabarAnchorMs.get(document.id);
     if (lastAnchorMs !== undefined && anchorMs < lastAnchorMs) return undefined;
 
+    // At most one announcement per candle, every frequency alike: a replayed
+    // or corrected update of a candle that already announced must not speak
+    // again, and neither must the next tick of a candle still forming.
+    const lastFiredMs = this.lastIntrabarFiredAnchorMs.get(document.id);
+    if (lastFiredMs !== undefined && anchorMs <= lastFiredMs) return undefined;
+
     const verdict = ruleSchema.evaluate(document, ctx);
     this.lastIntrabarAnchorMs.set(document.id, anchorMs);
+    if (verdict.verdict === "fires") this.lastIntrabarFiredAnchorMs.set(document.id, anchorMs);
     return verdict;
   }
 
   /**
    * Forget a rule's last-evaluated anchors, e.g. when it is edited or disarmed.
    *
-   * Both records, always. A caller that forgets a rule wants that rule to be
-   * decidable again, and leaving one of the two behind would make the answer
+   * All three records, always. A caller that forgets a rule wants that rule to be
+   * decidable again, and leaving one of the three behind would make the answer
    * depend on which mode the document happened to carry when it was forgotten.
    */
   forget(ruleId: string): void {
     this.lastEvaluatedAnchorMs.delete(ruleId);
     this.lastIntrabarAnchorMs.delete(ruleId);
+    this.lastIntrabarFiredAnchorMs.delete(ruleId);
   }
 }
 
