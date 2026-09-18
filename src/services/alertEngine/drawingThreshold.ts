@@ -107,17 +107,15 @@ export function resolveDrawingThreshold(
     const anchor = ports.ledger()[rule.id];
     if (!anchor) return { kind: "not-anchored" };
 
-    if (!ports.storePresent()) {
-        return {
-            kind: "unresolvable",
-            reason: "drawing-store-unreadable",
-            drawingId: anchor.drawingId,
-        };
-    }
-
     const drawing = ports.drawing(anchor.drawingId);
     if (!drawing) {
-        return { kind: "unresolvable", reason: "drawing-missing", drawingId: anchor.drawingId };
+        // `storePresent` is asked only here, on the path where the answer
+        // changes something. It reads and parses the drawing store, and this
+        // function runs once per rule per candle — paying that on every
+        // successful evaluation would tax the hot path for a distinction that
+        // only matters when a drawing is already missing.
+        const reason = ports.storePresent() ? "drawing-missing" : "drawing-store-unreadable";
+        return { kind: "unresolvable", reason, drawingId: anchor.drawingId };
     }
 
     if (!rewritableRight(rule)) {

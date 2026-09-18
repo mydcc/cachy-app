@@ -4366,7 +4366,11 @@
     "drawings": {
       "horizontal": "Draw horizontal line",
       "trend": "Draw trend line",
-      "delete": "Delete selected drawing"
+      "delete": "Delete selected drawing",
+      "alert": "Alert on this drawing",
+      "alertArmed": "Alert armed on the drawing",
+      "alertOnTheLine": "Price sits exactly on the line — there is no side to cross from",
+      "alertNoPrice": "No current price for this symbol"
     }
   },
   "chart": {

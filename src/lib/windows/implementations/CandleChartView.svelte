@@ -37,6 +37,7 @@
     import { drawingStore } from "../../../stores/drawings.svelte";
     import { DrawingManager } from "../../../services/chart/drawingManager";
     import { DrawingPrimitive } from "../../../services/chart/drawingPrimitive";
+    import { armDrawingAlert } from "../../../services/alertEngine/createDrawingAlert";
     import type { ChartRow } from "../../../lib/chart/seriesMap";
     import IndicatorPaneHeader from "../../../components/shared/IndicatorPaneHeader.svelte";
     import { marketState } from "../../../stores/market.svelte";
@@ -655,6 +656,40 @@
         armedDrawingKind = next;
         drawingManager?.arm(next);
         drawingPrimitive?.update();
+    }
+
+    /**
+     * FEAT-0029: arm an alert on the selected drawing.
+     *
+     * The current price decides which way the rule watches, so it is read here
+     * rather than inside the service — the chart is what knows where this
+     * market is right now.
+     */
+    function alertOnSelectedDrawing(): void {
+        const selected = drawingStore.selectedId;
+        const drawing = selected ? drawingStore.byId(selected) : null;
+        if (!drawing) return;
+
+        const price = lastChartPrice();
+        if (price === null) {
+            toastService.error($_("chartView.drawings.alertNoPrice"));
+            return;
+        }
+
+        const result = armDrawingAlert({
+            drawing,
+            timeframe,
+            currentPrice: new Decimal(price),
+            nowMs: Date.now(),
+        });
+
+        if (result.ok) {
+            toastService.success($_("chartView.drawings.alertArmed"));
+            return;
+        }
+        // Both refusals mean the same thing to a trader: there is no side to
+        // cross from yet. The developer-facing distinction stays in the type.
+        toastService.error($_("chartView.drawings.alertOnTheLine"));
     }
 
     function deleteSelectedDrawing(): void {
@@ -1384,6 +1419,14 @@
                 ╱
             </button>
             {#if drawingStore.selectedId}
+                <button
+                    type="button"
+                    class="px-2 py-1 rounded text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent-color)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                    title={$_("chartView.drawings.alert")}
+                    onclick={alertOnSelectedDrawing}
+                >
+                    🔔
+                </button>
                 <button
                     type="button"
                     class="px-2 py-1 rounded text-xs font-medium text-[var(--danger-color)] hover:bg-[var(--bg-tertiary)] transition-colors"

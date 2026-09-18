@@ -47,6 +47,10 @@ import {
 } from "./ruleEvaluationLoop";
 import { recordFiring } from "./shadowLedger";
 import { readRuleState } from "./ruleStateStore";
+import { drawingStore } from "../../stores/drawings.svelte";
+import { readDrawingAnchorLedger } from "./drawingAnchors";
+import { resolveDrawingThreshold } from "./drawingThreshold";
+import { readDrawingStoreSnapshot } from "./reconcileDrawingRules";
 
 /**
  * The closed candles of one series, oldest first.
@@ -330,6 +334,36 @@ export const settingsAwareUnevaluableSink: UnevaluableSink = (rule) => {
  * The disposer is idempotent and safe to call on a loop that was never armed —
  * `disarm()` only writes the unconfigured defaults back.
  */
+/**
+ * FEAT-0029 — where a drawing-anchored rule's threshold comes from.
+ *
+ * `drawingStore.load()` is called on every resolution and is idempotent: the
+ * engine runs whether or not a chart window is open, so it cannot rely on the
+ * chart having hydrated the store first.
+ *
+ * A refusal is reported through the loop's existing unevaluable channel rather
+ * than through a new one. That channel already dedupes per rule and already
+ * reaches the panel — a rule whose drawing was deleted is exactly what it
+ * means by inert, and giving it a second path would be a second dialect.
+ */
+export function drawingThresholdResolver(
+  rule: RuleDocument,
+  anchorMs: number,
+): { rule: RuleDocument } | { unevaluable: string } {
+  drawingStore.load();
+  const resolved = resolveDrawingThreshold(rule, anchorMs, {
+    ledger: readDrawingAnchorLedger,
+    drawing: (id) => drawingStore.byId(id),
+    storePresent: () => readDrawingStoreSnapshot().present,
+  });
+
+  if (resolved.kind === "not-anchored") return { rule };
+  if (resolved.kind === "rewritten") return { rule: resolved.rule };
+  // Developer-facing English, as `UnevaluableRule.reason` specifies; the panel
+  // renders its own wording from it.
+  return { unevaluable: `${resolved.reason} (drawing ${resolved.drawingId})` };
+}
+
 export function startRuleEvaluationLoop(
   onFiring: FiringSink = ledgerSink,
   onClose?: SeriesCloseHook,
@@ -351,6 +385,10 @@ export function startRuleEvaluationLoop(
     onFiring,
     onClose,
     onUnevaluable: settingsAwareUnevaluableSink,
+    // FEAT-0029: without this a drawing-anchored rule evaluates against the
+    // constant it was stored with, which stops following the line the moment
+    // the trader moves it.
+    resolveThreshold: drawingThresholdResolver,
   });
   logger.log(
     "alerts",

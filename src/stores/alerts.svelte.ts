@@ -25,6 +25,7 @@ import {
     reconcileStoredRules,
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
+import { reconcileStoredDrawingRules } from "../services/alertEngine/reconcileDrawingRules";
 import { ruleThresholdOf } from "../services/alertEngine/migrateAlertsToRules";
 import { ruleSchema } from "../lib/rules/ruleSchema";
 import {
@@ -500,6 +501,28 @@ export async function initAlertEngine(
     // not finished writing and could suspend a rule whose alert is about to
     // be re-linked.
     alertState.orphanReport = reconcileStoredRules();
+
+    // FEAT-0029: and the rules whose *drawing* is gone. Ordered after the
+    // orphan pass for the same reason that one is ordered after the
+    // migration — each reads the rule set the previous one has finished
+    // writing, and judging a half-written set is how a rule gets disabled for
+    // a reason that was about to stop being true.
+    const drawingReport = reconcileStoredDrawingRules();
+    if (drawingReport.suspended.length > 0) {
+        logger.warn(
+            "alerts",
+            `[FEAT-0029] ${drawingReport.suspended.length} alert(s) disabled: their drawing is gone`,
+        );
+    }
+    if (drawingReport.withheld.length > 0) {
+        // Withheld is a decision, not a non-event: these rules are still armed
+        // on a level nobody can see, because the drawing store could not be
+        // read and absence proved nothing.
+        logger.warn(
+            "alerts",
+            `[FEAT-0029] ${drawingReport.withheld.length} drawing alert(s) left armed — drawing store unreadable`,
+        );
+    }
 
     // FEAT-0387 cutover: the rule evaluator's own core, loaded before coverage
     // is computed. `ruleCoverage.readCoveredAlertIds()` treats an unloaded core
