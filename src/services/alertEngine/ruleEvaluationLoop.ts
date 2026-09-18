@@ -77,7 +77,7 @@ export type RuleStateReader = (ruleId: string) => RuleState | undefined;
 export interface RuleFiring {
   rule: RuleDocument;
   verdict: Verdict;
-  /** Open time of the closed candle the verdict was computed on. */
+  /** Open time of the candle the verdict was computed on — closed, or still forming for `intrabar` rules. */
   anchorMs: number;
 }
 
@@ -142,6 +142,21 @@ export interface RuleEvaluationLoopOptions {
    * answered from last-price candles is a wrong alarm that looks right.
    */
   readMarkCandles?: CandleReader;
+  /**
+   * The trigger series **including** the candle currently forming — FEAT-0477.
+   *
+   * The counterpart of `readCandles`, whose contract is that it never includes
+   * the open candle. A rule with `evaluation_mode: "intrabar"` is read through
+   * this one instead, and only for its own trigger timeframe: the mode says
+   * when the *trigger* candle is read, so a coarser timeframe a condition
+   * names is still answered from closed candles.
+   *
+   * Absent by default. A loop configured without it reports every intrabar
+   * rule as unevaluable rather than evaluating it against an empty series —
+   * a rule that quietly never fires is the failure this engine exists to
+   * avoid, not an acceptable fallback.
+   */
+  readFormingCandles?: CandleReader;
   /**
    * What each rule has already done, for the frequency and validity checks.
    *
@@ -212,6 +227,7 @@ export class RuleEvaluationLoop {
   private readonly unevaluable = new Map<string, UnevaluableRule>();
   private readCandles: CandleReader = NO_CANDLES;
   private readMarkCandles: CandleReader = NO_CANDLES;
+  private readFormingCandles: CandleReader = NO_CANDLES;
   private readRules: RuleReader = NO_RULES;
   private readRuleState: RuleStateReader = NO_STATE;
   private onFiring: FiringSink = shadowSink;
@@ -234,6 +250,7 @@ export class RuleEvaluationLoop {
   configure(options: RuleEvaluationLoopOptions): void {
     this.readCandles = options.readCandles;
     this.readMarkCandles = options.readMarkCandles ?? NO_CANDLES;
+    this.readFormingCandles = options.readFormingCandles ?? NO_CANDLES;
     this.readRules = options.readRules;
     this.readRuleState = options.readRuleState ?? NO_STATE;
     this.onFiring = options.onFiring ?? shadowSink;
@@ -266,14 +283,23 @@ export class RuleEvaluationLoop {
   observeCandles(symbol: string, timeframe: string, candles: readonly { time: number }[]): RuleFiring[] {
     try {
       const anchorMs = this.advance(symbol, timeframe, candles);
-      if (anchorMs === undefined) return [];
+
+      // Runs on every call, including the ones that closed nothing — that is
+      // the whole of what intrabar means. Deliberately after `advance`, so the
+      // anchor is the candle that is forming *now*: on the call that rolls a
+      // candle over, the forming one is already the new candle, and the one
+      // that just closed is handled below by the close path instead.
+      const firings = this.evaluateForming(symbol, timeframe);
+
+      if (anchorMs === undefined) return firings;
 
       // Before evaluating: a caller re-syncing coverage here has already
       // dropped a newly-covered alert from the legacy engine by the time a
       // rule below could notify for this same close.
       this.onClose(symbol, timeframe, anchorMs);
 
-      return this.evaluateSeries(symbol, timeframe, anchorMs);
+      firings.push(...this.evaluateSeries(symbol, timeframe, anchorMs));
+      return firings;
     } catch (e) {
       logger.error("alerts", `[RuleEngine] Rule evaluation failed for ${symbol} ${timeframe}`, e);
       return [];
@@ -328,17 +354,75 @@ export class RuleEvaluationLoop {
     return previous;
   }
 
-  private evaluateSeries(symbol: string, timeframe: string, anchorMs: number): RuleFiring[] {
-    const rules = this.readRules().filter(
+  /**
+   * The armed rules anchored on this series, in one evaluation mode.
+   *
+   * The modes partition the rule set rather than layering: a document is read
+   * either at its close or while it forms, never both. Evaluating an intrabar
+   * rule again on the close would be a second decision about a candle that
+   * rule had already been watching tick by tick, and the trader would hear one
+   * event twice.
+   *
+   * An absent `evaluation_mode` is `close`, which is the serialised form of
+   * every document written before FEAT-0477 — the core omits the default, so
+   * the field is missing rather than set on all of them.
+   */
+  private rulesFor(symbol: string, timeframe: string, intrabar: boolean): RuleDocument[] {
+    const wanted = intrabar ? "intrabar" : "close";
+    return this.readRules().filter(
       (rule) =>
         rule !== null &&
         typeof rule === "object" &&
         rule.enabled !== false &&
         rule.symbol === symbol &&
-        rule.trigger_timeframe === timeframe,
+        rule.trigger_timeframe === timeframe &&
+        (rule.evaluation_mode ?? "close") === wanted,
     );
+  }
+
+  /**
+   * Evaluate this series' intrabar rules against the candle forming right now.
+   *
+   * The anchor is the series' current high-water open time — which *is* the
+   * forming candle's open time, and stays put until it rolls over. A series
+   * whose first candle has not been seen yet has nothing to anchor on and
+   * nothing to evaluate.
+   */
+  private evaluateForming(symbol: string, timeframe: string): RuleFiring[] {
+    const anchorMs = this.highestOpenMs.get(`${symbol}:${timeframe}`);
+    if (anchorMs === undefined) return [];
+
+    const rules = this.rulesFor(symbol, timeframe, true);
     if (rules.length === 0) return [];
 
+    // Without a forming-candle reader these would be evaluated against an
+    // empty series, which reads as "not warmed up" and withholds every verdict
+    // forever. That is precisely the silently-inert alert this engine exists to
+    // make impossible, so it is reported through the channel built for it
+    // rather than left to look like a rule that simply never triggered.
+    if (this.readFormingCandles === NO_CANDLES) {
+      for (const rule of rules) {
+        this.reportUnevaluable(rule, "this build has no reader for the forming candle");
+      }
+      return [];
+    }
+
+    return this.evaluateRules(rules, symbol, timeframe, anchorMs, true);
+  }
+
+  private evaluateSeries(symbol: string, timeframe: string, anchorMs: number): RuleFiring[] {
+    const rules = this.rulesFor(symbol, timeframe, false);
+    if (rules.length === 0) return [];
+    return this.evaluateRules(rules, symbol, timeframe, anchorMs, false);
+  }
+
+  private evaluateRules(
+    rules: readonly RuleDocument[],
+    symbol: string,
+    timeframe: string,
+    anchorMs: number,
+    intrabar: boolean,
+  ): RuleFiring[] {
     const firings: RuleFiring[] = [];
     for (const rule of rules) {
       // One rule's failure is contained to that rule. Without this, a throw
@@ -347,7 +431,7 @@ export class RuleEvaluationLoop {
       // every candle (BUG-0449).
       let firing: RuleFiring | undefined;
       try {
-        firing = this.evaluateRule(rule, symbol, timeframe, anchorMs);
+        firing = this.evaluateRule(rule, symbol, timeframe, anchorMs, intrabar);
       } catch (e) {
         // A refusal is the core saying this document is not a rule it accepts,
         // and it will say so on every close: the same document, the same core.
@@ -380,11 +464,12 @@ export class RuleEvaluationLoop {
     symbol: string,
     timeframe: string,
     anchorMs: number,
+    intrabar: boolean,
   ): RuleFiring | undefined {
     // Read per rule, not once per series: two rules on the same trigger
     // timeframe can still read different timeframes, and the reader is the
     // only thing that knows which series each one needs.
-    const ctx = this.contextFor(rule, symbol, timeframe);
+    const ctx = this.contextFor(rule, symbol, timeframe, intrabar);
     // Undefined means the rule cannot be honestly evaluated at all — not that
     // it did not fire. Skipping is the safe direction; `contextFor` has
     // already said so out loud.
@@ -395,7 +480,13 @@ export class RuleEvaluationLoop {
       ctx.mark_candles = markCandles;
     }
 
-    const verdict = ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
+    // Two gate entries, not one call with a flag: the close path dedupes an
+    // anchor it has already decided, the intrabar path may look at the same
+    // forming candle again and again, and the two keep separate records so one
+    // cannot swallow the other's anchor.
+    const verdict = intrabar
+      ? ruleEvaluationGate.evaluateIntrabar(rule, ctx, anchorMs)
+      : ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
     if (verdict === undefined || verdict.verdict !== "fires") return undefined;
     return { rule, verdict, anchorMs };
   }
@@ -407,14 +498,23 @@ export class RuleEvaluationLoop {
    * condition is read from its own series, so it resolves to the last candle
    * of that timeframe which had closed at the trigger instant rather than a
    * later one.
+   *
+   * `intrabar` changes only the trigger series, which then ends with the
+   * candle still forming. A coarser timeframe stays closed-only in both modes:
+   * the mode says when the *trigger* candle is read, and a rule that reads the
+   * daily trend while watching a 1m candle form still wants yesterday's
+   * finished day, not today's partial one.
    */
   private candlesFor(
     rule: RuleDocument,
     symbol: string,
     triggerTimeframe: string,
+    intrabar: boolean,
   ): Record<string, EvaluationCandle[]> {
     const candles: Record<string, EvaluationCandle[]> = {
-      [triggerTimeframe]: this.readCandles(symbol, triggerTimeframe),
+      [triggerTimeframe]: intrabar
+        ? this.readFormingCandles(symbol, triggerTimeframe)
+        : this.readCandles(symbol, triggerTimeframe),
     };
 
     for (const timeframe of collectTimeframes(rule)) {
@@ -441,8 +541,9 @@ export class RuleEvaluationLoop {
     rule: RuleDocument,
     symbol: string,
     triggerTimeframe: string,
+    intrabar: boolean,
   ): EvaluationContext | undefined {
-    const candles = this.candlesFor(rule, symbol, triggerTimeframe);
+    const candles = this.candlesFor(rule, symbol, triggerTimeframe, intrabar);
     const indicators: EvaluationIndicatorSeries[] = [];
 
     for (const request of collectIndicators(rule)) {
@@ -575,6 +676,7 @@ export class RuleEvaluationLoop {
   disarm(): void {
     this.readCandles = NO_CANDLES;
     this.readMarkCandles = NO_CANDLES;
+    this.readFormingCandles = NO_CANDLES;
     this.readRules = NO_RULES;
     this.readRuleState = NO_STATE;
     this.onFiring = shadowSink;

@@ -39,6 +39,32 @@ import type { EvaluationContext, RuleDocument, Verdict } from "./types";
 
 export class RuleEvaluationGate {
   private readonly lastEvaluatedAnchorMs = new Map<string, number>();
+  /**
+   * The same record for the intrabar path, kept apart on purpose — FEAT-0477.
+   *
+   * An open candle and that same candle once closed share one `open_time_ms`.
+   * Through one map, a look at the forming candle would consume the anchor and
+   * the real close would then read as already-decided and be withheld — the
+   * intrabar mode would silently disable the close it was layered on top of.
+   * Two records make that impossible rather than making one caller careful,
+   * and they also survive a rule being switched between the two modes
+   * mid-session, which a single record could not.
+   */
+  private readonly lastIntrabarAnchorMs = new Map<string, number>();
+  /**
+   * The anchors this rule has already announced on through the intrabar path,
+   * kept apart from the evaluation record above on purpose — FEAT-0477.
+   *
+   * Re-evaluating a forming candle on every tick is the mode (repaint: a
+   * condition false now may hold on the next tick), but announcing is at most
+   * once per candle, for every frequency alike. `frequency` cannot carry this:
+   * the core answers `every_time` with yes however often it has fired, so
+   * without this record such a rule would announce on every tick of the
+   * candle — the stream of contradictory alerts about one candle FEAT-0477
+   * decided against. Across candles nothing changes: a newer anchor is a new
+   * decision, and `frequency` keeps its current meaning there.
+   */
+  private readonly lastIntrabarFiredAnchorMs = new Map<string, number>();
 
   /**
    * Evaluate `document` against `ctx`, unless `anchorMs` — the open time of
@@ -82,9 +108,62 @@ export class RuleEvaluationGate {
     return verdict;
   }
 
-  /** Forget a rule's last-evaluated anchor, e.g. when it is edited or disarmed. */
+  /**
+   * Evaluate `document` against a context whose trigger series ends with the
+   * candle still forming — FEAT-0477's `evaluation_mode: "intrabar"`.
+   *
+   * `anchorMs` is that forming candle's open time, so it stays the same across
+   * every update of the candle. The dedupe is therefore deliberately weaker
+   * than {@link evaluate}'s: strictly *before* the newest anchor is refused,
+   * equal to it is allowed. Refusing the equal case here would let exactly one
+   * tick per candle through and turn intrabar back into a slower, less
+   * accurate close.
+   *
+   * What stops a rule announcing itself on every tick is split in two: a rule
+   * whose conditions stop holding is simply re-evaluated (repaint), while a
+   * rule that fired is recorded in a separate announced-record below and not
+   * announced again on the same candle. `frequency`, which the core applies
+   * from `ctx.state` (FEAT-0440), still governs across candles — but it cannot
+   * carry the within-candle half, because the core answers `every_time` with
+   * yes however often the rule has fired.
+   *
+   * The monotonic half is kept: a forming candle that already rolled over
+   * cannot be reopened by a replayed or corrected update after a reconnect.
+   */
+  evaluateIntrabar(
+    document: RuleDocument,
+    ctx: EvaluationContext,
+    anchorMs: number,
+  ): Verdict | undefined {
+    const seenCandles = ctx.candles[document.trigger_timeframe]?.length ?? 0;
+    if (seenCandles < ruleSchema.warmupCandles(document)) return undefined;
+
+    const lastAnchorMs = this.lastIntrabarAnchorMs.get(document.id);
+    if (lastAnchorMs !== undefined && anchorMs < lastAnchorMs) return undefined;
+
+    // At most one announcement per candle, every frequency alike: a replayed
+    // or corrected update of a candle that already announced must not speak
+    // again, and neither must the next tick of a candle still forming.
+    const lastFiredMs = this.lastIntrabarFiredAnchorMs.get(document.id);
+    if (lastFiredMs !== undefined && anchorMs <= lastFiredMs) return undefined;
+
+    const verdict = ruleSchema.evaluate(document, ctx);
+    this.lastIntrabarAnchorMs.set(document.id, anchorMs);
+    if (verdict.verdict === "fires") this.lastIntrabarFiredAnchorMs.set(document.id, anchorMs);
+    return verdict;
+  }
+
+  /**
+   * Forget a rule's last-evaluated anchors, e.g. when it is edited or disarmed.
+   *
+   * All three records, always. A caller that forgets a rule wants that rule to be
+   * decidable again, and leaving one of the three behind would make the answer
+   * depend on which mode the document happened to carry when it was forgotten.
+   */
   forget(ruleId: string): void {
     this.lastEvaluatedAnchorMs.delete(ruleId);
+    this.lastIntrabarAnchorMs.delete(ruleId);
+    this.lastIntrabarFiredAnchorMs.delete(ruleId);
   }
 }
 
