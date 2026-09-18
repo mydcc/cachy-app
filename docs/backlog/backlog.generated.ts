@@ -1680,6 +1680,78 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0472-ai-actions-execute-without-confirmation.md"
   },
   {
+    "id": "BUG-0481",
+    "title": "Every alert that is not a plain price rule announces itself with an empty value",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0481-firing-message-empty-for-non-price-rules.md"
+  },
+  {
+    "id": "BUG-0482",
+    "title": "A mark-price operand inside a window is never supplied with mark candles and the rule never fires",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md"
+  },
+  {
+    "id": "BUG-0483",
+    "title": "After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md"
+  },
+  {
+    "id": "BUG-0484",
+    "title": "The rule store is read from localStorage and reparsed on every kline tick, not once per candle close",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -2602,6 +2674,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "M",
     "estimate": "5",
     "file": "features/FEAT-0440-real-firing-sink.md"
+  },
+  {
+    "id": "FEAT-0488",
+    "title": "Guard bot order submission against duplicates, stacking and unbounded repeat",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [],
+    "file": "features/FEAT-0488-bot-order-submission-guard.md"
   },
   {
     "id": "BUG-0005",
@@ -4202,6 +4292,78 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "S",
     "file": "bugs/BUG-0474-ai-actions-executed-without-schema-validation.md"
+  },
+  {
+    "id": "BUG-0485",
+    "title": "The broken-alert record is built, never read and never cleared",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md"
+  },
+  {
+    "id": "BUG-0486",
+    "title": "The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0486-evaluation-gate-forget-is-never-called.md"
+  },
+  {
+    "id": "BUG-0487",
+    "title": "A send-level rule fires, drops its order intent and reports nothing",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [],
+    "file": "bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md"
+  },
+  {
+    "id": "BUG-0489",
+    "title": "A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md"
   },
   {
     "id": "FEAT-0019",
@@ -6871,6 +7033,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "claude",
     "branch": "fix/bug-0478-indicator-i18n-guard",
     "file": "bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md"
+  },
+  {
+    "id": "BUG-0490",
+    "title": "The alert system document still describes the two-engine cutover that FEAT-0399 removed",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "docs",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md"
   },
   {
     "id": "FEAT-0022",
