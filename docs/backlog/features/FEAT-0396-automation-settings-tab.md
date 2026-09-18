@@ -4,7 +4,7 @@ title: An Automation settings tab for user-configured bots
 type: feature
 status: in-progress
 assignee: claude-code
-branch: feat/feat-0396-p2-promote-alert
+branch: feat/feat-0396-p3-automation-tab
 priority: P2
 milestone: M9
 editions: [community, pro, private]
@@ -114,26 +114,70 @@ document refuses. A bot document that somehow carried `send` would still submit
 nothing — there is no `send` path until `FEAT-0035` builds one, order gate, risk limits
 and confirmation included.
 
+## State (2026-09-18) — what is built, and the one thing that is not
+
+Three PRs have landed or are open. Ten of the twelve criteria are covered.
+
+| PR | What |
+|---|---|
+| #3452 (merged) | `Provenance.derived_from_hash`, its shape validator and `InvalidDerivedFromHash` |
+| #3453 (merged) | `RuleDocument::promote` and `promoteAlertToBot` — criteria 4, 5, 6, and 3's core half |
+| #3454 (open) | The Automation tab, `botStore.ts`, the sentence fix — criteria 1, 2, 3, 9, 10, 12 |
+
+**Criteria 7 and 8 are blocked on a decision, not on work.** "A fired bot
+produces a simulated order in the paper account" and "existing risk limits apply
+to simulated orders" both require a bot's order to reach
+`paperExchange` — and the only route there that ADR-0012 decision 5 permits is
+the one a human click takes, through `OrderGate`.
+
+The gate cannot currently be asked by a bot:
+
+- `OrderIntent.displayed: DisplayedState` is **required**, and it is documented
+  as "the state the UI displayed at the moment of confirmation". A bot has no
+  screen, so there is no displayed state to capture and nothing to compare a
+  payload against.
+- `OrderIntent.confirmedAt` is optional, but its absence is documented as never
+  benign: for any action the policy requires confirmation for, the gate refuses.
+  A bot has no human to confirm.
+
+There are two ways to make a bot order pass, and both need a human decision:
+
+1. **Bypass the gate for `simulate`.** This is the one thing the item's own
+   `## Correction (2026-09-18)` section leans on ADR-0012 decision 5 to forbid,
+   and a bypass built for paper orders is a bypass that exists when
+   [`FEAT-0035`](FEAT-0035-autonomous-execution-agent.md) arrives.
+2. **Define what "displayed" and "confirmed" mean for an unattended order.**
+   That is exactly the confirmation path this item already names as FEAT-0035's,
+   and designing it here would mean designing it twice.
+
+So the remaining work is not "wire the bot to the paper account". It is "decide
+how an unattended order passes a gate built around what a human was shown" —
+and that decision belongs with FEAT-0035, or in its own item if bots are wanted
+to trade on paper before live execution is designed.
+
+Until then an armed bot is evaluated like any other rule, announces, and submits
+nothing. The tab says so in both locales rather than implying otherwise.
+
 ## Acceptance criteria
 
-- [ ] The Automation tab lists, creates, edits, enables and disables bots
-- [ ] A bot is a `RuleDocument`; enabling one does not change its content hash
-- [ ] No document created in this tab can carry `consequence_level: send`: the tab
+- [x] The Automation tab lists, creates, edits, enables and disables bots
+- [x] A bot is a `RuleDocument`; enabling one does not change its content hash
+- [x] No document created in this tab can carry `consequence_level: send`: the tab
       writes `simulate`, and the guarantee that nothing submits is the ladder —
       `authorise(Send)` on a `simulate` document refuses, pinned by a core test. See
       the correction above for why this is not a `validate()` check
-- [ ] Promoting an alert creates a **new** document with a new `id`; the source alert is
+- [x] Promoting an alert creates a **new** document with a new `id`; the source alert is
       left unchanged and still armed
-- [ ] The promoted document records the source's content hash in `provenance`, and
+- [x] The promoted document records the source's content hash in `provenance`, and
       documents written before that field existed still parse
-- [ ] Recording the derivation changes no content hash — the pinned-hash tests still pass
-- [ ] A fired bot rule produces a simulated order in the paper account and nothing else
-- [ ] Existing risk limits apply to simulated orders
-- [ ] Each bot shows its rule as a plain-language sentence, in both locales, the same way
+- [x] Recording the derivation changes no content hash — the pinned-hash tests still pass
+- [ ] A fired bot rule produces a simulated order in the paper account and nothing else — **blocked**, see State above
+- [ ] Existing risk limits apply to simulated orders — **blocked**, see State above
+- [x] Each bot shows its rule as a plain-language sentence, in both locales, the same way
       the alert panel does
-- [ ] Disabling a bot stops evaluation, and Manage shows it as disabled rather than absent
-- [ ] The rebuilt `static/wasm/` artefacts ship in the same PR as the Rust change
-- [ ] German and English strings
+- [x] Disabling a bot stops evaluation, and Manage shows it as disabled rather than absent
+- [x] The rebuilt `static/wasm/` artefacts ship in the same PR as the Rust change
+- [x] German and English strings
 
 ## Out of scope
 
