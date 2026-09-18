@@ -11,7 +11,7 @@ Review open PRs in `mydcc/cachy-app` against their backlog item (if linked) and 
 
 - **Chat with the user: German.** Every message addressed to the user — status updates, questions, summaries, explanations, triage notes — is written in German. The user communicates in German; answering in English is a rule violation, not a style choice. This applies to all agents running this skill, with no exceptions.
 - **Artifacts stay English.** PR review comments (step 11), commit messages, code, identifiers, and technical terms remain in English per the repo's Commits & Branches rule. Never translate code identifiers or technical terms into German — only the conversation around them is German.
-- **Chat summary ends with a before/after table.** After step 11, the German chat summary closes with a table listing every fixed finding: finding (severity) | before | after. No finding is omitted from this table.
+- **Chat summary ends with a plain findings list.** After step 11, the German chat summary closes with one bullet per finding, each tagged with its severity (e.g. `- [MEDIUM] …`). No tables. What was fixed and pushed is documented only in the PR comment (step 11, "Fixed & Pushed" section), so the next review sees it there — never in chat.
 
 ## Model & Token Efficiency
 
@@ -47,17 +47,16 @@ If you're an agent reviewing your own work: use `--author <your-login>` to focus
 - PR is draft → end the run with a one-line note to the invoker, no PR comment.
 - A `Code Review for <sha>` marker matching the current HEAD SHA is already posted (see step 2) → end the run, no PR comment.
 
-1. **OCR delegation pre-filter (best-effort, read-only).**
-   - Run Alibaba `open-code-review` in delegation mode — deterministic file selection + rule matching, no LLM key needed, produces no verdict of its own:
-     ```bash
-     npx -y @alibaba-group/open-code-review delegate preview --from origin/develop --to <pr-head-sha>
-     npx -y @alibaba-group/open-code-review delegate rule <reviewable-path> [<reviewable-path>...]
-     ```
-     Single commit: `delegate preview -c <sha>`; uncommitted local changes: bare `delegate preview`.
-   - Treat the output as input only: the reviewable-file list scopes steps 2–10, the rule groups are hints. Cachy rules (step 5) always win on conflict; drop OCR-only Low/style nits.
-   - **Manually review everything OCR excluded** — it excludes test files via `default_path` (proven gap on PR #3419). Excluded ≠ approved.
-   - Focus your own depth on OCR-excluded files (tests!) and the Cachy-specific checks (steps 4–5); for generic correctness (step 6) review only the delta to the bot review instead of everything twice.
-   - If `ocr` or bash is unavailable (e.g. CI review runner with bash disabled) or the command fails: skip silently and continue — never block the review on this step.
+1. **OCR delegation pre-filter (best-effort, read-only, at most one call).**
+    - Run Alibaba `open-code-review` in `delegate preview` mode exactly once per run — deterministic file selection only, no LLM key needed, produces no verdict of its own. Prefer a globally installed `ocr`; fall back to npx (always latest, unpinned):
+      ```bash
+      ocr delegate preview --from origin/develop --to <pr-head-sha>
+      ```
+      Single commit: `delegate preview -c <sha>`; uncommitted local changes: bare `delegate preview`.
+    - Treat the output as input only: the reviewable-file list scopes steps 2–10. Cachy rules (step 5) always win on conflict.
+    - **Manually review everything OCR excluded** — it excludes test files via `default_path` (proven gap on PR #3419). Excluded ≠ approved.
+    - Focus your own depth on OCR-excluded files (tests!) and the Cachy-specific checks (steps 4–5); for generic correctness (step 6) review only the delta to the bot review instead of everything twice.
+    - If neither `ocr` nor npx is available, or bash is unavailable (e.g. CI review runner with bash disabled), or the command fails: skip silently and continue — never block the review on this step.
 
 2. **Identify the backlog item.**
    - **Already reviewed?** Search the PR comments for a `Code Review for <sha>` marker matching the current HEAD SHA (`gh pr view <nr> --comments --jq '.[].body'`). On a match, end the run immediately with "already reviewed at <sha>" — no new review, no comment. Steps 9 and 11 reuse this lookup for the bot comment.
