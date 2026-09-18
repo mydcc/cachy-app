@@ -2,9 +2,9 @@
 
 # Backlog index
 
-378 items. How to read and add them: [README.md](README.md).
+379 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 35 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 36 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -256,6 +256,7 @@ Counts by status: 💡 idea 23 · 📋 specced 35 · 🟡 in-progress 1 · ✅ d
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | alerts |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | execution |
 | [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | execution |
+| [BUG-0498](bugs/BUG-0498-core-parity-test-for-mark-timeframes.md) | No parity test pins the TS mark-timeframe mirror to the core export | P1 | 📋 specced | alerts |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -534,6 +535,7 @@ Counts by status: 💡 idea 23 · 📋 specced 35 · 🟡 in-progress 1 · ✅ d
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
+| [BUG-0498](bugs/BUG-0498-core-parity-test-for-mark-timeframes.md) | No parity test pins the TS mark-timeframe mirror to the core export | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -830,4 +832,4 @@ Counts by status: 💡 idea 23 · 📋 specced 35 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0498**
+Next free number: **0499**

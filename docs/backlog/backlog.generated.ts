@@ -1808,6 +1808,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md"
   },
   {
+    "id": "BUG-0498",
+    "title": "No parity test pins the TS mark-timeframe mirror to the core export",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0498-core-parity-test-for-mark-timeframes.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",

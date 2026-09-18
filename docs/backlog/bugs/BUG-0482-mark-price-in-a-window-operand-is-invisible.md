@@ -82,6 +82,8 @@ what stops the next nested operand re-opening this.
       the evaluation context carries `mark_candles` — failing before the fix
 - [ ] A parity test asserts `collectMarkTimeframes` equals the core's
       `rule_mark_timeframes` over every condition and operand shape in `types.ts`
+      — deferred to BUG-0498 (needs a `ruleSchema` binding first, larger than
+      this fix; see PR #3480)
 - [ ] A rule with no mark operand still reaches the core with no `mark_candles` key, so
       its wire payload and content hash are unchanged
 
