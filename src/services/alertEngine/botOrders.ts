@@ -130,6 +130,8 @@ export function riskPercentageFor(
 /** Why a bot that fired did not submit. Developer-facing English. */
 export type BotOrderRefusal =
   | "paper-trading-off"
+  | "no-order"
+  | "reduce-only-unsupported"
   | "no-stop"
   | "no-entry-price"
   | "no-equity"
@@ -185,9 +187,30 @@ export async function submitBotOrder(
   env: BotOrderEnvironment,
 ): Promise<BotOrderRefusal | null> {
   const order = firing.rule.action.order;
-  if (!order) return "no-stop";
+  // `isBot` keys off `consequence_level` alone, so a document whose level says
+  // it submits but whose intent is missing reaches this line. `RuleAction`
+  // refuses that combination, so this should be unreachable through the core —
+  // which is exactly why it gets its own reason instead of borrowing another
+  // one. A refusal that names the wrong cause is worse than no refusal: it
+  // sends whoever reads the log looking for a stop that was never the problem.
+  if (!order) return "no-order";
 
   if (!env.paperEnabled()) return "paper-trading-off";
+
+  // Refused here rather than caught by the stop check below.
+  //
+  // `EntryPlan` carries no reduce flag and `orderPlacementService` knows none,
+  // so a `reduce_only` intent submitted through this path would open exposure
+  // instead of closing it — the precise opposite of what the document says.
+  // The core keeps a `reduce_only` intent from carrying a stop
+  // (`RefusalCode::StopNotHonoured`), so today such a bot would fall into
+  // `no-stop` and stop there. That is an accident of two unrelated rules
+  // lining up, not a decision: relax the stop requirement — an ATR basis, a
+  // closing order that needs none — and the accident stops protecting anyone.
+  // Closing an open position from a rule is FEAT-0035's scope, so until then
+  // this says so in one line that cannot drift.
+  if (order.reduce_only) return "reduce-only-unsupported";
+
   if (!order.stop) return "no-stop";
 
   const entryPrice = env.closeAt(firing.rule.symbol, firing.rule.trigger_timeframe, firing.anchorMs);

@@ -2331,6 +2331,7 @@ export type TranslationKey =
   | "settings.automation.account"
   | "settings.automation.orderRefusedPaperOff"
   | "settings.automation.orderRefusedNoStop"
+  | "settings.automation.orderRefusedReduceOnly"
   | "settings.automation.orderRefusedOther"
   | "positionsList.noOpenPositions"
   | "positionsList.size"

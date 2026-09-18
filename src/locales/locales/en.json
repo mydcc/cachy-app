@@ -2677,6 +2677,7 @@
       "account": "The simulated account",
       "orderRefusedPaperOff": "“{name}” fired, but placed nothing: paper trading is switched off.",
       "orderRefusedNoStop": "“{name}” fired, but placed nothing: a bot needs a stop before it can size a position.",
+      "orderRefusedReduceOnly": "“{name}” fired, but placed nothing: a bot that only closes a position cannot be placed yet.",
       "orderRefusedOther": "“{name}” fired, but placed nothing."
     }
   },

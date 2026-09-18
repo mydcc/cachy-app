@@ -2677,6 +2677,7 @@
       "account": "Das simulierte Konto",
       "orderRefusedPaperOff": "„{name}“ hat ausgelöst, aber nichts platziert: Paper-Trading ist ausgeschaltet.",
       "orderRefusedNoStop": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot braucht einen Stop, um eine Position zu dimensionieren.",
+      "orderRefusedReduceOnly": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot, der nur eine Position schließt, kann noch nicht platziert werden.",
       "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert."
     }
   },

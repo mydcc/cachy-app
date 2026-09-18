@@ -718,15 +718,15 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
       // undefined, not a re-sync function: shadow mode must not touch legacy
       // coverage at all, mid-session included.
-      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(expect.any(Function), undefined);
-
-      // And the wrapper forwards to the recording sink, which is the half that
-      // decides whether a trader hears anything. FEAT-0396 wrapped the sink, so
-      // identity alone no longer says which one was chosen.
-      const armed = mockStartRuleEvaluationLoop.mock.calls[0][0] as (f: unknown) => void;
-      const firing = firingOfAnAlert();
-      armed(firing);
-      expect(mockLedgerSink).toHaveBeenCalledWith(firing);
+      //
+      // The recording sink itself, not a wrapper around it. `withBotOrders`
+      // belongs to live mode alone: a shadow run measures the new evaluator
+      // against the old one, and an order — simulated or not — moves the paper
+      // balance every later sizing decision is measured against. Identity is
+      // also what `startRuleEvaluationLoop` keys its own `[Shadow]` log line
+      // off, so a wrapper here makes a measurement run report itself as
+      // notifying.
+      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(mockLedgerSink, undefined);
     });
 
     it("live mode (the default) does remove a covered alert from the legacy engine", async () => {

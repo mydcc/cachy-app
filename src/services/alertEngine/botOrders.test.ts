@@ -196,6 +196,33 @@ describe("what a fired bot submits", () => {
     expect(place).not.toHaveBeenCalled();
   });
 
+  it("submits nothing for a reduce-only intent, and says that is the reason", async () => {
+    // The hazard the reason exists to close: `EntryPlan` carries no reduce
+    // flag, so an intent that says "close exposure" would open some. The core
+    // refuses a reduce-only intent that also carries a stop, so this document
+    // has none — which means the assertion worth making is that the refusal
+    // reads `reduce-only-unsupported` and not `no-stop`. Both stop the order;
+    // only one of them survives a future that relaxes the stop requirement.
+    const closing = botDocument("percent_of_equity", "1", null);
+    closing.action.order!.reduce_only = true;
+    const { env, place } = environment();
+
+    expect(await submitBotOrder(firingOf(closing), env)).toBe("reduce-only-unsupported");
+    expect(place).not.toHaveBeenCalled();
+  });
+
+  it("submits nothing for a bot whose action carries no intent at all", async () => {
+    // `isBot` keys off the consequence level alone, so this document is a bot
+    // with nothing to place. It names its own reason rather than borrowing the
+    // stop's.
+    const empty = botDocument();
+    empty.action = { consequence_level: "simulate" };
+    const { env, place } = environment();
+
+    expect(await submitBotOrder(firingOf(empty), env)).toBe("no-order");
+    expect(place).not.toHaveBeenCalled();
+  });
+
   it("submits nothing when the candle it fired on is no longer held", async () => {
     const { env, place } = environment({ closeAt: () => null });
 

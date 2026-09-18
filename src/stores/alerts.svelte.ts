@@ -301,9 +301,17 @@ function botOrderEnvironment(closeAt: BotOrderEnvironment["closeAt"]): BotOrderE
  * looks like a strategy that found no setup.
  *
  * `withBotOrders` already limits this to once per rule and reason.
+ *
+ * Typed `TranslationKey`, not `string`: a `Record<…, string>` plus a cast at
+ * the call site accepts a key that no locale file defines, and the failure
+ * surfaces as a toast reading `settings.automation.orderRefusedTypo` to a
+ * trader whose bot just did nothing. Adding a member to `BotOrderRefusal` now
+ * fails the build here until both locales carry its message.
  */
-const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, string> = {
+const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, TranslationKey> = {
     "paper-trading-off": "settings.automation.orderRefusedPaperOff",
+    "no-order": "settings.automation.orderRefusedOther",
+    "reduce-only-unsupported": "settings.automation.orderRefusedReduceOnly",
     "no-stop": "settings.automation.orderRefusedNoStop",
     "no-entry-price": "settings.automation.orderRefusedOther",
     "no-equity": "settings.automation.orderRefusedOther",
@@ -316,7 +324,7 @@ export function reportBotOrderRefusal(
 ): void {
     logger.warn("alerts", `bot ${firing.rule.id} fired but submitted nothing: ${refusal}`);
     toastService.error(
-        get(_)(BOT_REFUSAL_KEYS[refusal] as TranslationKey, {
+        get(_)(BOT_REFUSAL_KEYS[refusal], {
             values: { name: firing.rule.name },
         }),
     );
@@ -670,12 +678,22 @@ export async function initAlertEngine(
     // no longer rests on `ruleSchema.isReady()` being monotonic — FEAT-0406.
     if (ready) {
         alertState.engineStatus = "ready";
+        // Bots ride the live sink only. Shadow mode exists to measure the new
+        // evaluator against the old one without consequences, and an order —
+        // even a simulated one — is a consequence: it moves the paper balance
+        // every later sizing decision is measured against, so a measurement run
+        // would stop being a measurement of the same account. Wrapping the
+        // ledger sink also broke `startRuleEvaluationLoop`'s `onFiring ===
+        // ledgerSink` identity check, which is what makes a shadow run say so
+        // in the log instead of claiming it is notifying.
         disarmRuleLoop = startRuleEvaluationLoop(
-            withBotOrders(
-                mode === "live" ? notifyingRuleSink : ledgerSink,
-                botOrderEnvironment(closeAtAnchor),
-                reportBotOrderRefusal,
-            ),
+            mode === "live"
+                ? withBotOrders(
+                      notifyingRuleSink,
+                      botOrderEnvironment(closeAtAnchor),
+                      reportBotOrderRefusal,
+                  )
+                : ledgerSink,
             onClose,
         );
 
