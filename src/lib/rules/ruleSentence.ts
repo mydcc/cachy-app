@@ -42,6 +42,7 @@ import type {
   PriceField,
   PriceSource,
   RuleDocument,
+  StopDistance,
   TimeframeString,
 } from "./types";
 import { isPriceField, referenceFieldFor } from "./alertPathIndicators";
@@ -85,6 +86,17 @@ const ACCOUNT_KEYS: Record<AccountFieldName, string> = {
   unrealised_pnl_percent: "rules.sentence.account.unrealised_pnl_percent",
   exposure: "rules.sentence.account.exposure",
   available_balance: "rules.sentence.account.available_balance",
+};
+
+/**
+ * One fragment per stop basis rather than a `{basis}` slot, for the reason
+ * `indicatorFrom` below is keyed that way: what a second basis would change is
+ * the words *around* the number ("2% from the entry" against "1.5 ATR below
+ * it"), and German declines them differently. A `Record` over the union so a
+ * new basis fails the type check here rather than rendering `undefined`.
+ */
+const STOP_KEYS: Record<StopDistance["basis"], string> = {
+  percent_of_entry: "rules.sentence.stop.percent_of_entry",
 };
 
 /**
@@ -314,6 +326,23 @@ function formatGroup(
     : joined;
 }
 
+/**
+ * The stop clause, or nothing at all when the intent carries none.
+ *
+ * A suffix filled with `""`, the way `timeframeSuffix` already works, rather
+ * than a second pair of lead keys: the alternative doubles every lead string in
+ * both locales to say one optional thing.
+ *
+ * Not decoration. `stop` is inside the content hash, so two bots differing only
+ * in it are two different strategies risking different amounts of the same
+ * account -- and under `percent_risk` the position size is *computed* from this
+ * number. Leaving it unsaid let those two render the identical sentence, and
+ * the sentence is what a trader arms from.
+ */
+function stopSuffix(stop: StopDistance | undefined, t: SentenceTranslator): string {
+  return stop === undefined ? "" : t(STOP_KEYS[stop.basis], { distance: stop.distance });
+}
+
 function formatLead(document: RuleDocument, t: SentenceTranslator): string {
   const { action } = document;
   // The order clause belongs to every level that submits something, not to
@@ -332,6 +361,7 @@ function formatLead(document: RuleDocument, t: SentenceTranslator): string {
         side: t(`rules.sentence.orderSide.${action.order.side}`),
         size: action.order.size,
         basis: t(`rules.sentence.basis.${action.order.size_basis}`),
+        stop: stopSuffix(action.order.stop, t),
       },
     );
   }
