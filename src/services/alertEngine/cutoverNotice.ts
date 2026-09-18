@@ -39,7 +39,8 @@
 
 import { browser } from "$app/environment";
 import { logger } from "../logger";
-import { readCoveredAlertIds } from "./ruleCoverage";
+import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
+import { readRuleOriginLedger } from "./ruleOriginLedger";
 
 export const CUTOVER_NOTICE_STORAGE_KEY = "cachy_cutover_notice_v1";
 
@@ -56,12 +57,33 @@ export async function shouldShowCutoverNotice(): Promise<boolean> {
   try {
     if (localStorage.getItem(CUTOVER_NOTICE_STORAGE_KEY) !== null) return false;
 
-    // Dynamic, not static: this file stays free of a market-store import for
-    // the same reason `ruleCoverage.ts` does, and without the real predicate
-    // `readCoveredAlertIds()` safely reports nothing — the notice would never
-    // show at all rather than showing for an alert that cannot actually fire.
-    const { isSeriesObserved } = await import("./ruleLoopWiring");
-    return readCoveredAlertIds(isSeriesObserved).size > 0;
+    // FEAT-0399: the question used to be "is any alert currently covered by
+    // the rule engine", because coverage decided which of two engines served
+    // it and therefore whether the behaviour had actually changed for this
+    // trader. With one engine left, coverage has nothing to decide — but the
+    // nuance it carried is worth keeping: an alarm that is disabled triggers
+    // no differently, because it does not trigger. So the question becomes
+    // "is any *armed* rule one this trader's alerts were migrated into",
+    // which the origin ledger and the rule store answer between them, without
+    // loading the market store at all.
+    const migratedRuleIds = new Set(Object.keys(readRuleOriginLedger().entries));
+    if (migratedRuleIds.size === 0) return false;
+
+    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    if (raw === null) return false;
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return false;
+
+    return parsed.some((entry) => {
+      const rule = entry as { id?: unknown; enabled?: unknown } | null;
+      return (
+        rule !== null &&
+        typeof rule.id === "string" &&
+        rule.enabled !== false &&
+        migratedRuleIds.has(rule.id)
+      );
+    });
   } catch (e) {
     logger.warn("alerts", "[Cutover] Could not decide on the behaviour notice", e);
     return false;

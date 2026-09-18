@@ -33,7 +33,9 @@
  * Class A (ADR-0001): rules are strategy and stay in `localStorage`.
  */
 
+import { browser } from "$app/environment";
 import type { RuleDocument } from "../../lib/rules/types";
+import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 
 /**
@@ -93,4 +95,64 @@ export function armRule(document: RuleDocument): RuleDocument[] {
       : rules.map((r, i) => (i === index ? document : r));
   localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
   return next;
+}
+
+/**
+ * Removes one rule from `cachy_rules_v1`. Returns the remaining rules.
+ *
+ * FEAT-0399: Manage's delete button used to remove the *legacy alert*, and the
+ * rule behind it was disarmed separately by `releaseCoverage()`. With the
+ * legacy store gone there is one store and one delete, so the button acts on
+ * what the loop actually reads.
+ *
+ * Deletes rather than disarms, matching what the button has always meant to a
+ * trader. A rule they merely want silenced is disarmed by the firing path
+ * (`disarmRule`), never by this.
+ */
+export function removeRule(ruleId: string): RuleDocument[] {
+  const rules = readRuleStore();
+  const next = rules.filter((rule) => rule.id !== ruleId);
+  if (next.length !== rules.length) {
+    localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
+  }
+  return next;
+}
+
+/**
+ * Disarms one rule in `cachy_rules_v1`. Returns whether anything changed.
+ *
+ * Used when a rule has fired: the rule engine is one-shot, and the disarm has
+ * to reach storage rather than memory, because the loop re-reads the rule set
+ * on every candle close.
+ *
+ * Moved here from `ruleCoverage.ts` by FEAT-0399 — that module existed to
+ * split alerts between two engines, and there is only one engine now. Reads
+ * and writes the raw store rather than going through `readRuleStore()`, so a
+ * single malformed entry cannot cost the trader every other rule in the file.
+ */
+export function disarmRule(ruleId: string): boolean {
+  if (!browser) return false;
+
+  try {
+    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    if (raw === null) return false;
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return false;
+
+    let changed = false;
+    const updated = (parsed as RuleDocument[]).map((rule) => {
+      if (rule === null || typeof rule !== "object") return rule;
+      if (rule.id !== ruleId || rule.enabled === false) return rule;
+      changed = true;
+      return { ...rule, enabled: false };
+    });
+    if (!changed) return false;
+
+    localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
+    return true;
+  } catch (e) {
+    logger.error("alerts", `Could not disarm rule ${ruleId}`, e);
+    return false;
+  }
 }

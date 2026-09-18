@@ -54,23 +54,21 @@ vi.mock("../locales/i18n", () => ({
  * with a plain `const` is still in its temporal dead zone when the factory
  * reaches for it.
  */
-const { mockNotify, mockDisarmRule, mockOriginAlertIdOf } = vi.hoisted(() => ({
+const { mockNotify, mockDisarmRule } = vi.hoisted(() => ({
   mockNotify: vi.fn(() => ["in-app"]),
   mockDisarmRule: vi.fn(() => true),
-  mockOriginAlertIdOf: vi.fn((): string | undefined => undefined),
 }));
 
 vi.mock("../services/notificationService.svelte", () => ({
   notificationService: { notify: mockNotify },
 }));
 
-vi.mock("../services/alertEngine/ruleCoverage", () => ({
+// FEAT-0399: `disarmRule` moved here from `ruleCoverage`, which existed only
+// to split alerts between two engines. `originAlertIdOf` is gone with it — the
+// sink used it to flag the legacy alert behind a fired rule inactive, and
+// there is no longer a legacy alert to flag.
+vi.mock("../services/alertEngine/armRule", () => ({
   disarmRule: mockDisarmRule,
-  originAlertIdOf: mockOriginAlertIdOf,
-  readCoveredAlertIds: vi.fn(() => new Set<string>()),
-  alertsForLegacyEngine: vi.fn((alerts: unknown[]) => alerts),
-  computeCoveredAlertIds: vi.fn(() => new Set<string>()),
-  writeCoveredAlertIds: vi.fn(),
 }));
 
 vi.mock("../lib/rules/ruleSchema", () => ({
@@ -105,11 +103,10 @@ beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
   mockNotify.mockReturnValue(["in-app"]);
-  mockOriginAlertIdOf.mockReturnValue(undefined);
 });
 
 describe("frequency decides whether the rule is retired", () => {
-  it("retires a rule with no frequency, like the engine it replaces", () => {
+  it("retires a rule with no frequency, which the core reads as `once`", () => {
     fire(ruleDoc());
     expect(mockDisarmRule).toHaveBeenCalledWith("rule-a");
   });
