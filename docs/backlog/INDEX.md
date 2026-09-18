@@ -2,9 +2,9 @@
 
 # Backlog index
 
-368 items. How to read and add them: [README.md](README.md).
+378 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 35 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -250,6 +250,10 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | security |
+| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 📋 specced | alerts |
+| [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | 📋 specced | alerts |
+| [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 📋 specced | alerts |
+| [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | alerts |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | execution |
 | [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -257,6 +261,7 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | ui |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | 🟡 in-progress | security |
+| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | execution |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -319,6 +324,10 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | tooling |
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | security |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | security |
+| [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 📋 specced | alerts |
+| [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | 📋 specced | alerts |
+| [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | execution |
+| [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | execution |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
@@ -396,6 +405,7 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | alerts |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | alerts |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | alerts |
+| [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | docs |
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
@@ -518,6 +528,10 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
@@ -559,6 +573,7 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | 🟡 in-progress | none | community, pro, private | A | ADR-0013 | — |
 | [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
+| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -636,6 +651,10 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
+| [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
@@ -759,6 +778,7 @@ Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ d
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | none | community, pro, private | C | none | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | none | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
+| [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
