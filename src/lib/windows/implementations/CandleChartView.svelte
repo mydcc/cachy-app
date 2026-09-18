@@ -687,9 +687,16 @@
             toastService.success($_("chartView.drawings.alertArmed"));
             return;
         }
-        // Both refusals mean the same thing to a trader: there is no side to
-        // cross from yet. The developer-facing distinction stays in the type.
-        toastService.error($_("chartView.drawings.alertOnTheLine"));
+        // Each refusal tells the trader what is actually missing: on the line
+        // there is no side to cross from, without a level there is nothing to
+        // watch at all. The developer-facing distinction stays in the type.
+        toastService.error(
+            $_(
+                result.reason === "drawing-has-no-level"
+                    ? "chartView.drawings.alertNoLevel"
+                    : "chartView.drawings.alertOnTheLine",
+            ),
+        );
     }
 
     function deleteSelectedDrawing(): void {
@@ -1423,6 +1430,7 @@
                     type="button"
                     class="px-2 py-1 rounded text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--accent-color)] hover:bg-[var(--bg-tertiary)] transition-colors"
                     title={$_("chartView.drawings.alert")}
+                    aria-label={$_("chartView.drawings.alert")}
                     onclick={alertOnSelectedDrawing}
                 >
                     🔔

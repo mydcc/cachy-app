@@ -109,6 +109,10 @@ export function readDrawingStoreSnapshot(): DrawingStoreSnapshot {
  * so a trader who disarmed a rule themselves never sees it listed as if we had
  * done it.
  *
+ * The ledger entry of a rule whose drawing is gone is kept on purpose: it is
+ * the evidence the panel needs to say *which* drawing went missing, and losing
+ * it would turn a disabled rule into an unexplained one.
+ *
  * Never throws: this runs during startup, and no bookkeeping is worth failing
  * the load that brings a trader's alarms back up.
  */

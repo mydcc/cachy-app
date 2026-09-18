@@ -25,7 +25,7 @@ import {
     reconcileStoredRules,
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
-import { reconcileStoredDrawingRules } from "../services/alertEngine/reconcileDrawingRules";
+import { reconcileStoredDrawingRules, type DrawingReconciliation } from "../services/alertEngine/reconcileDrawingRules";
 import { ruleThresholdOf } from "../services/alertEngine/migrateAlertsToRules";
 import { ruleSchema } from "../lib/rules/ruleSchema";
 import {
@@ -81,6 +81,15 @@ class AlertsManager {
      * "report" half of suspend-and-report missing.
      */
     orphanReport = $state<OrphanReconciliation | null>(null);
+
+    /**
+     * What the FEAT-0029 reconciliation did to drawing-anchored rules at
+     * startup, or `null` before it ran. Held as state for the same reason as
+     * `orphanReport` above: a disabled rule the panel cannot explain is the
+     * "report" half of suspend-and-report missing, and FEAT-0029's acceptance
+     * criteria require the reason to reach the panel.
+     */
+    drawingReport = $state<DrawingReconciliation | null>(null);
 
     constructor() {
         this.loadFromStorage();
@@ -508,6 +517,7 @@ export async function initAlertEngine(
     // writing, and judging a half-written set is how a rule gets disabled for
     // a reason that was about to stop being true.
     const drawingReport = reconcileStoredDrawingRules();
+    alertState.drawingReport = drawingReport;
     if (drawingReport.suspended.length > 0) {
         logger.warn(
             "alerts",

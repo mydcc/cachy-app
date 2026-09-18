@@ -339,6 +339,8 @@
       "cutoverNoticeDismiss": "Got it",
       "orphanSuspendedHint": "Migrated alarms disabled: {count}. Their original price alert no longer exists, so they were switched off automatically.",
       "orphanWithheldHint": "Migrated alarms with unresolved origin: {count}. We could not tell for certain whether the original price alert was deleted, so they are being kept active as a precaution and can still trigger.",
+      "drawingSuspendedHint": "Drawing alerts disabled: {count}. Their drawing no longer exists on the chart, so they were switched off automatically.",
+      "drawingWithheldHint": "Drawing alerts with unreadable store: {count}. We could not read the drawing store, so they are being kept active as a precaution and can still trigger.",
       "panel": {
         "title": "Super Alert",
         "open": "Open the Super Alert panel",
@@ -4370,6 +4372,7 @@
       "alert": "Alert on this drawing",
       "alertArmed": "Alert armed on the drawing",
       "alertOnTheLine": "Price sits exactly on the line — there is no side to cross from",
+      "alertNoLevel": "This drawing has no price level to watch — alerts need a horizontal or sloped line",
       "alertNoPrice": "No current price for this symbol"
     }
   },

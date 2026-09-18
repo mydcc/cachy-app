@@ -100,6 +100,7 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     document.body.appendChild(target);
     alertState.definitions = [];
     alertState.orphanReport = null;
+    alertState.drawingReport = null;
   });
 
   afterEach(() => {
@@ -178,6 +179,27 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
 
     expect(el.querySelector(".empty-state")?.textContent?.trim()).toBe(
       getNestedTranslation("dashboard.alerts.noActive"),
+    );
+  });
+
+  it("FEAT-0029: reports drawing alerts disabled for a deleted drawing", () => {
+    alertState.drawingReport = { rules: [], suspended: ["rule-1"], withheld: [] };
+
+    const el = render();
+
+    expect(el.textContent).toContain(
+      getNestedTranslation("dashboard.alerts.drawingSuspendedHint", { values: { count: 1 } }),
+    );
+  });
+
+  it("FEAT-0029: reports drawing alerts left armed when the store proved nothing", () => {
+    alertState.drawingReport = { rules: [], suspended: [], withheld: ["rule-2"] };
+
+    const el = render();
+    const banner = el.querySelector('[role="alert"]');
+
+    expect(banner?.textContent).toContain(
+      getNestedTranslation("dashboard.alerts.drawingWithheldHint", { values: { count: 1 } }),
     );
   });
 });

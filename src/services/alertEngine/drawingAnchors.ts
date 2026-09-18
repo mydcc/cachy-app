@@ -111,22 +111,6 @@ export function recordDrawingAnchor(
     return next;
 }
 
-/**
- * Forgets `ruleId`'s binding.
- *
- * Called when the rule itself is deleted — not when its drawing is. A rule
- * whose drawing is gone keeps its entry on purpose: that entry is the evidence
- * the panel needs to say *which* drawing went missing, and losing it would
- * turn a disabled rule into an unexplained one.
- */
-export function forgetDrawingAnchor(ruleId: string): DrawingAnchorLedger {
-    const ledger = { ...readDrawingAnchorLedger() };
-    if (!(ruleId in ledger)) return ledger;
-    delete ledger[ruleId];
-    persist(ledger);
-    return ledger;
-}
-
 function persist(ledger: DrawingAnchorLedger): void {
     if (!browser) return;
     try {

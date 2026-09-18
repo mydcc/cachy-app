@@ -134,6 +134,35 @@
     </div>
 {/if}
 
+<!--
+  FEAT-0029 drawing reconciliation -- the "report" half of suspend-and-report
+  (reconcileDrawingRules.ts). Same shape as the orphan banner above: a rule
+  disabled because its drawing was deleted must say so in the panel, and a
+  rule left armed because the drawing store proved nothing must stay visible
+  for as long as it is true.
+-->
+{#if alertState.drawingReport && (alertState.drawingReport.suspended.length > 0 || alertState.drawingReport.withheld.length > 0)}
+    <div
+        class="engine-warning"
+        role={alertState.drawingReport.withheld.length > 0 ? "alert" : "status"}
+    >
+        {#if alertState.drawingReport.suspended.length > 0}
+            <p>
+                {$_("dashboard.alerts.drawingSuspendedHint", {
+                    values: { count: alertState.drawingReport.suspended.length },
+                })}
+            </p>
+        {/if}
+        {#if alertState.drawingReport.withheld.length > 0}
+            <p>
+                {$_("dashboard.alerts.drawingWithheldHint", {
+                    values: { count: alertState.drawingReport.withheld.length },
+                })}
+            </p>
+        {/if}
+    </div>
+{/if}
+
 <div class="list-tabs" role="tablist">
     <button
         role="tab"
