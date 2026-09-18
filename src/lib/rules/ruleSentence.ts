@@ -369,6 +369,25 @@ function formatLead(document: RuleDocument, t: SentenceTranslator): string {
 }
 
 /**
+ * Just the condition clause — "RSI(14) crosses below 30 on the 4h close" —
+ * without the lead that says what arming it would do (BUG-0481).
+ *
+ * The full sentence below is written for the moment a rule is *armed*, so it
+ * opens with "Notify when …". A notification is read at the opposite moment:
+ * the thing has already happened, and a message that still says "notify when"
+ * describes the alarm instead of the event. Same formatter, same locale
+ * fragments, one clause less.
+ *
+ * Never throws, for the same reason `renderRuleSentence` does not.
+ */
+export function renderConditionSentence(
+  document: RuleDocument,
+  t: SentenceTranslator,
+): string {
+  return formatCondition(document.conditions, document.trigger_timeframe, t);
+}
+
+/**
  * The whole rule as one sentence, in the caller's active locale.
  *
  * Never throws: the panel renders this on every keystroke of a half-built
