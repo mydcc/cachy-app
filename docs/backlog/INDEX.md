@@ -4,7 +4,7 @@
 
 362 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 26 · 📋 specced 19 · 🟡 in-progress 1 · ✅ done 315 · ⛔ dropped 1
+Counts by status: 💡 idea 25 · 📋 specced 19 · 🟡 in-progress 2 · ✅ done 315 · ⛔ dropped 1
 
 ---
 
@@ -149,7 +149,7 @@ Counts by status: 💡 idea 26 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0438](features/FEAT-0438-recorded-history-condition-correctness.md) | Prove every indicator condition against recorded history | P2 | ✅ done | alerts |
 | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) | Close the WebGPU leg of cross-path indicator parity | P2 | ✅ done | alerts |
 | [FEAT-0446](features/FEAT-0446-recorded-history-remaining-indicators.md) | Prove the remaining panel indicators against recorded history | P2 | ✅ done | alerts |
-| [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | 💡 idea | chart |
+| [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | 🟡 in-progress | chart |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | trade-panel |
 | [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P3 | ✅ done | alerts |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
@@ -711,7 +711,7 @@ Counts by status: 💡 idea 26 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | none | pro, private | A | none | — |
 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | — |
 | [FEAT-0471](features/FEAT-0471-single-provider-registry-five-tabs.md) | Single AI provider registry with five tabs and fetched model pickers | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) |
-| [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | 💡 idea | M4 | community, pro, private | A | none | — |
+| [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | 🟡 in-progress | M4 | community, pro, private | A | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
