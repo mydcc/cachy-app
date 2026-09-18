@@ -378,6 +378,24 @@
       "file": "bugs/BUG-0479-repair-truncates-long-trades.md"
     },
     {
+      "id": "BUG-0491",
+      "title": "A bot with frequency every_time places a second order on the same candle after a reload",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [],
+      "file": "bugs/BUG-0491-bot-reorders-same-candle-after-reload.md"
+    },
+    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -1721,6 +1739,44 @@
       "adr": "none",
       "depends_on": [],
       "file": "bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md"
+    },
+    {
+      "id": "BUG-0494",
+      "title": "A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [],
+      "file": "bugs/BUG-0494-bot-order-carries-no-paper-provenance.md"
+    },
+    {
+      "id": "BUG-0495",
+      "title": "The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0013",
+      "depends_on": [
+        "FEAT-0405"
+      ],
+      "file": "bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md"
     },
     {
       "id": "FEAT-0014",
@@ -4335,6 +4391,44 @@
       "adr": "none",
       "depends_on": [],
       "file": "bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md"
+    },
+    {
+      "id": "BUG-0493",
+      "title": "deleteBot writes localStorage directly and bypasses the shared rule-store write path",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0001",
+      "depends_on": [],
+      "file": "bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md"
+    },
+    {
+      "id": "BUG-0496",
+      "title": "Three separate lists answer whether a route is cut over, and nothing makes them agree",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "ADR-0013",
+      "depends_on": [
+        "FEAT-0405"
+      ],
+      "file": "bugs/BUG-0496-three-sources-of-truth-for-route-migration.md"
     },
     {
       "id": "FEAT-0019",
@@ -7024,6 +7118,24 @@
       "file": "bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md"
     },
     {
+      "id": "BUG-0497",
+      "title": "The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "ADR-0013",
+      "depends_on": [],
+      "file": "bugs/BUG-0497-x-api-sign-escapes-redaction.md"
+    },
+    {
       "id": "FEAT-0022",
       "title": "Make settings findable with a search box",
       "type": "feature",
@@ -8018,5 +8130,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 372
+  "count": 378
 }

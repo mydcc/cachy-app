@@ -2,9 +2,9 @@
 
 # Backlog index
 
-372 items. How to read and add them: [README.md](README.md).
+378 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 35 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -213,6 +213,7 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
 | [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | trade-panel |
 | [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | ✅ done | persistence |
+| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | execution |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -253,6 +254,8 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | 📋 specced | alerts |
 | [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 📋 specced | alerts |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | alerts |
+| [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | execution |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -325,6 +328,8 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | 📋 specced | alerts |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | execution |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | execution |
+| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -401,6 +406,7 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | alerts |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | alerts |
 | [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | docs |
+| [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -461,6 +467,7 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -525,6 +532,8 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -646,6 +655,8 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -768,6 +779,7 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | none | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -818,4 +830,4 @@ Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0491**
+Next free number: **0498**
