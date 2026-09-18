@@ -88,7 +88,18 @@ function ruleDoc(overrides: Partial<RuleDocument> = {}): RuleDocument {
     name: "Support retest",
     symbol: "BTCUSDT",
     trigger_timeframe: "1m",
-    conditions: { price_reached: "72000" } as unknown as RuleDocument["conditions"],
+    // A real price-against-a-constant compare, which is what the panel and the
+    // FEAT-0388 migration both write. It used to be the legacy alert's
+    // `{ price_reached }` blob cast through `unknown` — a shape
+    // `RuleDocument.conditions` never actually holds, which meant every
+    // assertion below ran against a document the core would refuse (BUG-0481).
+    conditions: {
+      kind: "compare",
+      left: { kind: "price", field: "close" },
+      op: "gte",
+      right: { kind: "constant", value: "72000" },
+      timeframe: "1m",
+    },
     action: { consequence_level: "notify" } as RuleDocument["action"],
     provenance: { source: "human", created_at_ms: ANCHOR - 1_000 },
     ...overrides,
@@ -238,5 +249,132 @@ describe("an intra-candle alarm announces itself as provisional", () => {
     fire(ruleDoc({ evaluation_mode: "intrabar", frequency: "every_time" }));
     const request = mockNotify.mock.calls[0][0] as unknown as Record<string, unknown>;
     expect(String(request.message)).toContain("firedIntrabar");
+  });
+});
+
+/**
+ * BUG-0481 — the announcement names what actually fired.
+ *
+ * `firingMessage` built every line from `ruleThresholdOf`, which answers only
+ * for a condition carrying `right.value`. An indicator, a pattern and a combo
+ * all fell through it, so the alarm read "BTCUSDT reached " with a blank where
+ * the number belongs — and a `cross` against a constant fell through the other
+ * way, announcing an RSI level as if it were a price.
+ *
+ * The assertions name the i18n *key* rather than a wording, for the same
+ * reason the mock renders `key::{json}`: the message a trader reads is a
+ * translation decision, and which line was chosen is the behaviour.
+ */
+describe("the announcement names what actually fired — BUG-0481", () => {
+  const rsiBelow30: RuleDocument["conditions"] = {
+    kind: "cross",
+    left: { kind: "indicator", indicator: { id: "rsi", params: { length: 14 } } },
+    direction: "below",
+    right: { kind: "constant", value: "30" },
+    timeframe: "4h",
+  };
+
+  function on4h(conditions: RuleDocument["conditions"]): RuleDocument {
+    return ruleDoc({ conditions, trigger_timeframe: "4h" });
+  }
+
+  it("names the indicator and its level instead of a blank price", () => {
+    const message = firingMessage(on4h(rsiBelow30));
+
+    expect(message).toContain("ruleTriggered");
+    expect(message).toContain("RSI(14)");
+    expect(message).not.toContain("priceReached");
+  });
+
+  it("does not announce an indicator level as if it were a price", () => {
+    const message = firingMessage(
+      on4h({
+        ...rsiBelow30,
+        direction: "above",
+        right: { kind: "constant", value: "70" },
+      } as RuleDocument["conditions"]),
+    );
+
+    // The old line read "BTCUSDT reached 70" — 70 is an RSI reading, and the
+    // trader would have looked for it on the price axis.
+    expect(message).not.toContain("priceReached");
+    expect(message).toContain("RSI(14)");
+  });
+
+  it("describes a candlestick rule", () => {
+    const message = firingMessage(
+      on4h({ kind: "pattern", pattern: "bullish_engulfing", timeframe: "4h" }),
+    );
+
+    expect(message).toContain("ruleTriggered");
+    expect(message).toContain("bullish_engulfing");
+    expect(message).not.toContain("priceReached");
+  });
+
+  it("describes a combo rule rather than blanking it", () => {
+    const message = firingMessage(
+      on4h({
+        kind: "group",
+        op: "all",
+        of: [
+          rsiBelow30,
+          {
+            kind: "compare",
+            left: { kind: "price", field: "close" },
+            op: "gt",
+            right: { kind: "constant", value: "72000" },
+            timeframe: "4h",
+          },
+        ],
+      }),
+    );
+
+    expect(message).toContain("ruleTriggered");
+    expect(message).toContain("RSI(14)");
+    expect(message).toContain("72000");
+  });
+
+  it("describes a window rule, whose right-hand side carries no constant at all", () => {
+    const message = firingMessage(
+      on4h({
+        kind: "compare",
+        left: { kind: "price", field: "close" },
+        op: "gte",
+        right: {
+          kind: "window",
+          of: { kind: "price", field: "high" },
+          agg: "max",
+          lookback: 20,
+        },
+        timeframe: "4h",
+      }),
+    );
+
+    expect(message).toContain("ruleTriggered");
+    expect(message).not.toContain("priceReached");
+  });
+
+  it("keeps the short price line for a rule that really is a price rule", () => {
+    const message = firingMessage(ruleDoc());
+
+    expect(message).toContain("priceReached");
+    expect(message).toContain("72000");
+    expect(message).not.toContain("ruleTriggered");
+  });
+
+  it("still carries the note and the provisional caveat on the new line", () => {
+    const message = firingMessage(
+      ruleDoc({
+        conditions: rsiBelow30,
+        trigger_timeframe: "4h",
+        evaluation_mode: "intrabar",
+        note: "Invalidation 71.4k",
+      }),
+    );
+
+    expect(message).toContain("ruleTriggered");
+    expect(message).toContain("firedIntrabar");
+    expect(message).toContain("Invalidation 71.4k");
+    expect(message.indexOf("firedWithNote")).toBeLessThan(message.indexOf("firedIntrabar"));
   });
 });
