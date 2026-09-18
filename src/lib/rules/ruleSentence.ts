@@ -316,12 +316,24 @@ function formatGroup(
 
 function formatLead(document: RuleDocument, t: SentenceTranslator): string {
   const { action } = document;
-  if (action.consequence_level === "send" && action.order) {
-    return t("rules.sentence.lead.send", {
-      side: t(`rules.sentence.orderSide.${action.order.side}`),
-      size: action.order.size,
-      basis: t(`rules.sentence.basis.${action.order.size_basis}`),
-    });
+  // The order clause belongs to every level that submits something, not to
+  // `send` alone — FEAT-0396. `RuleAction::validate` refuses a `simulate` rule
+  // carrying no order intent, so an order is present at exactly two levels;
+  // keying off the level instead of off the intent left a bot's sentence
+  // reading "Simulates an order" while omitting the only clause that says how
+  // large. A sentence that looks complete and is not is worse than an awkward
+  // one, and this sentence is what a trader arms from.
+  if (action.order) {
+    return t(
+      action.consequence_level === "send"
+        ? "rules.sentence.lead.send"
+        : "rules.sentence.lead.simulateOrder",
+      {
+        side: t(`rules.sentence.orderSide.${action.order.side}`),
+        size: action.order.size,
+        basis: t(`rules.sentence.basis.${action.order.size_basis}`),
+      },
+    );
   }
   return t(`rules.sentence.lead.${action.consequence_level}`);
 }
