@@ -5852,7 +5852,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "feature",
     "status": "in-progress",
     "assignee": "claude-code",
-    "branch": "feat/feat-0396-p2-promote-alert",
+    "branch": "feat/feat-0396-p3-automation-tab",
     "priority": "P2",
     "milestone": "M9",
     "editions": [
