@@ -458,8 +458,8 @@
   onkeydown={(e) => (e.key === "Enter" || e.key === " ") && loadToCalculator()}
   role={isFavoriteTile ? "button" : "region"}
   aria-label={isFavoriteTile
-    ? $_("marketOverview.aria.loadToCalculator", { symbol: displaySymbol })
-    : $_("marketOverview.aria.regionLabel", { symbol: displaySymbol })}
+    ? $_("marketOverview.aria.loadToCalculator", { values: { symbol: displaySymbol } })
+    : $_("marketOverview.aria.regionLabel", { values: { symbol: displaySymbol } })}
   tabindex={isFavoriteTile ? 0 : -1}
   use:burn={settingsState.burnMarketOverviewTiles &&
   settingsState.enableBurningBorders
