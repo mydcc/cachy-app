@@ -2,9 +2,9 @@
 id: FEAT-0396
 title: An Automation settings tab for user-configured bots
 type: feature
-status: in-progress
+status: done
 assignee: claude-code
-branch: feat/feat-0396-p4-bot-paper-orders
+branch: feat/feat-0396-p5-bot-submits
 priority: P2
 milestone: M9
 editions: [community, pro, private]
@@ -222,9 +222,34 @@ artefact as it shipped *before* the field existed.
 | #3454 (merged) | The Automation tab, `botStore.ts`, the sentence fix — criteria 1, 2, 3, 9, 10, 12 |
 | #3455 (merged) | The (superseded) State section above |
 | P4 | `OrderIntent.stop`, `percent_risk` made computable, rebuilt artefacts. Submits nothing yet |
+| P5 | `botOrders.ts` and its wiring — criteria 7 and 8 |
 
-Criteria 7 and 8 are the submission seam itself, and they follow in P5 now that
-there is a stop to hand the gate.
+### P5 — the seam itself
+
+`botOrders.ts` turns one firing into one `EntryPlan` and hands it to
+`orderPlacementService.placeEntryGroup` — the same function the calculator's
+Place Order panel calls. From there the route is identical:
+`tradeService.placeOrder` → `gatedRequest` → `OrderGate`.
+
+**That is how criterion 8 is met.** FEAT-0013's risk limits are not re-applied
+to bot orders; they sit inside the gate, and a bot's order passes through the
+gate. Re-implementing them here is precisely the second path ADR-0012 decision
+5 forbids, and the reason it forbids it is that the copy drifts.
+
+The sink is a **decorator**, not a replacement: `withBotOrders` forwards every
+firing to whichever sink the caller already chose and only then looks at whether
+this one submits. Announcing and acting are two consequences of one event, and a
+trader who armed a bot still wants to hear it fire.
+
+A bot submits only when the trader armed it **and** paper trading is on. When it
+cannot, it says so — once per rule and reason, in both locales, because a bot
+that sits armed and silently does nothing looks like a strategy that found no
+setup, which is worse than an alert that does not fire.
+
+`orderPlacementService` is imported at the moment an order is placed, not at
+startup: it pulls the account and TP/SL stores in behind it, and the alert engine
+starts on every session, including the overwhelming majority that never arm a
+bot.
 
 ## Acceptance criteria
 
@@ -239,8 +264,8 @@ there is a stop to hand the gate.
 - [x] The promoted document records the source's content hash in `provenance`, and
       documents written before that field existed still parse
 - [x] Recording the derivation changes no content hash — the pinned-hash tests still pass
-- [ ] A fired bot rule produces a simulated order in the paper account and nothing else — **blocked**, see State above
-- [ ] Existing risk limits apply to simulated orders — **blocked**, see State above
+- [x] A fired bot rule produces a simulated order in the paper account and nothing else
+- [x] Existing risk limits apply to simulated orders
 - [x] Each bot shows its rule as a plain-language sentence, in both locales, the same way
       the alert panel does
 - [x] Disabling a bot stops evaluation, and Manage shows it as disabled rather than absent
