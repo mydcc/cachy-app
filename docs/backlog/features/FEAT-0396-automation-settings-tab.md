@@ -81,12 +81,45 @@ alarm keeps watching". Mutation would destroy exactly that: one document cannot 
 two consequence levels, so promoting in place silently ends the alert the trader was
 still relying on.
 
+## Correction (2026-09-18) — where the `send` refusal actually lives
+
+The third acceptance criterion used to say that a `send` document is "refused by
+`validate()`". Checked against the core: it is not, and it should not be.
+
+- `RuleAction::validate` (`technicals-wasm/src/rule/consequence.rs`) accepts `send`
+  as long as an order intent is present. What it refuses is contradiction — `notify`
+  carrying an order, `simulate`/`send` carrying none, a non-positive size, a percent
+  size above the whole account. Nothing about the level itself.
+- The level is gated by the **ladder** instead: `RuleDocument::authorise(requested)`
+  delegates to `ConsequenceLevel::authorise`, so a rule authored at `simulate` refuses
+  a caller asking it to send. That is the FEAT-0303 gate, and it already holds.
+
+There are two ways to make the old wording literally true, and both are wrong:
+
+1. Refuse `send` in `validate()` outright. That breaks
+   [`FEAT-0035`](FEAT-0035-autonomous-execution-agent.md), which needs the level legal
+   — and it would refuse documents this item never had any business refusing.
+2. Refuse it only for documents authored in this tab. The one field that could carry
+   "which surface wrote this" is `provenance`, and `provenance` is **excluded from the
+   hash**. Gating a money-path decision on an unhashed field would let two documents
+   with the same content hash authorise differently, which is exactly the property the
+   hash exists to deny. It would also contradict the decision directly above, which
+   leans on provenance being free precisely *because* nothing depends on it.
+
+So the criterion now names the mechanism that already holds rather than inventing one:
+the tab writes `simulate`, and a core test pins that `authorise(Send)` on a `simulate`
+document refuses. A bot document that somehow carried `send` would still submit
+nothing — there is no `send` path until `FEAT-0035` builds one, order gate, risk limits
+and confirmation included.
+
 ## Acceptance criteria
 
 - [ ] The Automation tab lists, creates, edits, enables and disables bots
 - [ ] A bot is a `RuleDocument`; enabling one does not change its content hash
-- [ ] No document created in this tab can carry `consequence_level: send` — attempting
-      it is refused by `validate()`, not hidden by the UI
+- [ ] No document created in this tab can carry `consequence_level: send`: the tab
+      writes `simulate`, and the guarantee that nothing submits is the ladder —
+      `authorise(Send)` on a `simulate` document refuses, pinned by a core test. See
+      the correction below for why this is not a `validate()` check
 - [ ] Promoting an alert creates a **new** document with a new `id`; the source alert is
       left unchanged and still armed
 - [ ] The promoted document records the source's content hash in `provenance`, and
