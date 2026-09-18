@@ -32,6 +32,11 @@
     import { Decimal } from "decimal.js";
     import { get } from "svelte/store";
     import { IndicatorLayer, type IndicatorPaneInfo } from "../../../lib/chart/indicatorLayer";
+    import type { DrawingChartBridge } from "../../../lib/chart/drawings/geometry";
+    import type { DrawingKind } from "../../../lib/chart/drawings/types";
+    import { drawingStore } from "../../../stores/drawings.svelte";
+    import { DrawingManager } from "../../../services/chart/drawingManager";
+    import { DrawingPrimitive } from "../../../services/chart/drawingPrimitive";
     import type { ChartRow } from "../../../lib/chart/seriesMap";
     import IndicatorPaneHeader from "../../../components/shared/IndicatorPaneHeader.svelte";
     import { marketState } from "../../../stores/market.svelte";
@@ -144,6 +149,34 @@
     }
 
     /** The last close the chart has, or null before any candle arrived. */
+    /**
+     * The market a drawing belongs to.
+     *
+     * Normalized the same way `lastChartPrice` normalizes its market-store
+     * lookup, so the same market reached through a different spelling — or a
+     * different exchange's naming — finds the drawings the trader made on it
+     * rather than an empty chart.
+     */
+    function drawingSymbol(): string {
+        return normalizeSymbol(symbol, "bitunix");
+    }
+
+    /**
+     * At most `MAX_DRAWING_SAMPLES` timestamps, evenly spread, always keeping
+     * the last one. A drawing only needs enough vertices to look straight; the
+     * level it reports comes from `levelAt`, not from how finely it was drawn.
+     */
+    const MAX_DRAWING_SAMPLES = 160;
+    function strideSampled(times: number[]): number[] {
+        if (times.length <= MAX_DRAWING_SAMPLES) return times;
+        const stride = Math.ceil(times.length / MAX_DRAWING_SAMPLES);
+        const sampled: number[] = [];
+        for (let i = 0; i < times.length; i += stride) sampled.push(times[i]);
+        const last = times[times.length - 1];
+        if (sampled[sampled.length - 1] !== last) sampled.push(last);
+        return sampled;
+    }
+
     function lastChartPrice(): number | null {
         const klines =
             marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines?.[timeframe];
@@ -271,6 +304,18 @@
 
     // FEAT-0247: position and TP/SL price lines
     let priceLineManager: PriceLineManager | null = null;
+    /** FEAT-0480: persistent drawings — the primitive paints, the manager drives. */
+    let drawingPrimitive: DrawingPrimitive | null = null;
+    let drawingManager: DrawingManager | null = null;
+    /**
+     * Candle open times in milliseconds, refreshed whenever the series is
+     * re-seeded. These are the sample points a sloped drawing is drawn
+     * through, and they are the same timestamps a drawing-anchored alert
+     * evaluates — so the line on screen passes exactly through the points
+     * that can trigger.
+     */
+    let drawingSampleTimes: number[] = [];
+    let armedDrawingKind = $state<DrawingKind | null>(null);
 
     // FEAT-0247: accountState.positions is otherwise only REST-hydrated from
     // PositionsSidebar.svelte's onMount (see BUG-0249's root cause #2) — a
@@ -450,6 +495,71 @@
             },
         });
         if (chartContainer) priceLineManager.attach(chartContainer);
+
+        // FEAT-0480 — drawings.
+        //
+        // The bridge is the only place that knows how a price or a timestamp
+        // becomes a pixel, and it answers by asking the chart. Nothing
+        // downstream re-derives a scale, so drawings follow pan, zoom and the
+        // logarithmic/linear toggle for free.
+        drawingStore.load();
+        const drawingBridge: DrawingChartBridge = {
+            timeToX: (ms) => chart?.timeScale().timeToCoordinate((ms / 1000) as Time) ?? null,
+            xToTime: (x) => {
+                const time = chart?.timeScale().coordinateToTime(x);
+                return time === null || time === undefined ? null : Number(time) * 1000;
+            },
+            priceToY: (price) => candleSeries?.priceToCoordinate(price.toNumber()) ?? null,
+            yToPrice: (y) => {
+                const price = candleSeries?.coordinateToPrice(y);
+                return price === null || price === undefined ? null : new Decimal(price);
+            },
+            sampleTimesMs: () => drawingSampleTimes,
+            size: () => ({
+                width: chartContainer?.clientWidth ?? 0,
+                height: chartContainer?.clientHeight ?? 0,
+            }),
+        };
+
+        drawingPrimitive = new DrawingPrimitive({
+            drawings: () => drawingStore.forSymbol(drawingSymbol()),
+            selectedId: () => drawingStore.selectedId,
+            bridge: () => drawingBridge,
+            preview: () => drawingManager?.previewDrawing() ?? null,
+            colors: () => ({
+                line: getVar("--text-secondary") || "#787b86",
+                selected: getVar("--accent-color") || "#2962ff",
+            }),
+        });
+        candleSeries.attachPrimitive(drawingPrimitive);
+
+        drawingManager = new DrawingManager(
+            {
+                drawingsFor: (sym) => drawingStore.forSymbol(sym),
+                selectedId: () => drawingStore.selectedId,
+                select: (id) => drawingStore.select(id),
+                addHorizontal: (sym, price) => void drawingStore.addHorizontal(sym, price),
+                addTrend: (sym, from, to) => void drawingStore.addTrend(sym, from, to),
+                moveHorizontal: (id, price) => drawingStore.moveHorizontal(id, price),
+                moveTrend: (id, anchors) => drawingStore.moveTrend(id, anchors),
+                remove: (id) => drawingStore.remove(id),
+                requestRedraw: () => {
+                    // The manager disarms itself once a drawing is committed;
+                    // the toolbar's highlight has to follow, or the button
+                    // stays lit over a chart that is no longer in draw mode.
+                    if (!drawingManager?.isArmed()) armedDrawingKind = null;
+                    drawingPrimitive?.update();
+                },
+                // lightweight-charts listens on this same container, and
+                // stopPropagation does not reach a sibling listener — so a
+                // drag has to turn the chart's own pan/zoom off outright.
+                setChartInteractive: (enabled) =>
+                    chart?.applyOptions({ handleScroll: enabled, handleScale: enabled }),
+            },
+            drawingSymbol(),
+        );
+        if (chartContainer) drawingManager.attach(chartContainer, drawingBridge);
+
         void hydratePositionsIfEmpty();
         void hydrateOpenOrdersIfEmpty();
 
@@ -515,11 +625,50 @@
             if (chartContainer) resizeObserver.unobserve(chartContainer);
             priceLineManager?.destroy();
             priceLineManager = null;
+            drawingManager?.detach();
+            drawingManager = null;
+            // Detaching the primitive before `chart.remove()` keeps the
+            // series from painting through a bridge whose chart is gone.
+            if (drawingPrimitive && candleSeries) {
+                candleSeries.detachPrimitive(drawingPrimitive);
+            }
+            drawingPrimitive = null;
             indicatorLayer?.destroy();
             indicatorLayer = null;
             if (chart) chart.remove();
         };
     });
+
+    /**
+     * FEAT-0480: the chart changed market.
+     *
+     * Drawings are per-symbol, so the manager has to forget any selection and
+     * any half-drawn line — otherwise a click meant for BTCUSDT's trend line
+     * would land on whatever ETHUSDT has at those pixels.
+     */
+    $effect(() => {
+        const next = normalizeSymbol(symbol, "bitunix");
+        untrack(() => {
+            drawingManager?.setSymbol(next);
+            armedDrawingKind = null;
+            drawingPrimitive?.update();
+        });
+    });
+
+    /** Toolbar: arm, re-arm or disarm a drawing tool. */
+    function toggleDrawingTool(kind: DrawingKind): void {
+        const next = armedDrawingKind === kind ? null : kind;
+        armedDrawingKind = next;
+        drawingManager?.arm(next);
+        drawingPrimitive?.update();
+    }
+
+    function deleteSelectedDrawing(): void {
+        const selected = drawingStore.selectedId;
+        if (!selected) return;
+        drawingStore.remove(selected);
+        drawingPrimitive?.update();
+    }
 
     /**
      * FEAT-0247: a TP/SL line was dragged and dropped at `price`. Goes
@@ -984,6 +1133,15 @@
                         };
                     });
 
+                    // FEAT-0480: the sample points a sloped drawing is drawn
+                    // through. Capped by stride rather than by truncation, so
+                    // the line still spans the full series on a 5 000-candle
+                    // history instead of stopping partway across.
+                    drawingSampleTimes = strideSampled(
+                        unique.map((c) => Number(c.time) * 1000),
+                    );
+                    drawingPrimitive?.update();
+
                     try {
                         candleSeries.setData(unique);
 
@@ -1199,6 +1357,50 @@
         oncontextmenu={handleChartContextMenu}
         onkeydown={handleChartKeydown}
     >
+        <!--
+          FEAT-0480 drawing tools. Deliberately a small overlay rather than a
+          chart-wide toolbar: it sits above the canvas the drawings live on,
+          and it is the only affordance that says drawing mode is armed.
+        -->
+        <div
+            class="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)]/90 p-1 shadow-lg"
+        >
+            <button
+                type="button"
+                class="px-2 py-1 rounded text-xs font-medium transition-colors {armedDrawingKind ===
+                'horizontal'
+                    ? 'bg-accent-paired'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}"
+                aria-pressed={armedDrawingKind === "horizontal"}
+                title={$_("chartView.drawings.horizontal")}
+                onclick={() => toggleDrawingTool("horizontal")}
+            >
+                —
+            </button>
+            <button
+                type="button"
+                class="px-2 py-1 rounded text-xs font-medium transition-colors {armedDrawingKind ===
+                'trend'
+                    ? 'bg-accent-paired'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}"
+                aria-pressed={armedDrawingKind === "trend"}
+                title={$_("chartView.drawings.trend")}
+                onclick={() => toggleDrawingTool("trend")}
+            >
+                ╱
+            </button>
+            {#if drawingStore.selectedId}
+                <button
+                    type="button"
+                    class="px-2 py-1 rounded text-xs font-medium text-[var(--danger-color)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                    title={$_("chartView.drawings.delete")}
+                    onclick={deleteSelectedDrawing}
+                >
+                    ✕
+                </button>
+            {/if}
+        </div>
+
         {#if alertMenu}
             <!--
               Closes on any pointer press that is not the menu item itself, the
