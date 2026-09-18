@@ -49,7 +49,7 @@
     } from "../../stores/alertPanel.svelte";
     import { renderRuleSentence, type SentenceTranslator } from "../../lib/rules/ruleSentence";
     import { armRule, RuleStoreUnreadableError } from "../../services/alertEngine/armRule";
-    import type { PriceField, TimeframeString } from "../../lib/rules/types";
+    import type { EvaluationMode, PriceField, TimeframeString } from "../../lib/rules/types";
     import type { TranslationKey } from "../../locales/schema";
     import { uiState } from "../../stores/ui.svelte";
     import { logger } from "../../services/logger";
@@ -99,6 +99,22 @@ let rootElement: HTMLElement | null = null;
 
     const PRICE_FIELDS: PriceField[] = ["close", "open", "high", "low", "hl2", "hlc3"];
     const TIMEFRAMES: TimeframeString[] = ["1m", "5m", "15m", "1h", "4h", "1d", "1w"];
+
+    /**
+     * FEAT-0477 — when the trigger candle is read.
+     *
+     * The same axis `TIMEFRAMES` sits on: the timeframe says *which* candle,
+     * the mode says *when inside it*. Both are inside the document's content
+     * hash, which is why this control belongs in the header beside them and not
+     * in the lifecycle footer, where every field is deliberately unhashed.
+     */
+    const EVALUATION_MODES: EvaluationMode[] = ["close", "intrabar"];
+
+    /** Explicit, for the same reason as `PRICE_FIELD_KEYS` above. */
+    const EVALUATION_MODE_KEYS: Record<EvaluationMode, TranslationKey> = {
+        close: "dashboard.alerts.panel.evaluationModeOption.close",
+        intrabar: "dashboard.alerts.panel.evaluationModeOption.intrabar",
+    };
 
     /** Fields the shell renders a control for, and can therefore anchor a
      *  refusal against. Anything else falls to `unclaimedRefusals` below.
@@ -287,6 +303,33 @@ let rootElement: HTMLElement | null = null;
                     <span class="refusal">{$_(refusal.i18n_key as TranslationKey)}</span>
                 {/each}
             </div>
+        </label>
+
+        <label class="field field--wide">
+            <span class="field-label">{$_("dashboard.alerts.panel.evaluationMode")}</span>
+            <select
+                class="field-input"
+                value={alertPanelState.draft.evaluation_mode ?? "close"}
+                onchange={(e) =>
+                    alertPanelState.setEvaluationMode(e.currentTarget.value as EvaluationMode)}
+            >
+                {#each EVALUATION_MODES as mode (mode)}
+                    <option value={mode}>{$_(EVALUATION_MODE_KEYS[mode])}</option>
+                {/each}
+            </select>
+            <!--
+              Shown only for `intrabar`, and not as a refusal: nothing is wrong
+              with the choice, but a trader has to know *before* arming that
+              this alarm can fire on a value the candle later takes back
+              (FEAT-0477 AC5). Attaching it to the closed-candle default too
+              would train the eye to skip it, which is how a warning stops
+              being one.
+            -->
+            {#if alertPanelState.draft.evaluation_mode === "intrabar"}
+                <span class="field-hint">
+                    {$_("dashboard.alerts.panel.evaluationModeHint")}
+                </span>
+            {/if}
         </label>
     </header>
 

@@ -200,3 +200,46 @@ describe("a failure in one step does not take the alarm down", () => {
     expect(mockNotify).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * FEAT-0477 AC 5 — an intra-candle rule fires on a value the candle can still
+ * take back, and the announcement says so.
+ *
+ * The caveat rides on the notification and not only on the arming screen,
+ * because the two are read at different moments: the trader armed this hours
+ * ago and is reading the alarm now, with a decision in front of them. "This
+ * might revert" is only actionable while there is still a candle left to wait
+ * for, which is exactly here.
+ */
+describe("an intra-candle alarm announces itself as provisional", () => {
+  it("marks the message as provisional without losing the original", () => {
+    const message = firingMessage(ruleDoc({ evaluation_mode: "intrabar" }));
+    expect(message).toContain("firedIntrabar");
+    expect(message).toContain("priceReached");
+  });
+
+  it("says nothing on a closed-candle rule, spelled out or absent", () => {
+    expect(firingMessage(ruleDoc())).not.toContain("firedIntrabar");
+    expect(firingMessage(ruleDoc({ evaluation_mode: "close" }))).not.toContain("firedIntrabar");
+    // The default path has to stay exactly what it was before the field
+    // existed -- every rule armed until now arrives here with it absent.
+    expect(firingMessage(ruleDoc({ evaluation_mode: "close" }))).toBe(firingMessage(ruleDoc()));
+  });
+
+  it("keeps the trader's own note outside our caveat", () => {
+    // The note is the one fragment the trader wrote themselves; the caveat is
+    // ours. Nesting them the other way round would bury their invalidation
+    // level inside our parenthesis.
+    const message = firingMessage(
+      ruleDoc({ evaluation_mode: "intrabar", note: "Invalidation 71.4k" }),
+    );
+    expect(message.indexOf("firedWithNote")).toBeLessThan(message.indexOf("firedIntrabar"));
+    expect(message).toContain("Invalidation 71.4k");
+  });
+
+  it("puts the caveat on the announcement the trader actually receives", () => {
+    fire(ruleDoc({ evaluation_mode: "intrabar", frequency: "every_time" }));
+    const request = mockNotify.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(String(request.message)).toContain("firedIntrabar");
+  });
+});

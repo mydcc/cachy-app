@@ -42,6 +42,7 @@ import {
 } from "../lib/rules/ruleSchema";
 import type {
   Condition,
+  EvaluationMode,
   PriceField,
   PriceSource,
   RuleDocument,
@@ -343,6 +344,22 @@ class AlertPanelStore {
 
   setTimeframe(timeframe: TimeframeString) {
     this.draft.trigger_timeframe = timeframe;
+  }
+
+  /**
+   * FEAT-0477 — the evaluation mode, with `close` stored as the *absence* of
+   * the field rather than as the string `"close"`.
+   *
+   * The core omits `EvaluationMode::Close` from the canonical form so that every
+   * document written before the field existed keeps its content hash. Writing
+   * `"close"` here would still hash identically — the core drops it on the way
+   * in — but it would start persisting a default that was never persisted
+   * before, so a stored document would stop being byte-identical to the one
+   * this panel wrote yesterday. Mirroring the serialisation rule in the setter
+   * keeps the two in step without anyone having to remember the asymmetry.
+   */
+  setEvaluationMode(mode: EvaluationMode) {
+    this.draft.evaluation_mode = mode === "close" ? undefined : mode;
   }
 
   /**
