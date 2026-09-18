@@ -274,11 +274,18 @@ fn validate_stop(order: &OrderIntent, field: &str, out: &mut Vec<RuleRefusal>) {
             format!("{field}.order.stop.distance"),
             format!("stop distance `{distance}` is not positive"),
         ));
-    } else if distance >= rust_decimal::Decimal::from(100) {
+    } else if order.side == OrderSide::Buy && distance >= rust_decimal::Decimal::from(100) {
+        // The ceiling belongs to the side, not to the number. A long is stopped
+        // out *below* its entry, so a hundred percent away is zero and anything
+        // past that is a negative price. A short is stopped out above, where the
+        // same distance is two and a half times the entry — wide, but a price
+        // that exists, and one a low-conviction short may legitimately want.
+        // Refusing it for a short would reject a valid strategy at authoring
+        // time for an arithmetic reason that only holds on the other side.
         out.push(RuleRefusal::new(
             RefusalCode::InvalidDecimal,
             format!("{field}.order.stop.distance"),
-            format!("a stop `{distance}` percent from the entry is at or through zero"),
+            format!("a stop `{distance}` percent below a long entry is at or through zero"),
         ));
     }
 }
@@ -461,11 +468,11 @@ mod tests {
         }
     }
 
-    /// A stop at or past 100% of the entry is at or through zero. Refused as a
-    /// number rather than left for the submission path to produce a negative
-    /// price out of.
+    /// A *long's* stop at or past 100% of the entry is at or through zero.
+    /// Refused as a number rather than left for the submission path to produce
+    /// a negative price out of. `intent` is a buy; the short's mirror is below.
     #[test]
-    fn a_stop_at_or_through_the_entry_is_refused() {
+    fn a_stop_at_or_through_a_long_entry_is_refused() {
         for distance in ["0", "-1", "100", "250"] {
             let mut order = intent("1", SizeBasis::PercentOfEquity);
             order.stop = Some(stop_of(distance));
@@ -479,6 +486,49 @@ mod tests {
                     .count(),
                 1,
                 "stop distance {distance} should be refused: {out:?}"
+            );
+        }
+    }
+
+    /// The mirror, and the reason the ceiling has to ask which side it is on: a
+    /// short stopped out 150% above its entry exits at two and a half times the
+    /// price it entered at. Absurd conviction, arithmetically fine.
+    #[test]
+    fn a_wide_stop_above_a_short_entry_is_accepted() {
+        for distance in ["100", "150", "400"] {
+            let mut order = intent("1", SizeBasis::PercentOfEquity);
+            order.side = OrderSide::Sell;
+            order.stop = Some(stop_of(distance));
+
+            let mut out = Vec::new();
+            action(ConsequenceLevel::Simulate, Some(order)).validate("action", &mut out);
+
+            assert!(
+                out.is_empty(),
+                "a short's stop {distance} percent above the entry is a real price: {out:?}"
+            );
+        }
+    }
+
+    /// Narrowing the ceiling to longs must not open the floor underneath either
+    /// side: a distance of zero divides by zero in `percent_risk` sizing, and a
+    /// negative one puts the stop on the wrong side of the entry.
+    #[test]
+    fn a_short_still_needs_a_positive_stop_distance() {
+        for distance in ["0", "-1"] {
+            let mut order = intent("1", SizeBasis::PercentOfEquity);
+            order.side = OrderSide::Sell;
+            order.stop = Some(stop_of(distance));
+
+            let mut out = Vec::new();
+            action(ConsequenceLevel::Simulate, Some(order)).validate("action", &mut out);
+
+            assert_eq!(
+                out.iter()
+                    .filter(|r| r.field == "action.order.stop.distance")
+                    .count(),
+                1,
+                "stop distance {distance} should be refused on a short too: {out:?}"
             );
         }
     }
