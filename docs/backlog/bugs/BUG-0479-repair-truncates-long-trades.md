@@ -2,7 +2,7 @@
 id: BUG-0479
 title: MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics
 type: bug
-status: ready
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]

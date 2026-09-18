@@ -130,6 +130,72 @@ async function fetchSmartKlines(
   }
 }
 
+// Repair-level paging (BUG-0479): one provider call is capped (Bitunix walks
+// at most MAX_KLINE_PAGES x 200 rows, Bitget answers a single window), so a
+// chunk wider than one response must be assembled from consecutive pages.
+// Pages walk backwards from endTs; each call passes start=undefined so the
+// provider returns the most recent `limit` candles at/before pageEnd.
+const REPAIR_FETCH_PAGE_LIMIT = 1000;
+const REPAIR_FETCH_MAX_PAGES = 10;
+
+async function fetchKlinesForRange(
+  symbol: string,
+  interval: string,
+  startTs: number,
+  endTs: number,
+  knownProvider?: "bitunix" | "bitget" | "custom",
+): Promise<{ klines: Kline[]; provider: "bitunix" | "bitget" } | null> {
+  const byTime = new Map<number, Kline>();
+  let provider: "bitunix" | "bitget" | undefined;
+  let pageEnd: number | undefined = endTs;
+  for (let page = 0; page < REPAIR_FETCH_MAX_PAGES; page++) {
+    const result = await fetchSmartKlines(
+      symbol,
+      interval,
+      REPAIR_FETCH_PAGE_LIMIT,
+      undefined,
+      pageEnd,
+      provider ?? knownProvider
+    );
+    if (!result || result.klines.length === 0) break;
+    if (!provider) provider = result.provider;
+    let added = 0;
+    for (const k of result.klines) {
+      const t = Number(k.time);
+      if (!byTime.has(t)) {
+        byTime.set(t, k);
+        added++;
+      }
+    }
+    let oldest = Number.POSITIVE_INFINITY;
+    for (const t of byTime.keys()) {
+      if (t < oldest) oldest = t;
+    }
+    if (oldest <= startTs) break;
+    // Upstream replays the same window: stop instead of spinning forever.
+    if (added === 0) break;
+    pageEnd = oldest - 1;
+  }
+  if (!provider || byTime.size === 0) return null;
+  const klines = [...byTime.values()].sort((a, b) => Number(a.time) - Number(b.time));
+  return { klines, provider };
+}
+
+// True when `klines` (ascending) covers the whole [startTs, endTs] window:
+// the first candle reaches back to (or beyond) the start and the last candle
+// reaches (or overshoots) the end. Anything less must not be persisted.
+function repairWindowCovers(
+  klines: Kline[],
+  startTs: number,
+  endTs: number,
+  msPerCandle: number,
+): boolean {
+  if (klines.length === 0) return false;
+  const first = Number(klines[0].time);
+  const last = Number(klines[klines.length - 1].time);
+  return first <= startTs && last + msPerCandle >= endTs;
+}
+
 export const dataRepairService = {
   /**
    * Scans the journal for trades that are "Won" or "Lost" but missing 'atrValue'.
@@ -257,10 +323,11 @@ export const dataRepairService = {
 
     const promises = chunks.map((chunk) => limit(async () => {
       try {
-        const result = await fetchSmartKlines(
+        // Page across provider per-call caps so the whole lookback window is
+        // covered, then verify per trade below (BUG-0479).
+        const result = await fetchKlinesForRange(
           chunk.symbol,
           interval,
-          1000,
           chunk.startTs,
           chunk.endTs,
           chunk.provider
@@ -454,10 +521,11 @@ export const dataRepairService = {
 
     const promises = chunks.map((chunk) => limit(async () => {
       try {
-        const result = await fetchSmartKlines(
+        // Page across provider per-call caps so chunks wider than one
+        // response are fully assembled; never trust a partial window (BUG-0479).
+        const result = await fetchKlinesForRange(
           chunk.symbol,
           interval,
-          1000,
           chunk.startTs,
           chunk.endTs,
           chunk.provider
@@ -474,7 +542,9 @@ export const dataRepairService = {
                 return kt + msPerCandle > startTs && kt <= endTs;
               });
 
-              if (tradeKlines.length > 0) {
+              // Abort instead of persisting a truncated calculation: a partial
+              // window would stamp the journal with wrong MFE/MAE forever.
+              if (tradeKlines.length > 0 && repairWindowCovers(tradeKlines, startTs, endTs, msPerCandle)) {
                 let highest = new Decimal(0);
                 let lowest = new Decimal(tradeKlines[0].low);
 
