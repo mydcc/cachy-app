@@ -149,4 +149,40 @@ describe("a bot's protective stop", () => {
       ),
     ).not.toThrow();
   });
+
+  it("is refused on a reduce-only intent, and that refusal reads in both locales too", () => {
+    // The sibling of the case above. Rust already covers *that* the refusal is
+    // raised; what is unproven on this side is that the key it hands the UI
+    // resolves in both bundles -- a refusal a trader cannot read is a refusal
+    // that gets worked around.
+    const document: RuleDocument = {
+      ...alertDocument(),
+      id: "pinned-3",
+      action: {
+        consequence_level: "simulate",
+        order: {
+          side: "buy",
+          size_basis: "percent_of_equity",
+          size: "1",
+          reduce_only: true,
+          stop: { basis: "percent_of_entry", distance: "2" },
+        },
+      },
+    };
+
+    try {
+      ruleSchema.validate(document);
+      throw new Error("a reduce-only intent carrying a stop was accepted");
+    } catch (e) {
+      if (!isRuleRefusedError(e)) throw e;
+
+      const refusal = e.refusals.find((r) => r.i18n_key === "rules.refusal.stopNotHonoured");
+      expect(refusal, `no refusal named the unread stop: ${JSON.stringify(e.refusals)}`).toBeDefined();
+      expect(refusal?.field).toBe("action.order.stop");
+
+      for (const bundle of [de, en]) {
+        expect(typeof lookup(bundle, refusal!.i18n_key)).toBe("string");
+      }
+    }
+  });
 });
