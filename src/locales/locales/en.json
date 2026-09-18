@@ -4373,6 +4373,7 @@
       "cumulativeNeedsOwnWindow": "OBV is a running total, so its level depends on how much history is loaded. Compare it only with its own highest or lowest value over a number of candles.",
       "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing.",
       "invalidNote": "The note in `{field}` is empty or longer than 280 characters.",
+      "invalidDerivedFromHash": "The derivation in `{field}` is not a valid content hash, so the strategy this was promoted from cannot be identified.",
       "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice."
     },
     "sentence": {

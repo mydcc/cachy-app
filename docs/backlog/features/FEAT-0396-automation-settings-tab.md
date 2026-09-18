@@ -2,7 +2,9 @@
 id: FEAT-0396
 title: An Automation settings tab for user-configured bots
 type: feature
-status: ready
+status: in-progress
+assignee: claude-code
+branch: feat/feat-0396-p1-provenance-derivation
 priority: P2
 milestone: M9
 editions: [community, pro, private]
@@ -119,7 +121,7 @@ and confirmation included.
 - [ ] No document created in this tab can carry `consequence_level: send`: the tab
       writes `simulate`, and the guarantee that nothing submits is the ladder —
       `authorise(Send)` on a `simulate` document refuses, pinned by a core test. See
-      the correction below for why this is not a `validate()` check
+      the correction above for why this is not a `validate()` check
 - [ ] Promoting an alert creates a **new** document with a new `id`; the source alert is
       left unchanged and still armed
 - [ ] The promoted document records the source's content hash in `provenance`, and

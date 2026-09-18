@@ -3581,6 +3581,7 @@ export type TranslationKey =
   | "rules.refusal.cumulativeNeedsOwnWindow"
   | "rules.refusal.ruleWarmupTooDeep"
   | "rules.refusal.invalidNote"
+  | "rules.refusal.invalidDerivedFromHash"
   | "rules.refusal.duplicateTriggerMethod"
   | "rules.sentence.frame"
   | "rules.sentence.frameIntrabar"

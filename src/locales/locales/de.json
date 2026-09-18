@@ -4373,6 +4373,7 @@
       "cumulativeNeedsOwnWindow": "OBV ist eine laufende Summe, sein Stand hängt davon ab, wie viel Historie geladen ist. Vergleiche ihn nur mit seinem eigenen Höchst- oder Tiefstwert über eine Anzahl Kerzen.",
       "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen.",
       "invalidNote": "Die Notiz in `{field}` ist leer oder länger als 280 Zeichen.",
+      "invalidDerivedFromHash": "Die Herkunftsangabe in `{field}` ist kein gültiger Content-Hash, deshalb lässt sich die Strategie nicht bestimmen, aus der dieser Bot hervorgegangen ist.",
       "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden."
     },
     "sentence": {
