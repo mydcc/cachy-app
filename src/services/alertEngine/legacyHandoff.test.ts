@@ -136,7 +136,16 @@ describe("runLegacyHandoff", () => {
     localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify([{ id: "a1", active: true }]));
     localStorage.setItem(MIGRATED_LEDGER_KEY, JSON.stringify(["a1"]));
     localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([rule("r1", true)]));
-    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    // Spied on the instance, not `Storage.prototype`: the `unit` project runs
+    // in node, where `localStorage` is a stand-in object and the `Storage`
+    // constructor does not exist to hang a prototype spy on.
+    //
+    // Cleared straight away because that stand-in's `setItem` is already a
+    // mock, so `spyOn` hands back the same one with every call this file has
+    // made so far still on it — `restoreAllMocks` does not reset it either.
+    // Without the clear the assertion reads the seeds above, not the run.
+    const setItem = vi.spyOn(localStorage, "setItem");
+    setItem.mockClear();
 
     runLegacyHandoff();
 
