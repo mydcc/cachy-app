@@ -2,9 +2,9 @@
 
 # Backlog index
 
-365 items. How to read and add them: [README.md](README.md).
+368 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 25 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -251,6 +251,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | security |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | execution |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -319,6 +320,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | security |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | security |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -394,6 +396,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | alerts |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | alerts |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | alerts |
+| [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -516,6 +519,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -633,6 +637,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -754,6 +759,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | none | community, pro, private | C | none | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | none | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
+| [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -804,4 +810,4 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0495**
+Next free number: **0498**

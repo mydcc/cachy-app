@@ -1716,6 +1716,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0494-bot-order-carries-no-paper-provenance.md"
   },
   {
+    "id": "BUG-0495",
+    "title": "The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "ADR-0013",
+    "depends_on": [
+      "FEAT-0405"
+    ],
+    "file": "bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -4256,6 +4276,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "ADR-0001",
     "depends_on": [],
     "file": "bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md"
+  },
+  {
+    "id": "BUG-0496",
+    "title": "Three separate lists answer whether a route is cut over, and nothing makes them agree",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "ADR-0013",
+    "depends_on": [
+      "FEAT-0405"
+    ],
+    "file": "bugs/BUG-0496-three-sources-of-truth-for-route-migration.md"
   },
   {
     "id": "FEAT-0019",
@@ -6925,6 +6965,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "claude",
     "branch": "fix/bug-0478-indicator-i18n-guard",
     "file": "bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md"
+  },
+  {
+    "id": "BUG-0497",
+    "title": "The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "ADR-0013",
+    "depends_on": [],
+    "file": "bugs/BUG-0497-x-api-sign-escapes-redaction.md"
   },
   {
     "id": "FEAT-0022",
