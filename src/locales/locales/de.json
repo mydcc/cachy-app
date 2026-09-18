@@ -4364,6 +4364,11 @@
       "menuLabel": "Warnung",
       "regionLabel": "Warn-Region",
       "here": "Warnung bei {price}"
+    },
+    "drawings": {
+      "horizontal": "Horizontale Linie zeichnen",
+      "trend": "Trendlinie zeichnen",
+      "delete": "Ausgewählte Zeichnung löschen"
     }
   },
   "chart": {
