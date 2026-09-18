@@ -52,6 +52,28 @@ rather than re-deciding them at close time.
 - [ ] No existing test still exercises the removed path; tests are deleted or migrated,
       not skipped
 
+## Gate check (2026-09-18)
+
+Checked rather than assumed: the item above asks for the readiness conditions to be
+restated *with evidence* instead of re-decided at close time, so this is that evidence
+as it stands. **Both conditions are still open, so this item stays `idea`.**
+
+| Condition | Met | Evidence |
+| --- | --- | --- |
+| `FEAT-0388` shipped to a stable release | no | That item carries `shipped: 1.6.0-beta.261`, and 1.6.0 is marked `(unreleased)` in `CHANGELOG.md`. The last stable release is 1.5.0 (2026-08-12); every tag since is a `v1.6.0-beta.*`. |
+| …plus one full milestone in production, no migration regression | no | Cannot start before the release above. `origin/main` stands at `1.6.0-beta.92` and does not contain `src/services/alertEngine/migrateAlertsToRules.ts` at all, so the migration has not run anywhere but `develop`. |
+| `FEAT-0389` (Super-Alert panel) shipped | not in that sense | `status: done`, milestone M4 — but on `develop` only, inside the same unreleased 1.6.0. |
+
+The trap this table exists to prevent: `FEAT-0388` and `FEAT-0389` both read
+`status: done`, which is easy to read as "in production". In this backlog `done` means
+merged to `develop`. What this item authorises is deleting the only fallback a
+migration regression could be recovered from, so "merged" is not the bar its first two
+criteria are asking for.
+
+Re-check when 1.6.0 leaves beta. The cheap test for the second row is whether
+`migrateAlertsToRules.ts` exists on the released branch — not whether the item says
+`done`.
+
 ## Out of scope
 
 - Deciding *whether* to remove `cachy_alerts_v1` — that was already decided in
