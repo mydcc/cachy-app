@@ -20,9 +20,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("$app/environment", () => ({ browser: true }));
 
 import type { RuleDocument } from "../../lib/rules/types";
-import { alertLifecycleStatuses, lifecycleOf } from "./ruleLifecycleView";
+import { alarmRows, lifecycleOf } from "./ruleLifecycleView";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
-import { RULE_ORIGIN_STORAGE_KEY } from "./ruleOriginLedger";
 import { RULE_STATE_STORAGE_KEY } from "./ruleStateStore";
 
 const NOW = 1_800_000_000_000;
@@ -67,47 +66,84 @@ describe("lifecycleOf", () => {
   });
 });
 
-describe("alertLifecycleStatuses", () => {
+describe("alarmRows", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  function seed(rules: RuleDocument[], origins: Record<string, { alertId: string }>) {
-    // The ledger refuses an entry without `migratedAtMs`; supply it here so the
-    // test exercises the join and not the ledger's own validation.
-    const entries = Object.fromEntries(
-      Object.entries(origins).map(([ruleId, e]) => [ruleId, { ...e, migratedAtMs: NOW - 10_000 }]),
-    );
+  function seed(rules: unknown[]) {
     localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(rules));
-    localStorage.setItem(
-      RULE_ORIGIN_STORAGE_KEY,
-      JSON.stringify({ schema_version: 1, entries }),
-    );
   }
 
-  it("answers by legacy alert id, not by rule id", () => {
-    seed([ruleDoc({ id: "rule-a", valid_until_ms: NOW - 1 })], { "rule-a": { alertId: "alert-1" } });
+  it("answers by rule id, because the rule is now the only store", () => {
+    // FEAT-0399: this used to be keyed by legacy alert id, joined in through
+    // the origin ledger, because Manage listed `cachy_alerts_v1`. With that
+    // store gone the list is the rule set itself.
+    seed([ruleDoc({ id: "rule-a", valid_until_ms: NOW - 1 })]);
 
-    const statuses = alertLifecycleStatuses(NOW);
+    const rows = alarmRows(NOW);
 
-    expect(statuses.get("alert-1")).toBe("expired");
-    expect(statuses.has("rule-a")).toBe(false);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe("rule-a");
+    expect(rows[0].status).toBe("expired");
   });
 
-  it("says nothing about an alert no rule was migrated from", () => {
-    seed([], {});
-    expect(alertLifecycleStatuses(NOW).size).toBe(0);
+  it("lists a rule the panel armed, which the legacy list never showed", () => {
+    // The gap FEAT-0399 closed: the panel has armed rules since FEAT-0389,
+    // and those were never in `cachy_alerts_v1`, so Manage never showed them.
+    seed([ruleDoc({ id: "panel-armed" })]);
+
+    expect(alarmRows(NOW).map((r) => r.id)).toEqual(["panel-armed"]);
   });
 
   it("reads the fire count from the state store", () => {
-    seed([ruleDoc({ id: "rule-a", valid_until_ms: NOW - 1 })], { "rule-a": { alertId: "alert-1" } });
+    seed([ruleDoc({ id: "rule-a", valid_until_ms: NOW - 1 })]);
     localStorage.setItem(RULE_STATE_STORAGE_KEY, JSON.stringify({ "rule-a": { fired_count: 1 } }));
 
-    expect(alertLifecycleStatuses(NOW).get("alert-1")).toBe("fired");
+    expect(alarmRows(NOW)[0].status).toBe("fired");
   });
 
-  it("skips a ledger entry whose rule was deleted", () => {
-    seed([], { "rule-a": { alertId: "alert-1" } });
-    expect(alertLifecycleStatuses(NOW).size).toBe(0);
+  it("is empty when no rule is stored", () => {
+    seed([]);
+    expect(alarmRows(NOW)).toEqual([]);
+  });
+
+  it("carries the threshold and comparison of a price rule", () => {
+    seed([
+      ruleDoc({
+        id: "rule-a",
+        conditions: {
+          kind: "compare",
+          left: { kind: "price" },
+          op: "gte",
+          right: { kind: "constant", value: "72000" },
+          timeframe: "1m",
+        } as unknown as RuleDocument["conditions"],
+      }),
+    ]);
+
+    expect(alarmRows(NOW)[0]).toMatchObject({ op: "gte", threshold: "72000" });
+  });
+
+  it("still lists a rule whose conditions it cannot phrase", () => {
+    // A trader who armed something this list has no wording for must still be
+    // able to see and delete it. Hiding the row is the silence FEAT-0399 is
+    // about.
+    seed([ruleDoc({ id: "rule-a", conditions: { kind: "account" } as unknown as RuleDocument["conditions"] })]);
+
+    const rows = alarmRows(NOW);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].threshold).toBeUndefined();
+  });
+
+  it("reports a disabled rule as not enabled", () => {
+    seed([ruleDoc({ id: "rule-a", enabled: false })]);
+    expect(alarmRows(NOW)[0].enabled).toBe(false);
+  });
+
+  it("skips a malformed entry instead of dropping the whole list", () => {
+    seed([null, ruleDoc({ id: "rule-a" })]);
+    expect(alarmRows(NOW).map((r) => r.id)).toEqual(["rule-a"]);
   });
 });

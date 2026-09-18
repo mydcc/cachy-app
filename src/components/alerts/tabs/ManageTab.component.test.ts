@@ -33,7 +33,6 @@ import { flushSync, mount, unmount } from "svelte";
 import en from "../../../locales/locales/en.json";
 import ManageTab from "./ManageTab.svelte";
 import { alertState } from "../../../stores/alerts.svelte";
-import type { AlertDefinition } from "../../../services/alertEngine/alertEngine";
 
 // The cutover notice reads localStorage behind a promise and is FEAT-0388's
 // concern, not this tab's list behaviour. Answering "no" keeps its banner out
@@ -81,14 +80,44 @@ vi.mock("../../../locales/i18n", () => {
   };
 });
 
-function alert(overrides: Partial<AlertDefinition>): AlertDefinition {
+const RULES_KEY = "cachy_rules_v1";
+const RULE_STATE_KEY = "cachy_rule_state_v1";
+
+/**
+ * FEAT-0399: the list is seeded through `cachy_rules_v1` now, not through
+ * `alertState.definitions`. That store is gone, and with it the gap it caused
+ * -- the panel has armed rules since FEAT-0389, so an alarm armed there was
+ * never in the legacy store and never appeared in this list at all.
+ */
+function rule(overrides: Record<string, unknown> = {}) {
   return {
-    id: "alert-1",
+    schema_version: 2,
+    id: "rule-1",
     symbol: "BTCUSDT",
-    condition: { price_cross_up: "70000" },
-    active: true,
+    trigger_timeframe: "1m",
+    enabled: true,
+    conditions: {
+      kind: "compare",
+      left: { kind: "price" },
+      op: "gt",
+      right: { kind: "constant", value: "70000" },
+      timeframe: "1m",
+    },
+    action: { consequence_level: "notify" },
+    provenance: { source: "human", created_at_ms: 1 },
     ...overrides,
-  } as AlertDefinition;
+  };
+}
+
+function seedRules(rules: unknown[], firedCounts: Record<string, number> = {}) {
+  localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+  localStorage.setItem(
+    RULE_STATE_KEY,
+    JSON.stringify(
+      Object.fromEntries(Object.entries(firedCounts).map(([id, n]) => [id, { fired_count: n }])),
+    ),
+  );
+  alertState.rulesVersion += 1;
 }
 
 describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
@@ -98,15 +127,16 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
   beforeEach(() => {
     target = document.createElement("div");
     document.body.appendChild(target);
-    alertState.definitions = [];
+    localStorage.clear();
     alertState.orphanReport = null;
+    alertState.legacyMigrationReport = null;
   });
 
   afterEach(() => {
     if (component) unmount(component);
     component = null;
     target.remove();
-    alertState.definitions = [];
+    localStorage.clear();
   });
 
   function render() {
@@ -125,7 +155,18 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
   }
 
   it("lists an armed alert under Active with its symbol and condition", () => {
-    alertState.definitions = [alert({ symbol: "ETHUSDT", condition: { price_cross_up: "4200" } })];
+    seedRules([
+      rule({
+        symbol: "ETHUSDT",
+        conditions: {
+          kind: "compare",
+          left: { kind: "price" },
+          op: "gt",
+          right: { kind: "constant", value: "4200" },
+          timeframe: "1m",
+        },
+      }),
+    ]);
 
     const el = render();
     const rows = el.querySelectorAll(".alert-item");
@@ -136,10 +177,10 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
   });
 
   it("keeps a fired alert out of Active and shows it under History with its badge", async () => {
-    alertState.definitions = [
-      alert({ id: "armed", symbol: "BTCUSDT", active: true }),
-      alert({ id: "fired", symbol: "SOLUSDT", active: false }),
-    ];
+    seedRules(
+      [rule({ id: "armed", symbol: "BTCUSDT" }), rule({ id: "fired", symbol: "SOLUSDT" })],
+      { fired: 1 },
+    );
 
     const el = render();
     expect(el.textContent).toContain("BTCUSDT");
@@ -157,11 +198,8 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(rows[0].querySelector(".fired-badge")).not.toBeNull();
   });
 
-  it("deletes the alert its row names, not the first one in the list", () => {
-    alertState.definitions = [
-      alert({ id: "keep", symbol: "BTCUSDT" }),
-      alert({ id: "drop", symbol: "ETHUSDT" }),
-    ];
+  it("deletes the alarm its row names, not the first one in the list", () => {
+    seedRules([rule({ id: "keep", symbol: "BTCUSDT" }), rule({ id: "drop", symbol: "ETHUSDT" })]);
 
     const el = render();
     const rows = Array.from(el.querySelectorAll(".alert-item"));
@@ -170,7 +208,9 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     (ethRow?.querySelector(".delete-btn") as HTMLButtonElement).click();
     flushSync();
 
-    expect(alertState.definitions.map((a) => a.id)).toEqual(["keep"]);
+    expect(JSON.parse(localStorage.getItem(RULES_KEY)!).map((r: { id: string }) => r.id)).toEqual([
+      "keep",
+    ]);
   });
 
   it("says the list is empty rather than rendering an empty box", () => {

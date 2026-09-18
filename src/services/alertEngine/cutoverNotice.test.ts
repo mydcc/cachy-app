@@ -31,21 +31,11 @@ vi.mock("../logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-// The notice depends on readCoveredAlertIds(), which reports nothing while the
-// rule evaluator's core has not loaded — irrelevant to what this file tests.
-vi.mock("../../lib/rules/ruleSchema", () => ({
-  ruleSchema: { isReady: () => true },
-}));
+// FEAT-0399: the notice no longer consults coverage or the market store, so
+// the ruleSchema and ruleLoopWiring stubs this file used to need are gone. It
+// reads the origin ledger and the rule store, both of which the tests seed.
 
-// shouldShowCutoverNotice() dynamically imports this for the real,
-// market-store-backed series check. Stubbed to "yes" — this file tests the
-// notice's own rules (only-if-affected, only-once), not series observation,
-// which `ruleCoverage.test.ts` already covers.
-vi.mock("./ruleLoopWiring", () => ({
-  isSeriesObserved: () => true,
-}));
-
-function withCoveredAlert(): void {
+function withMigratedAlarm(): void {
   localStorage.setItem(
     RULES_STORAGE_KEY,
     JSON.stringify([{ id: "r1", symbol: "BTCUSDT", trigger_timeframe: "1m" }]),
@@ -65,18 +55,18 @@ describe("cutover notice", () => {
     vi.clearAllMocks();
   });
 
-  it("is shown to a trader whose alerts the rule engine took over", async () => {
-    withCoveredAlert();
+  it("is shown to a trader whose alerts were migrated into rules", async () => {
+    withMigratedAlarm();
 
     expect(await shouldShowCutoverNotice()).toBe(true);
   });
 
-  it("is not shown to a trader with no covered alerts", async () => {
+  it("is not shown to a trader with no migrated alarms", async () => {
     expect(await shouldShowCutoverNotice()).toBe(false);
   });
 
-  it("is not shown when the covering rule is disabled — nothing changed for them", async () => {
-    withCoveredAlert();
+  it("is not shown when the migrated rule is disabled — it triggers no differently", async () => {
+    withMigratedAlarm();
     localStorage.setItem(
       RULES_STORAGE_KEY,
       JSON.stringify([{ id: "r1", symbol: "BTCUSDT", trigger_timeframe: "1m", enabled: false }]),
@@ -86,7 +76,7 @@ describe("cutover notice", () => {
   });
 
   it("is shown once and not again after acknowledgement", async () => {
-    withCoveredAlert();
+    withMigratedAlarm();
     expect(await shouldShowCutoverNotice()).toBe(true);
 
     acknowledgeCutoverNotice();
@@ -95,8 +85,8 @@ describe("cutover notice", () => {
     expect(localStorage.getItem(CUTOVER_NOTICE_STORAGE_KEY)).not.toBeNull();
   });
 
-  it("stays acknowledged even if the alert set changes later", async () => {
-    withCoveredAlert();
+  it("stays acknowledged even if the rule set changes later", async () => {
+    withMigratedAlarm();
     acknowledgeCutoverNotice();
     localStorage.setItem(
       RULES_STORAGE_KEY,

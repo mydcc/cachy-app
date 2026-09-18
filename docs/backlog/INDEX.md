@@ -4,7 +4,7 @@
 
 362 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 25 · 📋 specced 19 · 🟡 in-progress 2 · ✅ done 315 · ⛔ dropped 1
+Counts by status: 💡 idea 25 · 📋 specced 19 · 🟡 in-progress 1 · ✅ done 316 · ⛔ dropped 1
 
 ---
 
@@ -162,7 +162,7 @@ Counts by status: 💡 idea 25 · 📋 specced 19 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0031](features/FEAT-0031-whitelabel-theming.md) | Rebrand a build without editing source | P2 | 💡 idea | build |
 | [FEAT-0039](features/FEAT-0039-data-extensions.md) | Let users add prompts, presets and themes as data files | P2 | 💡 idea | extensions |
 | [FEAT-0187](features/FEAT-0187-edition-entitlement-switch.md) | Replace the cheat code with a verifiable local entitlement | P2 | 📋 specced | build |
-| [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 🟡 in-progress | alerts |
+| [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | ✅ done | alerts |
 | [IDEA-0186](ideas/IDEA-0186-docs-as-public-surface.md) | Audit every public-facing document as a first-contact surface | P3 | 💡 idea | docs |
 
 ### M6
@@ -773,7 +773,7 @@ Counts by status: 💡 idea 25 · 📋 specced 19 · 🟡 in-progress 2 · ✅ d
 | [FEAT-0377](features/FEAT-0377-gemini-key-header-not-query.md) | Pass Gemini API key via x-goog-api-key header instead of URL query parameter | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P3 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md), [FEAT-0030](features/FEAT-0030-combined-alerts.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | ✅ done | M3 | community, pro, private | none | none | — |
-| [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | 🟡 in-progress | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
+| [FEAT-0399](features/FEAT-0399-remove-legacy-alerts-v1.md) | Remove the legacy cachy_alerts_v1 store and evaluation path | P3 | ✅ done | M5 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0406](features/FEAT-0406-rule-loop-disarm-path.md) | Give the rule evaluation loop a disarm path, coupled to coverage | P3 | ✅ done | none | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0416](features/FEAT-0416-account-read-protocol-adr.md) | Record the account read protocol as an ADR | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0432](features/FEAT-0432-refusal-codes-from-one-declaration.md) | Generate the refusal-code list from the enum instead of maintaining it twice | P3 | ✅ done | none | community, pro, private | none | ADR-0012 | — |

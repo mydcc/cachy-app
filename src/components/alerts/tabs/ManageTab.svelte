@@ -37,7 +37,8 @@
         acknowledgeCutoverNotice,
         shouldShowCutoverNotice,
     } from "../../../services/alertEngine/cutoverNotice";
-    import { alertLifecycleStatuses } from "../../../services/alertEngine/ruleLifecycleView";
+    import { alarmRows } from "../../../services/alertEngine/ruleLifecycleView";
+    import { removeRule } from "../../../services/alertEngine/armRule";
 
     // Declared to satisfy the shell's tab contract, unused since the quick-add
     // form left: this tab lists armed rules, which it reads from the store
@@ -60,33 +61,50 @@
     }
 
 
-    let activeAlerts = $derived(alertState.definitions.filter((a) => a.active));
-    let historyAlerts = $derived(alertState.definitions.filter((a) => !a.active));
-
     /*
-      FEAT-0393 AC 2 -- an alert whose rule ran past its validity period is
-      still `active` in the legacy store, because nothing disarms on expiry.
-      That is deliberate: disarming would drop it into the history list, where
-      every row reads "fired", and a setup that lapsed untriggered is not one
-      that paid off.
+      FEAT-0399 -- read from `cachy_rules_v1`, the store the evaluation loop
+      actually reads. Until this item the list came from `cachy_alerts_v1`
+      while the panel armed rules, so an alarm armed here never appeared in
+      it at all.
 
-      Derived from the alert list rather than read once on mount, so a rule
-      crossing its expiry while the panel is open is relabelled on the next
-      change the list sees.
+      `alertState.rulesVersion` is the dependency: the rule set lives in
+      localStorage, which no rune observes, so every path that writes it bumps
+      that counter and this re-derives.
     */
-    let lifecycle = $derived.by(() => {
-        void alertState.definitions.length;
-        return alertLifecycleStatuses();
+    let rows = $derived.by(() => {
+        void alertState.rulesVersion;
+        return alarmRows();
     });
 
-    function formatCondition(condition: Record<string, unknown>) {
-        if (condition.price_cross_up)
-            return `${$_("dashboard.alerts.crossesUp")} ${condition.price_cross_up}`;
-        if (condition.price_cross_down)
-            return `${$_("dashboard.alerts.crossesDown")} ${condition.price_cross_down}`;
-        if (condition.price_reached)
-            return `${$_("dashboard.alerts.reaches")} ${condition.price_reached}`;
-        return JSON.stringify(condition);
+    /*
+      FEAT-0393 AC 2 -- a rule past its validity period stays in the active
+      list with an "expired" badge rather than dropping into history, where
+      every row reads "fired". A setup that lapsed untriggered is not one that
+      paid off, and a trader deciding whether the level held must not be told
+      the wrong one.
+    */
+    let activeAlerts = $derived(rows.filter((r) => r.status !== "fired"));
+    let historyAlerts = $derived(rows.filter((r) => r.status === "fired"));
+
+    const OP_KEYS = {
+        gte: "dashboard.alerts.reaches",
+        gt: "dashboard.alerts.crossesUp",
+        lte: "dashboard.alerts.reaches",
+        lt: "dashboard.alerts.crossesDown",
+        eq: "dashboard.alerts.reaches",
+        neq: "dashboard.alerts.reaches",
+    } as const;
+
+    function formatCondition(row: { op?: keyof typeof OP_KEYS; threshold?: string }) {
+        // A rule whose conditions this list cannot phrase still gets a row:
+        // the trader has to be able to see and delete what they armed.
+        if (row.threshold === undefined || row.op === undefined) return "";
+        return `${$_(OP_KEYS[row.op])} ${row.threshold}`;
+    }
+
+    function deleteRow(id: string) {
+        removeRule(id);
+        alertState.rulesVersion += 1;
     }
 
 </script>
@@ -174,12 +192,12 @@
 </div>
 
 <div class="alert-list">
-    {#each listTab === "active" ? activeAlerts : historyAlerts as alert (alert.id)}
+    {#each listTab === "active" ? activeAlerts : historyAlerts as row (row.id)}
         <div class="alert-item" class:history-item={listTab === "history"}>
             <div class="alert-info">
-                <strong>{alert.symbol}</strong>
-                <span>{formatCondition(alert.condition)}</span>
-                {#if lifecycle.get(alert.id) === "expired"}
+                <strong>{row.symbol}</strong>
+                <span>{formatCondition(row)}</span>
+                {#if row.status === "expired"}
                     <span class="expired-badge" title={$_("dashboard.alerts.expiredHint")}>
                         {$_("dashboard.alerts.expired")}
                     </span>
@@ -190,7 +208,7 @@
             <button
                 class="delete-btn"
                 aria-label={$_("dashboard.alerts.deleteAlert")}
-                onclick={() => alertState.removeAlert(alert.id)}
+                onclick={() => deleteRow(row.id)}
             >
                 ×
             </button>

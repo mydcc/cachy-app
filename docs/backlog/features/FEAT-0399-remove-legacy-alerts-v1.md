@@ -2,7 +2,7 @@
 id: FEAT-0399
 title: Remove the legacy cachy_alerts_v1 store and evaluation path
 type: feature
-status: in-progress
+status: done
 assignee: claude
 branch: feat/feat-0399-drop-legacy-alerts
 priority: P3
@@ -51,10 +51,15 @@ rather than re-deciding them at close time.
       assumed — enforced per device by `verifyLegacyMigration.ts`, which runs after the
       migration on every start and reports `clean`, `unmigrated` (with ids) or
       `unreadable`, never folding the last into the first
-- [ ] `cachy_alerts_v1`, the legacy `AlertEngineWasm` path, and the legacy creation form
-      are deleted, not merely dead-code-flagged
-- [ ] No existing test still exercises the removed path; tests are deleted or migrated,
-      not skipped
+- [x] `cachy_alerts_v1`, the legacy `AlertEngineWasm` path, and the legacy creation form
+      are deleted, not merely dead-code-flagged — the creation form was already gone
+      (`AlertDefinitionsModal.svelte` no longer exists); this item removed
+      `alertEngine.ts`, `ruleCoverage.ts`, `legacyReplayCoordinator.ts`,
+      `replayClosedCandles.ts` and the store's read/write path, 2 893 lines net
+- [x] No existing test still exercises the removed path; tests are deleted or migrated,
+      not skipped — `alerts_engineWiring.test.ts` was rewritten around the single
+      engine, the BUG-0402 resync block was rewritten as the one-shot contract, and
+      `ManageTab.component.test.ts` now seeds `cachy_rules_v1`
 
 ## Gate check (2026-09-18)
 
@@ -103,6 +108,43 @@ per device.
   `cachy_alerts_migrated_v1` but absent from live `cachy_rules_v1`) cause its
   `cachy_alerts_v1` entry to be dropped silently, or surfaced once before removal? See
   `FEAT-0388`'s "Out of scope" note on this — unresolved there, inherited here.
+
+## How it was built (2026-09-18)
+
+**The verification came first, and it is a mechanism, not a claim.**
+`verifyLegacyMigration.ts` runs after the migration on every start and reports
+`clean`, `unmigrated` (with ids) or `unreadable`. The third verdict is the point: an
+unreadable store or ledger must never read as verified, and must never manufacture a
+list of unmigrated ids out of a parse error — that would condemn every alarm a trader
+has. An empty ledger beside a populated store *is* a real finding.
+
+**The migration had to stop reading back before anything could be deleted.** It used to
+re-sync an existing rule from its alert on every start: `enabled` from `active`, the
+threshold on drift (BUG-0402). That was right while both stores had a live editor. With
+the legacy editor gone the legacy entry is frozen, so re-reading it can only undo the
+rule store — a rule disarmed after firing would be re-armed from an `active: true` flag
+nothing can update, re-firing on every reload. The ledger now answers "has this alert
+had its one conversion", which is what `FEAT-0388` built it for.
+
+**`runLegacyHandoff()` covers the case the gate would otherwise strand.** While both
+engines existed, `releaseCoverage()` disabled a migrated rule whenever its alert was
+edited, and the legacy engine picked the alert up. Deleting that engine leaves those
+rules parked with nothing evaluating them — BUG-0382's shape. Once per device, guarded
+by its own marker, because afterwards a disabled migrated rule is the trader's decision.
+
+**Manage was listing the wrong store, and the deletion is what surfaced it.** The panel
+has armed *rules* since `FEAT-0389`, but the list read `cachy_alerts_v1` — so an alarm
+armed in the panel never appeared in it at all. `alarmRows()` reads the rule set
+directly, which is both the store that is written and the store that is evaluated.
+
+**What deliberately stayed.** `migrateAlertsToRules.ts` is now the only reader of
+`cachy_alerts_v1` and must not be deleted: a device that has never started the app since
+its alerts were written still needs its one conversion. The localStorage key itself is
+untouched — this item removed the code, never the bytes.
+
+**Known leftover:** the translation key `dashboard.alerts.alertCondition` is now unused.
+Left in place rather than removed here, per the repo rule on code of unclear purpose;
+dead-translation cleanup is its own pass.
 
 ## Links
 
