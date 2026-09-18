@@ -176,6 +176,29 @@ describe("renderRuleSentence", () => {
         expect(renderRuleSentence(sending, et)).toContain("Sends a buy order for 1 % risk");
     });
 
+    it("states a bot's order too, not only a live one (FEAT-0396)", () => {
+        // The gap this closes: `simulate` fell through to the bare level key,
+        // so a bot's sentence read "Simulates an order" and left out how large.
+        // Both levels must carry an order -- the core refuses a `simulate` rule
+        // without one -- so the clause belongs to the intent, not to `send`.
+        const bot = ruleWith(rsiBelow30, {
+            action: {
+                consequence_level: "simulate",
+                order: { side: "sell", size_basis: "percent_of_equity", size: "2.5" },
+            },
+        });
+        expect(renderRuleSentence(bot, dt)).toContain(
+            "Simuliert eine Verkauf-Order über 2.5 % des Kontokapitals",
+        );
+        expect(renderRuleSentence(bot, et)).toContain(
+            "Simulates a sell order for 2.5 % of equity",
+        );
+    });
+
+    it("keeps the bare lead for a rule that submits nothing", () => {
+        expect(renderRuleSentence(ruleWith(rsiBelow30), et)).toContain("Notifies");
+    });
+
     it("renders an account condition without a timeframe qualifier", () => {
         const account = ruleWith({
             kind: "account",

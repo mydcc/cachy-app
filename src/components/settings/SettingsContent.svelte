@@ -22,6 +22,7 @@
 
     // New Tab Components
     import TradingTab from "./tabs/TradingTab.svelte";
+    import AutomationTab from "./tabs/AutomationTab.svelte";
     import ChartTab from "./tabs/ChartTab.svelte";
     import VisualsTab from "./tabs/VisualsTab.svelte";
     import AiTab from "./tabs/AiTab.svelte";
@@ -46,6 +47,11 @@
             id: "trading",
             icon: `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07"/>`,
             label: $_("settings.tabs.trading") || "Trading",
+        },
+        {
+            id: "automation",
+            icon: `<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>`,
+            label: $_("settings.tabs.automation") || "Automation",
         },
         {
             id: "chart",
@@ -130,6 +136,8 @@
 
         {#if activeTab === "trading"}
             <TradingTab />
+        {:else if activeTab === "automation"}
+            <AutomationTab />
         {:else if activeTab === "chart"}
             <ChartTab />
         {:else if activeTab === "visuals"}
