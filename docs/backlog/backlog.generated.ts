@@ -407,6 +407,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0479-repair-truncates-long-trades.md"
   },
   {
+    "id": "BUG-0491",
+    "title": "A bot with frequency every_time places a second order on the same candle after a reload",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [],
+    "file": "bugs/BUG-0491-bot-reorders-same-candle-after-reload.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -1678,6 +1696,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "S",
     "file": "bugs/BUG-0472-ai-actions-execute-without-confirmation.md"
+  },
+  {
+    "id": "BUG-0492",
+    "title": "ruleEvaluationGate.forget has no production caller, so editing or disarming a rule never clears its anchor",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0492-rule-gate-forget-has-no-caller.md"
+  },
+  {
+    "id": "BUG-0494",
+    "title": "A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "ADR-0012",
+    "depends_on": [],
+    "file": "bugs/BUG-0494-bot-order-carries-no-paper-provenance.md"
   },
   {
     "id": "FEAT-0014",
@@ -4202,6 +4256,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "size": "S",
     "file": "bugs/BUG-0474-ai-actions-executed-without-schema-validation.md"
+  },
+  {
+    "id": "BUG-0493",
+    "title": "deleteBot writes localStorage directly and bypasses the shared rule-store write path",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "ADR-0001",
+    "depends_on": [],
+    "file": "bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md"
   },
   {
     "id": "FEAT-0019",

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-362 items. How to read and add them: [README.md](README.md).
+366 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 23 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -213,6 +213,7 @@ Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
 | [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | trade-panel |
 | [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | ✅ done | persistence |
+| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | execution |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -249,6 +250,8 @@ Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | security |
+| [BUG-0492](bugs/BUG-0492-rule-gate-forget-has-no-caller.md) | ruleEvaluationGate.forget has no production caller, so editing or disarming a rule never clears its anchor | P1 | 📋 specced | execution |
+| [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -316,6 +319,7 @@ Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | tooling |
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | security |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | security |
+| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -451,6 +455,7 @@ Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -511,6 +516,8 @@ Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0492](bugs/BUG-0492-rule-gate-forget-has-no-caller.md) | ruleEvaluationGate.forget has no production caller, so editing or disarming a rule never clears its anchor | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -627,6 +634,7 @@ Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -798,4 +806,4 @@ Counts by status: 💡 idea 23 · 📋 specced 19 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0481**
+Next free number: **0495**
