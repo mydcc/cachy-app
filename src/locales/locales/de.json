@@ -1987,7 +1987,8 @@
       "integrations": "Integrationen",
       "maintenance": "Wartung",
       "profile": "Profil & Design",
-      "workspace": "Workspace & Seitenleiste"
+      "workspace": "Workspace & Seitenleiste",
+      "automation": "Automation"
     },
     "system": {
       "performance": "Performance",
@@ -2653,7 +2654,28 @@
     "brokenAlertReportNotify": "Benachrichtigen",
     "brokenAlertReportNotifyDesc": "Beim ersten Übergehen eines solchen Alarms eine Meldung zeigen.",
     "brokenAlertReportLog": "Nur protokollieren",
-    "brokenAlertReportLogDesc": "Keine Meldung. Das Alarm-Panel zeigt weiterhin, welche Alarme betroffen sind."
+    "brokenAlertReportLogDesc": "Keine Meldung. Das Alarm-Panel zeigt weiterhin, welche Alarme betroffen sind.",
+    "automation": {
+      "title": "Automation",
+      "intro": "Ein Bot ist einer deiner Alarme, hochgestuft vom Melden zum Handeln. Er beobachtet dieselben Bedingungen, auf denselben Daten, ausgewertet von derselben Engine.",
+      "simulateOnly": "Bots schlagen Orders ausschließlich im simulierten Konto vor. Nichts davon erreicht eine Börse — echtes Senden ist eine eigene Funktion mit eigenem Order-Gate und eigener Bestätigung.",
+      "yourBots": "Deine Bots",
+      "noBots": "Noch keine Bots. Stufe unten einen deiner Alarme hoch, um anzufangen.",
+      "disabled": "Deaktiviert",
+      "delete": "Löschen",
+      "derivedFrom": "Hervorgegangen aus der Strategie {hash}…",
+      "promoteTitle": "Alarm hochstufen",
+      "promoteHint": "Der Alarm bleibt genau so, wie er ist — weiter scharf, weiter meldend. Beim Hochstufen entsteht ein neuer Bot daneben, sodass du gleichzeitig beobachten und handeln kannst.",
+      "noAlerts": "Kein Alarm zum Hochstufen vorhanden. Schalte zuerst einen im Super-Alert-Panel scharf.",
+      "sourceAlert": "Alarm",
+      "side": "Richtung",
+      "sizeBasis": "Größe gemessen in",
+      "size": "Größe",
+      "promote": "Bot erstellen",
+      "startsDisabled": "Der neue Bot startet ausgeschaltet.",
+      "promoteFailed": "Der Bot konnte nicht erstellt werden.",
+      "account": "Das simulierte Konto"
+    }
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",
@@ -4390,6 +4412,7 @@
       "lead": {
         "notify": "Benachrichtigt",
         "simulate": "Simuliert eine Order",
+        "simulateOrder": "Simuliert eine {side}-Order über {size} {basis}",
         "send": "Sendet eine {side}-Order über {size} {basis}"
       },
       "op": {
