@@ -263,6 +263,36 @@ const fakeLoader = async () =>
     },
   }) as never;
 
+/**
+ * A firing of an ordinary `notify` rule, for asserting which sink the loop was
+ * armed with. Deliberately not a bot: `withBotOrders` forwards every firing to
+ * the sink it wraps and only then looks at whether this one submits, and these
+ * tests are about the forwarding.
+ */
+function firingOfAnAlert() {
+  return {
+    rule: {
+      schema_version: 2,
+      id: "sink-probe",
+      name: "sink probe",
+      symbol: "BTCUSDT",
+      trigger_timeframe: "1h",
+      conditions: {
+        kind: "compare",
+        left: { kind: "price", field: "close" },
+        op: "gte",
+        right: { kind: "constant", value: "1" },
+        timeframe: "1h",
+      },
+      action: { consequence_level: "notify" },
+      enabled: true,
+      provenance: { source: "human", created_at_ms: 0 },
+    },
+    verdict: { verdict: "fires" },
+    anchorMs: 1,
+  };
+}
+
 describe("BUG-0382 — alert engine startup wiring", () => {
   beforeEach(async () => {
     await resetModulesAndFlush();
@@ -612,7 +642,21 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
       // A second argument (the mid-session re-sync hook) is expected in live
       // mode; its own behaviour is covered separately below.
-      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(notifyingRuleSink, expect.any(Function));
+      //
+      // FEAT-0396 wrapped the chosen sink in `withBotOrders`, so what the loop
+      // is armed with is no longer the exported constant and identity is not
+      // assertable. What this still pins is the choice the wrapper was handed:
+      // there are exactly two candidates, and a firing must not reach the
+      // recording one in live mode.
+      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.any(Function),
+      );
+      expect(notifyingRuleSink).toBeTypeOf("function");
+
+      const armed = mockStartRuleEvaluationLoop.mock.calls[0][0] as (f: unknown) => void;
+      armed(firingOfAnAlert());
+      expect(mockLedgerSink).not.toHaveBeenCalled();
     });
   });
 
@@ -674,7 +718,15 @@ describe("BUG-0382 — alert engine startup wiring", () => {
 
       // undefined, not a re-sync function: shadow mode must not touch legacy
       // coverage at all, mid-session included.
-      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(mockLedgerSink, undefined);
+      expect(mockStartRuleEvaluationLoop).toHaveBeenCalledWith(expect.any(Function), undefined);
+
+      // And the wrapper forwards to the recording sink, which is the half that
+      // decides whether a trader hears anything. FEAT-0396 wrapped the sink, so
+      // identity alone no longer says which one was chosen.
+      const armed = mockStartRuleEvaluationLoop.mock.calls[0][0] as (f: unknown) => void;
+      const firing = firingOfAnAlert();
+      armed(firing);
+      expect(mockLedgerSink).toHaveBeenCalledWith(firing);
     });
 
     it("live mode (the default) does remove a covered alert from the legacy engine", async () => {

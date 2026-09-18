@@ -47,6 +47,10 @@ import type { FiringSink } from "../services/alertEngine/ruleEvaluationLoop";
 import type { RuleDocument } from "../lib/rules/types";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
+import { paperState } from "./paperTrading.svelte";
+import { settingsState } from "./settings.svelte";
+import type { TranslationKey } from "../locales/schema";
+import type { BotOrderEnvironment, BotOrderRefusal } from "../services/alertEngine/botOrders";
 
 
 export interface AlertState {
@@ -258,6 +262,66 @@ export function firingMessage(rule: RuleDocument): string {
  * store; keeping it here leaves `ruleLoopWiring` free of a dependency on
  * `alertState`, which would otherwise be a cycle.
  */
+/**
+ * The ports `botOrders` needs, assembled here because a service may not import
+ * a store — `eslint.architecture.boundaries.js`, and the boundary is the reason
+ * the module takes an environment at all.
+ *
+ * `paperState.balance` is the simulated equity a bot sizes against. There is
+ * deliberately no live equivalent: this item stops at `simulate`, and a bot
+ * that could read the funded account would be one line away from sizing against
+ * it.
+ */
+function botOrderEnvironment(closeAt: BotOrderEnvironment["closeAt"]): BotOrderEnvironment {
+    return {
+        paperEnabled: () => paperState.enabled,
+        equity: () => paperState.balance,
+        exchange: () => settingsState.apiProvider,
+        closeAt,
+        // Imported at the moment an order is actually placed, not at startup.
+        // `orderPlacementService` pulls the account and TP/SL stores in behind
+        // it, and the alert engine starts on every session — including the
+        // overwhelming majority that never arm a bot. Deferring it keeps the
+        // order path out of that startup entirely.
+        place: async (plan) => {
+            const { orderPlacementService } = await import("../services/orderPlacementService");
+            return orderPlacementService.placeEntryGroup(plan);
+        },
+    };
+}
+
+/**
+ * What a trader sees when a bot fires and places nothing.
+ *
+ * A toast rather than only a log, and named per reason, because the two common
+ * ones are both things the trader can fix in one click — switch paper trading
+ * on, or give the bot a stop. A bot sitting armed and silently doing nothing is
+ * the failure this whole engine exists to avoid, and it is worse for a bot than
+ * for an alert: an alert that does not fire is quiet, a bot that does not fire
+ * looks like a strategy that found no setup.
+ *
+ * `withBotOrders` already limits this to once per rule and reason.
+ */
+const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, string> = {
+    "paper-trading-off": "settings.automation.orderRefusedPaperOff",
+    "no-stop": "settings.automation.orderRefusedNoStop",
+    "no-entry-price": "settings.automation.orderRefusedOther",
+    "no-equity": "settings.automation.orderRefusedOther",
+    "size-not-positive": "settings.automation.orderRefusedOther",
+};
+
+export function reportBotOrderRefusal(
+    firing: { rule: RuleDocument },
+    refusal: BotOrderRefusal,
+): void {
+    logger.warn("alerts", `bot ${firing.rule.id} fired but submitted nothing: ${refusal}`);
+    toastService.error(
+        get(_)(BOT_REFUSAL_KEYS[refusal] as TranslationKey, {
+            values: { name: firing.rule.name },
+        }),
+    );
+}
+
 export const notifyingRuleSink: FiringSink = ({ rule, verdict, anchorMs }) => {
     try {
         // Keyed per candle, not per rule: the service's 60s duplicate window is
@@ -468,6 +532,9 @@ export async function initAlertEngine(
         readAvailableKlineTimeframes,
         startRuleEvaluationLoop,
     } = await import("../services/alertEngine/ruleLoopWiring");
+    // Bots ride the same sink the alerts do, so they load with it rather than
+    // at module scope: a session with no bot never pays for the order path.
+    const { closeAtAnchor, withBotOrders } = await import("../services/alertEngine/botOrders");
 
     try {
         await alertEngine.ensureLoaded(loadModule);
@@ -603,7 +670,14 @@ export async function initAlertEngine(
     // no longer rests on `ruleSchema.isReady()` being monotonic — FEAT-0406.
     if (ready) {
         alertState.engineStatus = "ready";
-        disarmRuleLoop = startRuleEvaluationLoop(mode === "live" ? notifyingRuleSink : ledgerSink, onClose);
+        disarmRuleLoop = startRuleEvaluationLoop(
+            withBotOrders(
+                mode === "live" ? notifyingRuleSink : ledgerSink,
+                botOrderEnvironment(closeAtAnchor),
+                reportBotOrderRefusal,
+            ),
+            onClose,
+        );
 
         // The half of the re-sync that survives a series going quiet. Started
         // only alongside the loop, because coverage is empty without a ready
