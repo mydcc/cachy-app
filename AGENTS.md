@@ -134,7 +134,7 @@ Every agent doing code review follows the same checklist in `/backlog-review`:
 4. **Non-negotiable rules** — Svelte 5 runes only, no hardcoded colors, every `$effect` has cleanup, decimal.js for all financial math.
 5. **Plain correctness** — Logic errors, unhandled edge cases, system boundary violations (swallowed exceptions, silent failures).
 6. **Sensitive areas flag** — If `area: execution`, `area: security`, `area: exchange`, or `priority: P0`, flag **gently** as "👤 Human review recommended before merge" (no alarms, no uppercase shouting).
-7. **Comment marker** — Post one PR comment (only if findings exist or for explicit tracking). Mark it `Code Review for <sha>` so it's recognized on re-runs.
+7. **Chat-first, comment after fixes** — Present findings with severity labels in chat first and wait for per-finding confirmation (never self-fix on silence). Post one PR comment only after the confirmed fixes are pushed (or stay commentless on a clean diff). Mark it `Code Review for <sha>` so it's recognized on re-runs.
 
 Reviewers are any agent with access to the PR and codebase; this is not Jules-specific.
 
