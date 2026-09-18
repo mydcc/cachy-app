@@ -16,12 +16,14 @@
  */
 
 /**
- * FEAT-0393 AC 2 — what Manage should call each alert.
+ * FEAT-0393 AC 2 — what Manage should call each alarm.
  *
- * Manage lists legacy alerts (`cachy_alerts_v1`), because that is still the
- * store the panel was built on. The lifecycle a trader needs to see lives on
- * the *rule* the alert was migrated into, so this joins the two and answers in
- * the vocabulary the list renders.
+ * Manage used to list legacy alerts (`cachy_alerts_v1`) and join the lifecycle
+ * in from the rule each was migrated into. FEAT-0399 removed that store, and
+ * with it a gap nobody had closed: the panel has armed *rules* since FEAT-0389,
+ * so an alarm armed there was never in the legacy store and never appeared in
+ * the list at all. `alarmRows()` reads the rule set directly, which is both the
+ * store that is written and the store that is evaluated.
  *
  * An expired rule is deliberately **not** disarmed anywhere. Disarming it would
  * drop it into the history list, where every row reads "fired" — which is
@@ -31,10 +33,10 @@
  */
 
 import { browser } from "$app/environment";
-import type { RuleDocument } from "../../lib/rules/types";
+import type { CompareOp, RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
+import { isBot } from "./botStore";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
-import { readRuleOriginLedger } from "./ruleOriginLedger";
 import { readRuleStates } from "./ruleStateStore";
 
 /**
@@ -70,40 +72,61 @@ function readRules(): RuleDocument[] {
 export type AlertLifecycleStatus = "armed" | "expired" | "fired";
 
 /**
- * Status per *legacy alert id*, for every alert a rule was migrated from.
+ * One row per stored rule, in the vocabulary Manage renders.
  *
- * Alerts with no rule behind them are absent rather than `armed`: the caller
- * distinguishes "this row has nothing to say" from "this row is armed", and an
- * entry invented here would claim knowledge of a lifecycle that does not exist.
+ * Built in a single pass over the rule set and the state store rather than
+ * per row: the list re-derives whenever the rule set changes, and a per-row
+ * read would parse both stores once per alarm.
  *
- * Computed in one pass over both stores rather than per row: Manage re-derives
- * this whenever the alert list changes, and a per-row read would parse the
- * whole rule set once per alert.
+ * A rule whose `conditions` are not a plain price comparison still gets a row
+ * with no threshold rather than being hidden. A trader who armed something the
+ * list cannot phrase must still be able to see and delete it — silently
+ * dropping it would be the same silence FEAT-0399 exists to remove.
+ *
+ * Bots are the one thing filtered out, because a bot is not an alarm. FEAT-0396
+ * stores them in this same key as rules with `consequence_level: "simulate"`,
+ * and the Automation tab is where they are managed — a bot listed here would
+ * carry a delete button that removes a strategy from the wrong surface. The
+ * test is `!isBot`, never a positive test for `"notify"`: a migrated legacy
+ * alert has no `action` at all, so asking what a rule *is* would hide it.
  */
-export function alertLifecycleStatuses(nowMs: number = Date.now()): Map<string, AlertLifecycleStatus> {
-  const statuses = new Map<string, AlertLifecycleStatus>();
+export interface AlarmRow {
+  /** Rule id — what the delete button acts on. */
+  id: string;
+  symbol: string;
+  op?: CompareOp;
+  threshold?: string;
+  status: AlertLifecycleStatus;
+  /** False for a rule that fired and disarmed, or one the trader turned off. */
+  enabled: boolean;
+  note?: string;
+}
 
-  const entries = readRuleOriginLedger().entries;
-  if (Object.keys(entries).length === 0) return statuses;
-
+export function alarmRows(nowMs: number = Date.now()): AlarmRow[] {
   const states = readRuleStates();
-  const rulesById = new Map<string, RuleDocument>();
-  for (const rule of readRules()) {
-    if (rule !== null && typeof rule === "object" && typeof rule.id === "string") {
-      rulesById.set(rule.id, rule);
-    }
-  }
 
-  for (const [ruleId, entry] of Object.entries(entries)) {
-    const alertId = entry?.alertId;
-    if (typeof alertId !== "string") continue;
+  return readRules()
+    .filter((rule): rule is RuleDocument => rule !== null && typeof rule === "object" && typeof rule.id === "string")
+    .filter((rule) => !isBot(rule))
+    .map((rule) => {
+      const compare =
+        rule.conditions !== null &&
+        typeof rule.conditions === "object" &&
+        (rule.conditions as { kind?: unknown }).kind === "compare"
+          ? (rule.conditions as { op?: CompareOp; right?: { value?: unknown } })
+          : undefined;
+      const value = compare?.right?.value;
 
-    const rule = rulesById.get(ruleId);
-    if (rule === undefined) continue;
-
-    statuses.set(alertId, lifecycleOf(rule, states[ruleId]?.fired_count ?? 0, nowMs));
-  }
-  return statuses;
+      return {
+        id: rule.id,
+        symbol: rule.symbol,
+        op: compare?.op,
+        threshold: typeof value === "string" ? value : undefined,
+        status: lifecycleOf(rule, states[rule.id]?.fired_count ?? 0, nowMs),
+        enabled: rule.enabled !== false,
+        note: rule.note?.trim() || undefined,
+      };
+    });
 }
 
 /**
