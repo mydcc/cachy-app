@@ -126,7 +126,7 @@ Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain to
 
 ## Code Review Standard for All Agents
 
-Every agent doing code review follows the same checklist in `/backlog-review`:
+Every agent doing code review follows the same checklist:
 
 1. **Identify the backlog item** — Does the PR title mention an item ID? Read `docs/backlog/` to understand Acceptance Criteria and Out of Scope.
 2. **CI status** — Check if CI is green. Note only failures CI doesn't already report (e.g., decimal.js violations outside the hard-coded audit files, hardcoded strings missed by i18n checks, dead translations).
