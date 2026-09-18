@@ -71,6 +71,11 @@ const chart = vi.hoisted(() => {
         ),
         // Non-null range satisfying the scroll-left double check (from < 10).
         getVisibleLogicalRange: vi.fn(() => ({ from: 5, to: 30 })),
+        // FEAT-0480: the drawing bridge asks the time scale to convert between
+        // timestamps and pixels. Identity keeps the arithmetic readable — no
+        // test here asserts on a drawing's position.
+        timeToCoordinate: vi.fn((time: number) => Number(time)),
+        coordinateToTime: vi.fn((coordinate: number) => coordinate),
     };
     const candleSeries = {
         update: vi.fn(),
@@ -93,6 +98,9 @@ const chart = vi.hoisted(() => {
         }),
         priceToCoordinate: vi.fn((price: number) => price),
         coordinateToPrice: vi.fn((coordinate: number) => coordinate),
+        // FEAT-0480: drawings paint through a series primitive.
+        attachPrimitive: vi.fn(),
+        detachPrimitive: vi.fn(),
     };
     return {
         candleSeries,
