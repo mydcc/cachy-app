@@ -52,7 +52,7 @@
         readBots,
         setBotEnabled,
     } from "../../../services/alertEngine/botStore";
-    import { promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
+    import { AlertNotFoundError, promoteAlertToBot } from "../../../services/alertEngine/promoteAlert";
     import { logger } from "../../../services/logger";
     import Toggle from "../../shared/Toggle.svelte";
     import PaperTradingSettings from "../PaperTradingSettings.svelte";
@@ -102,7 +102,7 @@
         // literal. `translatorFor` in `ruleSentence.test.ts` throws on a
         // missing fragment, which is where that guarantee is actually kept.
         const translate: SentenceTranslator = (key, values) =>
-            $_(key as TranslationKey, { values });
+            $_(key as TranslationKey, { values: values || {} });
         return renderRuleSentence(rule, translate);
     }
 
@@ -128,6 +128,10 @@
             // not dressed up as "your rule is invalid".
             if (isRuleRefusedError(e)) {
                 refusalKey = e.refusals[0]?.i18n_key ?? e.translationKey;
+            } else if (e instanceof AlertNotFoundError) {
+                // The alert was deleted in another tab after the form was
+                // opened: say so, instead of a generic creation failure.
+                refusalKey = e.translationKey;
             } else {
                 refusalKey = "settings.automation.promoteFailed";
                 logger.error("alerts", "[Automation] Promoting an alert failed", e);
