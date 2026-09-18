@@ -4362,6 +4362,11 @@
       "menuLabel": "Alert",
       "regionLabel": "Alert Region",
       "here": "Alert at {price}"
+    },
+    "drawings": {
+      "horizontal": "Draw horizontal line",
+      "trend": "Draw trend line",
+      "delete": "Delete selected drawing"
     }
   },
   "chart": {
