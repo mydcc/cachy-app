@@ -4397,7 +4397,9 @@
       "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen.",
       "invalidNote": "Die Notiz in `{field}` ist leer oder länger als 280 Zeichen.",
       "invalidDerivedFromHash": "Die Herkunftsangabe in `{field}` ist kein gültiger Content-Hash, deshalb lässt sich die Strategie nicht bestimmen, aus der dieser Bot hervorgegangen ist.",
-      "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden."
+      "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden.",
+      "stopRequiredForRiskSizing": "`{field}` fehlt: Eine Größe in Prozent des Risikos misst sich zwischen Einstieg und Stop, hat also ohne Stop keinen Wert.",
+      "stopNotHonoured": "`{field}` würde nie platziert: Eine Reduce-only-Order schließt eine bestehende Position, statt eine neue zu eröffnen, die abgesichert werden müsste."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -4412,8 +4414,8 @@
       "lead": {
         "notify": "Benachrichtigt",
         "simulate": "Simuliert eine Order",
-        "simulateOrder": "Simuliert eine {side}-Order über {size} {basis}",
-        "send": "Sendet eine {side}-Order über {size} {basis}"
+        "simulateOrder": "Simuliert eine {side}-Order über {size} {basis}{stop}",
+        "send": "Sendet eine {side}-Order über {size} {basis}{stop}"
       },
       "op": {
         "lt": "unter",
@@ -4461,6 +4463,9 @@
       "orderSide": {
         "buy": "Kauf",
         "sell": "Verkauf"
+      },
+      "stop": {
+        "percent_of_entry": " mit einem Stopp {distance} % vom Einstieg"
       },
       "basis": {
         "base_quantity": "in der Basiswährung",

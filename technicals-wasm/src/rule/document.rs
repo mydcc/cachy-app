@@ -907,6 +907,7 @@ mod tests {
             size_basis,
             size: d(size),
             reduce_only: false,
+            stop: None,
         }
     }
 
@@ -1603,6 +1604,7 @@ mod tests {
                 size_basis: SizeBasis::PercentOfEquity,
                 size: d("100"),
                 reduce_only: true,
+                stop: None,
             }),
         };
         assert!(doc.validate().is_ok(), "{:?}", doc.validate());

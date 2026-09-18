@@ -206,11 +206,34 @@ export type SizeBasis =
   | "percent_of_equity"
   | "percent_risk";
 
+/**
+ * How far a bot's protective stop sits from the entry it opens.
+ *
+ * A distance, never a price, mirroring `StopDistance` in
+ * `technicals-wasm/src/rule/consequence.rs`: a level written into a document is
+ * true only for the bar it was written on, and the rule fires later.
+ *
+ * Tagged by `basis` so the next one — a multiple of ATR — is an added member
+ * rather than a schema break for documents already stored.
+ */
+export type StopDistance = {
+  basis: "percent_of_entry";
+  /** Percent of the entry price. `"2"` is a stop two percent away. */
+  distance: DecimalString;
+};
+
 export interface OrderIntent {
   side: "buy" | "sell";
   size_basis: SizeBasis;
   size: DecimalString;
   reduce_only?: boolean;
+  /**
+   * Absent on documents written before the field existed, which is why it is
+   * optional here rather than required. `percent_risk` has no value without it
+   * and the core refuses that combination; the submission path refuses an
+   * opening order that carries no stop.
+   */
+  stop?: StopDistance;
 }
 
 export interface RuleAction {
