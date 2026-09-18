@@ -4,7 +4,7 @@ title: An Automation settings tab for user-configured bots
 type: feature
 status: in-progress
 assignee: claude-code
-branch: feat/feat-0396-p3-automation-tab
+branch: feat/feat-0396-p4-bot-paper-orders
 priority: P2
 milestone: M9
 editions: [community, pro, private]
@@ -157,6 +157,74 @@ to trade on paper before live execution is designed.
 
 Until then an armed bot is evaluated like any other rule, announces, and submits
 nothing. The tab says so in both locales rather than implying otherwise.
+
+## Correction (2026-09-18, later) — the blocker was the schema, not the gate
+
+The State section above said criteria 7 and 8 were blocked on a human decision
+about how an unattended order passes `OrderGate`. Checked against the code, its
+three supporting claims do not survive.
+
+- **`DisplayedState` is not a screenshot.** Only `provider` and
+  `accountFingerprint` are required, and the interface states its own contract:
+  "an absent field is simply not compared, a present field that disagrees is
+  always a refusal". It is what the *caller commits to*, verified against what
+  is actually transmitted — and a bot can commit honestly to the symbol, the
+  side and the size its own rule named. Nothing has to be invented.
+- **An absent `confirmedAt` refuses nothing here.** `place-order` is `false` in
+  `DEFAULT_CONFIRMATION_POLICY`, with a reason stated there, and it is not in
+  `WIRED_ACTIONS` — so its settings toggle is shown disabled and no trader can
+  switch it on. If `place-order` is ever wired, a bot being refused is the
+  policy working as designed, and it costs no bot-specific code to get that.
+- **Paper sits below the gate, not beside it.** `paperExchange` is behind
+  `tradeService.signedRequest`; live and paper differ at that one call site
+  (`ARCHITECTURE.md`, FEAT-0012). A bot reaching paper through
+  `tradeService.placeOrder` therefore takes exactly the route a human click
+  takes, which is what ADR-0012 decision 5 asks for. There is no bypass to
+  design and none to refuse.
+
+What does block it is one missing field. `tradeService.placeOrder` requires
+`displayed.stopLossPrice`, because the gate re-derives an `open`'s size from
+risk-per-trade and refuses a payload that disagrees — FEAT-0011. The rule
+schema's `OrderIntent` carried no stop, so there was nothing to hand it. The
+same gap left `size_basis: percent_risk` expressible and uncomputable: that
+basis is defined as the share of equity risked *between entry and stop*, and
+there was no stop.
+
+**The stop is the feature, not the ceremony.** A bot that opens a position
+without one can lose the account, and criterion 8 — "existing risk limits apply
+to simulated orders" — has no risk to bound until a stop exists. So the missing
+field is not an obstacle in front of the criteria; it is most of what they ask
+for.
+
+### Where the stop lives, and why it is not a price
+
+`OrderIntent`'s own doc comment says it "carries no price, no leverage and no
+venue: those come from the gate and the account at the moment of submission".
+A stop *price* would break that and go stale besides — a level written into a
+document is true only for the bar it was written on, and the rule fires later.
+
+So `StopDistance` is a distance, resolved against the entry the gate is about
+to submit. It is tagged by `basis` rather than being a bare number, because the
+second basis is already foreseeable (a multiple of ATR is what a trader asks
+for) and a bare number would make adding it a schema break for every stored
+document.
+
+Adding it inside `action` — which *is* hashed, unlike `provenance` — is free
+only while the field is absent from the serialised JSON, which
+`skip_serializing_if` guarantees. That is measured rather than asserted:
+`stopDistance.integration.test.ts` pins the content hashes taken from the
+artefact as it shipped *before* the field existed.
+
+| PR | What |
+|---|---|
+| #3452 (merged) | `Provenance.derived_from_hash`, its shape validator and `InvalidDerivedFromHash` |
+| #3453 (merged) | `RuleDocument::promote` and `promoteAlertToBot` — criteria 4, 5, 6, and 3's core half |
+| #3454 (merged) | The Automation tab, `botStore.ts`, the sentence fix — criteria 1, 2, 3, 9, 10, 12 |
+| #3455 (merged) | The (superseded) State section above |
+| P4 | `OrderIntent.stop`, `percent_risk` made computable, rebuilt artefacts. Submits nothing yet |
+
+Criteria 7 and 8 are the submission seam itself, and they follow in P5 now that
+there is a stop to hand the gate.
 
 ## Acceptance criteria
 

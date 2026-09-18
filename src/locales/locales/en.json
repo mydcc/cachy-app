@@ -4401,7 +4401,9 @@
       "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing.",
       "invalidNote": "The note in `{field}` is empty or longer than 280 characters.",
       "invalidDerivedFromHash": "The derivation in `{field}` is not a valid content hash, so the strategy this was promoted from cannot be identified.",
-      "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice."
+      "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice.",
+      "stopRequiredForRiskSizing": "`{field}` is missing: a size given as percent of risk is measured between the entry and the stop, so it has no value until the stop is set.",
+      "stopNotHonoured": "`{field}` would never be placed: a reduce-only order closes an existing position rather than opening one that needs protecting."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -4416,8 +4418,8 @@
       "lead": {
         "notify": "Notifies",
         "simulate": "Simulates an order",
-        "simulateOrder": "Simulates a {side} order for {size} {basis}",
-        "send": "Sends a {side} order for {size} {basis}"
+        "simulateOrder": "Simulates a {side} order for {size} {basis}{stop}",
+        "send": "Sends a {side} order for {size} {basis}{stop}"
       },
       "op": {
         "lt": "below",
@@ -4465,6 +4467,9 @@
       "orderSide": {
         "buy": "buy",
         "sell": "sell"
+      },
+      "stop": {
+        "percent_of_entry": " with a stop {distance}% from the entry"
       },
       "basis": {
         "base_quantity": "in the base asset",

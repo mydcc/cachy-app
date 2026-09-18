@@ -120,6 +120,39 @@ pub enum SizeBasis {
     PercentRisk,
 }
 
+/// How far a rule's protective stop sits from the entry it opens.
+///
+/// A *distance*, never a price, for the same reason [`OrderIntent`] carries no
+/// price: a level written into a document is true only for the bar it was
+/// written on, and by the time the rule fires the market has moved past it. A
+/// distance is resolved against the entry the gate is about to submit, so the
+/// stop the trader described and the stop that reaches the venue are the same
+/// claim.
+///
+/// Tagged rather than a bare number because the second basis is already
+/// foreseeable — a multiple of ATR is what a trader asks for — and a bare number
+/// would make adding it a schema break for every document already stored.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[serde(tag = "basis", rename_all = "snake_case", deny_unknown_fields)]
+pub enum StopDistance {
+    /// A percentage of the entry price: `2` is a stop two percent away.
+    PercentOfEntry { distance: rust_decimal::Decimal },
+}
+
+impl StopDistance {
+    /// The number, whatever basis expressed it.
+    ///
+    /// One variant makes this look like ceremony. It is the seam that keeps the
+    /// caller from matching on the basis to read a number out of it, which is
+    /// how the second variant would become a change at every call site instead
+    /// of one here.
+    pub fn magnitude(self) -> rust_decimal::Decimal {
+        match self {
+            StopDistance::PercentOfEntry { distance } => distance,
+        }
+    }
+}
+
 /// What a rule intends to submit, at levels that submit anything.
 ///
 /// This is an *intent*, not an order. It carries no price, no leverage and no
@@ -136,6 +169,16 @@ pub struct OrderIntent {
     /// Whether this intent may only reduce an existing position.
     #[serde(default)]
     pub reduce_only: bool,
+    /// Where the protective stop goes, for an intent that opens something.
+    ///
+    /// Optional so documents written before this field existed still parse, and
+    /// `skip_serializing_if` so their content hashes do not move — the same
+    /// construction `Provenance.derived_from_hash` uses, for the same reason.
+    /// Absent is not benign, though: `percent_risk` has no value without it
+    /// (see [`RuleAction::validate`]), and the submission path refuses an
+    /// opening order that carries no stop rather than sizing one unprotected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop: Option<StopDistance>,
 }
 
 /// What the rule does when its conditions hold.
@@ -192,7 +235,58 @@ impl RuleAction {
                     format!("`{}` percent is more than the whole account", order.size),
                 ));
             }
+            validate_stop(order, field, out);
         }
+    }
+}
+
+/// Where a stop has to be, where it may not be, and what counts as one.
+///
+/// Its own function rather than a fourth nested block in `validate`: these three
+/// rules are about the stop, not about the action, and `validate`'s shape was
+/// already the limit of what reads at a glance.
+fn validate_stop(order: &OrderIntent, field: &str, out: &mut Vec<RuleRefusal>) {
+    if order.size_basis == SizeBasis::PercentRisk && order.stop.is_none() {
+        out.push(RuleRefusal::new(
+            RefusalCode::StopRequiredForRiskSizing,
+            format!("{field}.order.stop"),
+            "`percent_risk` sizes a position by the distance between entry and stop, so \
+             it has no value without one; give the intent a stop, or size it by \
+             `percent_of_equity`",
+        ));
+    }
+
+    let Some(stop) = order.stop else { return };
+
+    if order.reduce_only {
+        out.push(RuleRefusal::new(
+            RefusalCode::StopNotHonoured,
+            format!("{field}.order.stop"),
+            "a `reduce_only` intent closes exposure rather than opening it, so nothing \
+             would ever place this stop",
+        ));
+    }
+
+    let distance = stop.magnitude();
+    if distance <= rust_decimal::Decimal::ZERO {
+        out.push(RuleRefusal::new(
+            RefusalCode::InvalidDecimal,
+            format!("{field}.order.stop.distance"),
+            format!("stop distance `{distance}` is not positive"),
+        ));
+    } else if order.side == OrderSide::Buy && distance >= rust_decimal::Decimal::from(100) {
+        // The ceiling belongs to the side, not to the number. A long is stopped
+        // out *below* its entry, so a hundred percent away is zero and anything
+        // past that is a negative price. A short is stopped out above, where the
+        // same distance is two and a half times the entry — wide, but a price
+        // that exists, and one a low-conviction short may legitimately want.
+        // Refusing it for a short would reject a valid strategy at authoring
+        // time for an arithmetic reason that only holds on the other side.
+        out.push(RuleRefusal::new(
+            RefusalCode::InvalidDecimal,
+            format!("{field}.order.stop.distance"),
+            format!("a stop `{distance}` percent below a long entry is at or through zero"),
+        ));
     }
 }
 
@@ -262,6 +356,13 @@ mod tests {
             size_basis: basis,
             size: Decimal::from_str(size).unwrap(),
             reduce_only: false,
+            stop: None,
+        }
+    }
+
+    fn stop_of(percent: &str) -> StopDistance {
+        StopDistance::PercentOfEntry {
+            distance: Decimal::from_str(percent).unwrap(),
         }
     }
 
@@ -318,6 +419,161 @@ mod tests {
         )
         .validate("action", &mut out);
         assert!(out.is_empty());
+    }
+
+    // ---- FEAT-0396: a size measured against a stop needs the stop ----
+
+    /// `percent_risk` was expressible and uncomputable: the basis is defined as
+    /// the share of equity risked *between entry and stop*, and there was no
+    /// stop in the schema. The refusal names the field that has to be filled in.
+    #[test]
+    fn risk_sizing_without_a_stop_is_refused_and_names_the_stop() {
+        let mut out = Vec::new();
+        action(
+            ConsequenceLevel::Simulate,
+            Some(intent("1", SizeBasis::PercentRisk)),
+        )
+        .validate("action", &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].code, RefusalCode::StopRequiredForRiskSizing);
+        assert_eq!(out[0].field, "action.order.stop");
+    }
+
+    #[test]
+    fn risk_sizing_with_a_stop_is_accepted() {
+        let mut order = intent("1", SizeBasis::PercentRisk);
+        order.stop = Some(stop_of("1.5"));
+
+        let mut out = Vec::new();
+        action(ConsequenceLevel::Simulate, Some(order)).validate("action", &mut out);
+
+        assert!(out.is_empty(), "{out:?}");
+    }
+
+    /// Every other basis sizes itself without a stop, so the stop is optional
+    /// there — the submission path is where an unprotected opening order is
+    /// refused, because that is where it is known whether anything opens.
+    #[test]
+    fn the_other_bases_do_not_require_one() {
+        for basis in [
+            SizeBasis::BaseQuantity,
+            SizeBasis::QuoteNotional,
+            SizeBasis::PercentOfEquity,
+        ] {
+            let mut out = Vec::new();
+            action(ConsequenceLevel::Simulate, Some(intent("1", basis)))
+                .validate("action", &mut out);
+            assert!(out.is_empty(), "{basis:?} should not need a stop: {out:?}");
+        }
+    }
+
+    /// A *long's* stop at or past 100% of the entry is at or through zero.
+    /// Refused as a number rather than left for the submission path to produce
+    /// a negative price out of. `intent` is a buy; the short's mirror is below.
+    #[test]
+    fn a_stop_at_or_through_a_long_entry_is_refused() {
+        for distance in ["0", "-1", "100", "250"] {
+            let mut order = intent("1", SizeBasis::PercentOfEquity);
+            order.stop = Some(stop_of(distance));
+
+            let mut out = Vec::new();
+            action(ConsequenceLevel::Simulate, Some(order)).validate("action", &mut out);
+
+            assert_eq!(
+                out.iter()
+                    .filter(|r| r.field == "action.order.stop.distance")
+                    .count(),
+                1,
+                "stop distance {distance} should be refused: {out:?}"
+            );
+        }
+    }
+
+    /// The mirror, and the reason the ceiling has to ask which side it is on: a
+    /// short stopped out 150% above its entry exits at two and a half times the
+    /// price it entered at. Absurd conviction, arithmetically fine.
+    #[test]
+    fn a_wide_stop_above_a_short_entry_is_accepted() {
+        for distance in ["100", "150", "400"] {
+            let mut order = intent("1", SizeBasis::PercentOfEquity);
+            order.side = OrderSide::Sell;
+            order.stop = Some(stop_of(distance));
+
+            let mut out = Vec::new();
+            action(ConsequenceLevel::Simulate, Some(order)).validate("action", &mut out);
+
+            assert!(
+                out.is_empty(),
+                "a short's stop {distance} percent above the entry is a real price: {out:?}"
+            );
+        }
+    }
+
+    /// Narrowing the ceiling to longs must not open the floor underneath either
+    /// side: a distance of zero divides by zero in `percent_risk` sizing, and a
+    /// negative one puts the stop on the wrong side of the entry.
+    #[test]
+    fn a_short_still_needs_a_positive_stop_distance() {
+        for distance in ["0", "-1"] {
+            let mut order = intent("1", SizeBasis::PercentOfEquity);
+            order.side = OrderSide::Sell;
+            order.stop = Some(stop_of(distance));
+
+            let mut out = Vec::new();
+            action(ConsequenceLevel::Simulate, Some(order)).validate("action", &mut out);
+
+            assert_eq!(
+                out.iter()
+                    .filter(|r| r.field == "action.order.stop.distance")
+                    .count(),
+                1,
+                "stop distance {distance} should be refused on a short too: {out:?}"
+            );
+        }
+    }
+
+    /// A field nothing reads is the field a trader would later swear they had
+    /// armed — the same reason a `notify` rule may not carry an order intent.
+    #[test]
+    fn a_reduce_only_intent_carrying_a_stop_is_refused() {
+        let mut order = intent("1", SizeBasis::PercentOfEquity);
+        order.reduce_only = true;
+        order.stop = Some(stop_of("2"));
+
+        let mut out = Vec::new();
+        action(ConsequenceLevel::Simulate, Some(order)).validate("action", &mut out);
+
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].code, RefusalCode::StopNotHonoured);
+        assert_eq!(out[0].field, "action.order.stop");
+    }
+
+    /// The load-bearing half of adding a field to a hashed sub-object: an intent
+    /// without a stop has to serialise to exactly the bytes it did before, or
+    /// every content hash already recorded against a bot moves — and the hash is
+    /// the identity a journal entry points at.
+    #[test]
+    fn an_intent_without_a_stop_serialises_exactly_as_it_did_before() {
+        let json = serde_json::to_string(&intent("1", SizeBasis::PercentOfEquity)).unwrap();
+
+        assert_eq!(
+            json,
+            r#"{"side":"buy","size_basis":"percent_of_equity","size":"1","reduce_only":false}"#
+        );
+    }
+
+    #[test]
+    fn a_stop_crosses_the_boundary_tagged_by_its_basis() {
+        let mut order = intent("1", SizeBasis::PercentRisk);
+        order.stop = Some(stop_of("1.5"));
+
+        let json = serde_json::to_string(&order).unwrap();
+        assert!(
+            json.contains(r#""stop":{"basis":"percent_of_entry","distance":"1.5"}"#),
+            "{json}"
+        );
+        assert_eq!(serde_json::from_str::<OrderIntent>(&json).unwrap(), order);
     }
 
     #[test]
