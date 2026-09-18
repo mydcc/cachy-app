@@ -25,7 +25,10 @@ import {
     type OrphanReconciliation,
 } from "../services/alertEngine/reconcileOrphanedRules";
 import { reconcileStoredDrawingRules, type DrawingReconciliation } from "../services/alertEngine/reconcileDrawingRules";
-import { ruleThresholdOf } from "../services/alertEngine/migrateAlertsToRules";
+import {
+    renderConditionSentence,
+    type SentenceTranslator,
+} from "../lib/rules/ruleSentence";
 import {
     reportLegacyMigrationState,
     type LegacyMigrationReport,
@@ -148,12 +151,74 @@ export function isSpentAfterFiring(rule: RuleDocument): boolean {
  * symbol and price are what makes the message scannable at a glance, and the
  * note is what makes it actionable two weeks later.
  */
+/**
+ * The threshold of a rule that really is a price against a number — BUG-0481.
+ *
+ * `ruleThresholdOf` answers for any condition carrying `right.value`, which
+ * was written for FEAT-0388's migration where every document was exactly that
+ * shape. It is too generous for a message: "RSI(14) crosses above 70" carries
+ * the constant 70 on its right, and reading that as a price announced
+ * "BTCUSDT reached 70" about a level that is not a price at all.
+ *
+ * So this asks the narrower question the message needs, and everything it
+ * declines — indicators, patterns, combos, windows — is described by its own
+ * sentence instead of by an empty price slot.
+ */
+function priceThresholdOf(rule: RuleDocument): string | undefined {
+    const condition = rule.conditions;
+    if (!condition || condition.kind !== "compare") return undefined;
+    if (condition.left?.kind !== "price" || condition.right?.kind !== "constant") return undefined;
+
+    const value = condition.right.value;
+    return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+/**
+ * The condition clause, or the trader's own name for the rule if rendering it
+ * fails.
+ *
+ * `renderConditionSentence` is documented never to throw and is tested for it.
+ * The guard is here anyway because of where this now sits: `firingMessage`
+ * runs before `notificationService.notify`, so a throw here is an alarm the
+ * trader never hears — the one failure this engine exists to rule out. A terse
+ * message is a bad outcome; silence is a different kind.
+ */
+function firedConditionText(
+    rule: RuleDocument,
+    t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+    // `SentenceTranslator` takes the values directly; `svelte-i18n`'s `$_`
+    // wants them under a `values` key. The same one-line adapter
+    // `AlertPanelView.svelte` builds — without it every nested fragment of the
+    // sentence renders as its bare i18n key.
+    const translate: SentenceTranslator = (key, values) => t(key, { values: values ?? {} });
+
+    try {
+        return renderConditionSentence(rule, translate);
+    } catch (e) {
+        logger.error("alerts", `[Alerts] Rendering the fired condition failed for ${rule.id}`, e);
+        return rule.name;
+    }
+}
+
 export function firingMessage(rule: RuleDocument): string {
     const t = get(_) as (key: string, options?: Record<string, unknown>) => string;
-    const price = ruleThresholdOf(rule) ?? "";
-    let message =
-        t("dashboard.alerts.priceReached", { values: { symbol: rule.symbol, price } }) ||
-        `${rule.symbol} reached ${price}`;
+
+    // A price rule keeps the line traders already recognise. Everything else
+    // is announced with the clause the panel armed it from, so an indicator
+    // alarm names its indicator and its level instead of a blank.
+    const price = priceThresholdOf(rule);
+    let message: string;
+    if (price !== undefined) {
+        message =
+            t("dashboard.alerts.priceReached", { values: { symbol: rule.symbol, price } }) ||
+            `${rule.symbol} reached ${price}`;
+    } else {
+        const condition = firedConditionText(rule, t);
+        message =
+            t("dashboard.alerts.ruleTriggered", { values: { symbol: rule.symbol, condition } }) ||
+            `${rule.symbol} — ${condition}`;
+    }
 
     // FEAT-0477 — an intrabar rule fired on a candle that had not closed, so
     // the value it fired on is provisional and can be gone by the close.

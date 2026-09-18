@@ -321,6 +321,7 @@
       "noActive": "Keine aktiven Alarme",
       "fired": "Alarm ausgelöst!",
       "priceReached": "{symbol} hat {price} erreicht",
+      "ruleTriggered": "{symbol} — Alarm ausgelöst: {condition}",
       "manage": "Alarme verwalten",
       "addAlert": "Alarm hinzufügen",
       "priceLimit": "Preis",
