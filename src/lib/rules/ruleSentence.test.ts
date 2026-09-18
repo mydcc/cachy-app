@@ -431,3 +431,60 @@ describe("a candlestick pattern condition (FEAT-0394)", () => {
         expect(renderRuleSentence(ruleWith(bearish), et)).toContain("Bearish Engulfing");
     });
 });
+
+/**
+ * FEAT-0477. The mode is inside the document's content hash, so two rules that
+ * differ only in it are two different strategies. The sentence is a pure
+ * function of the document and is what a trader arms from, so it has to name
+ * the instant the condition is read — otherwise those two rules read
+ * identically while firing at different moments.
+ */
+describe("the instant the trigger candle is read (FEAT-0477)", () => {
+    const closed = ruleWith(rsiBelow30);
+    const intrabar = ruleWith(rsiBelow30, { evaluation_mode: "intrabar" });
+
+    it("reads as the closed candle when the document says nothing", () => {
+        // `close` is omitted from the canonical form, so every document written
+        // before the field existed arrives here with the field absent. Both
+        // spellings have to land on the same sentence.
+        expect(renderRuleSentence(closed, et)).toBe(
+            "Notifies when, on the 4h close, RSI(14) is below 30",
+        );
+        expect(renderRuleSentence(ruleWith(rsiBelow30, { evaluation_mode: "close" }), et)).toBe(
+            renderRuleSentence(closed, et),
+        );
+    });
+
+    it("names the forming candle instead of the close, in both locales", () => {
+        // The translator throws on a missing key, so this also proves both
+        // locales carry the second frame rather than falling back to the first.
+        expect(renderRuleSentence(intrabar, et)).toBe(
+            "Notifies when, inside the forming 4h candle, RSI(14) is below 30",
+        );
+        expect(renderRuleSentence(intrabar, dt)).toBe(
+            "Benachrichtigt, wenn während der laufenden 4h-Kerze RSI(14) unter 30",
+        );
+    });
+
+    it("never says the candle closed on an intra-candle rule", () => {
+        // A clause appended to the closed-candle frame would leave "on the 4h
+        // close" standing and contradict the clause hanging off it. That is why
+        // the mode gets its own frame instead of a suffix.
+        expect(renderRuleSentence(intrabar, et)).not.toContain("close,");
+        expect(renderRuleSentence(intrabar, dt)).not.toContain("-Close");
+    });
+
+    it("distinguishes two rules that differ only in the mode", () => {
+        expect(renderRuleSentence(intrabar, et)).not.toBe(renderRuleSentence(closed, et));
+        expect(renderRuleSentence(intrabar, dt)).not.toBe(renderRuleSentence(closed, dt));
+    });
+
+    it("keeps the veto clause on an intra-candle rule", () => {
+        const vetoed = ruleWith(rsiBelow30, {
+            evaluation_mode: "intrabar",
+            veto: { kind: "position", side: "long", open: true },
+        });
+        expect(renderRuleSentence(vetoed, et)).toContain("inside the forming 4h candle");
+        expect(renderRuleSentence(vetoed, et)).toContain("— unless a long position is open.");
+    });
+});

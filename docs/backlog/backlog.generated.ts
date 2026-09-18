@@ -7505,7 +7505,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0477",
     "title": "Offer intra-candle evaluation as an explicit per-alert opt-in",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -7521,6 +7521,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     ],
     "size": "M",
     "estimate": "8",
+    "assignee": "claude-code",
+    "branch": "feat/feat-0477-p3-intrabar-ui",
+    "start_date": "2026-09-17",
     "file": "features/FEAT-0477-intra-candle-alert-evaluation.md"
   },
   {

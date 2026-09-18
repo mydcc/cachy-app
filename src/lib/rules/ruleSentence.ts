@@ -340,11 +340,30 @@ export function renderRuleSentence(
 ): string {
   const anchor = document.trigger_timeframe;
   const condition = formatCondition(document.conditions, anchor, t);
-  const sentence = t("rules.sentence.frame", {
-    lead: formatLead(document, t),
-    timeframe: anchor,
-    condition,
-  });
+  // FEAT-0477 — a second frame, not a suffix on the first one.
+  //
+  // The closed-candle frame names the close in both locales ("auf dem
+  // {timeframe}-Close", "on the {timeframe} close"), so a clause appended to it
+  // would contradict the clause it hangs off rather than qualify it. A frame is
+  // also the one fragment that cannot be composed: the mode changes *when* the
+  // condition is read, which is the axis `trigger_timeframe` sits on and the
+  // axis the frame is built around.
+  //
+  // Silence is not an option either. The mode is inside the content hash, so
+  // two rules differing only in it are two different strategies — and without
+  // this they would render the identical sentence. The sentence is what a
+  // trader arms from; letting it name the wrong instant is exactly the drift
+  // between form and document this renderer exists to prevent.
+  const sentence = t(
+    document.evaluation_mode === "intrabar"
+      ? "rules.sentence.frameIntrabar"
+      : "rules.sentence.frame",
+    {
+      lead: formatLead(document, t),
+      timeframe: anchor,
+      condition,
+    },
+  );
   if (!document.veto) return sentence;
   return `${sentence} ${t("rules.sentence.unless", {
     condition: formatCondition(document.veto, anchor, t),

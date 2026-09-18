@@ -342,3 +342,151 @@ describe("FEAT-0389: AlertPanelView keyboard containment", () => {
     expect(armRuleSpy).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * FEAT-0477 -- the header control that says when the trigger candle is read.
+ *
+ * That it lives in the header and not in the lifecycle footer is asserted below
+ * rather than left to a comment: the mode is inside the document's content
+ * hash, and every field `RuleLifecycleFields` owns is deliberately outside it.
+ * A control that drifted into the footer would sit among fields that change
+ * without changing the rule's identity.
+ */
+describe("FEAT-0477: choosing when the trigger candle is read", () => {
+  let target: HTMLElement;
+  let component: ReturnType<typeof mount> | null = null;
+
+  beforeEach(() => {
+    target = document.createElement("div");
+    document.body.appendChild(target);
+    alertPanelState.reset("BTCUSDT");
+    alertState.engineStatus = "idle";
+  });
+
+  afterEach(() => {
+    if (component) unmount(component);
+    component = null;
+    target.remove();
+  });
+
+  function render() {
+    component = mount(AlertPanelView, { target, props: {} });
+    flushSync();
+    return target;
+  }
+
+  /**
+   * Found by its label rather than by position: a `select:nth-of-type` would
+   * follow whichever control someone adds to the header next.
+   */
+  function modeField(el: HTMLElement): HTMLElement {
+    const field = [...el.querySelectorAll<HTMLElement>("label.field")].find(
+      (label) =>
+        label.querySelector(".field-label")?.textContent?.trim() ===
+        en.dashboard.alerts.panel.evaluationMode,
+    );
+    if (!field) throw new Error("no evaluation-mode field in the header");
+    return field;
+  }
+
+  function choose(el: HTMLElement, value: string) {
+    const select = modeField(el).querySelector("select") as HTMLSelectElement;
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    flushSync();
+  }
+
+  it("offers both instants and starts on the closed candle", () => {
+    const el = render();
+    const select = modeField(el).querySelector("select") as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent?.trim())).toEqual([
+      en.dashboard.alerts.panel.evaluationModeOption.close,
+      en.dashboard.alerts.panel.evaluationModeOption.intrabar,
+    ]);
+
+    // A fresh draft carries no mode at all, and the control still has to show
+    // the instant that document will actually be evaluated at.
+    expect(alertPanelState.draft.evaluation_mode).toBeUndefined();
+    expect(select.value).toBe("close");
+  });
+
+  it("stores the closed candle as an absent field, not as the string", () => {
+    const el = render();
+    choose(el, "intrabar");
+    expect(alertPanelState.draft.evaluation_mode).toBe("intrabar");
+
+    choose(el, "close");
+    // The core omits `close` from the canonical form, so writing it here would
+    // start persisting a default that was never persisted before -- a stored
+    // document would stop being byte-identical to the one armed yesterday.
+    expect(alertPanelState.draft.evaluation_mode).toBeUndefined();
+  });
+
+  it("warns about the repaint only once the intra-candle mode is chosen", () => {
+    const el = render();
+    expect(modeField(el).querySelector(".field-hint")).toBeNull();
+
+    choose(el, "intrabar");
+    expect(modeField(el).querySelector(".field-hint")?.textContent?.trim()).toBe(
+      en.dashboard.alerts.panel.evaluationModeHint,
+    );
+
+    // Attaching it to the closed-candle default as well would train the eye to
+    // skip it, which is how a warning stops being one.
+    choose(el, "close");
+    expect(modeField(el).querySelector(".field-hint")).toBeNull();
+  });
+
+  it("sits in the header, beside the other fields inside the content hash", () => {
+    const el = render();
+    expect(el.querySelector("header.panel-header")?.contains(modeField(el))).toBe(true);
+    expect(el.querySelector(".panel-footer")?.contains(modeField(el))).toBe(false);
+  });
+
+  it("anchors a refusal against the evaluation mode instead of the catch-all", () => {
+    const el = render();
+    alertPanelState.refusals = [
+      {
+        code: "evaluation_mode_invalid",
+        field: "evaluation_mode",
+        i18n_key: "rules.refusal.unknownField",
+        detail: "evaluation mode must be close or intrabar",
+      },
+    ];
+    flushSync();
+
+    const anchored = modeField(el).querySelector("#alert-refusal-evaluation-mode");
+    expect(anchored?.textContent?.trim()).not.toBe("");
+
+    const select = modeField(el).querySelector("select") as HTMLSelectElement;
+    expect(select.getAttribute("aria-invalid")).toBe("true");
+    expect(select.getAttribute("aria-describedby")).toBe("alert-refusal-evaluation-mode");
+
+    // Claimed by a rendered control, so it must not *also* appear in the
+    // catch-all block -- a refusal shown twice reads as two problems.
+    expect(el.textContent).not.toContain(en.dashboard.alerts.panel.otherRefusals);
+  });
+
+  it("moves the sentence to the forming candle, so the two cannot drift apart", () => {
+    const el = render();
+    alertPanelState.draft.conditions = {
+      kind: "compare",
+      left: { kind: "indicator", indicator: { id: "rsi", params: { length: 14 } } },
+      op: "lt",
+      right: { kind: "constant", value: "30" },
+      timeframe: alertPanelState.draft.trigger_timeframe,
+    };
+    flushSync();
+
+    const anchor = alertPanelState.draft.trigger_timeframe;
+    const sentenceOf = () => el.querySelector(".sentence-text")?.textContent ?? "";
+    expect(sentenceOf()).toContain(`on the ${anchor} close`);
+
+    choose(el, "intrabar");
+
+    // Two rules differing only in the mode have different content hashes, so a
+    // sentence that did not move would describe both of them identically.
+    expect(sentenceOf()).toContain(`inside the forming ${anchor} candle`);
+    expect(sentenceOf()).not.toContain(`on the ${anchor} close`);
+  });
+});

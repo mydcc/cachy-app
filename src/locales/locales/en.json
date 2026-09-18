@@ -354,6 +354,12 @@
         "symbol": "Symbol",
         "priceSource": "Price source",
         "timeframe": "Timeframe",
+        "evaluationMode": "Evaluation",
+        "evaluationModeOption": {
+          "close": "On candle close",
+          "intrabar": "While the candle forms"
+        },
+        "evaluationModeHint": "The candle has not closed yet. The value may revert before it does, so this alert can turn out to have been wrong.",
         "sentenceLabel": "This rule means",
         "arm": "Arm alert",
         "loading": "Loading tab …",
@@ -600,6 +606,7 @@
         "closedCandleHint": "Evaluated once per closed candle of the trigger timeframe."
       },
       "firedWithNote": "{message} — {note}",
+      "firedIntrabar": "{message} (provisional: the candle is still forming, and the value may revert before it closes.)",
       "expired": "Expired",
       "expiredHint": "Past its validity period — it lapsed without firing.",
       "combo": {
@@ -4370,6 +4377,7 @@
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
+      "frameIntrabar": "{lead} when, inside the forming {timeframe} candle, {condition}",
       "unless": "— unless {condition}.",
       "empty": "(no condition yet)",
       "negate": "not {condition}",
