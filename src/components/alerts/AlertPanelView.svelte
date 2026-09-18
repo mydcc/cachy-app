@@ -117,14 +117,44 @@ let rootElement: HTMLElement | null = null;
     };
 
     /** Fields the shell renders a control for, and can therefore anchor a
-     *  refusal against. Anything else falls to `unclaimedRefusals` below.
+     *  refusal against -- each mapped to the id its messages live at.
+     *
+     *  One entry is the whole registration. `SHELL_FIELDS`, every control's aria
+     *  wiring and the `fieldRefusals` snippet all read this map, and each of them
+     *  takes a `ShellField`, so a header control for a field nobody registered
+     *  does not compile.
+     *
+     *  It is a map and not a list because FEAT-0477 shipped the evaluation-mode
+     *  select with the control but without the registration: its refusal showed
+     *  up only in the catch-all below, and the select never went `aria-invalid`.
+     *  Three loose literals per field made that possible -- the field name twice
+     *  and a freely chosen id. The id is the dangerous one, because it is not
+     *  derivable (`trigger_timeframe` anchors at `alert-refusal-timeframe`), so a
+     *  typo in `aria-describedby` leaves a dangling IDREF: no type error, no
+     *  failing test, no console warning, and the association a screen reader
+     *  follows is simply gone.
      *
      *  `conditions` is deliberately NOT here, even though FEAT-0390's Price tab
      *  now anchors those refusals inline. A builder tab only renders while it is
      *  the open one -- a trader sitting on Manage with a refused condition would
      *  otherwise see nothing at all, which is the BUG-0382 shape this catch-all
      *  exists to prevent. Showing it in both places is the cheaper mistake. */
-    const SHELL_FIELDS = ["symbol", "trigger_timeframe", "evaluation_mode"] as const;
+    const SHELL_REFUSAL_IDS = {
+        symbol: "alert-refusal-symbol",
+        trigger_timeframe: "alert-refusal-timeframe",
+        evaluation_mode: "alert-refusal-evaluation-mode",
+    } as const;
+
+    type ShellField = keyof typeof SHELL_REFUSAL_IDS;
+
+    const SHELL_FIELDS = Object.keys(SHELL_REFUSAL_IDS) as readonly ShellField[];
+
+    /** Whether a registered field currently carries a refusal, for the control's
+     *  `aria-invalid`. Typed on `ShellField` rather than `string`, so the field a
+     *  control claims is checked against the registry. */
+    function hasRefusal(field: ShellField): boolean {
+        return refusalsForField(alertPanelState.refusals, field).length > 0;
+    }
 
     let TabComponent = $state<Component<{ symbol: string }> | null>(null);
     let tabLoadFailed = $state(false);
@@ -166,9 +196,7 @@ let rootElement: HTMLElement | null = null;
             alertPanelState.draft.conditions.of.length > 0,
     );
 
-    let otherRefusals = $derived(
-        unclaimedRefusals(alertPanelState.refusals, SHELL_FIELDS as readonly string[]),
-    );
+    let otherRefusals = $derived(unclaimedRefusals(alertPanelState.refusals, SHELL_FIELDS));
 
     function selectTab(tab: AlertPanelTab) {
         alertPanelState.activeTab = tab;
@@ -257,6 +285,26 @@ let rootElement: HTMLElement | null = null;
         </div>
     {/if}
 
+    <!--
+      One field's refusal messages, at exactly the id `SHELL_REFUSAL_IDS` gives
+      it. A snippet rather than three near-identical blocks: the element's `id`
+      and the refusals listed inside it then come from the same lookup the
+      control's `aria-describedby` reads, so the association a screen reader
+      follows cannot go stale on one side only.
+
+      Declared outside `<header>` although all three call sites are inside it:
+      the header is a grid whose first cell spans the row via
+      `.field:first-child`, and a declaration that renders nothing still has no
+      business sitting among the cells that rule counts.
+    -->
+    {#snippet fieldRefusals(field: ShellField)}
+        <div class="field-refusals" id={SHELL_REFUSAL_IDS[field]}>
+            {#each refusalsForField(alertPanelState.refusals, field) as refusal (refusal.code + refusal.field)}
+                <span class="refusal">{$_(refusal.i18n_key as TranslationKey)}</span>
+            {/each}
+        </div>
+    {/snippet}
+
     <header class="panel-header">
         <label class="field">
             <span class="field-label">{$_("dashboard.alerts.panel.symbol")}</span>
@@ -265,14 +313,10 @@ let rootElement: HTMLElement | null = null;
                 type="text"
                 value={alertPanelState.draft.symbol}
                 oninput={(e) => alertPanelState.setSymbol(e.currentTarget.value)}
-                aria-invalid={refusalsForField(alertPanelState.refusals, "symbol").length > 0}
-                aria-describedby="alert-refusal-symbol"
+                aria-invalid={hasRefusal("symbol")}
+                aria-describedby={SHELL_REFUSAL_IDS.symbol}
             />
-            <div class="field-refusals" id="alert-refusal-symbol">
-                {#each refusalsForField(alertPanelState.refusals, "symbol") as refusal (refusal.code + refusal.field)}
-                    <span class="refusal">{$_(refusal.i18n_key as TranslationKey)}</span>
-                {/each}
-            </div>
+            {@render fieldRefusals("symbol")}
         </label>
 
         <label class="field">
@@ -290,19 +334,14 @@ let rootElement: HTMLElement | null = null;
                 class="field-input"
                 value={alertPanelState.draft.trigger_timeframe}
                 onchange={(e) => alertPanelState.setTimeframe(e.currentTarget.value)}
-                aria-invalid={refusalsForField(alertPanelState.refusals, "trigger_timeframe")
-                    .length > 0}
-                aria-describedby="alert-refusal-timeframe"
+                aria-invalid={hasRefusal("trigger_timeframe")}
+                aria-describedby={SHELL_REFUSAL_IDS.trigger_timeframe}
             >
                 {#each TIMEFRAMES as tf (tf)}
                     <option value={tf}>{tf}</option>
                 {/each}
             </select>
-            <div class="field-refusals" id="alert-refusal-timeframe">
-                {#each refusalsForField(alertPanelState.refusals, "trigger_timeframe") as refusal (refusal.code + refusal.field)}
-                    <span class="refusal">{$_(refusal.i18n_key as TranslationKey)}</span>
-                {/each}
-            </div>
+            {@render fieldRefusals("trigger_timeframe")}
         </label>
 
         <label class="field field--wide">
@@ -312,19 +351,14 @@ let rootElement: HTMLElement | null = null;
                 value={alertPanelState.draft.evaluation_mode ?? "close"}
                 onchange={(e) =>
                     alertPanelState.setEvaluationMode(e.currentTarget.value as EvaluationMode)}
-                aria-invalid={refusalsForField(alertPanelState.refusals, "evaluation_mode")
-                    .length > 0}
-                aria-describedby="alert-refusal-evaluation-mode"
+                aria-invalid={hasRefusal("evaluation_mode")}
+                aria-describedby={SHELL_REFUSAL_IDS.evaluation_mode}
             >
                 {#each EVALUATION_MODES as mode (mode)}
                     <option value={mode}>{$_(EVALUATION_MODE_KEYS[mode])}</option>
                 {/each}
             </select>
-            <div class="field-refusals" id="alert-refusal-evaluation-mode">
-                {#each refusalsForField(alertPanelState.refusals, "evaluation_mode") as refusal (refusal.code + refusal.field)}
-                    <span class="refusal">{$_(refusal.i18n_key as TranslationKey)}</span>
-                {/each}
-            </div>
+            {@render fieldRefusals("evaluation_mode")}
             <!--
               Shown only for `intrabar`, and not as a refusal: nothing is wrong
               with the choice, but a trader has to know *before* arming that

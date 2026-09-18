@@ -490,3 +490,121 @@ describe("FEAT-0477: choosing when the trigger candle is read", () => {
     expect(sentenceOf()).not.toContain(`on the ${anchor} close`);
   });
 });
+
+/**
+ * The header's refusal anchors as an invariant, rather than one field at a time.
+ *
+ * Every registered field is already asserted individually above, and that is
+ * precisely the gap: a field added tomorrow gets no such test by default, and
+ * each way of getting it wrong is silent. An `aria-describedby` pointing at an
+ * id nothing renders is not a type error, not a console warning and not visible
+ * on screen -- the association a screen reader follows is simply absent. FEAT-0477
+ * shipped the other half of the same class: a control with no anchor at all, so
+ * its refusal landed in the catch-all and the select never went `aria-invalid`.
+ *
+ * Enumerating the DOM covers the fields nobody thought to name here, which is
+ * the only kind of coverage a registry can be held to.
+ */
+describe("every header control anchors its refusals where it says it does", () => {
+  let target: HTMLElement;
+  let component: ReturnType<typeof mount> | null = null;
+
+  /**
+   * The registration this suite pins: the document field, and the id its
+   * messages live at. Deliberately not imported from the component -- the point
+   * is that adding an entry to `SHELL_REFUSAL_IDS` without a line here fails the
+   * first test below, which is the moment someone has to think about the anchor.
+   */
+  const ANCHORS = [
+    { field: "symbol", id: "alert-refusal-symbol" },
+    { field: "trigger_timeframe", id: "alert-refusal-timeframe" },
+    { field: "evaluation_mode", id: "alert-refusal-evaluation-mode" },
+  ] as const;
+
+  function refuseEveryAnchoredField() {
+    alertPanelState.refusals = ANCHORS.map(({ field }) => ({
+      code: `${field}_invalid`,
+      field,
+      i18n_key: "rules.refusal.unknownField",
+      detail: `${field} is not acceptable`,
+    }));
+    flushSync();
+  }
+
+  beforeEach(() => {
+    target = document.createElement("div");
+    document.body.appendChild(target);
+    alertPanelState.reset("BTCUSDT");
+    alertState.engineStatus = "idle";
+  });
+
+  afterEach(() => {
+    if (component) unmount(component);
+    component = null;
+    target.remove();
+  });
+
+  function render() {
+    component = mount(AlertPanelView, { target, props: {} });
+    flushSync();
+    return target;
+  }
+
+  /** The header controls that claim their messages live somewhere else. */
+  function describedControls(el: HTMLElement): HTMLElement[] {
+    const header = el.querySelector("header.panel-header") as HTMLElement;
+    return [...header.querySelectorAll<HTMLElement>("[aria-describedby]")];
+  }
+
+  it("claims exactly the fields the shell keeps out of the catch-all", () => {
+    const el = render();
+    const claimed = describedControls(el).map((c) => c.getAttribute("aria-describedby"));
+
+    // An equality and not a length check: this fails when a control is added,
+    // removed, or re-pointed at a different id -- and it is what stops the
+    // loops below from passing vacuously on an empty match.
+    expect(claimed).toEqual(ANCHORS.map((a) => a.id));
+  });
+
+  it("points every aria-describedby at an element that actually renders", () => {
+    const el = render();
+    for (const control of describedControls(el)) {
+      const id = control.getAttribute("aria-describedby") as string;
+      expect(el.querySelector(`#${id}`), `nothing renders #${id}`).not.toBeNull();
+    }
+  });
+
+  it("shows each refused field at its own anchor and nowhere else", () => {
+    const el = render();
+    refuseEveryAnchoredField();
+
+    for (const { field, id } of ANCHORS) {
+      expect(
+        el.querySelector(`#${id}`)?.textContent?.trim(),
+        `#${id} stayed empty while ${field} was refused`,
+      ).not.toBe("");
+    }
+
+    // Every refusal was claimed by a control, so the catch-all must stay away
+    // entirely. A refusal in both places reads as two problems; a refusal only
+    // there, with the control looking fine, is the FEAT-0477 shape.
+    expect(el.textContent).not.toContain(en.dashboard.alerts.panel.otherRefusals);
+  });
+
+  it("marks a claiming control invalid only while it is refused", () => {
+    const el = render();
+
+    // `not.toBe("true")` rather than `toBe("false")`: whether an unset
+    // `aria-invalid` renders as the string or is dropped is Svelte's business,
+    // and pinning that would make this test about the compiler.
+    for (const control of describedControls(el)) {
+      expect(control.getAttribute("aria-invalid")).not.toBe("true");
+    }
+
+    refuseEveryAnchoredField();
+
+    for (const control of describedControls(el)) {
+      expect(control.getAttribute("aria-invalid")).toBe("true");
+    }
+  });
+});
