@@ -868,10 +868,10 @@ mod tests {
             },
             enabled: true,
             provenance: Provenance {
-                derived_from_hash: None,
                 source: AuthoringSource::Human,
                 created_at_ms: 0,
                 model: None,
+                derived_from_hash: None,
             },
             evaluation_mode: EvaluationMode::Close,
             trigger_methods: Vec::new(),
@@ -967,10 +967,10 @@ mod tests {
             },
             enabled: true,
             provenance: Provenance {
-                derived_from_hash: None,
                 source: AuthoringSource::Human,
                 created_at_ms: 0,
                 model: None,
+                derived_from_hash: None,
             },
             evaluation_mode: EvaluationMode::Close,
             trigger_methods: Vec::new(),
