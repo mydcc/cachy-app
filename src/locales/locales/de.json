@@ -366,6 +366,7 @@
         "coreUnavailable": "Die Regel konnte nicht geprüft werden, weil der Regel-Kern nicht geladen ist. Das heißt nicht, dass deine Regel falsch ist — sie wurde gar nicht erst geprüft.",
         "otherRefusals": "Weitere Beanstandungen",
         "storeUnreadable": "Der Regelspeicher konnte nicht gelesen werden. Es wurde nichts scharf geschaltet, damit deine bestehenden Alarme nicht überschrieben werden.",
+        "alertNotFound": "Dieser Alarm ist nicht mehr gespeichert, deshalb lässt sich kein Bot daraus ableiten. Möglicherweise wurde er in einem anderen Tab gelöscht.",
         "armed": "Alarm scharf geschaltet.",
         "armDisabled": "Füge zuerst eine Bedingung hinzu.",
         "tabLoadFailed": "Dieser Tab konnte nicht geladen werden. Lade die Seite neu.",

@@ -347,6 +347,7 @@ export type TranslationKey =
   | "dashboard.alerts.panel.coreUnavailable"
   | "dashboard.alerts.panel.otherRefusals"
   | "dashboard.alerts.panel.storeUnreadable"
+  | "dashboard.alerts.panel.alertNotFound"
   | "dashboard.alerts.panel.armed"
   | "dashboard.alerts.panel.armDisabled"
   | "dashboard.alerts.panel.tabLoadFailed"

@@ -44,7 +44,7 @@ use rust_decimal::Decimal;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
-use super::consequence::ConsequenceLevel;
+use super::consequence::{ConsequenceLevel, OrderIntent};
 use super::document::{parse_document, serialise_document};
 use super::evaluate::{evaluate_with_lifecycle, AccountSnapshot, Candle, InMemoryMarket};
 use super::indicator::IndicatorRef;
@@ -100,6 +100,36 @@ pub fn authorise_json(document_json: &str, requested_level: &str) -> Result<(), 
     parse_document(document_json)?
         .authorise(requested)
         .map_err(|e| Refused { refusals: vec![e] })
+}
+
+/// Derive a bot from a stored alert: a **new** document at `simulate`,
+/// proposing `order_json`, recording the source's content hash in its
+/// provenance — FEAT-0396.
+///
+/// Only the new document comes back. The source is not returned because it is
+/// not changed: the caller already holds it, and handing back a copy would
+/// invite a caller to store the copy and believe it had saved something.
+///
+/// The order intent is a separate argument rather than a field the caller
+/// pre-writes into the document, because a `notify` document carrying an order
+/// intent is refused — correctly — before it could ever be promoted. Promotion
+/// is the moment the intent becomes legal, so it enters here.
+pub fn promote_json(
+    document_json: &str,
+    new_id: &str,
+    order_json: &str,
+    created_at_ms: i64,
+) -> Result<String, Refused> {
+    let source = parse_document(document_json)?;
+    let order: OrderIntent = serde_json::from_str(order_json).map_err(|e| {
+        Refused::one(
+            RefusalCode::UnknownField,
+            "action.order",
+            format!("order intent could not be read: {e}"),
+        )
+    })?;
+    let bot = source.promote(new_id, order, created_at_ms)?;
+    serialise_document(&bot).map_err(|e| Refused { refusals: vec![e] })
 }
 
 /// How many candles of the trigger timeframe the document needs before it can
@@ -324,6 +354,16 @@ pub fn rule_from_alert_json(
     created_at_ms: f64,
 ) -> Result<String, JsValue> {
     from_alert_json(alert_json, timeframe, created_at_ms as i64).map_err(refused_to_js)
+}
+
+#[wasm_bindgen]
+pub fn rule_promote(
+    document_json: &str,
+    new_id: &str,
+    order_json: &str,
+    created_at_ms: f64,
+) -> Result<String, JsValue> {
+    promote_json(document_json, new_id, order_json, created_at_ms as i64).map_err(refused_to_js)
 }
 
 #[wasm_bindgen]
