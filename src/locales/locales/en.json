@@ -321,6 +321,7 @@
       "noActive": "No active alerts",
       "fired": "Alert Fired!",
       "priceReached": "{symbol} reached {price}",
+      "ruleTriggered": "{symbol} — alert triggered: {condition}",
       "manage": "Manage Alerts",
       "addAlert": "Add Alert",
       "priceLimit": "Price",

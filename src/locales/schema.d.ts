@@ -307,6 +307,7 @@ export type TranslationKey =
   | "dashboard.alerts.noActive"
   | "dashboard.alerts.fired"
   | "dashboard.alerts.priceReached"
+  | "dashboard.alerts.ruleTriggered"
   | "dashboard.alerts.manage"
   | "dashboard.alerts.addAlert"
   | "dashboard.alerts.priceLimit"
