@@ -95,6 +95,9 @@ Use for all code navigation, exploration, impact analysis, and graph queries.
 - **Session start:** call `gortex__onboarding` (or `/gortex-guide`) to orient to the indexed codebase.
 - Use `gortex__explore`, `gortex__search`, `gortex__read`, `gortex__relations`, `gortex__trace`, `gortex__analyze` for navigation; `gortex__change(operation:"impact")` before any mutation.
 - Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-pr-review`, etc.
+- After switching branches, re-orient before the next call — never wait on a stale generation.
+- On the first edit inside a fresh worktree, verify the `files[].path` prefix in the Edit response before continuing.
+- A freshness-guaranteed call that waits longer than 5 minutes: abort it and retry without the freshness requirement.
 
 ### jCodeMunch
 Use for code analysis, action routing, and semantic understanding.
@@ -174,6 +177,8 @@ git worktree add .worktrees/<session> -b <first-branch> origin/develop
 
 This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. Gortex/jCodeMunch reindex-on-edit hooks) reacting to files it didn't touch. Remove the session worktree (`git worktree remove .worktrees/<session>`) once the session ends; delete each task branch once merged or abandoned.
 
+Guideline: at most ~5 session worktrees at a time; run `git worktree prune` after every removal.
+
 ## Agent Lifecycle: Check, Claim, Clean Up
 
 Every task follows the same three phases. The point is proactive conflict avoidance: with several agents working this repo in parallel, collisions are prevented *before* code is written, not discovered at merge time.
@@ -192,6 +197,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 
 **3. After finishing (mandatory cleanup — also when abandoning):**
 - Retire your session worktree at session end with plain git: `git worktree remove .worktrees/<session>` from the main checkout. Never retire another agent's worktree (see Ownership above).
+- After every merge, re-scan (`git worktree list` against open PRs): remove your own merged trees immediately, report someone else's stale trees by name instead of staying silent.
 - Delete your task branch once merged or abandoned — and only yours. Squash-merges leave no ancestry, so `-d` refuses an already-merged branch while harness safety rules block a bare `-D`. Use the session-scoped exception instead, and only for your own branch:
   1. At session start, register an exact-match permission for your branch and nothing else (e.g. a Claude Code `permissions.allow` entry `Bash(git branch -D <branch>)` in the gitignored `.claude/settings.local.json`). Never a wildcard, never another agent's branch, never a user-global file.
   2. Before deleting, prove the branch is spent: its PR is MERGED with head == branch tip, its content is contained in the merge, the remote branch is gone, its worktree is removed. Push first if any commit should be preserved.
