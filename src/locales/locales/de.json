@@ -354,6 +354,12 @@
         "symbol": "Symbol",
         "priceSource": "Preisquelle",
         "timeframe": "Zeiteinheit",
+        "evaluationMode": "Auswertung",
+        "evaluationModeOption": {
+          "close": "Beim Kerzen-Close",
+          "intrabar": "Während die Kerze läuft"
+        },
+        "evaluationModeHint": "Die Kerze ist noch nicht geschlossen. Der Wert kann sich bis zum Close wieder ändern — der Alarm kann sich also im Nachhinein als falsch erweisen.",
         "sentenceLabel": "Diese Regel bedeutet",
         "arm": "Alarm scharf schalten",
         "loading": "Tab wird geladen …",
@@ -600,6 +606,7 @@
         "closedCandleHint": "Wird einmal pro geschlossener Kerze des Trigger-Zeitrahmens ausgewertet."
       },
       "firedWithNote": "{message} — {note}",
+      "firedIntrabar": "{message} (Zwischenstand: Die Kerze läuft noch, der Wert kann sich bis zum Close wieder ändern.)",
       "expired": "Abgelaufen",
       "expiredHint": "Gültigkeitszeitraum vorbei — abgelaufen, ohne ausgelöst zu haben.",
       "combo": {
@@ -4370,6 +4377,7 @@
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
+      "frameIntrabar": "{lead}, wenn während der laufenden {timeframe}-Kerze {condition}",
       "unless": "— außer wenn {condition}.",
       "empty": "(noch keine Bedingung)",
       "negate": "nicht {condition}",

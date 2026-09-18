@@ -2,7 +2,7 @@
 id: FEAT-0477
 title: Offer intra-candle evaluation as an explicit per-alert opt-in
 type: feature
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -12,6 +12,9 @@ adr: ADR-0012
 depends_on: [FEAT-0028]
 size: M
 estimate: 8
+assignee: claude-code
+branch: feat/feat-0477-p3-intrabar-ui
+start_date: 2026-09-17
 ---
 
 # FEAT-0477 — Offer intra-candle evaluation as an explicit per-alert opt-in
@@ -98,17 +101,36 @@ care.
 
 ## Acceptance criteria
 
-- [ ] `close` stays the default and is omitted from the serialised document; a test
+- [x] `close` stays the default and is omitted from the serialised document; a test
       asserts an existing stored alert keeps both its behaviour and its content hash
-- [ ] An `intrabar` alert fires on the open candle and at most once per candle,
+- [x] An `intrabar` alert fires on the open candle and at most once per candle,
       including across reconnects and corrected candles
-- [ ] The close of a candle an intrabar alert already fired on is still evaluated —
+- [x] The close of a candle an intrabar alert already fired on is still evaluated —
       the provisional fire does not consume the closed-candle anchor
-- [ ] Closed-candle alerts are unaffected — the FEAT-0028 AC3 tests still pass
+- [x] Closed-candle alerts are unaffected — the FEAT-0028 AC3 tests still pass
       unchanged
-- [ ] The arming UI and the fired notification state that an intra-candle value
+- [x] The arming UI and the fired notification state that an intra-candle value
       may revert, in German and English
-- [ ] The rebuilt `static/wasm/` artefacts ship in the same PR as the Rust change
+- [x] The rebuilt `static/wasm/` artefacts ship in the same PR as the Rust change
+
+## Shipped
+
+Three parts, in this order — and the order is load-bearing:
+
+1. **P1 — the document** (PR #3440, merged): `evaluation_mode` on the Rust rule
+   document inside the content hash, `close` omitted from the canonical form, and
+   the rebuilt `static/wasm/` artefacts (AC 1, AC 6).
+2. **P2 — the engine** (PR #3444): the intrabar evaluation path with its own
+   last-anchor record, so the close of a candle an intrabar alert already fired on
+   is still evaluated — the self-collision hazard groomed above (AC 2, AC 3, AC 4).
+3. **P3 — the opt-in** (PR for branch `feat/feat-0477-p3-intrabar-ui`): the header
+   control, the repaint warning at arming time and on the fired notification, and a
+   second sentence frame so that two rules differing only in the mode do not read
+   identically (AC 5).
+
+P3 must not land before P2. A toggle with no engine behind it lets a trader arm an
+`intrabar` rule that silently evaluates on the close — a rule that says one thing
+and does another, which is worse than not offering the choice.
 
 ## Out of scope
 

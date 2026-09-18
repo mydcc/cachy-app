@@ -216,14 +216,28 @@ export function isSpentAfterFiring(rule: RuleDocument): boolean {
 export function firingMessage(rule: RuleDocument): string {
     const t = get(_) as (key: string, options?: Record<string, unknown>) => string;
     const price = ruleThresholdOf(rule) ?? "";
-    const base =
+    let message =
         t("dashboard.alerts.priceReached", { values: { symbol: rule.symbol, price } }) ||
         `${rule.symbol} reached ${price}`;
 
-    const note = rule.note?.trim();
-    if (!note) return base;
+    // FEAT-0477 — an intrabar rule fired on a candle that had not closed, so
+    // the value it fired on is provisional and can be gone by the close.
+    //
+    // The caveat rides on the notification and not only on the arming screen,
+    // because the two are read at different moments: the trader armed this
+    // hours ago and is reading the alarm now, with a decision in front of them.
+    // "This might revert" is only actionable while there is still a candle to
+    // wait for, which is exactly here.
+    if (rule.evaluation_mode === "intrabar") {
+        message =
+            t("dashboard.alerts.firedIntrabar", { values: { message } }) ||
+            `${message} (provisional)`;
+    }
 
-    return t("dashboard.alerts.firedWithNote", { values: { message: base, note } }) || `${base} — ${note}`;
+    const note = rule.note?.trim();
+    if (!note) return message;
+
+    return t("dashboard.alerts.firedWithNote", { values: { message, note } }) || `${message} — ${note}`;
 }
 
 /**
