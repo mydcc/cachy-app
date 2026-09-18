@@ -339,6 +339,8 @@
       "cutoverNoticeDismiss": "Verstanden",
       "orphanSuspendedHint": "Migrierte Alarme deaktiviert: {count}. Der ursprüngliche Preisalarm existiert für diese nicht mehr, deshalb wurden sie automatisch abgeschaltet.",
       "orphanWithheldHint": "Migrierte Alarme mit ungeklärter Herkunft: {count}. Wir konnten nicht sicher feststellen, ob der ursprüngliche Preisalarm gelöscht wurde, deshalb bleiben sie vorsichtshalber aktiv und können weiterhin auslösen.",
+      "drawingSuspendedHint": "Zeichnungs-Alarme deaktiviert: {count}. Ihre Zeichnung existiert nicht mehr auf dem Chart, deshalb wurden sie automatisch abgeschaltet.",
+      "drawingWithheldHint": "Zeichnungs-Alarme mit unlesbarem Speicher: {count}. Der Zeichnungsspeicher konnte nicht gelesen werden, deshalb bleiben sie vorsichtshalber aktiv und können weiterhin auslösen.",
       "panel": {
         "title": "Super-Alarm",
         "open": "Super-Alarm-Panel öffnen",
@@ -4370,7 +4372,12 @@
     "drawings": {
       "horizontal": "Horizontale Linie zeichnen",
       "trend": "Trendlinie zeichnen",
-      "delete": "Ausgewählte Zeichnung löschen"
+      "delete": "Ausgewählte Zeichnung löschen",
+      "alert": "Alert auf dieser Zeichnung",
+      "alertArmed": "Alert auf die Zeichnung gesetzt",
+      "alertOnTheLine": "Der Kurs liegt genau auf der Linie — es gibt keine Seite, von der er kreuzen könnte",
+      "alertNoLevel": "Diese Zeichnung hat kein zu überwachendes Kursniveau — Alerts brauchen eine horizontale oder geneigte Linie",
+      "alertNoPrice": "Kein aktueller Kurs für dieses Symbol"
     }
   },
   "chart": {
