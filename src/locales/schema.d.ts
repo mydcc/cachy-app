@@ -1065,6 +1065,8 @@ export type TranslationKey =
   | "marketOverview.tooltips.removeFavorite"
   | "marketOverview.tooltips.openChannel"
   | "marketOverview.tooltips.closeChannel"
+  | "marketOverview.aria.loadToCalculator"
+  | "marketOverview.aria.regionLabel"
   | "seo.title"
   | "seo.pageTitle"
   | "seo.description"
