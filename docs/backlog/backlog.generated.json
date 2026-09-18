@@ -360,6 +360,24 @@
       "file": "bugs/BUG-0428-topline-toggle-white-flash.md"
     },
     {
+      "id": "BUG-0479",
+      "title": "MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "persistence",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0479-repair-truncates-long-trades.md"
+    },
+    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -7788,5 +7806,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 360
+  "count": 361
 }
