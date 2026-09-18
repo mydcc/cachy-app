@@ -119,7 +119,7 @@ class DrawingStore {
             // bad bytes on disk rather than overwriting them with `[]` — they
             // are the only copy, and a human may still want to read them.
             logger.warn(
-                "chart",
+                "ui",
                 `stored drawings could not be read: ${e instanceof Error ? e.message : String(e)}`,
             );
         }

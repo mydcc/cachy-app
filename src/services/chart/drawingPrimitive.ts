@@ -129,14 +129,16 @@ class DrawingPaneRenderer implements IPrimitivePaneRenderer {
 }
 
 class DrawingPaneView implements IPrimitivePaneView {
-    private readonly renderer: DrawingPaneRenderer;
+    // Not `renderer`: the interface's member of that name is the method
+    // below, and a field sharing it silently shadows the implementation.
+    private readonly paneRenderer: DrawingPaneRenderer;
 
     constructor(source: DrawingRenderSource) {
-        this.renderer = new DrawingPaneRenderer(source);
+        this.paneRenderer = new DrawingPaneRenderer(source);
     }
 
     renderer(): IPrimitivePaneRenderer {
-        return this.renderer;
+        return this.paneRenderer;
     }
 }
 

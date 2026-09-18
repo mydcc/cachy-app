@@ -6123,7 +6123,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0480",
     "title": "Persistent, addressable chart drawings",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "claude",
     "branch": "feat/feat-0480-chart-drawings",
     "priority": "P2",

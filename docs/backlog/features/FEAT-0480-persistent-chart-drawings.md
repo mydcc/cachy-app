@@ -2,7 +2,7 @@
 id: FEAT-0480
 title: Persistent, addressable chart drawings
 type: feature
-status: in-progress
+status: done
 assignee: claude
 branch: feat/feat-0480-chart-drawings
 priority: P2
@@ -50,13 +50,13 @@ Storage follows every other trader artefact: Class A, `localStorage`, one store
 
 ## Acceptance criteria
 
-- [ ] A horizontal line and a trend line can be drawn and survive a reload
-- [ ] Every drawing has a stable id that survives a reload and a symbol switch
-- [ ] A drawing can be selected, moved and deleted
-- [ ] A drawing belongs to one symbol and does not appear under another
-- [ ] The level of a sloped line can be read for an arbitrary timestamp, tested
+- [x] A horizontal line and a trend line can be drawn and survive a reload
+- [x] Every drawing has a stable id that survives a reload and a symbol switch
+- [x] A drawing can be selected, moved and deleted
+- [x] A drawing belongs to one symbol and does not appear under another
+- [x] The level of a sloped line can be read for an arbitrary timestamp, tested
       at two different times, without duplicating the chart's scale maths
-- [ ] Drawings never leave the device
+- [x] Drawings never leave the device
 
 ## Out of scope
 
@@ -67,13 +67,32 @@ Storage follows every other trader artefact: Class A, `localStorage`, one store
 - `CandlestickChart.svelte`, the chart.js component used elsewhere. Drawings
   live in the chart window until someone asks for them somewhere else
 
-## Why this stays `idea`
+## How it was built (2026-09-18)
 
-Hit testing, dragging and pointer capture are interactive canvas work, the
-category `AGENTS.md` keeps out of unattended sessions. `status: ready` is not a
-neutral label here: `scripts/jules/dispatch-backlog.mjs` selects on it, so the
-flip is the dispatch. Hand this over deliberately
-(`scripts/jules/create-session.sh --file ...`) or build it in a session.
+`levelAt()` in `src/lib/chart/drawings/levelAt.ts` is the single definition of
+where a drawing sits at a timestamp. The renderer and FEAT-0029's alerts both
+read it, so the line on screen cannot disagree with the threshold it stands
+for.
+
+Interpolation is linear in price, not in screen space. The rule engine
+evaluates candles with no chart attached, and a level computed from pixels
+would move the moment the trader toggled the logarithmic price scale — the
+kind of unverifiable trigger the rule system refuses everywhere else. On a log
+scale the drawn line therefore bows slightly; that is the honest picture of the
+level that fires.
+
+The criterion "without duplicating the chart's scale maths" is met by
+construction rather than by care: `polylineFor()` samples the level at each
+candle time and asks the chart for that price's pixel, so every scale question
+goes back to the chart's own transform. The sample points are the timestamps an
+alert evaluates, which makes the polyline's vertices exactly the points that
+can trigger.
+
+Drawing is a `lightweight-charts` series primitive (`attachPrimitive`), the
+first use of that API in the repo. FEAT-0247's `createPriceLine` still owns
+horizontal order lines; this primitive owns what `createPriceLine` cannot
+express — anything with a slope.
+
 
 ## Links
 
