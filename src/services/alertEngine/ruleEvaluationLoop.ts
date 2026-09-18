@@ -795,10 +795,23 @@ function collectTimeframes(rule: RuleDocument): Set<string> {
 function collectMarkTimeframes(rule: RuleDocument): Set<string> {
   const found = new Set<string>();
 
-  const readsMark = (operand: unknown): boolean =>
-    operand !== null &&
-    typeof operand === "object" &&
-    (operand as { source?: unknown }).source === "mark";
+  /**
+   * Whether this operand — or the operand it wraps — reads the mark series.
+   *
+   * Recursive because `window` is the one operand shape that nests another and
+   * carries no `source` of its own: "the highest mark close of the last 20
+   * candles" has the `source` on `window.of`, not on the window. Testing only
+   * the top level answered false, so no `mark_candles` reached the core, so the
+   * verdict was `indeterminate` — for good, on a rule that looked armed
+   * (BUG-0482). The core's own `Condition::mark_timeframes` delegates to its
+   * operands for exactly this reason; this is that same delegation.
+   */
+  const readsMark = (operand: unknown): boolean => {
+    if (operand === null || typeof operand !== "object") return false;
+    const node = operand as { source?: unknown; of?: unknown };
+    if (node.source === "mark") return true;
+    return readsMark(node.of);
+  };
 
   const walk = (condition: unknown): void => {
     if (condition === null || typeof condition !== "object") return;
