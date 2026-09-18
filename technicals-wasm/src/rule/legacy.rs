@@ -96,6 +96,7 @@ pub fn rule_from_alert(
         },
         enabled: alert.active,
         provenance: Provenance {
+            derived_from_hash: None,
             source: AuthoringSource::Human,
             created_at_ms,
             model: None,

@@ -219,6 +219,14 @@ refusal_codes! {
     /// The same trigger channel listed twice, which would announce one trigger
     /// twice on it.
     DuplicateTriggerMethod => "duplicateTriggerMethod",
+    /// A `provenance.derived_from_hash` that is not a content hash — FEAT-0396.
+    ///
+    /// A promoted bot records the strategy it descends from by content hash. A
+    /// malformed value is refused rather than dropped because the field's whole
+    /// purpose is to stay answerable across exports and devices: a value that is
+    /// present but unresolvable claims a lineage nothing can check, which is
+    /// worse than claiming none.
+    InvalidDerivedFromHash => "invalidDerivedFromHash",
 }
 
 /// One reason a document was refused, naming the field responsible.
@@ -425,6 +433,7 @@ mod tests {
         "rule_warmup_too_deep",
         "invalid_note",
         "duplicate_trigger_method",
+        "invalid_derived_from_hash",
     ];
 
     #[test]
