@@ -2,9 +2,9 @@
 
 # Backlog index
 
-387 items. How to read and add them: [README.md](README.md).
+388 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 44 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 45 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -263,6 +263,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · 🟡 in-progress 1 · ✅ d
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | 📋 specced | calculation |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | 📋 specced | calculation |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | execution |
+| [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -550,6 +551,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · 🟡 in-progress 1 · ✅ d
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md), [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -848,4 +850,4 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0510**
+Next free number: **0511**

@@ -1934,6 +1934,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md"
   },
   {
+    "id": "BUG-0510",
+    "title": "Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0502",
+      "BUG-0292"
+    ],
+    "file": "bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
