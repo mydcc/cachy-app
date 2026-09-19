@@ -4643,6 +4643,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md"
   },
   {
+    "id": "BUG-0511",
+    "title": "The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
