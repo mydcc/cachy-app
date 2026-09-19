@@ -2,9 +2,9 @@
 
 # Backlog index
 
-396 items. How to read and add them: [README.md](README.md).
+397 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 53 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 54 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -267,6 +267,7 @@ Counts by status: 💡 idea 23 · 📋 specced 53 · 🟡 in-progress 1 · ✅ d
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | execution |
 | [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | exchange |
 | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | execution |
+| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -563,6 +564,7 @@ Counts by status: 💡 idea 23 · 📋 specced 53 · 🟡 in-progress 1 · ✅ d
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md), [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) |
 | [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -866,4 +868,4 @@ Counts by status: 💡 idea 23 · 📋 specced 53 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0516**
+Next free number: **0517**

@@ -1980,6 +1980,24 @@
       "file": "bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md"
     },
     {
+      "id": "BUG-0516",
+      "title": "The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -8459,5 +8477,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 396
+  "count": 397
 }
