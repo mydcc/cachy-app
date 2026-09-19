@@ -4753,6 +4753,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md"
   },
   {
+    "id": "BUG-0515",
+    "title": "The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
