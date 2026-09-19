@@ -1934,6 +1934,45 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md"
   },
   {
+    "id": "BUG-0508",
+    "title": "An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md"
+  },
+  {
+    "id": "BUG-0510",
+    "title": "Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0502",
+      "BUG-0292"
+    ],
+    "file": "bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -4620,6 +4659,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md"
+  },
+  {
+    "id": "BUG-0509",
+    "title": "A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md"
+  },
+  {
+    "id": "BUG-0511",
+    "title": "The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md"
   },
   {
     "id": "FEAT-0019",
