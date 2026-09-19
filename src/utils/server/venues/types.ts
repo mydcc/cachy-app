@@ -143,10 +143,18 @@ export interface VenueModule {
    * Runs one order-route action. Resolves to `null` for an action this
    * venue does not implement — the route then answers `null` with 200,
    * exactly as the inline branches did.
+   *
+   * `envelope` is the pre-signed credential the client sent and `venueBody` the
+   * exact bytes it signed; the venue forwards both and computes no signature of
+   * its own, which is what keeps the secret off this process (ADR-0013). On the
+   * route's three query-signed read actions (`pending`, `history`,
+   * `order-detail`) there is no body: the signature covers `envelope.query`, and
+   * `venueBody` is unused.
    */
   executeOrder(
-    creds: VenueCredentials,
+    envelope: PresignedEnvelope,
     payload: OrderRequestPayload,
+    venueBody: string,
   ): Promise<unknown>;
 
   /**

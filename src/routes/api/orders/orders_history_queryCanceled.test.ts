@@ -18,23 +18,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
+import { buildOrdersHistoryQueryParams } from "../../../utils/exchange/venueQueries";
 
 // Regression: Bitunix's get_history_orders excludes CANCELED orders unless
 // queryCanceled=true is passed — and then excludes everything else (see
 // docs/bitunix-api/07_trade.md). The route used to never forward this
 // param, so cancelled orders (extremely common while testing/trading)
 // silently never appeared in History.
+//
+// FEAT-0405 A5 — the query is now the client's, built through the same
+// `buildOrdersHistoryQueryParams` the route rebuilds it with, so this test
+// asserts the query the *transport* puts on the wire.
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
+async function historyRequest(payload: Record<string, unknown>) {
+  return signedEnvelopeRequest(
+    "/api/orders?action=history",
+    payload,
+    buildOrdersHistoryQueryParams("bitunix", payload),
+    "bitunix",
+  );
 }
 
 beforeEach(() => {
@@ -48,33 +56,30 @@ beforeEach(() => {
 
 describe("POST /api/orders history forwards queryCanceled", () => {
   it("omits queryCanceled from the query string by default", async () => {
+    const { request, url } = await historyRequest({ exchange: "bitunix", type: "history" });
     await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
-    const [url] = fetchMock.mock.calls[0];
-    expect(url).not.toContain("queryCanceled");
+    const [forwardedUrl] = fetchMock.mock.calls[0];
+    expect(forwardedUrl).not.toContain("queryCanceled");
   });
 
   it("adds queryCanceled=true to the query string when requested", async () => {
+    const { request, url } = await historyRequest({
+      exchange: "bitunix",
+      type: "history",
+      queryCanceled: true,
+    });
     await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        queryCanceled: true,
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
-    const [url] = fetchMock.mock.calls[0];
-    expect(url).toContain("queryCanceled=true");
+    const [forwardedUrl] = fetchMock.mock.calls[0];
+    expect(forwardedUrl).toContain("queryCanceled=true");
   });
 });

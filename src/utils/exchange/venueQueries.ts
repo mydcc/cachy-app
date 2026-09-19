@@ -41,10 +41,6 @@ const SYNC_LIMIT_DEFAULT = 50;
 const SYNC_LIMIT_MAX = 100;
 const SYNC_ORDERS_LIMIT_DEFAULT = 100;
 
-export function buildOrderDetailQueryParams(orderId: string): Record<string, string> {
-  return { orderId };
-}
-
 /**
  * `marginCoin` defaults to USDT because the venue's endpoint answers for a
  * single margin coin and every Cachy position is USDT-margined; the default
@@ -158,6 +154,91 @@ export function buildTpslWriteBody(params: Record<string, unknown>): string {
     cleaned[key] = value;
   }
   return JSON.stringify(cleaned);
+}
+
+/**
+ * `/api/orders` query reads (FEAT-0405 A5).
+ *
+ * The three read actions on that route are signed over their query, the rest
+ * over their body, so the client and the server both build these records from
+ * the validated payload rather than each formatting their own — a default only
+ * one side applies is a `PRESIGNED_DIVERGENCE` on the next order-history load.
+ *
+ * `pending` takes no filter at all on Bitunix, which is why it returns `{}`
+ * rather than a defaulted limit. Bitget wants its product type, as it does on
+ * every other mix endpoint.
+ */
+export function buildPendingOrdersQueryParams(venue: Venue): Record<string, string> {
+  return venue === "bitunix" ? {} : { productType: "umcbl" };
+}
+
+/**
+ * One page of order history.
+ *
+ * `queryCanceled` is dropped when false rather than sent as `"false"`: Bitunix
+ * documents the parameter as `true` returning *only* cancelled orders and
+ * omitted returning everything else, so a literal `false` is not the same
+ * request — and the two calls are merged by the caller precisely because
+ * neither alone is a complete history.
+ *
+ * No clock-derived default here. Bitget's history endpoint defaults
+ * `startTime` to seven days ago, and a default computed on the server would
+ * never equal the one the client signed; the caller resolves that default
+ * before signing instead.
+ */
+export function buildOrdersHistoryQueryParams(
+  venue: Venue,
+  payload: {
+    limit?: number;
+    symbol?: string;
+    queryCanceled?: boolean;
+    startTime?: number;
+    endTime?: number;
+  },
+): Record<string, string> {
+  // Clamped here as well as in the route schema, so a caller asking for more
+  // than the venue allows gets the same number on both sides instead of a
+  // divergence the server's own clamp would have created.
+  const requested = Number(payload.limit ?? HISTORY_LIMIT_DEFAULT);
+  const limit = Number.isNaN(requested)
+    ? HISTORY_LIMIT_DEFAULT
+    : Math.min(Math.max(requested, 1), POSITIONS_HISTORY_LIMIT_MAX);
+
+  if (venue === "bitget") {
+    const params: Record<string, string> = {
+      productType: "umcbl",
+      pageSize: String(limit),
+    };
+    if (payload.symbol) params.symbol = payload.symbol;
+    if (payload.startTime !== undefined) params.startTime = String(payload.startTime);
+    if (payload.endTime !== undefined) params.endTime = String(payload.endTime);
+    return params;
+  }
+
+  const params: Record<string, string> = {
+    limit: String(limit),
+  };
+  if (payload.queryCanceled) params.queryCanceled = "true";
+  if (payload.symbol) params.symbol = payload.symbol;
+  if (payload.startTime !== undefined) params.startTime = String(payload.startTime);
+  if (payload.endTime !== undefined) params.endTime = String(payload.endTime);
+  return params;
+}
+
+/**
+ * One order's detail. Bitunix sequences it by `orderId`, or by `clientId` when
+ * the caller has only its own id; the caller drops whichever it does not have
+ * rather than sending an empty value, which would be a filter the venue reads
+ * as a value.
+ */
+export function buildOrderDetailQueryParams(payload: {
+  orderId?: string;
+  clientId?: string;
+}): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (payload.orderId) params.orderId = payload.orderId;
+  if (payload.clientId) params.clientId = payload.clientId;
+  return params;
 }
 
 /**

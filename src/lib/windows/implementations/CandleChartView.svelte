@@ -53,7 +53,10 @@
     import { logger } from "../../../services/logger";
     import { appFetch } from "../../appAuth";
     import { exchangeSignedFetch } from "../../../utils/exchange/browserSigning";
-    import { buildPositionsQueryParams } from "../../../utils/exchange/venueQueries";
+    import {
+        buildPendingOrdersQueryParams,
+        buildPositionsQueryParams,
+    } from "../../../utils/exchange/venueQueries";
     import { unwrapApiEnvelope, formatDynamicDecimal, deriveTickSizeFromPrice } from "../../../utils/utils";
     import {
         buildAxisFormatters,
@@ -359,15 +362,18 @@
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
         try {
-            const response = await appFetch("/api/orders", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Api-Key": keys.key,
-                    "X-Api-Secret": keys.secret,
-                    ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-                },
-                body: JSON.stringify({ exchange: provider, type: "pending" }),
+            // FEAT-0405 A5 — signed in the browser; `action` is the `?action=`
+            // the route resolves the signature shape from, and without it this
+            // read would be signed as a body-signed write.
+            const response = await exchangeSignedFetch({
+                cachyPath: "/api/orders",
+                keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+                venue: provider,
+                action: "pending",
+                payload: { exchange: provider, type: "pending" },
+                queryParams: buildPendingOrdersQueryParams(provider),
+                headers: { "X-Provider": provider },
+                fetchFn: appFetch,
             });
             const json = await response.json();
             if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[]);

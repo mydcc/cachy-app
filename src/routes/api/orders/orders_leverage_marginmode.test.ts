@@ -18,6 +18,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
+import {
+  buildOrdersHistoryQueryParams,
+  buildPendingOrdersQueryParams,
+} from "../../../utils/exchange/venueQueries";
 
 // Regression: Bitunix's get_pending_orders/get_history_orders responses
 // carry leverage, marginMode, positionMode and TP/SL fields on every order
@@ -25,17 +30,28 @@ import * as clientToken from "../../../lib/server/clientToken";
 // pending), but the route never mapped them into NormalizedOrder — the
 // order tooltip's Leverage/Margin Mode rows always rendered empty
 // regardless of what the exchange returned.
+//
+// FEAT-0405 A5b — both reads are query-signed now, so the requests below are
+// pre-signed envelopes built through the same query builders the route
+// rebuilds them with.
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
+async function readRequest(
+  action: "pending" | "history",
+  payload: Record<string, unknown>,
+) {
+  return signedEnvelopeRequest(
+    `/api/orders?action=${action}`,
+    payload,
+    action === "pending"
+      ? buildPendingOrdersQueryParams("bitunix")
+      : buildOrdersHistoryQueryParams("bitunix", payload),
+    "bitunix",
+  );
 }
 
 beforeEach(() => {
@@ -60,13 +76,13 @@ describe("POST /api/orders maps leverage/marginMode/positionMode/TP-SL", () => {
         JSON.stringify({ code: 0, data: { orderList: [rawOrder] }, msg: "Success" }),
     });
 
+    const { request, url } = await readRequest("pending", {
+      exchange: "bitunix",
+      type: "pending",
+    });
     const res = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "pending",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
@@ -87,13 +103,13 @@ describe("POST /api/orders maps leverage/marginMode/positionMode/TP-SL", () => {
         JSON.stringify({ code: 0, data: { orderList: [rawOrder] }, msg: "Success" }),
     });
 
+    const { request, url } = await readRequest("history", {
+      exchange: "bitunix",
+      type: "history",
+    });
     const res = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 

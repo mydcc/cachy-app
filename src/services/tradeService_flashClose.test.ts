@@ -122,8 +122,9 @@ describe('TradeService Flash Close Reproduction', () => {
 
     const secondCallArgs = vi.mocked(global.fetch).mock.calls[1];
     const secondBody = JSON.parse(secondCallArgs[1].body);
-    // It is a POST /api/orders
-    expect(secondCallArgs[0]).toBe('/api/orders');
+    // It is a POST /api/orders — FEAT-0405 A5b carries the action in `?action=`,
+    // which is where the route resolves the signature shape from.
+    expect(secondCallArgs[0]).toBe('/api/orders?action=place-order');
     // For closePosition, we check side or other params
     expect(secondBody.reduceOnly).toBe(true);
   });

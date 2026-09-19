@@ -41,7 +41,12 @@
   import { unwrapApiEnvelope } from "../../utils/utils";
   import { appFetch } from "../../lib/appAuth";
   import { exchangeSignedFetch } from "../../utils/exchange/browserSigning";
-  import { buildAccountQueryParams, buildPositionsQueryParams } from "../../utils/exchange/venueQueries";
+  import {
+    buildAccountQueryParams,
+    buildOrdersHistoryQueryParams,
+    buildPendingOrdersQueryParams,
+    buildPositionsQueryParams,
+  } from "../../utils/exchange/venueQueries";
   import type { OMSPosition } from "../../services/omsTypes";
   import { calculateLiveUnrealizedPnl } from "../../services/mappers";
   import type { NormalizedOrder, NormalizedPosition } from "../../types/exchange";
@@ -368,18 +373,21 @@
     loadingOrders = true;
     errorOrders = "";
     try {
-      const response = await appFetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": keys.key,
-          "X-Api-Secret": keys.secret,
-          ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-        },
-        body: JSON.stringify({
-          exchange: provider,
-          type: "pending",
-        }),
+      // FEAT-0405 A5 — /api/orders is signed in the browser now, so the secret
+      // never reaches this side. `action` is required: it is the `?action=` the
+      // route resolves the signature *shape* from, and without it this read
+      // would be signed as a body-signed write.
+      const response = await exchangeSignedFetch({
+        cachyPath: "/api/orders",
+        keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+        venue: provider,
+        action: "pending",
+        payload: { exchange: provider, type: "pending" },
+        // Built through the same function the route rebuilds them from; a
+        // second serialiser here is the drift this avoids.
+        queryParams: buildPendingOrdersQueryParams(provider),
+        headers: { "X-Provider": provider },
+        fetchFn: appFetch,
       });
       const data = await response.json();
       if (data.error) {
@@ -448,29 +456,37 @@
       // omitted) from CANCELED (queryCanceled: true) — one call never
       // returns both, so both are fetched and merged. Only relevant for
       // Bitunix; Bitget's history endpoint has no such split.
+      //
+      // Bitget's own default of "the last seven days" is resolved *here* now
+      // instead of on the server: the venue signature covers the query, so a
+      // default dated from the server's clock could never equal the one this
+      // side signed.
       const requests =
         provider === "bitunix"
           ? [
               { queryCanceled: false, startTime, endTime, limit },
               { queryCanceled: true, startTime, endTime, limit },
             ]
-          : [{ startTime, endTime, limit }];
+          : [
+              {
+                startTime: startTime ?? Date.now() - 7 * 24 * 3600 * 1000,
+                endTime,
+                limit,
+              },
+            ];
 
+      // FEAT-0405 A5 — same envelope transport as the pending read above.
       const responses = await Promise.all(
         requests.map((extra) =>
-          appFetch("/api/orders", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Api-Key": keys.key,
-              "X-Api-Secret": keys.secret,
-              ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {}),
-            },
-            body: JSON.stringify({
-              exchange: provider,
-              type: "history",
-              ...extra,
-            }),
+          exchangeSignedFetch({
+            cachyPath: "/api/orders",
+            keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
+            venue: provider,
+            action: "history",
+            payload: { exchange: provider, type: "history", ...extra },
+            queryParams: buildOrdersHistoryQueryParams(provider, extra),
+            headers: { "X-Provider": provider },
+            fetchFn: appFetch,
           }).then((r) => r.json()),
         ),
       );

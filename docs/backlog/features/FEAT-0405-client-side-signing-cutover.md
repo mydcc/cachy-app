@@ -3,8 +3,8 @@ id: FEAT-0405
 title: Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)
 type: feature
 status: in-progress
-branch: feat/feat-0405-a5a-account-settings
-assignee: claude
+branch: feat/feat-0405-a5b-takeover
+assignee: opencode
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -142,7 +142,7 @@ signature verification.
 
 ## Progress
 
-Delivered as four PRs; only the last one flips this item to `done`.
+Delivered as six PRs; only the last one flips this item to `done`.
 
 | Phase | Scope | State |
 |---|---|---|
@@ -150,9 +150,33 @@ Delivered as four PRs; only the last one flips this item to `done`.
 | A2 | `buildVenueBody` plus the Bitget counterpart, for the two body-signed multi-venue routes | merged (#3421) |
 | A3 | The 7 Bitunix-hardwired query routes and their client call sites | merged (#3424) |
 | A4 | The 3 multi-venue query routes (`balance`, `positions`, `account`) | merged (#3431) |
-| A5a | `/api/account-settings` — the first body-signed route, and the first reader of the wrapper body | in progress |
-| A5b | `/api/orders` — eleven actions, two venues | not started |
+| A5a | `/api/account-settings` — the first body-signed route, and the first reader of the wrapper body | merged (#3436) |
+| A5b | `/api/orders` — eleven actions, two venues | in progress |
 | A6 | Absence test over all 12 routes, whitepaper, WS audit, item flip | not started |
+
+### A5b recon (2026-09-17, before the first edit)
+
+Sizes, so the next session does not re-derive them:
+
+- `src/routes/api/orders/+server.ts` is **106 lines** and holds no per-action
+  logic; it validates, calls `venue.validateKeys`, then
+  `venue.executeOrder(creds, payload)`. The cutover is those three lines plus the
+  wrapper body — the same edit A5a made to `account-settings`, which is the file
+  to copy.
+- Nine route tests move: `orders_bitget_history`, `orders_cancel_path`,
+  `orders_history_queryCanceled`, `orders_history_reduceOnly`,
+  `orders_history_time_range`, `orders_leverage_marginmode`,
+  `orders_native_bulk`, `orders_place_order_hedge`, `orders_place_order_ordertype`
+  (all under `src/routes/api/orders/`).
+- Two venue-level tests build call the old signature directly and move with it:
+  `src/utils/server/venues/bitunixCancel.test.ts` (`executeOrder(CREDS, …)`) and
+  `src/utils/exchange/venueBodies.test.ts`.
+- The temporary client scaffolding to delete lives in one file:
+  `ENVELOPE_SIGNED_ROUTES` at `src/services/tradeService.ts:96`,
+  `ENVELOPE_BODY_BUILDERS` at `:116`, both read at `:387-389`; the comment at
+  `:2011` already names this phase as the one that removes the set.
+- Client call sites still setting `X-Api-Secret`: `PositionsSidebar.svelte:376,466`
+  and `CandleChartView.svelte:321`.
 
 Notes from A4 for whoever picks up A5b:
 
