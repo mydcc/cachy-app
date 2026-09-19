@@ -16,7 +16,6 @@
  */
 
 import { Decimal } from "decimal.js";
-import { validateBitunixKeys } from "../bitunix";
 import type {
   BitunixResponse,
   BitunixOrder,
@@ -47,7 +46,6 @@ import type {
   KlinePriceSource,
   KlineQuery,
   TickersQuery,
-  VenueCredentials,
   VenueKline,
   VenueModule,
 } from "./types";
@@ -1001,10 +999,6 @@ async function executeAccountSetting(
 export const bitunixVenue: VenueModule = {
   id: "bitunix",
   requiresPassphrase: false,
-
-  validateKeys(creds: VenueCredentials): string | null {
-    return validateBitunixKeys(creds.apiKey, creds.apiSecret);
-  },
 
   fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData> {
     return fetchBitunixAccount(envelope);

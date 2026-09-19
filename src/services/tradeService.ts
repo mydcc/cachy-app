@@ -84,37 +84,6 @@ import {
 import { AccountSettingsRequestSchema } from "../types/accountSettingsSchemas";
 import { OrderRequestSchema } from "../types/orderSchemas";
 
-/**
- * The body bytes a body-signed action signs, built by the *same* function its
- * handler rebuilds them with.
- *
- * The handler cannot re-derive the client's bytes; it compares what arrived
- * against its own rebuild, so a second serialisation that drops `null` (or
- * orders keys differently) reads as a divergence and the request is refused.
- * `venueBodies.ts` is this same idea for the two multi-venue routes; these are
- * the body-signed routes among the Bitunix-only ones.
- *
- * `/api/tpsl` is the one entry that also has to unwrap. Its write actions are
- * the only place where what the caller hands `signedRequest` is *not* the body
- * the venue reads: the caller passes the `{ exchange, action, symbol, orderId,
- * params }` wrapper because `exchange` and `action` are the transport's
- * business, and the route forwards the signed bytes to Bitunix verbatim. So
- * the venue body is `params`, and signing the wrapper would send Bitunix
- * `{ exchange, action, … }` in place of `{ orderId, symbol, planType }`.
- *
- * `/api/orders` is absent on purpose: its payload already *is* the venue's own
- * object, and everything its builder would do is what `venueBytesFor` inside
- * `signCachyRequest` does for any object payload. An entry there would be a
- * second unwrap that can only disagree with the first (FEAT-0405 A5).
- */
-const ENVELOPE_BODY_BUILDERS: Record<
-    string,
-    (payload: Record<string, unknown>) => string
-> = {
-    "/api/tpsl": (payload) =>
-        buildTpslWriteBody(payload.params as Record<string, unknown>),
-};
-
 export interface TpSlOrder {
     orderId: string;
     symbol: string;
@@ -410,7 +379,21 @@ class TradeService {
             throw new Error(SIGNING_ERRORS.ROUTE_NOT_MIGRATED);
         }
         const shape = signatureShapeFor(plan, cachyAction(routeUrl));
-        const bodyBuilder = shape === "body" ? ENVELOPE_BODY_BUILDERS[endpoint] : undefined;
+        // `/api/tpsl` is the one route whose signed bytes are not the payload:
+        // its write callers hand over the `{ exchange, action, …, params }`
+        // wrapper (the gate reads symbol/orderId off the top level), while the
+        // venue reads `params` — so the venue body is built from `params`
+        // through the same builder the route rebuilds it with. Every other
+        // body-signed payload already *is* the venue's own object.
+        const params = (signedPayload as Record<string, unknown>)?.params;
+        const signingPayload =
+            shape === "body" &&
+            endpoint === "/api/tpsl" &&
+            typeof params === "object" &&
+            params !== null &&
+            !Array.isArray(params)
+                ? buildTpslWriteBody(params as Record<string, unknown>)
+                : signedPayload;
 
         const response = await exchangeSignedFetch({
                   cachyPath: routeUrl,
@@ -435,15 +418,12 @@ class TradeService {
                   // Still named here: the route reads the provider to resolve
                   // its venue, and the envelope only carries credentials.
                   headers: { "X-Provider": provider },
-                  // `bodyBuilder` is set only on a body-signed route, where the
-                  // payload is the venue's JSON object by construction — the
-                  // shape `serializePayload` cannot express because it walks
-                  // arrays and nested values too. The route re-validates the
-                  // result with Zod, so a payload that is not an object is
+                  // `signingPayload` is the venue's JSON object by construction —
+                  // the shape `serializePayload` cannot express because it
+                  // walks arrays and nested values too. The route re-validates
+                  // the result with Zod, so a payload that is not an object is
                   // refused there rather than forwarded.
-                  payload: bodyBuilder
-                      ? bodyBuilder(signedPayload as Record<string, unknown>)
-                      : signedPayload,
+                  payload: signingPayload,
                   queryParams,
               });
 
@@ -2054,8 +2034,7 @@ class TradeService {
              // Generic provider — live-Bitget never arrives here: its adapter
              // gates this read on SUPPORTS.tpSl (false) and resolves empty, so
              // no Bitunix-only envelope is ever signed with Bitget keys outside
-             // paper mode, where the seam below answers simulated. Removal rides
-             // with the A5 cleanup that deletes ENVELOPE_SIGNED_ROUTES.
+             // paper mode, where the seam below answers simulated.
              const data = await this.signedRequest<Record<string, unknown>>(
                   "/api/tpsl",
                   { action: view },
