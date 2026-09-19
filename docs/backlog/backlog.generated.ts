@@ -1973,6 +1973,60 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md"
   },
   {
+    "id": "BUG-0512",
+    "title": "A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md"
+  },
+  {
+    "id": "BUG-0513",
+    "title": "Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md"
+  },
+  {
+    "id": "BUG-0516",
+    "title": "The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -4695,6 +4749,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md"
+  },
+  {
+    "id": "BUG-0514",
+    "title": "Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0513"
+    ],
+    "file": "bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md"
+  },
+  {
+    "id": "BUG-0515",
+    "title": "The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md"
   },
   {
     "id": "FEAT-0019",
