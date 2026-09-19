@@ -2,9 +2,9 @@
 
 # Backlog index
 
-392 items. How to read and add them: [README.md](README.md).
+393 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 50 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -265,6 +265,7 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 | [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | execution |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | execution |
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | execution |
+| [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -557,6 +558,7 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 | [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md), [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) |
+| [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -858,4 +860,4 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0512**
+Next free number: **0513**
