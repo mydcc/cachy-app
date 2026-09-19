@@ -772,7 +772,10 @@ describe("FEAT-0247 — chart-only position hydration", () => {
  */
 describe("FEAT-0247 — chart-only pending order hydration", () => {
     it("hydrates accountState.openOrders on mount when empty and API keys are configured", async () => {
-        settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
+        // Keys long enough to pass the client-side shape check: since
+        // FEAT-0405 A5 the browser validates before signing, and a short key
+        // is refused before any fetch happens.
+        settingsState.accountFor("bitunix").keys = { key: "test-key-1234", secret: "test-secret-1234" };
         appFetchMock.mockImplementation((url: string) => {
             if (url === "/api/orders?action=pending") {
                 return Promise.resolve({
@@ -801,7 +804,10 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
             target: host,
             props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
         }) as never;
-        await settle();
+        // Signing settles on a macrotask (crypto.subtle), so a fixed number
+        // of microtask rounds is not enough — wait for the hydration itself,
+        // the way the positions test above does.
+        await settleUntil(() => accountState.openOrders.length > 0);
 
         expect(appFetchMock).toHaveBeenCalledWith(
             // FEAT-0405 A5b signs reads through exchangeSignedFetch, which
