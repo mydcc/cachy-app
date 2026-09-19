@@ -2,7 +2,7 @@
 id: BUG-0502
 title: The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected
 type: bug
-status: specced
+status: ready
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0502 — A pre-existing stop reports the new position as protected
@@ -149,10 +150,48 @@ though an old one is present.
 Do not weaken the existing `unprotected` result or its retry budget; both are
 correct. This changes only which inputs are allowed to declare success.
 
-Whether a venue silently ignores an attached stop when a position plan already
-exists, or replaces it, is venue behaviour this analysis did not establish. It
-decides how often the stale-plan case fires in practice, not whether the check
-is sound.
+Whether Bitunix silently ignores an attached stop when a position plan already
+exists, or replaces it, cannot be seen from the code — but it no longer blocks
+this item, because both outcomes leave the check unsound:
+
+- **Bitunix** (`tpSlAtEntry: true`,
+  `src/services/exchange/bitunixCapabilities.ts`): `placeEntryGroup` writes the
+  new stop onto the same place-order request (`slPrice`), so the new price is
+  always transmitted (`src/services/orderPlacementService.ts:175-196`). If the
+  venue replaces the old position stop, the check passes — for the wrong reason,
+  since the price is never compared. If the venue stacks the new stop next to
+  the old one, `plansFor` keeps whichever plan it encounters first and the
+  confirming plan is arbitrary. Either way the reported `"attached"` describes
+  transmission, not which plan protects the position.
+- **Bitget** (`tpSlAtEntry: false`,
+  `src/services/exchange/bitgetCapabilities.ts`): `attach` is false, so the
+  `stopLoss` parameter is `undefined` and nothing is transmitted; the placement
+  path contains no separate stop step (established in BUG-0503). Whenever an old
+  plan exists on the symbol, the stale-plan case fires with certainty, and the
+  reported `"placed"` describes a stop nobody sent.
+
+The remaining venue-internal question (replace vs. stack on Bitunix) changes how
+often the stale-plan case fires in practice, not whether the check is sound.
+
+## Financial impact
+
+Configured risk is `accountSize × riskPercentage = R`. Every sub-case below
+spends more than R while reporting the position as capped at R:
+
+- **Add case:** a second entry of equal size doubles the position while the
+  confirming stop was sized and priced for the first entry. An adverse move to
+  the old stop costs up to ~2R; if the old stop is wider than the intended new
+  one, more.
+- **Wrong-price case:** the stop exists but at a level the trader replaced and
+  believes is gone. The loss equals full position × distance(entry, actual stop)
+  and is unbounded by anything the trader configured.
+- **Hedge wrong-side case:** one side reports protected while its position has
+  no stop at all. Exposure is the full side notional into the adverse move,
+  bounded only by liquidation — whose projection is itself wrong on cross
+  margin (BUG-0504).
+- **Label effect:** `unprotected: false` with `"attached"`/`"placed"` lets every
+  downstream consumer (journal, risk display, trader trust) treat the position
+  as capped risk. The overspend is invisible until the stop level trades.
 
 ## Acceptance criteria
 
@@ -167,6 +206,18 @@ is sound.
       `unprotected: false`, and the retry path is still reached when no plan
       exists
 - [ ] The same assertions hold for the take-profit half
+
+## Out of scope
+
+- The `plansFor` card rendering stays symbol-scoped; only the placement path
+  gets identity-aware lookup.
+- The `unprotected` result, its i18n key and the stop retry budget are correct
+  and stay untouched.
+- No live-venue verification: no real orders are placed to observe replace vs.
+  stack on Bitunix; the fix must hold under both behaviours.
+- Take-profit urgency is not re-prioritised; the retry asymmetry stays as is.
+- BUG-0503 (Bitget transmits no stop at all) and BUG-0504 (cross-margin
+  liquidation projection) are separate items and keep their own fixes.
 
 ## Links
 
