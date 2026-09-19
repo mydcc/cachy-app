@@ -67,7 +67,12 @@ export function isImmutableAsset(filePath) {
  * @returns {string}
  */
 export function cacheControlFor(filePath) {
-  return isImmutableAsset(filePath)
-    ? "public, max-age=31536000, immutable"
-    : "no-cache";
+  if (isImmutableAsset(filePath)) {
+    return "public, max-age=31536000, immutable";
+  }
+  const normalized = filePath.split(path.sep).join("/");
+  if (/\.(png|svg|ico|jpg|jpeg|webp|json|xml|txt)$/i.test(normalized)) {
+    return "public, max-age=86400, must-revalidate";
+  }
+  return "no-cache";
 }

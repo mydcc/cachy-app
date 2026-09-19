@@ -127,9 +127,11 @@ describe('cacheControlFor', () => {
     );
   });
 
-  it('forces revalidation for everything else', () => {
+  it('forces revalidation for HTML and applies 1-day max-age for static non-immutable assets', () => {
     expect(cacheControlFor('build/client/index.html')).toBe('no-cache');
-    expect(cacheControlFor('build/client/favicon.ico')).toBe('no-cache');
+    expect(cacheControlFor('build/client/favicon.ico')).toBe(
+      'public, max-age=86400, must-revalidate',
+    );
   });
 });
 

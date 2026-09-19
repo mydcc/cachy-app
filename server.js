@@ -29,6 +29,11 @@ app.use(compression({ level: 6 }));
 // Apply security headers to all requests.
 app.use((req, res, next) => {
   applySecurityHeaders(res);
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function (statusCode, ...args) {
+    applySecurityHeaders(res);
+    return originalWriteHead.call(this, statusCode, ...args);
+  };
   next();
 });
 
