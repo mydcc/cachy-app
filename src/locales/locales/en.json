@@ -321,6 +321,7 @@
       "noActive": "No active alerts",
       "fired": "Alert Fired!",
       "priceReached": "{symbol} reached {price}",
+      "ruleTriggered": "{symbol} — alert triggered: {condition}",
       "manage": "Manage Alerts",
       "addAlert": "Add Alert",
       "priceLimit": "Price",
@@ -1213,6 +1214,10 @@
       "removeFavorite": "Remove from Favorites",
       "openChannel": "Open Channel",
       "closeChannel": "Close Channel"
+    },
+    "aria": {
+      "loadToCalculator": "Load {symbol} to calculator",
+      "regionLabel": "Market Overview for {symbol}"
     }
   },
   "seo": {

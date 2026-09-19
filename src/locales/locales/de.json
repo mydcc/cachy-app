@@ -321,6 +321,7 @@
       "noActive": "Keine aktiven Alarme",
       "fired": "Alarm ausgelöst!",
       "priceReached": "{symbol} hat {price} erreicht",
+      "ruleTriggered": "{symbol} — Alarm ausgelöst: {condition}",
       "manage": "Alarme verwalten",
       "addAlert": "Alarm hinzufügen",
       "priceLimit": "Preis",
@@ -1213,6 +1214,10 @@
       "removeFavorite": "Aus Favoriten entfernen",
       "openChannel": "Kanal öffnen",
       "closeChannel": "Kanal schließen"
+    },
+    "aria": {
+      "loadToCalculator": "{symbol} in Rechner laden",
+      "regionLabel": "Marktübersicht für {symbol}"
     }
   },
   "seo": {
