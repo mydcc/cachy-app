@@ -2,9 +2,9 @@
 
 # Backlog index
 
-385 items. How to read and add them: [README.md](README.md).
+386 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 42 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 43 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -262,6 +262,7 @@ Counts by status: 💡 idea 23 · 📋 specced 42 · 🟡 in-progress 1 · ✅ d
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | 📋 specced | alerts |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | 📋 specced | calculation |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | 📋 specced | calculation |
+| [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -547,6 +548,7 @@ Counts by status: 💡 idea 23 · 📋 specced 42 · 🟡 in-progress 1 · ✅ d
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -844,4 +846,4 @@ Counts by status: 💡 idea 23 · 📋 specced 42 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0505**
+Next free number: **0506**
