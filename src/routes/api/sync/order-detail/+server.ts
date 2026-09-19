@@ -63,7 +63,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
   const check = checkPresignedRequest(request, {
     cachyPath: CACHY_PATH,
-    rebuilt: canonicalQueryString(buildOrderDetailQueryParams(orderId)),
+    rebuilt: canonicalQueryString(buildOrderDetailQueryParams({ orderId })),
   });
   if (!check.ok) {
     return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });

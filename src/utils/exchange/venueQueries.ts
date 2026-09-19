@@ -41,10 +41,6 @@ const SYNC_LIMIT_DEFAULT = 50;
 const SYNC_LIMIT_MAX = 100;
 const SYNC_ORDERS_LIMIT_DEFAULT = 100;
 
-export function buildOrderDetailQueryParams(orderId: string): Record<string, string> {
-  return { orderId };
-}
-
 /**
  * `marginCoin` defaults to USDT because the venue's endpoint answers for a
  * single margin coin and every Cachy position is USDT-margined; the default

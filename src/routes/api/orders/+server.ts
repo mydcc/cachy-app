@@ -88,13 +88,17 @@ function rebuiltQuery(
   action: string,
   payload: OrderRequestPayload,
 ): string {
-  if (action === "pending") {
+  // Dispatched off `payload.type`, not `action`: the route has already refused
+  // a request whose URL action disagrees with its payload type, so the two
+  // name the same action — and only the discriminant narrows the union for
+  // the builders below.
+  if (action === "pending" && payload.type === "pending") {
     return queryStringForVenue(venue, buildPendingOrdersQueryParams(venue));
   }
-  if (action === "history") {
+  if (action === "history" && payload.type === "history") {
     return queryStringForVenue(venue, buildOrdersHistoryQueryParams(venue, payload));
   }
-  if (action === "order-detail") {
+  if (action === "order-detail" && payload.type === "order-detail") {
     return queryStringForVenue(venue, buildOrderDetailQueryParams(payload));
   }
   throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
@@ -164,6 +168,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress, url }) =
           ? rebuiltQuery(exchange, action, payload)
           : buildVenueBody(exchange, payload),
       rawBody: typeof venueBody === "string" ? venueBody : undefined,
+      // Venue-aware nonce requirement: Bitget sends no nonce (its prehash has
+      // no such field), so the guard must not ask its half for one.
+      venue: exchange,
     });
     if (!check.ok) {
       return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });

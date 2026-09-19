@@ -64,6 +64,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     const check = checkPresignedRequest(request, {
       cachyPath: CACHY_PATH,
       rebuilt,
+      // Venue-aware nonce requirement: Bitget sends no nonce (its prehash has
+      // no such field), so the guard must not ask its half for one.
+      venue: exchange,
     });
     if (!check.ok) {
       return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });

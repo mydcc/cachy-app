@@ -220,7 +220,7 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
       "/api/sync/order-detail",
       syncOrderDetail as unknown as RouteHandler,
       { orderId: "1" },
-      buildOrderDetailQueryParams("1"),
+      buildOrderDetailQueryParams({ orderId: "1" }),
       "orderId=1",
     ],
   ])(
