@@ -2964,8 +2964,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)",
     "type": "feature",
     "status": "in-progress",
-    "branch": "feat/feat-0405-a5b-orders",
-    "assignee": "claude",
+    "branch": "feat/feat-0405-a5b-takeover",
+    "assignee": "opencode",
     "priority": "P1",
     "milestone": "none",
     "editions": [
