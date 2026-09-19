@@ -443,6 +443,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md"
   },
   {
+    "id": "BUG-0502",
+    "title": "The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md"
+  },
+  {
+    "id": "BUG-0503",
+    "title": "On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -1860,6 +1896,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md"
+  },
+  {
+    "id": "BUG-0504",
+    "title": "The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md"
   },
   {
     "id": "FEAT-0014",
