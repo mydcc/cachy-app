@@ -774,7 +774,7 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
     it("hydrates accountState.openOrders on mount when empty and API keys are configured", async () => {
         settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
         appFetchMock.mockImplementation((url: string) => {
-            if (url === "/api/orders") {
+            if (url === "/api/orders?action=pending") {
                 return Promise.resolve({
                     json: () =>
                         Promise.resolve({
@@ -804,7 +804,9 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
         await settle();
 
         expect(appFetchMock).toHaveBeenCalledWith(
-            "/api/orders",
+            // FEAT-0405 A5b signs reads through exchangeSignedFetch, which
+            // carries the action in `?action=` for the route's shape lookup.
+            "/api/orders?action=pending",
             expect.objectContaining({ method: "POST" }),
         );
         expect(accountState.openOrders.some((o) => o.orderId === "o-1")).toBe(true);
