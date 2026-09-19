@@ -19,7 +19,6 @@ import { describe, it, expect } from 'vitest';
 import {
   SECURITY_HEADERS,
   applySecurityHeaders,
-  installSecurityHeadersHook,
   isImmutableAsset,
   cacheControlFor,
 } from './server-headers.js';
@@ -28,16 +27,8 @@ function mockRes() {
   const headers = new Map();
   return {
     headers,
-    headersSent: false,
     setHeader(name, value) {
       headers.set(name, value);
-    },
-    getHeader(name) {
-      return headers.get(name);
-    },
-    writeHead(statusCode, ...args) {
-      this.writeHeadArgs = [statusCode, ...args];
-      return this;
     },
   };
 }
@@ -103,23 +94,6 @@ describe('applySecurityHeaders', () => {
       expect(res.headers.get(name)).toBe(value);
     }
   });
-
-  it('preserves a pre-existing nonce CSP from the SvelteKit layer', () => {
-    const res = mockRes();
-    const nonceCsp = "default-src 'self'; script-src 'nonce-abc123'";
-    res.setHeader('Content-Security-Policy', nonceCsp);
-    applySecurityHeaders(res);
-    expect(res.headers.get('Content-Security-Policy')).toBe(nonceCsp);
-    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
-  });
-
-  it('sets the static CSP when none is present', () => {
-    const res = mockRes();
-    applySecurityHeaders(res);
-    expect(res.headers.get('Content-Security-Policy')).toBe(
-      SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')[1],
-    );
-  });
 });
 
 describe('isImmutableAsset', () => {
@@ -153,19 +127,9 @@ describe('cacheControlFor', () => {
     );
   });
 
-  it('forces revalidation for HTML and applies 1-day max-age for static non-immutable assets', () => {
+  it('forces revalidation for everything else', () => {
     expect(cacheControlFor('build/client/index.html')).toBe('no-cache');
-    expect(cacheControlFor('build/client/favicon.ico')).toBe(
-      'public, max-age=86400, must-revalidate',
-    );
-    expect(cacheControlFor('build/client/images/og-image.png')).toBe(
-      'public, max-age=86400, must-revalidate',
-    );
-  });
-
-  it('never caches deploy-sensitive JSON in the 1-day tier', () => {
-    expect(cacheControlFor('build/client/_app/version.json')).toBe('no-cache');
-    expect(cacheControlFor('build/client/manifest.json')).toBe('no-cache');
+    expect(cacheControlFor('build/client/favicon.ico')).toBe('no-cache');
   });
 });
 
@@ -186,35 +150,5 @@ describe('static asset headers integration', () => {
     expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
-  });
-});
-
-describe('installSecurityHeadersHook', () => {
-  it('applies security headers on writeHead and forwards to the original', () => {
-    const res = mockRes();
-    installSecurityHeadersHook(res);
-    res.writeHead(200, { 'x-custom': 'yes' });
-    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
-    expect(res.headers.get('Content-Security-Policy')).toBeDefined();
-    expect(res.writeHeadArgs).toEqual([200, { 'x-custom': 'yes' }]);
-  });
-
-  it('preserves a pre-existing nonce CSP from the SvelteKit layer', () => {
-    const res = mockRes();
-    const nonceCsp = "default-src 'self'; script-src 'nonce-abc123'";
-    res.setHeader('Content-Security-Policy', nonceCsp);
-    installSecurityHeadersHook(res);
-    res.writeHead(200);
-    expect(res.headers.get('Content-Security-Policy')).toBe(nonceCsp);
-    expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
-  });
-
-  it('does not touch headers when they were already sent', () => {
-    const res = mockRes();
-    installSecurityHeadersHook(res);
-    res.headersSent = true;
-    res.writeHead(200);
-    expect(res.headers.size).toBe(0);
-    expect(res.writeHeadArgs).toEqual([200]);
   });
 });

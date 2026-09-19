@@ -34,45 +34,18 @@ export const SECURITY_HEADERS = [
 ];
 
 /**
- * @param {{ setHeader: (name: string, value: string) => unknown, getHeader?: (name: string) => unknown }} res
+ * @param {{ setHeader: (name: string, value: string) => unknown }} res
  */
 export function applySecurityHeaders(res) {
   for (const [name, value] of SECURITY_HEADERS) {
-    if (name === "Content-Security-Policy" && typeof res.getHeader === "function") {
-      const existing = res.getHeader(name);
-      // The SvelteKit layer (kit.csp.mode "auto", see svelte.config.js) emits
-      // a per-request nonce CSP via hooks.server.ts — it must win wherever
-      // present; overwriting it would strip nonces and break inline scripts.
-      if (existing != null && existing !== value) {
-        continue;
-      }
-    }
     res.setHeader(name, value);
   }
 }
 
 /**
- * Re-apply security headers just before the response headers flush. The
- * SvelteKit handler (SPA fallback) answers via res.writeHead and would
- * otherwise bypass headers set in earlier middleware — installing this hook
- * per request covers every response path exactly once.
- * @param {{ writeHead: (...args: never[]) => unknown, headersSent?: boolean, setHeader: (name: string, value: string) => unknown, getHeader?: (name: string) => unknown }} res
- */
-export function installSecurityHeadersHook(res) {
-  const originalWriteHead = res.writeHead;
-  res.writeHead = function (statusCode, ...args) {
-    if (!res.headersSent) {
-      applySecurityHeaders(res);
-    }
-    return originalWriteHead.call(this, statusCode, ...args);
-  };
-}
-
-/**
  * Fingerprinted SvelteKit assets live under /_app/immutable/ and static fonts
  * under /fonts/ are safe to cache forever (immutable content/versioned assets).
- * Everything else — index.html, version.json, other non-hashed files — must
- * revalidate (static images and metadata cache briefly, see cacheControlFor).
+ * Everything else — index.html, favicon.ico, non-hashed files — must revalidate.
  * Normalize path separators first: the callback receives a filesystem path,
  * which uses backslashes on Windows.
  * @param {string} filePath
@@ -94,15 +67,7 @@ export function isImmutableAsset(filePath) {
  * @returns {string}
  */
 export function cacheControlFor(filePath) {
-  if (isImmutableAsset(filePath)) {
-    return "public, max-age=31536000, immutable";
-  }
-  const normalized = filePath.split(path.sep).join("/");
-  // NOTE: .json stays on no-cache on purpose: non-fingerprinted JSON such as
-  // _app/version.json or manifest.json changes on every deploy and must never
-  // sit in a 1-day cache.
-  if (/\.(png|svg|ico|jpg|jpeg|webp|xml|txt)$/i.test(normalized)) {
-    return "public, max-age=86400, must-revalidate";
-  }
-  return "no-cache";
+  return isImmutableAsset(filePath)
+    ? "public, max-age=31536000, immutable"
+    : "no-cache";
 }

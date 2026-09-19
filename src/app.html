@@ -91,6 +91,43 @@
       content="black-translucent"
     />
 
+    <!-- Structured Data (Schema.org) for SEO -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Cachy",
+        "alternateName": "Cachy - Position Size & Risk Management",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web Browser",
+        "browserRequirements": "Requires JavaScript. Modern browsers recommended.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis.",
+        "url": "https://cachy.app",
+        "screenshot": "https://cachy.app/og-image.jpg",
+        "featureList": [
+          "Position Size Calculator",
+          "Risk Management Tools",
+          "Take-Profit Target Optimization",
+          "Real-time Trade Calculations",
+          "Visual Trade Analysis",
+          "Trade Journal & Statistics",
+          "Multi-Asset Support (Crypto, Forex, Stocks)",
+          "Advanced Technical Indicators"
+        ],
+        "creator": {
+          "@type": "Organization",
+          "name": "Cachy"
+        },
+        "inLanguage": ["en-US", "de-DE"],
+        "isAccessibleForFree": true
+      }
+    </script>
+
     %sveltekit.head%
 
     <!-- Matomo Tag Manager: NOT loaded here. Telemetry is opt-out
@@ -154,42 +191,5 @@
 
   <body class="min-h-screen" data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
-
-    <!-- Structured Data (Schema.org) for SEO -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "Cachy",
-        "alternateName": "Cachy - Position Size & Risk Management",
-        "applicationCategory": "FinanceApplication",
-        "operatingSystem": "Web Browser",
-        "browserRequirements": "Requires JavaScript. Modern browsers recommended.",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "Comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis.",
-        "url": "https://cachy.app",
-        "screenshot": "https://cachy.app/og-image.jpg",
-        "featureList": [
-          "Position Size Calculator",
-          "Risk Management Tools",
-          "Take-Profit Target Optimization",
-          "Real-time Trade Calculations",
-          "Visual Trade Analysis",
-          "Trade Journal & Statistics",
-          "Multi-Asset Support (Crypto, Forex, Stocks)",
-          "Advanced Technical Indicators"
-        ],
-        "creator": {
-          "@type": "Organization",
-          "name": "Cachy"
-        },
-        "inLanguage": ["en-US", "de-DE"],
-        "isAccessibleForFree": true
-      }
-    </script>
   </body>
 </html>
