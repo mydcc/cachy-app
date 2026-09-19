@@ -1898,6 +1898,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md"
   },
   {
+    "id": "BUG-0504",
+    "title": "The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
