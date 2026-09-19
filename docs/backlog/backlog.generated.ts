@@ -443,6 +443,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md"
   },
   {
+    "id": "BUG-0502",
+    "title": "The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
