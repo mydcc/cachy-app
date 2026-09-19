@@ -25,15 +25,21 @@
  * it: success returns the venue data, a per-order `failureList` entry
  * surfaces as an error rather than a silent success, and a 400/404 on a
  * single cancel resolves quietly (the order is already gone).
+ *
+ * FEAT-0405 A5b — `executeOrder` takes the pre-signed envelope and the exact
+ * bytes the client signed instead of credentials. The envelope below comes
+ * from the same `signCachyRequest` the browser runs, so the venue is
+ * exercised with the headers a real request carries.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
+import { signCachyRequest } from "../../exchange/browserSigning";
+import type { PresignedEnvelope } from "../presignedEnvelope";
+import { TEST_SIGNING_KEYS } from "../../../tests/helpers/signedEnvelopeRequest";
 import { bitunixVenue } from "./bitunix";
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
-
-const CREDS = { apiKey: "validApiKey123", apiSecret: "validSecret123456" };
 
 const cancelOrder = (extra: Record<string, unknown> = {}) =>
   ({
@@ -56,6 +62,29 @@ function okResponse(body: unknown) {
   return { ok: true, status: 200, text: async () => JSON.stringify(body) };
 }
 
+/**
+ * Runs one payload through the venue the way the orders route does: the
+ * envelope is signed with the browser's own function and the forwarded body
+ * is the wrapper's `venueBody` — the exact string that was signed.
+ */
+async function executeAsRoute(payload: OrderRequestPayload) {
+  const signed = await signCachyRequest({
+    cachyPath: `/api/orders?action=${payload.type}`,
+    keys: TEST_SIGNING_KEYS,
+    venue: "bitunix",
+    payload: payload as unknown as Record<string, unknown>,
+    queryParams: {},
+  });
+  const wrapper = JSON.parse(String(signed.body)) as { venueBody: string };
+  const envelope: PresignedEnvelope = {
+    apiKey: TEST_SIGNING_KEYS.apiKey,
+    signature: signed.headers["x-api-sign"],
+    timestamp: signed.headers["x-api-timestamp"],
+    nonce: signed.headers["x-api-nonce"],
+  };
+  return bitunixVenue.executeOrder(envelope, payload, wrapper.venueBody);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -66,7 +95,7 @@ describe("bitunixVenue.executeOrder cancel-order", () => {
       okResponse({ code: 0, data: { successList: [{ orderId: "42" }], failureList: [] }, msg: "Success" }),
     );
 
-    const result = await bitunixVenue.executeOrder(CREDS, cancelOrder());
+    const result = await executeAsRoute(cancelOrder());
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("/api/v1/futures/trade/cancel_orders");
@@ -78,7 +107,7 @@ describe("bitunixVenue.executeOrder cancel-order", () => {
     for (const status of [400, 404]) {
       fetchMock.mockResolvedValue({ ok: false, status, text: async () => "gone" });
 
-      await expect(bitunixVenue.executeOrder(CREDS, cancelOrder())).resolves.toBeUndefined();
+      await expect(executeAsRoute(cancelOrder())).resolves.toBeUndefined();
     }
   });
 
@@ -87,13 +116,13 @@ describe("bitunixVenue.executeOrder cancel-order", () => {
       okResponse({ code: 0, data: { failureList: [{ orderId: "42", errorCode: "101", errorMsg: "filled" }] }, msg: "Success" }),
     );
 
-    await expect(bitunixVenue.executeOrder(CREDS, cancelOrder())).rejects.toThrow("filled");
+    await expect(executeAsRoute(cancelOrder())).rejects.toThrow("filled");
   });
 
   it("throws on a non-zero venue code", async () => {
     fetchMock.mockResolvedValue(okResponse({ code: "20001", data: null, msg: "auth failed" }));
 
-    await expect(bitunixVenue.executeOrder(CREDS, cancelOrder())).rejects.toThrow("auth failed");
+    await expect(executeAsRoute(cancelOrder())).rejects.toThrow("auth failed");
   });
 });
 
@@ -101,7 +130,7 @@ describe("bitunixVenue.executeOrder cancel-all", () => {
   it("posts to cancel_all_orders and returns the venue data", async () => {
     fetchMock.mockResolvedValue(okResponse({ code: "0", data: { success: true }, msg: "Success" }));
 
-    const result = await bitunixVenue.executeOrder(CREDS, cancelAll());
+    const result = await executeAsRoute(cancelAll());
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("/api/v1/futures/trade/cancel_all_orders");
@@ -112,7 +141,7 @@ describe("bitunixVenue.executeOrder cancel-all", () => {
   it("throws on transport failure instead of resolving quietly", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 500, text: async () => "boom" });
 
-    await expect(bitunixVenue.executeOrder(CREDS, cancelAll())).rejects.toThrow("Cancel all failed");
+    await expect(executeAsRoute(cancelAll())).rejects.toThrow("Cancel all failed");
   });
 
   it("surfaces a partial failureList entry as an error", async () => {
@@ -120,6 +149,6 @@ describe("bitunixVenue.executeOrder cancel-all", () => {
       okResponse({ code: "0", data: { failureList: [{ errorCode: "9", errorMsg: "busy" }] }, msg: "ok" }),
     );
 
-    await expect(bitunixVenue.executeOrder(CREDS, cancelAll())).rejects.toThrow("busy");
+    await expect(executeAsRoute(cancelAll())).rejects.toThrow("busy");
   });
 });

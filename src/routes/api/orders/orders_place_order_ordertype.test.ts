@@ -18,6 +18,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
 
 /*
  * Regression (BUG-0219): the route built its outbound payload with `type`,
@@ -28,6 +29,10 @@ import * as clientToken from "../../../lib/server/clientToken";
  * close-position, which sends MARKET — whatever Bitunix does with a missing
  * orderType, it happened to match what that path wanted. The first LIMIT
  * order placed through this route is what surfaced it.
+ *
+ * FEAT-0405 A5b — both actions are body-signed, so the cases below send a
+ * pre-signed envelope; the assertions still read the bytes the venue
+ * receives.
  */
 
 const fetchMock = vi.fn();
@@ -35,19 +40,10 @@ vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-    return {
-        text: async () => JSON.stringify(body),
-        headers: new Headers(),
-    } as unknown as Request;
-}
-
 function sentBody() {
     const [, options] = fetchMock.mock.calls[0];
     return JSON.parse((options as { body: string }).body);
 }
-
-const CREDS = { apiKey: "validApiKey123", apiSecret: "validSecret123456" };
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -58,16 +54,23 @@ beforeEach(() => {
     });
 });
 
-async function post(body: Record<string, unknown>) {
+async function post(action: string, body: Record<string, unknown>) {
+    const { request, url } = await signedEnvelopeRequest(
+        `/api/orders?action=${action}`,
+        { exchange: "bitunix", ...body },
+        {},
+        "bitunix",
+    );
     return POST({
-        request: makeRequest({ exchange: "bitunix", ...CREDS, ...body }),
+        request,
+        url,
         getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 }
 
 describe("POST /api/orders sends the order type under the name Bitunix documents", () => {
     it("sends orderType, not type, for a LIMIT order", async () => {
-        await post({
+        await post("place-order", {
             type: "place-order",
             symbol: "BTCUSDT",
             side: "BUY",
@@ -85,7 +88,7 @@ describe("POST /api/orders sends the order type under the name Bitunix documents
     });
 
     it("sends orderType for a MARKET order too", async () => {
-        await post({
+        await post("place-order", {
             type: "place-order",
             symbol: "BTCUSDT",
             side: "SELL",
@@ -100,7 +103,7 @@ describe("POST /api/orders sends the order type under the name Bitunix documents
 
     it("sends orderType on a close-position order", async () => {
         // This is the path that masked the bug, so it gets its own assertion.
-        await post({
+        await post("close-position", {
             type: "close-position",
             symbol: "BTCUSDT",
             side: "SELL",
@@ -116,15 +119,19 @@ describe("POST /api/orders sends the order type under the name Bitunix documents
     it("still requires a price for a LIMIT order", async () => {
         // The LIMIT-price check reads the renamed field; if it had been left
         // reading `type` it would silently stop checking anything.
-        const res = await post({
-            type: "place-order",
-            symbol: "BTCUSDT",
-            side: "BUY",
-            orderType: "LIMIT",
-            qty: "0.02",
-        });
-
-        expect(res.status).toBe(500);
+        //
+        // FEAT-0405 A5b — the check now fires at signing time, before any
+        // envelope exists: an unsignable payload is refused by the builder
+        // rather than travelling to the route and failing there.
+        await expect(
+            post("place-order", {
+                type: "place-order",
+                symbol: "BTCUSDT",
+                side: "BUY",
+                orderType: "LIMIT",
+                qty: "0.02",
+            }),
+        ).rejects.toThrow();
         expect(fetchMock).not.toHaveBeenCalled();
     });
 });
