@@ -1916,6 +1916,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md"
   },
   {
+    "id": "BUG-0508",
+    "title": "An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
