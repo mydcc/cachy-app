@@ -37,7 +37,10 @@ vi.mock('../stores/settings.svelte', () => ({
     settingsState: {
         apiProvider: 'bitunix',
         accounts: [
-      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: 'k', secret: 's' } },
+      // Keys long enough to pass the client-side shape check: since
+      // FEAT-0405 A5 the browser validates before signing, and short keys
+      // are refused before any fetch happens.
+      { id: "bitunix", name: "Bitunix", exchange: "bitunix", keys: { key: 'test-key-1234', secret: 'test-secret-1234' } },
     ],
     activeAccountId: "bitunix"
     }
