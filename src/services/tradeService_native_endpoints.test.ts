@@ -92,7 +92,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       await tradeService.cancelAllOrders("BTCUSDT");
 
       expect(signedRequestSpy).toHaveBeenCalledTimes(1);
-      expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
+      expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         symbol: "BTCUSDT",
         type: "cancel-all",
       }, GATE_PASS);
@@ -106,7 +106,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       await tradeService.cancelAllOrders();
 
       expect(signedRequestSpy).toHaveBeenCalledTimes(1);
-      expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
+      expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         symbol: undefined,
         type: "cancel-all",
       }, GATE_PASS);
@@ -122,7 +122,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       await tradeService.closeAllPositions("BTCUSDT");
 
       expect(signedRequestSpy).toHaveBeenCalledTimes(1);
-      expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
+      expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         type: "close-all-positions",
         symbol: "BTCUSDT",
       }, GATE_PASS);
@@ -146,7 +146,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
 
       const signedRequestSpy = vi
         .spyOn(tradeService, "signedRequest")
-        .mockImplementation(async (_method, _url, body) => {
+        .mockImplementation(async (_endpoint, body) => {
           if (body.type === "cancel-all") return { successList: [], failureList: [] };
           if (body.type === "flash-close-position") return { positionId: "pos-123456" };
           return {};
@@ -155,7 +155,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       const result = await tradeService.flashClosePosition("BTCUSDT", "long");
 
       expect(result.success).toBe(true);
-      expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
+      expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         type: "flash-close-position",
         symbol: "BTCUSDT",
         positionId: "pos-123456",
@@ -180,11 +180,11 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
 
       const res = await tradeService.getOrderDetail("order-999");
       expect(res).toEqual(mockOrder);
-      expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
+      expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         type: "order-detail",
         orderId: "order-999",
         clientId: undefined,
-      });
+      }, undefined, expect.anything());
     });
 
     it("modifyOrder uses Safe Modify pattern: fetches live order first, merges parameters, and sends modify-order preserving order ID", async () => {
@@ -222,7 +222,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       });
 
       expect(getOrderDetailSpy).toHaveBeenCalledWith("order-999", undefined);
-      expect(signedRequestSpy).toHaveBeenCalledWith("POST", "/api/orders", {
+      expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         type: "modify-order",
         orderId: "order-999",
         clientId: "client-abc",
@@ -263,7 +263,6 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       });
 
       expect(signedRequestSpy).toHaveBeenCalledWith(
-        "POST",
         "/api/orders",
         expect.objectContaining({
           type: "modify-order",

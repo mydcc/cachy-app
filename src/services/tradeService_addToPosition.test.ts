@@ -129,7 +129,7 @@ beforeEach(() => {
     tradeState.remoteAccountStateAt = Date.now();
     giveBalance(new Decimal(50_000));
     givePosition(longPosition());
-    vi.spyOn(tradeService, "signedRequest").mockImplementation(async (_m, _e, payload) => {
+    vi.spyOn(tradeService, "signedRequest").mockImplementation(async (_e, payload) => {
         sent.push(payload);
         return { code: "0", data: { orderId: "o-1", clientId: payload.clientId } };
     });

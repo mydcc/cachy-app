@@ -194,7 +194,7 @@ describe("FEAT-0012 — one seam", () => {
         const payloads: Array<Record<string, unknown>> = [];
         const spy = vi
             .spyOn(tradeService, "signedRequest")
-            .mockImplementation(async (_m, _e, payload) => {
+            .mockImplementation(async (_e, payload) => {
                 payloads.push(payload);
                 return { code: "0" };
             });
@@ -287,9 +287,9 @@ describe("FEAT-0012 — paper orders still go through the gate", () => {
         const original = tradeService.signedRequest.bind(tradeService);
         const spy = vi
             .spyOn(tradeService, "signedRequest")
-            .mockImplementation(async (m, e, p, pass) => {
+            .mockImplementation(async (e, p, pass, q) => {
                 paperState.setEnabled(true);
-                return original(m, e, p, pass);
+                return original(e, p, pass, q);
             });
 
         try {

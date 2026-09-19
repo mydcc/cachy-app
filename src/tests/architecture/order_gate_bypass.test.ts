@@ -87,7 +87,7 @@ function findBypasses(source: string, file: string): Bypass[] {
         );
         if (!action) continue;
 
-        // A gated call passes the pass through as the fourth argument.
+        // A gated call passes the pass through alongside the payload.
         if (/signedRequest\s*(<[^>]*>)?\s*\([^)]*\bpass\b/s.test(window)) continue;
 
         found.push({ file, line: i + 1, excerpt: lines[i].trim() });

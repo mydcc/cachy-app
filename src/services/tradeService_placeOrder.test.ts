@@ -99,7 +99,7 @@ beforeEach(() => {
         symbolStatus: "OPEN",
         isApiSupported: true,
     });
-    vi.spyOn(tradeService, "signedRequest").mockImplementation(async (_m, _e, payload) => {
+    vi.spyOn(tradeService, "signedRequest").mockImplementation(async (_e, payload) => {
         sent.push(payload);
         return { code: "0", data: { orderId: "o-1", clientId: payload.clientId } };
     });
