@@ -2,9 +2,9 @@
 
 # Backlog index
 
-389 items. How to read and add them: [README.md](README.md).
+392 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 46 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -262,6 +262,7 @@ Counts by status: 💡 idea 23 · 📋 specced 46 · 🟡 in-progress 1 · ✅ d
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | 📋 specced | alerts |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | 📋 specced | calculation |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | 📋 specced | calculation |
+| [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | execution |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | execution |
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -339,6 +340,7 @@ Counts by status: 💡 idea 23 · 📋 specced 46 · 🟡 in-progress 1 · ✅ d
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | 📋 specced | execution |
+| [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | 📋 specced | execution |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | execution |
 | [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | 📋 specced | execution |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
@@ -418,6 +420,7 @@ Counts by status: 💡 idea 23 · 📋 specced 46 · 🟡 in-progress 1 · ✅ d
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | alerts |
 | [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | docs |
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | security |
+| [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | 📋 specced | execution |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -551,6 +554,7 @@ Counts by status: 💡 idea 23 · 📋 specced 46 · 🟡 in-progress 1 · ✅ d
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md), [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
@@ -677,6 +681,7 @@ Counts by status: 💡 idea 23 · 📋 specced 46 · 🟡 in-progress 1 · ✅ d
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
@@ -802,6 +807,7 @@ Counts by status: 💡 idea 23 · 📋 specced 46 · 🟡 in-progress 1 · ✅ d
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | none | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | 📋 specced | none | community, pro, private | A | ADR-0013 | — |
+| [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
