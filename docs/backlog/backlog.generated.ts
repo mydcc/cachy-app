@@ -461,6 +461,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md"
   },
   {
+    "id": "BUG-0503",
+    "title": "On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
