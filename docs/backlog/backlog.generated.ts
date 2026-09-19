@@ -4604,6 +4604,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md"
   },
   {
+    "id": "BUG-0509",
+    "title": "A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

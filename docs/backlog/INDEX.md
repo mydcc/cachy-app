@@ -2,9 +2,9 @@
 
 # Backlog index
 
-386 items. How to read and add them: [README.md](README.md).
+387 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 43 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 44 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -338,6 +338,7 @@ Counts by status: 💡 idea 23 · 📋 specced 43 · 🟡 in-progress 1 · ✅ d
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | 📋 specced | execution |
+| [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | execution |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -673,6 +674,7 @@ Counts by status: 💡 idea 23 · 📋 specced 43 · 🟡 in-progress 1 · ✅ d
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -846,4 +848,4 @@ Counts by status: 💡 idea 23 · 📋 specced 43 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0509**
+Next free number: **0510**
