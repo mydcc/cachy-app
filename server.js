@@ -18,7 +18,7 @@
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
-import { applySecurityHeaders, cacheControlFor } from './server-headers.js';
+import { applySecurityHeaders, cacheControlFor, installSecurityHeadersHook } from './server-headers.js';
 
 const app = express();
 
@@ -26,14 +26,11 @@ const app = express();
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
 
-// Apply security headers to all requests.
+// Re-apply security headers just before the response headers flush. The
+// SvelteKit handler (SPA fallback) answers via res.writeHead, which bypasses
+// headers set in earlier middleware — one hook here covers every path.
 app.use((req, res, next) => {
-  applySecurityHeaders(res);
-  const originalWriteHead = res.writeHead;
-  res.writeHead = function (statusCode, ...args) {
-    applySecurityHeaders(res);
-    return originalWriteHead.call(this, statusCode, ...args);
-  };
+  installSecurityHeadersHook(res);
   next();
 });
 
