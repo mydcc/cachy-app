@@ -446,7 +446,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0502",
     "title": "The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -458,6 +458,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md"
   },
   {
