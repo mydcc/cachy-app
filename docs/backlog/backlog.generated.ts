@@ -1973,6 +1973,114 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md"
   },
   {
+    "id": "BUG-0512",
+    "title": "A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md"
+  },
+  {
+    "id": "BUG-0513",
+    "title": "Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md"
+  },
+  {
+    "id": "BUG-0516",
+    "title": "The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md"
+  },
+  {
+    "id": "BUG-0517",
+    "title": "The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md"
+  },
+  {
+    "id": "BUG-0518",
+    "title": "The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md"
+  },
+  {
+    "id": "BUG-0519",
+    "title": "A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -4695,6 +4803,80 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md"
+  },
+  {
+    "id": "BUG-0514",
+    "title": "Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0513"
+    ],
+    "file": "bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md"
+  },
+  {
+    "id": "BUG-0515",
+    "title": "The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md"
+  },
+  {
+    "id": "BUG-0520",
+    "title": "attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md"
+  },
+  {
+    "id": "BUG-0521",
+    "title": "indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md"
   },
   {
     "id": "FEAT-0019",

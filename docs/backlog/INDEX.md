@@ -2,9 +2,9 @@
 
 # Backlog index
 
-392 items. How to read and add them: [README.md](README.md).
+402 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 59 · 🟡 in-progress 1 · ✅ done 318 · ⛔ dropped 1
 
 ---
 
@@ -265,6 +265,12 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 | [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | execution |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | execution |
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | execution |
+| [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | exchange |
+| [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | execution |
+| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | execution |
+| [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | 📋 specced | security |
+| [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | 📋 specced | security |
+| [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | 📋 specced | security |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -343,6 +349,10 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | 📋 specced | execution |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | execution |
 | [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | 📋 specced | execution |
+| [BUG-0514](bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md) | Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success | P2 | 📋 specced | exchange |
+| [BUG-0515](bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md) | The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts | P2 | 📋 specced | execution |
+| [BUG-0520](bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md) | attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path | P2 | 📋 specced | security |
+| [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | 📋 specced | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -557,6 +567,12 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 | [BUG-0505](bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md) | Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0508](bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md) | An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md), [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) |
+| [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -684,6 +700,10 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0514](bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md) | Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) |
+| [BUG-0515](bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md) | The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0520](bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md) | attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -858,4 +878,4 @@ Counts by status: 💡 idea 23 · 📋 specced 49 · 🟡 in-progress 1 · ✅ d
 
 ---
 
-Next free number: **0512**
+Next free number: **0522**
