@@ -159,6 +159,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, url }) =
   // Assigned once the envelope has been read, so the failure path can scrub it
   // without the credential having to exist.
   let forwardedApiKey: string | undefined;
+  let forwardedPassphrase: string | undefined;
 
   try {
     const check = checkPresignedRequest(request, {
@@ -176,6 +177,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, url }) =
       return json({ error: `Signature envelope rejected: ${check.code}` }, { status: 400 });
     }
     forwardedApiKey = check.envelope.apiKey;
+    forwardedPassphrase = check.envelope.passphrase;
 
     const result = await venue.executeOrder(
       check.envelope,
@@ -195,12 +197,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress, url }) =
     });
     // The key can appear in upstream error text; the secret cannot, because it
     // never came this way. Scrub what the envelope actually carried — before
-    // the log line as well as before the response.
+    // the log line as well as before the response. The passphrase rides the
+    // same path on Bitget (ADR-0013 named exception), so it is scrubbed too.
     let sanitizedMsg = errorMsg;
     let sanitizedDetails = details ? String(details) : undefined;
     if (forwardedApiKey && forwardedApiKey.length > 3) {
       sanitizedMsg = sanitizedMsg.replaceAll(forwardedApiKey, "***");
       if (sanitizedDetails) sanitizedDetails = sanitizedDetails.replaceAll(forwardedApiKey, "***");
+    }
+    if (forwardedPassphrase && forwardedPassphrase.length > 3) {
+      sanitizedMsg = sanitizedMsg.replaceAll(forwardedPassphrase, "***");
+      if (sanitizedDetails) sanitizedDetails = sanitizedDetails.replaceAll(forwardedPassphrase, "***");
     }
     return json(
       { error: sanitizedMsg, code: errorCode, details: sanitizedDetails },

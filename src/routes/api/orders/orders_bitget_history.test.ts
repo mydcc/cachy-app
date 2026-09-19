@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
-import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
+import { signedEnvelopeRequest, TEST_SIGNING_KEYS } from "../../../tests/helpers/signedEnvelopeRequest";
 import { buildOrdersHistoryQueryParams } from "../../../utils/exchange/venueQueries";
 
 const fetchMock = vi.fn();
@@ -96,5 +96,29 @@ describe("Bitget History Error Handling", () => {
         expect(res.status).toBe(200);
         expect(data).not.toHaveProperty("error");
         expect(data.orders).toEqual([]);
+    });
+
+    it("scrubs the key and passphrase the envelope carried from upstream errors", async () => {
+        // FEAT-0405 review: the secret never reaches the route, but the
+        // passphrase still transits on Bitget (ADR-0013 named exception) — so
+        // an upstream error echoing either value back bare must not leak it
+        // into the response.
+        const KEYS = TEST_SIGNING_KEYS;
+        fetchMock.mockRejectedValueOnce(
+            new Error(`upstream blew up on ${KEYS.apiKey} with ${KEYS.passphrase}`),
+        );
+
+        const { request, url } = await bitgetHistoryRequest();
+        const res = await POST({
+            request,
+            url,
+            getClientAddress,
+        } as unknown as Parameters<typeof POST>[0]);
+
+        const data = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(JSON.stringify(data)).not.toContain(KEYS.apiKey);
+        expect(JSON.stringify(data)).not.toContain(KEYS.passphrase);
     });
 });

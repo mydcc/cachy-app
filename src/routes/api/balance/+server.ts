@@ -19,7 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
-import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";
+import { checkPresignedRequest, readPresignedEnvelope } from "../../../utils/server/presignedEnvelope";
 import { buildBalanceQueryParams } from "../../../utils/exchange/venueQueries";
 import { queryStringForVenue } from "../../../utils/exchange/restSigningPlan";
 import { safeJsonParse } from "../../../utils/safeJson";
@@ -84,8 +84,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   } catch (e) {
     const rawMsg = e instanceof Error ? e.message : String(e);
     logger.error(`[Balance] Error fetching balance from ${exchange}: ${redactString(rawMsg)}`);
+    // Exact-value scrub for what the envelope carried: redactString above
+    // covers labeled shapes, but a bare credential echoed in upstream text
+    // needs its value matched (FEAT-0405 review).
+    const envelope = readPresignedEnvelope(request);
+    let message = (e instanceof Error ? e.message : null) || "Failed to fetch balance";
+    for (const value of [envelope?.apiKey, envelope?.passphrase]) {
+      if (value && value.length > 3) message = message.replaceAll(value, "***");
+    }
     return json(
-      { error: (e instanceof Error ? e.message : null) || "Failed to fetch balance" },
+      { error: message },
       { status: upstreamErrorStatus(e) ?? 500 },
     );
   }
