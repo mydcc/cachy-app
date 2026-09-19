@@ -808,8 +808,12 @@ function collectMarkTimeframes(rule: RuleDocument): Set<string> {
    */
   const readsMark = (operand: unknown): boolean => {
     if (operand === null || typeof operand !== "object") return false;
-    const node = operand as { source?: unknown; of?: unknown };
+    const node = operand as { kind?: unknown; source?: unknown; of?: unknown };
     if (node.source === "mark") return true;
+    // Only `window` nests another operand — anything else carrying an `of`
+    // key (none today) must not pull in a mark series the core would not
+    // request either, so the two mirrors cannot drift apart again.
+    if (node.kind !== "window") return false;
     return readsMark(node.of);
   };
 
