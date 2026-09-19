@@ -425,6 +425,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0491-bot-reorders-same-candle-after-reload.md"
   },
   {
+    "id": "BUG-0499",
+    "title": "The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -1806,6 +1824,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0405"
     ],
     "file": "bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md"
+  },
+  {
+    "id": "BUG-0498",
+    "title": "A lost drawing anchor silently turns a line alert back into the constant it was created with",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "ADR-0001",
+    "depends_on": [],
+    "file": "bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md"
+  },
+  {
+    "id": "BUG-0501",
+    "title": "Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md"
   },
   {
     "id": "FEAT-0014",
@@ -4458,6 +4512,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0405"
     ],
     "file": "bugs/BUG-0496-three-sources-of-truth-for-route-migration.md"
+  },
+  {
+    "id": "BUG-0500",
+    "title": "The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md"
   },
   {
     "id": "FEAT-0019",
