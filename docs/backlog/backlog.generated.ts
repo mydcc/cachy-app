@@ -1916,6 +1916,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md"
   },
   {
+    "id": "BUG-0505",
+    "title": "Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -4584,6 +4602,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md"
+  },
+  {
+    "id": "BUG-0506",
+    "title": "The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md"
   },
   {
     "id": "FEAT-0019",
@@ -7289,6 +7325,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "ADR-0013",
     "depends_on": [],
     "file": "bugs/BUG-0497-x-api-sign-escapes-redaction.md"
+  },
+  {
+    "id": "BUG-0507",
+    "title": "The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md"
   },
   {
     "id": "FEAT-0022",
