@@ -4852,7 +4852,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0520",
     "title": "attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0520-legacy-fallback-dead-rung",
     "priority": "P2",
     "milestone": "none",
     "editions": [
