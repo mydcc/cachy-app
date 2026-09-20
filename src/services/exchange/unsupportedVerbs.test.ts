@@ -134,11 +134,17 @@ describe("FEAT-0229 — a read resolves empty instead of throwing", () => {
 
     it("resolves the account reads locally rather than sending them", async () => {
         await expect(bitget().account.fetchLeverageMarginMode("BTCUSDT")).resolves.toBeUndefined();
-        await expect(bitget().account.fetchTradingPairInfo("BTCUSDT")).resolves.toBeUndefined();
         expect(tradeServiceMock.fetchLeverageMarginMode).not.toHaveBeenCalled();
-        expect(tradeServiceMock.fetchTradingPairInfo).not.toHaveBeenCalled();
         await expect(bitget().account.fetchPositionMode()).resolves.toBeUndefined();
         expect(tradeServiceMock.fetchPositionMode).not.toHaveBeenCalled();
+    });
+
+    it("delegates trading-pair info to the venue-dispatched fetch (BUG-0501)", async () => {
+        // Bitget serves V2 mix contracts through the same verb now — the
+        // pointless Bitunix-only request is gone, the local resolve with it.
+        await expect(bitget().account.fetchTradingPairInfo("BTCUSDT")).resolves.toBeUndefined();
+        expect(tradeServiceMock.fetchTradingPairInfo).toHaveBeenCalledTimes(1);
+        expect(tradeServiceMock.fetchTradingPairInfo).toHaveBeenCalledWith("BTCUSDT");
     });
 });
 

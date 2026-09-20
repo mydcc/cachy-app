@@ -42,6 +42,7 @@ import {
     BitunixLeverageMarginModeSchema,
     BitunixTradingPairResponseSchema,
     BitunixPositionTierResponseSchema,
+    BitgetContractsResponseSchema,
 } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder } from "../types/exchange";
@@ -841,22 +842,63 @@ class TradeService {
     }
 
     // Read-only: precision, order-size limits, leverage range and status for
-    // a symbol (market/trading_pairs). Public endpoint, no credentials.
+    // a symbol. Public endpoints, no credentials.
+    //
+    // BUG-0501: venue-dispatched internally — Bitunix reads market/
+    // trading_pairs, Bitget reads V2 mix contracts — but one method, so the
+    // adapter table keeps a single verb to declare. The entry is keyed
+    // venue-normalized, and every miss path records the attempt instead of
+    // writing a stub: a failed fetch retries after the cooldown, never reads
+    // as "no precision".
     public async fetchTradingPairInfo(symbol: string): Promise<void> {
+        const venue = settingsState.apiProvider || "bitunix";
+        const key = normalizeSymbol(symbol, venue);
+        await this.fetchKeyedMeta(key, () =>
+            venue === "bitget"
+                ? this.loadBitgetInstrumentInfo(key, symbol)
+                : this.loadBitunixPairInfo(key, symbol),
+        );
+    }
+
+    /** In-flight metadata loads, so concurrent callers share one request. */
+    private metaFetchInflight: Record<string, Promise<void>> = {};
+
+    private async fetchKeyedMeta(key: string, load: () => Promise<boolean>): Promise<void> {
+        if (!marketState.shouldFetchMeta(key)) return;
+        const running = this.metaFetchInflight[key];
+        if (running) {
+            await running;
+            return;
+        }
+        const flight = (async () => {
+            try {
+                marketState.noteMetaFetch(key, await load());
+            } catch {
+                marketState.noteMetaFetch(key, false);
+            } finally {
+                delete this.metaFetchInflight[key];
+            }
+        })();
+        this.metaFetchInflight[key] = flight;
+        await flight;
+    }
+
+    /** Loads one Bitunix row; true when an entry was written. */
+    private async loadBitunixPairInfo(key: string, symbol: string): Promise<boolean> {
         try {
             const response = await appFetch(`/api/trading-pairs?symbols=${encodeURIComponent(symbol)}`);
-            if (!response.ok) return;
+            if (!response.ok) return false;
             const json = await response.json();
 
             const validation = BitunixTradingPairResponseSchema.safeParse(json);
             if (!validation.success) {
                 logger.error("network", "[TradeService] Invalid trading-pairs response", validation.error.issues);
-                return;
+                return false;
             }
             const entry = validation.data.data?.[0];
-            if (!entry) return;
+            if (!entry) return false;
 
-            marketState.setSymbolMeta(symbol, {
+            marketState.setSymbolMeta(key, {
                 symbol: entry.symbol,
                 basePrecision: entry.basePrecision,
                 quotePrecision: entry.quotePrecision,
@@ -870,8 +912,65 @@ class TradeService {
                 symbolStatus: entry.symbolStatus,
                 isApiSupported: entry.isApiSupported,
             });
+            return true;
         } catch (e) {
             logger.debug("api", "[TradeService] fetchTradingPairInfo failed", e);
+            return false;
+        }
+    }
+
+    /** Loads one Bitget V2 contracts row; true when an entry was written. */
+    private async loadBitgetInstrumentInfo(key: string, symbol: string): Promise<boolean> {
+        const toInt = (v: string | undefined): number | undefined => {
+            if (v === undefined) return undefined;
+            const n = parseInt(v, 10);
+            return Number.isFinite(n) ? n : undefined;
+        };
+        const toDecimalOrNull = (v: string | undefined): Decimal | null => {
+            if (v === undefined) return null;
+            try {
+                const d = new Decimal(v);
+                return d.isFinite() ? d : null;
+            } catch {
+                return null;
+            }
+        };
+        try {
+            const response = await appFetch(`/api/bitget/contracts?symbols=${encodeURIComponent(symbol)}`);
+            if (!response.ok) return false;
+            const json = await response.json();
+
+            const validation = BitgetContractsResponseSchema.safeParse(json);
+            if (!validation.success || validation.data.code !== "00000") {
+                logger.error("network", "[TradeService] Invalid bitget contracts response");
+                return false;
+            }
+            const row = validation.data.data?.find(
+                (r) => normalizeSymbol(r.symbol, "bitget") === key,
+            );
+            if (!row) return false;
+
+            marketState.setSymbolMeta(key, {
+                symbol: row.symbol,
+                basePrecision: toInt(row.volumePlace),
+                quotePrecision: toInt(row.pricePlace),
+                minTradeVolume: toDecimalOrNull(row.minTradeNum),
+                maxLimitOrderVolume: toDecimalOrNull(row.maxOrderQty),
+                maxMarketOrderVolume: toDecimalOrNull(row.maxMarketOrderQty),
+                minLeverage: toInt(row.minLever),
+                maxLeverage: toInt(row.maxLever),
+                defaultLeverage: undefined,
+                priceProtectScope: null,
+                // V2 reports "normal"; the gate and the panel speak Bitunix
+                // ("OPEN"). Mapped here so one vocabulary rules downstream;
+                // anything else passes through raw and refuses closed.
+                symbolStatus: row.symbolStatus === "normal" ? "OPEN" : row.symbolStatus,
+                isApiSupported: undefined,
+            });
+            return true;
+        } catch (e) {
+            logger.debug("api", "[TradeService] fetchBitgetInstrumentInfo failed", e);
+            return false;
         }
     }
 
@@ -1548,8 +1647,7 @@ class TradeService {
         const orderType = params.orderType ?? "MARKET";
         const clientId = params.clientId ?? this.newClientOrderId();
         const meta = params.symbol
-            ? (marketState?.symbolMeta?.[params.symbol] ??
-               marketState?.symbolMeta?.[normalizeSymbol(params.symbol, "bitunix")])
+            ? marketState?.symbolMeta?.[normalizeSymbol(params.symbol, settingsState.apiProvider || "bitunix")]
             : undefined;
 
         // The venue fills whole multiples of the instrument's step, so a raw
@@ -1672,9 +1770,7 @@ class TradeService {
         }
 
         const clientId = params.clientId ?? this.newClientOrderId();
-        const meta =
-            marketState?.symbolMeta?.[symbol] ??
-            marketState?.symbolMeta?.[normalizeSymbol(symbol, "bitunix")];
+        const meta = marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
 
         /*
          * Where the add is expected to fill, used for the margin check only.
@@ -1831,9 +1927,7 @@ class TradeService {
         // Metadata is best-effort: an instrument whose meta has not loaded
         // yields no step, and the gate then checks what it can rather than
         // refusing on an absence.
-        const meta =
-            marketState?.symbolMeta?.[symbol] ??
-            marketState?.symbolMeta?.[normalizeSymbol(symbol, "bitunix")];
+        const meta = marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
         const stepSize =
             meta?.basePrecision !== undefined
                 ? new Decimal(10).pow(-meta.basePrecision)

@@ -57,6 +57,13 @@ export type {
 
 const KLINE_BUFFER_HARD_LIMIT = 2000; // Hard cap for pending kline updates
 
+/**
+ * Cooldown before a failed instrument-metadata fetch is retried. Matches the
+ * plan cache's staleness window — a failure is worth one more attempt on the
+ * same order as a refresh.
+ */
+export const META_FETCH_RETRY_MS = 30_000;
+
 export class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
@@ -67,8 +74,34 @@ export class MarketManager {
   symbolMeta = $state<Record<string, TradingPairInfo>>({});
   positionTiers = $state<Record<string, PositionTier[]>>({});
 
+  /**
+   * Last metadata fetch attempt per normalized key. Absent means never
+   * attempted. BUG-0501: distinguishes "not fetched yet" from "fetched,
+   * none available", so a transient failure retries instead of permanently
+   * presenting an unguarded size — and a failed fetch never writes a stub
+   * entry that would read as "no precision".
+   */
+  metaFetchState = $state<Record<string, { ok: boolean; at: number }>>({});
+
   setSymbolMeta(symbol: string, info: TradingPairInfo) {
     this.symbolMeta[symbol] = info;
+  }
+
+  noteMetaFetch(key: string, ok: boolean, now = Date.now()) {
+    this.metaFetchState[key] = { ok, at: now };
+  }
+
+  /**
+   * Whether a metadata fetch is due: no entry cached, never attempted, or a
+   * failed attempt older than the cooldown. A successful fetch whose entry
+   * was evicted since refetches — the entry is the cache, not the attempt.
+   */
+  shouldFetchMeta(key: string, now = Date.now(), cooldownMs = META_FETCH_RETRY_MS): boolean {
+    if (this.symbolMeta[key] !== undefined) return false;
+    const last = this.metaFetchState[key];
+    if (!last) return true;
+    if (last.ok) return true;
+    return now - last.at >= cooldownMs;
   }
 
   setPositionTiers(symbol: string, tiers: PositionTier[]) {
@@ -104,6 +137,9 @@ export class MarketManager {
       delete this.data[symbol];
       delete this.symbolMeta[symbol];
       delete this.positionTiers[symbol];
+      // The fetch attempt outlives the entry it produced, or an eviction
+      // would permanently read as "already fetched" (BUG-0501).
+      delete this.metaFetchState[symbol];
       // FEAT-0387: the rule loop keeps a high-water mark per series, which
       // would otherwise outlive every symbol this cache ever held.
       ruleEvaluationLoop.forgetSymbol(symbol);
@@ -142,6 +178,7 @@ export class MarketManager {
     this.data = {};
     this.symbolMeta = {};
     this.positionTiers = {};
+    this.metaFetchState = {};
   }
 
   public getOrCreateSymbol(symbol: string): MarketData {
@@ -376,6 +413,7 @@ export class MarketManager {
     this.data = {};
     this.symbolMeta = {};
     this.positionTiers = {};
+    this.metaFetchState = {};
   }
 
   cleanup() {

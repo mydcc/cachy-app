@@ -2,7 +2,8 @@
 id: BUG-0501
 title: Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing
 type: bug
-status: specced
+status: done
+branch: fix/gate-kern-paket-c
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +11,7 @@ area: calculation
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0501 — Missing symbol metadata silently skips every size guard

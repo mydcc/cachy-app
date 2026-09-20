@@ -82,8 +82,9 @@
 
   // Read-only trading-pair metadata (precision, order-size limits, leverage
   // range, status) for the active symbol — see tradeService.fetchTradingPairInfo.
+  // Venue-normalized key (BUG-0501).
   let symbolMeta = $derived(
-    symbol ? marketState.symbolMeta[normalizeSymbol(symbol, "bitunix")] : undefined,
+    symbol ? marketState.symbolMeta[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")] : undefined,
   );
 
   // Local state for input to prevent immediate store updates

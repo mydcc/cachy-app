@@ -24,6 +24,8 @@
   import TpSlPriceInput from "./TpSlPriceInput.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { marketState } from "../../stores/market.svelte";
+  import { settingsState } from "../../stores/settings.svelte";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
   import type { TpSlContext, FeeRates } from "../../lib/calculators/tpsl";
 
@@ -77,7 +79,10 @@
 
   /** Price tick from the instrument's quote precision; 0 disables rounding. */
   const tickSize = $derived.by(() => {
-    const precision = order ? marketState.symbolMeta[order.symbol]?.quotePrecision : undefined;
+    if (!order) return new Decimal(0);
+    // Venue-normalized key (BUG-0501).
+    const venue = settingsState.apiProvider || "bitunix";
+    const precision = marketState.symbolMeta[normalizeSymbol(order.symbol, venue)]?.quotePrecision;
     if (precision === undefined || precision === null) return new Decimal(0);
     return new Decimal(10).pow(-precision);
   });
