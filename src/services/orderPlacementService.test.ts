@@ -399,7 +399,17 @@ describe("BUG-0290 — stop retry re-places the stop", () => {
     });
 });
 
-describe("FEAT-0021 — exchanges that cannot attach protection", () => {
+/*
+ * BUG-0503 — a venue with no standalone stop path retries nothing.
+ *
+ * (What the trader sees — the entry refused before it is sent — is a gate
+ * verdict and lives in `orderGate.capabilities.test.ts` and
+ * `orderPlacementService.gateIntegration.test.ts`. `tradeService` is mocked here, so the gate never runs; what
+ * this pins is the placement side: once the entry exists unprotected on such
+ * a venue, the confirmation returns the honest outcome immediately instead
+ * of spending the retry budget around a no-op.)
+ */
+describe("BUG-0503 — exchanges with no standalone stop path", () => {
     it("does not send tp/sl with the entry on Bitget", async () => {
         await orderPlacementService.placeEntryGroup(plan({ exchange: "bitget" }));
 
@@ -415,6 +425,46 @@ describe("FEAT-0021 — exchanges that cannot attach protection", () => {
         );
         expect(result.unprotected).toBe(true);
         expect(closePosition).not.toHaveBeenCalled();
+    });
+
+    it("never attempts a standalone re-place where none exists", async () => {
+        plans.value = {};
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        await orderPlacementService.placeEntryGroup(plan({ exchange: "bitget" }));
+
+        // `replaceStop` reads `tpSlStandalone`, not `tpSlAtEntry` — on Bitget
+        // there is no second request to make, so none is made.
+        expect(placePositionTpSl).not.toHaveBeenCalled();
+    });
+
+    it("spends no retry delay where no retry is possible", async () => {
+        // The whole point: an unprotected position must be reported, not
+        // waited on. If the implementation slept around the no-op again,
+        // this `await` would never resolve under the fake clock.
+        vi.useFakeTimers();
+        try {
+            plans.value = {};
+            const result = await orderPlacementService.placeEntryGroup(
+                plan({ exchange: "bitget" }),
+            );
+            expect(result.unprotected).toBe(true);
+            expect(result.stopLoss).toBe("failed");
+            // One look, no revisits: the retry loop returned on its first pass.
+            expect(plans.looks).toBe(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("still retries where a standalone path exists", async () => {
+        plans.value = {};
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        await orderPlacementService.placeEntryGroup(plan());
+
+        // Bitunix declares both halves, so the retry path is unchanged.
+        expect(placePositionTpSl).toHaveBeenCalled();
     });
 });
 

@@ -70,6 +70,19 @@ describe("exchange capabilities (FEAT-0017)", () => {
             expect(bitunixCapabilities.tpSlAtEntry).toBe(true);
             expect(bitgetCapabilities.tpSlAtEntry).toBe(false);
         });
+
+        /*
+         * BUG-0503 — attachment and standalone placement are different facts.
+         * Bitunix has a verified shape for both (place-order carries
+         * tpPrice/slPrice; `placePositionTpSl` writes the position-wide plan,
+         * FEAT-0070). Bitget has neither: no verified attach shape and every
+         * TP/SL verb refused on `SUPPORTS.tpSl: false`.
+         */
+        it("declares standalone TP/SL placement per venue", () => {
+            expect(bitunixCapabilities.tpSlStandalone).toBe(true);
+            expect(bitgetCapabilities.tpSlStandalone).toBe(false);
+            expect(UNKNOWN_EXCHANGE.tpSlStandalone).toBe(false);
+        });
     });
 
     describe("adapter and aggregator agree", () => {
@@ -88,6 +101,19 @@ describe("exchange capabilities (FEAT-0017)", () => {
             expect(bitunixAdapter.capabilities).toBe(bitunixCapabilities);
             expect(bitgetAdapter.capabilities).toBe(bitgetCapabilities);
         });
+
+        /*
+         * BUG-0503 — the capability declaration and the adapter's `supports`
+         * verdict must agree: the gate and the placement retry read
+         * `tpSlStandalone`, while the TP/SL verbs are refused on
+         * `supports.tpSl`. If they ever disagreed, the gate would defer to a
+         * follow-up request the adapter refuses — the exact hole this bug
+         * closes — or refuse an entry the venue could protect.
+         */
+        it("agrees with the adapter's standalone TP/SL verdict on every venue", () => {
+            expect(bitunixAdapter.supports.tpSl).toBe(capabilitiesOf("bitunix").tpSlStandalone);
+            expect(bitgetAdapter.supports.tpSl).toBe(capabilitiesOf("bitget").tpSlStandalone);
+        });
     });
 
     describe("an undeclared venue", () => {
@@ -105,6 +131,7 @@ describe("exchange capabilities (FEAT-0017)", () => {
             expect(caps.marginModes).toEqual([]);
             expect(caps.positionModes).toEqual([]);
             expect(caps.tpSlAtEntry).toBe(false);
+            expect(caps.tpSlStandalone).toBe(false);
             expect(caps.multipleTakeProfits).toBe(false);
             expect(caps.trailingStop).toBe(false);
         });
