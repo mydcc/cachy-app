@@ -1474,6 +1474,15 @@ export class SettingsManager {
   decryptionFailures = $state(0);
 
   /**
+   * Set by `save()` when one or more credential encryptions failed
+   * (BUG-0519). The stale blobs were dropped, so the affected credentials
+   * live only in memory until re-entered and successfully saved — the
+   * encrypt-side mirror of `decryptionFailures`, surfaced by the same
+   * settings-tab banners.
+   */
+  encryptionFailures = $state(0);
+
+  /**
    * True when the device-key canary could not be decrypted: the browser lost
    * the IndexedDB key and every stored secret is unrecoverable until
    * re-entered. Distinct from `decryptionFailures > 0`, which also covers
@@ -2327,17 +2336,22 @@ export class SettingsManager {
         }
       }
 
-      await this.secretsLoader.applyFieldEncryption(
-        data,
-        canEncrypt,
-        encryptionPassword,
-      );
-
       // BUG-0280: encrypt the exchange credentials from the live state (the
       // serialized block above only ever carries placeholders). While the
       // background device-key decryption is still refilling the fields, an
       // existing blob must survive instead of being read as "cleared".
-      await this.secretsLoader.applyAccountKeyEncryption(
+      //
+      // BUG-0519: every encrypt-side call reports its failure count, and a
+      // failed credential's stale blob is already dropped inside the loader.
+      // The aggregate lands on `encryptionFailures` so the settings tabs can
+      // tell the user which save did not stick.
+      let encryptionFailures = 0;
+      encryptionFailures += await this.secretsLoader.applyFieldEncryption(
+        data,
+        canEncrypt,
+        encryptionPassword,
+      );
+      encryptionFailures += await this.secretsLoader.applyAccountKeyEncryption(
         data,
         $state.snapshot(this.accounts),
         canEncrypt,
@@ -2348,13 +2362,21 @@ export class SettingsManager {
       // FEAT-0467: the serialized `userProviders` block carries redacted
       // credentials; encrypt the live ones separately, same treatment as the
       // exchange accounts above.
-      await this.secretsLoader.applyProviderConfigEncryption(
-        data,
-        $state.snapshot(this.userProviders),
-        canEncrypt,
-        encryptionPassword,
-        !this.providerConfigDecryptPending,
-      );
+      encryptionFailures +=
+        await this.secretsLoader.applyProviderConfigEncryption(
+          data,
+          $state.snapshot(this.userProviders),
+          canEncrypt,
+          encryptionPassword,
+          !this.providerConfigDecryptPending,
+        );
+      // A locked-session save cannot encrypt (every loader returns 0
+      // early) and must not clear a previously reported failure: the
+      // dropped blobs are still gone, so the banner stays until a save
+      // that actually encrypts succeeds and resets the count.
+      if (canEncrypt) {
+        this.encryptionFailures = encryptionFailures;
+      }
 
       const current = localStorage.getItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,

@@ -330,12 +330,18 @@ export class SecretsLoader {
    * (mutates and redacts the plain-text value), plus the device-key canary.
    * `canEncrypt = false` (session locked, no key available) just redacts
    * without touching whatever ciphertext is already in `data.encryptedSecrets`.
+   *
+   * Returns the number of fields whose encryption failed. A failed field's
+   * stale blob is dropped (BUG-0519): keeping it would let a reload silently
+   * resurrect the superseded credential the user just replaced, while the
+   * in-memory copy already shows the new value. The user re-enters, which is
+   * recoverable; signing with a leaked key is not.
    */
   async applyFieldEncryption(
     data: Settings,
     canEncrypt: boolean,
     encryptionPassword: string | CryptoKey | undefined,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!data.encryptedSecrets) {
       data.encryptedSecrets = {};
     }
@@ -345,9 +351,10 @@ export class SecretsLoader {
         // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
         data[key] = "";
       }
-      return;
+      return 0;
     }
 
+    let failures = 0;
     const encryptionTasks = SENSITIVE_KEYS.map(async (key) => {
       const value = data[key];
 
@@ -358,16 +365,19 @@ export class SecretsLoader {
           // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
           data[key] = "";
         } catch (err) {
-          if (import.meta.env.DEV) {
-            console.error(`[Settings] Failed to encrypt ${key}:`, err);
-          }
+          failures++;
+          console.error(`[Settings] Failed to encrypt ${key}:`, err);
+          delete data.encryptedSecrets![key];
           // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
           data[key] = "";
         }
       }
     });
 
-    // Always write a canary to detect key loss without data loss
+    // Always write a canary to detect key loss without data loss. A canary
+    // failure is logged but not counted: it is a diagnostic blob, not a
+    // credential, and its signal is subsumed by the field failures above
+    // whenever there is anything worth saving.
     encryptionTasks.push(
       (async () => {
         try {
@@ -376,12 +386,13 @@ export class SecretsLoader {
             encryptionPassword,
           );
         } catch (e) {
-          if (import.meta.env.DEV) console.error("Failed to encrypt canary", e);
+          console.error("[Settings] Failed to encrypt canary:", e);
         }
       })(),
     );
 
     await Promise.all(encryptionTasks);
+    return failures;
   }
 
   /**
@@ -429,6 +440,11 @@ export class SecretsLoader {
    * pending, live fields not yet refilled) existing blobs are preserved so
    * the startup autosave cannot race them away; clearing stays possible as
    * soon as the refill settled or the user typed new material.
+   *
+   * Returns the number of accounts whose encryption failed. A failed
+   * account's stale blob is dropped (BUG-0519) for the same reason a failed
+   * field's is: a reload must never resurrect the credential the user just
+   * replaced.
    */
   async applyAccountKeyEncryption(
     data: Settings,
@@ -436,8 +452,8 @@ export class SecretsLoader {
     canEncrypt: boolean,
     encryptionPassword: string | CryptoKey | undefined,
     allowClear: boolean,
-  ): Promise<void> {
-    if (!canEncrypt) return;
+  ): Promise<number> {
+    if (!canEncrypt) return 0;
 
     if (!data.accounts) {
       data.accounts = redactAccounts(liveAccounts);
@@ -446,6 +462,7 @@ export class SecretsLoader {
       data.encryptedAccountKeys = {};
     }
 
+    let failures = 0;
     for (const account of liveAccounts) {
       const creds = account.keys;
       const hasMaterial = apiKeyHasMaterial(creds);
@@ -461,14 +478,15 @@ export class SecretsLoader {
           encryptionPassword,
         );
       } catch (err) {
-        // Never fall back to plaintext: keep any previous ciphertext and
-        // let the next save retry. The in-memory copy stays untouched.
-        if (import.meta.env.DEV) {
-          console.error(
-            `[Settings] Failed to encrypt API keys for account ${account.id}:`,
-            err,
-          );
-        }
+        failures++;
+        // Never fall back to plaintext. The previous ciphertext is dropped
+        // rather than kept (BUG-0519): it answers for a value the user no
+        // longer holds, and the in-memory copy already shows the new one.
+        console.error(
+          `[Settings] Failed to encrypt API keys for account ${account.id}:`,
+          err,
+        );
+        delete data.encryptedAccountKeys[account.id];
       }
     }
 
@@ -484,6 +502,7 @@ export class SecretsLoader {
         if (!liveIds.has(id)) delete data.encryptedAccountKeys[id];
       }
     }
+    return failures;
   }
 
   /**
@@ -494,6 +513,9 @@ export class SecretsLoader {
    * session) keeps whatever ciphertext already exists; `allowClear = false`
    * (background decryption still in flight) preserves a blob the live state
    * cannot yet vouch for — the same reasoning as `applyAccountKeyEncryption`.
+   *
+   * Returns 1 when the encryption failed (and the stale blob was dropped,
+   * BUG-0519), 0 otherwise.
    */
   async applyProviderConfigEncryption(
     data: Settings,
@@ -501,15 +523,15 @@ export class SecretsLoader {
     canEncrypt: boolean,
     encryptionPassword: string | CryptoKey | undefined,
     allowClear: boolean,
-  ): Promise<void> {
-    if (!canEncrypt) return;
+  ): Promise<number> {
+    if (!canEncrypt) return 0;
 
     const hasMaterial = liveProviders.some(
       (provider) => provider.apiKey.length > 0,
     );
     if (!hasMaterial) {
       if (allowClear) delete data.encryptedProviderConfigs;
-      return;
+      return 0;
     }
 
     try {
@@ -518,15 +540,16 @@ export class SecretsLoader {
         encryptionPassword,
       );
     } catch (err) {
-      // Never fall back to plaintext: keep any previous ciphertext and let the
-      // next save retry. The in-memory copy stays untouched.
-      if (import.meta.env.DEV) {
-        console.error(
-          "[Settings] Failed to encrypt user provider configs:",
-          err,
-        );
-      }
+      // Never fall back to plaintext. The previous ciphertext is dropped
+      // rather than kept (BUG-0519): see `applyAccountKeyEncryption`.
+      console.error(
+        "[Settings] Failed to encrypt user provider configs:",
+        err,
+      );
+      delete data.encryptedProviderConfigs;
+      return 1;
     }
+    return 0;
   }
 
   /**

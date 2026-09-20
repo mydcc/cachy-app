@@ -476,6 +476,96 @@ describe("switching", () => {
  * them. A disagreeing pair makes the account id the order gate compares
  * describe an account other than the one being signed for.
  */
+
+/*
+ * BUG-0519: a failed encryption was silent in production and left the
+ * superseded ciphertext in place, so after a reload the app kept signing
+ * with the credential the user had just replaced.
+ */
+describe("a failed encryption drops the superseded blob and surfaces (BUG-0519)", () => {
+  beforeEach(() => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        apiProvider: "bitunix",
+        credentialSchemaVersion: 2,
+        accounts: [bitunixRow, bitgetRow],
+        activeAccountId: "bitunix",
+        encryptedAccountKeys: { bitunix: blob("old-cipher") },
+      }),
+    );
+    vi.mocked(cryptoService.encrypt).mockRejectedValue(
+      new Error("Session locked and no password or key provided"),
+    );
+  });
+
+  it("counts the failure on the manager instead of swallowing it", async () => {
+    const mgr = new SettingsManager();
+    // `defaultSettings.imgbbApiKey` ships a public demo key, so every save
+    // encrypts it too. Clear it to isolate the account path under test.
+    mgr.imgbbApiKey = "";
+    mgr.accountFor("bitunix").keys = { key: "new-key", secret: "new-secret" };
+
+    await saveInternal(mgr);
+
+    expect(mgr.encryptionFailures).toBe(1);
+  });
+
+  it("drops the stale account blob so a reload cannot resurrect the leaked key", async () => {
+    const mgr = new SettingsManager();
+    mgr.imgbbApiKey = "";
+    mgr.accountFor("bitunix").keys = { key: "new-key", secret: "new-secret" };
+
+    await saveInternal(mgr);
+
+    expect(storedPayload().encryptedAccountKeys ?? {}).not.toHaveProperty(
+      "bitunix",
+    );
+  });
+
+  it("never persists the new plaintext, and logs the failure outside DEV", async () => {    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    try {
+      const mgr = new SettingsManager();
+      mgr.imgbbApiKey = "";
+      mgr.accountFor("bitunix").keys = { key: "new-key", secret: "new-secret" };
+
+      await saveInternal(mgr);
+
+      expect(JSON.stringify(storedPayload())).not.toContain("new-key");
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Failed to encrypt API keys for account"),
+        expect.anything(),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("keeps a prior failure count when a later locked autosave cannot encrypt", async () => {
+    const mgr = new SettingsManager();
+    mgr.imgbbApiKey = "";
+    mgr.accountFor("bitunix").keys = { key: "new-key", secret: "new-secret" };
+
+    await saveInternal(mgr);
+    expect(mgr.encryptionFailures).toBe(1);
+
+    // The session locks; the autosave can no longer encrypt (canEncrypt is
+    // false, every loader returns 0 early) and must not clear the banner —
+    // the dropped blobs are still gone.
+    mgr.isLocked = true;
+    vi.mocked(cryptoService.isUnlocked).mockReturnValue(false);
+    try {
+      await saveInternal(mgr);
+
+      expect(mgr.encryptionFailures).toBe(1);
+    } finally {
+      vi.mocked(cryptoService.isUnlocked).mockReturnValue(true);
+    }
+  });
+});
+
 describe("the venue and the active account stay in step", () => {
   it("carries the active account when the venue is set directly", () => {
     const mgr = new SettingsManager();

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   defaultAccountState,
   keysForExchange,
@@ -226,6 +226,161 @@ describe("SecretsLoader provider config encryption (FEAT-0467)", () => {
       true,
     );
 
+    expect(
+      (data as { encryptedProviderConfigs?: unknown }).encryptedProviderConfigs,
+    ).toBeUndefined();
+  });
+});
+
+describe("SecretsLoader failed encryption (BUG-0519)", () => {
+  const oldBlob = {
+    ciphertext: "old-c",
+    iv: "i",
+    salt: "s",
+    method: "AES-GCM" as const,
+  };
+  const lockedError = () =>
+    new Error("Session locked and no password or key provided");
+
+  let consoleError: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.mocked(cryptoService.encrypt).mockReset();
+    consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleError.mockRestore();
+  });
+
+  it("drops the superseded field blob and counts the failure when encryption rejects", async () => {
+    vi.mocked(cryptoService.encrypt).mockRejectedValue(lockedError());
+    const loader = new SecretsLoader();
+    const data = {
+      openaiApiKey: "new-rotated-key",
+      encryptedSecrets: { openaiApiKey: oldBlob },
+    } as never;
+
+    const failures = await loader.applyFieldEncryption(data, true, undefined);
+
+    expect(failures).toBe(1);
+    expect(
+      (data as { encryptedSecrets: Record<string, unknown> }).encryptedSecrets,
+    ).not.toHaveProperty("openaiApiKey");
+    expect((data as { openaiApiKey: string }).openaiApiKey).toBe("");
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to encrypt openaiApiKey"),
+      expect.anything(),
+    );
+    // The new plaintext must never land in the persisted payload.
+    expect(
+      JSON.stringify(
+        (data as { encryptedSecrets: unknown }).encryptedSecrets,
+      ),
+    ).not.toContain("new-rotated-key");
+  });
+
+  it("returns 0 and stores the new blob when field encryption succeeds", async () => {
+    vi.mocked(cryptoService.encrypt).mockResolvedValue(canaryBlob);
+    const loader = new SecretsLoader();
+    const data = {
+      openaiApiKey: "new-rotated-key",
+      encryptedSecrets: { openaiApiKey: oldBlob },
+    } as never;
+
+    const failures = await loader.applyFieldEncryption(data, true, undefined);
+
+    expect(failures).toBe(0);
+    expect(
+      (data as { encryptedSecrets: Record<string, unknown> }).encryptedSecrets
+        .openaiApiKey,
+    ).toEqual(canaryBlob);
+  });
+
+  it("returns 0 and keeps existing ciphertext when the session is locked", async () => {
+    const encrypt = vi
+      .mocked(cryptoService.encrypt)
+      .mockRejectedValue(lockedError());
+    const loader = new SecretsLoader();
+    const data = {
+      openaiApiKey: "new-rotated-key",
+      encryptedSecrets: { openaiApiKey: oldBlob },
+    } as never;
+
+    await expect(
+      loader.applyFieldEncryption(data, false, undefined),
+    ).resolves.toBe(0);
+    expect(encrypt).not.toHaveBeenCalled();
+    expect(
+      (data as { encryptedSecrets: Record<string, unknown> }).encryptedSecrets,
+    ).toHaveProperty("openaiApiKey");
+  });
+
+  it("drops the superseded account blob and counts the failure when encryption rejects", async () => {
+    vi.mocked(cryptoService.encrypt).mockRejectedValue(
+      new Error("CryptoService requires generic Web Crypto API (Secure Context)"),
+    );
+    const loader = new SecretsLoader();
+    const live = defaultAccountState().accounts.map((a) =>
+      a.id === LEGACY_ACCOUNT_IDS.bitunix
+        ? { ...a, keys: { key: "new-key", secret: "new-secret" } }
+        : a,
+    );
+    const data = {
+      encryptedAccountKeys: { [LEGACY_ACCOUNT_IDS.bitunix]: oldBlob },
+    } as never;
+
+    const failures = await loader.applyAccountKeyEncryption(
+      data,
+      live,
+      true,
+      undefined,
+      true,
+    );
+
+    expect(failures).toBe(1);
+    expect(
+      (data as { encryptedAccountKeys: Record<string, unknown> })
+        .encryptedAccountKeys,
+    ).not.toHaveProperty(LEGACY_ACCOUNT_IDS.bitunix);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `Failed to encrypt API keys for account ${LEGACY_ACCOUNT_IDS.bitunix}`,
+      ),
+      expect.anything(),
+    );
+    expect(
+      JSON.stringify(
+        (data as { encryptedAccountKeys: unknown }).encryptedAccountKeys,
+      ),
+    ).not.toContain("new-key");
+  });
+
+  it("drops the superseded provider blob and counts the failure when encryption rejects", async () => {
+    vi.mocked(cryptoService.encrypt).mockRejectedValue(lockedError());
+    const loader = new SecretsLoader();
+    const providers = [
+      {
+        id: "zen",
+        label: "OpenCode Zen",
+        flavor: "openai-chat" as const,
+        baseUrl: "https://opencode.ai/zen/v1",
+        model: "deepseek-v4-flash-free",
+        apiKey: "sk-new-secret",
+        allowServerRelay: false,
+      },
+    ];
+    const data = { encryptedProviderConfigs: oldBlob } as never;
+
+    const failures = await loader.applyProviderConfigEncryption(
+      data,
+      providers,
+      true,
+      undefined,
+      true,
+    );
+
+    expect(failures).toBe(1);
     expect(
       (data as { encryptedProviderConfigs?: unknown }).encryptedProviderConfigs,
     ).toBeUndefined();

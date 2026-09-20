@@ -1237,6 +1237,8 @@
     "decryptionWarningMessage": "gespeicherte Schlüssel konnten aufgrund eines Resets des Gerätespeichers nicht gelesen werden und müssen neu eingegeben werden, um die Verbindung wiederherzustellen.",
     "deviceKeyLostTitle": "Verschlüsselte Schlüssel nicht lesbar",
     "deviceKeyLostDesc": "Der Browser hat den Geräteschlüssel entfernt. Bitte alle API-Schlüssel neu eingeben, damit sie wieder verschlüsselt gespeichert werden können.",
+    "encryptionWarningTitle": "Schlüssel nicht gespeichert",
+    "encryptionWarningMessage": "{count} Schlüssel konnten nicht verschlüsselt und daher nicht gespeichert werden. Sie gelten noch bis zum nächsten Neuladen — bitte neu eingeben.",
     "calculation": {
       "analyzeFavorites": "Alle Favoriten analysieren",
       "analyzeFavoritesBadgeAll": "Alle Favoriten",
