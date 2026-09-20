@@ -87,7 +87,7 @@ export function readPersistedCiphertextState(): PersistedCiphertextState {
     encryptedSecrets?: Record<string, EncryptedBlob>;
     encryptedAccountKeys?: Record<string, EncryptedBlob>;
     encryptedProviderConfigs?: EncryptedBlob;
-  } | null = null;
+  } | null;
   try {
     const raw = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
     parsed = raw ? JSON.parse(raw) : null;
