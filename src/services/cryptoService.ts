@@ -451,7 +451,20 @@ class CryptoServiceImpl {
       request.onupgradeneeded = () => {
         request.result.createObjectStore(SECURE_STORE_NAME);
       };
-      request.onsuccess = () => resolveOnce(request.result);
+      request.onsuccess = () => {
+        if (settled) {
+          // Late success after the timeout already rejected: release the
+          // connection instead of dropping it, so it cannot block a later
+          // factory-reset deleteDatabase().
+          try {
+            request.result.close();
+          } catch {
+            // Best effort — the open already failed from the caller's view.
+          }
+          return;
+        }
+        resolveOnce(request.result);
+      };
       request.onerror = () =>
         rejectOnce(
           request.error ??
@@ -487,16 +500,21 @@ class CryptoServiceImpl {
   private async saveKeyToDB(alias: string, key: CryptoKey): Promise<void> {
     const db = await this.openSecureDb();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(SECURE_STORE_NAME, "readwrite");
-      const putReq = tx.objectStore(SECURE_STORE_NAME).put(key, alias);
-      putReq.onsuccess = () => resolve();
-      putReq.onerror = () => reject(putReq.error);
-      // Release the connection so a factory-reset deleteDatabase()
-      // is not blocked by it (BUG-0288). Aborted/errored transactions
-      // never fire oncomplete, so cover those paths too.
-      tx.oncomplete = () => db.close();
-      tx.onabort = () => db.close();
-      tx.onerror = () => db.close();
+      try {
+        const tx = db.transaction(SECURE_STORE_NAME, "readwrite");
+        const putReq = tx.objectStore(SECURE_STORE_NAME).put(key, alias);
+        putReq.onsuccess = () => resolve();
+        putReq.onerror = () => reject(putReq.error);
+        // Release the connection so a factory-reset deleteDatabase()
+        // is not blocked by it (BUG-0288). Aborted/errored transactions
+        // never fire oncomplete, so cover those paths too.
+        tx.oncomplete = () => db.close();
+        tx.onabort = () => db.close();
+        tx.onerror = () => db.close();
+      } catch (error) {
+        db.close();
+        reject(error);
+      }
     });
   }
 

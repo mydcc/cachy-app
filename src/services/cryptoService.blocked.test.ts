@@ -176,4 +176,57 @@ describe("CryptoService — blocked IndexedDB open (BUG-0521)", () => {
       expect(closes.length).toBeGreaterThan(0);
     },
   );
+
+  it("closes a late connection when success arrives after the timeout", async () => {
+    vi.useFakeTimers();
+    const open = stubOpen();
+    let request: StubOpenRequest = {};
+    open.mockImplementation(() => {
+      request = {};
+      return request;
+    });
+
+    const pending = cryptoService.getOrGenerateDeviceKey(undefined, false);
+    const assertion = expect(pending).rejects.toMatchObject({
+      name: INDEXEDDB_BLOCKED_ERROR_NAME,
+    });
+    await vi.advanceTimersByTimeAsync(DEVICE_KEY_OPEN_TIMEOUT_MS);
+    await assertion;
+
+    const close = vi.fn();
+    request.result = { close } as unknown as IDBDatabase;
+    request.onsuccess?.();
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the connection and rejects when the save transaction throws", async () => {
+    const open = stubOpen();
+    const closes: string[] = [];
+    let calls = 0;
+    open.mockImplementation(() => {
+      calls += 1;
+      const tag = calls === 1 ? "load" : "save";
+      const request: StubOpenRequest = {};
+      setTimeout(() => {
+        request.result = {
+          transaction: () => {
+            throw new Error(`no-tx-${tag}`);
+          },
+          close: () => {
+            closes.push(tag);
+          },
+        } as unknown as IDBDatabase;
+        request.onsuccess?.();
+      }, 0);
+      return request;
+    });
+
+    // The load wrapper absorbs the synchronous throw (resolves null), key
+    // generation proceeds, and the save wrapper closes its connection
+    // before rejecting instead of orphaning it.
+    await expect(
+      cryptoService.getOrGenerateDeviceKey(undefined, false),
+    ).rejects.toThrow("no-tx-save");
+    expect(closes).toEqual(["load", "save"]);
+  });
 });
