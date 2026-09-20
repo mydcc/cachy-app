@@ -76,6 +76,9 @@ vi.mock("./exchangeCapabilities", async (importOriginal) => {
 // after it, which is how this file's first draft passed for the wrong reason.
 const plans = vi.hoisted(() => ({
     value: {} as Record<string, unknown>,
+    // BUG-0522 — extra plans beside the {loss, profit} pair above, for
+    // symbols holding more than one plan per leg (hedge, both sides).
+    extra: [] as Array<Record<string, unknown>>,
     looks: 0,
     onLook: null as null | ((n: number) => void),
 }));
@@ -87,6 +90,17 @@ vi.mock("../stores/tpsl.svelte", () => ({
             plans.onLook?.(plans.looks);
         },
         plansFor: () => plans.value,
+        // Production legs always carry planType (normalize + WS set it);
+        // the legacy pair above predates that, so it is stamped here.
+        ordersFor: () => [
+            ...(plans.value.loss
+                ? [{ ...(plans.value.loss as Record<string, unknown>), planType: "LOSS" }]
+                : []),
+            ...(plans.value.profit
+                ? [{ ...(plans.value.profit as Record<string, unknown>), planType: "PROFIT" }]
+                : []),
+            ...plans.extra,
+        ],
     },
 }));
 
@@ -136,6 +150,7 @@ beforeEach(() => {
     placeOrder.mockResolvedValue({ clientId: "cachy-abc", result: {} });
     // By default the exchange did what it was told.
     plans.value = { loss: { triggerPrice: "49500" }, profit: { triggerPrice: "51000" } };
+    plans.extra = [];
     plans.looks = 0;
     plans.onLook = null;
 });
@@ -690,5 +705,101 @@ describe("BUG-0502 — protection check matches the new stop, not any stop", () 
         expect(result.stopLoss).toBe("attached");
         expect(result.unprotected).toBe(false);
         expect(result.errorKey).toBe("orderEntry.errors.targetMissing");
+    });
+});
+
+/*
+ * BUG-0522 — a plan from another position must not settle this entry's
+ * check. In hedge mode both sides hold stops on the same symbol; price
+ * plus side cannot tell them apart (production plans carry no side), so
+ * the entry's position id decides.
+ */
+describe("BUG-0522 — protection check matches the entry's position", () => {
+    beforeEach(() => {
+        account.positions = [{ positionId: "pos-new", symbol: "BTCUSDT", side: "long" }];
+    });
+
+    it("does not settle on a same-price stop from another position", async () => {
+        // Correct price, fresh id, but protecting the old (or opposite-side)
+        // position — the classic hedge false-positive. Published after the
+        // entry, so identity cannot exclude it: only position scoping can.
+        plans.value = {};
+        plans.onLook = (n) => {
+            if (n >= 1) {
+                plans.value = {
+                    loss: { orderId: "other-stop-1", triggerPrice: "49500", positionId: "pos-old" },
+                    profit: { orderId: "new-tp-1", triggerPrice: "51000", positionId: "pos-new" },
+                };
+            }
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+    });
+
+    it("confirms the stop sitting on the entry's own position", async () => {
+        plans.value = {};
+        plans.onLook = (n) => {
+            if (n >= 1) {
+                plans.value = {
+                    loss: { orderId: "new-stop-9", triggerPrice: "49500", positionId: "pos-new" },
+                    profit: { orderId: "new-tp-9", triggerPrice: "51000", positionId: "pos-new" },
+                };
+            }
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result).toMatchObject({
+            entryPlaced: true,
+            stopLoss: "attached",
+            takeProfit: "attached",
+            unprotected: false,
+        });
+    });
+
+    it("falls back to price plus identity when no position id is known", async () => {
+        // Neither the plans nor the account state name a position: venues
+        // (or rows) without ids must read exactly as before, never as
+        // "unprotected". Id-less on purpose, so identity cannot exclude and
+        // the fallback is what confirms.
+        account.positions = [];
+        plans.value = {
+            loss: { triggerPrice: "49500" },
+            profit: { triggerPrice: "51000" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result).toMatchObject({ stopLoss: "attached", unprotected: false });
+    });
+
+    it("looks past the first plan when hedge holds stops on both sides", async () => {
+        // `plansFor` answers first-pick per leg; the confirmation must see
+        // the whole list. The first loss plan belongs elsewhere at the wrong
+        // price, the second is this entry's — a first-pick reader never
+        // finds it.
+        plans.value = {
+            loss: { orderId: "other-stop-1", triggerPrice: "49000", positionId: "pos-old" },
+        };
+        plans.onLook = (n) => {
+            if (n >= 1) {
+                plans.extra = [
+                    {
+                        orderId: "new-stop-9",
+                        triggerPrice: "49500",
+                        positionId: "pos-new",
+                        planType: "LOSS",
+                    },
+                ];
+            }
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.stopLoss).toBe("attached");
+        expect(result.unprotected).toBe(false);
     });
 });

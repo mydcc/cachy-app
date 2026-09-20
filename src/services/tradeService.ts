@@ -113,6 +113,16 @@ export interface TpSlOrder {
      */
     sourceOrderId?: string;
     /**
+     * The position this plan protects, as the venue reports it (BUG-0522).
+     *
+     * Present on Bitunix rows and WS pushes; absent elsewhere. The placement
+     * confirmation uses it to tell hedge sides apart — price plus side
+     * cannot, because production plans carry no side. Never required:
+     * matching falls back to price plus identity when either side is
+     * unknown.
+     */
+    positionId?: string;
+    /**
      * Whether this plan looks position-wide or partial, **inferred** from
      * whether its leg named a quantity. The response carries no field saying
      * which it is; see BUG-0292. Safe to show, not safe to place an order on.

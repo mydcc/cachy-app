@@ -201,6 +201,13 @@ function matchesIntent(
     return true;
 }
 
+/** The position a plan protects, or null when the venue did not say. */
+function planPositionOf(order: TpSlOrder): string | null {
+    return typeof order.positionId === "string" && order.positionId.length > 0
+        ? order.positionId
+        : null;
+}
+
 class OrderPlacementService {
     /**
      * Places the entry together with whatever protection the exchange
@@ -218,19 +225,20 @@ class OrderPlacementService {
          * BUG-0502 — before-image of the symbol's plans, taken before the
          * entry is sent. Read from the cache as-is, without invalidating:
          * the point is "what was already there", and an extra fetch here
-         * would only slow the placement path. Residual risk: with a cold
-         * cache and a same-price/same-side old plan on-venue, identity
-         * cannot exclude it and price plus side will confirm it — still
-         * strictly more proof than the old existence check, and the hot
-         * path (cache warm from the position cards) is fully covered. If
-         * placement latency ever allows it, ensureFresh here closes the
-         * remainder.
+         * would only slow the placement path. Read over the whole list
+         * (BUG-0522), not first-pick per leg: in hedge mode both sides
+         * hold plans and every pre-existing id must land in the image.
+         * Residual risk: with a cold cache and a same-price/same-side old
+         * plan on-venue, identity cannot exclude it and price plus side
+         * will confirm it — still strictly more proof than the old
+         * existence check, and the hot path (cache warm from the position
+         * cards) is fully covered. If placement latency ever allows it,
+         * ensureFresh here closes the remainder.
          */
         const beforeIds = new Set<string>();
         if (wantsStop || wantsTarget) {
-            const before = tpSlState.plansFor(plan.symbol);
-            for (const existing of [before.loss, before.profit]) {
-                const id = existing ? planIdOf(existing) : null;
+            for (const existing of tpSlState.ordersFor(plan.symbol)) {
+                const id = planIdOf(existing);
                 if (id !== null) beforeIds.add(id);
             }
         }
@@ -354,16 +362,48 @@ class OrderPlacementService {
          */
         const replacePossible = capabilitiesOf(plan.exchange).tpSlStandalone;
 
+        /*
+         * BUG-0522 — the entry's position, resolved lazily and at most once
+         * per confirmation: it is only needed when a candidate actually
+         * carries a position id to discriminate on. Nothing to discriminate
+         * means no lookup, no polling, no added latency on the hot path —
+         * one-way traders and id-less venues read exactly as before.
+         */
+        let entryPositionId: string | null | undefined;
+        const resolveEntryPosition = async (): Promise<string | null> => {
+            if (entryPositionId === undefined) {
+                entryPositionId = await this.resolvePositionId(plan);
+            }
+            return entryPositionId;
+        };
+
         for (let attempt = 0; attempt <= STOP_RETRY_ATTEMPTS; attempt++) {
-            const plans = await this.readPlans(plan.symbol);
+            const orders = await this.readOrders(plan.symbol);
             // BUG-0502 — existence is not evidence. Each half only settles
-            // on the plan this request produced: new, correctly priced, and
-            // on this entry's side.
+            // on the plan this request produced: new, correctly priced, on
+            // this entry's side — and, where both ids are known, on this
+            // entry's position (BUG-0522). Read over the whole list, not
+            // first-pick per leg: in hedge mode both sides hold plans and
+            // the first one is an arbitrary one.
             const stop = want.wantsStop
-                ? matchesIntent(plans.loss, plan.stopLossPrice, entrySide, beforeIds)
+                ? await this.anyOnPosition(
+                      orders.filter(
+                          (o) =>
+                              o.planType === "LOSS" &&
+                              matchesIntent(o, plan.stopLossPrice, entrySide, beforeIds),
+                      ),
+                      resolveEntryPosition,
+                  )
                 : false;
             const target = want.wantsTarget
-                ? matchesIntent(plans.profit, plan.takeProfits[0], entrySide, beforeIds)
+                ? await this.anyOnPosition(
+                      orders.filter(
+                          (o) =>
+                              o.planType === "PROFIT" &&
+                              matchesIntent(o, plan.takeProfits[0], entrySide, beforeIds),
+                      ),
+                      resolveEntryPosition,
+                  )
                 : false;
 
             const stopSettled = !want.wantsStop || stop;
@@ -416,11 +456,41 @@ class OrderPlacementService {
         return { stopLoss: "failed", takeProfit: "failed", unprotected: true };
     }
 
-    /** Re-reads the exchange's plans for a symbol, bypassing the cache window. */
-    private async readPlans(symbol: string) {
+    /**
+     * Whether any candidate survives position scoping (BUG-0522).
+     *
+     * Candidates already passed identity, price and side. A candidate
+     * carrying another position's id protects the opposite hedge side (or
+     * an older position) and is out. Unknown on either side confirms via
+     * the fail-open fallback: a missing id must never turn a confirmation
+     * "unprotected" — that would be a louder failure than the one this
+     * closes. When no candidate carries an id at all there is nothing to
+     * discriminate and the entry's position is never even looked up.
+     */
+    private async anyOnPosition(
+        candidates: TpSlOrder[],
+        resolveEntryPosition: () => Promise<string | null>,
+    ): Promise<boolean> {
+        if (candidates.length === 0) return false;
+        if (!candidates.some((o) => planPositionOf(o) !== null)) return true;
+        const entryPositionId = await resolveEntryPosition();
+        return candidates.some((o) => {
+            const planPositionId = planPositionOf(o);
+            return (
+                planPositionId === null || entryPositionId === null || planPositionId === entryPositionId
+            );
+        });
+    }
+
+    /**
+     * Re-reads the exchange's plans for a symbol, bypassing the cache
+     * window. The whole list, not first-pick per leg (BUG-0522): the
+     * confirmation matches by position over all of them.
+     */
+    private async readOrders(symbol: string): Promise<TpSlOrder[]> {
         tpSlState.invalidate();
         await tpSlState.ensureFresh();
-        return tpSlState.plansFor(symbol);
+        return tpSlState.ordersFor(symbol);
     }
 
     /**

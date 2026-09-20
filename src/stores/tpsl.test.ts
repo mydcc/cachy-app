@@ -237,6 +237,38 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
         tpSlState.updateFromWs({ tpPrice: "93" });
         expect(tpSlState.orders).toEqual([]);
     });
+
+    it("carries the venue position id onto both legs (BUG-0522)", () => {
+        tpSlState.updateFromWs({
+            orderId: "42",
+            symbol: "SOLUSDT",
+            status: "NEW",
+            tpPrice: "93",
+            slPrice: "85",
+            positionId: "1836413742817685504",
+        });
+
+        const legs = tpSlState.ordersFor("SOLUSDT");
+        expect(legs).toHaveLength(2);
+        expect(legs.map((l) => l.positionId)).toEqual([
+            "1836413742817685504",
+            "1836413742817685504",
+        ]);
+    });
+
+    it("leaves positionId absent when the push carries none", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+
+        expect(tpSlState.ordersFor("SOLUSDT")[0].positionId).toBeUndefined();
+    });
+
+    it("lists every plan for a symbol, not first-pick per leg (BUG-0522)", () => {
+        tpSlState.updateFromWs({ orderId: "1", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        tpSlState.updateFromWs({ orderId: "2", symbol: "SOLUSDT", status: "NEW", slPrice: "84" });
+
+        const legs = tpSlState.ordersFor("SOLUSDT").filter((l) => l.planType === "LOSS");
+        expect(legs.map((l) => l.orderId).sort()).toEqual(["1-sl", "2-sl"]);
+    });
 });
 
 /*

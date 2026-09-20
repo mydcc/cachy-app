@@ -485,12 +485,22 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
   },
   {
+<<<<<<< HEAD
     "id": "BUG-0524",
     "title": "Protection check cannot tell hedge sides apart because venue plans carry no usable side",
     "type": "bug",
     "status": "in-progress",
     "assignee": "opencode",
     "branch": "fix/bug-0522-hedge-position-scoping",
+=======
+    "id": "BUG-0522",
+    "title": "Protection check cannot tell hedge sides apart because venue plans carry no usable side",
+    "type": "bug",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0522-hedge-position-scoping",
+    "shipped": "unreleased",
+>>>>>>> 804aee5f (fix(execution): scope protection check to the entry's position (BUG-0522))
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -502,7 +512,11 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
+<<<<<<< HEAD
     "file": "bugs/BUG-0524-hedge-plans-need-position-scoping.md"
+=======
+    "file": "bugs/BUG-0522-hedge-plans-need-position-scoping.md"
+>>>>>>> 804aee5f (fix(execution): scope protection check to the entry's position (BUG-0522))
   },
   {
     "id": "FEAT-0011",
