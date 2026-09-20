@@ -17,9 +17,14 @@
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-import { RuleEvaluationGate } from "./ruleEvaluationGate";
+import { RuleEvaluationGate, type BotAnchorPersistence } from "./ruleEvaluationGate";
 import { ruleSchema } from "./ruleSchema";
-import type { EvaluationContext, RuleDocument, Verdict } from "./types";
+import type {
+  BotAnchorSnapshot,
+  EvaluationContext,
+  RuleDocument,
+  Verdict,
+} from "./types";
 
 vi.mock("../../services/logger", () => ({
   logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn() },
@@ -354,6 +359,237 @@ describe("RuleEvaluationGate", () => {
     gate.forget(DOCUMENT.id);
     gate.evaluate(DOCUMENT, ctx, anchorMs);
 
+    expect(evaluateSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("bot anchor persistence across a reload — BUG-0491", () => {
+  const BOT: RuleDocument = {
+    ...DOCUMENT,
+    id: "bot-1",
+    frequency: "every_time",
+    action: {
+      consequence_level: "simulate",
+      order: {
+        side: "buy",
+        size_basis: "percent_of_equity",
+        size: "1",
+        stop: { basis: "percent_of_entry", distance: "2" },
+      },
+    },
+  };
+
+  /** In-memory stand-in for the `ruleStateStore` anchor functions. */
+  function fakePersistence() {
+    const stored = new Map<string, BotAnchorSnapshot>();
+    let saves = 0;
+    const persistence: BotAnchorPersistence = {
+      isBotRule: (doc) => doc.action?.consequence_level === "simulate",
+      load: (ruleId) => {
+        const snapshot = stored.get(ruleId);
+        return snapshot ? { ...snapshot } : undefined;
+      },
+      save: (ruleId, snapshot) => {
+        saves += 1;
+        stored.set(ruleId, { ...snapshot });
+      },
+      clear: (ruleId) => {
+        stored.delete(ruleId);
+      },
+    };
+    return { persistence, stored, saveCount: () => saves };
+  }
+
+  beforeEach(() => {
+    vi.spyOn(ruleSchema, "warmupCandles").mockReturnValue(15);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("withholds the same close anchor from a rebuilt gate — the reload", () => {
+    const { persistence } = fakePersistence();
+    const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    new RuleEvaluationGate(persistence).evaluate(BOT, ctx, anchorMs);
+    expect(evaluateSpy).toHaveBeenCalledTimes(1);
+
+    // The tab reloaded: a fresh gate, the same rule still armed, the same
+    // candle still newest. Without the fix this evaluates — and the bot
+    // orders — a second time.
+    const rebuilt = new RuleEvaluationGate(persistence);
+    expect(rebuilt.evaluate(BOT, ctx, anchorMs)).toBeUndefined();
+    expect(evaluateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("persists every evaluation, not only fires", () => {
+    const { persistence } = fakePersistence();
+    const evaluateSpy = vi
+      .spyOn(ruleSchema, "evaluate")
+      .mockReturnValue({ verdict: "does_not_fire" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    // A `does_not_fire` is a decision too: re-deciding it after a reload is
+    // the same defect as re-firing it.
+    new RuleEvaluationGate(persistence).evaluate(BOT, ctx, anchorMs);
+
+    const rebuilt = new RuleEvaluationGate(persistence);
+    expect(rebuilt.evaluate(BOT, ctx, anchorMs)).toBeUndefined();
+    expect(evaluateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("still evaluates a genuinely newer candle after a reload — no one-shot", () => {
+    const { persistence } = fakePersistence();
+    const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+
+    new RuleEvaluationGate(persistence).evaluate(BOT, ctxWithCandles(15), 14 * STEP_MS);
+
+    const rebuilt = new RuleEvaluationGate(persistence);
+    expect(rebuilt.evaluate(BOT, ctxWithCandles(16), 15 * STEP_MS)).toEqual({
+      verdict: "fires",
+    });
+    expect(evaluateSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("writes nothing for notify rules — that path is untouched", () => {
+    const { persistence, stored, saveCount } = fakePersistence();
+    vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    const gate = new RuleEvaluationGate(persistence);
+    gate.evaluate(DOCUMENT, ctx, anchorMs);
+    gate.evaluateIntrabar(DOCUMENT, ctx, anchorMs);
+    gate.forget(DOCUMENT.id);
+
+    expect(saveCount()).toBe(0);
+    expect(stored.size).toBe(0);
+  });
+
+  it("records nothing when the evaluation itself fails, and retries after", () => {
+    const { persistence, stored } = fakePersistence();
+    const evaluateSpy = vi
+      .spyOn(ruleSchema, "evaluate")
+      .mockImplementationOnce(() => {
+        throw new Error("wasm blip");
+      })
+      .mockReturnValue({ verdict: "fires" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    const gate = new RuleEvaluationGate(persistence);
+    expect(() => gate.evaluate(BOT, ctx, anchorMs)).toThrow("wasm blip");
+    expect(stored.size).toBe(0);
+
+    expect(gate.evaluate(BOT, ctx, anchorMs)).toEqual({ verdict: "fires" });
+    expect(evaluateSpy).toHaveBeenCalledTimes(2);
+    expect(stored.get(BOT.id)?.evaluatedAnchorMs).toBe(anchorMs);
+  });
+
+  it("binds persistence after construction through the setter the wiring uses", () => {
+    const { persistence, stored } = fakePersistence();
+    vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    const gate = new RuleEvaluationGate();
+    gate.setBotAnchorPersistence(persistence);
+    gate.evaluate(BOT, ctx, anchorMs);
+
+    expect(stored.get(BOT.id)?.evaluatedAnchorMs).toBe(anchorMs);
+
+    gate.setBotAnchorPersistence(null);
+    const rebuilt = new RuleEvaluationGate();
+    expect(rebuilt.evaluate(BOT, ctx, anchorMs)).toEqual({ verdict: "fires" });
+  });
+
+  it("withholds the same forming candle from a rebuilt gate after a fire", () => {
+    const { persistence } = fakePersistence();
+    const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+
+    new RuleEvaluationGate(persistence).evaluateIntrabar(BOT, ctxWithCandles(15), 14 * STEP_MS);
+    expect(evaluateSpy).toHaveBeenCalledTimes(1);
+
+    const rebuilt = new RuleEvaluationGate(persistence);
+    expect(rebuilt.evaluateIntrabar(BOT, ctxWithCandles(15), 14 * STEP_MS)).toBeUndefined();
+    expect(evaluateSpy).toHaveBeenCalledTimes(1);
+
+    // …while the next candle announces again: `every_time` kept its meaning.
+    expect(rebuilt.evaluateIntrabar(BOT, ctxWithCandles(16), 15 * STEP_MS)).toEqual({
+      verdict: "fires",
+    });
+    expect(evaluateSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("writes once per forming candle, not once per tick", () => {
+    const { persistence, saveCount } = fakePersistence();
+    const evaluateSpy = vi
+      .spyOn(ruleSchema, "evaluate")
+      .mockReturnValue({ verdict: "does_not_fire" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    const gate = new RuleEvaluationGate(persistence);
+    gate.evaluateIntrabar(BOT, ctx, anchorMs);
+    gate.evaluateIntrabar(BOT, ctx, anchorMs);
+    gate.evaluateIntrabar(BOT, ctx, anchorMs);
+
+    // Re-evaluating the forming candle is the mode (repaint); persisting it
+    // again on every tick would be a storage write per tick per bot.
+    expect(evaluateSpy).toHaveBeenCalledTimes(3);
+    expect(saveCount()).toBe(1);
+  });
+
+  it("forget() drops the persisted anchors too, so the rule is re-decidable", () => {
+    const { persistence, stored } = fakePersistence();
+    const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    const gate = new RuleEvaluationGate(persistence);
+    gate.evaluate(BOT, ctx, anchorMs);
+    expect(stored.size).toBe(1);
+
+    gate.forget(BOT.id);
+    expect(stored.size).toBe(0);
+
+    expect(new RuleEvaluationGate(persistence).evaluate(BOT, ctx, anchorMs)).toEqual({
+      verdict: "fires",
+    });
+    expect(evaluateSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the close and intrabar records apart across a reload", () => {
+    const { persistence } = fakePersistence();
+    const evaluateSpy = vi.spyOn(ruleSchema, "evaluate").mockReturnValue({ verdict: "fires" });
+    const ctx = ctxWithCandles(15);
+    const anchorMs = lastAnchor(ctx);
+
+    // Only the close record survived the reload: the forming candle of that
+    // same anchor must still be decidable (FEAT-0477's separation).
+    persistence.save(BOT.id, {
+      evaluatedAnchorMs: anchorMs,
+      intrabarAnchorMs: null,
+      intrabarFiredAnchorMs: null,
+    });
+    expect(new RuleEvaluationGate(persistence).evaluateIntrabar(BOT, ctx, anchorMs)).toEqual({
+      verdict: "fires",
+    });
+
+    // And the mirror image: only the intrabar announcement survived, the
+    // close of that candle must still be decidable.
+    persistence.save(BOT.id, {
+      evaluatedAnchorMs: null,
+      intrabarAnchorMs: anchorMs,
+      intrabarFiredAnchorMs: anchorMs,
+    });
+    expect(new RuleEvaluationGate(persistence).evaluate(BOT, ctx, anchorMs)).toEqual({
+      verdict: "fires",
+    });
     expect(evaluateSpy).toHaveBeenCalledTimes(2);
   });
 });

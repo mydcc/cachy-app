@@ -2444,7 +2444,7 @@
       "maxLossPerTrade": "Max. Verlust pro Trade",
       "maxLossPerTradeHint": "Abstand Einstieg zu Stop × Menge, vor Gebühren.",
       "maxDailyLoss": "Max. Verlust pro Tag",
-      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages.",
+      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages. Öffnungen werden abgelehnt, solange heute nicht messbar ist: Verlust ohne Betrag, Close ohne Exit-Datum oder synchronisierte Trades ohne heutigen History-Sync. Ein als Lost erfasster Scratch-Trade mit 0 zählt als fehlend — auf Won setzen.",
       "maxOpenPositions": "Max. gleichzeitig offene Positionen",
       "maxOpenPositionsHint": "Das Aufstocken einer bereits gehaltenen Position zählt nicht als neue.",
       "resetLimits": "Alle Limits löschen",
@@ -4084,6 +4084,7 @@
     "unsupportedOrderType": "Order abgelehnt: {exchange} unterstützt den Ordertyp {orderType} nicht. Die Order wurde nicht gesendet.",
     "unsupportedTimeInForce": "Order abgelehnt: {exchange} akzeptiert die Gültigkeit {timeInForce} nicht. Die Order wurde nicht gesendet.",
     "unsupportedTpSlAtEntry": "Order abgelehnt: {exchange} kann Take-Profit und Stop-Loss nicht mit der Einstiegsorder zusammen übernehmen. Sie wären stillschweigend verworfen worden und die Position wäre ungeschützt geöffnet worden.",
+    "unplaceableStop": "Order abgelehnt: {exchange} kann den Stop-Loss für diese Order nicht platzieren — weder zusammen mit der Einstiegsorder noch als separate Order. Die Order wurde nicht gesendet. Leere das Stop-Feld, um eine bewusst ungeschützte Entry zu platzieren.",
     "unsupportedMultipleTakeProfits": "Order abgelehnt: {exchange} trägt nur ein Take-Profit-Ziel an der Einstiegsorder, es wurden aber {count} übergeben. Die überzähligen Ziele wären ohne Fehlermeldung verworfen worden."
   },
   "workerErrors": {
