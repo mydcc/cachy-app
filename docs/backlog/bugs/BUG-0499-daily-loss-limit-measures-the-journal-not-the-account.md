@@ -2,7 +2,9 @@
 id: BUG-0499
 title: The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0499-daily-loss-completeness
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -153,18 +155,18 @@ it is a behaviour change, not a silent repair.
 
 ## Acceptance criteria
 
-- [ ] A test journals a `Lost` entry for today with no `totalNetProfit`, sets
+- [x] A test journals a `Lost` entry for today with no `totalNetProfit`, sets
       `maxDailyLossUsdt`, and asserts the next opening order is **refused**
-- [ ] A test journals a closed entry whose `exitDate` is today and whose `date`
+- [x] A test journals a closed entry whose `exitDate` is today and whose `date`
       is yesterday, and asserts it counts toward today's loss
-- [ ] A test uses a terminal status outside `{Won, Lost}` and asserts the day's
+- [x] A test uses a terminal status outside `{Won, Lost}` and asserts the day's
       figure is reported incomplete rather than zero
-- [ ] Each test fails without the fix
-- [ ] A complete journal that is under the limit still passes — the change must
+- [x] Each test fails without the fix
+- [x] A complete journal that is under the limit still passes — the change must
       not refuse ordinary trading
-- [ ] Closes, cancels and TP/SL modifications are still never blocked by this
+- [x] Closes, cancels and TP/SL modifications are still never blocked by this
       limit
-- [ ] `getTradePnL` still returns 0 for a manual `Lost` entry with no amount,
+- [x] `getTradePnL` still returns 0 for a manual `Lost` entry with no amount,
       and the statistics that use it are unchanged
 
 ## Links
