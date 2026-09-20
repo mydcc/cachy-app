@@ -43,6 +43,33 @@ export function applySecurityHeaders(res) {
 }
 
 /**
+ * Express middleware that applies security headers on every request and
+ * wraps res.writeHead so that headers are guaranteed to be set even if SvelteKit's
+ * handler or sirv calls res.writeHead() directly before flushing headers.
+ * Includes a double-wrap guard to avoid unnecessary function wrapping if executed twice.
+ * @param {unknown} req
+ * @param {{ setHeader: (name: string, value: string) => unknown, writeHead: any }} res
+ * @param {() => void} next
+ */
+export function securityHeadersMiddleware(req, res, next) {
+  if (!res.writeHead.__secured) {
+    const originalWriteHead = res.writeHead;
+    /**
+     * @this {any}
+     * @param {...any} args
+     */
+    const securedWriteHead = function (...args) {
+      applySecurityHeaders(res);
+      return originalWriteHead.apply(this, args);
+    };
+    securedWriteHead.__secured = true;
+    res.writeHead = securedWriteHead;
+  }
+  applySecurityHeaders(res);
+  next();
+}
+
+/**
  * Fingerprinted SvelteKit assets live under /_app/immutable/ and static fonts
  * under /fonts/ are safe to cache forever (immutable content/versioned assets).
  * Everything else — index.html, favicon.ico, non-hashed files — must revalidate.

@@ -410,7 +410,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0491",
     "title": "A bot with frequency every_time places a second order on the same candle after a reload",
     "type": "bug",
-    "status": "done",
+    "status": "specced",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -428,9 +428,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0499",
     "title": "The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass",
     "type": "bug",
-    "status": "done",
-    "assignee": "opencode",
-    "branch": "fix/bug-0499-daily-loss-completeness",
+    "status": "specced",
     "priority": "P0",
     "milestone": "none",
     "editions": [

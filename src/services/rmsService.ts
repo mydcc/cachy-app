@@ -44,10 +44,6 @@ import {
 } from "./orderGate";
 import { confirmationPolicyStore } from "../stores/confirmationPolicy.svelte";
 import type { JournalEntry } from "../stores/types";
-import {
-    CLOSED_JOURNAL_STATUSES,
-    KNOWN_JOURNAL_STATUSES,
-} from "../lib/journalStatus";
 
 export interface RiskProfile {
     maxPositionSizeUsdt: Decimal;
@@ -58,33 +54,8 @@ export interface RiskProfile {
 /**
  * Statuses that mean the trade is over and its result is real money. Open and
  * planned entries carry no realised PnL, so they cannot move a daily counter.
- *
- * Shared with the journal store (`CLOSED_JOURNAL_STATUSES`): `Closed` is the
- * legacy terminal status and carries real money. `getTradePnL` has no
- * `Closed` branch of its own — a nonzero recorded amount still returns
- * through its `totalNetProfit` first branch, while zero/missing falls to 0
- * (which is exactly why the gate's completeness check, not the sum, handles
- * amount-less closes). Dropping `Closed` from this set would hide realised
- * losses from the gate (BUG-0499). Statistics that filter on Won/Lost
- * themselves are unaffected.
  */
-const CLOSED_STATUSES: ReadonlySet<string> = CLOSED_JOURNAL_STATUSES;
-
-/**
- * Every status the app knows. An entry carrying anything else — a breakeven
- * wording, a future feature's status, an import's invention — represents
- * money the counter cannot attribute, so the day reads incomplete rather
- * than zero (BUG-0499). The `JournalStatus` union guards the type and
- * `normalizeJournalEntry` coerces on the way in; this guards whatever reaches
- * the gate anyway.
- */
-const KNOWN_STATUSES: ReadonlySet<string> = new Set(KNOWN_JOURNAL_STATUSES);
-
-/** Today's realised PnL together with whether the journal could be measured. */
-export interface DailyLossAssessment {
-    loss: Decimal;
-    complete: boolean;
-}
+const CLOSED_STATUSES = new Set(["Won", "Lost"]);
 
 /**
  * The daily-loss window runs from 00:00 UTC to 00:00 UTC.
@@ -146,33 +117,6 @@ function unmeasurable(field: string): OrderRefusal {
         messageKey: "orderGate.riskLimitUnmeasurable",
         values: { field },
     };
-}
-
-/**
- * Whether the entry states a realised amount.
- *
- * A zero counts as missing: "entered 0" and "forgot to enter anything" are
- * indistinguishable on the record, and for a safety gate the wrong guess in
- * the permissive direction is the failure (BUG-0499). Remedy for a genuine
- * scratch trade: put it on status `Won` — a breakeven win of 0 is
- * meaningful there and stays complete — or enter the actual amount. A `Won`
- * entry with no amount is therefore the exception: refusing on it would
- * block ordinary trading.
- */
-function hasRealisedAmount(entry: JournalEntry): boolean {
-    // Runtime data arrives as strings from storage, CSV and sync paths, so
-    // read through `unknown` even though the type says `Decimal`.
-    const raw: unknown = entry.totalNetProfit;
-    if (raw === null || raw === undefined || raw === "") return false;
-    try {
-        const d =
-            raw instanceof Decimal || Decimal.isDecimal(raw)
-                ? (raw as Decimal)
-                : new Decimal(raw as string | number);
-        return d.isFinite() && !d.isNaN() && !d.isZero();
-    } catch {
-        return false;
-    }
 }
 
 class RiskManagementService {
@@ -287,100 +231,20 @@ class RiskManagementService {
      * and the filter here is written against that flag explicitly rather than
      * relying on paper trades happening not to reach the journal — an
      * incidental exclusion is one refactor away from being no exclusion.
-     *
-     * This is the statistics reading: entries the journal cannot place in
-     * time or amount contribute nothing. The gate must not use this number
-     * alone — see `assessDailyLoss`.
      */
     public realizedPnlToday(now = Date.now()): Decimal {
-        return this.assessDailyLoss(now).loss;
-    }
-
-    /**
-     * The gate's reading of today's realised PnL: the sum plus whether the
-     * journal could actually be measured (BUG-0499).
-     *
-     * The journal is a record a trader keeps; the limit is a gate that stops
-     * orders. Those have opposite failure preferences — the record must not
-     * invent a loss it was not told about (`getTradePnL` stays as it is),
-     * while the gate must not assume a loss did not happen. So every entry
-     * that is *known* incomplete marks the figure incomplete instead of
-     * contributing zero:
-     *
-     * - a `Lost`/`Closed` entry with no amount (forgotten, not zero),
-     * - a closed entry with no `exitDate` (dating it by its open day would
-     *   hide an overnight loss from today's limit),
-     * - a status outside the known set (a wording the counter cannot
-     *   attribute — the `JournalStatus` union guards the type, this guards
-     *   runtime data),
-     * - synced trades in the journal without a same-day position-history
-     *   sync (anything the venue closed since is invisible).
-     *
-     * Day-scoped: an entry whose close day is provably outside today is
-     * skipped before any of those checks, so a 2024 import row can never
-     * refuse a 2026 open. Only entries that could belong to today — or whose
-     * day is unknowable — can mark the figure incomplete.
-     *
-     * A `Won` entry with no amount is the one exception: a breakeven win of
-     * 0 is meaningful, and refusing on it would block ordinary trading.
-     * Manual-only journals never trip the sync rule — there is no venue
-     * source to be stale behind.
-     */
-    public assessDailyLoss(now = Date.now()): DailyLossAssessment {
         const dayStart = utcDayStart(now);
         let total = new Decimal(0);
-        let complete = true;
-        let hasSyncedSource = false;
 
         for (const entry of journalState.entries) {
             if (entry.isPaper === true) continue;
-            // Provably outside today: neither the sum nor the completeness
-            // verdict may see this entry. `exitDate` alone decides — the open
-            // day says nothing about when a position closed.
-            if (entry.exitDate) {
-                const closeTs = closeTimestamp(entry);
-                if (closeTs !== null && (closeTs < dayStart || closeTs > now)) {
-                    continue;
-                }
-            }
-            if (!KNOWN_STATUSES.has(entry.status)) {
-                complete = false;
-                continue;
-            }
-            // Only synced entries that survived the day-scope above can
-            // demand a fresh sync: a 2024 Bitunix row must not force a
-            // same-day history sync every trading day forever.
-            if (entry.isManual === false) hasSyncedSource = true;
             if (!CLOSED_STATUSES.has(entry.status)) continue;
-            if (
-                (entry.status === "Lost" || entry.status === "Closed") &&
-                !hasRealisedAmount(entry)
-            ) {
-                complete = false;
-                continue;
-            }
-            // A close without a close day cannot be placed in time. Dating
-            // it by its open day would hide an overnight loss from today's
-            // limit, so the day reads incomplete instead.
-            if (!entry.exitDate) {
-                complete = false;
-                continue;
-            }
             const ts = closeTimestamp(entry);
-            if (ts === null) {
-                complete = false;
-                continue;
-            }
-            if (ts < dayStart || ts > now) continue;
+            if (ts === null || ts < dayStart || ts > now) continue;
             total = total.plus(getTradePnL(entry));
         }
 
-        if (hasSyncedSource) {
-            const syncedAt = riskState.lastHistorySyncAt;
-            if (syncedAt === null || syncedAt < dayStart) complete = false;
-        }
-
-        return { loss: total, complete };
+        return total;
     }
 
     /** Today's realised loss as a positive number, or zero if today is up. */
@@ -428,15 +292,7 @@ class RiskManagementService {
     private checkDailyLoss(now = Date.now()): OrderRefusal | null {
         const max = riskState.limit("maxDailyLossUsdt");
         if (max === null) return null;
-        // BUG-0499: a configured limit over an unmeasurable day refuses with
-        // the gate's existing "cannot measure" vocabulary instead of passing
-        // on a zero. Closes, cancels and TP/SL modifications never reach
-        // here — `checkLimits` returns them before any limit runs.
-        const assessment = this.assessDailyLoss(now);
-        if (!assessment.complete) return unmeasurable("maxDailyLoss");
-        const loss = assessment.loss.isNegative()
-            ? assessment.loss.abs()
-            : new Decimal(0);
+        const loss = this.realizedLossToday(now);
         if (loss.lt(max)) return null;
         return {
             field: "maxDailyLoss",

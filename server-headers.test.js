@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import {
   SECURITY_HEADERS,
   applySecurityHeaders,
+  securityHeadersMiddleware,
   isImmutableAsset,
   cacheControlFor,
 } from './server-headers.js';
@@ -95,20 +96,19 @@ describe('applySecurityHeaders', () => {
     }
   });
 
-  it('guarantees security headers are applied when res.writeHead is called', () => {
+  it('guarantees security headers are applied when res.writeHead is called via securityHeadersMiddleware', () => {
     const res = mockRes();
     res.writeHead = function (..._args) {
       return this;
     };
+    const req = {};
+    const next = () => {};
 
-    // Simulate server.js Express middleware wrapping res.writeHead
-    const originalWriteHead = res.writeHead;
-    res.writeHead = function (...args) {
-      applySecurityHeaders(res);
-      return originalWriteHead.apply(this, args);
-    };
+    // Execute securityHeadersMiddleware directly
+    securityHeadersMiddleware(req, res, next);
 
-    // Before writeHead is called, headers could be empty if not explicitly called
+    // Clear headers to verify writeHead re-applies them when called by lower handlers
+    res.headers.clear();
     expect(res.headers.has('Strict-Transport-Security')).toBe(false);
 
     // Call writeHead as SvelteKit or sirv handler would
@@ -117,6 +117,21 @@ describe('applySecurityHeaders', () => {
     for (const [name, value] of SECURITY_HEADERS) {
       expect(res.headers.get(name)).toBe(value);
     }
+  });
+
+  it('prevents double-wrapping if securityHeadersMiddleware runs multiple times', () => {
+    const res = mockRes();
+    res.writeHead = function (..._args) {
+      return this;
+    };
+    const req = {};
+    const next = () => {};
+
+    securityHeadersMiddleware(req, res, next);
+    const wrappedOnce = res.writeHead;
+
+    securityHeadersMiddleware(req, res, next);
+    expect(res.writeHead).toBe(wrappedOnce);
   });
 });
 

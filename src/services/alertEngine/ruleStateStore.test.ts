@@ -21,14 +21,11 @@ vi.mock("$app/environment", () => ({ browser: true }));
 
 import {
   RULE_STATE_STORAGE_KEY,
-  clearBotAnchors,
   clearRuleState,
   pruneRuleStates,
-  readBotAnchors,
   readRuleState,
   readRuleStates,
   recordRuleFiring,
-  saveBotAnchors,
 } from "./ruleStateStore";
 
 beforeEach(() => {
@@ -108,99 +105,5 @@ describe("state is forgotten with the rule", () => {
     pruneRuleStates(["kept"]);
 
     expect(Object.keys(readRuleStates())).toEqual(["kept"]);
-  });
-});
-
-describe("bot gate anchors survive a reload — BUG-0491", () => {
-  it("round-trips all three anchors", () => {
-    saveBotAnchors("bot-1", {
-      evaluatedAnchorMs: 1_000,
-      intrabarAnchorMs: 2_000,
-      intrabarFiredAnchorMs: 2_000,
-    });
-
-    expect(readBotAnchors("bot-1")).toEqual({
-      evaluatedAnchorMs: 1_000,
-      intrabarAnchorMs: 2_000,
-      intrabarFiredAnchorMs: 2_000,
-    });
-  });
-
-  it("answers undefined when the entry carries no anchors", () => {
-    recordRuleFiring("rule-a", 1_000);
-
-    expect(readBotAnchors("rule-a")).toBeUndefined();
-    expect(readBotAnchors("nobody")).toBeUndefined();
-  });
-
-  it("keeps the pre-fix entry shape when no anchors were ever saved", () => {
-    recordRuleFiring("rule-a", 1_000);
-
-    expect(readRuleState("rule-a")).toEqual({ fired_count: 1, last_fired_anchor_ms: 1_000 });
-  });
-
-  it("keeps the fire count when anchors are saved and cleared", () => {
-    recordRuleFiring("bot-1", 1_000);
-    saveBotAnchors("bot-1", {
-      evaluatedAnchorMs: 2_000,
-      intrabarAnchorMs: null,
-      intrabarFiredAnchorMs: null,
-    });
-
-    expect(readRuleState("bot-1")).toEqual({
-      fired_count: 1,
-      last_fired_anchor_ms: 1_000,
-      last_evaluated_anchor_ms: 2_000,
-    });
-
-    // Clearing anchors re-arms the dedupe, never a spent `once` rule.
-    clearBotAnchors("bot-1");
-
-    expect(readRuleState("bot-1")).toEqual({ fired_count: 1, last_fired_anchor_ms: 1_000 });
-    expect(readBotAnchors("bot-1")).toBeUndefined();
-  });
-
-  it("skips the write when nothing changed", () => {
-    const snapshot = {
-      evaluatedAnchorMs: 1_000,
-      intrabarAnchorMs: null,
-      intrabarFiredAnchorMs: null,
-    };
-    saveBotAnchors("bot-1", snapshot);
-
-    const before = localStorage.getItem(RULE_STATE_STORAGE_KEY);
-    saveBotAnchors("bot-1", { ...snapshot });
-
-    expect(localStorage.getItem(RULE_STATE_STORAGE_KEY)).toBe(before);
-  });
-
-  it("normalises corrupt anchors to absent rather than nonsense", () => {
-    // `NaN`/`Infinity` serialise to `null`; a string stays a string. All of
-    // them must read as "never evaluated", never as anchor zero.
-    localStorage.setItem(
-      RULE_STATE_STORAGE_KEY,
-      JSON.stringify({
-        "bot-1": {
-          fired_count: 2,
-          last_fired_anchor_ms: 1_000,
-          last_evaluated_anchor_ms: "soon",
-          last_intrabar_anchor_ms: null,
-          last_intrabar_fired_anchor_ms: null,
-        },
-      }),
-    );
-
-    expect(readBotAnchors("bot-1")).toBeUndefined();
-    expect(readRuleState("bot-1")).toEqual({ fired_count: 2, last_fired_anchor_ms: 1_000 });
-  });
-
-  it("clearing anchors of an anchorless rule writes nothing", () => {
-    recordRuleFiring("rule-a", 1_000);
-
-    const before = localStorage.getItem(RULE_STATE_STORAGE_KEY);
-    clearBotAnchors("rule-a");
-    clearBotAnchors("nobody");
-
-    expect(localStorage.getItem(RULE_STATE_STORAGE_KEY)).toBe(before);
   });
 });

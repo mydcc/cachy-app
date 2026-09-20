@@ -20,7 +20,6 @@
   import { formatDynamicDecimal } from "../../../utils/utils";
   import { Decimal } from "decimal.js";
   import type { JournalEntry } from "../../../stores/types";
-  import { coerceJournalStatus } from "../../../lib/journalStatus";
   import JournalEntryTags from "../JournalEntryTags.svelte";
 
   interface Props {
@@ -239,7 +238,7 @@
       <div class="flex items-center gap-2">
         <select
           value={trade.status}
-          onchange={(e) => onUpdateTrade?.(trade.id, { status: coerceJournalStatus((e.target as HTMLSelectElement).value) })}
+          onchange={(e) => onUpdateTrade?.(trade.id, { status: (e.target as HTMLSelectElement).value })}
           class="text-xs px-2.5 py-1 rounded-full font-bold border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] cursor-pointer hover:border-[var(--accent-color)] transition-colors"
           class:text-[var(--success-color)]={isWon}
           class:text-[var(--danger-color)]={isLost}

@@ -108,17 +108,11 @@ const RiskStateSchema = z.object({
     // a switch someone flipped four days ago reads very differently from one
     // flipped a minute ago.
     killSwitchEngagedAt: z.number().int().positive().nullable().catch(null),
-    // Epoch ms of the last successful position-history sync, or null when no
-    // sync has ever run. BUG-0499: the daily-loss gate treats a journal that
-    // holds synced trades as unmeasurable until a same-day sync proves it
-    // caught up — anything the venue closed since is invisible otherwise.
-    lastHistorySyncAt: z.number().int().positive().nullable().catch(null),
 });
 
 class RiskManager {
     private _limits = $state<RiskLimitInputs>({ ...INITIAL_RISK_LIMITS });
     private _killSwitchEngagedAt = $state<number | null>(null);
-    private _lastHistorySyncAt = $state<number | null>(null);
     /** Set when a persist attempt failed, so the UI can stop lying about it. */
     private _persistFailed = $state(false);
 
@@ -136,27 +130,6 @@ class RiskManager {
 
     get isKillSwitchEngaged(): boolean {
         return this._killSwitchEngagedAt !== null;
-    }
-
-    /**
-     * Epoch ms of the last successful position-history sync, or null when no
-     * sync has ever run. Class A like everything else here — a timestamp
-     * about this device's journal, never transmitted.
-     */
-    get lastHistorySyncAt(): number | null {
-        return this._lastHistorySyncAt;
-    }
-
-    /**
-     * Records a successful position-history sync. Called by the sync path,
-     * never by the UI — the stamp is evidence about the venue, not a setting.
-     * Invalid input is ignored rather than stored, so a bad clock cannot
-     * silently re-arm the daily-loss gate.
-     */
-    public recordHistorySync(now = Date.now()): void {
-        if (!Number.isFinite(now) || now <= 0) return;
-        this._lastHistorySyncAt = Math.floor(now);
-        this.persist();
     }
 
     /**
@@ -225,7 +198,7 @@ class RiskManager {
         return true;
     }
 
-    /** Clears every limit. Does not touch the kill switch or the sync stamp. */
+    /** Clears every limit. Does not touch the kill switch. */
     public resetLimits(): void {
         this._limits = { ...INITIAL_RISK_LIMITS };
         this.persist();
@@ -266,7 +239,6 @@ class RiskManager {
                 JSON.stringify({
                     limits: this._limits,
                     killSwitchEngagedAt: this._killSwitchEngagedAt,
-                    lastHistorySyncAt: this._lastHistorySyncAt,
                 }),
                 () => uiState.showError("storage.quotaExceeded"),
             );
@@ -284,7 +256,6 @@ class RiskManager {
             if (!parsed.success) return;
             this._limits = { ...INITIAL_RISK_LIMITS, ...parsed.data.limits };
             this._killSwitchEngagedAt = parsed.data.killSwitchEngagedAt;
-            this._lastHistorySyncAt = parsed.data.lastHistorySyncAt ?? null;
         } catch {
             // A corrupt blob leaves the defaults in place. Note that this
             // means the kill switch reads as disengaged — the alternative,
@@ -297,7 +268,6 @@ class RiskManager {
     public reloadFromStorage(): void {
         this._limits = { ...INITIAL_RISK_LIMITS };
         this._killSwitchEngagedAt = null;
-        this._lastHistorySyncAt = null;
         this._persistFailed = false;
         if (browser) this.load();
     }

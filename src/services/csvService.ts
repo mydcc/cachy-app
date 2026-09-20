@@ -24,10 +24,6 @@ import {
   generateId,
 } from "../utils/utils";
 import type { JournalEntry } from "../stores/types";
-import {
-  coerceJournalStatus,
-  CLOSED_JOURNAL_STATUSES,
-} from "../lib/journalStatus";
 import { Decimal } from "decimal.js";
 
 export const csvService = {
@@ -372,28 +368,16 @@ export const csvService = {
             }
           }
 
-          const rowDate = parseDateString(
-            entry.Datum,
-            entry.Uhrzeit,
-            useUtcDateParsing,
-          ).toISOString();
-
-          const rowStatus = coerceJournalStatus(entry.Status);
-
           const importedTrade: JournalEntry = {
             id: internalId,
-            date: rowDate,
-            // BUG-0499: an import row carries no separate close time, so a
-            // closed row's date doubles as its close day — the same
-            // attribution the gate used implicitly before, now explicit and
-            // measurable. Open rows get none: they have no close day yet,
-            // and stamping one would confuse duration stats.
-            exitDate: CLOSED_JOURNAL_STATUSES.has(rowStatus)
-              ? rowDate
-              : undefined,
+            date: parseDateString(
+              entry.Datum,
+              entry.Uhrzeit,
+              useUtcDateParsing,
+            ).toISOString(),
             symbol: entry.Symbol,
             tradeType: entry.Typ.toLowerCase(),
-            status: rowStatus,
+            status: entry.Status,
             accountSize: parseDecimal(entry["Konto Guthaben"] || "0"),
             riskPercentage: parseDecimal(entry["Risiko %"] || "0"),
             leverage: parseDecimal(entry.Hebel || "1"),

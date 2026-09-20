@@ -345,33 +345,6 @@ export interface RuleState {
   fired_count?: number;
   /** Close instant of the trigger candle the last announcement was anchored on. */
   last_fired_anchor_ms?: number | null;
-  /**
-   * BUG-0491 — the gate's durable record for bots, TS-side only.
-   *
-   * The Rust `RuleState` knows two fields and the wire stays exactly that:
-   * whoever hands a state to the core strips these first (see
-   * `RuleEvaluationLoop.stateFor`), so an unknown-field guard on that side
-   * can never trip on them. All three are absent on entries written before
-   * this fix — absent reads as "never evaluated", which errs towards
-   * evaluating: the loud direction.
-   */
-  /** Last close anchor this rule was evaluated on, whatever the verdict was. */
-  last_evaluated_anchor_ms?: number | null;
-  /** Open time of the forming candle last seen on the intrabar path. */
-  last_intrabar_anchor_ms?: number | null;
-  /** Open time of the forming candle last announced on the intrabar path. */
-  last_intrabar_fired_anchor_ms?: number | null;
-}
-
-/**
- * BUG-0491 — one bot's durable gate anchors, as the persistence port carries
- * them. `null` is "no record", never "anchor zero": the gate seeds only the
- * maps a non-null value names.
- */
-export interface BotAnchorSnapshot {
-  evaluatedAnchorMs: number | null;
-  intrabarAnchorMs: number | null;
-  intrabarFiredAnchorMs: number | null;
 }
 
 export interface RuleRefusal {

@@ -4,7 +4,7 @@
 
 402 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 55 · ✅ done 323 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 57 · ✅ done 321 · ⛔ dropped 1
 
 ---
 
@@ -213,8 +213,8 @@ Counts by status: 💡 idea 23 · 📋 specced 55 · ✅ done 323 · ⛔ dropped
 | [BUG-0315](bugs/BUG-0315-double-counted-last-candle.md) | wasmCalculator double-counts the last candle in initialize and update | P0 | ✅ done | calculation |
 | [BUG-0347](bugs/BUG-0347-modal-position-snapshot-freeze.md) | Modals show frozen price and PnL due to static snapshot props | P0 | ✅ done | trade-panel |
 | [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | ✅ done | persistence |
-| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | ✅ done | execution |
-| [BUG-0499](bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md) | The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass | P0 | ✅ done | execution |
+| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | execution |
+| [BUG-0499](bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md) | The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass | P0 | 📋 specced | execution |
 | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md) | The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected | P0 | ✅ done | execution |
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | execution |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
@@ -491,8 +491,8 @@ Counts by status: 💡 idea 23 · 📋 specced 55 · ✅ done 323 · ⛔ dropped
 | [BUG-0414](bugs/BUG-0414-burning-borders-disable-white-flash.md) | Disabling Burning Borders flashes a white background briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0428](bugs/BUG-0428-topline-toggle-white-flash.md) | Toggling Sentiment Topline flashes its region white briefly | P0 | ✅ done | M4 | community, pro, private | none | none | — |
 | [BUG-0479](bugs/BUG-0479-repair-truncates-long-trades.md) | MFE/MAE repair truncates klines for long trades, silently corrupting journal metrics | P0 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | ✅ done | none | community, pro, private | A | ADR-0012 | — |
-| [BUG-0499](bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md) | The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass | P0 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
+| [BUG-0499](bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md) | The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass | P0 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md) | The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |

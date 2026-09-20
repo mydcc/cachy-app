@@ -18,7 +18,7 @@
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
-import { applySecurityHeaders, cacheControlFor } from './server-headers.js';
+import { applySecurityHeaders, cacheControlFor, securityHeadersMiddleware } from './server-headers.js';
 
 const app = express();
 
@@ -26,18 +26,8 @@ const app = express();
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
 
-// Apply security headers to all requests. Wrap res.writeHead so that
-// security headers are guaranteed to be set even if SvelteKit's handler or sirv
-// calls res.writeHead() directly before flushing headers.
-app.use((req, res, next) => {
-  const originalWriteHead = res.writeHead;
-  res.writeHead = function (...args) {
-    applySecurityHeaders(res);
-    return originalWriteHead.apply(this, args);
-  };
-  applySecurityHeaders(res);
-  next();
-});
+// Apply security headers to all requests.
+app.use(securityHeadersMiddleware);
 
 // Let SvelteKit serve static assets with correct caching headers. Security
 // headers are explicitly applied via applySecurityHeaders(res) in setHeaders
