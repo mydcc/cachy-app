@@ -730,9 +730,15 @@ export const syncService = {
 
       // BUG-0499 — the daily-loss gate treats a journal holding synced trades
       // as unmeasurable until a same-day history sync proves it caught up.
-      // Any successful run proves exactly that, even with no new rows (and
-      // even a partial one: history is the critical endpoint and throws
-      // above when it fails, so reaching here means history landed).
+      // Any successful run proves exactly that, even with no new rows — and
+      // deliberately even a partial one: `isPartialSync` can only come from
+      // the pending/orders endpoints, which feed open positions and SL
+      // enrichment but never realised amounts or close days. History itself
+      // is the critical endpoint and throws above when it fails, so reaching
+      // here means the realised figures landed complete. Gating the stamp on
+      // `!isPartialSync` would refuse traders with a rate-limited pending
+      // endpoint despite complete history — a refusal with no safety
+      // benefit, i.e. the wrong direction.
       riskState.recordHistorySync();
 
       // Final feedback - trades already added incrementally
