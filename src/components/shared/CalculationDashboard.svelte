@@ -34,11 +34,9 @@
     // prevent array reallocation and sorting on every reactivity tick.
     let analysisResultsEntries = $derived(Object.entries(analysisState.results));
     let analysisResultsCount = $derived(analysisResultsEntries.length);
-    // Most recently updated symbols first, top 8 for display. Sort before
-    // slicing so the newest symbols are shown; `.slice()` copies because
-    // `.sort()` mutates in place and must not touch the derived source array.
+    // Most recently updated symbols first, top 8 for display.
     let sortedSymbols = $derived(
-        analysisResultsEntries
+        Object.entries(analysisState.results)
             .slice()
             .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))
             .slice(0, 8),
