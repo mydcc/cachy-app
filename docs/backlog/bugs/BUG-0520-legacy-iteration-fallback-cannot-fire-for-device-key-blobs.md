@@ -2,7 +2,9 @@
 id: BUG-0520
 title: attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/bug-0520-legacy-fallback-dead-rung
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -91,34 +93,44 @@ device keys derive with a constant, so the parameter became advisory.
 
 ## Fix
 
-Honour `iterations` on every branch that derives from PBKDF2 material, and
-include it in the `sessionKeyCache` key so a varied iteration count cannot
-return a stale derivation.
-
-If the conclusion is instead that device-key blobs never existed at
-`LEGACY_ITERATIONS` — plausible, since the device key postdates the CryptoJS
-rewrite — then the honest fix is the opposite one: drop the parameter, drop
-rung 3 for those callers, and say so in a comment, so the code stops
-promising a recovery it cannot perform. Establishing which of the two is true
-is the first step of this item.
+**Decision (recorded 2026-09-20, Option B): a blob encrypted under a device
+`CryptoKey` cannot exist at `LEGACY_ITERATIONS`.** Pre-rewrite
+(`560a15c7~1`) `encrypt()` accepted only `password: string` — there was no
+`CryptoKey` path and no device key. Device keys were introduced later
+(`b8537c98`), and `encrypt()` with a `CryptoKey` always derives at
+`STRONG_ITERATIONS`/SHA-512. The session-key path keeps the full ladder:
+the session base key is PBKDF2 material imported from the same user
+password that could have encrypted pre-rewrite blobs, so rung 3 is a
+genuine recovery path there. Accordingly the fix removes rung 3 only for
+`CryptoKey` callers (with a comment stating why), honours `iterations` on
+the session branch, and includes it in the `sessionKeyCache` key.
 
 ## Acceptance criteria
 
-- [ ] The question is settled first and recorded here: can a blob encrypted
+- [x] The question is settled first and recorded here: can a blob encrypted
       under a device `CryptoKey` exist at `LEGACY_ITERATIONS`? Check the git
       history of `cryptoService.ts` around the CryptoJS rewrite (`560a15c7`)
-- [ ] A test asserts the current behaviour: `attemptDecrypt` called with a
+      → No: pre-rewrite API was string-password-only; device keys (`b8537c98`)
+      postdate the rewrite; `encrypt()` with `CryptoKey` always uses
+      `STRONG_ITERATIONS`/SHA-512.
+- [x] A test asserts the current behaviour: `attemptDecrypt` called with a
       `CryptoKey` and `LEGACY_ITERATIONS` derives with `STRONG_ITERATIONS`
+      → pinned as RED, then fixed: test now asserts a `CryptoKey` caller
+      never derives at `LEGACY_ITERATIONS` (exactly 2 derivations).
 - [ ] If the fallback is needed: rungs 2 and 3 produce different derivations
       for a `CryptoKey` caller, asserted by a test, and a fixture blob
-      written at `LEGACY_ITERATIONS` decrypts
-- [ ] If it is not needed: the dead rung and the unused parameter are removed
-      rather than left in place, and the reason is in a comment
-- [ ] `sessionKeyCache` keys include the iteration count, asserted by a test
+      written at `LEGACY_ITERATIONS` decrypts — N/A per decision above.
+- [x] If it is not needed: the dead rung and the unused parameter are removed
+      rather than left in place, and the reason is in a comment → rung 3
+      skipped for `CryptoKey` callers in `decrypt()`; `attemptDecrypt`'s
+      `iterations` param is kept because the string/session branches still
+      use it; reason recorded in code comments.
+- [x] `sessionKeyCache` keys include the iteration count, asserted by a test
       that derives twice for one salt at two iteration counts
-- [ ] The normal path — `kdfHash` present, single `attemptDecrypt`, no
+- [x] The normal path — `kdfHash` present, single `attemptDecrypt`, no
       ladder — is unaffected
-- [ ] Targeted `cryptoService` tests pass
+- [x] Targeted `cryptoService` tests pass (plus `cryptoService.blocked`,
+      `secretsLoader`, `settings.security`)
 
 ## Out of scope
 

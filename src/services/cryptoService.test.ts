@@ -152,3 +152,62 @@ interface EncryptedBlobFixture {
   method: "AES-GCM" | "AES-CBC";
   kdfHash?: "SHA-512" | "SHA-256";
 }
+
+// BUG-0520: the legacy ladder's third rung (LEGACY_ITERATIONS = 10000,
+// SHA-1) can never fire for a device CryptoKey — device keys postdate the
+// CryptoJS rewrite (b8537c98 came after 560a15c7), so no device-key blob
+// exists at those parameters. The ladder must not waste a duplicate
+// derivation there, and the session cache key must include the iteration
+// count so a varied count can never return a stale key.
+describe("CryptoService — legacy ladder with device CryptoKey (BUG-0520)", () => {
+  async function importDeviceKey(): Promise<CryptoKey> {
+    return window.crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode("device-key-material-32-bytes!!"),
+      "PBKDF2",
+      false,
+      ["deriveKey"],
+    );
+  }
+
+  it("never derives at LEGACY_ITERATIONS for a CryptoKey caller", async () => {
+    const deviceKey = await importDeviceKey();
+    const deriveSpy = vi.spyOn(window.crypto.subtle, "deriveKey");
+    deriveSpy.mockClear();
+    try {
+      await expect(
+        cryptoService.decrypt(legacyFixture.blob as EncryptedBlobFixture, deviceKey),
+      ).rejects.toThrow();
+      const iterations = deriveSpy.mock.calls.map(
+        (call) => (call[0] as Pbkdf2Params).iterations,
+      );
+      expect(iterations.length).toBeGreaterThan(0);
+      expect(iterations).not.toContain(10000);
+      expect(deriveSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      deriveSpy.mockRestore();
+    }
+  });
+
+  it("keys the session cache by iteration count", async () => {
+    await cryptoService.unlockSession("cache-key-password");
+    try {
+      const svc = cryptoService as unknown as {
+        getSessionKeyForSalt(
+          salt: Uint8Array,
+          usages: KeyUsage[],
+          hash: "SHA-512" | "SHA-256" | "SHA-1",
+          iterations?: number,
+        ): Promise<CryptoKey>;
+      };
+      const salt = window.crypto.getRandomValues(new Uint8Array(16));
+      const keyStrong = await svc.getSessionKeyForSalt(salt, ["decrypt"], "SHA-512", 600000);
+      const keyStrongCached = await svc.getSessionKeyForSalt(salt, ["decrypt"], "SHA-512", 600000);
+      const keyLegacy = await svc.getSessionKeyForSalt(salt, ["decrypt"], "SHA-512", 10000);
+      expect(keyStrongCached).toBe(keyStrong);
+      expect(keyLegacy).not.toBe(keyStrong);
+    } finally {
+      cryptoService.lockSession();
+    }
+  });
+});
