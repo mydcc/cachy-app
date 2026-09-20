@@ -131,6 +131,30 @@ describe("FEAT-0346 — CalculationDashboard reports the state it derived", () =
         expect(host.textContent).toContain("10 / 10");
     });
 
+    it("shows the eight most recently updated symbols first", () => {
+        const now = Date.now();
+        const result: Record<string, { updatedAt: number; confluenceScore: number; condition: string }> = {};
+        for (let i = 0; i < 10; i++) {
+            // SYM9 is newest, SYM0 is oldest — insertion order is oldest-first
+            // so slicing before sorting would drop the two newest symbols.
+            result[`SYM${i}USDT`] = { updatedAt: now - (9 - i) * 1000, confluenceScore: 40 + i, condition: "trending" };
+        }
+        analysisMock.results = result;
+        render();
+
+        const names = [...host.querySelectorAll(".symbol-name")].map((el) => el.textContent);
+        expect(names).toEqual([
+            "SYM9USDT",
+            "SYM8USDT",
+            "SYM7USDT",
+            "SYM6USDT",
+            "SYM5USDT",
+            "SYM4USDT",
+            "SYM3USDT",
+            "SYM2USDT",
+        ]);
+    });
+
     it("names the light profile for a 300s interval", () => {
         settingsMock.marketAnalysisInterval = 300;
         render();

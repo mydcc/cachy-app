@@ -746,10 +746,7 @@
                 planType,
                 triggerPrice: price.toString(),
             });
-            toastService.success(
-                get(_)("trade.tpSlUpdated") ||
-                    "TP/SL updated",
-            );
+            toastService.success(get(_)("trade.tpSlUpdated"));
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
             // BUG-0386: the toast alone gave no reproducible trace — log the
@@ -762,7 +759,7 @@
             toastService.error(
                 get(_)("trade.tpSlUpdateFailed", {
                     values: { msg },
-                }) || `TP/SL update failed: ${msg}`,
+                }),
             );
         } finally {
             // Whether it succeeded or was refused, the on-chart line must
