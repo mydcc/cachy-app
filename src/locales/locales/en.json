@@ -2444,7 +2444,7 @@
       "maxLossPerTrade": "Max loss per trade",
       "maxLossPerTradeHint": "Distance from entry to stop × quantity, before fees.",
       "maxDailyLoss": "Max loss per day",
-      "maxDailyLossHint": "Measured against realised PnL for the current UTC day.",
+      "maxDailyLossHint": "Measured against realised PnL for the current UTC day. Opens are refused while today cannot be measured: a loss without an amount, a close without an exit date, or synced trades without today's history sync. A scratch trade recorded as Lost with 0 counts as missing — put it on Won.",
       "maxOpenPositions": "Max concurrent open positions",
       "maxOpenPositionsHint": "Adding to a position you already hold does not count as a new one.",
       "resetLimits": "Clear all limits",

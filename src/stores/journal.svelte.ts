@@ -11,6 +11,7 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeJournalEntry } from "../utils/utils";
 import type { JournalEntry } from "./types";
+import { CLOSED_JOURNAL_STATUSES, coerceJournalStatus } from "../lib/journalStatus";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
@@ -241,7 +242,18 @@ export class JournalManager {
   updateEntry(updatedEntry: JournalEntry) {
     const index = this.entries.findIndex((e) => String(e.id) === String(updatedEntry.id));
     if (index !== -1) {
-      this.entries[index] = updatedEntry;
+      // BUG-0499: the writer guarantees a close day. A transition from an
+      // open state to a closed one happens now, so stamp it when the update
+      // carries none. Unrelated edits to an already-closed entry never touch
+      // the stamp — rewriting history would misattribute the close.
+      const current = this.entries[index];
+      const closingNow =
+        !CLOSED_JOURNAL_STATUSES.has(current.status) &&
+        CLOSED_JOURNAL_STATUSES.has(coerceJournalStatus(updatedEntry.status)) &&
+        !updatedEntry.exitDate;
+      this.entries[index] = closingNow
+        ? { ...updatedEntry, exitDate: new Date().toISOString() }
+        : updatedEntry;
       this.scheduleSave();
     }
   }
