@@ -18,9 +18,9 @@
 
 import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
-import { calculateBreakEvenPrice, calculateBaseMetrics, deriveMoneyMetrics } from "./core";
+import { calculateBreakEvenPrice, calculateBaseMetrics, deriveMoneyMetrics, getTradePnL } from "./core";
 import { CONSTANTS } from "../constants";
-import type { TradeValues } from "../../stores/types";
+import type { JournalEntry, TradeValues } from "../../stores/types";
 
 describe("calculateBreakEvenPrice", () => {
   it("sits above entry for a long, by roughly twice the fee rate", () => {
@@ -97,5 +97,46 @@ describe("deriveMoneyMetrics — BUG-0252 (position size rounded after the initi
     expect(derived.requiredMargin.lt(base!.requiredMargin)).toBe(true);
     expect(derived.netLoss.lt(base!.netLoss)).toBe(true);
     expect(derived.entryFee.lt(base!.entryFee)).toBe(true);
+  });
+});
+
+describe("getTradePnL — BUG-0499 (statistics must not invent losses)", () => {
+  const base = {
+    id: "t-1",
+    date: new Date().toISOString(),
+    symbol: "BTCUSDT",
+    tradeType: "long",
+    accountSize: new Decimal(1000),
+    riskPercentage: new Decimal(1),
+    leverage: new Decimal(10),
+    fees: new Decimal(0.05),
+    entryPrice: new Decimal(50000),
+    stopLossPrice: new Decimal(49500),
+    totalRR: new Decimal(0),
+    totalNetProfit: new Decimal(0),
+    riskAmount: new Decimal(10),
+    totalFees: new Decimal(0),
+    maxPotentialProfit: new Decimal(0),
+    notes: "",
+    targets: [],
+    calculatedTpDetails: [],
+  };
+
+  it("returns 0 for a manual Lost entry with no amount, without inventing one", () => {
+    const entry = {
+      ...base,
+      status: "Lost",
+      totalNetProfit: undefined,
+    } as unknown as JournalEntry;
+    expect(getTradePnL(entry).toString()).toBe("0");
+  });
+
+  it("still returns the recorded amount when one is present", () => {
+    const entry = {
+      ...base,
+      status: "Lost",
+      totalNetProfit: new Decimal(-50),
+    } as unknown as JournalEntry;
+    expect(getTradePnL(entry).toString()).toBe("-50");
   });
 });

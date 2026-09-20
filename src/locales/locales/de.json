@@ -2444,7 +2444,7 @@
       "maxLossPerTrade": "Max. Verlust pro Trade",
       "maxLossPerTradeHint": "Abstand Einstieg zu Stop × Menge, vor Gebühren.",
       "maxDailyLoss": "Max. Verlust pro Tag",
-      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages.",
+      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages. Öffnungen werden abgelehnt, solange heute nicht messbar ist: Verlust ohne Betrag, Close ohne Exit-Datum oder synchronisierte Trades ohne heutigen History-Sync. Ein als Lost erfasster Scratch-Trade mit 0 zählt als fehlend — auf Won setzen.",
       "maxOpenPositions": "Max. gleichzeitig offene Positionen",
       "maxOpenPositionsHint": "Das Aufstocken einer bereits gehaltenen Position zählt nicht als neue.",
       "resetLimits": "Alle Limits löschen",
