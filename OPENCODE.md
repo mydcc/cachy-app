@@ -43,7 +43,7 @@ cd .worktrees/<branch-name>
 **Cleanup after merge/abandon (mandatory):**
 ```bash
 git worktree remove .worktrees/<branch-name>
-git branch -D <branch-name>
+# git branch -D <branch-name>
 ```
 
 See `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up".
