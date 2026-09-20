@@ -94,6 +94,30 @@ describe('applySecurityHeaders', () => {
       expect(res.headers.get(name)).toBe(value);
     }
   });
+
+  it('guarantees security headers are applied when res.writeHead is called', () => {
+    const res = mockRes();
+    res.writeHead = function (..._args) {
+      return this;
+    };
+
+    // Simulate server.js Express middleware wrapping res.writeHead
+    const originalWriteHead = res.writeHead;
+    res.writeHead = function (...args) {
+      applySecurityHeaders(res);
+      return originalWriteHead.apply(this, args);
+    };
+
+    // Before writeHead is called, headers could be empty if not explicitly called
+    expect(res.headers.has('Strict-Transport-Security')).toBe(false);
+
+    // Call writeHead as SvelteKit or sirv handler would
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+
+    for (const [name, value] of SECURITY_HEADERS) {
+      expect(res.headers.get(name)).toBe(value);
+    }
+  });
 });
 
 describe('isImmutableAsset', () => {
