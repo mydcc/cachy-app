@@ -4922,16 +4922,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0523",
     "title": "Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day",
     "type": "bug",
-<<<<<<< HEAD
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/bug-0523-daily-loss-followups",
-=======
     "status": "done",
     "assignee": "opencode",
     "branch": "fix/bug-0523-daily-loss-followups",
     "shipped": "unreleased",
->>>>>>> 4b73535a (fix(risk): name daily-loss refusal causes and measure synced zeroes (BUG-0523))
     "priority": "P2",
     "milestone": "none",
     "editions": [
