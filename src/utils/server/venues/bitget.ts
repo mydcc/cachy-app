@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { validateBitgetKeys } from "../bitget";
 import type { NormalizedOrder, NormalizedPosition } from "../../../types/exchange";
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import { formatApiNum } from "../../utils";
@@ -32,7 +31,6 @@ import type {
   ExchangeAccountData,
   KlineQuery,
   TickersQuery,
-  VenueCredentials,
   VenueKline,
   VenueModule,
 } from "./types";
@@ -517,10 +515,6 @@ async function executeAccountSetting(): Promise<null> {
 export const bitgetVenue: VenueModule = {
   id: "bitget",
   requiresPassphrase: true,
-
-  validateKeys(creds: VenueCredentials): string | null {
-    return validateBitgetKeys(creds.apiKey, creds.apiSecret, creds.passphrase);
-  },
 
   fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData> {
     return fetchBitgetAccount(envelope);

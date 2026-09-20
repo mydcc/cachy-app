@@ -22,7 +22,6 @@ import type { VenueId, VenueModule } from "./types";
 export type {
   ExchangeAccountData,
   KlineQuery,
-  VenueCredentials,
   VenueId,
   VenueKline,
   VenueModule,
