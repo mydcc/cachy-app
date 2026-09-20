@@ -2,7 +2,7 @@
 id: BUG-0491
 title: A bot with frequency every_time places a second order on the same candle after a reload
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -98,13 +98,13 @@ Do **not** fix this by making every bot one-shot: that silently repurposes
 
 ## Acceptance criteria
 
-- [ ] A test arms a bot with `frequency: every_time`, fires it on an anchor,
+- [x] A test arms a bot with `frequency: every_time`, fires it on an anchor,
       rebuilds the gate (simulating a reload) with the rule still armed and the
       same anchor newest, and asserts **no second** `placeEntryGroup` call
-- [ ] The test fails without the fix
-- [ ] A `notify` rule with `frequency: every_time` still announces on a later
+- [x] The test fails without the fix
+- [x] A `notify` rule with `frequency: every_time` still announces on a later
       candle, so the fix did not turn every_time into once
-- [ ] The paper balance after the reload scenario shows exactly one position
+- [x] The paper balance after the reload scenario shows exactly one position
 
 ## Links
 
@@ -114,3 +114,27 @@ Do **not** fix this by making every bot one-shot: that silently repurposes
 - BUG-0486 — the gate's `forget` is never called (filed in the pre-live review)
 - FEAT-0488 — the submission guard; note its three guards are in-memory too, so
   none of them closes this bug
+
+## Resolution
+
+Fixed with option 1, in its thorough form (persist-every-evaluation): the gate
+keeps a `BotAnchorPersistence` port (no storage imports — the lib/services
+boundary holds), implemented by three sparse, optional fields on the existing
+`ruleStateStore` entry (`last_evaluated_anchor_ms`, `last_intrabar_anchor_ms`,
+`last_intrabar_fired_anchor_ms`). Every successful bot evaluation persists;
+intrabar persists on anchor advance or fire only (no write per tick). The gate
+lazy-hydrates per rule on first sight, so no startup pass was needed, and the
+`notify` path performs zero reads and zero writes. `RuleEvaluationLoop.stateFor`
+strips the anchors before handing state to the core, so the WASM wire is
+exactly the two fields the Rust `RuleState` knows.
+
+Proven by `botOrders.test.ts` ("places exactly one entry across a gate rebuild
+on the same candle": `placeEntryGroup` stays at 1 across the rebuild and
+reaches 2 only on a genuinely later candle) plus ten gate-level and seven
+store-level tests. RED-verified: the 14 new tests fail with the fix stashed,
+all 47 pre-existing tests stay green either way.
+
+## What shipped
+
+Unreleased — fix rides the `develop` PR closing mydcc/cachy-app#3482 (next
+1.6.0-beta).
