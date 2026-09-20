@@ -450,17 +450,18 @@ class RiskManagementService {
     public checkLimits(intent: OrderIntent): OrderRefusal | null {
         if (!this.increasesExposure(intent)) return null;
 
-        // An add (FEAT-0334) gets the one limit that needs no size/stop pair.
-        // Scaling into a position after the day's loss limit has been reached
-        // is the precise behaviour that limit exists to stop, and refusing it
-        // needs nothing from the intent.
-        //
-        // The size-based limits are deliberately not applied: `checkPositionSize`
-        // and `checkLossPerTrade` measure a stop distance an add does not
-        // carry, and `checkOpenPositions` counts positions an add does not
-        // create. Running them on invented inputs would refuse valid adds and
-        // pass invalid ones — worse than not running them.
-        if (intent.kind === "add") return this.checkDailyLoss();
+        // An add (FEAT-0334) gets the limits that need no stop distance the
+        // add does not carry. Scaling into a position after the day's loss
+        // limit has been reached is the precise behaviour that limit exists
+        // to stop, and refusing it needs nothing from the intent. The
+        // position-size caps are measurable on an add — notional is quantity
+        // × price, and the cap answers how large the position becomes, so the
+        // resulting position is measured (BUG-0508). `checkLossPerTrade`
+        // genuinely needs a stop distance the add intent does not carry;
+        // sourcing it from the position's resting stop is BUG-0510, not this
+        // change. `checkOpenPositions` counts positions an add does not
+        // create; skipping it is correct.
+        if (intent.kind === "add") return this.checkDailyLoss() ?? this.checkPositionSize(intent);
 
         // A pending-order amendment carries no size/stop pair to measure; the
         // kill switch already covers it, and the gate's own field checks cover
@@ -579,13 +580,25 @@ class RiskManagementService {
         return null;
     }
 
-    /** Order value in quote currency: quantity × entry price. */
+    /**
+     * Order value in quote currency: quantity × entry price. For an `add`
+     * the cap answers how large the position becomes, so the resulting
+     * position is measured (`positionAmount + addQuantity`), not the leg
+     * alone — for an open the two are identical (BUG-0508). An add that
+     * does not state the position it grows is unmeasurable rather than
+     * capped per-leg: capping each leg alone would let ten of them through.
+     */
     private notionalOf(intent: OrderIntent): Decimal | null {
         const qty = toDecimal(intent.payload.qty);
         if (qty === null) return null;
         const price =
             intent.displayed.entryPrice ?? toDecimal(intent.payload.price);
         if (price === null) return null;
+        if (intent.kind === "add") {
+            const positionAmount = intent.displayed.positionAmount;
+            if (positionAmount === undefined) return null;
+            return positionAmount.plus(qty).times(price);
+        }
         return qty.times(price);
     }
 

@@ -1696,6 +1696,17 @@ class TradeService {
             (a) => a.currency === "USDT",
         )?.available;
 
+        // Account equity for the percentage position-size cap — the same
+        // tradeState the order panel reads. Unparseable means the cap is
+        // unmeasurable and the add refuses rather than passing unmeasured
+        // (BUG-0508).
+        let accountSize: Decimal | undefined;
+        try {
+            accountSize = new Decimal(tradeState.accountSize);
+        } catch {
+            accountSize = undefined;
+        }
+
         const payload: Record<string, unknown> = {
             type: "place-order",
             symbol,
@@ -1729,6 +1740,8 @@ class TradeService {
                 entryPrice: fillPrice,
                 positionAmount: position.amount,
                 positionId: position.positionId,
+                // For the percentage position-size cap (BUG-0508).
+                accountSize,
                 leverage: position.leverage,
                 marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
                 availableMargin,

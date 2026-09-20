@@ -274,6 +274,91 @@ describe("FEAT-0013 — limits allow what they should", () => {
     });
 });
 
+/** 0.5 BTC held, adding 0.1 BTC at 50 000 → resulting 30 000 USDT. */
+function addIntent(positionAmount = "0.5", addQty = "0.1"): OrderIntent {
+    return {
+        kind: "add",
+        endpoint: "/api/orders",
+        payload: {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "BUY",
+            orderType: "MARKET",
+            qty: addQty,
+            reduceOnly: false,
+            tradeSide: "OPEN",
+            positionId: "pos-1",
+        },
+        displayed: {
+            ...ACCOUNT,
+            symbol: "BTCUSDT",
+            side: "BUY",
+            addQuantity: new Decimal(addQty),
+            entryPrice: new Decimal(50000),
+            positionAmount: new Decimal(positionAmount),
+            positionId: "pos-1",
+            leverage: new Decimal(10),
+            marginMode: "ISOLATION",
+            availableMargin: new Decimal(100000),
+            accountStateAt: Date.now(),
+            accountSize: new Decimal(100000),
+        },
+    };
+}
+
+describe("BUG-0508 — adds are measured against the position-size cap", () => {
+    it("refuses an add that takes the resulting position past the absolute cap", () => {
+        // The leg alone is 5 000, inside the cap — the resulting 30 000 is not.
+        riskState.setLimit("maxPositionSizeUsdt", "25000");
+        const refusal = orderGate.verify(addIntent()).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.values.limit).toBe("25000");
+        expect(refusal?.values.actual).toBe("30000");
+    });
+
+    it("allows an add that stays inside the cap", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "30000");
+        expect(orderGate.verify(addIntent()).approved).toBe(true);
+    });
+
+    it("refuses the add that cumulatively crosses the cap", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "25750");
+        // 0.5 + 0.01 → 25 500: inside.
+        expect(orderGate.verify(addIntent("0.5", "0.01")).approved).toBe(true);
+        // 0.51 + 0.01 → 26 000: past it.
+        const refusal = orderGate.verify(addIntent("0.51", "0.01")).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.values.actual).toBe("26000");
+    });
+
+    it("measures the percentage cap instead of refusing unmeasurable", () => {
+        // 25 % of 100 000 = 25 000 < resulting 30 000.
+        riskState.setLimit("maxPositionSizePercent", "25");
+        const refusal = orderGate.verify(addIntent()).refusal;
+        expect(refusal?.field).toBe("maxPositionSizePercent");
+        expect(refusal?.values.limit).toBe("25000");
+        expect(refusal?.values.actual).toBe("30000");
+    });
+
+    it("refuses an add the percentage cap cannot measure", () => {
+        riskState.setLimit("maxPositionSizePercent", "25");
+        const intent = addIntent();
+        delete intent.displayed.accountSize;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxPositionSizePercent");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("refuses an add that states no position to grow", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "25000");
+        const intent = addIntent();
+        delete intent.displayed.positionAmount;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.reason).toBe("missing");
+    });
+});
+
 // AC: "Limits are enforced at the gate, not in the form — proven by a test
 // that constructs an over-limit order programmatically."
 describe("FEAT-0013 — limits are enforced at the gate, not in the form", () => {
