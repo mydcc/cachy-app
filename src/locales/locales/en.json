@@ -2491,6 +2491,7 @@
       "subTab": "Order Log",
       "title": "Order audit trail",
       "description": "Every order this app tried to submit — what was sent, what came back, and which checks it passed. Refused orders are recorded too; those are the ones no console would ever have shown, because nothing was sent.",
+      "toggleDetails": "Toggle order details",
       "retention": "Kept on this device only, never uploaded. The most recent {max} attempts are retained; older ones are dropped. API keys, secrets and signatures are removed before anything is written.",
       "export": "Export as JSON",
       "refresh": "Refresh",
