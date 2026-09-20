@@ -30,10 +30,11 @@
     let nextCycleIn = $state(0);
     let cycleProgress = $state(0); // 0-100%
 
+    // Most recently updated symbols first, top 8 for display.
     let sortedSymbols = $derived(
         Object.entries(analysisState.results)
-            .slice(0, 8)
             .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))
+            .slice(0, 8),
     );
 
     // Update every 1 second
