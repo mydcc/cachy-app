@@ -155,9 +155,12 @@ function triggerPriceMatches(order: TpSlOrder, expected: Decimal): boolean {
          * Exact decimal equality, deliberately — the same discipline the
          * gate's own price rule uses (`decimalsAgree` in checkPrices). This
          * path carries no venue tick size to tolerance against, and an
-         * invented epsilon would be a new magic number. The failure
-         * direction stays safe: a tick-rounded level that mismatches
-         * reports "unprotected", loudly, instead of a false "attached".
+         * invented epsilon would be a new magic number. No venue on this
+         * path is observed to quantize the trigger price — the stop is
+         * sent and read back verbatim — so exactness costs nothing today.
+         * If a venue ever rounds to tick, the failure direction stays
+         * safe: a correctly attached stop reports "unprotected", loudly
+         * (burning the retry budget), instead of a false "attached".
          */
         return new Decimal(order.triggerPrice).equals(expected);
     } catch {
@@ -215,9 +218,13 @@ class OrderPlacementService {
          * BUG-0502 — before-image of the symbol's plans, taken before the
          * entry is sent. Read from the cache as-is, without invalidating:
          * the point is "what was already there", and an extra fetch here
-         * would only slow the placement path. When the cache is cold the
-         * set is empty and the price-plus-side match below still applies,
-         * which is strictly more than the old existence check proved.
+         * would only slow the placement path. Residual risk: with a cold
+         * cache and a same-price/same-side old plan on-venue, identity
+         * cannot exclude it and price plus side will confirm it — still
+         * strictly more proof than the old existence check, and the hot
+         * path (cache warm from the position cards) is fully covered. If
+         * placement latency ever allows it, ensureFresh here closes the
+         * remainder.
          */
         const beforeIds = new Set<string>();
         if (wantsStop || wantsTarget) {
