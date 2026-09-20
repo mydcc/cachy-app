@@ -186,7 +186,7 @@ reproducing test first.
 5. Set `status: in-progress`, `assignee: <your-name>` and note the branch, in
    the same commit as your first change. `npm run backlog:check` fails until
    `assignee` is set — that is the point: a claim nobody can see is not a claim.
-6. Build it. Follow `CLAUDE.md` — Svelte 5 runes only, `decimal.js` for money,
+6. Build it. Follow `AGENTS.md` — Svelte 5 runes only, `decimal.js` for money,
    CSS variables for colour, tests beside the code.
 7. Verify with the `/verify` skill: `npm run check` plus the affected tests.
    Report what actually ran and what it said.

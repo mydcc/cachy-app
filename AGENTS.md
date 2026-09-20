@@ -2,7 +2,7 @@
 
 Cachy — Local-First Web App for Crypto Traders (Position Size Calculator, Risk Management, Trade Journal, Real-Time Market Data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
 
-This file is the tool-agnostic single source of truth for all coding agents (Jules, Codex, Cursor, Antigravity, etc.). Tool-specific files reference it and add only startup sequences: Claude Code reads `CLAUDE.md`, Antigravity reads `GEMINI.md`, OpenCode reads `OPENCODE.md`.
+This file is the single source of truth for all coding agents (Jules, Codex, Cursor, OpenCode, etc.). Tool-specific files reference it and add only startup sequences (e.g. OpenCode reads `OPENCODE.md`).
 
 ## Setup
 
@@ -39,6 +39,29 @@ Locally, developers and agents follow these rules:
 - **Local resource protection:** Local Vitest worker count defaults to max 2 workers (`vite.config.ts`), and test scripts run through `scripts/run-lowpri.sh` (`taskset` CPU affinity clamping to at most half cores, idle I/O priority via `ionice -c 3`, and `nice -n 19`).
 
 The dev/build process uses the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without Rust the script keeps the committed `static/wasm/` artifacts and the build still succeeds — in cloud sandbox environments (e.g., Jules Environment Setup), including this script in the setup step still rebuilds the module when a toolchain is present.
+
+## Architecture
+
+**Local-First Data Classes** (see `docs/adr/0001-local-first-boundary.md`):
+- **Class A (never leaves device):** Journal, Settings, API Keys/Secrets, Presets, private notes, trade drafts. `localStorage` only. Never send to a server — not even telemetry, crash reports, or debug logs. (Exception: API Keys as credential of user-initiated exchange requests via proxy.)
+- **Class B (may reside server-side):** Currently only Global Chat (SpacetimeDB, `server/spacetimedb/`). Only under all four conditions: opt-in and default off, authenticated (no anonymous access), minimal (no Class A data, not even as metadata), non-essential (Calculator, Journal, Risk Management work completely without server).
+- **Class C (public market data & derived analytics):** Prices, klines, news, sentiment. Can reside anywhere but **never next to a user identity.** What symbols someone watches is user data. See `docs/adr/0004-spacetimedb-data-scope.md`.
+- Every new Class B feature requires its own ADR. Moving a field from Class A to B is a `BREAKING CHANGE:`.
+- **Core runs without server** (`docs/adr/0003-edition-boundary.md`): Core code — Calculator, Risk Engine, Journal, Presets, Notes, Settings, Exchange integrations, Indicators and their UI — **never** imports from `src/lib/spacetimedb/` or `src/services/cloudService.ts`. Not behind a flag, not in a try/catch. Server features are modules behind an interface.
+
+**Directory Structure:**
+- `src/services/` — API/WebSocket services (Bitunix/Bitget), calculation logic. Tests alongside (`*.test.ts`).
+- `src/stores/` — Svelte 5 rune stores (`*.svelte.ts`), tests alongside.
+- `src/components/` — UI components (alerts, inputs, layout, results, settings, shared).
+- `src/lib/` — Calculator core (`calculator.ts`), utilities, types.
+- `src/routes/` — app shell (`+page.svelte`/`+layout.svelte`) plus `[[lang]]/(seo)/` pages (academy, changelog, guide, privacy, whitepaper). New UI strings always in **both** `src/locales/locales/{de,en}.json`.
+- `server/` — SpacetimeDB module; has its own `server/CLAUDE.md` with separate rules.
+- `technicals-wasm/` — WASM module for indicator calculations.
+
+**Planning & Documentation:** `docs/README.md` is the map — why Cachy exists (`docs/VISION.md`), where code lives (`docs/ARCHITECTURE.md`), what ships when (`docs/MILESTONES.md` → `docs/ROADMAP.md`), what is worked on (`docs/backlog/INDEX.md`), what cannot change (`docs/adr/`), what needs human decision (`docs/TODO.md`).
+- **Link, never duplicate.** One fact lives in exactly one file.
+- New task → backlog entry from `docs/backlog/templates/` (`npm run backlog:check` validates). When a PR touches any `docs/backlog/` file, regenerate the index (`node scripts/backlog-index.mjs`) and commit it **in that PR** — CI fails on a stale index.
+- New decision that constrains future work → ADR (`docs/adr/template.md`), not a paragraph somewhere.
 
 ## Verification Proportionality & Multi-Agent Resource Policy
 
@@ -101,14 +124,22 @@ Use for all code navigation, exploration, impact analysis, and graph queries.
 
 ### jCodeMunch
 Use for code analysis, action routing, and semantic understanding.
-- **Session start:** `order { "action": "resolve_repo", "args": { "path": "." } }` — confirm the project is indexed.
+- **Session start:** `order { "action": "resolve_repo", "args": { "path": "." } }` — confirm the project is indexed. If the repo is not indexed: `order { "action": "index_folder", "args": { "path": "." } }`.
 - `route { "query": "your task in a sentence" }` — picks the right action automatically.
 - `menu { "query": "…" }` — discover available actions.
 - `jcodemunch_guide` — full catalogue and rules.
 - **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
+- **After editing files:** `order { "action": "register_edit", "args": { "paths": ["<edited-file>"] } }` so the index stays current (skip when PostToolUse hooks already reindex automatically).
 
-Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain tool-specific startup sequences for their respective runtimes.
+Tool-specific config files (e.g. `OPENCODE.md`) contain startup sequences for their respective runtimes.
 
+
+## Philosophy: Act, Don't Ask
+
+Default: act. Reversible and cheap? Do it, then report. Research, analysis, drafts, refactors inside the given scope, testing an API — execute first.
+Ask first only for what reaches an audience (publish, send, post, share), cannot be undone (delete, force-push, schema migration, breaking changes), or is expensive (infrastructure changes, project-wide refactors).
+A question is a question — "Why is this failing?" is not "make it stop failing." Answer first; act when told to go.
+Done means done: deliver everything asked; if one part is genuinely blocked, finish the rest and name the specific blocker in one sentence.
 
 ## Commits & Branches
 
@@ -119,6 +150,7 @@ Agent-specific config files (`CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`) contain to
 - **No tool-attribution footers.** Do not append `Co-Authored-By: Claude ...`, `Claude-Session: ...`, or similar agent-attribution lines to commit messages — they aren't part of Cachy's commit standard. Keep the message to the Conventional Commits format above.
 - **WIP commits on agent branches:** Commit work-in-progress every 30–60 minutes as `wip(<scope>): <what is done, what is open>` (e.g. `wip(alerts): panel renders, sentence still mocked`). Large uncommitted diffs stall the code index (Gortex dirty-overlay) and risk lost work on crashes or rebases. Squash-merge flattens history anyway, so no cleanup is needed. Agent task branches only — never on `develop`/`main`.
 - **Never push directly to `develop` or `main`.** Every change goes through a feature branch and a Pull Request; target branch is always `develop`.
+- **Push and open the PR without asking.** Push the feature branch (`git push -u origin <branch>`) and open a PR against `develop` without waiting for confirmation. Ask only when something is off (failing tests, unclear base, suspected secrets). Open as **Ready** by default — Draft only for known-unfinished work, with a one-line reason in the description. Never merge without explicit instruction.
 - **Pull Request Linking:** Every Pull Request MUST include `Fixes #<github_issue_number>` (e.g. `Fixes #1770`) at the start of its description so GitHub automatically links the PR with the issue and advances the Kanban card.
 - **Backlog flip rides in the fix PR (no bots):** If the linked issue is a backlog mirror (`backlog-id:` label), the same PR MUST flip the item to `status: done` and commit the regenerated index (`node scripts/backlog-index.mjs` — plain Node, no install). CI fails the PR if either half is missing.
 - **Writing *about* a closing reference.** GitHub parses closing keywords in **commit messages** as well as Pull Request descriptions, and backticks, quotation marks or surrounding prose do not exempt them. The full keyword set is `close`/`closes`/`closed`, `fix`/`fixes`/`fixed`, `resolve`/`resolves`/`resolved` — **past tense counts too**. Only the position directly before the reference matters, so either break the keyword (`Fixes #<!-- -->1770`) or keep it out of that position.

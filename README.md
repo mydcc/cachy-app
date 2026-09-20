@@ -208,7 +208,7 @@ See `DEPLOYMENT.md` for detailed instructions.
 
 - **Installation:** [`docs/INSTALL.md`](docs/INSTALL.md) — running Cachy yourself, from clone to a working balance, including what to do when every API call answers 401.
 - **User Guide:** `src/lib/assets/content/guide.en.md` (also available in-app).
-- **Contributing, versioning & changelog:** `AGENTS.md` (tool-agnostic rules for all agents) and `CLAUDE.md` (Claude Code-specific extension) for the non-negotiable coding rules and development process, including commit conventions and the semantic-release versioning policy. [`CHANGELOG.md`](CHANGELOG.md) is generated from those commits.
+- **Contributing, versioning & changelog:** `AGENTS.md` (rules for all agents) for the non-negotiable coding rules and development process, including commit conventions and the semantic-release versioning policy. [`CHANGELOG.md`](CHANGELOG.md) is generated from those commits.
 
 ---
 

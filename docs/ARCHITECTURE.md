@@ -7,7 +7,7 @@ the folder refactor and pointed at files that no longer exist.
 If this document and the code disagree, the code is right and this is a bug —
 say so in the backlog rather than working around it.
 
-- **Rules for changing any of this:** [`../CLAUDE.md`](../CLAUDE.md)
+- **Rules for changing any of this:** [`../AGENTS.md`](../AGENTS.md)
 - **Boundaries that are not negotiable:** [`adr/`](adr/README.md)
 
 ---
@@ -190,7 +190,7 @@ npm run test:perf              # wall-clock/heap tests, deliberately outside the
 ```
 
 The `/verify` skill runs the relevant subset and reports honestly. Per
-`CLAUDE.md`: verification, not assertion — a change is done when a test proves
+`AGENTS.md`: verification, not assertion — a change is done when a test proves
 it, not when it compiles.
 
 `npm run test:perf` is separate on purpose: those tests compare wall-clock

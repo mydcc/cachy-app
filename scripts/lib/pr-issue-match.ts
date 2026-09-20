@@ -148,7 +148,7 @@ export type BodyRefCheck =
 /**
  * Does this PR description close anything besides the issue it declares?
  *
- * `CLAUDE.md` requires `Fixes #<issue>` at the start of every PR description —
+ * `AGENTS.md` requires `Fixes #<issue>` at the start of every PR description —
  * so the first closing reference in the body *is* the declared issue, and
  * `closingReferences` already returns references in first-seen order with
  * duplicates removed. Anything after that first one is a second, accidental

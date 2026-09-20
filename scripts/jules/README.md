@@ -170,6 +170,6 @@ Abschnitt „Backlog automatisch abarbeiten" oben.
 
 ## Sicherheitsgrenzen (wichtig)
 
-- Jules erhält über `sourceContext` nur Lesezugriff auf den Git-Verlauf/Code des angegebenen Branches — **keine** Exchange-API-Keys, **keine** Deploy-Credentials, **keine** `.env`-Secrets. Diese sind ohnehin Klasse-A-Daten und dürfen laut `AGENTS.md`/`CLAUDE.md` nie einen Server oder eine fremde Cloud-VM erreichen.
+- Jules erhält über `sourceContext` nur Lesezugriff auf den Git-Verlauf/Code des angegebenen Branches — **keine** Exchange-API-Keys, **keine** Deploy-Credentials, **keine** `.env`-Secrets. Diese sind ohnehin Klasse-A-Daten und dürfen laut `AGENTS.md` nie einen Server oder eine fremde Cloud-VM erreichen.
 - Jedes von `monitor-production.sh` ausgelöste Ergebnis ist ein **Vorschlag** (PR gegen `develop`), kein Auto-Merge. Vor dem Mergen gilt weiterhin: `npm run check` + Tests grün, menschlicher Review — besonders bei allem, was Risiko-/Positionsgrößen- oder Signatur-Logik berührt (siehe Scope-Hinweis in `AGENTS.md`).
 - Reports landen unter `reports/production-monitor/` (git-ignoriert) bzw. als Workflow-Artifact mit 90 Tagen Aufbewahrung — kein automatischer Commit auf `develop`/`main`.
