@@ -175,7 +175,7 @@ git worktree add .worktrees/<session> -b <first-branch> origin/develop
 2. Create a dedicated branch from fresh `develop` (`git fetch origin develop && git checkout -b <branch> origin/develop`) — one branch per task, one PR per branch, so unrelated changes stay separately reviewable and revertable.
 3. Never carry uncommitted changes from one task into the next.
 
-This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. Gortex/jCodeMunch reindex-on-edit hooks) reacting to files it didn't touch. Remove the session worktree (`git worktree remove .worktrees/<session>`) once the session ends; delete each task branch once merged or abandoned.
+This is unconditional, not just for "true parallel work": a single agent working directly in the shared checkout still risks colliding with another agent's in-progress branch, uncommitted changes, or local tooling (e.g. Gortex/jCodeMunch reindex-on-edit hooks) reacting to files it didn't touch. Remove the session worktree (`git worktree remove .worktrees/<session>`) once the session ends.
 
 Guideline: at most ~5 session worktrees at a time; run `git worktree prune` after every removal.
 
@@ -198,10 +198,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 **3. After finishing (mandatory cleanup — also when abandoning):**
 - Retire your session worktree at session end with plain git: `git worktree remove .worktrees/<session>` from the main checkout. Never retire another agent's worktree (see Ownership above).
 - After every merge, re-scan (`git worktree list` against open PRs): remove your own merged trees immediately, report someone else's stale trees by name instead of staying silent.
-- Delete your task branch once merged or abandoned — and only yours. Squash-merges leave no ancestry, so `-d` refuses an already-merged branch while harness safety rules block a bare `-D`. Use the session-scoped exception instead, and only for your own branch:
-  1. At session start, register an exact-match permission for your branch and nothing else (e.g. a Claude Code `permissions.allow` entry `Bash(git branch -D <branch>)` in the gitignored `.claude/settings.local.json`). Never a wildcard, never another agent's branch, never a user-global file.
-  2. Before deleting, prove the branch is spent: its PR is MERGED with head == branch tip, its content is contained in the merge, the remote branch is gone, its worktree is removed. Push first if any commit should be preserved.
-  3. Delete with the permitted exact command, verify the branch is gone, then remove the permission entry again — also on the abort path (then the branch stays, but the exception still dies).
+- After every merge, refresh your local main branch from GH (`git fetch origin develop`, fast-forward `develop` if it is checked out) so the next task starts from the current tip.
 - Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
 
