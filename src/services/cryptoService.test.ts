@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeAll, vi } from "vitest";
-import { cryptoService } from "./cryptoService";
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
+import { cryptoService, isValidLegacyHexKey } from "./cryptoService";
 import legacyFixture from "./__fixtures__/legacy-aes-cbc-blob.json";
 
 vi.mock("$app/environment", () => ({
@@ -209,5 +209,158 @@ describe("CryptoService — legacy ladder with device CryptoKey (BUG-0520)", () 
     } finally {
       cryptoService.lockSession();
     }
+  });
+});
+
+// BUG-0517: the BUG-0053 canary guard ran before the legacy device-key
+// migration, so an upgrading user (legacy `cachy_device_id` + encrypted
+// secrets) got DeviceKeyLost while the key sat untouched in localStorage.
+// BUG-0518: the guard input is now a centrally computed option, not a
+// per-caller argument.
+describe("CryptoService — legacy migration vs loss guard (BUG-0517/0518)", () => {
+  const svc = cryptoService as unknown as {
+    loadKeyFromDB: (alias: string) => Promise<CryptoKey | null>;
+    saveKeyToDB: (alias: string, key: CryptoKey) => Promise<void>;
+  };
+  const LEGACY_HEX = "ab".repeat(32);
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function stubDb() {
+    vi.spyOn(svc, "loadKeyFromDB").mockResolvedValue(null);
+    return vi.spyOn(svc, "saveKeyToDB").mockResolvedValue(undefined);
+  }
+
+  async function importLegacyKey(hex: string): Promise<CryptoKey> {
+    const bytes = hex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16));
+    return window.crypto.subtle.importKey(
+      "raw",
+      new Uint8Array(bytes),
+      "PBKDF2",
+      false,
+      ["deriveKey"],
+    );
+  }
+
+  it("migrates the legacy key when secrets exist instead of throwing DeviceKeyLost", async () => {
+    const saveSpy = stubDb();
+    const legacyKey = await importLegacyKey(LEGACY_HEX);
+    const canaryBlob = await cryptoService.encrypt("canary", legacyKey);
+
+    const migrated = await cryptoService.getOrGenerateDeviceKey({
+      legacyHexKey: LEGACY_HEX,
+      canaryBlob,
+      hasOrphanedCiphertext: true,
+    });
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    await expect(cryptoService.decrypt(canaryBlob, migrated)).resolves.toBe("canary");
+  });
+
+  it("migrates legacy data predating the canary without a check", async () => {
+    const saveSpy = stubDb();
+
+    const migrated = await cryptoService.getOrGenerateDeviceKey({
+      legacyHexKey: LEGACY_HEX,
+      hasOrphanedCiphertext: true,
+    });
+
+    expect(migrated).toBeDefined();
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("persists nothing and still reports DeviceKeyLost when the migrated key fails the canary", async () => {
+    const saveSpy = stubDb();
+    const otherKey = await importLegacyKey("cd".repeat(32));
+    const foreignCanary = await cryptoService.encrypt("canary", otherKey);
+
+    await expect(
+      cryptoService.getOrGenerateDeviceKey({
+        legacyHexKey: LEGACY_HEX,
+        canaryBlob: foreignCanary,
+        hasOrphanedCiphertext: true,
+      }),
+    ).rejects.toThrow("DeviceKeyLost");
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  it("refuses to mint a replacement key when ciphertext exists and no legacy key does (BUG-0053)", async () => {
+    const saveSpy = stubDb();
+
+    await expect(
+      cryptoService.getOrGenerateDeviceKey({ hasOrphanedCiphertext: true }),
+    ).rejects.toThrow("DeviceKeyLost");
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  it("mints a fresh key on first run (nothing stored anywhere)", async () => {
+    const saveSpy = stubDb();
+
+    const key = await cryptoService.getOrGenerateDeviceKey({});
+    expect(key).toBeDefined();
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+
+    const key2 = await cryptoService.getOrGenerateDeviceKey();
+    expect(key2).toBeDefined();
+    expect(saveSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns the IndexedDB key without consulting guard or migration", async () => {
+    const stored = {} as CryptoKey;
+    vi.spyOn(svc, "loadKeyFromDB").mockResolvedValue(stored);
+    const saveSpy = vi.spyOn(svc, "saveKeyToDB").mockResolvedValue(undefined);
+
+    await expect(
+      cryptoService.getOrGenerateDeviceKey({
+        legacyHexKey: LEGACY_HEX,
+        hasOrphanedCiphertext: true,
+      }),
+    ).resolves.toBe(stored);
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["non-hex characters", "zz".repeat(32)],
+    ["odd length", "abc"],
+    ["empty string", ""],
+    ["valid hex but truncated (32 chars)", "ab".repeat(16)],
+    ["valid hex but too long (66 chars)", `ab${"cd".repeat(32)}`],
+  ])("treats invalid legacy input (%s) as no legacy key", async (_label, badHex) => {
+    const saveSpy = stubDb();
+
+    await expect(
+      cryptoService.getOrGenerateDeviceKey({
+        legacyHexKey: badHex,
+        hasOrphanedCiphertext: true,
+      }),
+    ).rejects.toThrow("DeviceKeyLost");
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  it("treats invalid legacy input as absent on first run (mints, does not import garbage)", async () => {
+    const saveSpy = stubDb();
+
+    const key = await cryptoService.getOrGenerateDeviceKey({ legacyHexKey: "zz" });
+    expect(key).toBeDefined();
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("isValidLegacyHexKey (BUG-0517)", () => {
+  it("accepts 64-char hex (either case) — the only shape the legacy generator wrote", () => {
+    expect(isValidLegacyHexKey("ab".repeat(32))).toBe(true);
+    expect(isValidLegacyHexKey("AB00FF".padEnd(64, "0"))).toBe(true);
+  });
+
+  it("rejects empty, odd-length, non-hex, and wrong-length input", () => {
+    expect(isValidLegacyHexKey("")).toBe(false);
+    expect(isValidLegacyHexKey("abc")).toBe(false);
+    expect(isValidLegacyHexKey("zz".repeat(32))).toBe(false);
+    expect(isValidLegacyHexKey("ab cd")).toBe(false);
+    expect(isValidLegacyHexKey("AB00FF")).toBe(false);
+    expect(isValidLegacyHexKey("ab".repeat(16))).toBe(false);
+    expect(isValidLegacyHexKey("ab".repeat(33))).toBe(false);
   });
 });

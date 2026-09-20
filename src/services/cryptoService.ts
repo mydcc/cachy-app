@@ -49,6 +49,37 @@ const SECURE_STORE_NAME = "keys";
 const DEVICE_KEY_ALIAS = "device_key";
 
 /**
+ * Options for {@link CryptoServiceImpl.getOrGenerateDeviceKey}.
+ *
+ * `hasOrphanedCiphertext` must be computed centrally by the single owner of
+ * every ciphertext store (BUG-0518: `SecretsLoader`), never per caller —
+ * whichever caller resolves the key first would otherwise decide whether
+ * the BUG-0053 loss guard applies at all.
+ */
+export interface DeviceKeyOptions {
+  /** Raw hex from the pre-IndexedDB `cachy_device_id` localStorage entry. */
+  legacyHexKey?: string;
+  /** The `_deviceKeyCanary` blob, used to verify a migrated key before persisting it. */
+  canaryBlob?: EncryptedBlob;
+  /** True when any Class-A ciphertext exists on disk while IndexedDB holds no key. */
+  hasOrphanedCiphertext?: boolean;
+}
+
+/**
+ * True for a 64-character hex string — exactly the shape the pre-IndexedDB
+ * generator wrote (`Uint8Array(32)` rendered as hex, the only generator that
+ * ever existed). Anything else (non-hex characters, wrong length) must be
+ * treated as "no legacy key": the old `match(/.{1,2}/g)` parser coerced
+ * `NaN` to `0` and shifted every byte after a dangling nibble, persisting a
+ * silently wrong key — and a truncated key would pass a length-agnostic
+ * check and persist against pre-canary data with nothing to verify it
+ * against (BUG-0517).
+ */
+export function isValidLegacyHexKey(value: string): boolean {
+  return /^[0-9a-fA-F]{64}$/.test(value);
+}
+
+/**
  * Upper bound for opening the device-key database (BUG-0521, option A).
  * A blocked `indexedDB.open` fires neither `onsuccess` nor `onerror`, so
  * without a backstop the promise — and with it `secretsReady` — stays
@@ -393,30 +424,60 @@ class CryptoServiceImpl {
    * Generates or retrieves a persistent, non-extractable device key from IndexedDB.
    * This provides better security than localStorage as the key material cannot be easily exfiltrated via XSS.
    * For backward compatibility, legacy hex keys are imported as PBKDF2 keys to maintain the same derivation path.
+   *
+   * Ordering (BUG-0517): the legacy migration runs *before* the BUG-0053
+   * loss guard — the guard must never shadow the recovery path. A migrated
+   * key is verified against the canary before it is persisted, and is never
+   * a "fresh random key", so the guard's purpose is untouched by the reorder.
    */
-  public async getOrGenerateDeviceKey(legacyHexKey?: string, hasEncryptedSecrets?: boolean): Promise<CryptoKey> {
+  public async getOrGenerateDeviceKey(options?: DeviceKeyOptions): Promise<CryptoKey> {
     if (!browser) throw new Error("Browser environment required for Device Key");
 
     // 1. Try to load from IndexedDB
     let key = await this.loadKeyFromDB(DEVICE_KEY_ALIAS);
     if (key) return key;
 
-    if (hasEncryptedSecrets) {
-      throw new Error("DeviceKeyLost: Device key is missing but encrypted secrets exist.");
-    }
-
-    // 2. Migration or Generation
-    if (legacyHexKey) {
-      // Import legacy hex key as a non-extractable PBKDF2 CryptoKey to maintain derivation path
+    // 2. Legacy migration (before the guard): an upgrading user has both a
+    // legacy key and encrypted secrets — exactly the combination the guard
+    // below would otherwise reject before looking at the key.
+    const legacyHexKey = options?.legacyHexKey;
+    if (legacyHexKey && isValidLegacyHexKey(legacyHexKey)) {
+      // Import legacy hex key as a non-extractable PBKDF2 CryptoKey to maintain derivation path.
+      // isValidLegacyHexKey guarantees a non-empty, even-length hex string,
+      // so match() always succeeds and every byte parses cleanly.
       const keyData = new Uint8Array(legacyHexKey.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
-      key = await window.crypto.subtle.importKey(
+      const migrated = await window.crypto.subtle.importKey(
         "raw",
         keyData,
         "PBKDF2",
         false, // non-extractable
         ["deriveKey"]
       );
-    } else {
+      // Verify the migrated key opens the canary before committing to it —
+      // a key that fails is not written, and the call still reports loss.
+      // No canary (legacy data predating BUG-0053) skips the check, same as
+      // isDeviceKeyLost: absence of a canary is never evidence of loss.
+      const canaryBlob = options?.canaryBlob;
+      if (canaryBlob) {
+        try {
+          await this.decrypt(canaryBlob, migrated);
+        } catch {
+          throw new Error("DeviceKeyLost: Migrated legacy key cannot open the stored secrets.");
+        }
+      }
+      await this.saveKeyToDB(DEVICE_KEY_ALIAS, migrated);
+      return migrated;
+    }
+
+    // 3. Loss guard (BUG-0053): never mint a fresh random key while orphaned
+    // ciphertext exists. Invalid legacy input falls through to here as if no
+    // legacy key existed at all.
+    if (options?.hasOrphanedCiphertext) {
+      throw new Error("DeviceKeyLost: Device key is missing but encrypted secrets exist.");
+    }
+
+    // 4. First run: no key anywhere and nothing to protect — mint and persist.
+    {
       // Generate fresh non-extractable key.
       // We use PBKDF2 even for new keys to keep the EncryptedBlob structure (with salt) consistent.
       const randomData = window.crypto.getRandomValues(new Uint8Array(32));
@@ -429,7 +490,7 @@ class CryptoServiceImpl {
       );
     }
 
-    // 3. Persist to DB
+    // 5. Persist to DB
     await this.saveKeyToDB(DEVICE_KEY_ALIAS, key);
     return key;
   }

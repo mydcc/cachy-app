@@ -16,28 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   defaultAccountState,
   keysForExchange,
   LEGACY_ACCOUNT_IDS,
 } from "./accounts";
-import { SecretsLoader } from "./secretsLoader";
+import { SecretsLoader, readPersistedCiphertextState } from "./secretsLoader";
 import { cryptoService } from "../../services/cryptoService";
+import { CONSTANTS } from "../../lib/constants";
 
 vi.mock("$app/environment", () => ({
   browser: true,
 }));
 
-vi.mock("../../services/cryptoService", () => ({
-  cryptoService: {
-    encrypt: vi.fn(),
-    decrypt: vi.fn(),
-    getOrGenerateDeviceKey: vi
-      .fn()
-      .mockResolvedValue({ algorithm: { name: "PBKDF2" } } as unknown as CryptoKey),
-  },
-}));
+vi.mock("../../services/cryptoService", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../services/cryptoService")>();
+  return {
+    ...actual,
+    cryptoService: {
+      encrypt: vi.fn(),
+      decrypt: vi.fn(),
+      getOrGenerateDeviceKey: vi
+        .fn()
+        .mockResolvedValue({ algorithm: { name: "PBKDF2" } } as unknown as CryptoKey),
+    },
+  };
+});
 
 const canaryBlob = { ciphertext: "canary-c", iv: "i", salt: "s", method: "AES-GCM" as const };
 
@@ -238,10 +244,175 @@ describe("SecretsLoader.getDeviceKey retry (BUG-0521)", () => {
       .mockResolvedValueOnce(recovered);
 
     const loader = new SecretsLoader();
-    await expect(loader.getDeviceKey(true)).rejects.toThrow(
+    await expect(loader.getDeviceKey()).rejects.toThrow(
       "IndexedDB open was blocked",
     );
-    await expect(loader.getDeviceKey(true)).resolves.toBe(recovered);
+    await expect(loader.getDeviceKey()).resolves.toBe(recovered);
     expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("readPersistedCiphertextState (BUG-0518)", () => {
+  const cipherBlob = { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" as const };
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function storeSettings(payload: unknown) {
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(payload));
+  }
+
+  it("reports no orphaned ciphertext on first run (nothing stored)", () => {
+    expect(readPersistedCiphertextState()).toEqual({
+      canaryBlob: undefined,
+      hasOrphanedCiphertext: false,
+    });
+  });
+
+  it("counts encryptedSecrets toward the guard and surfaces the canary", () => {
+    storeSettings({
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
+    });
+
+    const state = readPersistedCiphertextState();
+    expect(state.hasOrphanedCiphertext).toBe(true);
+    expect(state.canaryBlob).toEqual(canaryBlob);
+  });
+
+  it("does not treat a lone canary as ciphertext worth protecting", () => {
+    storeSettings({ encryptedSecrets: { _deviceKeyCanary: canaryBlob } });
+
+    const state = readPersistedCiphertextState();
+    expect(state.hasOrphanedCiphertext).toBe(false);
+    expect(state.canaryBlob).toEqual(canaryBlob);
+  });
+
+  it("counts encryptedAccountKeys toward the guard on their own", () => {
+    storeSettings({ encryptedAccountKeys: { "acc-1": cipherBlob } });
+
+    expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(true);
+  });
+
+  it("counts encrypted provider configs toward the guard on their own", () => {
+    storeSettings({ encryptedProviderConfigs: cipherBlob });
+
+    expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(true);
+  });
+
+  it("does not treat an empty provider-configs object as ciphertext", () => {
+    storeSettings({ encryptedProviderConfigs: {} });
+
+    expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(false);
+  });
+
+  it("fails closed on a corrupted settings blob", () => {
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, "{ interrupted json");
+
+    expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(true);
+  });
+});
+
+describe("SecretsLoader.getDeviceKey central guard (BUG-0517/0518)", () => {
+  const deviceKeyStub = { algorithm: { name: "PBKDF2" } } as unknown as CryptoKey;
+  const cipherBlob = { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" as const };
+  const LEGACY_HEX = "ab".repeat(32);
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockClear();
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockResolvedValue(deviceKeyStub);
+  });
+
+  function storeSettings(payload: unknown) {
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(payload));
+  }
+
+  it("takes no caller-supplied guard argument", () => {
+    expect(new SecretsLoader().getDeviceKey.length).toBe(0);
+  });
+
+  it("guards on persisted secrets even when the first caller has no material", async () => {
+    // BUG-0518 repro: secrets exist but zero accounts. The account path used
+    // to pass `false` and mint a fresh key; now the loader measures all
+    // stores itself, so call order no longer matters.
+    storeSettings({
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
+    });
+
+    const loader = new SecretsLoader();
+    await loader.decryptAccountKeysWithDeviceKey({});
+    expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledTimes(1);
+    expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledWith(
+      expect.objectContaining({ hasOrphanedCiphertext: true }),
+    );
+
+    // Reverse ordering behaves identically.
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockClear();
+    const loader2 = new SecretsLoader();
+    await loader2.decryptSecrets(
+      { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
+      () => {},
+    );
+    expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledWith(
+      expect.objectContaining({ hasOrphanedCiphertext: true }),
+    );
+  });
+
+  it("passes the legacy key and canary through for migration", async () => {
+    localStorage.setItem("cachy_device_id", LEGACY_HEX);
+    storeSettings({
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
+    });
+
+    await new SecretsLoader().getDeviceKey();
+
+    expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledWith({
+      legacyHexKey: LEGACY_HEX,
+      canaryBlob,
+      hasOrphanedCiphertext: true,
+    });
+  });
+
+  it("removes the legacy key after a successful migration", async () => {
+    localStorage.setItem("cachy_device_id", LEGACY_HEX);
+
+    await new SecretsLoader().getDeviceKey();
+
+    expect(localStorage.getItem("cachy_device_id")).toBeNull();
+  });
+
+  it("keeps the legacy key when migration fails (BUG-0517: data stays recoverable)", async () => {
+    localStorage.setItem("cachy_device_id", LEGACY_HEX);
+    storeSettings({
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
+    });
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockRejectedValueOnce(
+      new Error("DeviceKeyLost: Migrated legacy key cannot open the stored secrets."),
+    );
+
+    await expect(new SecretsLoader().getDeviceKey()).rejects.toThrow("DeviceKeyLost");
+    expect(localStorage.getItem("cachy_device_id")).toBe(LEGACY_HEX);
+  });
+
+  it("does not clean up an invalid legacy key", async () => {
+    localStorage.setItem("cachy_device_id", "not-hex!!");
+
+    await new SecretsLoader().getDeviceKey();
+
+    expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledWith(
+      expect.objectContaining({ legacyHexKey: "not-hex!!" }),
+    );
+    expect(localStorage.getItem("cachy_device_id")).toBe("not-hex!!");
+  });
+
+  it("mints without prompting on first run", async () => {
+    await new SecretsLoader().getDeviceKey();
+
+    expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledWith({
+      legacyHexKey: undefined,
+      canaryBlob: undefined,
+      hasOrphanedCiphertext: false,
+    });
   });
 });
