@@ -76,7 +76,7 @@ vi.mock("./exchangeCapabilities", async (importOriginal) => {
 // after it, which is how this file's first draft passed for the wrong reason.
 const plans = vi.hoisted(() => ({
     value: {} as Record<string, unknown>,
-    // BUG-0522 — extra plans beside the {loss, profit} pair above, for
+    // BUG-0524 — extra plans beside the {loss, profit} pair above, for
     // symbols holding more than one plan per leg (hedge, both sides).
     extra: [] as Array<Record<string, unknown>>,
     looks: 0,
@@ -709,12 +709,12 @@ describe("BUG-0502 — protection check matches the new stop, not any stop", () 
 });
 
 /*
- * BUG-0522 — a plan from another position must not settle this entry's
+ * BUG-0524 — a plan from another position must not settle this entry's
  * check. In hedge mode both sides hold stops on the same symbol; price
  * plus side cannot tell them apart (production plans carry no side), so
  * the entry's position id decides.
  */
-describe("BUG-0522 — protection check matches the entry's position", () => {
+describe("BUG-0524 — protection check matches the entry's position", () => {
     beforeEach(() => {
         account.positions = [{ positionId: "pos-new", symbol: "BTCUSDT", side: "long" }];
     });

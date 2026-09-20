@@ -72,7 +72,7 @@ export interface RawWsTpSl {
     tpPrice?: string;
     slPrice?: string;
     /**
-     * BUG-0522 — the position this plan protects, as the venue reports it
+     * BUG-0524 — the position this plan protects, as the venue reports it
      * (`08_websocket.md` §`tp_sl`). Carried onto the legs below so the
      * placement confirmation can tell hedge sides apart. Deliberately no
      * `side`: whether the venue means the stop order's side or the
@@ -136,7 +136,7 @@ class TpSlManager {
     /**
      * Every plan the store holds for a symbol, both legs, unfiltered.
      *
-     * BUG-0522 — `plansFor` answers the cards ("show me what is on this
+     * BUG-0524 — `plansFor` answers the cards ("show me what is on this
      * symbol") and returns only the first plan per leg type, which in hedge
      * mode with stops on both sides is an arbitrary one. Confirming a
      * placement must see all of them and pick by position, so it reads here

@@ -226,7 +226,7 @@ class OrderPlacementService {
          * entry is sent. Read from the cache as-is, without invalidating:
          * the point is "what was already there", and an extra fetch here
          * would only slow the placement path. Read over the whole list
-         * (BUG-0522), not first-pick per leg: in hedge mode both sides
+         * (BUG-0524), not first-pick per leg: in hedge mode both sides
          * hold plans and every pre-existing id must land in the image.
          * Residual risk: with a cold cache and a same-price/same-side old
          * plan on-venue, identity cannot exclude it and price plus side
@@ -363,7 +363,7 @@ class OrderPlacementService {
         const replacePossible = capabilitiesOf(plan.exchange).tpSlStandalone;
 
         /*
-         * BUG-0522 — the entry's position, resolved lazily and at most once
+         * BUG-0524 — the entry's position, resolved lazily and at most once
          * per confirmation: it is only needed when a candidate actually
          * carries a position id to discriminate on. Nothing to discriminate
          * means no lookup, no polling, no added latency on the hot path —
@@ -382,7 +382,7 @@ class OrderPlacementService {
             // BUG-0502 — existence is not evidence. Each half only settles
             // on the plan this request produced: new, correctly priced, on
             // this entry's side — and, where both ids are known, on this
-            // entry's position (BUG-0522). Read over the whole list, not
+            // entry's position (BUG-0524). Read over the whole list, not
             // first-pick per leg: in hedge mode both sides hold plans and
             // the first one is an arbitrary one.
             const stop = want.wantsStop
@@ -457,7 +457,7 @@ class OrderPlacementService {
     }
 
     /**
-     * Whether any candidate survives position scoping (BUG-0522).
+     * Whether any candidate survives position scoping (BUG-0524).
      *
      * Candidates already passed identity, price and side. A candidate
      * carrying another position's id protects the opposite hedge side (or
@@ -484,7 +484,7 @@ class OrderPlacementService {
 
     /**
      * Re-reads the exchange's plans for a symbol, bypassing the cache
-     * window. The whole list, not first-pick per leg (BUG-0522): the
+     * window. The whole list, not first-pick per leg (BUG-0524): the
      * confirmation matches by position over all of them.
      */
     private async readOrders(symbol: string): Promise<TpSlOrder[]> {

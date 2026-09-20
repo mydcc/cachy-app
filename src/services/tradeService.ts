@@ -113,7 +113,7 @@ export interface TpSlOrder {
      */
     sourceOrderId?: string;
     /**
-     * The position this plan protects, as the venue reports it (BUG-0522).
+     * The position this plan protects, as the venue reports it (BUG-0524).
      *
      * Present on Bitunix rows and WS pushes; absent elsewhere. The placement
      * confirmation uses it to tell hedge sides apart — price plus side

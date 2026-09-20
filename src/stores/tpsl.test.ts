@@ -238,7 +238,7 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
         expect(tpSlState.orders).toEqual([]);
     });
 
-    it("carries the venue position id onto both legs (BUG-0522)", () => {
+    it("carries the venue position id onto both legs (BUG-0524)", () => {
         tpSlState.updateFromWs({
             orderId: "42",
             symbol: "SOLUSDT",
@@ -262,7 +262,7 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
         expect(tpSlState.ordersFor("SOLUSDT")[0].positionId).toBeUndefined();
     });
 
-    it("lists every plan for a symbol, not first-pick per leg (BUG-0522)", () => {
+    it("lists every plan for a symbol, not first-pick per leg (BUG-0524)", () => {
         tpSlState.updateFromWs({ orderId: "1", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
         tpSlState.updateFromWs({ orderId: "2", symbol: "SOLUSDT", status: "NEW", slPrice: "84" });
 
