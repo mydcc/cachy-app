@@ -100,7 +100,11 @@ export function readPersistedCiphertextState(): PersistedCiphertextState {
   const hasSecrets = !!secrets && Object.keys(secrets).some((k) => k !== "_deviceKeyCanary");
   const accountKeys = parsed.encryptedAccountKeys;
   const hasAccountKeys = !!accountKeys && Object.keys(accountKeys).length > 0;
-  const hasProviderConfigs = parsed.encryptedProviderConfigs != null;
+  const providerConfigs = parsed.encryptedProviderConfigs;
+  // An empty object is not a blob (the field is deleted when cleared, so
+  // this is unreachable in practice) — only real ciphertext counts.
+  const hasProviderConfigs =
+    !!providerConfigs && Object.keys(providerConfigs).length > 0;
   return {
     canaryBlob,
     hasOrphanedCiphertext: hasSecrets || hasAccountKeys || hasProviderConfigs,

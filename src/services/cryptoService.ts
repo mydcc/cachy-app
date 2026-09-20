@@ -66,17 +66,17 @@ export interface DeviceKeyOptions {
 }
 
 /**
- * True for an even-length, non-empty hex string. Anything else (non-hex
- * characters, odd length) must be treated as "no legacy key": the old
- * `match(/.{1,2}/g)` parser coerced `NaN` to `0` and shifted every byte
- * after a dangling nibble, persisting a silently wrong key (BUG-0517).
+ * True for a 64-character hex string — exactly the shape the pre-IndexedDB
+ * generator wrote (`Uint8Array(32)` rendered as hex, the only generator that
+ * ever existed). Anything else (non-hex characters, wrong length) must be
+ * treated as "no legacy key": the old `match(/.{1,2}/g)` parser coerced
+ * `NaN` to `0` and shifted every byte after a dangling nibble, persisting a
+ * silently wrong key — and a truncated key would pass a length-agnostic
+ * check and persist against pre-canary data with nothing to verify it
+ * against (BUG-0517).
  */
 export function isValidLegacyHexKey(value: string): boolean {
-  return (
-    value.length > 0 &&
-    value.length % 2 === 0 &&
-    /^[0-9a-fA-F]+$/.test(value)
-  );
+  return /^[0-9a-fA-F]{64}$/.test(value);
 }
 
 /**

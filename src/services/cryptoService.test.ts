@@ -325,6 +325,8 @@ describe("CryptoService — legacy migration vs loss guard (BUG-0517/0518)", () 
     ["non-hex characters", "zz".repeat(32)],
     ["odd length", "abc"],
     ["empty string", ""],
+    ["valid hex but truncated (32 chars)", "ab".repeat(16)],
+    ["valid hex but too long (66 chars)", `ab${"cd".repeat(32)}`],
   ])("treats invalid legacy input (%s) as no legacy key", async (_label, badHex) => {
     const saveSpy = stubDb();
 
@@ -347,15 +349,18 @@ describe("CryptoService — legacy migration vs loss guard (BUG-0517/0518)", () 
 });
 
 describe("isValidLegacyHexKey (BUG-0517)", () => {
-  it("accepts even-length hex (either case)", () => {
+  it("accepts 64-char hex (either case) — the only shape the legacy generator wrote", () => {
     expect(isValidLegacyHexKey("ab".repeat(32))).toBe(true);
-    expect(isValidLegacyHexKey("AB00FF")).toBe(true);
+    expect(isValidLegacyHexKey("AB00FF".padEnd(64, "0"))).toBe(true);
   });
 
-  it("rejects empty, odd-length, and non-hex input", () => {
+  it("rejects empty, odd-length, non-hex, and wrong-length input", () => {
     expect(isValidLegacyHexKey("")).toBe(false);
     expect(isValidLegacyHexKey("abc")).toBe(false);
     expect(isValidLegacyHexKey("zz".repeat(32))).toBe(false);
     expect(isValidLegacyHexKey("ab cd")).toBe(false);
+    expect(isValidLegacyHexKey("AB00FF")).toBe(false);
+    expect(isValidLegacyHexKey("ab".repeat(16))).toBe(false);
+    expect(isValidLegacyHexKey("ab".repeat(33))).toBe(false);
   });
 });

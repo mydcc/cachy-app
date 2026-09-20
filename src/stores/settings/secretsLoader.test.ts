@@ -300,6 +300,12 @@ describe("readPersistedCiphertextState (BUG-0518)", () => {
     expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(true);
   });
 
+  it("does not treat an empty provider-configs object as ciphertext", () => {
+    storeSettings({ encryptedProviderConfigs: {} });
+
+    expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(false);
+  });
+
   it("fails closed on a corrupted settings blob", () => {
     localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, "{ interrupted json");
 
