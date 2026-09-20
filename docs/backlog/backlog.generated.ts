@@ -485,6 +485,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
   },
   {
+    "id": "BUG-0524",
+    "title": "Protection check cannot tell hedge sides apart because venue plans carry no usable side",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0522-hedge-position-scoping",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0524-hedge-plans-need-position-scoping.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -4893,6 +4913,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md"
+  },
+  {
+    "id": "BUG-0523",
+    "title": "Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0523-daily-loss-followups",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md"
   },
   {
     "id": "FEAT-0019",
