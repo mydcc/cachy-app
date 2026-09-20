@@ -71,6 +71,8 @@
     };
 
     const presetEntries = Object.entries(presets);
+    // Static timeframe options, hoisted out of the template loop.
+    const availableTimeframes = ["5m", "15m", "1h", "4h", "1d"];
 
     function applyPreset(preset: PresetType) {
         selectedPreset = preset;
@@ -255,7 +257,7 @@
                 >
             </div>
             <div class="timeframe-grid">
-                {#each ["5m", "15m", "1h", "4h", "1d"] as tf (tf)}
+                {#each availableTimeframes as tf (tf)}
                     {@const isSelected =
                         settingsState.analysisTimeframes.includes(tf)}
                     <button
