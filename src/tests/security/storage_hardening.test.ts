@@ -59,7 +59,9 @@ vi.mock('../../services/cryptoService', () => {
         isSessionUnlocked = false;
       }),
       isUnlocked: vi.fn(() => isSessionUnlocked)
-    }
+    },
+    isValidLegacyHexKey: (value: string) =>
+      value.length > 0 && value.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(value),
   };
 });
 
@@ -161,12 +163,15 @@ describe('Security Fix: Secure Storage of Secrets', () => {
     const { cryptoService } = await import('../../services/cryptoService');
 
     localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify({
-        encryptedSecrets: { "_deviceKeyCanary": { ciphertext: "some-data", iv: "", salt: "", method: "AES-GCM" } }
+        encryptedSecrets: {
+            openaiApiKey: { ciphertext: "ENC|||sk-orphaned|||KEY|||lost-key", iv: "", salt: "", method: "AES-GCM" },
+            "_deviceKeyCanary": { ciphertext: "some-data", iv: "", salt: "", method: "AES-GCM" },
+        }
     }));
 
-    // Mock getOrGenerateDeviceKey to throw when hasEncryptedSecrets is true
-    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockImplementationOnce(async (legacy, hasSecrets) => {
-        if (hasSecrets) throw new Error("DeviceKeyLost: Device key is missing but encrypted secrets exist.");
+    // Mock getOrGenerateDeviceKey to throw when orphaned ciphertext exists
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockImplementationOnce(async (options) => {
+        if (options?.hasOrphanedCiphertext) throw new Error("DeviceKeyLost: Device key is missing but encrypted secrets exist.");
         return "mock-device-key" as unknown as CryptoKey;
     });
 

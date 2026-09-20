@@ -16,7 +16,12 @@
  */
 
 import { browser } from "$app/environment";
-import { cryptoService, type EncryptedBlob } from "../../services/cryptoService";
+import { CONSTANTS } from "../../lib/constants";
+import {
+  cryptoService,
+  isValidLegacyHexKey,
+  type EncryptedBlob,
+} from "../../services/cryptoService";
 import type { ApiKeys, Settings } from "../settings.svelte";
 import {
   migrateAccounts,
@@ -58,6 +63,50 @@ export function apiKeyHasMaterial(
 }
 
 
+/** What `getDeviceKey` measured once from persisted storage. */
+export interface PersistedCiphertextState {
+  /** The `_deviceKeyCanary` blob, if the settings blob carries one. */
+  canaryBlob?: EncryptedBlob;
+  /** True when any Class-A ciphertext exists on disk (canary excluded). */
+  hasOrphanedCiphertext: boolean;
+}
+
+/**
+ * Reads the persisted ground truth for the BUG-0053 loss guard from
+ * `localStorage` (BUG-0518). Every ciphertext store counts —
+ * `encryptedSecrets` (sans canary), `encryptedAccountKeys`, and the
+ * encrypted provider configs — because the device key is shared by all of
+ * them and no single caller sees more than its own material. A canary alone
+ * is not ciphertext worth protecting: it only ever re-mints alongside real
+ * secrets. A corrupted settings blob fails closed (treated as orphaned)
+ * rather than minting over possibly existing data.
+ */
+export function readPersistedCiphertextState(): PersistedCiphertextState {
+  if (!browser) return { hasOrphanedCiphertext: false };
+  let parsed: {
+    encryptedSecrets?: Record<string, EncryptedBlob>;
+    encryptedAccountKeys?: Record<string, EncryptedBlob>;
+    encryptedProviderConfigs?: EncryptedBlob;
+  } | null = null;
+  try {
+    const raw = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
+    parsed = raw ? JSON.parse(raw) : null;
+  } catch {
+    return { hasOrphanedCiphertext: true };
+  }
+  if (!parsed) return { hasOrphanedCiphertext: false };
+  const secrets = parsed.encryptedSecrets;
+  const canaryBlob = secrets?.["_deviceKeyCanary"];
+  const hasSecrets = !!secrets && Object.keys(secrets).some((k) => k !== "_deviceKeyCanary");
+  const accountKeys = parsed.encryptedAccountKeys;
+  const hasAccountKeys = !!accountKeys && Object.keys(accountKeys).length > 0;
+  const hasProviderConfigs = parsed.encryptedProviderConfigs != null;
+  return {
+    canaryBlob,
+    hasOrphanedCiphertext: hasSecrets || hasAccountKeys || hasProviderConfigs,
+  };
+}
+
 /**
  * Encrypted-credential handling and the `secretsReady` handshake, as one
  * unit with one owner. `SettingsManager` constructs this and calls into it
@@ -76,29 +125,39 @@ export class SecretsLoader {
    * master password is set. Migrates from localStorage to IndexedDB if
    * necessary. Cached for the lifetime of this instance.
    *
-   * The in-flight promise is shared: parallel callers (the device-key-lost
-   * canary check and background decryption) must hit
-   * `getOrGenerateDeviceKey` exactly once — both to keep a single IndexedDB
-   * round-trip and so one-shot loss guards ("refuse to mint a replacement
-   * key") cannot be consumed by one caller while the other silently gets a
-   * fresh, wrong key.
+   * Takes no arguments (BUG-0518): the loss guard is measured once from
+   * persisted storage via `readPersistedCiphertextState`, so no caller can
+   * supply a weaker answer than another. The in-flight promise is shared:
+   * parallel callers (the device-key-lost canary check and background
+   * decryption) must hit `getOrGenerateDeviceKey` exactly once — both to
+   * keep a single IndexedDB round-trip and so the single guard decision is
+   * carried by the memoized promise for the whole session.
    */
-  getDeviceKey(hasStoredSecrets: boolean): Promise<string | CryptoKey> {
+  getDeviceKey(): Promise<string | CryptoKey> {
     if (!browser) return Promise.resolve("server-side-key-placeholder");
     if (this._deviceKey) return Promise.resolve(this._deviceKey);
     if (this._deviceKeyPromise) return this._deviceKeyPromise;
 
-    // 1. Check for legacy key in localStorage for migration
+    // 1. Check for legacy key in localStorage for migration, and measure
+    // the loss guard from every persisted ciphertext store at once.
     const legacyKey = localStorage.getItem("cachy_device_id");
+    const { canaryBlob, hasOrphanedCiphertext } = readPersistedCiphertextState();
 
-    // 2. Get or Generate secure key (handles migration if legacyKey provided)
+    // 2. Get or Generate secure key (migration runs before the guard inside
+    // getOrGenerateDeviceKey, BUG-0517).
     this._deviceKeyPromise = cryptoService
-      .getOrGenerateDeviceKey(legacyKey || undefined, hasStoredSecrets)
+      .getOrGenerateDeviceKey({
+        legacyHexKey: legacyKey || undefined,
+        canaryBlob,
+        hasOrphanedCiphertext,
+      })
       .then((key) => {
         this._deviceKey = key;
 
-        // 3. Cleanup legacy key once the migration succeeded
-        if (legacyKey) {
+        // 3. Cleanup legacy key only once it actually migrated: a valid key
+        // that passed the canary check. Invalid input and failed canaries
+        // throw above, so this line only runs after verification (BUG-0517).
+        if (legacyKey && isValidLegacyHexKey(legacyKey)) {
           if (import.meta.env.DEV) {
             console.warn(
               "[Settings] Migrated device key from localStorage to secure storage.",
@@ -221,8 +280,7 @@ export class SecretsLoader {
     const canary = encryptedSecrets?.["_deviceKeyCanary"];
     if (!canary) return false;
     try {
-      const hasStoredSecrets = Object.keys(encryptedSecrets || {}).length > 0;
-      const deviceKey = await this.getDeviceKey(hasStoredSecrets);
+      const deviceKey = await this.getDeviceKey();
       await cryptoService.decrypt(canary, deviceKey);
       return false;
     } catch {
@@ -241,8 +299,7 @@ export class SecretsLoader {
     encryptedSecrets: Record<string, EncryptedBlob> | undefined,
     setSensitiveField: (key: keyof Settings, value: string) => void,
   ): Promise<number> {
-    const hasStoredSecrets = Object.keys(encryptedSecrets || {}).length > 0;
-    const deviceKey = await this.getDeviceKey(hasStoredSecrets);
+    const deviceKey = await this.getDeviceKey();
     const entries = Object.entries(encryptedSecrets || {});
     let failures = 0;
 
@@ -333,7 +390,7 @@ export class SecretsLoader {
     encryptedAccountKeys: Record<string, EncryptedBlob>,
   ): Promise<{ keysByAccount: Record<string, ApiKeys>; failures: number }> {
     const accountIds = Object.keys(encryptedAccountKeys);
-    const deviceKey = await this.getDeviceKey(accountIds.length > 0);
+    const deviceKey = await this.getDeviceKey();
 
     const restored: { keysByAccount: Record<string, ApiKeys>; failures: number } =
       { keysByAccount: {}, failures: 0 };
@@ -477,7 +534,7 @@ export class SecretsLoader {
     blob: EncryptedBlob,
   ): Promise<ProviderConfig[] | null> {
     try {
-      const deviceKey = await this.getDeviceKey(true);
+      const deviceKey = await this.getDeviceKey();
       const json = await cryptoService.decrypt(blob, deviceKey);
       return sanitizeUserProviders(JSON.parse(json));
     } catch (e) {

@@ -2317,10 +2317,8 @@ export class SettingsManager {
       let canEncrypt = true;
 
       if (!this.isEncrypted) {
-        // Obfuscation Mode: Use Device Key
-        encryptionPassword = await this.secretsLoader.getDeviceKey(
-          Object.keys(this.encryptedSecrets || {}).length > 0,
-        );
+        // Obfuscation Mode: Use Device Key (guard measured centrally inside getDeviceKey)
+        encryptionPassword = await this.secretsLoader.getDeviceKey();
       } else {
         // Master Password Mode: Use Session Key (implicit)
         // If locked, we cannot encrypt new data.

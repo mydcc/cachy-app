@@ -2036,7 +2036,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0517",
     "title": "The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0517-0518-device-key-guard",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2054,7 +2056,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0518",
     "title": "The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0517-0518-device-key-guard",
     "priority": "P1",
     "milestone": "none",
     "editions": [

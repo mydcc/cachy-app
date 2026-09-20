@@ -2,7 +2,9 @@
 id: BUG-0518
 title: The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0517-0518-device-key-guard
 priority: P1
 milestone: none
 editions: [community, pro, private]

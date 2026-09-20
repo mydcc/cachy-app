@@ -64,7 +64,7 @@ describe("CryptoService — blocked IndexedDB open (BUG-0521)", () => {
         return request;
       });
 
-      const pending = cryptoService.getOrGenerateDeviceKey(undefined, false);
+      const pending = cryptoService.getOrGenerateDeviceKey({});
       const settled = pending.then(
         () => true,
         () => true,
@@ -98,7 +98,7 @@ describe("CryptoService — blocked IndexedDB open (BUG-0521)", () => {
     const open = stubOpen();
     open.mockImplementation(() => ({}) satisfies Partial<StubOpenRequest>);
 
-    const pending = cryptoService.getOrGenerateDeviceKey(undefined, false);
+    const pending = cryptoService.getOrGenerateDeviceKey({});
     const assertion = expect(pending).rejects.toMatchObject({
       name: INDEXEDDB_BLOCKED_ERROR_NAME,
     });
@@ -166,7 +166,7 @@ describe("CryptoService — blocked IndexedDB open (BUG-0521)", () => {
         return request;
       });
 
-      const key = await cryptoService.getOrGenerateDeviceKey(undefined, false);
+      const key = await cryptoService.getOrGenerateDeviceKey({});
       expect(key).toBeDefined();
       expect(open).toHaveBeenCalledTimes(2);
 
@@ -186,7 +186,7 @@ describe("CryptoService — blocked IndexedDB open (BUG-0521)", () => {
       return request;
     });
 
-    const pending = cryptoService.getOrGenerateDeviceKey(undefined, false);
+    const pending = cryptoService.getOrGenerateDeviceKey({});
     const assertion = expect(pending).rejects.toMatchObject({
       name: INDEXEDDB_BLOCKED_ERROR_NAME,
     });
@@ -225,7 +225,7 @@ describe("CryptoService — blocked IndexedDB open (BUG-0521)", () => {
     // generation proceeds, and the save wrapper closes its connection
     // before rejecting instead of orphaning it.
     await expect(
-      cryptoService.getOrGenerateDeviceKey(undefined, false),
+      cryptoService.getOrGenerateDeviceKey({}),
     ).rejects.toThrow("no-tx-save");
     expect(closes).toEqual(["load", "save"]);
   });
