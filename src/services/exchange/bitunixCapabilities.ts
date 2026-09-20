@@ -39,6 +39,13 @@ export const bitunixCapabilities: ExchangeCapabilities = Object.freeze({
     // payload itself, so entry and protection are one request.
     tpSlAtEntry: true,
 
+    // The standalone path exists too: `tradeService.placePositionTpSl`
+    // writes the position-wide plan (`tpsl/place_order`, FEAT-0070), which is
+    // what `orderPlacementService.replaceStop` uses for its retry. Agrees
+    // with the Bitunix adapter's `supports.tpSl: true` by the same rule as
+    // every flag here — verified shape, not venue brochure.
+    tpSlStandalone: true,
+
     // place-order carries `effect` for a LIMIT order; MARKET ignores it.
     timeInForce: Object.freeze(["GTC", "IOC", "FOK", "POST_ONLY"] as const),
 

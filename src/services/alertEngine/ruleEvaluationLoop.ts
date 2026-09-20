@@ -620,7 +620,16 @@ export class RuleEvaluationLoop {
    */
   private stateFor(rule: RuleDocument): RuleState | undefined {
     try {
-      return this.readRuleState(rule.id);
+      const state = this.readRuleState(rule.id);
+      if (state === undefined) return undefined;
+      // BUG-0491: the gate anchors ride in the same stored entry but are
+      // TS-side only — the core's `RuleState` knows two fields, so the wire
+      // stays exactly that. Rebuilt field by field rather than destructured,
+      // so a future anchor cannot leak through a rest pattern unnoticed.
+      return {
+        fired_count: state.fired_count,
+        last_fired_anchor_ms: state.last_fired_anchor_ms,
+      };
     } catch (e) {
       logger.error("alerts", `[RuleState] Reading fire state for ${rule.id} failed`, e);
       return undefined;

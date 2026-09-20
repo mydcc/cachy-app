@@ -381,7 +381,7 @@
       "id": "BUG-0491",
       "title": "A bot with frequency every_time places a second order on the same candle after a reload",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
       "priority": "P0",
       "milestone": "none",
       "editions": [
@@ -399,7 +399,9 @@
       "id": "BUG-0499",
       "title": "The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0499-daily-loss-completeness",
       "priority": "P0",
       "milestone": "none",
       "editions": [
@@ -437,7 +439,8 @@
       "id": "BUG-0503",
       "title": "On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
+      "branch": "fix/bug-0503-bitget-entry-no-stop",
       "priority": "P0",
       "milestone": "none",
       "editions": [
@@ -449,6 +452,7 @@
       "data_class": "none",
       "adr": "none",
       "depends_on": [],
+      "assignee": "opencode",
       "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
     },
     {
@@ -4819,7 +4823,9 @@
       "id": "BUG-0520",
       "title": "attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0520-legacy-fallback-dead-rung",
       "priority": "P2",
       "milestone": "none",
       "editions": [
@@ -4837,7 +4843,9 @@
       "id": "BUG-0521",
       "title": "indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0521-indexeddb-blocked",
       "priority": "P2",
       "milestone": "none",
       "editions": [
