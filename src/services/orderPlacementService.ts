@@ -43,7 +43,7 @@
  */
 
 import { Decimal } from "decimal.js";
-import { tradeService } from "./tradeService";
+import { tradeService, type TpSlOrder } from "./tradeService";
 import { accountState } from "../stores/account.svelte";
 import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
@@ -127,6 +127,60 @@ export const STOP_RETRY_ATTEMPTS = 2;
  */
 export const STOP_RETRY_DELAY_MS = 1200;
 
+/*
+ * BUG-0502 — identity for the protection check.
+ *
+ * `plansFor` answers "show me what is on this symbol" for cards. Confirming
+ * a placement must answer "did my request take effect", which needs more
+ * than existence: a pre-existing plan on the same symbol, one at the wrong
+ * price, or one belonging to the opposite side must never settle the check.
+ * A candidate only counts when it is new (absent from the before-image),
+ * priced as requested, and side-compatible.
+ */
+
+function planIdOf(order: TpSlOrder): string | null {
+    return typeof order.orderId === "string" && order.orderId.length > 0
+        ? order.orderId
+        : null;
+}
+
+function triggerPriceMatches(order: TpSlOrder, expected: Decimal): boolean {
+    try {
+        return new Decimal(order.triggerPrice).equals(expected);
+    } catch {
+        // An unparsable trigger price proves nothing about this request.
+        return false;
+    }
+}
+
+/**
+ * Whether the plan's side can belong to this entry. Excludes only on a
+ * vocabulary this codebase itself writes ("BUY"/"SELL", "LONG"/"SHORT");
+ * anything else is unknown and must not fail a protected position.
+ */
+function sideCompatible(planSide: unknown, entrySide: "BUY" | "SELL"): boolean {
+    if (typeof planSide !== "string") return true;
+    const s = planSide.toUpperCase();
+    if (s === "BUY" || s === "SELL") return s === entrySide;
+    if (s.includes("LONG")) return entrySide === "BUY";
+    if (s.includes("SHORT")) return entrySide === "SELL";
+    return true;
+}
+
+function matchesIntent(
+    order: TpSlOrder | undefined,
+    expected: Decimal,
+    entrySide: "BUY" | "SELL",
+    beforeIds: ReadonlySet<string>,
+): order is TpSlOrder {
+    if (order === undefined) return false;
+    const id = planIdOf(order);
+    if (id !== null && beforeIds.has(id)) return false;
+    if (!triggerPriceMatches(order, expected)) return false;
+    if (!sideCompatible(order.side, entrySide)) return false;
+    return true;
+}
+
 class OrderPlacementService {
     /**
      * Places the entry together with whatever protection the exchange
@@ -139,6 +193,23 @@ class OrderPlacementService {
         const wantsTarget = plan.takeProfits.length > 0;
 
         const attach = caps.tpSlAtEntry;
+
+        /*
+         * BUG-0502 — before-image of the symbol's plans, taken before the
+         * entry is sent. Read from the cache as-is, without invalidating:
+         * the point is "what was already there", and an extra fetch here
+         * would only slow the placement path. When the cache is cold the
+         * set is empty and the price-plus-side match below still applies,
+         * which is strictly more than the old existence check proved.
+         */
+        const beforeIds = new Set<string>();
+        if (wantsStop || wantsTarget) {
+            const before = tpSlState.plansFor(plan.symbol);
+            for (const existing of [before.loss, before.profit]) {
+                const id = existing ? planIdOf(existing) : null;
+                if (id !== null) beforeIds.add(id);
+            }
+        }
 
         /*
          * Time in force, against what the venue declares (FEAT-0017).
@@ -222,11 +293,15 @@ class OrderPlacementService {
             };
         }
 
-        const confirmed = await this.confirmProtection(plan, {
-            wantsStop,
-            wantsTarget,
-            attached: attach,
-        });
+        const confirmed = await this.confirmProtection(
+            plan,
+            {
+                wantsStop,
+                wantsTarget,
+                attached: attach,
+            },
+            beforeIds,
+        );
 
         return { entryPlaced: true, clientId, ...confirmed };
     }
@@ -242,16 +317,25 @@ class OrderPlacementService {
     private async confirmProtection(
         plan: EntryPlan,
         want: { wantsStop: boolean; wantsTarget: boolean; attached: boolean },
+        beforeIds: ReadonlySet<string>,
     ): Promise<Omit<PlacementResult, "entryPlaced" | "clientId">> {
         const settled = want.attached ? "attached" : "placed";
+        const entrySide: "BUY" | "SELL" = plan.tradeType === "short" ? "SELL" : "BUY";
 
         for (let attempt = 0; attempt <= STOP_RETRY_ATTEMPTS; attempt++) {
             const plans = await this.readPlans(plan.symbol);
-            const haveStop = plans.loss !== undefined;
-            const haveTarget = plans.profit !== undefined;
+            // BUG-0502 — existence is not evidence. Each half only settles
+            // on the plan this request produced: new, correctly priced, and
+            // on this entry's side.
+            const stop = want.wantsStop
+                ? matchesIntent(plans.loss, plan.stopLossPrice, entrySide, beforeIds)
+                : false;
+            const target = want.wantsTarget
+                ? matchesIntent(plans.profit, plan.takeProfits[0], entrySide, beforeIds)
+                : false;
 
-            const stopSettled = !want.wantsStop || haveStop;
-            const targetSettled = !want.wantsTarget || haveTarget;
+            const stopSettled = !want.wantsStop || stop;
+            const targetSettled = !want.wantsTarget || target;
 
             if (stopSettled && targetSettled) {
                 return {
@@ -275,21 +359,21 @@ class OrderPlacementService {
 
             return {
                 stopLoss: want.wantsStop
-                    ? haveStop
+                    ? stop
                         ? (settled as ProtectionState)
                         : "failed"
                     : "none",
                 takeProfit: want.wantsTarget
-                    ? haveTarget
+                    ? target
                         ? (settled as ProtectionState)
                         : "failed"
                     : "none",
                 // The position exists and its stop does not. Everything about
                 // this result is arranged so a caller cannot render it as a
                 // success.
-                unprotected: want.wantsStop && !haveStop,
+                unprotected: want.wantsStop && !stop,
                 errorKey:
-                    want.wantsStop && !haveStop
+                    want.wantsStop && !stop
                         ? "orderEntry.errors.unprotected"
                         : "orderEntry.errors.targetMissing",
             };
