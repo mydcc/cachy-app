@@ -40,6 +40,7 @@ import {
   routeTakesNonce,
   routeTakesPassphrase,
   signatureShapeFor,
+  type Venue,
 } from "../exchange/restSigningPlan";
 
 export interface PresignedEnvelope {
@@ -118,6 +119,14 @@ export interface PresignedConsistencyInput {
   rebuilt: string;
   /** Raw request body text. Required for body-signed routes. */
   rawBody?: string;
+  /**
+   * The venue this request is for, read off the validated payload. Decides
+   * the nonce requirement on mixed-venue routes: Bitunix folds a nonce into
+   * its prehash, Bitget has no such field and its signer sends none. Absent,
+   * the plan-level rule applies (a Bitunix-reachable route asks for one) —
+   * which is what single-venue callers get without passing anything.
+   */
+  venue?: Venue;
 }
 
 /**
@@ -159,7 +168,14 @@ export function assertPresignedConsistency(input: PresignedConsistencyInput): vo
 
   // Checked after the passphrase so that a request carrying a credential this
   // route may not have is reported as that, not as a missing nonce.
-  if (routeTakesNonce(plan) && input.envelope.nonce === undefined) {
+  //
+  // Venue-aware on mixed-venue routes: the route passes the venue off its
+  // validated payload, and only the Bitunix half is asked for a nonce. Bitget
+  // has no nonce field — its signer sends none — so a plan-level requirement
+  // would refuse every Bitget request with a missing envelope before any byte
+  // was compared. Callers that pass no venue keep the plan-level rule.
+  const needsNonce = input.venue ? input.venue === "bitunix" : routeTakesNonce(plan);
+  if (needsNonce && input.envelope.nonce === undefined) {
     throw new Error(PRESIGNED_ERRORS.MISSING_ENVELOPE);
   }
 

@@ -97,8 +97,8 @@ describe('TradeService Hardening', () => {
 
     // Expect fetch to have been called for sync first
     expect(global.fetch).toHaveBeenNthCalledWith(1, "/api/sync/positions-pending", expect.anything());
-    // Then for order
-    expect(global.fetch).toHaveBeenNthCalledWith(2, "/api/orders", expect.anything());
+    // Then for order — FEAT-0405 A5b carries the action in `?action=`.
+    expect(global.fetch).toHaveBeenNthCalledWith(2, "/api/orders?action=place-order", expect.anything());
   });
 
   it('closePosition should NOT refresh fresh positions', async () => {
@@ -125,6 +125,6 @@ describe('TradeService Hardening', () => {
 
     // Should skip sync
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toHaveBeenCalledWith("/api/orders", expect.anything());
+    expect(global.fetch).toHaveBeenCalledWith("/api/orders?action=place-order", expect.anything());
   });
 });

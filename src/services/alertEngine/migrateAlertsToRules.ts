@@ -35,7 +35,7 @@ export const RULES_STORAGE_KEY = "cachy_rules_v1";
 // "did this rule come from an alert"; this one is keyed by alert id and
 // answers "was this legacy alert ever migrated", for a future safe removal
 // of `cachy_alerts_v1`).
-const MIGRATED_LEDGER_KEY = "cachy_alerts_migrated_v1";
+export const MIGRATED_LEDGER_KEY = "cachy_alerts_migrated_v1";
 
 // FEAT-0388: the old engine evaluated on every tick and had no notion of a
 // timeframe; the rule schema requires one (ADR-0012 decision 3). "1m" is
@@ -132,6 +132,34 @@ function describeAlert(alert: unknown): string {
  * No-ops when every id is already recorded, so a run that converts nothing
  * new does not touch storage.
  */
+/**
+ * The alert ids this device has already migrated, or `null` when the ledger
+ * could not be read.
+ *
+ * `null` and "empty" are kept apart deliberately. FEAT-0399 makes this ledger
+ * the authority on what the migration may still touch, and a parse error that
+ * read as "nothing migrated yet" would hand every already-converted rule back
+ * to a legacy store the trader can no longer edit — re-arming alarms they have
+ * already seen fire. The safe reading of "I cannot tell" is to change nothing.
+ */
+export function readMigratedIds(): Set<string> | null {
+  if (!browser) return null;
+
+  try {
+    const raw = localStorage.getItem(MIGRATED_LEDGER_KEY);
+    if (raw === null) return new Set();
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      logger.warn("alerts", "Migration ledger is not a list — treated as unreadable");
+      return null;
+    }
+    return new Set(parsed.filter((id): id is string => typeof id === "string"));
+  } catch (e) {
+    logger.warn("alerts", "Migration ledger did not parse — treated as unreadable", e);
+    return null;
+  }
+}
+
 function recordMigratedIds(ids: Set<string>): void {
   if (ids.size === 0) return;
 
@@ -243,6 +271,11 @@ export async function migrateAlertsToRuleDocuments(
     const originRecords: { ruleId: string; entry: RuleOriginEntry }[] = [];
     // FEAT-0388: alert ids, not rule ids — see MIGRATED_LEDGER_KEY.
     const migratedIds = new Set<string>();
+    // FEAT-0399: read once for the whole run. `null` means the ledger was
+    // unreadable, and every gate below then behaves as it did before this
+    // item — resyncing is the conservative direction when the alternative is
+    // acting on a ledger we could not parse.
+    const alreadyMigrated = readMigratedIds();
 
     /**
      * Merges this run's origin records into the ledger and persists it.
@@ -274,6 +307,27 @@ export async function migrateAlertsToRuleDocuments(
 
       const existingIndex = rulesById.get(id);
       if (existingIndex !== undefined) {
+        // FEAT-0399: an alert this device has already migrated is finished
+        // with. Until this item, the migration re-synced an existing rule from
+        // its alert on every start — `enabled` from `active`, the threshold on
+        // drift (BUG-0402) — because both stores had a live editor behind them
+        // and either could have moved. FEAT-0399 deletes the legacy editor, so
+        // the legacy entry can no longer change and there is nothing left to
+        // re-sync *from*. What the resync would still do is undo the rule
+        // store: a rule the trader disabled, or one disarmed after firing,
+        // would be re-armed from an `active: true` flag frozen in a store
+        // nothing can update — the same alarm re-firing on every reload.
+        //
+        // The ledger is what makes this safe to skip rather than merely
+        // skipped: it records the ids that reached a rule document, which is
+        // exactly the question "has this alert had its one conversion". That
+        // is what FEAT-0388 built it for, in its own words, "for a future safe
+        // removal of cachy_alerts_v1".
+        if (alreadyMigrated !== null && alreadyMigrated.has(id)) {
+          migratedIds.add(id);
+          continue;
+        }
+
         const rule = syncedRules[existingIndex];
         const alertThreshold = alertThresholdOf(alert);
         const ruleThreshold = ruleThresholdOf(rule);

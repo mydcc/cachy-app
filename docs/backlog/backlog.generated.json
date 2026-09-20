@@ -378,6 +378,84 @@
       "file": "bugs/BUG-0479-repair-truncates-long-trades.md"
     },
     {
+      "id": "BUG-0491",
+      "title": "A bot with frequency every_time places a second order on the same candle after a reload",
+      "type": "bug",
+      "status": "done",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [],
+      "file": "bugs/BUG-0491-bot-reorders-same-candle-after-reload.md"
+    },
+    {
+      "id": "BUG-0499",
+      "title": "The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass",
+      "type": "bug",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0499-daily-loss-completeness",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md"
+    },
+    {
+      "id": "BUG-0502",
+      "title": "The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected",
+      "type": "bug",
+      "status": "done",
+      "branch": "fix/bug-0502-protection-check",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md"
+    },
+    {
+      "id": "BUG-0503",
+      "title": "On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing",
+      "type": "bug",
+      "status": "done",
+      "branch": "fix/bug-0503-bitget-entry-no-stop",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
+    },
+    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -1651,6 +1729,335 @@
       "file": "bugs/BUG-0472-ai-actions-execute-without-confirmation.md"
     },
     {
+      "id": "BUG-0481",
+      "title": "Every alert that is not a plain price rule announces itself with an empty value",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0481-firing-message-empty-for-non-price-rules.md"
+    },
+    {
+      "id": "BUG-0482",
+      "title": "A mark-price operand inside a window is never supplied with mark candles and the rule never fires",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md"
+    },
+    {
+      "id": "BUG-0483",
+      "title": "After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md"
+    },
+    {
+      "id": "BUG-0484",
+      "title": "The rule store is read from localStorage and reparsed on every kline tick, not once per candle close",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md"
+    },
+    {
+      "id": "BUG-0494",
+      "title": "A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [],
+      "file": "bugs/BUG-0494-bot-order-carries-no-paper-provenance.md"
+    },
+    {
+      "id": "BUG-0495",
+      "title": "The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0013",
+      "depends_on": [
+        "FEAT-0405"
+      ],
+      "file": "bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md"
+    },
+    {
+      "id": "BUG-0498",
+      "title": "A lost drawing anchor silently turns a line alert back into the constant it was created with",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "ADR-0001",
+      "depends_on": [],
+      "file": "bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md"
+    },
+    {
+      "id": "BUG-0501",
+      "title": "Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md"
+    },
+    {
+      "id": "BUG-0504",
+      "title": "The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "calculation",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md"
+    },
+    {
+      "id": "BUG-0505",
+      "title": "Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md"
+    },
+    {
+      "id": "BUG-0508",
+      "title": "An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md"
+    },
+    {
+      "id": "BUG-0510",
+      "title": "Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0502",
+        "BUG-0292"
+      ],
+      "file": "bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md"
+    },
+    {
+      "id": "BUG-0512",
+      "title": "A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md"
+    },
+    {
+      "id": "BUG-0513",
+      "title": "Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md"
+    },
+    {
+      "id": "BUG-0516",
+      "title": "The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md"
+    },
+    {
+      "id": "BUG-0517",
+      "title": "The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md"
+    },
+    {
+      "id": "BUG-0518",
+      "title": "The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md"
+    },
+    {
+      "id": "BUG-0519",
+      "title": "A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -2532,9 +2939,9 @@
       "id": "FEAT-0405",
       "title": "Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)",
       "type": "feature",
-      "status": "in-progress",
-      "branch": "feat/feat-0405-a5a-account-settings",
-      "assignee": "claude",
+      "status": "done",
+      "branch": "feat/feat-0405-a6-cutover-complete",
+      "assignee": "opencode",
       "priority": "P1",
       "milestone": "none",
       "editions": [
@@ -2573,6 +2980,24 @@
       "size": "M",
       "estimate": "5",
       "file": "features/FEAT-0440-real-firing-sink.md"
+    },
+    {
+      "id": "FEAT-0488",
+      "title": "Guard bot order submission against duplicates, stacking and unbounded repeat",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [],
+      "file": "features/FEAT-0488-bot-order-submission-guard.md"
     },
     {
       "id": "BUG-0005",
@@ -4175,6 +4600,266 @@
       "file": "bugs/BUG-0474-ai-actions-executed-without-schema-validation.md"
     },
     {
+      "id": "BUG-0485",
+      "title": "The broken-alert record is built, never read and never cleared",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md"
+    },
+    {
+      "id": "BUG-0486",
+      "title": "The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0486-evaluation-gate-forget-is-never-called.md"
+    },
+    {
+      "id": "BUG-0487",
+      "title": "A send-level rule fires, drops its order intent and reports nothing",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0012",
+      "depends_on": [],
+      "file": "bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md"
+    },
+    {
+      "id": "BUG-0489",
+      "title": "A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md"
+    },
+    {
+      "id": "BUG-0493",
+      "title": "deleteBot writes localStorage directly and bypasses the shared rule-store write path",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "A",
+      "adr": "ADR-0001",
+      "depends_on": [],
+      "file": "bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md"
+    },
+    {
+      "id": "BUG-0496",
+      "title": "Three separate lists answer whether a route is cut over, and nothing makes them agree",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "ADR-0013",
+      "depends_on": [
+        "FEAT-0405"
+      ],
+      "file": "bugs/BUG-0496-three-sources-of-truth-for-route-migration.md"
+    },
+    {
+      "id": "BUG-0500",
+      "title": "The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md"
+    },
+    {
+      "id": "BUG-0506",
+      "title": "The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md"
+    },
+    {
+      "id": "BUG-0509",
+      "title": "A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md"
+    },
+    {
+      "id": "BUG-0511",
+      "title": "The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md"
+    },
+    {
+      "id": "BUG-0514",
+      "title": "Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0513"
+      ],
+      "file": "bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md"
+    },
+    {
+      "id": "BUG-0515",
+      "title": "The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md"
+    },
+    {
+      "id": "BUG-0520",
+      "title": "attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path",
+      "type": "bug",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0520-legacy-fallback-dead-rung",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md"
+    },
+    {
+      "id": "BUG-0521",
+      "title": "indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves",
+      "type": "bug",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0521-indexeddb-blocked",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md"
+    },
+    {
       "id": "FEAT-0019",
       "title": "Let the assistant research the web when it needs to",
       "type": "feature",
@@ -4252,7 +4937,9 @@
       "id": "FEAT-0029",
       "title": "Alerts on chart drawings",
       "type": "feature",
-      "status": "idea",
+      "status": "done",
+      "assignee": "claude",
+      "branch": "feat/feat-0029-drawing-alerts",
       "priority": "P2",
       "milestone": "M4",
       "editions": [
@@ -4264,7 +4951,8 @@
       "data_class": "A",
       "adr": "none",
       "depends_on": [
-        "FEAT-0027"
+        "FEAT-0027",
+        "FEAT-0480"
       ],
       "start_date": "2026-08-01",
       "target_date": "2027-03-15",
@@ -5821,9 +6509,9 @@
       "id": "FEAT-0396",
       "title": "An Automation settings tab for user-configured bots",
       "type": "feature",
-      "status": "in-progress",
+      "status": "done",
       "assignee": "claude-code",
-      "branch": "feat/feat-0396-p2-promote-alert",
+      "branch": "feat/feat-0396-p5-bot-submits",
       "priority": "P2",
       "milestone": "M9",
       "editions": [
@@ -6088,6 +6776,28 @@
         "FEAT-0467"
       ],
       "file": "features/FEAT-0471-single-provider-registry-five-tabs.md"
+    },
+    {
+      "id": "FEAT-0480",
+      "title": "Persistent, addressable chart drawings",
+      "type": "feature",
+      "status": "done",
+      "assignee": "claude",
+      "branch": "feat/feat-0480-chart-drawings",
+      "priority": "P2",
+      "milestone": "M4",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "chart",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "size": "L",
+      "estimate": "8",
+      "file": "features/FEAT-0480-persistent-chart-drawings.md"
     },
     {
       "id": "BUG-0007",
@@ -6819,6 +7529,60 @@
       "file": "bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md"
     },
     {
+      "id": "BUG-0490",
+      "title": "The alert system document still describes the two-engine cutover that FEAT-0399 removed",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "docs",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md"
+    },
+    {
+      "id": "BUG-0497",
+      "title": "The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "security",
+      "data_class": "A",
+      "adr": "ADR-0013",
+      "depends_on": [],
+      "file": "bugs/BUG-0497-x-api-sign-escapes-redaction.md"
+    },
+    {
+      "id": "BUG-0507",
+      "title": "The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md"
+    },
+    {
       "id": "FEAT-0022",
       "title": "Make settings findable with a search box",
       "type": "feature",
@@ -7353,7 +8117,9 @@
       "id": "FEAT-0399",
       "title": "Remove the legacy cachy_alerts_v1 store and evaluation path",
       "type": "feature",
-      "status": "idea",
+      "status": "done",
+      "assignee": "claude",
+      "branch": "feat/feat-0399-drop-legacy-alerts",
       "priority": "P3",
       "milestone": "M5",
       "editions": [
@@ -7811,5 +8577,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 361
+  "count": 402
 }

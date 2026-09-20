@@ -288,6 +288,12 @@ const BITGET_ORDER_PATHS: Record<string, string> = {
   "place-order": "/api/mix/v1/order/placeOrder",
   "close-position": "/api/mix/v1/order/placeOrder",
   "cancel-order": "/api/mix/v1/order/cancel-order",
+  // The two query-signed reads. `order-detail` has no row on purpose: Bitget
+  // wires none of that action (`venues/bitget.ts` answers `null`), and a row
+  // here would let a Bitget account sign a request the venue module then
+  // refuses — the refusal belongs at the signer, before an envelope exists.
+  pending: "/api/mix/v1/order/current",
+  history: "/api/mix/v1/order/history",
 };
 
 export function bitgetUpstreamPath(cachyPath: string, action?: string): string | null {

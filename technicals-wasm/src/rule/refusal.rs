@@ -227,6 +227,23 @@ refusal_codes! {
     /// present but unresolvable claims a lineage nothing can check, which is
     /// worse than claiming none.
     InvalidDerivedFromHash => "invalidDerivedFromHash",
+    /// `percent_risk` sizing with no stop to measure the risk against —
+    /// FEAT-0396.
+    ///
+    /// The basis is defined as "percentage of equity risked between entry and
+    /// stop". With no stop there is no distance, so the size is not merely
+    /// unknown — it is undefined, and any number the submission path settled on
+    /// would be one the trader never wrote. Refused at authoring time, where the
+    /// field can still be filled in.
+    StopRequiredForRiskSizing => "stopRequiredForRiskSizing",
+    /// A stop on an intent that will never open a position — FEAT-0396.
+    ///
+    /// A `reduce_only` order closes exposure that already exists and already
+    /// carries whatever protection it was opened with. A stop here would be
+    /// placed by nothing, and this crate's rule about unread fields applies: a
+    /// field sitting unread is the one a trader would later swear they had
+    /// armed.
+    StopNotHonoured => "stopNotHonoured",
 }
 
 /// One reason a document was refused, naming the field responsible.
@@ -434,6 +451,8 @@ mod tests {
         "invalid_note",
         "duplicate_trigger_method",
         "invalid_derived_from_hash",
+        "stop_required_for_risk_sizing",
+        "stop_not_honoured",
     ];
 
     #[test]

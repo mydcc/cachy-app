@@ -247,6 +247,11 @@ let rootElement: HTMLElement | null = null;
         if (!accepted) return;
         try {
             armRule(accepted);
+            // FEAT-0399: Manage derives its list from the rule store, and
+            // localStorage is not reactive. Without this bump the alarm is
+            // armed and evaluated while the list the trader checks it against
+            // still shows the state from before they armed it.
+            alertState.rulesVersion += 1;
             uiState.showToast($_("dashboard.alerts.panel.armed"), "success");
         } catch (e) {
             const key: TranslationKey =

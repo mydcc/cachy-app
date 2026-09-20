@@ -2,9 +2,9 @@
 id: FEAT-0405
 title: Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A)
 type: feature
-status: in-progress
-branch: feat/feat-0405-a5a-account-settings
-assignee: claude
+status: done
+branch: feat/feat-0405-a6-cutover-complete
+assignee: opencode
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -142,7 +142,7 @@ signature verification.
 
 ## Progress
 
-Delivered as four PRs; only the last one flips this item to `done`.
+Delivered as six PRs; only the last one flips this item to `done`.
 
 | Phase | Scope | State |
 |---|---|---|
@@ -150,9 +150,66 @@ Delivered as four PRs; only the last one flips this item to `done`.
 | A2 | `buildVenueBody` plus the Bitget counterpart, for the two body-signed multi-venue routes | merged (#3421) |
 | A3 | The 7 Bitunix-hardwired query routes and their client call sites | merged (#3424) |
 | A4 | The 3 multi-venue query routes (`balance`, `positions`, `account`) | merged (#3431) |
-| A5a | `/api/account-settings` — the first body-signed route, and the first reader of the wrapper body | in progress |
-| A5b | `/api/orders` — eleven actions, two venues | not started |
-| A6 | Absence test over all 12 routes, whitepaper, WS audit, item flip | not started |
+| A5a | `/api/account-settings` — the first body-signed route, and the first reader of the wrapper body | merged (#3436) |
+| A5b | `/api/orders` — eleven actions, two venues | merged (#3523) |
+| A6 | Absence test over all 12 routes, whitepaper, WS audit, item flip | done (this PR) |
+
+### A5b recon (2026-09-17, before the first edit)
+
+Sizes, so the next session does not re-derive them:
+
+- `src/routes/api/orders/+server.ts` is **106 lines** and holds no per-action
+  logic; it validates, calls `venue.validateKeys`, then
+  `venue.executeOrder(creds, payload)`. The cutover is those three lines plus the
+  wrapper body — the same edit A5a made to `account-settings`, which is the file
+  to copy.
+- Nine route tests move: `orders_bitget_history`, `orders_cancel_path`,
+  `orders_history_queryCanceled`, `orders_history_reduceOnly`,
+  `orders_history_time_range`, `orders_leverage_marginmode`,
+  `orders_native_bulk`, `orders_place_order_hedge`, `orders_place_order_ordertype`
+  (all under `src/routes/api/orders/`).
+- Two venue-level tests build call the old signature directly and move with it:
+  `src/utils/server/venues/bitunixCancel.test.ts` (`executeOrder(CREDS, …)`) and
+  `src/utils/exchange/venueBodies.test.ts`.
+- The temporary client scaffolding to delete lives in one file:
+  `ENVELOPE_SIGNED_ROUTES` at `src/services/tradeService.ts:96`,
+  `ENVELOPE_BODY_BUILDERS` at `:116`, both read at `:387-389`; the comment at
+  `:2011` already names this phase as the one that removes the set.
+- Client call sites still setting `X-Api-Secret`: `PositionsSidebar.svelte:376,466`
+  and `CandleChartView.svelte:321`.
+
+### A6 delivery notes (2026-09-20, takeover)
+
+What A6 found and closed, so the next reader does not re-derive it:
+
+- **A5b left six test files on the old contract** (four `orders/*.test.ts`,
+  `bitunixCancel.test.ts`, `venueBodies.test.ts`) and sixteen more files
+  mocking the pre-A5b `signedRequest(method, endpoint, payload)` shape. All
+  migrated to `signedEnvelopeRequest` / the enveloped
+  `(endpoint, payload, pass?, queryParams?)` transport.
+- **Bitget was locked out of every mixed-venue route.** `routeTakesNonce`
+  asked at plan level, but Bitget's prehash has no nonce and its signer sends
+  none — every Bitget request to `/api/orders`, `/api/balance`,
+  `/api/positions` and `/api/account` answered `PRESIGNED_ENVELOPE_MISSING`.
+  The guard is venue-aware now (routes pass their validated venue; callers
+  without one keep the plan-level rule), pinned by `orders_bitget_history`
+  and three `assertPresignedConsistency` cases.
+- **Retired:** `ENVELOPE_BODY_BUILDERS` (tpsl unwrap lives in `signedRequest`
+  directly) and server-side `validateKeys` (interface, both venue impls,
+  `VenueCredentials`, registry assertion) — the shape check has lived in
+  `signCachyRequest` since A5.
+- **Absence:** `bitunixOnlySigning.test.ts` scans all twelve routes for
+  `X-Api-Secret`/`extractApiCredentials` and refuses a secret-carrying,
+  envelope-less request on each with `PRESIGNED_ENVELOPE_MISSING` and no
+  upstream call.
+- **Docs:** whitepaper chapters 2 and 6 (+ the API-key-handling section)
+  rewritten to the completed state in EN and DE; the claims test only pins
+  chapter 3 math and is unaffected.
+- **WS re-audit (2026-09-20):** `bitunixWs.login()` and `bitgetWs.login()`
+  still sign in the browser (CryptoJS) and transmit only
+  `{apiKey, timestamp, nonce, sign}` / `{apiKey, passphrase, timestamp,
+  sign}` — direct to the exchange socket, no Cachy process in between.
+  No code change, as scoped.
 
 Notes from A4 for whoever picks up A5b:
 
@@ -297,29 +354,29 @@ Bitget query route.
 
 ## Acceptance criteria
 
-- [ ] No REST trade/sync request carries a raw exchange **signing secret** out of
+- [x] No REST trade/sync request carries a raw exchange **signing secret** out of
       the browser, across all **14** client call sites / **6** files and all **12**
       migrated proxy routes (asserted by test: signature material present,
       `X-Api-Secret` absent). The passphrase is a separate case — see the next
       criterion.
-- [ ] The Bitget passphrase transits **only** through the ADR-0013 named
+- [x] The Bitget passphrase transits **only** through the ADR-0013 named
       exception, and only as a header: the secret-absence test must hold on all
       **12** routes, while an explicit passphrase-absence test holds on the **7**
       Bitunix-hardwired ones. No passphrase in a query string, body, or log.
-- [ ] The server proxy has **no silent dual path**: a migrated route receiving no
+- [x] The server proxy has **no silent dual path**: a migrated route receiving no
       valid pre-signed envelope answers `400`, never re-signs with a transmitted
       secret
-- [ ] One shared `buildVenueBody` produces the signed bytes for both sides; the
+- [x] One shared `buildVenueBody` produces the signed bytes for both sides; the
       server answers `400` when its rebuild diverges from the client-supplied body
       (covered by a test)
-- [ ] Query-string routes (`balance`, `positions`, `account`, `sync` reads)
+- [x] Query-string routes (`balance`, `positions`, `account`, `sync` reads)
       migrated with their own envelope shape — not only the body-signing routes.
       (`account-settings` is *body*-signed, per `ROUTE_SIGNING_PLAN` and the
       venue builders; it was listed here as a query route in error.)
-- [ ] Existing `exchangeSigning` conformance vectors still pass; order lifecycle
+- [x] Existing `exchangeSigning` conformance vectors still pass; order lifecycle
       and sync happy paths covered by integration tests
-- [ ] WS private login recorded as audited-clean (documentation only, no code change)
-- [ ] Whitepaper transitional note (chapters 2 and 6) updated to completed state
+- [x] WS private login recorded as audited-clean (documentation only, no code change)
+- [x] Whitepaper transitional note (chapters 2 and 6) updated to completed state
 
 ## Out of scope
 

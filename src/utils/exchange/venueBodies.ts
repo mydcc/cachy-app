@@ -45,7 +45,11 @@ import {
 } from "./bitgetBodies";
 import {
   buildBitunixAccountSettingBody,
+  buildBitunixCancelAllBody,
+  buildBitunixCancelOrderBody,
+  buildBitunixCloseAllPositionsBody,
   buildBitunixClosePositionPayload,
+  buildBitunixFlashCloseBody,
   buildBitunixModifyOrderBody,
   buildBitunixOrderPayload,
   buildBitunixPlaceOrderBody,
@@ -61,17 +65,14 @@ import type { Venue } from "./restSigningPlan";
  * `pending`, `history`, `order-detail` — are signed over their query, and a
  * caller that arrives here with one of them has picked the wrong shape.
  *
- * The four write actions Bitunix serves from a signed POST body — `cancel-order`
- * (`trade/cancel_orders`), `cancel-all` (`cancel_all_orders`),
- * `close-all-positions` (`close_all_position`) and `flash-close-position`
- * (`flash_close_position`), all documented as `POST` with the parameters in the
- * body in `docs/bitunix-api/07_trade.md` — are not all built yet, because
- * `/api/orders` is not cut over and nothing signs their bodies in the browser so
- * far. `cancel-order` carries the Bitget body and throws for Bitunix; the other
- * three fall into the `default` throw. Those throws are loud gaps rather than
- * quiet ones, and the missing builders land with the route's cutover
- * (FEAT-0405 A5), not before it: a builder nothing calls is not a smaller gap,
- * it is an untested one.
+ * The write actions arrive here as bodies, as they did before the cutover. The
+ * four Bitunix ones — `cancel-order` (`trade/cancel_orders`), `cancel-all`
+ * (`cancel_all_orders`), `close-all-positions` (`close_all_position`) and
+ * `flash-close-position` (`flash_close_position`), all documented as `POST` with
+ * the parameters in the body in `docs/bitunix-api/07_trade.md` — are built by
+ * `bitunixBodies` and reach Bitunix verbatim. Bitget wires only
+ * `place-order`/`close-position` and `cancel-order`, so the remaining three are
+ * a venue boundary on that side and throw `VALIDATION_ERROR`.
  */
 export function buildVenueBody(
   venue: Venue,
@@ -130,12 +131,24 @@ function venueBody(
     case "cancel-order":
       // Bitunix serves the cancel as a body-signed POST (`trade/cancel_orders`
       // with `{ symbol, orderList }` — `docs/bitunix-api/07_trade.md`, the live
-      // `cancelBitunixOrder`, and `orders_cancel_path.test.ts` all agree), so
-      // there is no query-signed cancel to build here. The Bitunix builder
-      // still lands with the route's cutover (FEAT-0405 A5): until then this
-      // throw is the loud gap, not a shape claim.
-      if (venue !== "bitget") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
-      return buildBitgetCancelOrderBody(payload);
+      // `cancelBitunixOrder`, and `orders_cancel_path.test.ts` all agree).
+      return venue === "bitunix"
+        ? buildBitunixCancelOrderBody(payload)
+        : buildBitgetCancelOrderBody(payload);
+
+    case "cancel-all":
+    case "close-all-positions":
+    case "flash-close-position":
+      // Bitunix serves all three from a body-signed POST. Bitget wires none of
+      // them (`executeOrder` answers `null`), and its path table has no row
+      // either, so the signer refuses a Bitget envelope for these before the
+      // route is reached — this throw is the backstop, not the message.
+      if (venue !== "bitunix") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+      if (payload.type === "cancel-all") return buildBitunixCancelAllBody(payload);
+      if (payload.type === "close-all-positions") {
+        return buildBitunixCloseAllPositionsBody(payload);
+      }
+      return buildBitunixFlashCloseBody(payload);
 
     case "change-leverage":
     case "change-margin-mode":

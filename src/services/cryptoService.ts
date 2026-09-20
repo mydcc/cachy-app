@@ -48,6 +48,30 @@ const SECURE_DB_NAME = "CachySecurityDB";
 const SECURE_STORE_NAME = "keys";
 const DEVICE_KEY_ALIAS = "device_key";
 
+/**
+ * Upper bound for opening the device-key database (BUG-0521, option A).
+ * A blocked `indexedDB.open` fires neither `onsuccess` nor `onerror`, so
+ * without a backstop the promise — and with it `secretsReady` — stays
+ * pending forever. Aligned with the ~5s device-key resolution measured in
+ * BUG-0053: a concurrent factory reset finishes well inside this window,
+ * so a retry after rejection should succeed.
+ */
+export const DEVICE_KEY_OPEN_TIMEOUT_MS = 5000;
+
+/** `name` carried by the rejection when the secure-DB open does not settle. */
+export const INDEXEDDB_BLOCKED_ERROR_NAME = "IndexedDBBlockedError";
+
+function indexedDBBlockedError(blockedSeen: boolean): Error {
+  const reason = blockedSeen
+    ? "the open request was blocked (concurrent factory-reset deleteDatabase or a version-change lock held by another tab)"
+    : "the open request never settled";
+  const error = new Error(
+    `IndexedDB open of "${SECURE_DB_NAME}" timed out after ${DEVICE_KEY_OPEN_TIMEOUT_MS}ms: ${reason}. Retry once the concurrent operation finished.`,
+  );
+  error.name = INDEXEDDB_BLOCKED_ERROR_NAME;
+  return error;
+}
+
 class CryptoServiceImpl {
   // Non-extractable PBKDF2 base key derived from the user's password.
   // The raw password is never stored — only this opaque CryptoKey handle,
@@ -95,16 +119,18 @@ class CryptoServiceImpl {
 
   /**
    * Derives (or retrieves from cache) an AES key for the given salt using the session base key.
+   * The cache key includes the iteration count (BUG-0520): a varied count
+   * must never return a key derived at a different count.
    */
-  private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[], hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512"): Promise<CryptoKey> {
+  private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[], hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512", iterations: number = STRONG_ITERATIONS): Promise<CryptoKey> {
     if (!this.sessionBaseKey) {
       throw new Error("Session locked and no password provided");
     }
-    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer) + "_" + hashAlgo;
+    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer) + "_" + hashAlgo + "_" + iterations;
     const cached = this.sessionKeyCache.get(saltKey);
     if (cached) return cached;
     const key = await window.crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
+      { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations, hash: hashAlgo },
       this.sessionBaseKey,
       { name: "AES-GCM", length: KEY_SIZE },
       false,
@@ -230,6 +256,11 @@ class CryptoServiceImpl {
 
       if (password instanceof CryptoKey) {
         if (password.algorithm.name === "PBKDF2") {
+          // BUG-0520: deliberately STRONG_ITERATIONS, not `iterations`.
+          // Device keys postdate the CryptoJS rewrite (b8537c98 came after
+          // 560a15c7), so no blob encrypted under a device CryptoKey can
+          // exist at LEGACY_ITERATIONS — a legacy rung here would re-derive
+          // the same key twice instead of recovering anything.
           key = await window.crypto.subtle.deriveKey(
             { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
             password,
@@ -241,8 +272,11 @@ class CryptoServiceImpl {
           key = password;
         }
       } else if (this.sessionBaseKey && !password) {
-        // Derive key from session base key + blob's salt
-        key = await this.getSessionKeyForSalt(salt, ["decrypt"], hashAlgo);
+        // Derive key from session base key + blob's salt. The session base
+        // key is PBKDF2 material imported from the same user password that
+        // could have encrypted pre-rewrite blobs, so `iterations` is
+        // honoured here — unlike the device-key branch above.
+        key = await this.getSessionKeyForSalt(salt, ["decrypt"], hashAlgo, iterations);
       } else if (typeof password === 'string' && password) {
         // Determine Algo based on method or legacy fallback
         if (blob.method === "AES-GCM") {
@@ -309,11 +343,23 @@ class CryptoServiceImpl {
     // decode turns that into a thrown error so each attempt below either
     // succeeds with real plaintext or fails and moves to the next.
     if (blob.method === "AES-CBC") {
-      const legacyAttempts: Array<{ iterations: number; hash: "SHA-256" | "SHA-1" }> = [
-        { iterations: STRONG_ITERATIONS, hash: "SHA-256" },
-        { iterations: STRONG_ITERATIONS, hash: "SHA-1" },
-        { iterations: LEGACY_ITERATIONS, hash: "SHA-1" }, // for blobs older still
-      ];
+      // BUG-0520: the LEGACY_ITERATIONS rung only runs for password-derived
+      // callers (string password or session key, which is PBKDF2 material
+      // imported from the same user password). Device CryptoKeys postdate
+      // the CryptoJS rewrite, so no blob under such a key exists at legacy
+      // parameters — for them the third rung would be byte-identical to the
+      // second, an expensive duplicate PBKDF2 derivation, and is skipped.
+      const legacyAttempts: Array<{ iterations: number; hash: "SHA-256" | "SHA-1" }> =
+        password instanceof CryptoKey
+          ? [
+              { iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+              { iterations: STRONG_ITERATIONS, hash: "SHA-1" },
+            ]
+          : [
+              { iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+              { iterations: STRONG_ITERATIONS, hash: "SHA-1" },
+              { iterations: LEGACY_ITERATIONS, hash: "SHA-1" }, // for blobs older still
+            ];
       let lastError: unknown;
       for (const { iterations, hash } of legacyAttempts) {
         try {
@@ -388,42 +434,95 @@ class CryptoServiceImpl {
     return key;
   }
 
-  private async loadKeyFromDB(alias: string): Promise<CryptoKey | null> {
+  /**
+   * Opens the secure device-key database with an `onblocked` handler and a
+   * bounded timeout (BUG-0521). A blocked open fires neither `onsuccess`
+   * nor `onerror`; recording it and rejecting at the deadline keeps the
+   * promise retryable via `SecretsLoader.getDeviceKey`'s `.catch` instead
+   * of caching a forever-pending promise. The timer is the backstop for
+   * every missed event, not just `blocked`.
+   */
+  private openSecureDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(SECURE_DB_NAME, 1);
+      let settled = false;
+      let blockedSeen = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const rejectOnce = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      };
+      const resolveOnce = (db: IDBDatabase) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(db);
+      };
+      timer = setTimeout(
+        () => rejectOnce(indexedDBBlockedError(blockedSeen)),
+        DEVICE_KEY_OPEN_TIMEOUT_MS,
+      );
+      let request: IDBOpenDBRequest;
+      try {
+        request = indexedDB.open(SECURE_DB_NAME, 1);
+      } catch (error) {
+        rejectOnce(error);
+        return;
+      }
       request.onupgradeneeded = () => {
         request.result.createObjectStore(SECURE_STORE_NAME);
       };
       request.onsuccess = () => {
-        const db = request.result;
-        try {
-          const tx = db.transaction(SECURE_STORE_NAME, "readonly");
-          const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
-          getReq.onsuccess = () => resolve(getReq.result || null);
-          getReq.onerror = () => reject(getReq.error);
-          // Release the connection so a factory-reset deleteDatabase()
-          // is not blocked by it (BUG-0288). Aborted/errored transactions
-          // never fire oncomplete, so cover those paths too.
-          tx.oncomplete = () => db.close();
-          tx.onabort = () => db.close();
-          tx.onerror = () => db.close();
-        } catch {
-          db.close();
-          resolve(null);
+        if (settled) {
+          // Late success after the timeout already rejected: release the
+          // connection instead of dropping it, so it cannot block a later
+          // factory-reset deleteDatabase().
+          try {
+            request.result.close();
+          } catch {
+            // Best effort — the open already failed from the caller's view.
+          }
+          return;
         }
+        resolveOnce(request.result);
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () =>
+        rejectOnce(
+          request.error ??
+            new Error(`IndexedDB open of "${SECURE_DB_NAME}" failed`),
+        );
+      request.onblocked = () => {
+        blockedSeen = true;
+      };
+    });
+  }
+
+  private async loadKeyFromDB(alias: string): Promise<CryptoKey | null> {
+    const db = await this.openSecureDb();
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(SECURE_STORE_NAME, "readonly");
+        const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
+        getReq.onsuccess = () => resolve(getReq.result || null);
+        getReq.onerror = () => reject(getReq.error);
+        // Release the connection so a factory-reset deleteDatabase()
+        // is not blocked by it (BUG-0288). Aborted/errored transactions
+        // never fire oncomplete, so cover those paths too.
+        tx.oncomplete = () => db.close();
+        tx.onabort = () => db.close();
+        tx.onerror = () => db.close();
+      } catch {
+        db.close();
+        resolve(null);
+      }
     });
   }
 
   private async saveKeyToDB(alias: string, key: CryptoKey): Promise<void> {
+    const db = await this.openSecureDb();
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(SECURE_DB_NAME, 1);
-      request.onupgradeneeded = () => {
-        request.result.createObjectStore(SECURE_STORE_NAME);
-      };
-      request.onsuccess = () => {
-        const db = request.result;
+      try {
         const tx = db.transaction(SECURE_STORE_NAME, "readwrite");
         const putReq = tx.objectStore(SECURE_STORE_NAME).put(key, alias);
         putReq.onsuccess = () => resolve();
@@ -434,8 +533,10 @@ class CryptoServiceImpl {
         tx.oncomplete = () => db.close();
         tx.onabort = () => db.close();
         tx.onerror = () => db.close();
-      };
-      request.onerror = () => reject(request.error);
+      } catch (error) {
+        db.close();
+        reject(error);
+      }
     });
   }
 

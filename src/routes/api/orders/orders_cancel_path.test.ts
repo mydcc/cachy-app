@@ -19,6 +19,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHash } from "node:crypto";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import {
+  signedEnvelopeRequest,
+  TEST_SIGNING_KEYS,
+} from "../../../tests/helpers/signedEnvelopeRequest";
 
 // Regression test: order cancellation used to call the singular, DELETE-only
 // /trade/cancel_order, which Bitunix does not expose (see
@@ -29,11 +33,14 @@ vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
+/** The envelope `exchangeSignedFetch` would send for a Bitunix cancel. */
+async function cancelOrderRequest() {
+  return signedEnvelopeRequest(
+    "/api/orders?action=cancel-order",
+    { exchange: "bitunix", type: "cancel-order", symbol: "BTCUSDT", orderId: "42" },
+    {},
+    "bitunix",
+  );
 }
 
 beforeEach(() => {
@@ -49,21 +56,16 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
         JSON.stringify({ code: 0, data: { successList: [{ orderId: "42" }], failureList: [] }, msg: "Success" }),
     });
 
+    const { request, url } = await cancelOrderRequest();
     const response = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "cancel-order",
-        symbol: "BTCUSDT",
-        orderId: "42",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
     expect(response.status).toBe(200);
-    const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toBe("https://fapi.bitunix.com/api/v1/futures/trade/cancel_orders");
+    const [forwardedUrl, options] = fetchMock.mock.calls[0];
+    expect(forwardedUrl).toBe("https://fapi.bitunix.com/api/v1/futures/trade/cancel_orders");
     expect(options.method).toBe("POST");
     expect(JSON.parse(options.body)).toEqual({
       symbol: "BTCUSDT",
@@ -74,12 +76,19 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
     // parameters ride in the body (`docs/bitunix-api/07_trade.md`), so the
     // signature input is `nonce + timestamp + apiKey + "" + body` — recomputed
     // here from the exact bytes that went out, which also pins their order.
+    //
+    // FEAT-0405 A5: the *client* produced that signature, and the route
+    // forwards it rather than computing its own. Recomputing it here from the
+    // bytes that actually left is still the assertion that matters — the bytes
+    // the venue verifies are the bytes the client signed.
     const sentBody = options.body as string;
     const digest = createHash("sha256")
-      .update(`${options.headers.nonce}${options.headers.timestamp}validApiKey123${sentBody}`)
+      .update(
+        `${options.headers.nonce}${options.headers.timestamp}${TEST_SIGNING_KEYS.apiKey}${sentBody}`,
+      )
       .digest("hex");
     expect(options.headers.sign).toBe(
-      createHash("sha256").update(digest + "validSecret123456").digest("hex"),
+      createHash("sha256").update(digest + TEST_SIGNING_KEYS.apiSecret).digest("hex"),
     );
   });
 
@@ -94,15 +103,10 @@ describe("POST /api/orders cancel-order uses the real Bitunix endpoint", () => {
         }),
     });
 
+    const { request, url } = await cancelOrderRequest();
     const response = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "cancel-order",
-        symbol: "BTCUSDT",
-        orderId: "42",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 

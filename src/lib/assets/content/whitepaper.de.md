@@ -110,16 +110,15 @@ Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-
 
 **Das Problem**: Börsen-APIs (Bitunix) erfordern, dass Anfragen mit einem \`API_SECRET\` signiert werden. Wenn wir diese Anfragen vom Browser aus stellen, müssten wir das Geheimnis den DevTools des Benutzers preisgeben.
 
-**Die Lösung (aktueller Übergangszustand)**:
+**Die Lösung (ADR-0013, abgeschlossen)**:
 
-1. Der Client sendet eine Anfrage an \`POST /api/sync/orders\`.
-2. Der Client fügt \`API_KEY\` und \`API_SECRET\` in benutzerdefinierten Headern hinzu (übertragen via HTTPS).
-3. Der Server (Node.js-Kontext) empfängt die Header.
-4. Der Server konstruiert die Payload und berechnet die börsenspezifische Signatur mit dem Geheimnis (Bitunix Double-SHA256, Bitget HMAC-SHA256-Base64).
-5. Der Server ruft die Börsen-API auf.
-6. Der Server gibt das JSON-Ergebnis an den Client zurück.
+1. Der Client signiert die Anfrage im Browser mit `API_SECRET` via WebCrypto (`src/utils/crypto/exchangeSigning.ts`) — Bitunix Double-SHA256, Bitget HMAC-SHA256-Base64.
+2. Der Client sendet die vorsignierte Envelope an `POST /api/sync/orders`: `API_KEY`, Zeitstempel, Nonce und Signatur in benutzerdefinierten Headern (übertragen via HTTPS), zusammen mit der Payload. Das Geheimnis selbst ist der HMAC-Schlüssel und verlässt das Gerät nie.
+3. Der Server (Node.js-Kontext) empfängt die Envelope und rekonstruiert die exakten Bytes, die der Client signiert zu haben behauptet.
+4. Der Server vergleicht beide (`PRESIGNED_DIVERGENCE` bei Abweichung) und leitet die Client-Bytes unverändert an die Börsen-API weiter — er kann nicht nachsignieren, weil er das Geheimnis nie sieht.
+5. Der Server gibt das JSON-Ergebnis an den Client zurück.
 
-_Hinweis: Während Geheimnisse vom Client zum Server reisen, ist der Server zustandslos und protokolliert oder speichert sie nicht. Nach der akzeptierten ADR-0013 wandert das Signieren per WebCrypto auf den Client, sodass rohe Geheimnisse das Gerät nie verlassen — die Signing-Engine (\`src/utils/crypto/exchangeSigning.ts\`) ist implementiert und getestet, die Migration der REST-Pfade steht noch aus._
+_Hinweis: Rohe Börsen-Geheimnisse verlassen das Gerät nie. Der Server ist zustandslos und protokolliert oder speichert keine Zugangsdaten; eine kompromittierte Laufzeitumgebung enthält höchstens einen API-Schlüssel (plus die Bitget-Passphrase, die ohne das Geheimnis keine Signatur erzeugen kann). Per ADR-0013 sind alle REST-Trade/Sync-Routen auf diese Envelope umgestellt; der WebSocket-Login für private Kanäle signierte bereits im Browser._
 
 ---
 
@@ -401,7 +400,7 @@ _Komponente: \`TradeSetupInputs.svelte\` -> \`apiService.ts\`_
 1. **Benutzeraktion**: Klickt auf "Long".
 2. **Payload-Konstruktion**: Die App bündelt Einstieg, SL, TP und Größe in ein standardisiertes JSON.
 3. **Proxy-Aufruf**: \`POST /api/orders\`.
-4. **Signierung**: Der Node.js-Server signiert die Anfrage mit dem API-Geheimnis des Benutzers (Übergangszustand — siehe Kapitel 2; ADR-0013 verlagert das Signieren auf den Client).
+4. **Signierung**: Der Browser signiert die Anfrage mit dem API-Geheimnis des Benutzers via WebCrypto (ADR-0013); der Node.js-Proxy leitet die vorsignierte Envelope weiter, ohne das Geheimnis je zu sehen.
 5. **Börsenbestätigung**: Bitunix gibt eine Order-ID zurück.
 
 ### Phase 3: Überwachung (Die Store-Schicht)
@@ -496,8 +495,8 @@ Um das "Community First"-Prinzip zu unterstützen, stellt Cachy sicher, dass Ben
 Cachy fungiert als Durchgangsinstanz.
 
 - **Client-seitig**: API-Schlüssel werden im Browser gespeichert. Sie werden _niemals_ zur Speicherung an den Cachy-Server gesendet.
-- **Übertragung**: Schlüssel werden nur in den HTTP-Headern spezifischer API-Anfragen gesendet.
-- **Server-seitig**: Der Node.js-Proxy empfängt die Anfrage, signiert sie mit dem Geheimnis, leitet sie an die Börse weiter und verwirft die Anmeldeinformationen sofort aus dem Speicher. Es werden keine Protokolle geführt. (Übergangszustand — siehe Kapitel 2; ADR-0013 verlagert das Signieren auf den Client.)
+- **Übertragung**: Nur Signaturmaterial reist in den HTTP-Headern spezifischer API-Anfragen (Schlüssel, Zeitstempel, Nonce, Signatur) — das Geheimnis selbst verlässt das Gerät nie.
+- **Server-seitig**: Der Node.js-Proxy empfängt die vorsignierte Envelope, prüft sie gegen seine eigene Rekonstruktion der signierten Bytes und leitet sie unverändert an die Börse weiter. Das Geheimnis erreicht den Server nie, daher kann er weder signieren noch Zugangsdaten verlieren — es gibt nichts zu protokollieren und nichts zu speichern.
 
 ### Routen-Authentifizierung: Selbstausgestellte Client-Tokens
 

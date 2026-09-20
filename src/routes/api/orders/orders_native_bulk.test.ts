@@ -18,17 +18,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
+import { buildOrderDetailQueryParams } from "../../../utils/exchange/venueQueries";
+
+// FEAT-0405 A5b — /api/orders reads a pre-signed envelope now. Writes carry
+// the signed venue body, the order-detail read its signed query; both are
+// built through the same functions the route rebuilds them with.
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
+/** A body-signed write (`cancel-all`, `close-all-positions`, …). */
+async function writeRequest(
+  action: string,
+  payload: Record<string, unknown>,
+) {
+  return signedEnvelopeRequest(`/api/orders?action=${action}`, payload, {}, "bitunix");
+}
+
+/** The query-signed order-detail read. */
+async function orderDetailRequest(payload: Record<string, unknown>) {
+  return signedEnvelopeRequest(
+    "/api/orders?action=order-detail",
+    payload,
+    buildOrderDetailQueryParams(payload),
+    "bitunix",
+  );
 }
 
 beforeEach(() => {
@@ -49,21 +66,21 @@ describe("FEAT-0071: Native Bitunix Bulk & Modify Endpoints (/api/orders)", () =
           }),
       });
 
+      const { request, url } = await writeRequest("cancel-all", {
+        exchange: "bitunix",
+        type: "cancel-all",
+        symbol: "BTCUSDT",
+      });
       const response = await POST({
-        request: makeRequest({
-          exchange: "bitunix",
-          type: "cancel-all",
-          symbol: "BTCUSDT",
-          apiKey: "validApiKey123",
-          apiSecret: "validSecret123456",
-        }),
+        request,
+        url,
         getClientAddress,
       } as unknown as Parameters<typeof POST>[0]);
 
       expect(response.status).toBe(200);
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://fapi.bitunix.com/api/v1/futures/trade/cancel_all_orders");
+      const [forwardedUrl, options] = fetchMock.mock.calls[0];
+      expect(forwardedUrl).toBe("https://fapi.bitunix.com/api/v1/futures/trade/cancel_all_orders");
       expect(options.method).toBe("POST");
       expect(JSON.parse(options.body)).toEqual({ symbol: "BTCUSDT" });
     });
@@ -82,14 +99,14 @@ describe("FEAT-0071: Native Bitunix Bulk & Modify Endpoints (/api/orders)", () =
           }),
       });
 
+      const { request, url } = await writeRequest("cancel-all", {
+        exchange: "bitunix",
+        type: "cancel-all",
+        symbol: "BTCUSDT",
+      });
       const response = await POST({
-        request: makeRequest({
-          exchange: "bitunix",
-          type: "cancel-all",
-          symbol: "BTCUSDT",
-          apiKey: "validApiKey123",
-          apiSecret: "validSecret123456",
-        }),
+        request,
+        url,
         getClientAddress,
       } as unknown as Parameters<typeof POST>[0]);
 
@@ -106,21 +123,21 @@ describe("FEAT-0071: Native Bitunix Bulk & Modify Endpoints (/api/orders)", () =
         text: async () => JSON.stringify({ code: 0, data: "", msg: "Success" }),
       });
 
+      const { request, url } = await writeRequest("close-all-positions", {
+        exchange: "bitunix",
+        type: "close-all-positions",
+        symbol: "ETHUSDT",
+      });
       const response = await POST({
-        request: makeRequest({
-          exchange: "bitunix",
-          type: "close-all-positions",
-          symbol: "ETHUSDT",
-          apiKey: "validApiKey123",
-          apiSecret: "validSecret123456",
-        }),
+        request,
+        url,
         getClientAddress,
       } as unknown as Parameters<typeof POST>[0]);
 
       expect(response.status).toBe(200);
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://fapi.bitunix.com/api/v1/futures/trade/close_all_position");
+      const [forwardedUrl, options] = fetchMock.mock.calls[0];
+      expect(forwardedUrl).toBe("https://fapi.bitunix.com/api/v1/futures/trade/close_all_position");
       expect(options.method).toBe("POST");
       expect(JSON.parse(options.body)).toEqual({ symbol: "ETHUSDT" });
     });
@@ -134,22 +151,22 @@ describe("FEAT-0071: Native Bitunix Bulk & Modify Endpoints (/api/orders)", () =
           JSON.stringify({ code: 0, data: { positionId: "19848247723672" }, msg: "Success" }),
       });
 
+      const { request, url } = await writeRequest("flash-close-position", {
+        exchange: "bitunix",
+        type: "flash-close-position",
+        positionId: "19848247723672",
+        symbol: "BTCUSDT",
+      });
       const response = await POST({
-        request: makeRequest({
-          exchange: "bitunix",
-          type: "flash-close-position",
-          positionId: "19848247723672",
-          symbol: "BTCUSDT",
-          apiKey: "validApiKey123",
-          apiSecret: "validSecret123456",
-        }),
+        request,
+        url,
         getClientAddress,
       } as unknown as Parameters<typeof POST>[0]);
 
       expect(response.status).toBe(200);
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://fapi.bitunix.com/api/v1/futures/trade/flash_close_position");
+      const [forwardedUrl, options] = fetchMock.mock.calls[0];
+      expect(forwardedUrl).toBe("https://fapi.bitunix.com/api/v1/futures/trade/flash_close_position");
       expect(options.method).toBe("POST");
       expect(JSON.parse(options.body)).toEqual({ positionId: "19848247723672" });
     });
@@ -183,22 +200,22 @@ describe("FEAT-0071: Native Bitunix Bulk & Modify Endpoints (/api/orders)", () =
           }),
       });
 
+      const { request, url } = await orderDetailRequest({
+        exchange: "bitunix",
+        type: "order-detail",
+        orderId: "55555",
+      });
       const response = await POST({
-        request: makeRequest({
-          exchange: "bitunix",
-          type: "order-detail",
-          orderId: "55555",
-          apiKey: "validApiKey123",
-          apiSecret: "validSecret123456",
-        }),
+        request,
+        url,
         getClientAddress,
       } as unknown as Parameters<typeof POST>[0]);
 
       expect(response.status).toBe(200);
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchMock.mock.calls[0];
-      expect(url).toContain("https://fapi.bitunix.com/api/v1/futures/trade/get_order_detail");
-      expect(url).toContain("orderId=55555");
+      const [forwardedUrl, options] = fetchMock.mock.calls[0];
+      expect(forwardedUrl).toContain("https://fapi.bitunix.com/api/v1/futures/trade/get_order_detail");
+      expect(forwardedUrl).toContain("orderId=55555");
       expect(options.method).toBe("GET");
 
       const body = await response.json();
@@ -221,26 +238,26 @@ describe("FEAT-0071: Native Bitunix Bulk & Modify Endpoints (/api/orders)", () =
           }),
       });
 
+      const { request, url } = await writeRequest("modify-order", {
+        exchange: "bitunix",
+        type: "modify-order",
+        orderId: "55555",
+        symbol: "SOLUSDT",
+        qty: "10",
+        price: "152.0",
+        tpPrice: "165.0",
+        slPrice: "142.0",
+      });
       const response = await POST({
-        request: makeRequest({
-          exchange: "bitunix",
-          type: "modify-order",
-          orderId: "55555",
-          symbol: "SOLUSDT",
-          qty: "10",
-          price: "152.0",
-          tpPrice: "165.0",
-          slPrice: "142.0",
-          apiKey: "validApiKey123",
-          apiSecret: "validSecret123456",
-        }),
+        request,
+        url,
         getClientAddress,
       } as unknown as Parameters<typeof POST>[0]);
 
       expect(response.status).toBe(200);
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchMock.mock.calls[0];
-      expect(url).toBe("https://fapi.bitunix.com/api/v1/futures/trade/modify_order");
+      const [forwardedUrl, options] = fetchMock.mock.calls[0];
+      expect(forwardedUrl).toBe("https://fapi.bitunix.com/api/v1/futures/trade/modify_order");
       expect(options.method).toBe("POST");
       expect(JSON.parse(options.body)).toEqual({
         orderId: "55555",

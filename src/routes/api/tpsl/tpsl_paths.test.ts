@@ -50,10 +50,9 @@ function callAction(action: string, params: Record<string, unknown>) {
   // A writer's Cachy body *is* the venue body: the route forwards the signed
   // bytes unchanged, so the `{ exchange, action, params }` wrapper the callers
   // build is transport only and never travels. It travels already serialised,
-  // by the same builder the route rebuilds it with — `tradeService`'s
-  // `ENVELOPE_BODY_BUILDERS` entry — because since A4 the signer builds a venue
-  // body only from a *Cachy* payload and takes a string verbatim. A reader still
-  // sends the wrapper, which is what its schema validates.
+  // by the same builder the route rebuilds it with — because the signer builds
+  // a venue body only from a *Cachy* payload and takes a string verbatim.
+  // A reader still sends the wrapper, which is what its schema validates.
   const payload = writes
     ? buildTpslWriteBody(params)
     : { exchange: "bitunix", action, params };

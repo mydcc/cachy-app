@@ -30,16 +30,14 @@
     let nextCycleIn = $state(0);
     let cycleProgress = $state(0); // 0-100%
 
-    // Performance: Hoisted `Object.entries()`, `.sort().slice()` and `Object.keys().length`
-    // out of the template into `$derived` blocks to prevent array reallocation and sorting
-    // on every reactivity tick.
+    // Performance: hoisted out of the template into `$derived` blocks to
+    // prevent array reallocation and sorting on every reactivity tick.
     let analysisResultsEntries = $derived(Object.entries(analysisState.results));
     let analysisResultsCount = $derived(analysisResultsEntries.length);
-    // Sort before slicing so the list shows the 8 most recently updated
-    // symbols (slicing first would sort only 8 arbitrary entries and could
-    // hide the newest ones). `.slice()` copies because `.sort()` mutates
-    // in place and must not touch the derived source array.
-    let topAnalyzedSymbols = $derived(
+    // Most recently updated symbols first, top 8 for display. Sort before
+    // slicing so the newest symbols are shown; `.slice()` copies because
+    // `.sort()` mutates in place and must not touch the derived source array.
+    let sortedSymbols = $derived(
         analysisResultsEntries
             .slice()
             .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))
@@ -210,7 +208,7 @@
             </p>
         {:else}
             <div class="symbols-list">
-                {#each topAnalyzedSymbols as [symbol, data] (symbol)}
+                {#each sortedSymbols as [symbol, data] (symbol)}
                     <div class="symbol-item">
                         <div class="symbol-name">{symbol}</div>
                         <div class="symbol-info">

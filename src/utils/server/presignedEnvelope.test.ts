@@ -287,7 +287,29 @@ describe("assertPresignedConsistency — the nonce Bitunix signs with", () => {
     ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
   });
 
-  it("asks a mixed-venue route for one, because its Bitunix half needs it", () => {
+  it("asks a mixed-venue route's Bitunix half for one, which needs it", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/balance",
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        rebuilt: "a=1",
+        venue: "bitunix",
+      }),
+    ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
+  });
+
+  it("does not ask a mixed-venue route's Bitget half for one — Bitget has no nonce field", () => {
+    expect(() =>
+      assertPresignedConsistency({
+        cachyPath: "/api/balance",
+        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        rebuilt: "a=1",
+        venue: "bitget",
+      }),
+    ).not.toThrow();
+  });
+
+  it("keeps the plan-level rule when the route passes no venue", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/balance",

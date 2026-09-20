@@ -18,11 +18,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { POST as syncRoute } from "./sync/+server";
+import { POST as syncOrders } from "./sync/orders/+server";
 import { POST as syncPositionsPending } from "./sync/positions-pending/+server";
 import { POST as syncPositionsHistory } from "./sync/positions-history/+server";
 import { POST as syncOrderDetail } from "./sync/order-detail/+server";
 import { POST as leverageMarginMode } from "./leverage-margin-mode/+server";
 import { POST as accountSettings } from "./account-settings/+server";
+import { POST as tpsl } from "./tpsl/+server";
+import { POST as orders } from "./orders/+server";
+import { POST as balance } from "./balance/+server";
+import { POST as positions } from "./positions/+server";
+import { POST as account } from "./account/+server";
 import * as clientToken from "../../lib/server/clientToken";
 import { signedEnvelopeRequest } from "../../tests/helpers/signedEnvelopeRequest";
 import {
@@ -39,7 +46,7 @@ import {
  * Each file drops out of this list as it is migrated; when the list is empty
  * the migration is done, which is the point.
  *
- * The seven below are A3's and reach Bitunix by construction.
+ * The eight below reach Bitunix by construction: seven are A3's, and
  * `account-settings` joined them in A5a: it is a multi-venue *route* that only
  * one venue implements, and `ROUTE_SIGNING_PLAN` now says so.
  */
@@ -54,12 +61,26 @@ const MIGRATED_BITUNIX_ONLY_ROUTES = [
   "account-settings/+server.ts",
 ] as const;
 
+/**
+ * FEAT-0405 A6 — every migrated route, both venues. The absence of a secret
+ * on the wire is the item's first acceptance criterion, asserted here rather
+ * than per-route so a thirteenth route cannot slip through the cracks: adding
+ * a row is the migration checklist, and this list is it.
+ */
+const ALL_MIGRATED_ROUTES = [
+  ...MIGRATED_BITUNIX_ONLY_ROUTES,
+  "orders/+server.ts",
+  "balance/+server.ts",
+  "positions/+server.ts",
+  "account/+server.ts",
+] as const;
+
 const ROUTE_DIR = resolve(process.cwd(), "src/routes/api");
 
 const sourceOf = (relative: string) => readFileSync(resolve(ROUTE_DIR, relative), "utf8");
 
-describe("FEAT-0405 A3 — the Bitunix-only routes take no secret", () => {
-  it.each(MIGRATED_BITUNIX_ONLY_ROUTES)("%s never reads X-Api-Secret", (relative) => {
+describe("FEAT-0405 A6 — none of the twelve migrated routes takes a secret", () => {
+  it.each(ALL_MIGRATED_ROUTES)("%s never reads X-Api-Secret", (relative) => {
     const source = sourceOf(relative);
 
     expect(source).not.toMatch(/x-api-secret/i);
@@ -68,7 +89,7 @@ describe("FEAT-0405 A3 — the Bitunix-only routes take no secret", () => {
     expect(source).not.toContain("extractApiCredentials");
   });
 
-  it.each(MIGRATED_BITUNIX_ONLY_ROUTES)("%s reads the envelope instead", (relative) => {
+  it.each(ALL_MIGRATED_ROUTES)("%s reads the envelope instead", (relative) => {
     expect(sourceOf(relative)).toContain("checkPresignedRequest");
   });
 });
@@ -137,14 +158,34 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
     expect(response.status).toBe(200);
   });
 
-  // The hard-cutover rule, on the three routes that had no live test of it.
+  // The hard-cutover rule, on every route that had no live test of it.
   // A route reachable without an envelope is one that would have to fall back
   // to a transmitted secret, so "no envelope" and "no fallback" are the same
   // assertion seen from two sides.
+  //
+  // FEAT-0405 A6 — the rows below carry the pre-cutover shape on purpose: the
+  // secret rides in `X-Api-Secret` exactly as it used to, and the route must
+  // still refuse. A secret that buys nothing is absence asserted twice.
   type RouteHandler = (event: {
     request: Request;
+    url?: URL;
     getClientAddress: () => string;
   }) => Promise<Response>;
+
+  /** A pre-cutover request: schema-valid body, transmitted secret, no envelope. */
+  function oldShapeRequest(path: string, body: unknown): { request: Request; url: URL } {
+    const url = new URL(`http://localhost${path}`);
+    const request = new Request(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": "test-key-12345",
+        "X-Api-Secret": "test-secret-12345",
+      },
+      body: JSON.stringify(body),
+    });
+    return { request, url };
+  }
 
   it.each([
     [
@@ -177,13 +218,60 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
         venueBody: "{}",
       },
     ],
+    [
+      "/api/sync",
+      syncRoute as unknown as RouteHandler,
+      { limit: 50 },
+    ],
+    [
+      "/api/sync/orders",
+      syncOrders as unknown as RouteHandler,
+      { limit: 100 },
+    ],
+    [
+      "/api/sync/positions-history",
+      syncPositionsHistory as unknown as RouteHandler,
+      { limit: 10 },
+    ],
+    [
+      "/api/tpsl?action=pending",
+      tpsl as unknown as RouteHandler,
+      { exchange: "bitunix", action: "pending", params: {} },
+    ],
+    [
+      "/api/tpsl?action=cancel",
+      tpsl as unknown as RouteHandler,
+      { orderId: "1", symbol: "BTCUSDT" },
+    ],
+    [
+      "/api/orders?action=pending",
+      orders as unknown as RouteHandler,
+      { exchange: "bitunix", type: "pending" },
+    ],
+    [
+      "/api/orders?action=cancel-all",
+      orders as unknown as RouteHandler,
+      { exchange: "bitunix", type: "cancel-all", symbol: "BTCUSDT", venueBody: "{}" },
+    ],
+    [
+      "/api/balance",
+      balance as unknown as RouteHandler,
+      { exchange: "bitunix" },
+    ],
+    [
+      "/api/positions",
+      positions as unknown as RouteHandler,
+      { exchange: "bitunix" },
+    ],
+    [
+      "/api/account",
+      account as unknown as RouteHandler,
+      { exchange: "bitunix" },
+    ],
   ])("%s answers 400 with no envelope", async (path, handler, body) => {
-    const request = new Request(`http://localhost${path}`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    const { request, url } = oldShapeRequest(path, body);
 
-    const response = await handler({ request, getClientAddress });
+    const response = await handler({ request, url, getClientAddress });
 
     expect(response.status).toBe(400);
     // The rejection code, not the envelope shape: these routes answer either a
@@ -220,7 +308,7 @@ describe("FEAT-0405 A3 — the guard's rules on a live route", () => {
       "/api/sync/order-detail",
       syncOrderDetail as unknown as RouteHandler,
       { orderId: "1" },
-      buildOrderDetailQueryParams("1"),
+      buildOrderDetailQueryParams({ orderId: "1" }),
       "orderId=1",
     ],
   ])(

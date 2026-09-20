@@ -130,6 +130,21 @@ export interface UnevaluableRule {
  */
 export type UnevaluableSink = (rule: UnevaluableRule) => void;
 
+/**
+ * What a rule actually compares against at one anchor — FEAT-0029.
+ *
+ * Returns the document to evaluate, which is usually the one passed in. A
+ * drawing-anchored rule gets a copy whose threshold is the drawing's level at
+ * `anchorMs`, so the alert follows the line rather than a number frozen when
+ * it was created. Returning `unevaluable` withholds the evaluation and gives
+ * the panel a reason — a rule whose drawing is gone must not fall back to its
+ * stored constant, which is a level no longer on the chart.
+ */
+export type ThresholdResolver = (
+  rule: RuleDocument,
+  anchorMs: number,
+) => { rule: RuleDocument } | { unevaluable: string };
+
 export interface RuleEvaluationLoopOptions {
   readCandles: CandleReader;
   readRules: RuleReader;
@@ -169,6 +184,13 @@ export interface RuleEvaluationLoopOptions {
   onFiring?: FiringSink;
   /** No-op by default — most callers have nothing that depends on this. */
   onClose?: SeriesCloseHook;
+  /**
+   * FEAT-0029: where a rule's threshold comes from.
+   *
+   * Absent means every rule evaluates against its own stored constant, which
+   * is the behaviour every rule that is not anchored to a drawing has anyway.
+   */
+  resolveThreshold?: ThresholdResolver;
   /** Defaults to `logUnevaluable`. */
   onUnevaluable?: UnevaluableSink;
 }
@@ -183,6 +205,9 @@ export interface RuleEvaluationLoopOptions {
  */
 const NO_RULES: RuleReader = () => [];
 const NO_CANDLES: CandleReader = () => [];
+/** Every rule compares against the constant it was stored with. */
+const PASS_THROUGH_THRESHOLD: ThresholdResolver = (rule) => ({ rule });
+
 const NO_STATE: RuleStateReader = () => undefined;
 
 /**
@@ -233,6 +258,7 @@ export class RuleEvaluationLoop {
   private onFiring: FiringSink = shadowSink;
   private onClose: SeriesCloseHook = () => {};
   private onUnevaluable: UnevaluableSink = logUnevaluable;
+  private resolveThreshold: ThresholdResolver = PASS_THROUGH_THRESHOLD;
 
   constructor(options?: RuleEvaluationLoopOptions) {
     if (options) this.configure(options);
@@ -256,6 +282,7 @@ export class RuleEvaluationLoop {
     this.onFiring = options.onFiring ?? shadowSink;
     this.onClose = options.onClose ?? (() => {});
     this.onUnevaluable = options.onUnevaluable ?? logUnevaluable;
+    this.resolveThreshold = options.resolveThreshold ?? PASS_THROUGH_THRESHOLD;
   }
 
   /**
@@ -469,6 +496,17 @@ export class RuleEvaluationLoop {
     // Read per rule, not once per series: two rules on the same trigger
     // timeframe can still read different timeframes, and the reader is the
     // only thing that knows which series each one needs.
+    // FEAT-0029: a drawing-anchored rule's threshold is the drawing's level at
+    // this anchor, resolved before anything else — a rule whose drawing is
+    // gone must produce no verdict at all rather than one built from the
+    // constant it happened to be stored with.
+    const resolved = this.resolveThreshold(rule, anchorMs);
+    if ("unevaluable" in resolved) {
+      this.reportUnevaluable(rule, resolved.unevaluable);
+      return undefined;
+    }
+    rule = resolved.rule;
+
     const ctx = this.contextFor(rule, symbol, timeframe, intrabar);
     // Undefined means the rule cannot be honestly evaluated at all — not that
     // it did not fire. Skipping is the safe direction; `contextFor` has
@@ -582,7 +620,16 @@ export class RuleEvaluationLoop {
    */
   private stateFor(rule: RuleDocument): RuleState | undefined {
     try {
-      return this.readRuleState(rule.id);
+      const state = this.readRuleState(rule.id);
+      if (state === undefined) return undefined;
+      // BUG-0491: the gate anchors ride in the same stored entry but are
+      // TS-side only — the core's `RuleState` knows two fields, so the wire
+      // stays exactly that. Rebuilt field by field rather than destructured,
+      // so a future anchor cannot leak through a rest pattern unnoticed.
+      return {
+        fired_count: state.fired_count,
+        last_fired_anchor_ms: state.last_fired_anchor_ms,
+      };
     } catch (e) {
       logger.error("alerts", `[RuleState] Reading fire state for ${rule.id} failed`, e);
       return undefined;
@@ -757,10 +804,27 @@ function collectTimeframes(rule: RuleDocument): Set<string> {
 function collectMarkTimeframes(rule: RuleDocument): Set<string> {
   const found = new Set<string>();
 
-  const readsMark = (operand: unknown): boolean =>
-    operand !== null &&
-    typeof operand === "object" &&
-    (operand as { source?: unknown }).source === "mark";
+  /**
+   * Whether this operand — or the operand it wraps — reads the mark series.
+   *
+   * Recursive because `window` is the one operand shape that nests another and
+   * carries no `source` of its own: "the highest mark close of the last 20
+   * candles" has the `source` on `window.of`, not on the window. Testing only
+   * the top level answered false, so no `mark_candles` reached the core, so the
+   * verdict was `indeterminate` — for good, on a rule that looked armed
+   * (BUG-0482). The core's own `Condition::mark_timeframes` delegates to its
+   * operands for exactly this reason; this is that same delegation.
+   */
+  const readsMark = (operand: unknown): boolean => {
+    if (operand === null || typeof operand !== "object") return false;
+    const node = operand as { kind?: unknown; source?: unknown; of?: unknown };
+    if (node.source === "mark") return true;
+    // Only `window` nests another operand — anything else carrying an `of`
+    // key (none today) must not pull in a mark series the core would not
+    // request either, so the two mirrors cannot drift apart again.
+    if (node.kind !== "window") return false;
+    return readsMark(node.of);
+  };
 
   const walk = (condition: unknown): void => {
     if (condition === null || typeof condition !== "object") return;

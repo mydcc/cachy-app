@@ -321,6 +321,7 @@
       "noActive": "No active alerts",
       "fired": "Alert Fired!",
       "priceReached": "{symbol} reached {price}",
+      "ruleTriggered": "{symbol} — alert triggered: {condition}",
       "manage": "Manage Alerts",
       "addAlert": "Add Alert",
       "priceLimit": "Price",
@@ -339,6 +340,10 @@
       "cutoverNoticeDismiss": "Got it",
       "orphanSuspendedHint": "Migrated alarms disabled: {count}. Their original price alert no longer exists, so they were switched off automatically.",
       "orphanWithheldHint": "Migrated alarms with unresolved origin: {count}. We could not tell for certain whether the original price alert was deleted, so they are being kept active as a precaution and can still trigger.",
+      "legacyUnmigratedHint": "Old price alerts that never became alarms: {count}. They are no longer evaluated and have to be re-armed as alarms.",
+      "legacyUnverifiedHint": "Old price alerts could not be checked against the migration record, so we cannot confirm all of them became alarms. Please verify your alarm list.",
+      "drawingSuspendedHint": "Drawing alerts disabled: {count}. Their drawing no longer exists on the chart, so they were switched off automatically.",
+      "drawingWithheldHint": "Drawing alerts with unreadable store: {count}. We could not read the drawing store, so they are being kept active as a precaution and can still trigger.",
       "panel": {
         "title": "Super Alert",
         "open": "Open the Super Alert panel",
@@ -1209,6 +1214,10 @@
       "removeFavorite": "Remove from Favorites",
       "openChannel": "Open Channel",
       "closeChannel": "Close Channel"
+    },
+    "aria": {
+      "loadToCalculator": "Load {symbol} to calculator",
+      "regionLabel": "Market Overview for {symbol}"
     }
   },
   "seo": {
@@ -2435,7 +2444,7 @@
       "maxLossPerTrade": "Max loss per trade",
       "maxLossPerTradeHint": "Distance from entry to stop × quantity, before fees.",
       "maxDailyLoss": "Max loss per day",
-      "maxDailyLossHint": "Measured against realised PnL for the current UTC day.",
+      "maxDailyLossHint": "Measured against realised PnL for the current UTC day. Opens are refused while today cannot be measured: a loss without an amount, a close without an exit date, or synced trades without today's history sync. A scratch trade recorded as Lost with 0 counts as missing — put it on Won.",
       "maxOpenPositions": "Max concurrent open positions",
       "maxOpenPositionsHint": "Adding to a position you already hold does not count as a new one.",
       "resetLimits": "Clear all limits",
@@ -2674,7 +2683,11 @@
       "promote": "Create bot",
       "startsDisabled": "The new bot starts switched off.",
       "promoteFailed": "The bot could not be created.",
-      "account": "The simulated account"
+      "account": "The simulated account",
+      "orderRefusedPaperOff": "“{name}” fired, but placed nothing: paper trading is switched off.",
+      "orderRefusedNoStop": "“{name}” fired, but placed nothing: a bot needs a stop before it can size a position.",
+      "orderRefusedReduceOnly": "“{name}” fired, but placed nothing: a bot that only closes a position cannot be placed yet.",
+      "orderRefusedOther": "“{name}” fired, but placed nothing."
     }
   },
   "positionsList": {
@@ -4105,6 +4118,7 @@
     "unsupportedOrderType": "Order refused: {exchange} does not support the {orderType} order type. The order was not sent.",
     "unsupportedTimeInForce": "Order refused: {exchange} does not accept the time in force {timeInForce}. The order was not sent.",
     "unsupportedTpSlAtEntry": "Order refused: {exchange} cannot carry a take profit and stop loss on the entry order. They would have been dropped silently and the position would have opened unprotected.",
+    "unplaceableStop": "Order refused: {exchange} cannot place the stop loss for this order — neither attached to the entry nor as a separate order. The order was not sent. Clear the stop to place a deliberately unprotected entry.",
     "unsupportedMultipleTakeProfits": "Order refused: {exchange} carries only one take-profit target on an entry order, but {count} were supplied. The surplus targets would have been discarded without an error."
   },
   "trade": {
@@ -4358,6 +4372,16 @@
       "menuLabel": "Alert",
       "regionLabel": "Alert Region",
       "here": "Alert at {price}"
+    },
+    "drawings": {
+      "horizontal": "Draw horizontal line",
+      "trend": "Draw trend line",
+      "delete": "Delete selected drawing",
+      "alert": "Alert on this drawing",
+      "alertArmed": "Alert armed on the drawing",
+      "alertOnTheLine": "Price sits exactly on the line — there is no side to cross from",
+      "alertNoLevel": "This drawing has no price level to watch — alerts need a horizontal or sloped line",
+      "alertNoPrice": "No current price for this symbol"
     }
   },
   "chart": {
@@ -4397,7 +4421,9 @@
       "ruleWarmupTooDeep": "This rule needs more closed candles than the app can load. Shorten the window or use a shorter indicator period — otherwise the alert would stay silent instead of firing.",
       "invalidNote": "The note in `{field}` is empty or longer than 280 characters.",
       "invalidDerivedFromHash": "The derivation in `{field}` is not a valid content hash, so the strategy this was promoted from cannot be identified.",
-      "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice."
+      "duplicateTriggerMethod": "A trigger channel is listed twice in `{field}`, which would announce the same trigger twice.",
+      "stopRequiredForRiskSizing": "`{field}` is missing: a size given as percent of risk is measured between the entry and the stop, so it has no value until the stop is set.",
+      "stopNotHonoured": "`{field}` would never be placed: a reduce-only order closes an existing position rather than opening one that needs protecting."
     },
     "sentence": {
       "frame": "{lead} when, on the {timeframe} close, {condition}",
@@ -4412,8 +4438,8 @@
       "lead": {
         "notify": "Notifies",
         "simulate": "Simulates an order",
-        "simulateOrder": "Simulates a {side} order for {size} {basis}",
-        "send": "Sends a {side} order for {size} {basis}"
+        "simulateOrder": "Simulates a {side} order for {size} {basis}{stop}",
+        "send": "Sends a {side} order for {size} {basis}{stop}"
       },
       "op": {
         "lt": "below",
@@ -4461,6 +4487,9 @@
       "orderSide": {
         "buy": "buy",
         "sell": "sell"
+      },
+      "stop": {
+        "percent_of_entry": " with a stop {distance}% from the entry"
       },
       "basis": {
         "base_quantity": "in the base asset",

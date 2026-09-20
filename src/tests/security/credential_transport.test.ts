@@ -157,6 +157,36 @@ describe("Credential Transport & Schema Validation Security (BUG-0272)", () => {
     expect(loggedMessage).not.toContain("abcdef12345");
   });
 
+  it("POST /api/balance scrubs bare envelope values echoing back from upstream", async () => {
+    // FEAT-0405 review: redactString covers labeled shapes, but a bare
+    // credential echoed in upstream text needs its value matched. Bitget
+    // carries a passphrase under the ADR-0013 named exception, so both
+    // values are asserted, not just the key.
+    const { POST } = await import("../../routes/api/balance/+server");
+    const { TEST_SIGNING_KEYS: KEYS } = await import("../helpers/signedEnvelopeRequest");
+    const { request } = await signedEnvelopeRequest(
+      "/api/balance",
+      { exchange: "bitget" },
+      buildBalanceQueryParams("bitget"),
+      "bitget",
+    );
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error(`upstream saw ${KEYS.apiKey} and ${KEYS.passphrase} bare`)),
+    );
+
+    const response = await POST({
+      request,
+      getClientAddress: () => "127.0.0.1",
+    } as unknown as RequestEvent);
+
+    expect(response.status).toBe(500);
+    const body = JSON.stringify(await response.json());
+    expect(body).not.toContain(KEYS.apiKey);
+    expect(body).not.toContain(KEYS.passphrase);
+  });
+
   it("POST /api/positions should reject schema-invalid requests with 400", async () => {
     const { POST } = await import("../../routes/api/positions/+server");
     const request = new Request("http://localhost/api/positions", {

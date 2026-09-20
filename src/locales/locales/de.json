@@ -321,6 +321,7 @@
       "noActive": "Keine aktiven Alarme",
       "fired": "Alarm ausgelöst!",
       "priceReached": "{symbol} hat {price} erreicht",
+      "ruleTriggered": "{symbol} — Alarm ausgelöst: {condition}",
       "manage": "Alarme verwalten",
       "addAlert": "Alarm hinzufügen",
       "priceLimit": "Preis",
@@ -339,6 +340,10 @@
       "cutoverNoticeDismiss": "Verstanden",
       "orphanSuspendedHint": "Migrierte Alarme deaktiviert: {count}. Der ursprüngliche Preisalarm existiert für diese nicht mehr, deshalb wurden sie automatisch abgeschaltet.",
       "orphanWithheldHint": "Migrierte Alarme mit ungeklärter Herkunft: {count}. Wir konnten nicht sicher feststellen, ob der ursprüngliche Preisalarm gelöscht wurde, deshalb bleiben sie vorsichtshalber aktiv und können weiterhin auslösen.",
+      "legacyUnmigratedHint": "Alte Preis-Alerts ohne Alarm: {count}. Sie werden nicht mehr ausgewertet und müssen als Alarm neu gesetzt werden.",
+      "legacyUnverifiedHint": "Alte Preis-Alerts konnten nicht gegen das Migrationsprotokoll geprüft werden — ob alle zu Alarmen wurden, ist unbestätigt. Bitte prüfe deine Alarmliste.",
+      "drawingSuspendedHint": "Zeichnungs-Alarme deaktiviert: {count}. Ihre Zeichnung existiert nicht mehr auf dem Chart, deshalb wurden sie automatisch abgeschaltet.",
+      "drawingWithheldHint": "Zeichnungs-Alarme mit unlesbarem Speicher: {count}. Der Zeichnungsspeicher konnte nicht gelesen werden, deshalb bleiben sie vorsichtshalber aktiv und können weiterhin auslösen.",
       "panel": {
         "title": "Super-Alarm",
         "open": "Super-Alarm-Panel öffnen",
@@ -1209,6 +1214,10 @@
       "removeFavorite": "Aus Favoriten entfernen",
       "openChannel": "Kanal öffnen",
       "closeChannel": "Kanal schließen"
+    },
+    "aria": {
+      "loadToCalculator": "{symbol} in Rechner laden",
+      "regionLabel": "Marktübersicht für {symbol}"
     }
   },
   "seo": {
@@ -2435,7 +2444,7 @@
       "maxLossPerTrade": "Max. Verlust pro Trade",
       "maxLossPerTradeHint": "Abstand Einstieg zu Stop × Menge, vor Gebühren.",
       "maxDailyLoss": "Max. Verlust pro Tag",
-      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages.",
+      "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages. Öffnungen werden abgelehnt, solange heute nicht messbar ist: Verlust ohne Betrag, Close ohne Exit-Datum oder synchronisierte Trades ohne heutigen History-Sync. Ein als Lost erfasster Scratch-Trade mit 0 zählt als fehlend — auf Won setzen.",
       "maxOpenPositions": "Max. gleichzeitig offene Positionen",
       "maxOpenPositionsHint": "Das Aufstocken einer bereits gehaltenen Position zählt nicht als neue.",
       "resetLimits": "Alle Limits löschen",
@@ -2674,7 +2683,11 @@
       "promote": "Bot erstellen",
       "startsDisabled": "Der neue Bot startet ausgeschaltet.",
       "promoteFailed": "Der Bot konnte nicht erstellt werden.",
-      "account": "Das simulierte Konto"
+      "account": "Das simulierte Konto",
+      "orderRefusedPaperOff": "„{name}“ hat ausgelöst, aber nichts platziert: Paper-Trading ist ausgeschaltet.",
+      "orderRefusedNoStop": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot braucht einen Stop, um eine Position zu dimensionieren.",
+      "orderRefusedReduceOnly": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot, der nur eine Position schließt, kann noch nicht platziert werden.",
+      "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert."
     }
   },
   "calculationDashboard": {
@@ -4070,6 +4083,7 @@
     "unsupportedOrderType": "Order abgelehnt: {exchange} unterstützt den Ordertyp {orderType} nicht. Die Order wurde nicht gesendet.",
     "unsupportedTimeInForce": "Order abgelehnt: {exchange} akzeptiert die Gültigkeit {timeInForce} nicht. Die Order wurde nicht gesendet.",
     "unsupportedTpSlAtEntry": "Order abgelehnt: {exchange} kann Take-Profit und Stop-Loss nicht mit der Einstiegsorder zusammen übernehmen. Sie wären stillschweigend verworfen worden und die Position wäre ungeschützt geöffnet worden.",
+    "unplaceableStop": "Order abgelehnt: {exchange} kann den Stop-Loss für diese Order nicht platzieren — weder zusammen mit der Einstiegsorder noch als separate Order. Die Order wurde nicht gesendet. Leere das Stop-Feld, um eine bewusst ungeschützte Entry zu platzieren.",
     "unsupportedMultipleTakeProfits": "Order abgelehnt: {exchange} trägt nur ein Take-Profit-Ziel an der Einstiegsorder, es wurden aber {count} übergeben. Die überzähligen Ziele wären ohne Fehlermeldung verworfen worden."
   },
   "workerErrors": {
@@ -4358,6 +4372,16 @@
       "menuLabel": "Warnung",
       "regionLabel": "Warn-Region",
       "here": "Warnung bei {price}"
+    },
+    "drawings": {
+      "horizontal": "Horizontale Linie zeichnen",
+      "trend": "Trendlinie zeichnen",
+      "delete": "Ausgewählte Zeichnung löschen",
+      "alert": "Alert auf dieser Zeichnung",
+      "alertArmed": "Alert auf die Zeichnung gesetzt",
+      "alertOnTheLine": "Der Kurs liegt genau auf der Linie — es gibt keine Seite, von der er kreuzen könnte",
+      "alertNoLevel": "Diese Zeichnung hat kein zu überwachendes Kursniveau — Alerts brauchen eine horizontale oder geneigte Linie",
+      "alertNoPrice": "Kein aktueller Kurs für dieses Symbol"
     }
   },
   "chart": {
@@ -4397,7 +4421,9 @@
       "ruleWarmupTooDeep": "Diese Regel braucht mehr geschlossene Kerzen, als die App laden kann. Verkürze das Fenster oder die Indikator-Periode — sonst bliebe der Alarm stumm, statt auszulösen.",
       "invalidNote": "Die Notiz in `{field}` ist leer oder länger als 280 Zeichen.",
       "invalidDerivedFromHash": "Die Herkunftsangabe in `{field}` ist kein gültiger Content-Hash, deshalb lässt sich die Strategie nicht bestimmen, aus der dieser Bot hervorgegangen ist.",
-      "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden."
+      "duplicateTriggerMethod": "Ein Auslöse-Kanal ist in `{field}` doppelt aufgeführt und würde denselben Auslöser zweimal melden.",
+      "stopRequiredForRiskSizing": "`{field}` fehlt: Eine Größe in Prozent des Risikos misst sich zwischen Einstieg und Stop, hat also ohne Stop keinen Wert.",
+      "stopNotHonoured": "`{field}` würde nie platziert: Eine Reduce-only-Order schließt eine bestehende Position, statt eine neue zu eröffnen, die abgesichert werden müsste."
     },
     "sentence": {
       "frame": "{lead}, wenn auf dem {timeframe}-Close {condition}",
@@ -4412,8 +4438,8 @@
       "lead": {
         "notify": "Benachrichtigt",
         "simulate": "Simuliert eine Order",
-        "simulateOrder": "Simuliert eine {side}-Order über {size} {basis}",
-        "send": "Sendet eine {side}-Order über {size} {basis}"
+        "simulateOrder": "Simuliert eine {side}-Order über {size} {basis}{stop}",
+        "send": "Sendet eine {side}-Order über {size} {basis}{stop}"
       },
       "op": {
         "lt": "unter",
@@ -4461,6 +4487,9 @@
       "orderSide": {
         "buy": "Kauf",
         "sell": "Verkauf"
+      },
+      "stop": {
+        "percent_of_entry": " mit einem Stopp {distance} % vom Einstieg"
       },
       "basis": {
         "base_quantity": "in der Basiswährung",

@@ -18,23 +18,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
 
 // Regression (BUG-0062): PlaceOrderSchema didn't declare tradeSide/
 // positionId, so the route silently dropped them from the request body
 // before forwarding to Bitunix — a HEDGE-mode close order was always
 // missing both fields, which Bitunix requires (docs/bitunix-api/
 // 07_trade.md:583-584) and rejects the order without them.
+//
+// FEAT-0405 A5b — place-order is body-signed, so both cases below send a
+// pre-signed envelope; the assertions still read the bytes the venue
+// receives.
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
+async function placeRequest(payload: Record<string, unknown>) {
+  return signedEnvelopeRequest("/api/orders?action=place-order", payload, {}, "bitunix");
 }
 
 beforeEach(() => {
@@ -48,20 +50,20 @@ beforeEach(() => {
 
 describe("POST /api/orders place-order forwards tradeSide/positionId", () => {
   it("includes tradeSide and positionId in the outbound Bitunix request when provided", async () => {
+    const { request, url } = await placeRequest({
+      exchange: "bitunix",
+      type: "place-order",
+      symbol: "XRPUSDT",
+      side: "BUY",
+      orderType: "MARKET",
+      qty: "9.1",
+      reduceOnly: true,
+      tradeSide: "CLOSE",
+      positionId: "662491704776252252",
+    });
     await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "place-order",
-        symbol: "XRPUSDT",
-        side: "BUY",
-        orderType: "MARKET",
-        qty: "9.1",
-        reduceOnly: true,
-        tradeSide: "CLOSE",
-        positionId: "662491704776252252",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
@@ -72,18 +74,18 @@ describe("POST /api/orders place-order forwards tradeSide/positionId", () => {
   });
 
   it("omits tradeSide/positionId entirely when not provided (ONE_WAY mode)", async () => {
+    const { request, url } = await placeRequest({
+      exchange: "bitunix",
+      type: "place-order",
+      symbol: "XRPUSDT",
+      side: "SELL",
+      orderType: "MARKET",
+      qty: "9.1",
+      reduceOnly: true,
+    });
     await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "place-order",
-        symbol: "XRPUSDT",
-        side: "SELL",
-        orderType: "MARKET",
-        qty: "9.1",
-        reduceOnly: true,
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 

@@ -71,6 +71,11 @@ const chart = vi.hoisted(() => {
         ),
         // Non-null range satisfying the scroll-left double check (from < 10).
         getVisibleLogicalRange: vi.fn(() => ({ from: 5, to: 30 })),
+        // FEAT-0480: the drawing bridge asks the time scale to convert between
+        // timestamps and pixels. Identity keeps the arithmetic readable — no
+        // test here asserts on a drawing's position.
+        timeToCoordinate: vi.fn((time: number) => Number(time)),
+        coordinateToTime: vi.fn((coordinate: number) => coordinate),
     };
     const candleSeries = {
         update: vi.fn(),
@@ -93,6 +98,9 @@ const chart = vi.hoisted(() => {
         }),
         priceToCoordinate: vi.fn((price: number) => price),
         coordinateToPrice: vi.fn((coordinate: number) => coordinate),
+        // FEAT-0480: drawings paint through a series primitive.
+        attachPrimitive: vi.fn(),
+        detachPrimitive: vi.fn(),
     };
     return {
         candleSeries,
@@ -764,9 +772,12 @@ describe("FEAT-0247 — chart-only position hydration", () => {
  */
 describe("FEAT-0247 — chart-only pending order hydration", () => {
     it("hydrates accountState.openOrders on mount when empty and API keys are configured", async () => {
-        settingsState.accountFor("bitunix").keys = { key: "k", secret: "s" };
+        // Keys long enough to pass the client-side shape check: since
+        // FEAT-0405 A5 the browser validates before signing, and a short key
+        // is refused before any fetch happens.
+        settingsState.accountFor("bitunix").keys = { key: "test-key-1234", secret: "test-secret-1234" };
         appFetchMock.mockImplementation((url: string) => {
-            if (url === "/api/orders") {
+            if (url === "/api/orders?action=pending") {
                 return Promise.resolve({
                     json: () =>
                         Promise.resolve({
@@ -793,10 +804,15 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
             target: host,
             props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
         }) as never;
-        await settle();
+        // Signing settles on a macrotask (crypto.subtle), so a fixed number
+        // of microtask rounds is not enough — wait for the hydration itself,
+        // the way the positions test above does.
+        await settleUntil(() => accountState.openOrders.length > 0);
 
         expect(appFetchMock).toHaveBeenCalledWith(
-            "/api/orders",
+            // FEAT-0405 A5b signs reads through exchangeSignedFetch, which
+            // carries the action in `?action=` for the route's shape lookup.
+            "/api/orders?action=pending",
             expect.objectContaining({ method: "POST" }),
         );
         expect(accountState.openOrders.some((o) => o.orderId === "o-1")).toBe(true);

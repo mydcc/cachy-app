@@ -70,9 +70,8 @@
         },
     };
 
-    // Performance: Extracted static `Object.entries(presets)` and literal array `["5m", ...]`
-    // to module-scope constants to avoid inline allocation during template evaluation.
     const presetEntries = Object.entries(presets);
+    // Static timeframe options, hoisted out of the template loop.
     const availableTimeframes = ["5m", "15m", "1h", "4h", "1d"];
 
     function applyPreset(preset: PresetType) {

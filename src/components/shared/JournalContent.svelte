@@ -221,10 +221,7 @@
         action: true,
     });
 
-    // Performance: `Object.keys()` extracted to a plain `const` (the key set is
-    // static, only values toggle) to prevent the `{#each}` expression in the
-    // template from unnecessarily re-allocating an array.
-    const visibleColumnKeys = Object.keys(columnVisibility);
+    const columnVisibilityKeys = Object.keys(columnVisibility);
 
     type ColumnLabelKey = TranslationKey;
     /** Localized name for each column key shown in the settings popover. */
@@ -802,7 +799,7 @@
 
                         <!-- Checkboxes -->
                         <div class="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
-                            {#each visibleColumnKeys as col}
+                            {#each columnVisibilityKeys as col}
                                 <label class="flex items-center gap-2 cursor-pointer text-xs p-1 rounded hover:bg-[var(--bg-secondary)]">
                                     <input
                                         type="checkbox"
