@@ -2707,6 +2707,8 @@
     "resultingSize": "Resulting size",
     "newAverageEntry": "New average entry",
     "previewOnlyHint": "Estimate at the current mark. The exchange's figure replaces it once filled.",
+    "riskUnderStop": "Risk under stop",
+    "noStopAttached": "No stop attached — this add is unprotected",
     "addSubmitted": "Add order sent.",
     "remainingAfter": "Remaining",
     "realizesPnl": "Realizes",

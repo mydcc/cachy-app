@@ -274,7 +274,7 @@ describe("FEAT-0013 — limits allow what they should", () => {
     });
 });
 
-/** 0.5 BTC held, adding 0.1 BTC at 50 000 → resulting 30 000 USDT. */
+/** 0.5 BTC held at 50 000, adding 0.1 BTC at 50 000 → resulting 30 000 USDT. */
 function addIntent(positionAmount = "0.5", addQty = "0.1"): OrderIntent {
     return {
         kind: "add",
@@ -304,6 +304,14 @@ function addIntent(positionAmount = "0.5", addQty = "0.1"): OrderIntent {
             accountSize: new Decimal(100000),
         },
     };
+}
+
+/** The same add under a resting stop: entry price doubles as the old average. */
+function protectedAddIntent(stopPrice: string): OrderIntent {
+    const intent = addIntent();
+    intent.displayed.positionEntryPrice = new Decimal(50000);
+    intent.displayed.restingStopPrice = new Decimal(stopPrice);
+    return intent;
 }
 
 describe("BUG-0508 — adds are measured against the position-size cap", () => {
@@ -355,6 +363,37 @@ describe("BUG-0508 — adds are measured against the position-size cap", () => {
         delete intent.displayed.positionAmount;
         const refusal = orderGate.verify(intent).refusal;
         expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.reason).toBe("missing");
+    });
+});
+
+describe("BUG-0510 — adds are measured against the loss-per-trade limit", () => {
+    it("refuses an add that pushes the resulting stop risk past the limit", () => {
+        // 0.5 @ 50 000 plus 0.1 @ 50 000 → 0.6 @ 50 000 under a 49 000
+        // stop: 600 risk, past the 500 limit. The leg alone (100) would pass.
+        riskState.setLimit("maxLossPerTradeUsdt", "500");
+        const refusal = orderGate.verify(protectedAddIntent("49000")).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
+        expect(refusal?.values.actual).toBe("600");
+        expect(refusal?.values.limit).toBe("500");
+    });
+
+    it("allows an add that improves the average entry enough to reduce risk", () => {
+        // 0.5 @ 50 000 plus 0.5 @ 49 000 → 1.0 @ 49 500 under a 49 000
+        // stop: 500 risk on a 600 limit. The size doubled; the risk fell.
+        riskState.setLimit("maxLossPerTradeUsdt", "600");
+        const intent = protectedAddIntent("49000");
+        intent.displayed.positionAmount = new Decimal("0.5");
+        intent.displayed.addQuantity = new Decimal("0.5");
+        intent.displayed.entryPrice = new Decimal(49000);
+        intent.payload.qty = "0.5";
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("refuses an add on a stop-less position as unmeasurable, not approved", () => {
+        riskState.setLimit("maxLossPerTradeUsdt", "500");
+        const refusal = orderGate.verify(addIntent()).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
         expect(refusal?.reason).toBe("missing");
     });
 });

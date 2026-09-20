@@ -223,6 +223,27 @@ export interface DisplayedState {
      * fresh rather than taken from whatever the payload was built from.
      */
     positionAmount?: Decimal;
+    /**
+     * For `add` intents: the venue-reported average entry before the add.
+     * Together with `positionAmount`, the fill estimate in `entryPrice` and
+     * the add quantity, the gate re-derives the resulting average entry and
+     * measures the loss-per-trade limit against the resulting position
+     * (BUG-0510) — recomputed from displayed inputs, never trusted from
+     * the constructor.
+     */
+    positionEntryPrice?: Decimal;
+    /**
+     * For `add` intents: the position's resting stop, when one is safely
+     * attributable (BUG-0510).
+     *
+     * Deliberately NOT `stopLossPrice`: that field means "the stop this
+     * request carries" and drives the price comparison, the entry-protection
+     * rules and the unplaceable-stop refusal — an add carries no new stop,
+     * so stating the resting one there would refuse the add for not
+     * carrying a level it never promised. The loss-per-trade limit is the
+     * only reader of this field.
+     */
+    restingStopPrice?: Decimal;
     /** True when the caller declares this closes the position entirely. */
     fullClose?: boolean;
     /**
@@ -1218,7 +1239,7 @@ class OrderGate {
             const rawOrderType = orderTypePath !== undefined ? resolvePath(payload, orderTypePath) : payload.orderType;
             const isMarket = typeof rawOrderType === "string"
                 ? rawOrderType.toUpperCase() === "MARKET"
-                : payload.orderType === "MARKET";
+                : String(payload.orderType ?? "").toUpperCase() === "MARKET";
             const volumeRefusal = this.checkVolumeLimits(intent, checked, actual, isMarket);
             if (volumeRefusal) return volumeRefusal;
         }

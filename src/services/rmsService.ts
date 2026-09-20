@@ -457,11 +457,17 @@ class RiskManagementService {
         // position-size caps are measurable on an add — notional is quantity
         // × price, and the cap answers how large the position becomes, so the
         // resulting position is measured (BUG-0508). `checkLossPerTrade`
-        // genuinely needs a stop distance the add intent does not carry;
-        // sourcing it from the position's resting stop is BUG-0510, not this
-        // change. `checkOpenPositions` counts positions an add does not
-        // create; skipping it is correct.
-        if (intent.kind === "add") return this.checkDailyLoss() ?? this.checkPositionSize(intent);
+        // measures the add against the resulting position under the resting
+        // stop the intent carries, and refuses as unmeasurable when a limit
+        // is configured and no stop is known (BUG-0510). `checkOpenPositions`
+        // counts positions an add does not create; skipping it is correct.
+        if (intent.kind === "add") {
+            return (
+                this.checkDailyLoss() ??
+                this.checkPositionSize(intent) ??
+                this.checkLossPerTrade(intent)
+            );
+        }
 
         // A pending-order amendment carries no size/stop pair to measure; the
         // kill switch already covers it, and the gate's own field checks cover
@@ -564,6 +570,36 @@ class RiskManagementService {
     private checkLossPerTrade(intent: OrderIntent): OrderRefusal | null {
         const max = riskState.limit("maxLossPerTradeUsdt");
         if (max === null) return null;
+
+        // An add moves both sides of the risk equation — the size behind the
+        // stop and the distance from the new average entry to it — so it is
+        // measured against the resulting position under the resting stop the
+        // intent carries (BUG-0510). No stop on the intent means the position
+        // is unprotected: with a configured limit that is unmeasurable risk,
+        // not approved risk.
+        if (intent.kind === "add") {
+            const { entryPrice, restingStopPrice, positionAmount, positionEntryPrice } = intent.displayed;
+            const qty = toDecimal(intent.payload.qty);
+            if (
+                qty === null ||
+                entryPrice === undefined ||
+                restingStopPrice === undefined ||
+                positionAmount === undefined ||
+                positionEntryPrice === undefined
+            ) {
+                return unmeasurable("maxLossPerTrade");
+            }
+            // The weighted mean previewAdd owns, recomputed here from the
+            // displayed inputs rather than trusted from the constructor.
+            const resultingAmount = positionAmount.plus(qty);
+            const resultingEntry = positionEntryPrice
+                .times(positionAmount)
+                .plus(entryPrice.times(qty))
+                .div(resultingAmount);
+            const loss = resultingEntry.minus(restingStopPrice).abs().times(resultingAmount);
+            if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
+            return null;
+        }
 
         const qty = toDecimal(intent.payload.qty);
         const { entryPrice, stopLossPrice } = intent.displayed;

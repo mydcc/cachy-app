@@ -4158,6 +4158,8 @@
     "resultingSize": "Größe danach",
     "newAverageEntry": "Neuer Durchschnitts-Entry",
     "previewOnlyHint": "Schätzung zum aktuellen Mark. Nach der Ausführung gilt die Zahl der Börse.",
+    "riskUnderStop": "Risiko unter Stop",
+    "noStopAttached": "Kein Stop gesetzt — dieser Nachkauf ist ungeschützt",
     "addSubmitted": "Nachkauf-Order gesendet.",
     "remainingAfter": "Verbleibt",
     "realizesPnl": "Realisiert",

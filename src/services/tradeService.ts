@@ -34,6 +34,7 @@ import { get } from "svelte/store";
 import { settingsState, type ApiKeys } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
+import { tpSlState } from "../stores/tpsl.svelte";
 import { effectsState } from "../stores/effects.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import {
@@ -1742,6 +1743,22 @@ class TradeService {
                 positionId: position.positionId,
                 // For the percentage position-size cap (BUG-0508).
                 accountSize,
+                // The venue-reported average entry before the add, so the
+                // gate measures the resulting position's stop risk from
+                // displayed inputs rather than trusting constructor math.
+                positionEntryPrice: position.entryPrice,
+                // The position's resting stop when one is safely
+                // attributable, so the loss-per-trade limit can measure the
+                // add against the resulting position (BUG-0510). A dedicated
+                // field: `stopLossPrice` would claim the request carries a
+                // stop it never sends. Read from the cache, never fetched
+                // here: the add dialog warms it before this can run, and a
+                // fetch inside the order path would race the gate. Cold cache
+                // means no stop known, which the limit treats as
+                // unmeasurable, not unprotected. Scoped to this position by
+                // id (BUG-0524) — in hedge mode the first LOSS leg is an
+                // arbitrary side's stop.
+                restingStopPrice: tpSlState.restingStopPrice(symbol, positionSide, position.positionId) ?? undefined,
                 leverage: position.leverage,
                 marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
                 availableMargin,

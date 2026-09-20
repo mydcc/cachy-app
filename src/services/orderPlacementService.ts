@@ -49,6 +49,8 @@ import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
 import { logger } from "./logger";
 import { OrderRefusedError, type OrderRefusal } from "./orderGate";
+// Shared with the resting-stop read (review on PR #3551) so the two cannot drift.
+import { planSideMatchesEntry as sideCompatible } from "./tpslNormalize";
 import { getDisplayMessage } from "../utils/errorUtils";
 
 export type ProtectionState =
@@ -167,20 +169,6 @@ function triggerPriceMatches(order: TpSlOrder, expected: Decimal): boolean {
         // An unparsable trigger price proves nothing about this request.
         return false;
     }
-}
-
-/**
- * Whether the plan's side can belong to this entry. Excludes only on a
- * vocabulary this codebase itself writes ("BUY"/"SELL", "LONG"/"SHORT");
- * anything else is unknown and must not fail a protected position.
- */
-function sideCompatible(planSide: unknown, entrySide: "BUY" | "SELL"): boolean {
-    if (typeof planSide !== "string") return true;
-    const s = planSide.toUpperCase();
-    if (s === "BUY" || s === "SELL") return s === entrySide;
-    if (s.includes("LONG")) return entrySide === "BUY";
-    if (s.includes("SHORT")) return entrySide === "SELL";
-    return true;
 }
 
 function matchesIntent(

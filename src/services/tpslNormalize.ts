@@ -78,6 +78,23 @@ export function stripLegSuffix(orderId: string, leg: "tp" | "sl"): string {
     return match && match[2] === leg ? match[1] : orderId;
 }
 
+/**
+ * Whether a plan's side can belong to an entry of the given venue side.
+ *
+ * Excludes only on vocabulary this codebase writes ("BUY"/"SELL",
+ * "LONG"/"SHORT"); anything else is unknown and passes. Shared by the
+ * placement confirmation (orderPlacementService) and the resting-stop read
+ * (tpsl store) so the two cannot drift — review on PR #3551.
+ */
+export function planSideMatchesEntry(planSide: unknown, entrySide: "BUY" | "SELL"): boolean {
+    if (typeof planSide !== "string") return true;
+    const s = planSide.toUpperCase();
+    if (s === "BUY" || s === "SELL") return s === entrySide;
+    if (s.includes("LONG")) return entrySide === "BUY";
+    if (s.includes("SHORT")) return entrySide === "SELL";
+    return true;
+}
+
 /** One leg's worth of fields, as they are named on the wire. */
 interface LegFields {
     price?: string;

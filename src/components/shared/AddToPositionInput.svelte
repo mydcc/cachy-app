@@ -65,15 +65,23 @@
      * the order type.
      */
     fillPrice: Decimal;
+    /**
+     * The position's resting stop when one is safely attributable. Shown as
+     * the risk the resulting position carries under it; null states plainly
+     * that the add is unprotected (BUG-0510).
+     */
+    stopPrice?: Decimal | null;
+    /** Account equity for the risk share; null hides the percentage. */
+    accountSize?: Decimal | null;
     disabled?: boolean;
     /** Always receives a quantity the venue can fill. */
     onChange: (quantity: Decimal) => void;
   }
 
-  let { ctx, quantity, fillPrice, disabled = false, onChange }: Props = $props();
+  let { ctx, quantity, fillPrice, stopPrice = null, accountSize = null, disabled = false, onChange }: Props = $props();
 
   const percent = $derived(percentFromAddQuantity(ctx, quantity));
-  const preview = $derived(previewAdd(ctx, quantity, fillPrice));
+  const preview = $derived(previewAdd(ctx, quantity, fillPrice, stopPrice ?? undefined));
 
   const marks = MARK_PERCENTS.map((at) => ({
     at: new Decimal(at),
@@ -101,6 +109,21 @@
     preview
       ? `${preview.entryShift.gt(0) ? "+" : ""}${preview.entryShift.toDecimalPlaces(entryDecimals)}`
       : "",
+  );
+
+  /*
+   * Risk under the resting stop, in quote currency and as a share of the
+   * account — beside the resulting entry, because the entry is what a stop
+   * distance is measured from (BUG-0510). Null risk is not shown as zero:
+   * the note below says the add is unprotected instead.
+   */
+  const riskText = $derived(
+    preview?.riskUnderStop ? preview.riskUnderStop.toDecimalPlaces(2).toString() : null,
+  );
+  const riskPctText = $derived(
+    preview?.riskUnderStop && accountSize && accountSize.gt(0)
+      ? preview.riskUnderStop.div(accountSize).times(100).toDecimalPlaces(2).toString()
+      : null,
   );
 
   /*
@@ -200,6 +223,15 @@
       {$_("positionsList.newAverageEntry")}: {newEntryText}
       {#if shiftText}<span class="opacity-80">({shiftText})</span>{/if}
     </p>
+    {#if preview?.riskUnderStop}
+      <p class="text-[var(--text-secondary)]">
+        {$_("positionsList.riskUnderStop")}: {riskText} {#if riskPctText}<span class="opacity-80">({riskPctText}%)</span>{/if}
+      </p>
+    {:else if stopPrice === null || stopPrice === undefined}
+      <p class="text-[var(--warning-color)]}">
+        {$_("positionsList.noStopAttached")}
+      </p>
+    {/if}
     <p class="text-[var(--text-secondary)] opacity-70">
       {$_("positionsList.previewOnlyHint")}
     </p>
