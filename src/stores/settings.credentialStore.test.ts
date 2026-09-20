@@ -471,6 +471,13 @@ describe("switching", () => {
 });
 
 /*
+ * FEAT-0026 review finding: the venue and the active account are one fact
+ * under two names, and the public `apiProvider` setter moved only one of
+ * them. A disagreeing pair makes the account id the order gate compares
+ * describe an account other than the one being signed for.
+ */
+
+/*
  * BUG-0519: a failed encryption was silent in production and left the
  * superseded ciphertext in place, so after a reload the app kept signing
  * with the credential the user had just replaced.
