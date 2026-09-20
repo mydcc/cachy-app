@@ -70,6 +70,8 @@
         },
     };
 
+    const presetEntries = Object.entries(presets);
+
     function applyPreset(preset: PresetType) {
         selectedPreset = preset;
         const config = presets[preset];
@@ -115,7 +117,7 @@
         </p>
 
         <div class="preset-buttons">
-            {#each Object.entries(presets) as [key, preset] (key)}
+            {#each presetEntries as [key, preset] (key)}
                 <button
                     class="preset-btn {selectedPreset === key ? 'active' : ''}"
                     onclick={() => applyPreset(key as PresetType)}
