@@ -35,7 +35,14 @@
 import { Decimal } from "decimal.js";
 import { describe, expect, it, vi } from "vitest";
 
-import type { RuleDocument, SizeBasis, Verdict } from "../../lib/rules/types";
+import type {
+  BotAnchorSnapshot,
+  EvaluationContext,
+  RuleDocument,
+  SizeBasis,
+  Verdict,
+} from "../../lib/rules/types";
+import { RuleEvaluationGate, type BotAnchorPersistence } from "../../lib/rules/ruleEvaluationGate";
 import {
   quantityFor,
   riskPercentageFor,
@@ -45,6 +52,15 @@ import {
   type BotOrderEnvironment,
 } from "./botOrders";
 import type { RuleFiring } from "./ruleEvaluationLoop";
+
+// BUG-0491: the composition below drives the real gate, so the real core
+// must stay out of it — the verdicts are the test's, not the market's.
+vi.mock("../../lib/rules/ruleSchema", () => ({
+  ruleSchema: {
+    warmupCandles: () => 1,
+    evaluate: () => ({ verdict: "fires" }),
+  },
+}));
 
 const ANCHOR_MS = 1_757_030_400_000;
 
@@ -288,5 +304,75 @@ describe("the sink that wraps a firing", () => {
     await vi.waitFor(() => expect(onRefusal).toHaveBeenCalled());
 
     expect(onRefusal).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("no second order on the same candle after a reload — BUG-0491", () => {
+  const STEP_MS = 3_600_000;
+
+  function candleContext(n: number): { ctx: EvaluationContext; anchorMs: number } {
+    const candles = Array.from({ length: n }, (_, i) => ({
+      open_time_ms: ANCHOR_MS + i * STEP_MS,
+      open: "50000",
+      high: "50000",
+      low: "50000",
+      close: "50000",
+      volume: "1",
+    }));
+    return { ctx: { candles: { "1h": candles } }, anchorMs: ANCHOR_MS + (n - 1) * STEP_MS };
+  }
+
+  function persistentAnchors() {
+    const stored = new Map<string, BotAnchorSnapshot>();
+    const persistence: BotAnchorPersistence = {
+      isBotRule: (doc) => doc.action?.consequence_level === "simulate",
+      load: (ruleId) => {
+        const snapshot = stored.get(ruleId);
+        return snapshot ? { ...snapshot } : undefined;
+      },
+      save: (ruleId, snapshot) => {
+        stored.set(ruleId, { ...snapshot });
+      },
+      clear: (ruleId) => {
+        stored.delete(ruleId);
+      },
+    };
+    return persistence;
+  }
+
+  function expectFiring(verdict: unknown): asserts verdict is Verdict {
+    expect(verdict).toEqual({ verdict: "fires" });
+    if (!verdict || typeof verdict !== "object" || !("verdict" in verdict)) {
+      throw new Error("test setup: expected the bot to fire");
+    }
+  }
+
+  it("places exactly one entry across a gate rebuild on the same candle", async () => {
+    const persistence = persistentAnchors();
+    const rule: RuleDocument = { ...botDocument(), frequency: "every_time" };
+    const { env, place } = environment();
+    const sink = withBotOrders(vi.fn(), env);
+    const { ctx, anchorMs } = candleContext(5);
+
+    // Pre-reload session: the bot fires on the candle and orders once.
+    const verdict = new RuleEvaluationGate(persistence).evaluate(rule, ctx, anchorMs);
+    expectFiring(verdict);
+    sink({ rule, verdict, anchorMs });
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(1));
+
+    // Reload: a fresh gate, the same rule still armed, the same candle still
+    // newest. The gate withholds it, so the sink never runs and no second
+    // entry is placed — the paper balance keeps exactly one position.
+    const rebuilt = new RuleEvaluationGate(persistence);
+    expect(rebuilt.evaluate(rule, ctx, anchorMs)).toBeUndefined();
+    expect(place).toHaveBeenCalledTimes(1);
+
+    // A later candle still fires: `every_time` kept its meaning across
+    // candles, so this is dedupe, not one-shot.
+    const next = candleContext(6);
+    const later = rebuilt.evaluate(rule, next.ctx, next.anchorMs);
+    expectFiring(later);
+    sink({ rule, verdict: later, anchorMs: next.anchorMs });
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
   });
 });

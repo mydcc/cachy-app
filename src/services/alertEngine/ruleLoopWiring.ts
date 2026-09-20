@@ -46,7 +46,9 @@ import {
   type UnevaluableSink,
 } from "./ruleEvaluationLoop";
 import { recordFiring } from "./shadowLedger";
-import { readRuleState } from "./ruleStateStore";
+import { clearBotAnchors, readBotAnchors, readRuleState, saveBotAnchors } from "./ruleStateStore";
+import { isBot } from "./botStore";
+import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { drawingStore } from "../../stores/drawings.svelte";
 import { readDrawingAnchorLedger } from "./drawingAnchors";
 import { resolveDrawingThreshold } from "./drawingThreshold";
@@ -389,6 +391,16 @@ export function startRuleEvaluationLoop(
     // constant it was stored with, which stops following the line the moment
     // the trader moves it.
     resolveThreshold: drawingThresholdResolver,
+  });
+  // BUG-0491: bind the gate's durable half. Without this the gate dedupes
+  // within the session only, and an `every_time` bot re-orders the same
+  // candle after a reload. Bound here — the one place that owns store access
+  // on the loop's behalf — so the gate itself stays free of storage imports.
+  ruleEvaluationGate.setBotAnchorPersistence({
+    isBotRule: (document) => isBot(document),
+    load: (ruleId) => readBotAnchors(ruleId),
+    save: (ruleId, snapshot) => saveBotAnchors(ruleId, snapshot),
+    clear: (ruleId) => clearBotAnchors(ruleId),
   });
   logger.log(
     "alerts",
