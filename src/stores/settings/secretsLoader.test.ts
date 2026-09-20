@@ -225,3 +225,23 @@ describe("SecretsLoader provider config encryption (FEAT-0467)", () => {
     ).toBeUndefined();
   });
 });
+
+describe("SecretsLoader.getDeviceKey retry (BUG-0521)", () => {
+  it("clears the cached promise on rejection so a second call retries", async () => {
+    const blocked = Object.assign(new Error("IndexedDB open was blocked"), {
+      name: "IndexedDBBlockedError",
+    });
+    const recovered = { algorithm: { name: "PBKDF2" } } as unknown as CryptoKey;
+    vi.mocked(cryptoService.getOrGenerateDeviceKey).mockClear();
+    vi.mocked(cryptoService.getOrGenerateDeviceKey)
+      .mockRejectedValueOnce(blocked)
+      .mockResolvedValueOnce(recovered);
+
+    const loader = new SecretsLoader();
+    await expect(loader.getDeviceKey(true)).rejects.toThrow(
+      "IndexedDB open was blocked",
+    );
+    await expect(loader.getDeviceKey(true)).resolves.toBe(recovered);
+    expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledTimes(2);
+  });
+});
