@@ -50,6 +50,27 @@ vi.mock("./tradeService", () => ({
     },
 }));
 
+/*
+ * BUG-0503 divergence cover: no venue declares attach=false with
+ * standalone=true today, so the `replaceStop` flag swap is unobservable
+ * through real declarations alone. This mock lets one test declare that
+ * combination. Delegates to the real lookup by default, so every other
+ * test in this file reads the true table; the diverging test overrides
+ * within itself and the shared `beforeEach` below re-establishes the
+ * delegation (after `restoreAllMocks`, whatever it does to the wrapper).
+ */
+const capsDouble = vi.hoisted(() => ({
+    real: null as null | ((exchange: string) => import("./exchange/capabilityTypes").ExchangeCapabilities),
+    mock: null as null | ReturnType<typeof vi.fn>,
+}));
+vi.mock("./exchangeCapabilities", async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import("./exchangeCapabilities")>();
+    capsDouble.real = actual.capabilitiesOf;
+    capsDouble.mock = vi.fn((exchange: string) => capsDouble.real!(exchange));
+    return { ...actual, capabilitiesOf: capsDouble.mock };
+});
+
 // Driven by plain hoisted state rather than spies: a spyOn against a mocked
 // module survives clearAllMocks and leaks its implementation into every test
 // after it, which is how this file's first draft passed for the wrong reason.
@@ -108,6 +129,9 @@ beforeEach(() => {
     flashClose.mockReset();
     placePositionTpSl.mockReset();
     account.requestSync.mockReset();
+    // Back to the true capability table (see the `capsDouble` mock above).
+    capsDouble.mock?.mockReset();
+    capsDouble.mock?.mockImplementation((exchange: string) => capsDouble.real!(exchange));
     account.positions = [];
     placeOrder.mockResolvedValue({ clientId: "cachy-abc", result: {} });
     // By default the exchange did what it was told.
@@ -465,6 +489,45 @@ describe("BUG-0503 — exchanges with no standalone stop path", () => {
 
         // Bitunix declares both halves, so the retry path is unchanged.
         expect(placePositionTpSl).toHaveBeenCalled();
+    });
+
+    it("retries the standalone stop where attachment is absent", async () => {
+        /*
+         * The flags diverge only in this test: attachment absent, standalone
+         * present — a combination no venue declares today. Under the old
+         * `tpSlAtEntry` read `replaceStop` returned early here and the retry
+         * window burned two sleeps around a no-op; under `tpSlStandalone`
+         * the standalone placement is attempted. Fails on the old read,
+         * passes on the new one.
+         */
+        capsDouble.mock!.mockReturnValue({
+            orderTypes: ["market", "limit"],
+            tpSlAtEntry: false,
+            tpSlStandalone: true,
+            timeInForce: [],
+            multipleTakeProfits: false,
+            marginModes: [],
+            positionModes: [],
+            trailingStop: false,
+            addToPosition: true,
+        });
+        plans.value = {};
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        const result = await orderPlacementService.placeEntryGroup(
+            plan({ exchange: "bitget" }),
+        );
+
+        // Nothing rides along, but the standalone path is attempted twice
+        // across the retry window — and the honest outcome is unchanged.
+        expect(placeOrder.mock.calls[0][0].stopLoss).toBeUndefined();
+        expect(placePositionTpSl).toHaveBeenCalledTimes(2);
+        expect(placePositionTpSl.mock.calls[0][0]).toMatchObject({
+            symbol: "BTCUSDT",
+            positionId: "pos-1",
+        });
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
     });
 });
 
