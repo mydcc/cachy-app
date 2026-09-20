@@ -63,6 +63,10 @@ backlog that could do real harm if built early.
       a bypassing path and fails
 - [ ] Each limit has a test where the agent tries to exceed it and is refused
 - [ ] The kill switch halts it mid-execution without unwinding positions
+- [ ] A `send`-level rule counts as a bot (`isBot` in `botStore.ts`), so the
+      reload dedupe (BUG-0491 persisted anchors), gate limits and confirmation
+      apply to it — proven by a test that fires the same candle across a store
+      rebuild and places exactly one order
 - [ ] A complete decision log records what it did and why
 - [ ] A sustained paper run completes with a reviewable log before any live
       discussion
