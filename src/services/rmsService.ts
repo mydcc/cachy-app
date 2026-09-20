@@ -47,7 +47,7 @@ import type { JournalEntry } from "../stores/types";
 import {
     CLOSED_JOURNAL_STATUSES,
     KNOWN_JOURNAL_STATUSES,
-} from "../stores/types";
+} from "../lib/journalStatus";
 
 export interface RiskProfile {
     maxPositionSizeUsdt: Decimal;
@@ -60,10 +60,13 @@ export interface RiskProfile {
  * planned entries carry no realised PnL, so they cannot move a daily counter.
  *
  * Shared with the journal store (`CLOSED_JOURNAL_STATUSES`): `Closed` is the
- * legacy terminal status and carries real money — `getTradePnL` returns its
- * recorded amount through the `totalNetProfit` branch — so dropping it here
- * would hide realised losses from the gate (BUG-0499). Statistics that
- * filter on Won/Lost themselves are unaffected.
+ * legacy terminal status and carries real money. `getTradePnL` has no
+ * `Closed` branch of its own — a nonzero recorded amount still returns
+ * through its `totalNetProfit` first branch, while zero/missing falls to 0
+ * (which is exactly why the gate's completeness check, not the sum, handles
+ * amount-less closes). Dropping `Closed` from this set would hide realised
+ * losses from the gate (BUG-0499). Statistics that filter on Won/Lost
+ * themselves are unaffected.
  */
 const CLOSED_STATUSES: ReadonlySet<string> = CLOSED_JOURNAL_STATUSES;
 
@@ -150,9 +153,11 @@ function unmeasurable(field: string): OrderRefusal {
  *
  * A zero counts as missing: "entered 0" and "forgot to enter anything" are
  * indistinguishable on the record, and for a safety gate the wrong guess in
- * the permissive direction is the failure (BUG-0499). A `Won` entry with no
- * amount is the exception — a breakeven win of 0 is meaningful, and refusing
- * on it would block ordinary trading.
+ * the permissive direction is the failure (BUG-0499). Remedy for a genuine
+ * scratch trade: put it on status `Won` — a breakeven win of 0 is
+ * meaningful there and stays complete — or enter the actual amount. A `Won`
+ * entry with no amount is therefore the exception: refusing on it would
+ * block ordinary trading.
  */
 function hasRealisedAmount(entry: JournalEntry): boolean {
     // Runtime data arrives as strings from storage, CSV and sync paths, so
@@ -311,6 +316,11 @@ class RiskManagementService {
      * - synced trades in the journal without a same-day position-history
      *   sync (anything the venue closed since is invisible).
      *
+     * Day-scoped: an entry whose close day is provably outside today is
+     * skipped before any of those checks, so a 2024 import row can never
+     * refuse a 2026 open. Only entries that could belong to today — or whose
+     * day is unknowable — can mark the figure incomplete.
+     *
      * A `Won` entry with no amount is the one exception: a breakeven win of
      * 0 is meaningful, and refusing on it would block ordinary trading.
      * Manual-only journals never trip the sync rule — there is no venue
@@ -324,10 +334,22 @@ class RiskManagementService {
 
         for (const entry of journalState.entries) {
             if (entry.isPaper === true) continue;
+            // Provably outside today: neither the sum nor the completeness
+            // verdict may see this entry. `exitDate` alone decides — the open
+            // day says nothing about when a position closed.
+            if (entry.exitDate) {
+                const closeTs = closeTimestamp(entry);
+                if (closeTs !== null && (closeTs < dayStart || closeTs > now)) {
+                    continue;
+                }
+            }
             if (!KNOWN_STATUSES.has(entry.status)) {
                 complete = false;
                 continue;
             }
+            // Only synced entries that survived the day-scope above can
+            // demand a fresh sync: a 2024 Bitunix row must not force a
+            // same-day history sync every trading day forever.
             if (entry.isManual === false) hasSyncedSource = true;
             if (!CLOSED_STATUSES.has(entry.status)) continue;
             if (

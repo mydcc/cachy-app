@@ -11,7 +11,7 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeJournalEntry } from "../utils/utils";
 import type { JournalEntry } from "./types";
-import { CLOSED_JOURNAL_STATUSES, coerceJournalStatus } from "./types";
+import { CLOSED_JOURNAL_STATUSES, coerceJournalStatus } from "../lib/journalStatus";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";

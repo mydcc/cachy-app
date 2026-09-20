@@ -364,3 +364,60 @@ describe("JournalManager.updateEntry — BUG-0499 (writers guarantee a close day
     }
   });
 });
+
+describe("JournalManager.load — BUG-0499 (legacy migration is explicit)", () => {
+  beforeEach(() => {
+    journalState.destroy();
+    localStorageMock.clear();
+  });
+
+  afterEach(() => {
+    journalState.destroy();
+  });
+
+  it("coerces a foreign stored status to Closed and backfills its close day", () => {
+    // A pre-existing closed trade from before `exitDate` existed: no close
+    // day on the record, and a status wording no counter understands. Load
+    // must migrate it to something measurable instead of silently dropping
+    // it from every filter.
+    const legacy = {
+      ...createTestEntry("t-legacy", "-50"),
+      status: "Breakeven",
+    } as unknown as Record<string, unknown>;
+    delete legacy.exitDate;
+    localStorageMock.setItem(
+      CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+      JSON.stringify([legacy]),
+    );
+
+    const journal = new JournalManager();
+    try {
+      const stored = journal.entries.find((e) => e.id === "t-legacy");
+      expect(stored?.status).toBe("Closed");
+      expect(stored?.exitDate).toBe(stored?.date);
+    } finally {
+      journal.destroy();
+    }
+  });
+
+  it("leaves open entries without a close day on load", () => {
+    const open = {
+      ...createTestEntry("t-open-load", "0"),
+      status: "Open",
+    } as unknown as Record<string, unknown>;
+    delete open.exitDate;
+    localStorageMock.setItem(
+      CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+      JSON.stringify([open]),
+    );
+
+    const journal = new JournalManager();
+    try {
+      const stored = journal.entries.find((e) => e.id === "t-open-load");
+      expect(stored?.status).toBe("Open");
+      expect(stored?.exitDate).toBeUndefined();
+    } finally {
+      journal.destroy();
+    }
+  });
+});

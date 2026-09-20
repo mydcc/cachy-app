@@ -589,6 +589,44 @@ describe("BUG-0499 — an unmeasurable day refuses opens", () => {
         ];
         expect(rmsService.realizedLossToday(now).toString()).toBe("50");
     });
+
+    it("ignores history provably outside today instead of refusing on it", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        const old = new Date("2024-05-01T12:00:00Z").toISOString();
+        journal.entries = [
+            // A legacy row with everything filled in, but last year.
+            {
+                id: "t-old",
+                status: "Lost",
+                date: old,
+                exitDate: old,
+                totalNetProfit: new Decimal("-9999"),
+            },
+            // And a synced one: no same-day history sync, yet nothing about
+            // it can belong to today either.
+            {
+                ...closedTrade("-9999", new Date("2024-05-02T12:00:00Z").getTime()),
+                isManual: false,
+                isPaper: false,
+            },
+        ];
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("still refuses when an old entry cannot be placed in time", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [
+            {
+                id: "t-timeless",
+                status: "Lost",
+                date: new Date("2024-05-01T12:00:00Z").toISOString(),
+                // No exitDate and no backfill on this path: the close could
+                // be anywhere, so the day stays unmeasurable.
+                totalNetProfit: new Decimal("-50"),
+            },
+        ];
+        expect(orderGate.verify(openIntent()).refusal?.reason).toBe("missing");
+    });
 });
 
 describe("FEAT-0013 — limit input validation", () => {

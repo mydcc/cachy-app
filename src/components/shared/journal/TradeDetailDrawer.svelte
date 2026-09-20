@@ -20,7 +20,7 @@
   import { formatDynamicDecimal } from "../../../utils/utils";
   import { Decimal } from "decimal.js";
   import type { JournalEntry } from "../../../stores/types";
-  import { coerceJournalStatus } from "../../../stores/types";
+  import { coerceJournalStatus } from "../../../lib/journalStatus";
   import JournalEntryTags from "../JournalEntryTags.svelte";
 
   interface Props {

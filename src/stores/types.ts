@@ -161,55 +161,23 @@ export interface CurrentTradeData
 
 export type FeeRateType = "maker" | "taker";
 
-/**
- * Every trade status the app itself reads or writes.
- *
- * BUG-0499: the daily-loss gate switches on this, so a new member must force
- * the compiler to name every place that does — a union does that, a `string`
- * does not. `Closed` is the legacy terminal status written by
- * `normalizeJournalEntry` for malformed imports and read by the trade drawer;
- * it carries real money and the gate treats it as closed.
- */
-export type JournalStatus = "Won" | "Lost" | "Open" | "Planned" | "Closed";
+// The status vocabulary lives in `src/lib/journalStatus.ts` — the
+// architecture boundaries let every layer import values from `lib`, while
+// value imports from `stores/*` are gated. Re-exported here so the
+// `JournalEntry` interface and its statuses stay defined in one place.
+import type { JournalStatus } from "../lib/journalStatus";
+import {
+  KNOWN_JOURNAL_STATUSES,
+  CLOSED_JOURNAL_STATUSES,
+  coerceJournalStatus,
+} from "../lib/journalStatus";
 
-/**
- * The statuses above, as runtime data. The union guards the type; this
- * guards storage, CSV and sync payloads, which can carry anything.
- */
-export const KNOWN_JOURNAL_STATUSES: ReadonlyArray<JournalStatus> = [
-  "Won",
-  "Lost",
-  "Open",
-  "Planned",
-  "Closed",
-];
-
-/**
- * Members of the union that mean the trade is over and its result is real
- * money. `Closed` is the legacy terminal status — see `coerceJournalStatus`.
- */
-export const CLOSED_JOURNAL_STATUSES: ReadonlySet<JournalStatus> = new Set([
-  "Won",
-  "Lost",
-  "Closed",
-]);
-
-/**
- * Maps an unknown status wording onto the legacy terminal `"Closed"`.
- *
- * A foreign wording — a breakeven label, a future feature's status, an
- * import's invention — represents money the counters cannot attribute.
- * Coercing it to closed routes it to the completeness checks (amount and
- * close day required, BUG-0499) instead of silently dropping it from every
- * filter that switches on the known members.
- */
-export function coerceJournalStatus(value: unknown): JournalStatus {
-  return (KNOWN_JOURNAL_STATUSES as ReadonlyArray<string>).includes(
-    value as string,
-  )
-    ? (value as JournalStatus)
-    : "Closed";
-}
+export type { JournalStatus };
+export {
+  KNOWN_JOURNAL_STATUSES,
+  CLOSED_JOURNAL_STATUSES,
+  coerceJournalStatus,
+};
 
 export interface JournalEntry {
   id: number | string;
