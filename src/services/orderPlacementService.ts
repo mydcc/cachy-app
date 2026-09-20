@@ -144,8 +144,21 @@ function planIdOf(order: TpSlOrder): string | null {
         : null;
 }
 
+/** This entry's venue side, from the calculator's trade direction. */
+function entrySideOf(tradeType: string): "BUY" | "SELL" {
+    return tradeType.toLowerCase() === "short" ? "SELL" : "BUY";
+}
+
 function triggerPriceMatches(order: TpSlOrder, expected: Decimal): boolean {
     try {
+        /*
+         * Exact decimal equality, deliberately — the same discipline the
+         * gate's own price rule uses (`decimalsAgree` in checkPrices). This
+         * path carries no venue tick size to tolerance against, and an
+         * invented epsilon would be a new magic number. The failure
+         * direction stays safe: a tick-rounded level that mismatches
+         * reports "unprotected", loudly, instead of a false "attached".
+         */
         return new Decimal(order.triggerPrice).equals(expected);
     } catch {
         // An unparsable trigger price proves nothing about this request.
@@ -176,6 +189,10 @@ function matchesIntent(
     if (order === undefined) return false;
     const id = planIdOf(order);
     if (id !== null && beforeIds.has(id)) return false;
+    // A plan without an id cannot be excluded by identity and falls back to
+    // price plus side. The production type requires `orderId`, so an
+    // id-less stale plan at the same price and side is the accepted
+    // residual risk — and still strictly more proof than existence was.
     if (!triggerPriceMatches(order, expected)) return false;
     if (!sideCompatible(order.side, entrySide)) return false;
     return true;
@@ -188,7 +205,7 @@ class OrderPlacementService {
      */
     public async placeEntryGroup(plan: EntryPlan): Promise<PlacementResult> {
         const caps = capabilitiesOf(plan.exchange);
-        const side: "BUY" | "SELL" = plan.tradeType === "short" ? "SELL" : "BUY";
+        const side: "BUY" | "SELL" = entrySideOf(plan.tradeType);
         const wantsStop = plan.stopLossPrice.gt(0);
         const wantsTarget = plan.takeProfits.length > 0;
 
@@ -320,7 +337,7 @@ class OrderPlacementService {
         beforeIds: ReadonlySet<string>,
     ): Promise<Omit<PlacementResult, "entryPlaced" | "clientId">> {
         const settled = want.attached ? "attached" : "placed";
-        const entrySide: "BUY" | "SELL" = plan.tradeType === "short" ? "SELL" : "BUY";
+        const entrySide: "BUY" | "SELL" = entrySideOf(plan.tradeType);
 
         for (let attempt = 0; attempt <= STOP_RETRY_ATTEMPTS; attempt++) {
             const plans = await this.readPlans(plan.symbol);

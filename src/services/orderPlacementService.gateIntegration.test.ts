@@ -58,17 +58,24 @@ vi.mock("./toastService.svelte", () => ({
     toastService: { error: vi.fn(), success: vi.fn(), add: vi.fn() },
 }));
 
-// The protection read that follows a placed entry. Reporting both levels
-// present keeps `confirmProtection` off the retry path, which is not what
-// these tests are about.
+// The protection read that follows a placed entry. `plansFor` is sequenced:
+// the first call of a placement is the before-image, taken before the entry
+// exists, so it sees nothing; later calls see what the venue published.
+// A single constant object would model "the same plan before and after",
+// which the fix under test correctly reads as stale.
 const plans = vi.hoisted(() => ({
-    value: {} as Record<string, unknown>,
+    calls: 0,
+    before: {} as Record<string, unknown>,
+    after: {} as Record<string, unknown>,
 }));
 vi.mock("../stores/tpsl.svelte", () => ({
     tpSlState: {
         invalidate: () => {},
         ensureFresh: async () => {},
-        plansFor: () => plans.value,
+        plansFor: () => {
+            plans.calls += 1;
+            return plans.calls === 1 ? plans.before : plans.after;
+        },
     },
 }));
 
@@ -116,7 +123,15 @@ beforeEach(() => {
             keys: { key: "test-key-5678", secret: "s" },
         },
     ];
-    plans.value = { loss: { id: "sl-1" }, profit: { id: "tp-1" } };
+    plans.calls = 0;
+    plans.before = {};
+    // What the venue published for the new entry: fresh ids, the requested
+    // prices, this entry's side. Present keeps `confirmProtection` off the
+    // retry path, which is not what these tests are about.
+    plans.after = {
+        loss: { orderId: "plan-sl-1", triggerPrice: "49500", side: "BUY" },
+        profit: { orderId: "plan-tp-1", triggerPrice: "51000", side: "BUY" },
+    };
     registerKillSwitch(null);
     registerRiskLimitCheck(null);
     registerAuditRecorder(null);
@@ -210,7 +225,7 @@ describe("BUG-0297 — an entry on a venue that cannot attach protection", () =>
          */
         it("still calls the position unprotected when the separate stop never lands", async () => {
             settings.apiProvider = "bitget";
-            plans.value = {}; // the follow-up request left no plan behind
+            plans.after = {}; // the follow-up request left no plan behind
 
             const result = await orderPlacementService.placeEntryGroup(
                 plan({ exchange: "bitget" }),
