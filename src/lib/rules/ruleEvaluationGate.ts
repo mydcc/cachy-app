@@ -270,6 +270,11 @@ export class RuleEvaluationGate {
    * again, and leaving one of them behind would make the answer depend on
    * which mode the document happened to carry when it was forgotten, or on
    * whether the session reloaded since.
+   *
+   * Wiring this into the edit/delete/re-arm paths is BUG-0486: until then,
+   * neither this nor `clearRuleState` has prod callers, so the durable half
+   * here stays in lockstep with the maps by construction — both go stale in
+   * exactly the same places, never one without the other.
    */
   forget(ruleId: string): void {
     this.lastEvaluatedAnchorMs.delete(ruleId);
