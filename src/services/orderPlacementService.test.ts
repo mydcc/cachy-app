@@ -488,3 +488,94 @@ describe("FEAT-0017 — time in force against venue capabilities", () => {
         expect(effectOf()).toBeUndefined();
     });
 });
+
+/*
+ * BUG-0502 — the post-placement check must prove causation, not coincidence.
+ * A plan that was already on the symbol, sits at the wrong price, or belongs
+ * to the opposite side must never report the new position as protected.
+ */
+describe("BUG-0502 — protection check matches the new stop, not any stop", () => {
+    it("reports unprotected when only a pre-existing stop is on the symbol", async () => {
+        // The old plan is there before the entry and never changes: the new
+        // stop was not accepted. Same object on every read, so it is also in
+        // the before-image — identity alone must exclude it.
+        plans.value = {
+            loss: { orderId: "old-stop-1", triggerPrice: "49000" },
+            profit: { orderId: "old-tp-1", triggerPrice: "51000" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.entryPlaced).toBe(true);
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+        expect(result.errorKey).toBe("orderEntry.errors.unprotected");
+    });
+
+    it("does not settle on a stop at the wrong price", async () => {
+        // No order id here on purpose: identity cannot exclude this one, so
+        // only the price comparison stands between it and a false "attached".
+        plans.value = {
+            loss: { triggerPrice: "49000" },
+            profit: { triggerPrice: "51000" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+    });
+
+    it("does not settle on a stop belonging to the opposite side", async () => {
+        // Long entry (BUY). The stop on the symbol protects a short (SELL).
+        plans.value = {
+            loss: { triggerPrice: "49500", side: "SELL" },
+            profit: { triggerPrice: "51000", side: "SELL" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+    });
+
+    it("still attaches when the stop matches price and side", async () => {
+        // Nothing on the symbol before the entry; the venue publishes the
+        // new plans afterwards. The before-image is empty, so identity lets
+        // them through and price plus side confirm them.
+        plans.value = {};
+        plans.onLook = (n) => {
+            if (n >= 1) {
+                plans.value = {
+                    loss: { orderId: "new-stop-9", triggerPrice: "49500", side: "BUY" },
+                    profit: { orderId: "new-tp-9", triggerPrice: "51000", side: "BUY" },
+                };
+            }
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result).toMatchObject({
+            entryPlaced: true,
+            stopLoss: "attached",
+            takeProfit: "attached",
+            unprotected: false,
+        });
+    });
+
+    it("applies the same causation to the take-profit half", async () => {
+        plans.value = {
+            loss: { triggerPrice: "49500" },
+            profit: { triggerPrice: "52000" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        // A missing target costs upside, not capital — loud, but not
+        // "unprotected".
+        expect(result.takeProfit).toBe("failed");
+        expect(result.stopLoss).toBe("attached");
+        expect(result.unprotected).toBe(false);
+        expect(result.errorKey).toBe("orderEntry.errors.targetMissing");
+    });
+});
