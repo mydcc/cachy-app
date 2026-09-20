@@ -123,7 +123,6 @@
               class="audit-head"
               onclick={() => (expanded = expanded === entry.id ? null : entry.id)}
               aria-expanded={expanded === entry.id}
-              aria-label={$_("settings.audit.toggleDetails")}
             >
               <span class="badge {outcomeClass(entry.outcome)}"
                 >{outcomeLabel(entry.outcome)}</span
