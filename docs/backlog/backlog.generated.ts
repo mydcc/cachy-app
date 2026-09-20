@@ -466,7 +466,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0503",
     "title": "On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "branch": "fix/bug-0503-bitget-entry-no-stop",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -478,6 +479,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
   },
   {

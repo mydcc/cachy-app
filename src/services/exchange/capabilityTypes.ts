@@ -62,6 +62,22 @@ export interface ExchangeCapabilities {
      * which the position exists unprotected — see `orderPlacementService`.
      */
     tpSlAtEntry: boolean;
+    /**
+     * Whether a stop and target can be placed as a standalone request after
+     * the entry (BUG-0503).
+     *
+     * The counterpart to `tpSlAtEntry`: attachment and standalone placement
+     * are different facts. A venue with neither cannot fulfil an entry that
+     * carries protection at all, and the gate refuses such an entry before
+     * it is sent rather than opening a position that can never be protected.
+     *
+     * Same bar as every other flag here: the venue supports it **and** Cachy
+     * has a verified request shape for it. This mirrors `TradingSupport.tpSl`
+     * in `./types.ts` — the adapter-side declaration the TP/SL verbs are
+     * refused on — and the two must agree; `exchangeCapabilities.test.ts`
+     * pins that agreement so they cannot drift apart silently.
+     */
+    tpSlStandalone: boolean;
     /** Time-in-force values accepted on a limit order; empty means none. */
     timeInForce: readonly TimeInForce[];
     /** Whether more than one take-profit level can be attached at entry. */

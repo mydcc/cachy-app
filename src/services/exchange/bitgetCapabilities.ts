@@ -39,6 +39,13 @@ export const bitgetCapabilities: ExchangeCapabilities = Object.freeze({
     // window it guards against exists at all.
     tpSlAtEntry: false,
 
+    // No verified standalone-TP/SL shape either (BUG-0503). Every TP/SL verb
+    // on the Bitget adapter is refused on `SUPPORTS.tpSl: false`
+    // (`bitgetAdapter.ts`), so a stop that cannot ride along has no second
+    // request to travel on — the gate refuses such an entry before it is
+    // sent. Must agree with `SUPPORTS.tpSl`; the capabilities test pins it.
+    tpSlStandalone: false,
+
     // Empty, not a guess: Cachy sends no `effect` on the Bitget path, so no
     // value here has been observed accepted.
     timeInForce: Object.freeze([] as const),

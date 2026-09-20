@@ -4,7 +4,7 @@
 
 402 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 58 · ✅ done 320 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 57 · ✅ done 321 · ⛔ dropped 1
 
 ---
 
@@ -216,7 +216,7 @@ Counts by status: 💡 idea 23 · 📋 specced 58 · ✅ done 320 · ⛔ dropped
 | [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | execution |
 | [BUG-0499](bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md) | The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass | P0 | 📋 specced | execution |
 | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md) | The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected | P0 | ✅ done | execution |
-| [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | 📋 specced | execution |
+| [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | execution |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -494,7 +494,7 @@ Counts by status: 💡 idea 23 · 📋 specced 58 · ✅ done 320 · ⛔ dropped
 | [BUG-0491](bugs/BUG-0491-bot-reorders-same-candle-after-reload.md) | A bot with frequency every_time places a second order on the same candle after a reload | P0 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0499](bugs/BUG-0499-daily-loss-limit-measures-the-journal-not-the-account.md) | The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass | P0 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md) | The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected | P0 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
