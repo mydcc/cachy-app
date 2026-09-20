@@ -56,13 +56,9 @@ an arbitrary one.
   Deliberately no `side` mapping.
 - Match over the full plan list for the symbol (new accessor alongside
   `plansFor`), requiring the entry's `positionId` (via the existing
-<<<<<<< HEAD
   `resolvePositionId`, resolved lazily at most once per confirmation and
   only when a candidate actually carries an id — no lookup, no added
   latency when there is nothing to discriminate).
-=======
-  `resolvePositionId`, resolved concurrently with the first plan read).
->>>>>>> 0a9c1833 (chore(backlog): renumber BUG-0522 to BUG-0524, number taken by FEAT-0522)
 - Fail-open fallback: when `positionId` is absent on either side, today's
   price-plus-identity behaviour applies unchanged — a missing id must never
   turn every confirmation into "unprotected".
