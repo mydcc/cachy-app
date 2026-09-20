@@ -70,6 +70,11 @@
         },
     };
 
+    // Performance: Extracted static `Object.entries(presets)` and literal array `["5m", ...]`
+    // to module-scope constants to avoid inline allocation during template evaluation.
+    const presetEntries = Object.entries(presets);
+    const availableTimeframes = ["5m", "15m", "1h", "4h", "1d"];
+
     function applyPreset(preset: PresetType) {
         selectedPreset = preset;
         const config = presets[preset];
@@ -115,7 +120,7 @@
         </p>
 
         <div class="preset-buttons">
-            {#each Object.entries(presets) as [key, preset] (key)}
+            {#each presetEntries as [key, preset] (key)}
                 <button
                     class="preset-btn {selectedPreset === key ? 'active' : ''}"
                     onclick={() => applyPreset(key as PresetType)}
@@ -253,7 +258,7 @@
                 >
             </div>
             <div class="timeframe-grid">
-                {#each ["5m", "15m", "1h", "4h", "1d"] as tf (tf)}
+                {#each availableTimeframes as tf (tf)}
                     {@const isSelected =
                         settingsState.analysisTimeframes.includes(tf)}
                     <button
