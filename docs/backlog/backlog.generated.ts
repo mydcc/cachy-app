@@ -410,7 +410,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0491",
     "title": "A bot with frequency every_time places a second order on the same candle after a reload",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "editions": [
