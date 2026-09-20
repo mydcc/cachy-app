@@ -2,7 +2,6 @@ import { migrateAccounts } from "../../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { exchangeAdapters } from "./registry";
 import { adapterTestHarnesses } from "./adapterConformance.harness";
-import { capabilitiesOf } from "../exchangeCapabilities";
 import { accountState } from "../../stores/account.svelte";
 import { settingsState } from "../../stores/settings.svelte";
 import fs from "fs";
@@ -186,25 +185,4 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
             });
         });
     });
-});
-
-/*
- * BUG-0503 — the standalone TP/SL answer is declared twice: `supports.tpSl`
- * on the adapter (the TP/SL verbs are refused on it) and `tpSlStandalone` in
- * the capability table (the gate and the placement retry read it). If the
- * two ever disagreed, the gate would defer to a follow-up request the
- * adapter refuses, or refuse an entry the venue could protect.
- *
- * Looped over the registry, not spelled out per venue: a third venue joins
- * `exchangeAdapters`, so it is pinned here the moment it exists rather than
- * the moment someone remembers this test.
- */
-describe("BUG-0503: standalone TP/SL agreement on every adapter", () => {
-    it.each(exchangeAdapters.map((adapter) => adapter.id))(
-        "%s answers standalone TP/SL the same way twice",
-        (id) => {
-            const adapter = exchangeAdapters.find((candidate) => candidate.id === id);
-            expect(adapter?.supports.tpSl).toBe(capabilitiesOf(id).tpSlStandalone);
-        },
-    );
 });

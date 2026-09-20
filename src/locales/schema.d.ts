@@ -2189,6 +2189,7 @@ export type TranslationKey =
   | "settings.audit.subTab"
   | "settings.audit.title"
   | "settings.audit.description"
+  | "settings.audit.toggleDetails"
   | "settings.audit.retention"
   | "settings.audit.export"
   | "settings.audit.refresh"

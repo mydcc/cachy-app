@@ -33,7 +33,6 @@ import { modalState } from "../stores/modal.svelte";
 import { parseDecimal, generateId } from "../utils/utils";
 import { safeJsonParse } from "../utils/safeJson";
 import type { JournalEntry } from "../stores/types";
-import type { JournalStatus } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import { addContextProvider, initTracking } from "./trackingService";
@@ -218,11 +217,9 @@ export const app = {
     }
   },
 
-  updateTradeStatus: async (id: number | string, newStatus: JournalStatus) => {
+  updateTradeStatus: async (id: number | string, newStatus: string) => {
     const trade = journalState.entries.find((t) => String(t.id) === String(id));
     if (trade) {
-      // The store stamps `exitDate` on open-to-closed transitions, so a
-      // close marked here carries its close day for the daily-loss gate.
       journalState.updateEntry({ ...trade, status: newStatus });
     }
   },

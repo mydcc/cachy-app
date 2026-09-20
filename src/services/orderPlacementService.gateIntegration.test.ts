@@ -174,54 +174,77 @@ describe("BUG-0297 — an entry on a venue that cannot attach protection", () =>
         });
     });
 
-    describe("a venue with no stop path at all (Bitget, BUG-0503)", () => {
+    describe("a venue that cannot attach (Bitget)", () => {
         /*
-         * BUG-0503 reverses the BUG-0297 outcome above for this venue: excusing
-         * the stop from comparison made the order acceptable without making
-         * the protection possible, and every Bitget entry carrying a stop
-         * opened a position no later request could protect. The gate now
-         * refuses such an entry before anything is sent. The regression
-         * assertion is the `sent` array: a refusal that still transmitted
-         * would fail here, not just on the verdict.
+         * The regression. Before the repair this came back
+         * `entryPlaced: false` with `orderGate.missing` on `stopLoss` — the
+         * trader had entered a stop and was told the order carried none.
          */
-        it("refuses the entry before anything is sent", async () => {
+        it("places the entry instead of refusing it", async () => {
             settings.apiProvider = "bitget";
 
             const result = await orderPlacementService.placeEntryGroup(
                 plan({ exchange: "bitget" }),
             );
 
-            expect(result.entryPlaced).toBe(false);
-            expect(result.unprotected).toBe(false);
-            expect(result.refusal?.messageKey).toBe("orderGate.unplaceableStop");
-            expect(result.refusal?.values.exchange).toBe("bitget");
-            expect(sent).toEqual([]);
+            expect(result.refusal).toBeUndefined();
+            expect(result.entryPlaced).toBe(true);
+        });
+
+        it("sends no stop or target on the entry, since the venue cannot carry them", async () => {
+            settings.apiProvider = "bitget";
+
+            await orderPlacementService.placeEntryGroup(plan({ exchange: "bitget" }));
+
+            expect(sent[0].slPrice).toBeUndefined();
+            expect(sent[0].tpPrice).toBeUndefined();
         });
 
         /*
-         * The way out is deliberate, not silent: clearing the stop field
-         * places a stopless entry the trader explicitly chose. Quantity
-         * 0.0002 is what the size rule re-derives from the inputs below
-         * (1000 × 1 % ÷ 50000), so passing proves the gate measured this
-         * order rather than waving it through.
+         * The stop is real, it just belongs to a second request. The trader is
+         * told which of the two happened, because "attached" and "placed
+         * separately" are different exposures.
          */
-        it("still places a deliberately stopless entry", async () => {
+        it("reports the protection as placed separately, not as attached", async () => {
             settings.apiProvider = "bitget";
 
             const result = await orderPlacementService.placeEntryGroup(
-                plan({
-                    exchange: "bitget",
-                    stopLossPrice: new Decimal(0),
-                    takeProfits: [],
-                    qty: new Decimal("0.0002"),
-                }),
+                plan({ exchange: "bitget" }),
             );
 
-            expect(result.refusal).toBeUndefined();
-            expect(result.entryPlaced).toBe(true);
-            expect(result.stopLoss).toBe("none");
+            expect(result.stopLoss).toBe("placed");
             expect(result.unprotected).toBe(false);
-            expect(sent).toHaveLength(1);
+        });
+
+        /*
+         * The safety question this fix has to answer. Exempting the stop from
+         * the entry's price rule is only acceptable because something else
+         * still checks that it arrived — otherwise the trade-off would be
+         * "accepts the order, loses the stop", which is worse than the
+         * deadlock it replaces.
+         */
+        it("still calls the position unprotected when the separate stop never lands", async () => {
+            settings.apiProvider = "bitget";
+            plans.after = {}; // the follow-up request left no plan behind
+
+            const result = await orderPlacementService.placeEntryGroup(
+                plan({ exchange: "bitget" }),
+            );
+
+            expect(result.entryPlaced).toBe(true);
+            expect(result.unprotected).toBe(true);
+            expect(result.stopLoss).not.toBe("placed");
+        });
+
+        it("still derives the quantity from the stop distance", async () => {
+            settings.apiProvider = "bitget";
+
+            await orderPlacementService.placeEntryGroup(plan({ exchange: "bitget" }));
+
+            // 1000 × 1 % = 10 risk, ÷ 500 stop distance = 0.02. The size rule
+            // reads the displayed stop even though the payload carries none;
+            // that is the half of the split this fix must not disturb.
+            expect(sent[0].qty).toBe("0.02");
         });
     });
 

@@ -2,8 +2,7 @@
 id: BUG-0503
 title: On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing
 type: bug
-status: done
-branch: fix/bug-0503-bitget-entry-no-stop
+status: specced
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -11,7 +10,6 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
 ---
 
 # BUG-0503 — Bitget entries open a position that can never be protected

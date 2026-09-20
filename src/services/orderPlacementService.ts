@@ -345,14 +345,6 @@ class OrderPlacementService {
     ): Promise<Omit<PlacementResult, "entryPlaced" | "clientId">> {
         const settled = want.attached ? "attached" : "placed";
         const entrySide: "BUY" | "SELL" = entrySideOf(plan.tradeType);
-        /*
-         * BUG-0503 — whether a missing stop is worth another attempt depends
-         * on whether a standalone placement exists to attempt it with. On a
-         * venue with no standalone path `replaceStop` is a no-op and the
-         * sleeps around it only keep an unprotected position open longer, so
-         * the loop below returns the honest outcome on its first pass.
-         */
-        const replacePossible = capabilitiesOf(plan.exchange).tpSlStandalone;
 
         for (let attempt = 0; attempt <= STOP_RETRY_ATTEMPTS; attempt++) {
             const plans = await this.readPlans(plan.symbol);
@@ -377,10 +369,9 @@ class OrderPlacementService {
                 };
             }
 
-            // A missing stop is worth another attempt — but only where an
-            // attempt exists. A missing target is not urgent enough to spend
-            // requests on mid-placement.
-            if (!stopSettled && attempt < STOP_RETRY_ATTEMPTS && replacePossible) {
+            // A missing stop is worth another attempt; a missing target is
+            // not urgent enough to spend requests on mid-placement.
+            if (!stopSettled && attempt < STOP_RETRY_ATTEMPTS) {
                 logger.warn(
                     "market",
                     `[Placement] Stop not present for ${plan.symbol}, retry ${attempt + 1}/${STOP_RETRY_ATTEMPTS}`,
@@ -428,15 +419,12 @@ class OrderPlacementService {
      * cannot attach one at entry.
      *
      * Goes through the position-wide TP/SL placement (`tpsl/place_order`,
-     * FEAT-0070). Whether that path exists is `tpSlStandalone` — the
-     * standalone half of the capability split — not `tpSlAtEntry`: a venue
-     * that attaches nothing but takes a standalone plan must still be
-     * retried here, and a venue with neither skips straight to the honest
-     * UNPROTECTED outcome instead of guessing at an unverified request
-     * format.
+     * FEAT-0070). Venues whose capabilities do not declare TP/SL support
+     * cannot take a position plan either, so they skip straight to the honest
+     * UNPROTECTED outcome instead of guessing at an unverified request format.
      */
     private async replaceStop(plan: EntryPlan): Promise<void> {
-        if (!capabilitiesOf(plan.exchange).tpSlStandalone) {
+        if (!capabilitiesOf(plan.exchange).tpSlAtEntry) {
             return;
         }
 

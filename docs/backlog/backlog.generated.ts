@@ -410,7 +410,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0491",
     "title": "A bot with frequency every_time places a second order on the same candle after a reload",
     "type": "bug",
-    "status": "done",
+    "status": "specced",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -428,9 +428,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0499",
     "title": "The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass",
     "type": "bug",
-    "status": "done",
-    "assignee": "opencode",
-    "branch": "fix/bug-0499-daily-loss-completeness",
+    "status": "specced",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -468,8 +466,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0503",
     "title": "On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing",
     "type": "bug",
-    "status": "done",
-    "branch": "fix/bug-0503-bitget-entry-no-stop",
+    "status": "specced",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -481,7 +478,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
     "file": "bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md"
   },
   {

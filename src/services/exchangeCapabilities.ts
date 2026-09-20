@@ -72,7 +72,6 @@ const CAPABILITIES: Readonly<Record<string, ExchangeCapabilities>> = Object.free
 export const UNKNOWN_EXCHANGE: ExchangeCapabilities = Object.freeze({
     orderTypes: Object.freeze([] as const),
     tpSlAtEntry: false,
-    tpSlStandalone: false,
     timeInForce: Object.freeze([] as const),
     multipleTakeProfits: false,
     marginModes: Object.freeze([] as const),

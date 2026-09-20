@@ -82,34 +82,3 @@ ${safeId},2023-01-01,12:00,BTCUSDT,Long,CLOSED,50000,49000`;
         expect(trade.tradeId).toBe("12345");
     });
 });
-
-describe('CSV Service — BUG-0499 (status coercion and close-day backfill)', () => {
-    const header = `ID,Datum,Uhrzeit,Symbol,Typ,Status,Einstieg,Stop Loss`;
-
-    it('coerces a foreign status to the legacy terminal Closed', () => {
-        const csvContent = `${header}
-t1,2023-01-01,12:00,BTCUSDT,Long,Breakeven,50000,49000`;
-
-        const [trade] = csvService.parseCSVContent(csvContent, {
-            useUtcDateParsing: true,
-        });
-        expect(trade.status).toBe("Closed");
-    });
-
-    it('backfills exitDate from the row date for closed rows only', () => {
-        const csvContent = `${header}
-t1,2023-01-01,12:00,BTCUSDT,Long,Won,50000,49000
-t2,2023-01-02,12:00,BTCUSDT,Long,Open,50000,49000`;
-
-        const [closed, open] = csvService.parseCSVContent(csvContent, {
-            useUtcDateParsing: true,
-        });
-        // The row carries no separate close time; stating the row date keeps
-        // the gate's day attribution measurable.
-        expect(closed.exitDate).toBe(closed.date);
-        // An open row has no close day yet — stamping one would also confuse
-        // duration stats.
-        expect(open.status).toBe("Open");
-        expect(open.exitDate).toBeUndefined();
-    });
-});
