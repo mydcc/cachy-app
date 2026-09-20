@@ -73,7 +73,7 @@ function spyRequest() {
 }
 
 function sentParams(spy: ReturnType<typeof spyRequest>): Record<string, unknown> {
-    const body = spy.mock.calls[0][2] as { params: Record<string, unknown> };
+    const body = spy.mock.calls[0][1] as { params: Record<string, unknown> };
     return body.params;
 }
 

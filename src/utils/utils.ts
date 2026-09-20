@@ -17,6 +17,10 @@
 
 import { Decimal } from "decimal.js";
 import type { JournalEntry } from "../stores/types";
+import {
+  coerceJournalStatus,
+  CLOSED_JOURNAL_STATUSES,
+} from "../lib/journalStatus";
 
 /**
  * Unwraps the `{ success, data }` / `{ success, error }` envelope produced
@@ -565,6 +569,24 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
   // Default flags and arrays
   if (newTrade.isManual === undefined) newTrade.isManual = true;
   if (!Array.isArray(newTrade.tags)) newTrade.tags = [];
+
+  // BUG-0499: a status no counter understands must not flow through as a
+  // string the union never named — coerce it to the legacy terminal status
+  // so amount and close-day completeness apply instead of silent exclusion.
+  newTrade.status = coerceJournalStatus(newTrade.status);
+
+  // BUG-0499: `exitDate` is newer than the journal, so legacy rows predate
+  // it. A closed entry loaded without one gets its row date as close day —
+  // the same attribution the gate used implicitly before, now explicit and
+  // measurable, so history cannot poison today. Open entries are left
+  // alone: they have no close day yet.
+  if (
+    !newTrade.exitDate &&
+    CLOSED_JOURNAL_STATUSES.has(newTrade.status) &&
+    newTrade.date
+  ) {
+    newTrade.exitDate = newTrade.date;
+  }
 
   return newTrade as JournalEntry;
 }

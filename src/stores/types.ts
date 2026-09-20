@@ -155,20 +155,46 @@ export interface AppState {
 export interface CurrentTradeData
   extends TradeValues, BaseMetrics, TotalMetrics {
   tradeType: string;
-  status: string;
+  status: JournalStatus;
   calculatedTpDetails: IndividualTpResult[];
 }
 
 export type FeeRateType = "maker" | "taker";
 
+// The status vocabulary lives in `src/lib/journalStatus.ts` — the
+// architecture boundaries let every layer import values from `lib`, while
+// value imports from `stores/*` are gated. Re-exported here so the
+// `JournalEntry` interface and its statuses stay defined in one place.
+import type { JournalStatus } from "../lib/journalStatus";
+import {
+  KNOWN_JOURNAL_STATUSES,
+  CLOSED_JOURNAL_STATUSES,
+  coerceJournalStatus,
+} from "../lib/journalStatus";
+
+export type { JournalStatus };
+export {
+  KNOWN_JOURNAL_STATUSES,
+  CLOSED_JOURNAL_STATUSES,
+  coerceJournalStatus,
+};
+
 export interface JournalEntry {
   id: number | string;
   date: string;
   entryDate?: string; // For duration calculation
-  exitDate?: string; // New field for duration calculation
+  /**
+   * When the trade's result became real money.
+   *
+   * Duration stats use this as the end of the holding period; the daily-loss
+   * gate attributes the close to this day. Writers set it whenever a status
+   * becomes closed — a closed entry without one cannot be placed in time, and
+   * the gate treats the day as unmeasurable rather than guessing (BUG-0499).
+   */
+  exitDate?: string;
   symbol: string;
   tradeType: string;
-  status: string;
+  status: JournalStatus;
   accountSize: Decimal;
   riskPercentage: Decimal;
   leverage: Decimal;

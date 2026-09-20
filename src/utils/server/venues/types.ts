@@ -32,13 +32,6 @@ import type { PresignedEnvelope } from "../presignedEnvelope";
 
 export type VenueId = "bitunix" | "bitget";
 
-/** Credentials as the routes extract them; `passphrase` is venue-dependent. */
-export interface VenueCredentials {
-  apiKey: string;
-  apiSecret: string;
-  passphrase?: string;
-}
-
 export interface ExchangeAccountData {
   available?: string;
   margin?: string;
@@ -102,14 +95,6 @@ export interface VenueModule {
    */
   readonly requiresPassphrase: boolean;
 
-  /**
-   * Venue-specific credential shape check. Returns null when the
-   * credentials look usable, otherwise the message the route reports.
-   * Kept separate from `requiresPassphrase` because the balance route has
-   * never run this check and gaining it would change its behaviour.
-   */
-  validateKeys(creds: VenueCredentials): string | null;
-
   fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData>;
 
   fetchBalance(envelope: PresignedEnvelope): Promise<string>;
@@ -143,10 +128,18 @@ export interface VenueModule {
    * Runs one order-route action. Resolves to `null` for an action this
    * venue does not implement — the route then answers `null` with 200,
    * exactly as the inline branches did.
+   *
+   * `envelope` is the pre-signed credential the client sent and `venueBody` the
+   * exact bytes it signed; the venue forwards both and computes no signature of
+   * its own, which is what keeps the secret off this process (ADR-0013). On the
+   * route's three query-signed read actions (`pending`, `history`,
+   * `order-detail`) there is no body: the signature covers `envelope.query`, and
+   * `venueBody` is unused.
    */
   executeOrder(
-    creds: VenueCredentials,
+    envelope: PresignedEnvelope,
     payload: OrderRequestPayload,
+    venueBody: string,
   ): Promise<unknown>;
 
   /**

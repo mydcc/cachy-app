@@ -78,7 +78,7 @@ function spyRequest() {
 
 /** The params object as it reached the proxy route. */
 function sentParams(spy: ReturnType<typeof spyRequest>): Record<string, unknown> {
-    const body = spy.mock.calls[0][2] as { params: Record<string, unknown> };
+    const body = spy.mock.calls[0][1] as { params: Record<string, unknown> };
     return body.params;
 }
 
@@ -97,11 +97,10 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         });
 
         expect(spy).toHaveBeenCalledTimes(1);
-        const [method, endpoint, body] = spy.mock.calls[0];
-        expect(method).toBe("POST");
+        const [endpoint, body] = spy.mock.calls[0];
         expect(endpoint).toBe("/api/tpsl");
         expect((body as { action: string }).action).toBe("place-position");
-        expect(spy).toHaveBeenCalledWith("POST", "/api/tpsl", expect.anything(), GATE_PASS);
+        expect(spy).toHaveBeenCalledWith("/api/tpsl", expect.anything(), GATE_PASS);
     });
 
     it("sends both legs when both are given", async () => {
@@ -195,7 +194,7 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
             takeProfit: { price: new Decimal(70000), qty: new Decimal("0.5") },
         });
 
-        expect((spy.mock.calls[0][2] as { action: string }).action).toBe("place");
+        expect((spy.mock.calls[0][1] as { action: string }).action).toBe("place");
     });
 
     it("carries the quantity with its leg", async () => {

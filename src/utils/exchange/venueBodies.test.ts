@@ -30,7 +30,8 @@
  *    degraded signature.
  * 2. **The builders are the only source.** Each venue/action pair dispatches to
  *    the module that owns that body. A venue fed an action it has no body for
- *    (Bitget account-settings, Bitunix cancel) throws instead of inventing one.
+ *    (Bitget account-settings, Bitget modify-order) throws instead of
+ *    inventing one.
  */
 import { describe, expect, it } from "vitest";
 import { generateBitgetSignature } from "../server/bitget";
@@ -46,6 +47,7 @@ import {
 } from "../../types/orderSchemas";
 import {
   buildBitunixAccountSettingBody,
+  buildBitunixCancelOrderBody,
   buildBitunixClosePositionPayload,
   buildBitunixModifyOrderBody,
   buildBitunixOrderPayload,
@@ -86,9 +88,9 @@ const modifyOrder = () =>
     price: "61000",
   });
 
-const cancelOrder = () =>
+const cancelOrder = (exchange: "bitunix" | "bitget" = "bitget") =>
   CancelOrderSchema.parse({
-    exchange: "bitget",
+    exchange,
     type: "cancel-order",
     symbol: "BTCUSDT",
     orderId: "77",
@@ -199,8 +201,15 @@ describe("buildVenueBody refuses a venue/action pair with no body", () => {
     ).toThrow();
   });
 
-  it("refuses Bitunix cancel-order, whose body builder is not written yet", () => {
-    expect(() => buildVenueBody("bitunix", cancelOrder())).toThrow();
+  it("builds the Bitunix cancel body as { symbol, orderList }", () => {
+    // FEAT-0405 A5b — the builder this test used to assert missing landed
+    // with the orders cutover (`trade/cancel_orders` POST body,
+    // `docs/bitunix-api/07_trade.md`).
+    const payload = cancelOrder("bitunix");
+
+    expect(buildVenueBody("bitunix", payload)).toBe(
+      JSON.stringify(buildBitunixCancelOrderBody(payload)),
+    );
   });
 
   it("refuses Bitget modify-order, which has no verified request format", () => {

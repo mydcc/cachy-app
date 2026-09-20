@@ -173,7 +173,7 @@ describe("TradeService Safety - Flash Close", () => {
         expect(result.success).toBe(true);
         // Closing a long: side matches the position (BUY), not inverted —
         // see buildCloseOrderFields (BUG-0062/BUG-0063).
-        expect(requestSpy).toHaveBeenCalledWith("POST", "/api/orders", expect.objectContaining({
+        expect(requestSpy).toHaveBeenCalledWith("/api/orders", expect.objectContaining({
             symbol: "BTCUSDT",
             side: "BUY",
             tradeSide: "CLOSE",

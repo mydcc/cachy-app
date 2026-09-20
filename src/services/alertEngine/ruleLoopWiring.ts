@@ -46,7 +46,13 @@ import {
   type UnevaluableSink,
 } from "./ruleEvaluationLoop";
 import { recordFiring } from "./shadowLedger";
-import { readRuleState } from "./ruleStateStore";
+import { clearBotAnchors, readBotAnchors, readRuleState, saveBotAnchors } from "./ruleStateStore";
+import { isBot } from "./botStore";
+import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
+import { drawingStore } from "../../stores/drawings.svelte";
+import { readDrawingAnchorLedger } from "./drawingAnchors";
+import { resolveDrawingThreshold } from "./drawingThreshold";
+import { readDrawingStoreSnapshot } from "./reconcileDrawingRules";
 
 /**
  * The closed candles of one series, oldest first.
@@ -330,6 +336,36 @@ export const settingsAwareUnevaluableSink: UnevaluableSink = (rule) => {
  * The disposer is idempotent and safe to call on a loop that was never armed —
  * `disarm()` only writes the unconfigured defaults back.
  */
+/**
+ * FEAT-0029 — where a drawing-anchored rule's threshold comes from.
+ *
+ * `drawingStore.load()` is called on every resolution and is idempotent: the
+ * engine runs whether or not a chart window is open, so it cannot rely on the
+ * chart having hydrated the store first.
+ *
+ * A refusal is reported through the loop's existing unevaluable channel rather
+ * than through a new one. That channel already dedupes per rule and already
+ * reaches the panel — a rule whose drawing was deleted is exactly what it
+ * means by inert, and giving it a second path would be a second dialect.
+ */
+export function drawingThresholdResolver(
+  rule: RuleDocument,
+  anchorMs: number,
+): { rule: RuleDocument } | { unevaluable: string } {
+  drawingStore.load();
+  const resolved = resolveDrawingThreshold(rule, anchorMs, {
+    ledger: readDrawingAnchorLedger,
+    drawing: (id) => drawingStore.byId(id),
+    storePresent: () => readDrawingStoreSnapshot().present,
+  });
+
+  if (resolved.kind === "not-anchored") return { rule };
+  if (resolved.kind === "rewritten") return { rule: resolved.rule };
+  // Developer-facing English, as `UnevaluableRule.reason` specifies; the panel
+  // renders its own wording from it.
+  return { unevaluable: `${resolved.reason} (drawing ${resolved.drawingId})` };
+}
+
 export function startRuleEvaluationLoop(
   onFiring: FiringSink = ledgerSink,
   onClose?: SeriesCloseHook,
@@ -351,6 +387,20 @@ export function startRuleEvaluationLoop(
     onFiring,
     onClose,
     onUnevaluable: settingsAwareUnevaluableSink,
+    // FEAT-0029: without this a drawing-anchored rule evaluates against the
+    // constant it was stored with, which stops following the line the moment
+    // the trader moves it.
+    resolveThreshold: drawingThresholdResolver,
+  });
+  // BUG-0491: bind the gate's durable half. Without this the gate dedupes
+  // within the session only, and an `every_time` bot re-orders the same
+  // candle after a reload. Bound here — the one place that owns store access
+  // on the loop's behalf — so the gate itself stays free of storage imports.
+  ruleEvaluationGate.setBotAnchorPersistence({
+    isBotRule: (document) => isBot(document),
+    load: (ruleId) => readBotAnchors(ruleId),
+    save: (ruleId, snapshot) => saveBotAnchors(ruleId, snapshot),
+    clear: (ruleId) => clearBotAnchors(ruleId),
   });
   logger.log(
     "alerts",
@@ -362,6 +412,10 @@ export function startRuleEvaluationLoop(
   return () => {
     if (!ruleEvaluationLoop.isArmed()) return;
     ruleEvaluationLoop.disarm();
+    // BUG-0491: unbind the gate's durable half with the loop. Re-arming
+    // re-binds it (idempotent), and a disarmed loop evaluates nothing, so no
+    // anchor can go unrecorded in between.
+    ruleEvaluationGate.setBotAnchorPersistence(null);
     // `error`, not `log`: every alert the loop was serving has to be back on
     // the legacy engine by the time this runs, and a rule the panel created
     // without a legacy alert behind it is now evaluated by nothing at all.

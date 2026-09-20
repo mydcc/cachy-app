@@ -65,7 +65,7 @@ In an era of data breaches, Cachy takes a radical stance: **We don't want your d
 Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 
 - **Frontend**: A rich Single Page Application (SPA) powered by SvelteKit. It handles 95% of the logic, including data processing, chart rendering, and state management.
-- **Backend (Serverless/Node)**: A lightweight API Proxy layer hosted within SvelteKit (`src/routes/api/`). Its primary purpose is to sign requests for exchanges (Bitunix/Bitget) server-side and to handle AI-driven diagnostics.
+- **Backend (Serverless/Node)**: A lightweight API Proxy layer hosted within SvelteKit (`src/routes/api/`). Its primary purpose is to forward pre-signed requests to exchanges (Bitunix/Bitget) — the browser signs via WebCrypto, the proxy verifies the envelope and relays it — and to handle AI-driven diagnostics.
 
 ### Technology Stack
 
@@ -110,16 +110,15 @@ Located in `src/routes/api/`, this layer acts as a security gateway.
 
 **The Problem**: Exchange APIs (Bitunix) require requests to be signed with an `API_SECRET`. If we make these requests from the browser, we must expose the Secret to the user's DevTools.
 
-**The Solution (current transitional state)**:
+**The Solution (ADR-0013, completed)**:
 
-1. Client sends request to `POST /api/sync/orders`.
-2. Client includes `API_KEY` and `API_SECRET` in custom headers (transported via HTTPS).
-3. Server (Node.js context) receives headers.
-4. Server constructs the payload and computes the venue-specific signature using the Secret (Bitunix double-SHA256, Bitget HMAC-SHA256-Base64).
-5. Server calls the exchange API.
-6. Server returns the JSON result to Client.
+1. Client signs the request in the browser with `API_SECRET` via WebCrypto (`src/utils/crypto/exchangeSigning.ts`) — Bitunix double-SHA256, Bitget HMAC-SHA256-Base64.
+2. Client sends the pre-signed envelope to `POST /api/sync/orders`: `API_KEY`, timestamp, nonce and signature in custom headers (transported via HTTPS), alongside the payload. The secret itself is the HMAC key and never leaves the device.
+3. Server (Node.js context) receives the envelope and rebuilds the exact bytes the client claims to have signed.
+4. Server compares the two (`PRESIGNED_DIVERGENCE` on mismatch) and forwards the client's bytes to the exchange API verbatim — it cannot re-sign, because it never sees the secret.
+5. Server returns the JSON result to Client.
 
-_Note: While secrets travel from Client to Server, the Server is stateless and does not log or store them. Per accepted ADR-0013, signing moves client-side via WebCrypto so raw secrets never leave the device — the signing engine (`src/utils/crypto/exchangeSigning.ts`) is implemented and tested, and migration of the REST paths is still pending._
+_Note: raw exchange secrets never leave the device. The server is stateless and does not log or store credentials; a compromised runtime holds at most an API key (plus the Bitget passphrase, which cannot produce a signature without the secret). Per ADR-0013, all REST trade/sync routes migrated to this envelope; the WebSocket private-channel login already signed in the browser._
 
 ---
 
@@ -406,7 +405,7 @@ _Component: `TradeSetupInputs.svelte` -> `apiService.ts`_
 1. **User Action**: Clicks "Long".
 2. **Payload Construction**: The App bundles Entry, SL, TP, and Size into a standardized JSON.
 3. **Proxy Call**: `POST /api/orders`.
-4. **Signing**: The Node.js server signs the request with the user's API Secret (transitional state — see chapter 2; ADR-0013 moves signing client-side).
+4. **Signing**: The browser signs the request with the user's API Secret via WebCrypto (ADR-0013); the Node.js proxy forwards the pre-signed envelope without ever seeing the secret.
 5. **Exchange Confirmation**: Bitunix returns an Order ID.
 
 ### Phase 3: Monitoring (The Store Layer)
@@ -505,8 +504,8 @@ To support the "Community First" principle, Cachy ensures user data is never loc
 Cachy acts as a pass-through entity.
 
 - **Client Side**: API Keys are stored in the browser. They are _never_ sent to Cachy's server for storage.
-- **Transit**: Keys are sent only in the HTTP Headers of specific API requests.
-- **Server Side**: The Node.js proxy receives the request, signs it using the Secret, forwards it to the exchange, and immediately discards the credentials from memory. No logs are kept. (Transitional state — see chapter 2; ADR-0013 moves signing client-side.)
+- **Transit**: Only signature material travels in the HTTP Headers of specific API requests (key, timestamp, nonce, signature) — the secret itself never leaves the device.
+- **Server Side**: The Node.js proxy receives the pre-signed envelope, checks it against its own rebuild of the signed bytes and forwards it unchanged to the exchange. The secret never reaches the server, so there is nothing to sign with and nothing to leak — nothing to log, nothing to store.
 
 ### Route Authentication: Self-Issued Client Tokens
 

@@ -115,7 +115,6 @@ describe('TradeService Flash Close Vulnerability', () => {
         // side matches the position (BUY), not inverted — see
         // buildCloseOrderFields (BUG-0062/BUG-0063).
         expect(requestSpy).toHaveBeenCalledWith(
-            'POST',
             '/api/orders',
             expect.objectContaining({ side: 'BUY', tradeSide: 'CLOSE', orderType: 'MARKET', reduceOnly: true }),
             GATE_PASS

@@ -50,6 +50,27 @@ vi.mock("./tradeService", () => ({
     },
 }));
 
+/*
+ * BUG-0503 divergence cover: no venue declares attach=false with
+ * standalone=true today, so the `replaceStop` flag swap is unobservable
+ * through real declarations alone. This mock lets one test declare that
+ * combination. Delegates to the real lookup by default, so every other
+ * test in this file reads the true table; the diverging test overrides
+ * within itself and the shared `beforeEach` below re-establishes the
+ * delegation (after `restoreAllMocks`, whatever it does to the wrapper).
+ */
+const capsDouble = vi.hoisted(() => ({
+    real: null as null | ((exchange: string) => import("./exchange/capabilityTypes").ExchangeCapabilities),
+    mock: null as null | ReturnType<typeof vi.fn>,
+}));
+vi.mock("./exchangeCapabilities", async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import("./exchangeCapabilities")>();
+    capsDouble.real = actual.capabilitiesOf;
+    capsDouble.mock = vi.fn((exchange: string) => capsDouble.real!(exchange));
+    return { ...actual, capabilitiesOf: capsDouble.mock };
+});
+
 // Driven by plain hoisted state rather than spies: a spyOn against a mocked
 // module survives clearAllMocks and leaks its implementation into every test
 // after it, which is how this file's first draft passed for the wrong reason.
@@ -108,6 +129,9 @@ beforeEach(() => {
     flashClose.mockReset();
     placePositionTpSl.mockReset();
     account.requestSync.mockReset();
+    // Back to the true capability table (see the `capsDouble` mock above).
+    capsDouble.mock?.mockReset();
+    capsDouble.mock?.mockImplementation((exchange: string) => capsDouble.real!(exchange));
     account.positions = [];
     placeOrder.mockResolvedValue({ clientId: "cachy-abc", result: {} });
     // By default the exchange did what it was told.
@@ -399,7 +423,17 @@ describe("BUG-0290 — stop retry re-places the stop", () => {
     });
 });
 
-describe("FEAT-0021 — exchanges that cannot attach protection", () => {
+/*
+ * BUG-0503 — a venue with no standalone stop path retries nothing.
+ *
+ * (What the trader sees — the entry refused before it is sent — is a gate
+ * verdict and lives in `orderGate.capabilities.test.ts` and
+ * `orderPlacementService.gateIntegration.test.ts`. `tradeService` is mocked here, so the gate never runs; what
+ * this pins is the placement side: once the entry exists unprotected on such
+ * a venue, the confirmation returns the honest outcome immediately instead
+ * of spending the retry budget around a no-op.)
+ */
+describe("BUG-0503 — exchanges with no standalone stop path", () => {
     it("does not send tp/sl with the entry on Bitget", async () => {
         await orderPlacementService.placeEntryGroup(plan({ exchange: "bitget" }));
 
@@ -415,6 +449,85 @@ describe("FEAT-0021 — exchanges that cannot attach protection", () => {
         );
         expect(result.unprotected).toBe(true);
         expect(closePosition).not.toHaveBeenCalled();
+    });
+
+    it("never attempts a standalone re-place where none exists", async () => {
+        plans.value = {};
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        await orderPlacementService.placeEntryGroup(plan({ exchange: "bitget" }));
+
+        // `replaceStop` reads `tpSlStandalone`, not `tpSlAtEntry` — on Bitget
+        // there is no second request to make, so none is made.
+        expect(placePositionTpSl).not.toHaveBeenCalled();
+    });
+
+    it("spends no retry delay where no retry is possible", async () => {
+        // The whole point: an unprotected position must be reported, not
+        // waited on. If the implementation slept around the no-op again,
+        // this `await` would never resolve under the fake clock.
+        vi.useFakeTimers();
+        try {
+            plans.value = {};
+            const result = await orderPlacementService.placeEntryGroup(
+                plan({ exchange: "bitget" }),
+            );
+            expect(result.unprotected).toBe(true);
+            expect(result.stopLoss).toBe("failed");
+            // One look, no revisits: the retry loop returned on its first pass.
+            expect(plans.looks).toBe(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("still retries where a standalone path exists", async () => {
+        plans.value = {};
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        await orderPlacementService.placeEntryGroup(plan());
+
+        // Bitunix declares both halves, so the retry path is unchanged.
+        expect(placePositionTpSl).toHaveBeenCalled();
+    });
+
+    it("retries the standalone stop where attachment is absent", async () => {
+        /*
+         * The flags diverge only in this test: attachment absent, standalone
+         * present — a combination no venue declares today. Under the old
+         * `tpSlAtEntry` read `replaceStop` returned early here and the retry
+         * window burned two sleeps around a no-op; under `tpSlStandalone`
+         * the standalone placement is attempted. Fails on the old read,
+         * passes on the new one.
+         */
+        capsDouble.mock!.mockReturnValue({
+            orderTypes: ["market", "limit"],
+            tpSlAtEntry: false,
+            tpSlStandalone: true,
+            timeInForce: [],
+            multipleTakeProfits: false,
+            marginModes: [],
+            positionModes: [],
+            trailingStop: false,
+            addToPosition: true,
+        });
+        plans.value = {};
+        account.positions = [{ positionId: "pos-1", symbol: "BTCUSDT", side: "long" }];
+
+        const result = await orderPlacementService.placeEntryGroup(
+            plan({ exchange: "bitget" }),
+        );
+
+        // Nothing rides along, but the standalone path is attempted twice
+        // across the retry window — and the honest outcome is unchanged.
+        expect(placeOrder.mock.calls[0][0].stopLoss).toBeUndefined();
+        expect(placePositionTpSl).toHaveBeenCalledTimes(2);
+        expect(placePositionTpSl.mock.calls[0][0]).toMatchObject({
+            symbol: "BTCUSDT",
+            positionId: "pos-1",
+        });
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
     });
 });
 
@@ -486,5 +599,96 @@ describe("FEAT-0017 — time in force against venue capabilities", () => {
             plan({ entryType: "market", timeInForce: "IOC" }),
         );
         expect(effectOf()).toBeUndefined();
+    });
+});
+
+/*
+ * BUG-0502 — the post-placement check must prove causation, not coincidence.
+ * A plan that was already on the symbol, sits at the wrong price, or belongs
+ * to the opposite side must never report the new position as protected.
+ */
+describe("BUG-0502 — protection check matches the new stop, not any stop", () => {
+    it("reports unprotected when only a pre-existing stop is on the symbol", async () => {
+        // The old plan is there before the entry and never changes: the new
+        // stop was not accepted. Same object on every read, so it is also in
+        // the before-image — identity alone must exclude it.
+        plans.value = {
+            loss: { orderId: "old-stop-1", triggerPrice: "49000" },
+            profit: { orderId: "old-tp-1", triggerPrice: "51000" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.entryPlaced).toBe(true);
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+        expect(result.errorKey).toBe("orderEntry.errors.unprotected");
+    });
+
+    it("does not settle on a stop at the wrong price", async () => {
+        // No order id here on purpose: identity cannot exclude this one, so
+        // only the price comparison stands between it and a false "attached".
+        plans.value = {
+            loss: { triggerPrice: "49000" },
+            profit: { triggerPrice: "51000" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+    });
+
+    it("does not settle on a stop belonging to the opposite side", async () => {
+        // Long entry (BUY). The stop on the symbol protects a short (SELL).
+        plans.value = {
+            loss: { triggerPrice: "49500", side: "SELL" },
+            profit: { triggerPrice: "51000", side: "SELL" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result.stopLoss).toBe("failed");
+        expect(result.unprotected).toBe(true);
+    });
+
+    it("still attaches when the stop matches price and side", async () => {
+        // Nothing on the symbol before the entry; the venue publishes the
+        // new plans afterwards. The before-image is empty, so identity lets
+        // them through and price plus side confirm them.
+        plans.value = {};
+        plans.onLook = (n) => {
+            if (n >= 1) {
+                plans.value = {
+                    loss: { orderId: "new-stop-9", triggerPrice: "49500", side: "BUY" },
+                    profit: { orderId: "new-tp-9", triggerPrice: "51000", side: "BUY" },
+                };
+            }
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        expect(result).toMatchObject({
+            entryPlaced: true,
+            stopLoss: "attached",
+            takeProfit: "attached",
+            unprotected: false,
+        });
+    });
+
+    it("applies the same causation to the take-profit half", async () => {
+        plans.value = {
+            loss: { triggerPrice: "49500" },
+            profit: { triggerPrice: "52000" },
+        };
+
+        const result = await orderPlacementService.placeEntryGroup(plan());
+
+        // A missing target costs upside, not capital — loud, but not
+        // "unprotected".
+        expect(result.takeProfit).toBe("failed");
+        expect(result.stopLoss).toBe("attached");
+        expect(result.unprotected).toBe(false);
+        expect(result.errorKey).toBe("orderEntry.errors.targetMissing");
     });
 });

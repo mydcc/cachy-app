@@ -56,7 +56,7 @@ import { omsService } from '../services/omsService';
 
 describe('Flash Close Race Condition Reproduction', () => {
     let signedRequestSpy: MockInstance<
-        (method: string, endpoint: string, payload: Record<string, unknown>) => Promise<unknown>
+        (endpoint: string, payload: Record<string, unknown>) => Promise<unknown>
     >;
 
     beforeEach(() => {
@@ -94,17 +94,15 @@ describe('Flash Close Race Condition Reproduction', () => {
         // 1. cancel-all request FAILS (e.g. timeout or error)
         // 2. We verify that the close order IS EXECUTED (Priority: Close Position)
 
-        signedRequestSpy.mockImplementation(async (method: string, endpoint: string, body: Record<string, unknown>) => {
-            // Simulate Cancel All Failure
-            if (endpoint === '/api/orders' && method === 'DELETE') {
+        signedRequestSpy.mockImplementation(async (endpoint: string, body: Record<string, unknown>) => {
+            // Simulate Cancel All Failure — FEAT-0405 A5b: cancel-all is a
+            // `type` on POST /api/orders, not a DELETE.
+            if (endpoint === '/api/orders' && (body as { type?: string }).type === 'cancel-all') {
                  throw new Error('Cancel All Failed (Simulated)');
             }
-            // Mock Cancel All (Bitunix specific?) - check implementation details
-            // Bitunix cancel-all usually might be specific endpoint or DELETE /api/orders with params
-            // Assuming generic check for now, but looking at tradeService implementation is better.
 
             // Allow Place Order
-            if (endpoint === '/api/orders' && method === 'POST' && body.side === 'BUY') {
+            if (endpoint === '/api/orders' && (body as { side?: string }).side === 'BUY') {
                 return { code: 0, msg: 'success', data: { orderId: '123' } };
             }
             return {};
@@ -122,7 +120,7 @@ describe('Flash Close Race Condition Reproduction', () => {
         // We can check if any call threw? No, we mocked it to throw.
 
         // Verify Close WAS called
-        const closeCall = calls.find((call) => call[1] === '/api/orders' && call[2] && call[2].side === 'BUY');
+        const closeCall = calls.find((call) => call[0] === '/api/orders' && call[1] && call[1].side === 'BUY');
         expect(closeCall).toBeDefined();
     });
 });

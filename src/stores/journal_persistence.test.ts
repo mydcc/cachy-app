@@ -312,3 +312,112 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
     journal.destroy();
   });
 });
+
+describe("JournalManager.updateEntry — BUG-0499 (writers guarantee a close day)", () => {
+  it("stamps exitDate when an open entry transitions to closed without one", () => {
+    const journal = new JournalManager();
+    try {
+      const open = { ...createTestEntry("t-open", "0"), status: "Open" } as JournalEntry;
+      delete open.exitDate;
+      journal.addEntry(open);
+
+      journal.updateEntry({ ...open, status: "Lost" });
+
+      const stored = journal.entries.find((e) => e.id === "t-open");
+      expect(stored?.status).toBe("Lost");
+      expect(stored?.exitDate).toBeTruthy();
+    } finally {
+      journal.destroy();
+    }
+  });
+
+  it("never rewrites exitDate on unrelated edits to an already-closed entry", () => {
+    const journal = new JournalManager();
+    try {
+      const closed = createTestEntry("t-closed", "-50");
+      journal.addEntry(closed);
+      const originalExit = closed.exitDate;
+
+      journal.updateEntry({ ...closed, notes: "edited later" });
+
+      const stored = journal.entries.find((e) => e.id === "t-closed");
+      expect(stored?.exitDate).toBe(originalExit);
+    } finally {
+      journal.destroy();
+    }
+  });
+
+  it("keeps an explicitly provided exitDate on close", () => {
+    const journal = new JournalManager();
+    try {
+      const open = { ...createTestEntry("t-explicit", "0"), status: "Open" } as JournalEntry;
+      delete open.exitDate;
+      journal.addEntry(open);
+
+      const pinned = "2026-08-30T12:00:00.000Z";
+      journal.updateEntry({ ...open, status: "Won", exitDate: pinned });
+
+      const stored = journal.entries.find((e) => e.id === "t-explicit");
+      expect(stored?.exitDate).toBe(pinned);
+    } finally {
+      journal.destroy();
+    }
+  });
+});
+
+describe("JournalManager.load — BUG-0499 (legacy migration is explicit)", () => {
+  beforeEach(() => {
+    journalState.destroy();
+    localStorageMock.clear();
+  });
+
+  afterEach(() => {
+    journalState.destroy();
+  });
+
+  it("coerces a foreign stored status to Closed and backfills its close day", () => {
+    // A pre-existing closed trade from before `exitDate` existed: no close
+    // day on the record, and a status wording no counter understands. Load
+    // must migrate it to something measurable instead of silently dropping
+    // it from every filter.
+    const legacy = {
+      ...createTestEntry("t-legacy", "-50"),
+      status: "Breakeven",
+    } as unknown as Record<string, unknown>;
+    delete legacy.exitDate;
+    localStorageMock.setItem(
+      CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+      JSON.stringify([legacy]),
+    );
+
+    const journal = new JournalManager();
+    try {
+      const stored = journal.entries.find((e) => e.id === "t-legacy");
+      expect(stored?.status).toBe("Closed");
+      expect(stored?.exitDate).toBe(stored?.date);
+    } finally {
+      journal.destroy();
+    }
+  });
+
+  it("leaves open entries without a close day on load", () => {
+    const open = {
+      ...createTestEntry("t-open-load", "0"),
+      status: "Open",
+    } as unknown as Record<string, unknown>;
+    delete open.exitDate;
+    localStorageMock.setItem(
+      CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+      JSON.stringify([open]),
+    );
+
+    const journal = new JournalManager();
+    try {
+      const stored = journal.entries.find((e) => e.id === "t-open-load");
+      expect(stored?.status).toBe("Open");
+      expect(stored?.exitDate).toBeUndefined();
+    } finally {
+      journal.destroy();
+    }
+  });
+});

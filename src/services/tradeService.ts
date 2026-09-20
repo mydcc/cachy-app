@@ -68,7 +68,7 @@ import {
     type DisplayedState,
     type OrderIntent,
 } from "./orderGate";
-import { exchangeSignedFetch } from "../utils/exchange/browserSigning";
+import { exchangeSignedFetch, SIGNING_ERRORS } from "../utils/exchange/browserSigning";
 import {
     cachyAction,
     planForRoute,
@@ -77,49 +77,12 @@ import {
 import {
     buildAccountQueryParams,
     buildLeverageMarginModeQueryParams,
+    buildOrderDetailQueryParams,
     buildTpslReadQueryParams,
     buildTpslWriteBody,
 } from "../utils/exchange/venueQueries";
 import { AccountSettingsRequestSchema } from "../types/accountSettingsSchemas";
-
-/**
- * FEAT-0405 cutover window — routes whose transport already signs in the
- * browser.
- *
- * A route is added here in the same commit that teaches its handler to read an
- * envelope, because the two halves are useless apart: an enveloped request to
- * an unmigrated handler is rejected exactly as an unmigrated request to a
- * migrated one. `/api/orders` is still off the list, so it keeps carrying the
- * secret on the wire until the multi-venue PR migrates it; this set and the
- * branch it guards go away with the last route.
- */
-const ENVELOPE_SIGNED_ROUTES = new Set<string>(["/api/tpsl"]);
-
-/**
- * The body bytes a body-signed action signs, built by the *same* function its
- * handler rebuilds them with.
- *
- * The handler cannot re-derive the client's bytes; it compares what arrived
- * against its own rebuild, so a second serialisation that drops `null` (or
- * orders keys differently) reads as a divergence and the request is refused.
- * `venueBodies.ts` is this same idea for the two multi-venue routes; these are
- * the body-signed routes among the Bitunix-only ones.
- *
- * `/api/tpsl` is the one entry that also has to unwrap. Its write actions are
- * the only place where what the caller hands `signedRequest` is *not* the body
- * the venue reads: the caller passes the `{ exchange, action, symbol, orderId,
- * params }` wrapper because `exchange` and `action` are the transport's
- * business, and the route forwards the signed bytes to Bitunix verbatim. So
- * the venue body is `params`, and signing the wrapper would send Bitunix
- * `{ exchange, action, … }` in place of `{ orderId, symbol, planType }`.
- */
-const ENVELOPE_BODY_BUILDERS: Record<
-    string,
-    (payload: Record<string, unknown>) => string
-> = {
-    "/api/tpsl": (payload) =>
-        buildTpslWriteBody(payload.params as Record<string, unknown>),
-};
+import { OrderRequestSchema } from "../types/orderSchemas";
 
 export interface TpSlOrder {
     orderId: string;
@@ -296,7 +259,6 @@ class TradeService {
     // unverified order. A source-level scan catches the same mistake
     // earlier; see src/tests/architecture/order_gate_bypass.test.ts.
     public async signedRequest<T>(
-        method: string,
         endpoint: string,
         payload: Record<string, unknown>,
         pass?: GatePass,
@@ -366,15 +328,40 @@ class TradeService {
         // Deep serialize Decimals to strings before JSON.stringify
         const serializedPayload = this.serializePayload(payloadWithExchange);
 
+        // FEAT-0405 A5 — the orders schema is not a pass-through. It defaults
+        // `marginCoin`, uppercases `side` and clamps `limit`, and the route
+        // builds its rebuild of the signed bytes from *its* parse. Signing the
+        // raw payload here would therefore be a different string and every
+        // order would come back as `PRESIGNED_DIVERGENCE` before Bitunix saw
+        // it — the same trap the account-settings transport sidesteps by
+        // parsing first, and for the same reason.
+        const signedPayload =
+            endpoint === "/api/orders"
+                ? this.parseOrderPayload(serializedPayload)
+                : serializedPayload;
+
         const plan = planForRoute(endpoint);
         // A route whose shape varies per action is told which action it is
         // through its URL — see `cachyAction` in restSigningPlan.ts. The
         // caller already named it in the payload, so the transport moves it
         // to where the route looks rather than making every call site carry
         // the query string itself.
+        //
+        // The discriminator is the payload's `type` as well as its `action`:
+        // `/api/orders` names its actions in `type` (the field its Zod schema
+        // and its venue dispatch both switch on), and a read left without the
+        // URL parameter would resolve as a body-signed action and be signed
+        // wrongly. `/api/tpsl` uses `action`, so the two spellings are both
+        // read here rather than making every call site carry a query string.
+        const actionForUrl =
+            typeof payload.action === "string"
+                ? payload.action
+                : typeof payload.type === "string"
+                  ? payload.type
+                  : undefined;
         const routeUrl =
-            plan?.signedByAction && typeof payload.action === "string"
-                ? `${endpoint}?action=${encodeURIComponent(payload.action)}`
+            plan?.signedByAction && actionForUrl !== undefined
+                ? `${endpoint}?action=${encodeURIComponent(actionForUrl)}`
                 : endpoint;
 
         // Shape is resolved from the URL, the same way `signCachyRequest`
@@ -383,19 +370,44 @@ class TradeService {
         // query-signed one the body is only Cachy's own wrapper and must stay an
         // object — fixing the read actions to the write builder would send a
         // JSON string where the route validates `{ exchange, action, params }`.
-        const shape = plan ? signatureShapeFor(plan, cachyAction(routeUrl)) : undefined;
-        const bodyBuilder = shape === "body" ? ENVELOPE_BODY_BUILDERS[endpoint] : undefined;
+        //
+        // FEAT-0405 A5 — every route in the table now reads an envelope, so this
+        // is unconditional. The legacy branch that carried `X-Api-Secret` and
+        // the set that gated it are gone: a route absent from the table has no
+        // plan, and signing it is refused below rather than sent with a secret.
+        if (!plan) {
+            throw new Error(SIGNING_ERRORS.ROUTE_NOT_MIGRATED);
+        }
+        const shape = signatureShapeFor(plan, cachyAction(routeUrl));
+        // `/api/tpsl` is the one route whose signed bytes are not the payload:
+        // its write callers hand over the `{ exchange, action, …, params }`
+        // wrapper (the gate reads symbol/orderId off the top level), while the
+        // venue reads `params` — so the venue body is built from `params`
+        // through the same builder the route rebuilds it with. Every other
+        // body-signed payload already *is* the venue's own object.
+        const params = (signedPayload as Record<string, unknown>)?.params;
+        const signingPayload =
+            shape === "body" &&
+            endpoint === "/api/tpsl" &&
+            typeof params === "object" &&
+            params !== null &&
+            !Array.isArray(params)
+                ? buildTpslWriteBody(params as Record<string, unknown>)
+                : signedPayload;
 
-        const response = plan && ENVELOPE_SIGNED_ROUTES.has(endpoint)
-            ? await exchangeSignedFetch({
+        const response = await exchangeSignedFetch({
                   cachyPath: routeUrl,
                   // Declared, not just embedded: `routeUrl` already carries
                   // this in its query string, and the mismatch guard inside
                   // fires if the two ever disagree — one source of truth,
                   // checked twice.
-                  action: typeof payload.action === "string" ? payload.action : undefined,
+                  action: actionForUrl,
                   keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
-                  method,
+                  // The *venue* method, which Bitget folds into its prehash and
+                  // Bitunix ignores. Taken from the shape rather than from the
+                  // caller's argument: a query-signed action reads, and signing
+                  // it as `POST` would be a signature Bitget rejects.
+                  method: shape === "body" ? "POST" : "GET",
                   // Named rather than inferred. The route used to enforce this
                   // itself, by reading `exchange` out of the body and answering
                   // 400 for anything but Bitunix; that check left with the
@@ -406,27 +418,13 @@ class TradeService {
                   // Still named here: the route reads the provider to resolve
                   // its venue, and the envelope only carries credentials.
                   headers: { "X-Provider": provider },
-                  // `bodyBuilder` is set only on a body-signed route, where the
-                  // payload is the venue's JSON object by construction — the
-                  // shape `serializePayload` cannot express because it walks
-                  // arrays and nested values too. The route re-validates the
-                  // result with Zod, so a payload that is not an object is
+                  // `signingPayload` is the venue's JSON object by construction —
+                  // the shape `serializePayload` cannot express because it
+                  // walks arrays and nested values too. The route re-validates
+                  // the result with Zod, so a payload that is not an object is
                   // refused there rather than forwarded.
-                  payload: bodyBuilder
-                      ? bodyBuilder(serializedPayload as Record<string, unknown>)
-                      : serializedPayload,
+                  payload: signingPayload,
                   queryParams,
-              })
-            : await appFetch(routeUrl, {
-                  method,
-                  headers: {
-                      "Content-Type": "application/json",
-                      "X-Provider": provider,
-                      "X-Api-Key": keys.key,
-                      "X-Api-Secret": keys.secret,
-                      ...(keys.passphrase ? { "X-Api-Passphrase": keys.passphrase } : {})
-                  },
-                  body: JSON.stringify(serializedPayload)
               });
 
         const text = await response.text();
@@ -893,6 +891,28 @@ class TradeService {
     }
 
     // Helper to safely serialize Decimals to strings
+    /**
+     * Validates an order payload before it is signed (FEAT-0405 A5).
+     *
+     * The route validates the body it receives and rebuilds the signed bytes
+     * from *that* parse, so this is the only way both sides can arrive at the
+     * same string. Throws rather than falling back to the raw payload: a
+     * payload the route would refuse is not one to sign, and a silent fallback
+     * would surface as a divergence in the middle of a trade.
+     */
+    private parseOrderPayload(
+        payload: unknown,
+    ): Record<string, unknown> {
+        const parsed = OrderRequestSchema.safeParse(payload);
+        if (!parsed.success) {
+            const details = parsed.error.issues
+                .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+                .join(", ");
+            throw new BitunixApiError("VALIDATION_ERROR", "apiErrors.generic", details);
+        }
+        return parsed.data as Record<string, unknown>;
+    }
+
     private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
         if (depth > 20) {
             logger.warn("market", "[TradeService] Serialization depth limit exceeded");
@@ -1010,10 +1030,10 @@ class TradeService {
         };
     }
 
-    private async gatedRequest<T>(intent: PartialIntent, method = "POST"): Promise<T> {
+    private async gatedRequest<T>(intent: PartialIntent): Promise<T> {
         const full = this.completeIntent(intent);
         const result = await orderGate.submit<T>(full, (pass) =>
-            this.signedRequest<T>(method, full.endpoint, full.payload, pass),
+            this.signedRequest<T>(full.endpoint, full.payload, pass),
         );
         // Eager post-action reconciliation: refresh account balance & positions
         try {
@@ -1857,11 +1877,19 @@ class TradeService {
         if (!orderId && !clientId) {
             throw new Error("Either orderId or clientId must be provided");
         }
-        return await this.signedRequest<NormalizedOrder>("POST", "/api/orders", {
-            type: "order-detail",
-            orderId,
-            clientId,
-        });
+        return await this.signedRequest<NormalizedOrder>(
+            "/api/orders",
+            {
+                type: "order-detail",
+                orderId,
+                clientId,
+            },
+            undefined,
+            // `order-detail` is one of the three query-signed actions, so the
+            // venue signature covers these parameters rather than the body —
+            // built here through the same function the route rebuilds them with.
+            buildOrderDetailQueryParams({ orderId, clientId }),
+        );
     }
 
     public async modifyOrder(params: ModifyOrderParams) {
@@ -1957,7 +1985,6 @@ class TradeService {
                               if (sym) params.symbol = sym;
 
                               const data = await this.signedRequest<Record<string, unknown>>(
-                                  "POST",
                                   "/api/tpsl",
                                   { exchange: "bitunix", action: view, params },
                                   undefined,
@@ -2007,10 +2034,8 @@ class TradeService {
              // Generic provider — live-Bitget never arrives here: its adapter
              // gates this read on SUPPORTS.tpSl (false) and resolves empty, so
              // no Bitunix-only envelope is ever signed with Bitget keys outside
-             // paper mode, where the seam below answers simulated. Removal rides
-             // with the A5 cleanup that deletes ENVELOPE_SIGNED_ROUTES.
+             // paper mode, where the seam below answers simulated.
              const data = await this.signedRequest<Record<string, unknown>>(
-                  "POST",
                   "/api/tpsl",
                   { action: view },
                   undefined,

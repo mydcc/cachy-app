@@ -745,6 +745,32 @@ class OrderGate {
             }
 
             /*
+             * BUG-0503 — a displayed stop the venue can neither attach to the
+             * entry (`tpSlAtEntry`) nor take as a standalone request
+             * (`tpSlStandalone`) is unfulfillable as specified: sending the
+             * entry anyway opens a position that can never be protected, and
+             * no later request can repair it. Refused here, before anything
+             * leaves, naming the venue and the missing capability.
+             *
+             * Only a real stop counts: a non-positive level means "no stop
+             * requested" (the same reading `orderPlacementService` uses for
+             * `wantsStop`), so a deliberately stopless entry still passes.
+             * Scoped to `place-order` like the block above — standalone TP/SL
+             * payloads are governed by `TradingSupport`, not by this.
+             */
+            const stopRequested =
+                displayed.stopLossPrice !== undefined && displayed.stopLossPrice.gt(0);
+            if (stopRequested && !caps.tpSlAtEntry && !caps.tpSlStandalone) {
+                checked.push("unplaceableStop");
+                return refuse({
+                    field: "stopLoss",
+                    reason: "unsupported",
+                    messageKey: "orderGate.unplaceableStop",
+                    values: { field: "stopLoss", exchange: displayed.provider },
+                });
+            }
+
+            /*
              * A venue carrying one target at entry cannot carry a ladder:
              * the extras are dropped without an error, so the trader believes
              * in targets that do not exist.
@@ -1202,6 +1228,10 @@ class OrderGate {
      * that attaches a stop anyway is already refused as unsupported before
      * this rule runs, so nothing reaches transport uncompared.
      *
+     * BUG-0503 narrowed the excuse: a stop is deferred only onto a later
+     * request that exists (`tpSlStandalone`). A venue with neither way to
+     * take the stop is refused by `unplaceableStop` before this runs.
+     *
      * Scoped to `place-order`: the standalone TP/SL endpoints exist precisely
      * to carry these levels, and their payloads must still match.
      */
@@ -1220,7 +1250,17 @@ class OrderGate {
          * two rules happen to run in.
          */
         if (!isKnownExchange(intent.displayed.provider)) return true;
-        return capabilitiesOf(intent.displayed.provider).tpSlAtEntry;
+        const caps = capabilitiesOf(intent.displayed.provider);
+        /*
+         * BUG-0503 — excused from comparison only when a later request will
+         * actually carry the stop. Attachment compares here; a venue that
+         * cannot attach but takes a standalone plan defers to that request;
+         * a venue with neither excuses nothing (the `unplaceableStop` rule
+         * above already refused such an entry, so this is the belt to those
+         * braces for callers that reach the gate directly).
+         */
+        if (caps.tpSlAtEntry) return true;
+        return !caps.tpSlStandalone;
     }
 
     private checkPrices(intent: OrderIntent, checked: string[]): OrderRefusal | null {
@@ -1228,9 +1268,19 @@ class OrderGate {
         const fields = { ...DEFAULT_PRICE_FIELDS, ...intent.priceFields };
 
         const carriesProtection = this.entryCarriesProtection(intent);
+        /*
+         * Only a real stop defers or compares. A non-positive level means
+         * "no stop requested" — the `unplaceableStop` rule reads it the same
+         * way — so a deliberately stopless entry on a no-attach venue is
+         * neither deferred nor asked to match a payload stop it never had.
+         */
+        const displayedStop =
+            displayed.stopLossPrice !== undefined && displayed.stopLossPrice.gt(0)
+                ? displayed.stopLossPrice
+                : undefined;
         // Recorded so the audit shows a decision rather than an omission: the
         // stop was not compared here *because* it travels separately.
-        if (!carriesProtection && displayed.stopLossPrice !== undefined) {
+        if (!carriesProtection && displayedStop !== undefined) {
             checked.push("protectionDeferred");
         }
 
@@ -1238,7 +1288,7 @@ class OrderGate {
             ["price", displayed.entryPrice, resolvePath(payload, fields.price)],
             [
                 "stopLoss",
-                carriesProtection ? displayed.stopLossPrice : undefined,
+                carriesProtection ? displayedStop : undefined,
                 resolvePath(payload, fields.stopLoss) ?? resolvePath(payload, "stopPrice"),
             ],
         ];

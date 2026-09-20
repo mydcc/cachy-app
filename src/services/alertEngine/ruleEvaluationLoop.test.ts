@@ -620,6 +620,113 @@ describe("RuleEvaluationLoop", () => {
       expect(reader).toHaveBeenCalledTimes(1);
     });
 
+    /*
+     * BUG-0482 — `window` is the one operand that nests another and carries no
+     * `source` of its own. Reading only the top level answered "no mark
+     * operand here", so the core got no `mark_candles` and returned
+     * `indeterminate` on every close, for good. "Breaks above its 20-candle
+     * mark high" is a liquidation-adjacent alarm that never fired and looked
+     * armed the whole time.
+     */
+    const markWindowBreak = (timeframe = "1m") => ({
+      kind: "compare",
+      left: { kind: "price", field: "close", source: "mark" },
+      op: "gte",
+      right: {
+        kind: "window",
+        of: { kind: "price", field: "high", source: "mark" },
+        agg: "max",
+        lookback: 20,
+      },
+      timeframe,
+    });
+
+    it("supplies the mark series for a mark operand nested in a window", () => {
+      const reader = vi.fn(() => []);
+      const { ctx } = contextAfterOneClose(
+        [
+          rule({
+            conditions: {
+              ...markWindowBreak(),
+              // Only the window names the mark price, so the top-level scan
+              // that used to decide this finds nothing.
+              left: { kind: "price", field: "close" },
+            } as never,
+          }),
+        ],
+        reader as never,
+      );
+
+      expect(reader).toHaveBeenCalledWith("BTCUSDT", "1m");
+      expect(ctx).toHaveProperty("mark_candles");
+    });
+
+    it("leaves the mark series alone for a window over the last price", () => {
+      const reader = vi.fn(() => []);
+      const { ctx } = contextAfterOneClose(
+        [
+          rule({
+            conditions: {
+              ...markWindowBreak(),
+              left: { kind: "price", field: "close" },
+              right: {
+                kind: "window",
+                of: { kind: "price", field: "high" },
+                agg: "max",
+                lookback: 20,
+              },
+            } as never,
+          }),
+        ],
+        reader as never,
+      );
+
+      expect(reader).not.toHaveBeenCalled();
+      expect(ctx).not.toHaveProperty("mark_candles");
+    });
+
+    it("supplies the mark series for a `percent_change` over the mark price", () => {
+      const reader = vi.fn(() => []);
+      contextAfterOneClose(
+        [
+          rule({
+            conditions: {
+              kind: "compare",
+              left: {
+                kind: "percent_change",
+                field: "close",
+                source: "mark",
+                lookback: 3,
+              },
+              op: "gte",
+              right: { kind: "constant", value: "5" },
+              timeframe: "1m",
+            } as never,
+          }),
+        ],
+        reader as never,
+      );
+
+      expect(reader).toHaveBeenCalledWith("BTCUSDT", "1m");
+    });
+
+    it("finds a nested mark operand inside a veto as well as inside the conditions", () => {
+      const reader = vi.fn(() => []);
+      contextAfterOneClose(
+        [
+          rule({
+            veto: {
+              ...markWindowBreak("4h"),
+              left: { kind: "price", field: "close" },
+            } as never,
+          }),
+        ],
+        reader as never,
+      );
+
+      expect(reader).toHaveBeenCalledWith("BTCUSDT", "4h");
+    });
+
     /**
      * An unconfigured mark reader answers empty, which the core turns into an
      * indeterminate verdict. What it must never do is leave the key off and let

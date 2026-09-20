@@ -30,7 +30,7 @@
  */
 
 import { browser } from "$app/environment";
-import type { RuleState } from "../../lib/rules/types";
+import type { BotAnchorSnapshot, RuleState } from "../../lib/rules/types";
 import { logger } from "../logger";
 
 export const RULE_STATE_STORAGE_KEY = "cachy_rule_state_v1";
@@ -67,9 +67,35 @@ function normalizeState(stored: unknown): RuleState {
   const count = stored.fired_count;
   const anchor = stored.last_fired_anchor_ms;
 
-  return {
+  const state: RuleState = {
     fired_count: typeof count === "number" && Number.isFinite(count) && count >= 0 ? Math.floor(count) : 0,
     last_fired_anchor_ms: typeof anchor === "number" && Number.isFinite(anchor) ? anchor : null,
+  };
+
+  // BUG-0491 — sparse on purpose. Entries written before this fix carry none
+  // of these keys, and they must keep reading exactly as before (the tests
+  // below pin that shape with `toEqual`). A corrupt anchor reads as absent —
+  // never-evaluated errs towards evaluating, the loud direction.
+  const evaluated = asAnchorMs(stored.last_evaluated_anchor_ms);
+  const intrabar = asAnchorMs(stored.last_intrabar_anchor_ms);
+  const intrabarFired = asAnchorMs(stored.last_intrabar_fired_anchor_ms);
+  if (evaluated !== null) state.last_evaluated_anchor_ms = evaluated;
+  if (intrabar !== null) state.last_intrabar_anchor_ms = intrabar;
+  if (intrabarFired !== null) state.last_intrabar_fired_anchor_ms = intrabarFired;
+  return state;
+}
+
+/** A finite anchor instant, or absent. Non-finite is corrupt, not zero. */
+function asAnchorMs(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** The stored gate anchors as the persistence port carries them. */
+function snapshotOf(state: RuleState): BotAnchorSnapshot {
+  return {
+    evaluatedAnchorMs: asAnchorMs(state.last_evaluated_anchor_ms),
+    intrabarAnchorMs: asAnchorMs(state.last_intrabar_anchor_ms),
+    intrabarFiredAnchorMs: asAnchorMs(state.last_intrabar_fired_anchor_ms),
   };
 }
 
@@ -146,8 +172,106 @@ export function recordRuleFiring(ruleId: string, anchorMs: number): RuleState {
   return next;
 }
 
+/**
+ * BUG-0491 — one bot's durable gate anchors, or `undefined` when the entry
+ * carries none.
+ *
+ * This is the gate persistence port's `load`: the gate seeds its in-memory
+ * maps from it on first sight of a rule (lazy hydration), so a reload finds
+ * the same anchors the pre-reload session decided. All-absent reads as
+ * "never evaluated" — the loud direction.
+ */
+export function readBotAnchors(ruleId: string): BotAnchorSnapshot | undefined {
+  if (!browser) return undefined;
+
+  const state = readRuleStates()[ruleId];
+  if (!state) return undefined;
+
+  const snapshot = snapshotOf(state);
+  if (
+    snapshot.evaluatedAnchorMs === null &&
+    snapshot.intrabarAnchorMs === null &&
+    snapshot.intrabarFiredAnchorMs === null
+  ) {
+    return undefined;
+  }
+  return snapshot;
+}
+
+/**
+ * BUG-0491 — records that a bot's gate decided `snapshot`'s anchors.
+ *
+ * Called after every successful bot evaluation, whatever the verdict was: a
+ * `does_not_fire` is a decision too, and re-deciding it after a reload is the
+ * same defect as re-firing. Skips the write when nothing changed, so a caller
+ * that saves defensively does not churn storage.
+ *
+ * Never throws: every path through `readRuleStates`/`writeRuleStates` already
+ * contains its own failure, and a persistence hiccup must not take down the
+ * evaluation that just succeeded — the in-memory maps stay the truth for this
+ * session either way.
+ */
+export function saveBotAnchors(ruleId: string, snapshot: BotAnchorSnapshot): void {
+  if (!browser) return;
+
+  const states = readRuleStates();
+  const previous = states[ruleId] ?? { ...NEVER_FIRED };
+  if (snapshotsEqual(snapshotOf(previous), snapshot)) return;
+
+  const next: RuleState = {
+    fired_count: previous.fired_count ?? 0,
+    last_fired_anchor_ms: asAnchorMs(previous.last_fired_anchor_ms),
+  };
+  // Mirrored exactly, sparsely: a `null` deletes the key rather than writing
+  // one, so entries keep the pre-fix shape whenever they carry no anchors.
+  if (snapshot.evaluatedAnchorMs !== null) next.last_evaluated_anchor_ms = snapshot.evaluatedAnchorMs;
+  if (snapshot.intrabarAnchorMs !== null) next.last_intrabar_anchor_ms = snapshot.intrabarAnchorMs;
+  if (snapshot.intrabarFiredAnchorMs !== null) {
+    next.last_intrabar_fired_anchor_ms = snapshot.intrabarFiredAnchorMs;
+  }
+  states[ruleId] = next;
+  writeRuleStates(states);
+}
+
+function snapshotsEqual(a: BotAnchorSnapshot, b: BotAnchorSnapshot): boolean {
+  return (
+    a.evaluatedAnchorMs === b.evaluatedAnchorMs &&
+    a.intrabarAnchorMs === b.intrabarAnchorMs &&
+    a.intrabarFiredAnchorMs === b.intrabarFiredAnchorMs
+  );
+}
+
+/**
+ * BUG-0491 — drops a rule's gate anchors and keeps its fire count.
+ *
+ * Called from the gate's `forget` (the rule was edited or disarmed and must
+ * be decidable again). Unlike `clearRuleState` this must not reset
+ * `fired_count`: forgetting anchors re-arms the dedupe, forgetting the count
+ * would re-arm a spent `once` rule. A rule carrying no anchors is a no-op
+ * without a write, so forgetting a `notify` rule changes nothing at all.
+ */
+export function clearBotAnchors(ruleId: string): void {
+  if (!browser) return;
+
+  const states = readRuleStates();
+  const entry = states[ruleId];
+  if (!entry) return;
+  if (
+    entry.last_evaluated_anchor_ms == null &&
+    entry.last_intrabar_anchor_ms == null &&
+    entry.last_intrabar_fired_anchor_ms == null
+  ) {
+    return;
+  }
+
+  delete entry.last_evaluated_anchor_ms;
+  delete entry.last_intrabar_anchor_ms;
+  delete entry.last_intrabar_fired_anchor_ms;
+  writeRuleStates(states);
+}
 /** Forgets one rule's fire state — it was deleted, or the trader re-armed it. */
 export function clearRuleState(ruleId: string): void {
+
   if (!browser) return;
 
   const states = readRuleStates();

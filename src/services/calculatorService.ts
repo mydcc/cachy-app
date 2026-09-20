@@ -386,7 +386,9 @@ export class CalculatorService {
       ...baseMetrics!,
       ...totalMetrics,
       tradeType: currentTradeState.tradeType,
-      status: "Open",
+      // `as const`: without it the literal widens to `string`, which the
+      // `JournalStatus` union on `CurrentTradeData.status` rejects.
+      status: "Open" as const,
       calculatedTpDetails,
     };
 

@@ -18,17 +18,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./+server";
 import * as clientToken from "../../../lib/server/clientToken";
+import { signedEnvelopeRequest } from "../../../tests/helpers/signedEnvelopeRequest";
+import { buildOrdersHistoryQueryParams } from "../../../utils/exchange/venueQueries";
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
 
 const getClientAddress = () => "127.0.0.1";
 
-function makeRequest(body: unknown): Request {
-  return {
-    text: async () => JSON.stringify(body),
-    headers: new Headers(),
-  } as unknown as Request;
+/**
+ * FEAT-0405 A5 — the query is built by the client through the same function
+ * the route rebuilds it with, so what these assertions see on the wire is the
+ * signed query itself.
+ */
+async function historyRequest(payload: Record<string, unknown>) {
+  return signedEnvelopeRequest(
+    "/api/orders?action=history",
+    payload,
+    buildOrdersHistoryQueryParams("bitunix", payload),
+    "bitunix",
+  );
 }
 
 beforeEach(() => {
@@ -45,16 +54,16 @@ describe("FEAT-0201: POST /api/orders history time range and pagination", () => 
     const startTime = 1700000000000;
     const endTime = 1700500000000;
 
+    const { request, url: envelopeUrl } = await historyRequest({
+      exchange: "bitunix",
+      type: "history",
+      startTime,
+      endTime,
+      limit: 50,
+    });
     await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-        startTime,
-        endTime,
-        limit: 50,
-      }),
+      request,
+      url: envelopeUrl,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
@@ -86,15 +95,15 @@ describe("FEAT-0201: POST /api/orders history time range and pagination", () => 
         }),
     });
 
+    const { request, url: envelopeUrl } = await historyRequest({
+      exchange: "bitunix",
+      type: "history",
+      startTime,
+      endTime,
+    });
     const response = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-        startTime,
-        endTime,
-      }),
+      request,
+      url: envelopeUrl,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
@@ -121,16 +130,16 @@ describe("FEAT-0201: POST /api/orders history time range and pagination", () => 
         }),
     });
 
+    const page1 = await historyRequest({
+      exchange: "bitunix",
+      type: "history",
+      startTime: 1700000000000,
+      endTime: 1700500000000,
+      limit: 2,
+    });
     const page1Res = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-        startTime: 1700000000000,
-        endTime: 1700500000000,
-        limit: 2,
-      }),
+      request: page1.request,
+      url: page1.url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
@@ -154,16 +163,16 @@ describe("FEAT-0201: POST /api/orders history time range and pagination", () => 
         }),
     });
 
+    const page2 = await historyRequest({
+      exchange: "bitunix",
+      type: "history",
+      startTime: 1700000000000,
+      endTime: oldestTime - 1,
+      limit: 2,
+    });
     const page2Res = await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-        startTime: 1700000000000,
-        endTime: oldestTime - 1,
-        limit: 2,
-      }),
+      request: page2.request,
+      url: page2.url,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 
@@ -176,13 +185,13 @@ describe("FEAT-0201: POST /api/orders history time range and pagination", () => 
   });
 
   it("works with default parameters when no time range is specified", async () => {
+    const { request, url: envelopeUrl } = await historyRequest({
+      exchange: "bitunix",
+      type: "history",
+    });
     await POST({
-      request: makeRequest({
-        exchange: "bitunix",
-        type: "history",
-        apiKey: "validApiKey123",
-        apiSecret: "validSecret123456",
-      }),
+      request,
+      url: envelopeUrl,
       getClientAddress,
     } as unknown as Parameters<typeof POST>[0]);
 

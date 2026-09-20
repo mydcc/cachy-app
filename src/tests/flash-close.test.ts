@@ -100,7 +100,7 @@ import { omsService } from '../services/omsService';
 
 describe('Flash Close Position Binding (CRITICAL)', () => {
     let signedRequestSpy: MockInstance<
-        (method: string, endpoint: string, payload: Record<string, unknown>) => Promise<unknown>
+        (endpoint: string, payload: Record<string, unknown>) => Promise<unknown>
     >;
 
     beforeEach(() => {
@@ -151,13 +151,13 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
 
         // [HARDENING FIX] Now that we call cancelAllOrders first, we must find the CLOSE order
         const calls = signedRequestSpy.mock.calls;
-        const callArgs = calls.find((c) => c[2] && c[2].side === 'BUY');
+        const callArgs = calls.find((c) => c[1] && c[1].side === 'BUY');
 
         if (!callArgs) {
             throw new Error(`Flash close order not found in ${calls.length} calls: ${JSON.stringify(calls)}`);
         }
 
-        const body = callArgs[2];
+        const body = callArgs[1];
 
         // CRITICAL: Must use exact position size, not Safe Max
         expect(body.qty).toBe('12.345');
@@ -192,7 +192,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         });
 
         const callArgs = signedRequestSpy.mock.calls[0];
-        const body = callArgs[2];
+        const body = callArgs[1];
 
         expect(body.qty).toBe('12.345');
         expect(body.reduceOnly).toBe(true);
@@ -206,7 +206,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         });
 
         const callArgs = signedRequestSpy.mock.calls[0];
-        const body = callArgs[2];
+        const body = callArgs[1];
 
         expect(body.qty).toBe('5');
         expect(body.reduceOnly).toBe(true);
@@ -217,8 +217,8 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
 
         // [HARDENING FIX] Find the CLOSE order call
         const calls = signedRequestSpy.mock.calls;
-        const callArgs = calls.find((c) => c[2] && c[2].side === 'BUY');
-        const body = callArgs![2];
+        const callArgs = calls.find((c) => c[1] && c[1].side === 'BUY');
+        const body = callArgs![1];
 
         // side matches the position being closed (BUY = long), not
         // inverted — see buildCloseOrderFields (BUG-0062/BUG-0063).
@@ -242,15 +242,15 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
 
         // Find Cancel Call
         const cancelCall = calls.find((call) =>
-            call[1] === '/api/orders' &&
-            call[2].type === 'cancel-all'
+            call[0] === '/api/orders' &&
+            call[1].type === 'cancel-all'
         );
 
         // Expect the Cancel All call to be present (Hardening Fix)
         expect(cancelCall).toBeDefined();
 
         // Ensure Close call is also present
-        const closeCall = calls.find((call) => call[2] && call[2].side === 'BUY');
+        const closeCall = calls.find((call) => call[1] && call[1].side === 'BUY');
         expect(closeCall).toBeDefined();
 
         // Ensure Cancel happens BEFORE Close

@@ -29,8 +29,11 @@ import type { VenueModule } from "./types";
 // Every member a proxy route calls on a resolved venue. A new route method
 // belongs in this list, which is what makes a half-implemented venue fail
 // loudly instead of throwing on the first request that reaches it.
+//
+// `validateKeys` is deliberately absent: the shape check needs the secret, so
+// it moved client-side into `signCachyRequest` (FEAT-0405 A5) and no route
+// calls it anymore.
 const REQUIRED_METHODS: (keyof VenueModule)[] = [
-  "validateKeys",
   "fetchAccount",
   "fetchBalance",
   "fetchKlines",

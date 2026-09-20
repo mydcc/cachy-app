@@ -176,6 +176,69 @@ describe("renderRuleSentence", () => {
         expect(renderRuleSentence(sending, et)).toContain("Sends a buy order for 1 % risk");
     });
 
+    it("states a bot's order too, not only a live one (FEAT-0396)", () => {
+        // The gap this closes: `simulate` fell through to the bare level key,
+        // so a bot's sentence read "Simulates an order" and left out how large.
+        // Both levels must carry an order -- the core refuses a `simulate` rule
+        // without one -- so the clause belongs to the intent, not to `send`.
+        const bot = ruleWith(rsiBelow30, {
+            action: {
+                consequence_level: "simulate",
+                order: { side: "sell", size_basis: "percent_of_equity", size: "2.5" },
+            },
+        });
+        expect(renderRuleSentence(bot, dt)).toContain(
+            "Simuliert eine Verkauf-Order über 2.5 % des Kontokapitals",
+        );
+        expect(renderRuleSentence(bot, et)).toContain(
+            "Simulates a sell order for 2.5 % of equity",
+        );
+    });
+
+    it("renders the stop, so two bots risking different amounts do not read alike", () => {
+        // `stop` is inside the content hash, and under `percent_risk` it is what
+        // the position size is computed from. Two bots differing only in it are
+        // two different strategies; rendering them identically is exactly the
+        // drift between document and sentence this renderer exists to prevent.
+        const withStop = (distance: string) =>
+            ruleWith(rsiBelow30, {
+                action: {
+                    consequence_level: "send",
+                    order: {
+                        side: "buy",
+                        size_basis: "percent_risk",
+                        size: "1",
+                        stop: { basis: "percent_of_entry", distance },
+                    },
+                },
+            });
+
+        expect(renderRuleSentence(withStop("2"), dt)).toContain(
+            "Sendet eine Kauf-Order \u00fcber 1 % Risiko mit einem Stopp 2 % vom Einstieg",
+        );
+        expect(renderRuleSentence(withStop("2"), et)).toContain(
+            "Sends a buy order for 1 % risk with a stop 2% from the entry",
+        );
+        expect(renderRuleSentence(withStop("2"), et)).not.toBe(
+            renderRuleSentence(withStop("5"), et),
+        );
+    });
+
+    it("says nothing about a stop when the intent carries none", () => {
+        const noStop = ruleWith(rsiBelow30, {
+            action: {
+                consequence_level: "send",
+                order: { side: "buy", size_basis: "percent_of_equity", size: "1" },
+            },
+        });
+        expect(renderRuleSentence(noStop, et)).not.toContain("with a stop");
+        expect(renderRuleSentence(noStop, dt)).not.toContain("Stopp");
+    });
+
+    it("keeps the bare lead for a rule that submits nothing", () => {
+        expect(renderRuleSentence(ruleWith(rsiBelow30), et)).toContain("Notifies");
+    });
+
     it("renders an account condition without a timeframe qualifier", () => {
         const account = ruleWith({
             kind: "account",

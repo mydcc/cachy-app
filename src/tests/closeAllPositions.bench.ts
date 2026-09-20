@@ -53,7 +53,7 @@ vi.mock('../stores/settings.svelte', () => ({
 // private method closeAllPositions() calls internally.
 type TradeServiceInternals = {
     fetchOpenPositionsFromApi: () => Promise<void>;
-    signedRequest: (method: string, endpoint: string, payload: Record<string, unknown>) => Promise<unknown>;
+    signedRequest: (endpoint: string, payload: Record<string, unknown>) => Promise<unknown>;
 };
 const internals = tradeService as unknown as TradeServiceInternals;
 

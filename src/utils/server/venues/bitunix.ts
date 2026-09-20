@@ -16,10 +16,6 @@
  */
 
 import { Decimal } from "decimal.js";
-import {
-  generateBitunixSignature,
-  validateBitunixKeys,
-} from "../bitunix";
 import type {
   BitunixResponse,
   BitunixOrder,
@@ -38,7 +34,6 @@ import {
   type UpstreamApiError,
 } from "../fetchWithTimeout";
 import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
-import { buildVenueBody } from "../../exchange/venueBodies";
 import {
   UPSTREAM_RETRY_ATTEMPTS,
   isRetryableUpstreamStatus,
@@ -51,7 +46,6 @@ import type {
   KlinePriceSource,
   KlineQuery,
   TickersQuery,
-  VenueCredentials,
   VenueKline,
   VenueModule,
 } from "./types";
@@ -60,23 +54,14 @@ type ApiError = UpstreamApiError;
 
 // --- Bitunix Helpers ---
 
-async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: string, orderId: string) {
+async function cancelBitunixOrder(envelope: PresignedEnvelope, venueBody: string) {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/cancel_orders";
 
-    const payload = { symbol, orderList: [{ orderId }] };
-    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
-
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: {
-            "api-key": apiKey,
-            "timestamp": timestamp,
-            "nonce": nonce,
-            "sign": signature,
-            "Content-Type": "application/json",
-        },
-        body: bodyStr,
+        headers: bitunixCallHeaders(envelope),
+        body: venueBody,
     });
 
     if (!response.ok) {
@@ -99,25 +84,14 @@ async function cancelBitunixOrder(apiKey: string, apiSecret: string, symbol: str
     return res.data;
 }
 
-async function cancelAllBitunixOrders(apiKey: string, apiSecret: string, symbol?: string) {
+async function cancelAllBitunixOrders(envelope: PresignedEnvelope, venueBody: string) {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/cancel_all_orders";
 
-    const payload: Record<string, string> = {};
-    if (symbol) payload.symbol = symbol;
-
-    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
-
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: {
-            "api-key": apiKey,
-            "timestamp": timestamp,
-            "nonce": nonce,
-            "sign": signature,
-            "Content-Type": "application/json",
-        },
-        body: bodyStr,
+        headers: bitunixCallHeaders(envelope),
+        body: venueBody,
     });
 
     if (!response.ok) {
@@ -138,25 +112,14 @@ async function cancelAllBitunixOrders(apiKey: string, apiSecret: string, symbol?
     return res.data;
 }
 
-async function closeAllBitunixPositions(apiKey: string, apiSecret: string, symbol?: string) {
+async function closeAllBitunixPositions(envelope: PresignedEnvelope, venueBody: string) {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/close_all_position";
 
-    const payload: Record<string, string> = {};
-    if (symbol) payload.symbol = symbol;
-
-    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
-
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: {
-            "api-key": apiKey,
-            "timestamp": timestamp,
-            "nonce": nonce,
-            "sign": signature,
-            "Content-Type": "application/json",
-        },
-        body: bodyStr,
+        headers: bitunixCallHeaders(envelope),
+        body: venueBody,
     });
 
     if (!response.ok) {
@@ -171,23 +134,14 @@ async function closeAllBitunixPositions(apiKey: string, apiSecret: string, symbo
     return res.data ?? { success: true };
 }
 
-async function flashCloseBitunixPosition(apiKey: string, apiSecret: string, positionId: string) {
+async function flashCloseBitunixPosition(envelope: PresignedEnvelope, venueBody: string) {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/flash_close_position";
 
-    const payload = { positionId };
-    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
-
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: {
-            "api-key": apiKey,
-            "timestamp": timestamp,
-            "nonce": nonce,
-            "sign": signature,
-            "Content-Type": "application/json",
-        },
-        body: bodyStr,
+        headers: bitunixCallHeaders(envelope),
+        body: venueBody,
     });
 
     if (!response.ok) {
@@ -203,29 +157,17 @@ async function flashCloseBitunixPosition(apiKey: string, apiSecret: string, posi
 }
 
 async function fetchBitunixOrderDetail(
-    apiKey: string,
-    apiSecret: string,
-    orderId?: string,
-    clientId?: string,
+    envelope: PresignedEnvelope,
 ): Promise<NormalizedOrder> {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/get_order_detail";
+    const url = envelope.query
+        ? `${baseUrl}${path}?${envelope.query}`
+        : `${baseUrl}${path}`;
 
-    const params: Record<string, string> = {};
-    if (orderId) params.orderId = orderId;
-    if (clientId) params.clientId = clientId;
-
-    const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
-
-    const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+    const response = await fetchWithTimeout(url, {
         method: "GET",
-        headers: {
-            "api-key": apiKey,
-            timestamp: timestamp,
-            nonce: nonce,
-            sign: signature,
-            "Content-Type": "application/json",
-        },
+        headers: bitunixCallHeaders(envelope),
     });
 
     if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
@@ -266,25 +208,16 @@ async function fetchBitunixOrderDetail(
 }
 
 async function modifyBitunixOrder(
-    apiKey: string,
-    apiSecret: string,
-    body: string,
+    envelope: PresignedEnvelope,
+    venueBody: string,
 ) {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/modify_order";
 
-    const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, body);
-
     const response = await fetchWithTimeout(`${baseUrl}${path}`, {
         method: "POST",
-        headers: {
-            "api-key": apiKey,
-            timestamp: timestamp,
-            nonce: nonce,
-            sign: signature,
-            "Content-Type": "application/json",
-        },
-        body: bodyStr,
+        headers: bitunixCallHeaders(envelope),
+        body: venueBody,
     });
 
     if (!response.ok) {
@@ -308,25 +241,16 @@ async function modifyBitunixOrder(
  * shared builder exists to rule out (FEAT-0405 AC4).
  */
 async function placeBitunixOrder(
-  apiKey: string,
-  apiSecret: string,
-  body: string,
+  envelope: PresignedEnvelope,
+  venueBody: string,
 ): Promise<BitunixOrder> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
-  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, body);
-
   const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     method: "POST",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
-    body: bodyStr,
+    headers: bitunixCallHeaders(envelope),
+    body: venueBody,
   });
 
   if (!response.ok) {
@@ -364,20 +288,20 @@ async function placeBitunixOrder(
   return res.data;
 }
 
-async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Promise<NormalizedOrder[]> {
+async function fetchBitunixPendingOrders(envelope: PresignedEnvelope): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_pending_orders";
-  const { nonce, timestamp, signature } = generateBitunixSignature(apiKey, apiSecret, {}, "");
+  // This endpoint signs no parameters at all, so `envelope.query` is the empty
+  // string the client sent rather than an absent header — there is nothing to
+  // append, and appending a bare `?` would make the URL differ from the one
+  // the signature was built for.
+  const url = envelope.query
+    ? `${baseUrl}${path}?${envelope.query}`
+    : `${baseUrl}${path}`;
 
-  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
@@ -425,35 +349,26 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
 }
 
 async function fetchBitunixHistoryOrders(
-  apiKey: string,
-  apiSecret: string,
-  limit = 20,
-  queryCanceled = false,
-  startTime?: number,
-  endTime?: number,
-  symbol?: string
+  envelope: PresignedEnvelope,
+  payload: Extract<OrderRequestPayload, { type: "history" }>,
 ): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
   // Bitunix's own split: queryCanceled=false returns everything except
   // CANCELED (up to 90 days back); true returns ONLY CANCELED (up to 3 days
   // back). Neither call alone is a complete history.
-  const params: Record<string, string> = { limit: String(limit) };
-  if (queryCanceled) params.queryCanceled = "true";
-  if (symbol) params.symbol = symbol;
-  if (startTime !== undefined && !isNaN(startTime)) params.startTime = String(startTime);
-  if (endTime !== undefined && !isNaN(endTime)) params.endTime = String(endTime);
-  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(apiKey, apiSecret, params, "");
+  //
+  // The query itself is the client's — see `buildOrdersHistoryQueryParams`,
+  // which both sides build through. Only the range filter below is read off
+  // the payload, because the venue's own startTime/endTime are not honoured by
+  // every response shape and the mapped rows are filtered locally as before.
+  const url = envelope.query
+    ? `${baseUrl}${path}?${envelope.query}`
+    : `${baseUrl}${path}`;
 
-  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetchWithTimeout(url, {
     method: "GET",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
+    headers: bitunixCallHeaders(envelope),
   });
 
   if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
@@ -500,6 +415,7 @@ async function fetchBitunixHistoryOrders(
     slOrderType: o.slOrderType,
   }));
 
+  const { startTime, endTime } = payload;
   if (startTime !== undefined && !isNaN(startTime)) {
     mapped = mapped.filter((o) => (o.time ?? 0) >= startTime);
   }
@@ -953,54 +869,51 @@ function bitunixIsSymbolNotFoundBody(data: unknown): boolean {
  *
  * Resolves to `null` for an action Bitunix does not implement, which is what
  * the route's inline `if/else if` chain did when no branch matched.
+ *
+ * FEAT-0405 A5 — nothing here signs. `venueBody` is the exact string the client
+ * signed; the three read actions carry no body at all, because their signature
+ * covers `envelope.query`, which is also what the URL below is built from. The
+ * only action whose body is not forwarded verbatim is none of them: the
+ * zero-amount refusal for `close-position` now lives in `buildVenueBody`, on
+ * the side that produces the bytes, rather than here where a rejection would
+ * arrive after the client had already signed.
  */
 async function executeOrder(
-  creds: VenueCredentials,
+  envelope: PresignedEnvelope,
   payload: OrderRequestPayload,
+  venueBody: string,
 ): Promise<unknown> {
-  const { apiKey, apiSecret } = creds;
-
   if (payload.type === "pending") {
-    const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
+    const orders = await fetchBitunixPendingOrders(envelope);
     return { orders };
   }
   if (payload.type === "history") {
-    const orders = await fetchBitunixHistoryOrders(
-      apiKey,
-      apiSecret,
-      Number(payload.limit), // audit: safe — API pagination limit (integer count), not a financial value
-      payload.queryCanceled,
-      payload.startTime,
-      payload.endTime,
-      payload.symbol
-    );
+    const orders = await fetchBitunixHistoryOrders(envelope, payload);
     return { orders };
   }
   if (payload.type === "place-order") {
-    return await placeBitunixOrder(apiKey, apiSecret, buildVenueBody("bitunix", payload));
+    return await placeBitunixOrder(envelope, venueBody);
   }
   if (payload.type === "close-position") {
-    // The zero-amount refusal lives in `buildVenueBody` now, next to the
-    // serialisation both sides share rather than on this side alone.
-    return await placeBitunixOrder(apiKey, apiSecret, buildVenueBody("bitunix", payload));
+    return await placeBitunixOrder(envelope, venueBody);
   }
   if (payload.type === "close-all-positions") {
-    return await closeAllBitunixPositions(apiKey, apiSecret, payload.symbol);
+    return await closeAllBitunixPositions(envelope, venueBody);
   }
   if (payload.type === "flash-close-position") {
-    return await flashCloseBitunixPosition(apiKey, apiSecret, payload.positionId);
+    return await flashCloseBitunixPosition(envelope, venueBody);
   }
   if (payload.type === "cancel-all") {
-    return await cancelAllBitunixOrders(apiKey, apiSecret, payload.symbol);
+    return await cancelAllBitunixOrders(envelope, venueBody);
   }
   if (payload.type === "cancel-order") {
-    return await cancelBitunixOrder(apiKey, apiSecret, payload.symbol, payload.orderId);
+    return await cancelBitunixOrder(envelope, venueBody);
   }
   if (payload.type === "order-detail") {
-    return await fetchBitunixOrderDetail(apiKey, apiSecret, payload.orderId, payload.clientId);
+    return await fetchBitunixOrderDetail(envelope);
   }
   if (payload.type === "modify-order") {
-    return await modifyBitunixOrder(apiKey, apiSecret, buildVenueBody("bitunix", payload));
+    return await modifyBitunixOrder(envelope, venueBody);
   }
 
   return null;
@@ -1086,10 +999,6 @@ async function executeAccountSetting(
 export const bitunixVenue: VenueModule = {
   id: "bitunix",
   requiresPassphrase: false,
-
-  validateKeys(creds: VenueCredentials): string | null {
-    return validateBitunixKeys(creds.apiKey, creds.apiSecret);
-  },
 
   fetchAccount(envelope: PresignedEnvelope): Promise<ExchangeAccountData> {
     return fetchBitunixAccount(envelope);
