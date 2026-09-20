@@ -1951,6 +1951,10 @@ class TradeService {
                 entryPrice: params.price !== undefined ? new Decimal(params.price) : undefined,
                 stopLossPrice: params.slPrice !== undefined ? new Decimal(params.slPrice) : undefined,
                 takeProfits: params.tpPrice !== undefined ? [new Decimal(params.tpPrice)] : undefined,
+                // The quantity the caller asked for, or the live order read
+                // this request was merged with — the gate compares the
+                // payload back against it (BUG-0505).
+                modifyQuantity: params.qty !== undefined ? new Decimal(params.qty) : new Decimal(liveOrder.amount),
             },
         });
     }
@@ -2135,10 +2139,20 @@ class TradeService {
                 // meaning, and each has to land in the slot the gate checks.
                 takeProfits: params.planType === "PROFIT" ? [new Decimal(params.triggerPrice)] : undefined,
                 stopLossPrice: params.planType === "LOSS" ? new Decimal(params.triggerPrice) : undefined,
+                // The quantity travels on the same leg it prices; the gate
+                // compares it back against this (BUG-0505).
+                takeProfitQty: params.planType === "PROFIT" && params.qty !== undefined ? new Decimal(params.qty) : undefined,
+                stopLossQty: params.planType === "LOSS" && params.qty !== undefined ? new Decimal(params.qty) : undefined,
             },
             priceFields: {
                 stopLoss: "params.slPrice",
                 takeProfit: "params.tpPrice",
+            },
+            qtyFields: {
+                takeProfit: "params.tpQty",
+                takeProfitOrderType: "params.tpOrderType",
+                stopLoss: "params.slQty",
+                stopLossOrderType: "params.slOrderType",
             },
         });
     }
@@ -2273,10 +2287,20 @@ class TradeService {
                 positionId: params.positionId,
                 takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
                 stopLossPrice: params.stopLoss?.price,
+                // Fixed-quantity legs, compared back against the wire the
+                // same way prices are (BUG-0505).
+                takeProfitQty: params.takeProfit?.qty,
+                stopLossQty: params.stopLoss?.qty,
             },
             priceFields: {
                 takeProfit: "params.tpPrice",
                 stopLoss: "params.slPrice",
+            },
+            qtyFields: {
+                takeProfit: "params.tpQty",
+                takeProfitOrderType: "params.tpOrderType",
+                stopLoss: "params.slQty",
+                stopLossOrderType: "params.slOrderType",
             },
         });
     }

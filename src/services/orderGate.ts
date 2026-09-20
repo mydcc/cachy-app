@@ -237,6 +237,26 @@ export interface DisplayedState {
      */
     addQuantity?: Decimal;
     /**
+     * For `modify` intents: the flat order quantity the caller asked to set
+     * (`modifyOrder`), never re-derived, only compared — BUG-0505.
+     *
+     * The counterpart of `addQuantity`: a modify's quantity is not described
+     * by any risk formula, so the only honest verification is that the
+     * payload carries the same quantity the caller supplied (or the live
+     * order read the constructor merged in).
+     */
+    modifyQuantity?: Decimal;
+    /**
+     * For `modify` intents: the per-leg take-profit quantity, read off the
+     * nested TP/SL payload shape via `qtyFields` — BUG-0505.
+     */
+    takeProfitQty?: Decimal;
+    /**
+     * For `modify` intents: the per-leg stop-loss quantity — the number that
+     * decides how much of a position is actually protected.
+     */
+    stopLossQty?: Decimal;
+    /**
      * Free margin the account had when the add was previewed — FEAT-0334.
      *
      * Compared against `addQuantity × price / leverage`. Absent means the
@@ -291,6 +311,37 @@ const DEFAULT_PRICE_FIELDS: Required<PriceFieldMap> = {
     takeProfit: "tpPrice",
 };
 
+/**
+ * Which payload keys hold which quantity. Values are dotted paths into the
+ * payload, mirroring `PriceFieldMap` — `/api/tpsl` nests its quantities
+ * under `params` as `tpQty`/`slQty`, while `modify-order` carries a flat
+ * `qty`.
+ *
+ * The `*OrderType` paths resolve the leg's own order type for the
+ * min/max-volume selection. Absent, the payload's top-level `orderType`
+ * decides, exactly as `checkVolumeLimits` has always read it.
+ *
+ * This names a location, never a value: what gets compared is still read out
+ * of the payload that will be transmitted.
+ */
+export interface QtyFieldMap {
+    quantity?: string;
+    quantityOrderType?: string;
+    takeProfit?: string;
+    takeProfitOrderType?: string;
+    stopLoss?: string;
+    stopLossOrderType?: string;
+}
+
+const DEFAULT_QTY_FIELDS: Required<QtyFieldMap> = {
+    quantity: "qty",
+    quantityOrderType: "orderType",
+    takeProfit: "tpQty",
+    takeProfitOrderType: "tpOrderType",
+    stopLoss: "slQty",
+    stopLossOrderType: "slOrderType",
+};
+
 export interface OrderIntent {
     kind: OrderIntentKind;
     /** The endpoint the payload is bound for. */
@@ -300,6 +351,8 @@ export interface OrderIntent {
     displayed: DisplayedState;
     /** Overrides for endpoints whose payload shape deviates from the default. */
     priceFields?: PriceFieldMap;
+    /** Quantity-path overrides for endpoints that nest their quantities. */
+    qtyFields?: QtyFieldMap;
     /**
      * When a human confirmed this action, as `Date.now()` — FEAT-0024.
      *
@@ -1030,6 +1083,13 @@ class OrderGate {
         }
 
         // kind === "open" | "modify"
+        if (kind === "modify") {
+            // A modify's quantity is verified against what the trader was
+            // shown, never re-derived from a risk formula that does not
+            // describe it — the `add` branch (FEAT-0334) is the working
+            // model. BUG-0505.
+            return this.checkModifyQuantities(intent, checked);
+        }
         const { accountSize, riskPercentage, entryPrice, stopLossPrice } = displayed;
         if (
             accountSize === undefined ||
@@ -1087,6 +1147,83 @@ class OrderGate {
         }
 
         return this.checkVolumeLimits(intent, checked, payloadQty);
+    }
+
+    /**
+     * A modify's quantities, compared against what the caller showed rather
+     * than re-derived — BUG-0505.
+     *
+     * Three shapes reach here: a flat order quantity (`modifyOrder`), and the
+     * per-leg TP/SL quantities the TP/SL endpoints nest under `params`
+     * (`modifyTpSlOrder`, `placeTpSlOrder`). Legs the payload does not send
+     * carry nothing to verify — a price-only modify stays approved. A leg the
+     * payload sends with no displayed counterpart is disqualifying, exactly
+     * as an open treats it: an unverifiable size is not a verified size, and
+     * without this the next payload that grows a quantity field inherits the
+     * same silence.
+     *
+     * Every compared leg additionally runs the venue's minimum, maximum and
+     * step-size rules. A TP/SL leg is bounded by the position it protects
+     * when the intent states it, the way a reduce is bounded by
+     * `positionAmount` — when the intent does not state it, the bound is
+     * skipped rather than guessed.
+     */
+    private checkModifyQuantities(intent: OrderIntent, checked: string[]): OrderRefusal | null {
+        const { payload, displayed } = intent;
+        const fields = { ...DEFAULT_QTY_FIELDS, ...intent.qtyFields };
+
+        const pairs: Array<[field: string, expected: Decimal | undefined, raw: unknown, orderTypePath: string | undefined, boundByPosition: boolean]> = [
+            ["qty", displayed.modifyQuantity, resolvePath(payload, fields.quantity), fields.quantityOrderType, false],
+            ["takeProfitQty", displayed.takeProfitQty, resolvePath(payload, fields.takeProfit), fields.takeProfitOrderType, true],
+            ["stopLossQty", displayed.stopLossQty, resolvePath(payload, fields.stopLoss), fields.stopLossOrderType, true],
+        ];
+
+        for (const [field, expected, raw, orderTypePath, boundByPosition] of pairs) {
+            const actual = toDecimal(raw);
+            if (actual === null) continue;
+            if (expected === undefined) {
+                checked.push(field);
+                return missing("qty.inputs");
+            }
+            checked.push(field);
+            if (!decimalsAgree(actual, expected)) {
+                return mismatch(field, expected.toString(), actual.toString());
+            }
+            if (actual.lte(0)) {
+                return mismatch(field, "> 0", actual.toString());
+            }
+            if (boundByPosition && displayed.positionAmount !== undefined && actual.gt(displayed.positionAmount)) {
+                return mismatch(
+                    field,
+                    `<= ${displayed.positionAmount.toString()}`,
+                    actual.toString(),
+                );
+            }
+            const step = displayed.stepSize;
+            if (step !== undefined && step.isFinite() && step.gt(0)) {
+                checked.push("stepSize");
+                if (!actual.div(step).isInteger()) {
+                    return {
+                        field: "stepSize",
+                        reason: "mismatch",
+                        messageKey: "orderGate.stepSize",
+                        values: {
+                            field: "stepSize",
+                            step: step.toString(),
+                            actual: actual.toString(),
+                        },
+                    };
+                }
+            }
+            const rawOrderType = orderTypePath !== undefined ? resolvePath(payload, orderTypePath) : payload.orderType;
+            const isMarket = typeof rawOrderType === "string"
+                ? rawOrderType.toUpperCase() === "MARKET"
+                : payload.orderType === "MARKET";
+            const volumeRefusal = this.checkVolumeLimits(intent, checked, actual, isMarket);
+            if (volumeRefusal) return volumeRefusal;
+        }
+
+        return null;
     }
 
     /**
@@ -1160,6 +1297,7 @@ class OrderGate {
         intent: OrderIntent,
         checked: string[],
         payloadQty: Decimal,
+        marketOverride?: boolean,
     ): OrderRefusal | null {
         const { payload, displayed } = intent;
 
@@ -1179,7 +1317,7 @@ class OrderGate {
             }
         }
 
-        const isMarket = payload.orderType === "MARKET";
+        const isMarket = marketOverride ?? payload.orderType === "MARKET";
         const maxVolume = isMarket ? displayed.maxMarketOrderVolume : displayed.maxLimitOrderVolume;
         const maxField = isMarket ? "maxMarketOrderVolume" : "maxLimitOrderVolume";
         if (maxVolume !== undefined && maxVolume.gt(0)) {

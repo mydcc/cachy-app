@@ -450,6 +450,152 @@ describe("orderGate — size tolerance", () => {
     });
 });
 
+describe("orderGate — modify quantities (BUG-0505)", () => {
+    function modifyOrderIntent(): OrderIntent {
+        return {
+            kind: "modify",
+            endpoint: "/api/orders",
+            payload: {
+                type: "modify-order",
+                orderId: "o-9",
+                symbol: "BTCUSDT",
+                qty: "1",
+                price: "50000",
+            },
+            displayed: {
+                ...ACCOUNT,
+                symbol: "BTCUSDT",
+                orderId: "o-9",
+                entryPrice: new Decimal(50000),
+                modifyQuantity: new Decimal(1),
+            },
+        };
+    }
+
+    function tpslPlaceIntent(): OrderIntent {
+        return {
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "place",
+                symbol: "BTCUSDT",
+                params: {
+                    symbol: "BTCUSDT",
+                    positionId: "pos-1",
+                    slPrice: "49500",
+                    slQty: "0.3",
+                    slStopType: "MARK_PRICE",
+                    slOrderType: "MARKET",
+                },
+            },
+            displayed: {
+                ...ACCOUNT,
+                symbol: "BTCUSDT",
+                positionId: "pos-1",
+                positionAmount: new Decimal("0.5"),
+                stopLossPrice: new Decimal(49500),
+                stopLossQty: new Decimal("0.3"),
+            },
+            priceFields: { takeProfit: "params.tpPrice", stopLoss: "params.slPrice" },
+            qtyFields: {
+                takeProfit: "params.tpQty",
+                takeProfitOrderType: "params.tpOrderType",
+                stopLoss: "params.slQty",
+                stopLossOrderType: "params.slOrderType",
+            },
+        };
+    }
+
+    it("refuses a modify whose payload quantity differs from the displayed quantity", () => {
+        const intent = modifyOrderIntent();
+        expect(orderGate.verify(intent).approved).toBe(true);
+
+        intent.payload.qty = "1.5";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("qty");
+        expect(refusal?.reason).toBe("mismatch");
+    });
+
+    it("reads a TP/SL quantity nested under params.slQty", () => {
+        const intent = tpslPlaceIntent();
+        expect(orderGate.verify(intent).approved).toBe(true);
+
+        // Mutating only the nested quantity field must refuse — this is the
+        // field no reader could reach before the fix.
+        (intent.payload.params as Record<string, unknown>).slQty = "0.4";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("stopLossQty");
+        expect(refusal?.reason).toBe("mismatch");
+    });
+
+    it("refuses a modify quantity outside the venue volume limits", () => {
+        const below = modifyOrderIntent();
+        below.displayed.minTradeVolume = new Decimal("2");
+        expect(orderGate.verify(below).refusal?.field).toBe("minTradeVolume");
+
+        const above = modifyOrderIntent();
+        above.displayed.maxLimitOrderVolume = new Decimal("0.5");
+        expect(orderGate.verify(above).refusal?.field).toBe("maxLimitOrderVolume");
+    });
+
+    it("refuses a modify quantity that is not a whole multiple of the step", () => {
+        const intent = modifyOrderIntent();
+        intent.displayed.stepSize = new Decimal("0.3");
+        expect(orderGate.verify(intent).refusal?.field).toBe("stepSize");
+    });
+
+    it("bounds a stop quantity by the position it protects", () => {
+        const intent = tpslPlaceIntent();
+        (intent.payload.params as Record<string, unknown>).slQty = "0.6"; // position holds 0.5
+        intent.displayed.stopLossQty = new Decimal("0.6"); // as shown, but unprotectable
+        expect(orderGate.verify(intent).refusal?.field).toBe("stopLossQty");
+    });
+
+    it("refuses a modify that sends a quantity with no displayed counterpart", () => {
+        const intent = modifyOrderIntent();
+        delete intent.displayed.modifyQuantity;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.reason).toBe("missing");
+        expect(refusal?.field).toBe("qty.inputs");
+    });
+
+    it("records the quantity field on an approved modify", () => {
+        expect(orderGate.verify(modifyOrderIntent()).checked).toContain("qty");
+        expect(orderGate.verify(tpslPlaceIntent()).checked).toContain("stopLossQty");
+    });
+
+    it("approves modifies that send no quantity at all unchanged", () => {
+        // The position-wide plan shape: prices only, no qty on the wire.
+        const intent: OrderIntent = {
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "place-position",
+                symbol: "BTCUSDT",
+                params: {
+                    symbol: "BTCUSDT",
+                    positionId: "pos-1",
+                    slPrice: "49500",
+                    slStopType: "MARK_PRICE",
+                },
+            },
+            displayed: {
+                ...ACCOUNT,
+                symbol: "BTCUSDT",
+                positionId: "pos-1",
+                stopLossPrice: new Decimal(49500),
+            },
+            priceFields: { takeProfit: "params.tpPrice", stopLoss: "params.slPrice" },
+        };
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(true);
+        expect(verdict.checked).not.toContain("qty");
+        expect(verdict.checked).not.toContain("stopLossQty");
+    });
+});
+
 describe("orderGate — reduce-only sizing", () => {
     it("refuses a close larger than the position", () => {
         const intent = reduceIntent();
