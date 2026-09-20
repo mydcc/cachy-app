@@ -250,7 +250,7 @@ describe("SecretsLoader.getDeviceKey retry (BUG-0521)", () => {
 });
 
 describe("readPersistedCiphertextState (BUG-0518)", () => {
-  const secretBlob = { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" as const };
+  const cipherBlob = { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" as const };
 
   beforeEach(() => {
     localStorage.clear();
@@ -269,7 +269,7 @@ describe("readPersistedCiphertextState (BUG-0518)", () => {
 
   it("counts encryptedSecrets toward the guard and surfaces the canary", () => {
     storeSettings({
-      encryptedSecrets: { openaiApiKey: secretBlob, _deviceKeyCanary: canaryBlob },
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
     });
 
     const state = readPersistedCiphertextState();
@@ -286,13 +286,13 @@ describe("readPersistedCiphertextState (BUG-0518)", () => {
   });
 
   it("counts encryptedAccountKeys toward the guard on their own", () => {
-    storeSettings({ encryptedAccountKeys: { "acc-1": secretBlob } });
+    storeSettings({ encryptedAccountKeys: { "acc-1": cipherBlob } });
 
     expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(true);
   });
 
   it("counts encrypted provider configs toward the guard on their own", () => {
-    storeSettings({ encryptedProviderConfigs: secretBlob });
+    storeSettings({ encryptedProviderConfigs: cipherBlob });
 
     expect(readPersistedCiphertextState().hasOrphanedCiphertext).toBe(true);
   });
@@ -306,7 +306,7 @@ describe("readPersistedCiphertextState (BUG-0518)", () => {
 
 describe("SecretsLoader.getDeviceKey central guard (BUG-0517/0518)", () => {
   const deviceKeyStub = { algorithm: { name: "PBKDF2" } } as unknown as CryptoKey;
-  const secretBlob = { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" as const };
+  const cipherBlob = { ciphertext: "c", iv: "i", salt: "s", method: "AES-GCM" as const };
   const LEGACY_HEX = "ab".repeat(32);
 
   beforeEach(() => {
@@ -328,7 +328,7 @@ describe("SecretsLoader.getDeviceKey central guard (BUG-0517/0518)", () => {
     // to pass `false` and mint a fresh key; now the loader measures all
     // stores itself, so call order no longer matters.
     storeSettings({
-      encryptedSecrets: { openaiApiKey: secretBlob, _deviceKeyCanary: canaryBlob },
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
     });
 
     const loader = new SecretsLoader();
@@ -342,7 +342,7 @@ describe("SecretsLoader.getDeviceKey central guard (BUG-0517/0518)", () => {
     vi.mocked(cryptoService.getOrGenerateDeviceKey).mockClear();
     const loader2 = new SecretsLoader();
     await loader2.decryptSecrets(
-      { openaiApiKey: secretBlob, _deviceKeyCanary: canaryBlob },
+      { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
       () => {},
     );
     expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledWith(
@@ -353,7 +353,7 @@ describe("SecretsLoader.getDeviceKey central guard (BUG-0517/0518)", () => {
   it("passes the legacy key and canary through for migration", async () => {
     localStorage.setItem("cachy_device_id", LEGACY_HEX);
     storeSettings({
-      encryptedSecrets: { openaiApiKey: secretBlob, _deviceKeyCanary: canaryBlob },
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
     });
 
     await new SecretsLoader().getDeviceKey();
@@ -376,7 +376,7 @@ describe("SecretsLoader.getDeviceKey central guard (BUG-0517/0518)", () => {
   it("keeps the legacy key when migration fails (BUG-0517: data stays recoverable)", async () => {
     localStorage.setItem("cachy_device_id", LEGACY_HEX);
     storeSettings({
-      encryptedSecrets: { openaiApiKey: secretBlob, _deviceKeyCanary: canaryBlob },
+      encryptedSecrets: { openaiApiKey: cipherBlob, _deviceKeyCanary: canaryBlob },
     });
     vi.mocked(cryptoService.getOrGenerateDeviceKey).mockRejectedValueOnce(
       new Error("DeviceKeyLost: Migrated legacy key cannot open the stored secrets."),
