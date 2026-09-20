@@ -2,9 +2,16 @@
 id: BUG-0523
 title: Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day
 type: bug
+<<<<<<< HEAD
 status: in-progress
 assignee: opencode
 branch: fix/bug-0523-daily-loss-followups
+=======
+status: done
+assignee: opencode
+branch: fix/bug-0523-daily-loss-followups
+shipped: unreleased
+>>>>>>> 4b73535a (fix(risk): name daily-loss refusal causes and measure synced zeroes (BUG-0523))
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -71,6 +78,7 @@ See Evidence. Manual 0 stays "forgotten" (fail-safe); synced 0 becomes
 
 ## Out of scope
 
+<<<<<<< HEAD
 - Venue rounding of tiny losses to exactly 0.00 — verified at
   implementation: the sync builds `netPnl` from raw venue strings through
   exact `Decimal` arithmetic (`syncService.ts`, no truncation in storage;
@@ -78,6 +86,10 @@ See Evidence. Manual 0 stays "forgotten" (fail-safe); synced 0 becomes
   a history row with all pnl fields absent coerces to 0 via `|| 0`
   (pre-existing sync behaviour) — bounded, requires a row with no pnl data
   at all.
+=======
+- Venue rounding of tiny losses to exactly 0.00 (verify precision at
+  implementation; display rounds, storage should not)
+>>>>>>> 4b73535a (fix(risk): name daily-loss refusal causes and measure synced zeroes (BUG-0523))
 - Empty/never-synced journals (blind by design, local-first)
 - `Won`/0 status lying (undetectable, accepted)
 
