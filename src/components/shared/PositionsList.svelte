@@ -206,8 +206,10 @@
                           ? 'var(--success-color)'
                           : 'var(--danger-color)'}"
                       ></div>
+                      <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
                       <span
                         class="text-[10px] font-bold z-10 relative"
+                        aria-live="off"
                         class:text-[var(--success-color)]={pos.unrealizedPnl.gt(0)}
                         class:text-[var(--danger-color)]={pos.unrealizedPnl.lt(0)}
                       >
@@ -215,8 +217,10 @@
                       </span>
                     </div>
                   {:else}
+                    <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
                     <span
                       class="font-bold text-sm"
+                      aria-live="off"
                       class:text-[var(--success-color)]={pos.unrealizedPnl.gt(0)}
                       class:text-[var(--danger-color)]={pos.unrealizedPnl.lt(0)}
                     >
@@ -419,8 +423,10 @@
                   }
                 }}
               >
+                <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
                 <span
                   class="font-bold text-lg leading-none"
+                  aria-live="off"
                   class:text-[var(--success-color)]={pos.unrealizedPnl.gt(0)}
                   class:text-[var(--danger-color)]={pos.unrealizedPnl.lt(0)}
                 >
