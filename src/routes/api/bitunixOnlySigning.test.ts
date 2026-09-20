@@ -46,7 +46,7 @@ import {
  * Each file drops out of this list as it is migrated; when the list is empty
  * the migration is done, which is the point.
  *
- * The seven below are A3's and reach Bitunix by construction.
+ * The eight below reach Bitunix by construction: seven are A3's, and
  * `account-settings` joined them in A5a: it is a multi-venue *route* that only
  * one venue implements, and `ROUTE_SIGNING_PLAN` now says so.
  */
