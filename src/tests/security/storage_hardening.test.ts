@@ -31,8 +31,11 @@ vi.mock("$app/environment", () => ({ browser: true, dev: true }));
 
 // Mock CryptoService
 let isSessionUnlocked = false;
-vi.mock('../../services/cryptoService', () => {
+vi.mock('../../services/cryptoService', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../services/cryptoService')>();
   return {
+    ...actual,
     cryptoService: {
       getOrGenerateDeviceKey: vi.fn(async () => "mock-device-key"),
       encrypt: vi.fn(async (text: string, pwd?: string) => {
@@ -60,8 +63,6 @@ vi.mock('../../services/cryptoService', () => {
       }),
       isUnlocked: vi.fn(() => isSessionUnlocked)
     },
-    isValidLegacyHexKey: (value: string) =>
-      value.length > 0 && value.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(value),
   };
 });
 

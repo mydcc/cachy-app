@@ -4,7 +4,7 @@
 
 402 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 53 · ✅ done 325 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 51 · ✅ done 327 · ⛔ dropped 1
 
 ---
 
@@ -268,8 +268,8 @@ Counts by status: 💡 idea 23 · 📋 specced 53 · ✅ done 325 · ⛔ dropped
 | [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | exchange |
 | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | execution |
 | [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | execution |
-| [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | 📋 specced | security |
-| [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | 📋 specced | security |
+| [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | ✅ done | security |
+| [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | security |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | 📋 specced | security |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
@@ -570,8 +570,8 @@ Counts by status: 💡 idea 23 · 📋 specced 53 · ✅ done 325 · ⛔ dropped
 | [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |

@@ -30,17 +30,20 @@ vi.mock("$app/environment", () => ({
   browser: true,
 }));
 
-vi.mock("../../services/cryptoService", () => ({
-  cryptoService: {
-    encrypt: vi.fn(),
-    decrypt: vi.fn(),
-    getOrGenerateDeviceKey: vi
-      .fn()
-      .mockResolvedValue({ algorithm: { name: "PBKDF2" } } as unknown as CryptoKey),
-  },
-  isValidLegacyHexKey: (value: string) =>
-    value.length > 0 && value.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(value),
-}));
+vi.mock("../../services/cryptoService", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../../services/cryptoService")>();
+  return {
+    ...actual,
+    cryptoService: {
+      encrypt: vi.fn(),
+      decrypt: vi.fn(),
+      getOrGenerateDeviceKey: vi
+        .fn()
+        .mockResolvedValue({ algorithm: { name: "PBKDF2" } } as unknown as CryptoKey),
+    },
+  };
+});
 
 const canaryBlob = { ciphertext: "canary-c", iv: "i", salt: "s", method: "AES-GCM" as const };
 
