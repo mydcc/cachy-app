@@ -109,6 +109,13 @@ describe("exchange capabilities (FEAT-0017)", () => {
          * `supports.tpSl`. If they ever disagreed, the gate would defer to a
          * follow-up request the adapter refuses — the exact hole this bug
          * closes — or refuse an entry the venue could protect.
+         *
+         * The per-venue loop lives in `adapterConformance.test.ts`, which
+         * owns registry iteration: importing the registry here froze its
+         * adapter list mid-cycle (the adapter graph reaches the registry
+         * through `services/exchange`), so this file pins the concrete
+         * values and the conformance suite pins the agreement for every
+         * venue the registry knows.
          */
         it("agrees with the adapter's standalone TP/SL verdict on every venue", () => {
             expect(bitunixAdapter.supports.tpSl).toBe(capabilitiesOf("bitunix").tpSlStandalone);
