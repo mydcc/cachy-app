@@ -119,16 +119,18 @@ class CryptoServiceImpl {
 
   /**
    * Derives (or retrieves from cache) an AES key for the given salt using the session base key.
+   * The cache key includes the iteration count (BUG-0520): a varied count
+   * must never return a key derived at a different count.
    */
-  private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[], hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512"): Promise<CryptoKey> {
+  private async getSessionKeyForSalt(salt: Uint8Array, usages: KeyUsage[], hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512", iterations: number = STRONG_ITERATIONS): Promise<CryptoKey> {
     if (!this.sessionBaseKey) {
       throw new Error("Session locked and no password provided");
     }
-    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer) + "_" + hashAlgo;
+    const saltKey = bufferToBase64(salt.buffer as unknown as ArrayBuffer) + "_" + hashAlgo + "_" + iterations;
     const cached = this.sessionKeyCache.get(saltKey);
     if (cached) return cached;
     const key = await window.crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
+      { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations, hash: hashAlgo },
       this.sessionBaseKey,
       { name: "AES-GCM", length: KEY_SIZE },
       false,
@@ -254,6 +256,11 @@ class CryptoServiceImpl {
 
       if (password instanceof CryptoKey) {
         if (password.algorithm.name === "PBKDF2") {
+          // BUG-0520: deliberately STRONG_ITERATIONS, not `iterations`.
+          // Device keys postdate the CryptoJS rewrite (b8537c98 came after
+          // 560a15c7), so no blob encrypted under a device CryptoKey can
+          // exist at LEGACY_ITERATIONS — a legacy rung here would re-derive
+          // the same key twice instead of recovering anything.
           key = await window.crypto.subtle.deriveKey(
             { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: hashAlgo },
             password,
@@ -265,8 +272,11 @@ class CryptoServiceImpl {
           key = password;
         }
       } else if (this.sessionBaseKey && !password) {
-        // Derive key from session base key + blob's salt
-        key = await this.getSessionKeyForSalt(salt, ["decrypt"], hashAlgo);
+        // Derive key from session base key + blob's salt. The session base
+        // key is PBKDF2 material imported from the same user password that
+        // could have encrypted pre-rewrite blobs, so `iterations` is
+        // honoured here — unlike the device-key branch above.
+        key = await this.getSessionKeyForSalt(salt, ["decrypt"], hashAlgo, iterations);
       } else if (typeof password === 'string' && password) {
         // Determine Algo based on method or legacy fallback
         if (blob.method === "AES-GCM") {
@@ -333,11 +343,23 @@ class CryptoServiceImpl {
     // decode turns that into a thrown error so each attempt below either
     // succeeds with real plaintext or fails and moves to the next.
     if (blob.method === "AES-CBC") {
-      const legacyAttempts: Array<{ iterations: number; hash: "SHA-256" | "SHA-1" }> = [
-        { iterations: STRONG_ITERATIONS, hash: "SHA-256" },
-        { iterations: STRONG_ITERATIONS, hash: "SHA-1" },
-        { iterations: LEGACY_ITERATIONS, hash: "SHA-1" }, // for blobs older still
-      ];
+      // BUG-0520: the LEGACY_ITERATIONS rung only runs for password-derived
+      // callers (string password or session key, which is PBKDF2 material
+      // imported from the same user password). Device CryptoKeys postdate
+      // the CryptoJS rewrite, so no blob under such a key exists at legacy
+      // parameters — for them the third rung would be byte-identical to the
+      // second, an expensive duplicate PBKDF2 derivation, and is skipped.
+      const legacyAttempts: Array<{ iterations: number; hash: "SHA-256" | "SHA-1" }> =
+        password instanceof CryptoKey
+          ? [
+              { iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+              { iterations: STRONG_ITERATIONS, hash: "SHA-1" },
+            ]
+          : [
+              { iterations: STRONG_ITERATIONS, hash: "SHA-256" },
+              { iterations: STRONG_ITERATIONS, hash: "SHA-1" },
+              { iterations: LEGACY_ITERATIONS, hash: "SHA-1" }, // for blobs older still
+            ];
       let lastError: unknown;
       for (const { iterations, hash } of legacyAttempts) {
         try {
