@@ -221,9 +221,10 @@
         action: true,
     });
 
-    // Performance: `Object.keys()` extracted to a `$derived` to prevent the `{#each}`
-    // expression in the template from unnecessarily re-allocating an array.
-    let visibleColumnKeys = $derived(Object.keys(columnVisibility));
+    // Performance: `Object.keys()` extracted to a plain `const` (the key set is
+    // static, only values toggle) to prevent the `{#each}` expression in the
+    // template from unnecessarily re-allocating an array.
+    const visibleColumnKeys = Object.keys(columnVisibility);
 
     type ColumnLabelKey = TranslationKey;
     /** Localized name for each column key shown in the settings popover. */
