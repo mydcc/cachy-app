@@ -48,6 +48,30 @@ const SECURE_DB_NAME = "CachySecurityDB";
 const SECURE_STORE_NAME = "keys";
 const DEVICE_KEY_ALIAS = "device_key";
 
+/**
+ * Upper bound for opening the device-key database (BUG-0521, option A).
+ * A blocked `indexedDB.open` fires neither `onsuccess` nor `onerror`, so
+ * without a backstop the promise — and with it `secretsReady` — stays
+ * pending forever. Aligned with the ~5s device-key resolution measured in
+ * BUG-0053: a concurrent factory reset finishes well inside this window,
+ * so a retry after rejection should succeed.
+ */
+export const DEVICE_KEY_OPEN_TIMEOUT_MS = 5000;
+
+/** `name` carried by the rejection when the secure-DB open does not settle. */
+export const INDEXEDDB_BLOCKED_ERROR_NAME = "IndexedDBBlockedError";
+
+function indexedDBBlockedError(blockedSeen: boolean): Error {
+  const reason = blockedSeen
+    ? "the open request was blocked (concurrent factory-reset deleteDatabase or a version-change lock held by another tab)"
+    : "the open request never settled";
+  const error = new Error(
+    `IndexedDB open of "${SECURE_DB_NAME}" timed out after ${DEVICE_KEY_OPEN_TIMEOUT_MS}ms: ${reason}. Retry once the concurrent operation finished.`,
+  );
+  error.name = INDEXEDDB_BLOCKED_ERROR_NAME;
+  return error;
+}
+
 class CryptoServiceImpl {
   // Non-extractable PBKDF2 base key derived from the user's password.
   // The raw password is never stored — only this opaque CryptoKey handle,
@@ -388,42 +412,95 @@ class CryptoServiceImpl {
     return key;
   }
 
-  private async loadKeyFromDB(alias: string): Promise<CryptoKey | null> {
+  /**
+   * Opens the secure device-key database with an `onblocked` handler and a
+   * bounded timeout (BUG-0521). A blocked open fires neither `onsuccess`
+   * nor `onerror`; recording it and rejecting at the deadline keeps the
+   * promise retryable via `SecretsLoader.getDeviceKey`'s `.catch` instead
+   * of caching a forever-pending promise. The timer is the backstop for
+   * every missed event, not just `blocked`.
+   */
+  private openSecureDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(SECURE_DB_NAME, 1);
+      let settled = false;
+      let blockedSeen = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const rejectOnce = (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      };
+      const resolveOnce = (db: IDBDatabase) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(db);
+      };
+      timer = setTimeout(
+        () => rejectOnce(indexedDBBlockedError(blockedSeen)),
+        DEVICE_KEY_OPEN_TIMEOUT_MS,
+      );
+      let request: IDBOpenDBRequest;
+      try {
+        request = indexedDB.open(SECURE_DB_NAME, 1);
+      } catch (error) {
+        rejectOnce(error);
+        return;
+      }
       request.onupgradeneeded = () => {
         request.result.createObjectStore(SECURE_STORE_NAME);
       };
       request.onsuccess = () => {
-        const db = request.result;
-        try {
-          const tx = db.transaction(SECURE_STORE_NAME, "readonly");
-          const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
-          getReq.onsuccess = () => resolve(getReq.result || null);
-          getReq.onerror = () => reject(getReq.error);
-          // Release the connection so a factory-reset deleteDatabase()
-          // is not blocked by it (BUG-0288). Aborted/errored transactions
-          // never fire oncomplete, so cover those paths too.
-          tx.oncomplete = () => db.close();
-          tx.onabort = () => db.close();
-          tx.onerror = () => db.close();
-        } catch {
-          db.close();
-          resolve(null);
+        if (settled) {
+          // Late success after the timeout already rejected: release the
+          // connection instead of dropping it, so it cannot block a later
+          // factory-reset deleteDatabase().
+          try {
+            request.result.close();
+          } catch {
+            // Best effort — the open already failed from the caller's view.
+          }
+          return;
         }
+        resolveOnce(request.result);
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () =>
+        rejectOnce(
+          request.error ??
+            new Error(`IndexedDB open of "${SECURE_DB_NAME}" failed`),
+        );
+      request.onblocked = () => {
+        blockedSeen = true;
+      };
+    });
+  }
+
+  private async loadKeyFromDB(alias: string): Promise<CryptoKey | null> {
+    const db = await this.openSecureDb();
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(SECURE_STORE_NAME, "readonly");
+        const getReq = tx.objectStore(SECURE_STORE_NAME).get(alias);
+        getReq.onsuccess = () => resolve(getReq.result || null);
+        getReq.onerror = () => reject(getReq.error);
+        // Release the connection so a factory-reset deleteDatabase()
+        // is not blocked by it (BUG-0288). Aborted/errored transactions
+        // never fire oncomplete, so cover those paths too.
+        tx.oncomplete = () => db.close();
+        tx.onabort = () => db.close();
+        tx.onerror = () => db.close();
+      } catch {
+        db.close();
+        resolve(null);
+      }
     });
   }
 
   private async saveKeyToDB(alias: string, key: CryptoKey): Promise<void> {
+    const db = await this.openSecureDb();
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(SECURE_DB_NAME, 1);
-      request.onupgradeneeded = () => {
-        request.result.createObjectStore(SECURE_STORE_NAME);
-      };
-      request.onsuccess = () => {
-        const db = request.result;
+      try {
         const tx = db.transaction(SECURE_STORE_NAME, "readwrite");
         const putReq = tx.objectStore(SECURE_STORE_NAME).put(key, alias);
         putReq.onsuccess = () => resolve();
@@ -434,8 +511,10 @@ class CryptoServiceImpl {
         tx.oncomplete = () => db.close();
         tx.onabort = () => db.close();
         tx.onerror = () => db.close();
-      };
-      request.onerror = () => reject(request.error);
+      } catch (error) {
+        db.close();
+        reject(error);
+      }
     });
   }
 
