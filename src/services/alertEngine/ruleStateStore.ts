@@ -269,9 +269,10 @@ export function clearBotAnchors(ruleId: string): void {
   delete entry.last_intrabar_fired_anchor_ms;
   writeRuleStates(states);
 }
-
 /** Forgets one rule's fire state — it was deleted, or the trader re-armed it. */
-export function clearRuleState(ruleId: string): void {  if (!browser) return;
+export function clearRuleState(ruleId: string): void {
+
+  if (!browser) return;
 
   const states = readRuleStates();
   if (!(ruleId in states)) return;

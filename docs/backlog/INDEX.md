@@ -4,7 +4,7 @@
 
 402 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 57 · ✅ done 321 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 56 · ✅ done 322 · ⛔ dropped 1
 
 ---
 

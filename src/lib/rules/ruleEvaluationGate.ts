@@ -111,7 +111,7 @@ export class RuleEvaluationGate {
    * The module singleton cannot take it through the constructor: it is built
    * at import time, before storage is readable. The wiring that owns store
    * access calls this once at startup; tests pass a fake per gate instead.
-   * `null` unbinds again, which is what HMR teardown uses.
+   * `null` unbinds again, which is what the loop's disposer does on teardown.
    */
   setBotAnchorPersistence(persistence: BotAnchorPersistence | null): void {
     this.botPersistence = persistence;

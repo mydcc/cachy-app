@@ -412,6 +412,10 @@ export function startRuleEvaluationLoop(
   return () => {
     if (!ruleEvaluationLoop.isArmed()) return;
     ruleEvaluationLoop.disarm();
+    // BUG-0491: unbind the gate's durable half with the loop. Re-arming
+    // re-binds it (idempotent), and a disarmed loop evaluates nothing, so no
+    // anchor can go unrecorded in between.
+    ruleEvaluationGate.setBotAnchorPersistence(null);
     // `error`, not `log`: every alert the loop was serving has to be back on
     // the legacy engine by the time this runs, and a rule the panel created
     // without a legacy alert behind it is now evaluated by nothing at all.
