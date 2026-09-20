@@ -2370,7 +2370,13 @@ export class SettingsManager {
           encryptionPassword,
           !this.providerConfigDecryptPending,
         );
-      this.encryptionFailures = encryptionFailures;
+      // A locked-session save cannot encrypt (every loader returns 0
+      // early) and must not clear a previously reported failure: the
+      // dropped blobs are still gone, so the banner stays until a save
+      // that actually encrypts succeeds and resets the count.
+      if (canEncrypt) {
+        this.encryptionFailures = encryptionFailures;
+      }
 
       const current = localStorage.getItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,

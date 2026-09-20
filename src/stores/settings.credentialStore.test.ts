@@ -523,8 +523,7 @@ describe("a failed encryption drops the superseded blob and surfaces (BUG-0519)"
     );
   });
 
-  it("never persists the new plaintext, and logs the failure outside DEV", async () => {
-    const errorSpy = vi
+  it("never persists the new plaintext, and logs the failure outside DEV", async () => {    const errorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
     try {
@@ -541,6 +540,28 @@ describe("a failed encryption drops the superseded blob and surfaces (BUG-0519)"
       );
     } finally {
       errorSpy.mockRestore();
+    }
+  });
+
+  it("keeps a prior failure count when a later locked autosave cannot encrypt", async () => {
+    const mgr = new SettingsManager();
+    mgr.imgbbApiKey = "";
+    mgr.accountFor("bitunix").keys = { key: "new-key", secret: "new-secret" };
+
+    await saveInternal(mgr);
+    expect(mgr.encryptionFailures).toBe(1);
+
+    // The session locks; the autosave can no longer encrypt (canEncrypt is
+    // false, every loader returns 0 early) and must not clear the banner —
+    // the dropped blobs are still gone.
+    mgr.isLocked = true;
+    vi.mocked(cryptoService.isUnlocked).mockReturnValue(false);
+    try {
+      await saveInternal(mgr);
+
+      expect(mgr.encryptionFailures).toBe(1);
+    } finally {
+      vi.mocked(cryptoService.isUnlocked).mockReturnValue(true);
     }
   });
 });
