@@ -217,7 +217,6 @@
                       </span>
                     </div>
                   {:else}
-                    <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
                     <span
                       class="font-bold text-sm"
                       aria-live="off"
@@ -423,7 +422,6 @@
                   }
                 }}
               >
-                <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
                 <span
                   class="font-bold text-lg leading-none"
                   aria-live="off"
