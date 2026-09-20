@@ -24,6 +24,7 @@ import {
   generateId,
 } from "../utils/utils";
 import type { JournalEntry } from "../stores/types";
+import { coerceJournalStatus } from "../stores/types";
 import { Decimal } from "decimal.js";
 
 export const csvService = {
@@ -368,16 +369,23 @@ export const csvService = {
             }
           }
 
+          // BUG-0499: an import row carries no separate close time, so the
+          // row's date doubles as the close day. Stating it explicitly keeps
+          // the gate's day attribution measurable instead of falling back
+          // to the open day.
+          const rowDate = parseDateString(
+            entry.Datum,
+            entry.Uhrzeit,
+            useUtcDateParsing,
+          ).toISOString();
+
           const importedTrade: JournalEntry = {
             id: internalId,
-            date: parseDateString(
-              entry.Datum,
-              entry.Uhrzeit,
-              useUtcDateParsing,
-            ).toISOString(),
+            date: rowDate,
+            exitDate: rowDate,
             symbol: entry.Symbol,
             tradeType: entry.Typ.toLowerCase(),
-            status: entry.Status,
+            status: coerceJournalStatus(entry.Status),
             accountSize: parseDecimal(entry["Konto Guthaben"] || "0"),
             riskPercentage: parseDecimal(entry["Risiko %"] || "0"),
             leverage: parseDecimal(entry.Hebel || "1"),

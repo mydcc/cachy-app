@@ -17,6 +17,7 @@
 
 import { parseTimestamp, generateId } from "../utils/utils";
 import { journalState } from "../stores/journal.svelte";
+import { riskState } from "../stores/riskLimits.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { keysForActiveAccount } from "../stores/settings/accounts";
@@ -726,6 +727,13 @@ export const syncService = {
 
       // Flush any pending debounced journal state immediately to localStorage
       await journalState.flush();
+
+      // BUG-0499 — the daily-loss gate treats a journal holding synced trades
+      // as unmeasurable until a same-day history sync proves it caught up.
+      // Any successful run proves exactly that, even with no new rows (and
+      // even a partial one: history is the critical endpoint and throws
+      // above when it fails, so reaching here means history landed).
+      riskState.recordHistorySync();
 
       // Final feedback - trades already added incrementally
       if (addedCount > 0 || refreshedCount > 0) {

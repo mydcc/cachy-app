@@ -428,7 +428,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0499",
     "title": "The daily loss limit measures the journal rather than the account, so four ordinary situations let a breached limit pass",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0499-daily-loss-completeness",
     "priority": "P0",
     "milestone": "none",
     "editions": [

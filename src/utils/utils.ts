@@ -17,6 +17,7 @@
 
 import { Decimal } from "decimal.js";
 import type { JournalEntry } from "../stores/types";
+import { coerceJournalStatus } from "../stores/types";
 
 /**
  * Unwraps the `{ success, data }` / `{ success, error }` envelope produced
@@ -565,6 +566,11 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
   // Default flags and arrays
   if (newTrade.isManual === undefined) newTrade.isManual = true;
   if (!Array.isArray(newTrade.tags)) newTrade.tags = [];
+
+  // BUG-0499: a status no counter understands must not flow through as a
+  // string the union never named — coerce it to the legacy terminal status
+  // so amount and close-day completeness apply instead of silent exclusion.
+  newTrade.status = coerceJournalStatus(newTrade.status);
 
   return newTrade as JournalEntry;
 }

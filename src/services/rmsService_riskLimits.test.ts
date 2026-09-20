@@ -493,6 +493,104 @@ describe("FEAT-0013 — daily loss counter", () => {
     });
 });
 
+// BUG-0499 — the daily-loss limit measures the journal, so it must refuse
+// when the journal cannot be measured instead of reading zero.
+describe("BUG-0499 — an unmeasurable day refuses opens", () => {
+    it("refuses when a Lost entry for today carries no amount", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        const entry = closedTrade("-50", Date.now());
+        delete (entry as Record<string, unknown>).totalNetProfit;
+        journal.entries = [entry];
+
+        const refusal = orderGate.verify(openIntent()).refusal;
+        expect(refusal?.field).toBe("maxDailyLoss");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("refuses when a closed entry has no exitDate to attribute it by", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [
+            {
+                id: "t-no-exit",
+                status: "Lost",
+                date: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+                // No exitDate: dating this by its open day would hide an
+                // overnight loss from today's limit.
+                totalNetProfit: new Decimal("-50"),
+            },
+        ];
+
+        const refusal = orderGate.verify(openIntent()).refusal;
+        expect(refusal?.field).toBe("maxDailyLoss");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("refuses when an entry carries a status outside the known set", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [
+            {
+                id: "t-foreign",
+                status: "Breakeven",
+                date: new Date(Date.now()).toISOString(),
+                exitDate: new Date(Date.now()).toISOString(),
+                totalNetProfit: new Decimal("0"),
+            },
+        ];
+
+        const refusal = orderGate.verify(openIntent()).refusal;
+        expect(refusal?.field).toBe("maxDailyLoss");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("refuses when synced trades exist but no history sync ran today", () => {
+        riskState.setLimit("maxDailyLossUsdt", "10000");
+        journal.entries = [
+            { ...closedTrade("-10", Date.now()), isManual: false, isPaper: false },
+        ];
+
+        // The venue may have closed more since — the journal cannot prove
+        // otherwise without a same-day sync.
+        expect(orderGate.verify(openIntent()).refusal?.reason).toBe("missing");
+
+        riskState.recordHistorySync(Date.now());
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("still passes a complete journal under the limit", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [closedTrade("-40", Date.now())];
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("never blocks a close, cancel or TP/SL modification on an unmeasurable day", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        const entry = closedTrade("-50", Date.now());
+        delete (entry as Record<string, unknown>).totalNetProfit;
+        journal.entries = [entry];
+
+        // A limit that blocked getting out would leave the user over their
+        // limit *and* stuck in the position.
+        expect(orderGate.verify(openIntent()).approved).toBe(false);
+        expect(orderGate.verify(closeIntent()).approved).toBe(true);
+        expect(orderGate.verify(cancelIntent()).approved).toBe(true);
+        expect(orderGate.verify(tpSlModifyIntent()).approved).toBe(true);
+    });
+
+    it("attributes an overnight close to its exitDate, not its open day", () => {
+        const now = Date.now();
+        journal.entries = [
+            {
+                id: "t-overnight",
+                status: "Lost",
+                date: new Date(now - 24 * 3600 * 1000).toISOString(),
+                exitDate: new Date(now - 1000).toISOString(),
+                totalNetProfit: new Decimal("-50"),
+            },
+        ];
+        expect(rmsService.realizedLossToday(now).toString()).toBe("50");
+    });
+});
+
 describe("FEAT-0013 — limit input validation", () => {
     it("rejects a value that is not a non-negative number", () => {
         expect(riskState.setLimit("maxLeverage", "abc")).toBe(false);
@@ -545,6 +643,7 @@ describe("FEAT-0013 — Class A", () => {
         expect(JSON.parse(blob)).toEqual({
             limits: expect.objectContaining({ maxLeverage: "5" }),
             killSwitchEngagedAt: expect.any(Number),
+            lastHistorySyncAt: null,
         });
     });
 });

@@ -312,3 +312,55 @@ describe("JournalManager — Debounced Persistence (FEAT-0258)", () => {
     journal.destroy();
   });
 });
+
+describe("JournalManager.updateEntry — BUG-0499 (writers guarantee a close day)", () => {
+  it("stamps exitDate when an open entry transitions to closed without one", () => {
+    const journal = new JournalManager();
+    try {
+      const open = { ...createTestEntry("t-open", "0"), status: "Open" } as JournalEntry;
+      delete open.exitDate;
+      journal.addEntry(open);
+
+      journal.updateEntry({ ...open, status: "Lost" });
+
+      const stored = journal.entries.find((e) => e.id === "t-open");
+      expect(stored?.status).toBe("Lost");
+      expect(stored?.exitDate).toBeTruthy();
+    } finally {
+      journal.destroy();
+    }
+  });
+
+  it("never rewrites exitDate on unrelated edits to an already-closed entry", () => {
+    const journal = new JournalManager();
+    try {
+      const closed = createTestEntry("t-closed", "-50");
+      journal.addEntry(closed);
+      const originalExit = closed.exitDate;
+
+      journal.updateEntry({ ...closed, notes: "edited later" });
+
+      const stored = journal.entries.find((e) => e.id === "t-closed");
+      expect(stored?.exitDate).toBe(originalExit);
+    } finally {
+      journal.destroy();
+    }
+  });
+
+  it("keeps an explicitly provided exitDate on close", () => {
+    const journal = new JournalManager();
+    try {
+      const open = { ...createTestEntry("t-explicit", "0"), status: "Open" } as JournalEntry;
+      delete open.exitDate;
+      journal.addEntry(open);
+
+      const pinned = "2026-08-30T12:00:00.000Z";
+      journal.updateEntry({ ...open, status: "Won", exitDate: pinned });
+
+      const stored = journal.entries.find((e) => e.id === "t-explicit");
+      expect(stored?.exitDate).toBe(pinned);
+    } finally {
+      journal.destroy();
+    }
+  });
+});
