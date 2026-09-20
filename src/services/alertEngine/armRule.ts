@@ -35,8 +35,10 @@
 
 import { browser } from "$app/environment";
 import type { RuleDocument } from "../../lib/rules/types";
+import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
+import { clearBotAnchors } from "./ruleStateStore";
 
 /**
  * Raised when the rule store cannot be read as an array of rules.
@@ -86,9 +88,58 @@ export function readRuleStore(): RuleDocument[] {
  * first (`alertPanelState.validateDraft()`); this function does not validate,
  * because a second opinion on validity is the divergence ADR-0012 forbids.
  */
+/**
+ * The strategy half of a rule document, canonically encoded.
+ *
+ * BUG-0486 — `armRule` handles create, edit and enable-toggle in one
+ * function, but only an edit may reset the evaluation anchors: clearing them
+ * on a bare `enabled` flip would let a disarm+re-arm toggle re-fire the same
+ * candle, i.e. a UI-built double order. `enabled` is outside the content
+ * hash on purpose (see `setBotEnabled`), so it is stripped before comparing.
+ * Keys are sorted because the stored copy (JSON round-trip) and the incoming
+ * draft need not share insertion order.
+ */
+function strategyOf(document: RuleDocument): string {
+    const strategy: Record<string, unknown> = { ...(document as unknown as Record<string, unknown>) };
+    delete strategy.enabled;
+    return JSON.stringify(sortKeys(strategy));
+}
+
+function sortKeys(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(sortKeys);
+    if (value !== null && typeof value === "object") {
+        return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>)
+                .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+                .map(([k, v]) => [k, sortKeys(v)]),
+        );
+    }
+    return value;
+}
+
+/**
+ * Drops a rule's evaluation anchors from both halves of the dedupe.
+ *
+ * BUG-0486 — `forget` clears the gate's in-memory maps and, while the loop
+ * has the persistence port bound, the stored anchors too. Edits also land
+ * while disarmed, when the port is unbound, so the stored half is cleared
+ * directly here as well: a forgotten rule must be decidable again after a
+ * reload too, not just this session.
+ */
+function forgetAnchors(ruleId: string): void {
+    ruleEvaluationGate.forget(ruleId);
+    clearBotAnchors(ruleId);
+}
+
 export function armRule(document: RuleDocument): RuleDocument[] {
   const rules = readRuleStore();
   const index = rules.findIndex((r) => r.id === document.id);
+  if (index !== -1 && strategyOf(rules[index]) !== strategyOf(document)) {
+    // A real content change: the old strategy's anchors must not suppress
+    // the new strategy's first signal. A bare enable-toggle keeps them —
+    // see `strategyOf` — so toggling can never re-fire a seen candle.
+    forgetAnchors(document.id);
+  }
   const next =
     index === -1
       ? [...rules, document]
@@ -114,6 +165,9 @@ export function removeRule(ruleId: string): RuleDocument[] {
   const next = rules.filter((rule) => rule.id !== ruleId);
   if (next.length !== rules.length) {
     localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
+    // The rule is gone: its anchors go with it, from both halves, so a
+    // re-armed rule with a recycled id starts decidable.
+    forgetAnchors(ruleId);
   }
   return next;
 }

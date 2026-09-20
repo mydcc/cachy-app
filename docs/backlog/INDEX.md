@@ -4,7 +4,7 @@
 
 403 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 50 · ✅ done 329 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 49 · ✅ done 330 · ⛔ dropped 1
 
 ---
 
@@ -340,7 +340,7 @@ Counts by status: 💡 idea 23 · 📋 specced 50 · ✅ done 329 · ⛔ dropped
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | security |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | security |
 | [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 📋 specced | alerts |
-| [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | 📋 specced | alerts |
+| [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | ✅ done | alerts |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | execution |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | execution |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
@@ -692,7 +692,7 @@ Counts by status: 💡 idea 23 · 📋 specced 50 · ✅ done 329 · ⛔ dropped
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
