@@ -78,30 +78,28 @@ export function readRuleStore(): RuleDocument[] {
 }
 
 /**
- * Stores `document` as an armed rule and returns the rules as they now stand.
- *
- * Replaces by `id` rather than always appending, so re-arming an edited draft
- * updates the rule instead of leaving the pre-edit copy armed beside it —
- * BUG-0402 was exactly that shape on the legacy path.
- *
- * The caller is responsible for having had the core accept the document
- * first (`alertPanelState.validateDraft()`); this function does not validate,
- * because a second opinion on validity is the divergence ADR-0012 forbids.
- */
-/**
  * The strategy half of a rule document, canonically encoded.
  *
  * BUG-0486 — `armRule` handles create, edit and enable-toggle in one
- * function, but only an edit may reset the evaluation anchors: clearing them
- * on a bare `enabled` flip would let a disarm+re-arm toggle re-fire the same
- * candle, i.e. a UI-built double order. `enabled` is outside the content
- * hash on purpose (see `setBotEnabled`), so it is stripped before comparing.
- * Keys are sorted because the stored copy (JSON round-trip) and the incoming
- * draft need not share insertion order.
+ * function, but only a strategy edit may reset the evaluation anchors:
+ * clearing them on a bare `enabled` flip would let a disarm+re-arm toggle
+ * re-fire the same candle, i.e. a UI-built double order. Stripped before
+ * comparing: `enabled` (a toggle is not a strategy change) and the
+ * FEAT-0393 lifecycle fields (`trigger_methods`, `frequency`,
+ * `valid_until_ms`, `note`), which `types.ts` documents as outside the
+ * content hash — two rules differing only in how loudly they announce
+ * themselves are the same strategy. A note edit on a just-fired once rule
+ * must not make its already-seen candle decidable again. Keys are sorted
+ * because the stored copy (JSON round-trip) and the incoming draft need
+ * not share insertion order.
  */
 function strategyOf(document: RuleDocument): string {
     const strategy: Record<string, unknown> = { ...(document as unknown as Record<string, unknown>) };
     delete strategy.enabled;
+    delete strategy.trigger_methods;
+    delete strategy.frequency;
+    delete strategy.valid_until_ms;
+    delete strategy.note;
     return JSON.stringify(sortKeys(strategy));
 }
 
@@ -131,6 +129,21 @@ function forgetAnchors(ruleId: string): void {
     clearBotAnchors(ruleId);
 }
 
+/**
+ * Stores `document` as an armed rule and returns the rules as they now stand.
+ *
+ * Replaces by `id` rather than always appending, so re-arming an edited draft
+ * updates the rule instead of leaving the pre-edit copy armed beside it —
+ * BUG-0402 was exactly that shape on the legacy path.
+ *
+ * The caller is responsible for having had the core accept the document
+ * first (`alertPanelState.validateDraft()`); this function does not validate,
+ * because a second opinion on validity is the divergence ADR-0012 forbids.
+ *
+ * BUG-0486: replacing an edited draft whose *strategy* changed also resets
+ * that rule's evaluation anchors (see `strategyOf`); bare toggles and
+ * lifecycle-only edits keep them.
+ */
 export function armRule(document: RuleDocument): RuleDocument[] {
   const rules = readRuleStore();
   const index = rules.findIndex((r) => r.id === document.id);

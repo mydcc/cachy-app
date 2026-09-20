@@ -136,6 +136,22 @@ describe("forget wiring (BUG-0486)", () => {
         expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
     });
 
+    it("keeps anchors when only lifecycle fields change (note, frequency)", () => {
+        // FEAT-0393 lifecycle is outside the content hash on purpose: a note
+        // edit on a just-fired once rule must not make its already-seen
+        // candle decidable again.
+        armRule(rule("a", "70000"));
+        saveBotAnchors("a", { ...SNAPSHOT });
+
+        armRule({ ...rule("a", "70000"), note: "watched overnight" });
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+
+        armRule({ ...rule("a", "70000"), frequency: "every_time" });
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+    });
+
     it("does not forget a brand-new rule", () => {
         armRule(rule("fresh", "70000"));
         expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
