@@ -19,8 +19,8 @@
 /**
  * Rejects GitHub closing keywords in commit messages.
  *
- * Issue linking belongs in the pull request description — `CLAUDE.md` and
- * `AGENTS.md` require `Fixes #<issue>` there, and that is enough to close the
+ * Issue linking belongs in the pull request description — `AGENTS.md`
+ * requires `Fixes #<issue>` there, and that is enough to close the
  * issue and advance the Kanban card. A closing keyword in a *commit* message is
  * never needed here, and it is dangerous: GitHub's squash merge concatenates
  * every commit message in the PR into the merge commit body, so any one of them
@@ -111,7 +111,7 @@ GitHub parses these in commit messages, not just PR descriptions, and a squash
 merge folds every commit message in the PR into the merge body. Any one of them
 can close an issue this change does not fix.
 
-Put the link in the pull request description instead — that is what CLAUDE.md
+Put the link in the pull request description instead — that is what AGENTS.md
 requires and it is enough to close the issue and move the Kanban card.
 
 If the commit needs to write *about* a reference rather than make one:

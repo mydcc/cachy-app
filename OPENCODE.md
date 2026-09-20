@@ -1,6 +1,6 @@
 # OPENCODE.md
 
-OpenCode-specific extension of `AGENTS.md` (tool-agnostic reference) and `CLAUDE.md` (also applies where relevant).
+OpenCode-specific extension of `AGENTS.md` (tool-agnostic reference, also applies where relevant).
 
 ## MCP Tools — Mandatory Usage
 
@@ -48,7 +48,7 @@ git worktree remove .worktrees/<branch-name>
 
 See `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up".
 
-## Non-Negotiable Rules (from AGENTS.md + CLAUDE.md)
+## Non-Negotiable Rules (from AGENTS.md)
 
 - **Svelte 5 Runes only** — no `export let`, no `$:`, no `createEventDispatcher`, no `<slot>`
 - **decimal.js** for ALL financial values — no native `number` for prices/amounts/balances
@@ -62,6 +62,7 @@ See `AGENTS.md` § "Agent Lifecycle: Check, Claim, Clean Up".
 - Conventional Commits format (`feat:`, `fix:`, `refactor:`)
 - No agent-attribution footers (`Co-Authored-By: ...`)
 - Every PR needs `Fixes #<issue>` at the start of description
+- Always push the feature branch and open a PR against `develop` without asking (Ready by default, Draft only with a one-line reason); never merge without explicit instruction
 
 ## GitHub Actions & Reviews
 

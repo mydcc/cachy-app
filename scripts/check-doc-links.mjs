@@ -34,7 +34,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SEARCH_DIRS = ["docs", "server", ".github"];
-const EXTRA_FILES = ["README.md", "CLAUDE.md", "AGENT.md", "DEPLOYMENT.md", "scripts/README.md"];
+const EXTRA_FILES = ["README.md", "AGENTS.md", "DEPLOYMENT.md", "scripts/README.md"];
 const SKIP_DIRS = new Set(["node_modules", ".git", "build", ".svelte-kit"]);
 
 const LINK = /\[[^\]]*\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;

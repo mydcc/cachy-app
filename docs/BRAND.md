@@ -116,7 +116,7 @@ and anything user-facing outside the theme system.
 
 ## 3. Using colours in code (verified — this is a hard rule)
 
-From `CLAUDE.md`, and enforced by review:
+From `AGENTS.md`, and enforced by review:
 
 - **No hardcoded colours in components.** No `#ffffff`, no `rgb(...)`. Only CSS
   variables: `var(--bg-primary)`, `var(--text-secondary)`, `var(--accent-color)`.

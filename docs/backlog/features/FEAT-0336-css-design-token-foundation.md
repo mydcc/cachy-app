@@ -61,7 +61,7 @@ Dies ist ein **EPIC** mit vier Child-Features:
 
 ## Links
 
-- [CLAUDE.md](../../../CLAUDE.md) — siehe Theming, Financial Data, Svelte 5 Rules
+- [AGENTS.md](../../../AGENTS.md) — siehe Theming, Financial Data, Svelte 5 Rules
 - [src/themes.css](../../../src/themes.css) — Hauptdatei, 20 Themes + Utility-Klassen
 - [src/app.css](../../../src/app.css) — Tailwind v4 @theme-Block, Font-Faces, Scrollbar
 - [FEAT-0337](FEAT-0337-design-token-foundation.md) — Token Foundation (S, children: —)

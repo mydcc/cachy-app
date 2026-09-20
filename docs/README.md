@@ -66,7 +66,7 @@ and this repository has already paid for that once — see
 
 Read in this order for any non-trivial task:
 
-1. [`../CLAUDE.md`](../CLAUDE.md) — the non-negotiable rules. Svelte 5 runes
+1. [`../AGENTS.md`](../AGENTS.md) — the non-negotiable rules. Svelte 5 runes
    only, `decimal.js` for money, CSS variables for colour, verify before
    reporting done.
 2. The relevant [ADR](adr/README.md). If your change moves user data, adds a
