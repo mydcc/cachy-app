@@ -365,11 +365,56 @@ describe("orderGate — Decimal comparison", () => {
 });
 
 describe("orderGate — size tolerance", () => {
-    it("tolerates rounding to the instrument's step size", () => {
+    it("tolerates rounding down to the instrument's step size", () => {
+        const intent = openIntent();
+        intent.displayed.stepSize = new Decimal("0.001");
+        intent.payload.qty = "0.019"; // one step below the exact 0.02
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("refuses a size one step above the derived size (BUG-0506)", () => {
+        // Rounding only ever shrinks, so nothing above expected can be a
+        // legitimate rounding — the old symmetric window approved this.
         const intent = openIntent();
         intent.displayed.stepSize = new Decimal("0.001");
         intent.payload.qty = "0.021"; // one step above the exact 0.02
-        expect(orderGate.verify(intent).approved).toBe(true);
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("qty");
+        expect(refusal?.reason).toBe("sizeMismatch");
+    });
+
+    it("holds the asymmetry on a coarse step (BUG-0506)", () => {
+        // 1200 USDT account, 1 % risk, 5 stop distance → 12 / 5 = 2.4
+        // with a step of 1: the old window approved up to 3.4 (+42 % risk).
+        const coarseIntent = (): OrderIntent => {
+            const intent = openIntent();
+            intent.displayed.accountSize = new Decimal(1200);
+            intent.displayed.entryPrice = new Decimal(3000);
+            intent.displayed.stopLossPrice = new Decimal(2995);
+            intent.displayed.takeProfits = [new Decimal(3010)];
+            intent.displayed.stepSize = new Decimal("1");
+            intent.payload.price = "3000";
+            intent.payload.slPrice = "2995";
+            intent.payload.tpPrice = "3010";
+            intent.payload.qty = "2.4";
+            return intent;
+        };
+
+        const below = coarseIntent();
+        below.payload.qty = "1.4"; // one step below: a legitimate rounding
+        expect(orderGate.verify(below).approved).toBe(true);
+
+        const above = coarseIntent();
+        above.payload.qty = "3.4"; // one step above: an oversize
+        expect(orderGate.verify(above).refusal?.reason).toBe("sizeMismatch");
+
+        const halfStepUp = coarseIntent();
+        halfStepUp.payload.qty = "2.9"; // the upward allowance must not scale with the step
+        expect(orderGate.verify(halfStepUp).refusal?.reason).toBe("sizeMismatch");
+
+        const noiseUp = coarseIntent();
+        noiseUp.payload.qty = "2.402"; // within the 0.1 % representation allowance
+        expect(orderGate.verify(noiseUp).approved).toBe(true);
     });
 
     it("refuses a 10x sizing error however coarse the step", () => {

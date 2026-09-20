@@ -440,8 +440,9 @@ export function registerConfirmationCheck(fn: ConfirmationCheck | null): void {
 export const MAX_ACCOUNT_STATE_AGE_MS = 60_000;
 
 /**
- * Relative floor for the size tolerance, for instruments whose step size is
- * larger than the position itself. Tight enough that no sizing error of a
+ * Relative component of the size window: the floor under the downward
+ * tolerance when the step is finer than 0.1 % of the position, and the
+ * entire upward allowance (BUG-0506). Tight enough that no sizing error of a
  * meaningful magnitude — let alone 10x — can pass.
  */
 const SIZE_TOLERANCE_RELATIVE = new Decimal("0.001"); // 0.1 %
@@ -1065,8 +1066,13 @@ class OrderGate {
         // prove nothing.
         const expected = accountSize.times(riskPercentage.div(100)).div(riskPerUnit);
         const tolerance = this.sizeTolerance(expected, displayed.stepSize);
+        // BUG-0506. Rounding only ever shrinks a size, so the window is
+        // one-sided: a full step below absorbs the venue rounding, while
+        // above expected only decimal-representation noise is allowed — never
+        // a step-scaled oversize no producer could have generated.
+        const upward = expected.abs().times(SIZE_TOLERANCE_RELATIVE);
 
-        if (payloadQty.minus(expected).abs().gt(tolerance)) {
+        if (payloadQty.lt(expected.minus(tolerance)) || payloadQty.gt(expected.plus(upward))) {
             return {
                 field: "qty",
                 reason: "sizeMismatch",
@@ -1196,10 +1202,13 @@ class OrderGate {
     }
 
     /**
-     * Exchange step sizes force rounding, so an exact size match would refuse
-     * valid orders. The tolerance is therefore derived from the instrument —
-     * one step — never picked as a constant, with a 0.1 % relative floor for
-     * instruments whose step is coarser than the position itself.
+     * Exchange step sizes force rounding down, so an exact size match would
+     * refuse valid orders. The downward tolerance is therefore derived from
+     * the instrument — one step — never picked as a constant, with a 0.1 %
+     * relative floor for instruments whose step is finer than 0.1 % of the
+     * position. The upward allowance is the relative floor only: rounding
+     * never grows a size, so nothing above expected plus representation noise
+     * is legitimate (BUG-0506).
      */
     private sizeTolerance(expected: Decimal, stepSize?: Decimal): Decimal {
         const relative = expected.abs().times(SIZE_TOLERANCE_RELATIVE);
