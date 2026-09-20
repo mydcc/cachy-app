@@ -1080,6 +1080,8 @@ export type TranslationKey =
   | "settings.decryptionWarningMessage"
   | "settings.deviceKeyLostTitle"
   | "settings.deviceKeyLostDesc"
+  | "settings.encryptionWarningTitle"
+  | "settings.encryptionWarningMessage"
   | "settings.calculation.analyzeFavorites"
   | "settings.calculation.analyzeFavoritesBadgeAll"
   | "settings.calculation.analyzeFavoritesBadgeTop"
