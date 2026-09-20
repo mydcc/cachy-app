@@ -8301,6 +8301,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0477-intra-candle-alert-evaluation.md"
   },
   {
+    "id": "FEAT-0522",
+    "title": "Palette: Disable aria-live on ticking market data",
+    "type": "feature",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "Palette",
+    "file": "features/FEAT-0522-palette-disable-aria-live-ticking.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",
