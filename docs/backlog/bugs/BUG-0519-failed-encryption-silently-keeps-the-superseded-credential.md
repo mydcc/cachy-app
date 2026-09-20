@@ -2,7 +2,7 @@
 id: BUG-0519
 title: A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced
 type: bug
-status: in-progress
+status: done
 branch: fix/bug-0519-encryption-failure-stale-credential
 assignee: opencode
 priority: P1
@@ -108,21 +108,21 @@ to disagree with displayed credential state without the user being told.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect: a stored ciphertext for a
+- [x] A test reproduces the defect: a stored ciphertext for a
       `SENSITIVE_KEYS` field, a new plaintext value, `cryptoService.encrypt`
       made to reject, and after a reload the store resolves to the **old**
       secret while no signal was produced
-- [ ] The same reproduction for `encryptedAccountKeys` via
+- [x] The same reproduction for `encryptedAccountKeys` via
       `applyAccountKeyEncryption`
-- [ ] Encryption failures are logged in production builds, asserted by a test
+- [x] Encryption failures are logged in production builds, asserted by a test
       that does not stub `import.meta.env.DEV`
-- [ ] Both methods report a failure count and `SettingsManager.save`
+- [x] Both methods report a failure count and `SettingsManager.save`
       propagates it
-- [ ] The user sees an actionable message naming how many credentials failed
+- [x] The user sees an actionable message naming how many credentials failed
       to save, in German and English
-- [ ] No path ever writes plaintext to `localStorage` — the existing
+- [x] No path ever writes plaintext to `localStorage` — the existing
       guarantee is asserted by a test, not assumed
-- [ ] Targeted `secretsLoader` and `settings` tests pass
+- [x] Targeted `secretsLoader` and `settings` tests pass
 
 ## Out of scope
 

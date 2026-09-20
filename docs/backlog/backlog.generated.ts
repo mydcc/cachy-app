@@ -2076,7 +2076,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0519",
     "title": "A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "branch": "fix/bug-0519-encryption-failure-stale-credential",
     "assignee": "opencode",
     "priority": "P1",
