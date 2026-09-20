@@ -1,4 +1,8 @@
 
+## 2026-09-20 - Disable aria-live on ticking market data
+**Learning:** Live-updating market data (like ticking prices and PnL) constantly updates the DOM. Without explicitly turning off `aria-live`, screen readers might read out every single tick change, overwhelming users.
+**Action:** Added `aria-live="off"` to the elements containing ticking mark prices and unrealized PnL in `MarketOverview.svelte` and `PositionsList.svelte`.
+
 ## 2026-08-12 - Window Controls Accessibility
 **Learning:** Hardcoded English `title` attributes on icon-only buttons (like Window Controls) are accessibility failures that bypass the translation layer and create a poor experience for screen reader users on non-English locales. To replace them, standard i18n keys must be used and regenerated using `node scripts/generate-i18n-types.js` to avoid `svelte-check` type errors. The `as string` type assertion should be avoided in favor of correctly adding the keys and regenerating the schema.
 **Action:** Replaced hardcoded English title strings (e.g. `title="Export"`) in `src/components/shared/windows/WindowFrame.svelte` with `$_(...)` i18n calls (e.g., `title={$_("common.export")}`), added `aria-label`s for screen readers, and defined the translations in `en.json` and `de.json`.
