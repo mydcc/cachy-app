@@ -221,7 +221,7 @@
         action: true,
     });
 
-    let columnVisibilityKeys = $derived(Object.keys(columnVisibility));
+    const columnVisibilityKeys = Object.keys(columnVisibility);
 
     type ColumnLabelKey = TranslationKey;
     /** Localized name for each column key shown in the settings popover. */
