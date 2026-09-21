@@ -49,6 +49,7 @@
   } from "../../utils/exchange/venueQueries";
   import type { OMSPosition } from "../../services/omsTypes";
   import { calculateLiveUnrealizedPnl } from "../../services/mappers";
+  import { resolvePricedMark } from "../../services/priceResolution";
   import type { NormalizedOrder, NormalizedPosition } from "../../types/exchange";
   import type { TranslationKey } from "../../locales/schema";
 
@@ -180,24 +181,28 @@
 
   // Mark price for a position: Bitunix's REST/WS position endpoints never
   // return one (see BUG-0055) — the only real source is marketState, fed by
-  // the public WS `price` channel (`mp` field) or, for exchanges that do
+  // the public WS `price` channel (`mp` field), the REST gap-bridge (which
+  // carries the venue's mark price since BUG-0512) or, for exchanges that do
   // return it on the position itself (e.g. Bitget), the account store's
-  // snapshot. Prefer the live value; `.gt(0)` treats accountState's
-  // structural `Decimal(0)` default (Bitunix: always; Bitget: only before
-  // its first snapshot) as "no data" rather than a real zero price.
+  // snapshot. Ranked by age, not by presence (BUG-0512): a stale mark is
+  // still a positive number, so presence alone keeps pricing money off a
+  // frozen value while a fresher price sits unread beside it. `.gt(0)`
+  // treats accountState's structural `Decimal(0)` default (Bitunix: always;
+  // Bitget: only before its first snapshot) as "no data" rather than a real
+  // zero price.
   function resolveMarkPrice(p: (typeof accountState.positions)[number]) {
     const symbolData = marketState.data[normalizeSymbol(p.symbol, "bitunix")];
-    const live = symbolData?.markPrice;
-    if (live && live.gt(0)) return live;
-    if (p.markPrice && p.markPrice.gt(0)) return p.markPrice;
-    // Neither source has a real mark price — happens during a WS `price`
-    // channel gap/reconnect on Bitunix, since its REST ticker fallback
-    // (historyFetcher.pollSymbolChannel) has no mark-price field at all,
-    // only `lastPrice` (BUG-0218). Falling back to it keeps the row live
-    // instead of showing "?" while market data for the symbol does exist.
-    const lastPrice = symbolData?.lastPrice;
-    if (lastPrice && lastPrice.gt(0)) return lastPrice;
-    return undefined;
+    return resolvePricedMark(
+      {
+        markPrice: symbolData?.markPrice,
+        markPriceUpdatedAt: symbolData?.markPriceUpdatedAt,
+        lastPrice: symbolData?.lastPrice,
+        lastUpdated: symbolData?.lastUpdated,
+        fallbackMarkPrice: p.markPrice,
+      },
+      Date.now(),
+      settingsState.showStalePriceBadge,
+    );
   }
 
   // unrealizedPnl on accountState.positions only updates when Bitunix's WS
@@ -211,7 +216,13 @@
   // produce a nonsense PnL).
   let mappedPositions = $derived(
     accountState.positions.map((p): OMSPosition => {
-      const markPrice = resolveMarkPrice(p);
+      const resolved = resolveMarkPrice(p);
+      const markPrice = resolved.price;
+      // BUG-0512: stale display off and nothing fresh — the row shows
+      // unpriced rather than any number. The placeholder below never
+      // renders (PositionsList checks `unpriced` first); it only keeps the
+      // required Decimal shape so totals keep typechecking.
+      const unpriced = markPrice === undefined && !settingsState.showStalePriceBadge;
       const liveUnrealizedPnl =
         markPrice && p.entryPrice.gt(0)
           ? calculateLiveUnrealizedPnl(p.side, p.entryPrice, markPrice, p.size)
@@ -227,11 +238,17 @@
         amount: p.size, // Map size to amount
         entryPrice: p.entryPrice,
         unrealizedPnl: liveUnrealizedPnl ?? p.unrealizedPnl,
+        unpriced,
         leverage: p.leverage,
         marginMode: p.marginMode as "cross" | "isolated",
         liquidationPrice: p.liquidationPrice,
         margin: p.margin,
         markPrice,
+        // BUG-0512: every modal fed from this list (partial close preview,
+        // add preview, liquidation distance) shares this resolved price, so
+        // the flag travels with it — the row badge is the visible marker,
+        // the flag is the machine-readable one.
+        priceStale: resolved.stale,
         size: p.size,
         // REST-only, never sent over WS — 0 means "not hydrated yet", not a
         // real margin rate, so treat it as absent rather than show "0%".
@@ -258,6 +275,11 @@
   let totalUnrealizedPnl = $derived(
     mappedPositions.reduce((sum, p) => sum.plus(p.unrealizedPnl), new Decimal(0)),
   );
+
+  // BUG-0512: the total mixes priced, stale-priced and unpriced legs — a
+  // bare sum would look exact while hiding unknowns. Badge it whenever any
+  // leg is not freshly priced; the badge (not silence) carries that fact.
+  let totalPnlStale = $derived(mappedPositions.some((p) => p.priceStale || p.unpriced));
 
   // Subscribe to live price updates for every symbol with an open position —
   // otherwise mark price only ever arrives for whichever symbol happens to
@@ -1147,6 +1169,7 @@
       available={liveAsset ? liveAsset.available : accountInfo.available}
       margin={liveAsset ? liveAsset.margin : accountInfo.margin}
       pnl={totalUnrealizedPnl}
+      pnlStale={totalPnlStale}
       currency={accountInfo.marginCoin}
       frozen={liveAsset ? liveAsset.frozen : accountInfo.frozen}
       transfer={accountInfo.transfer}

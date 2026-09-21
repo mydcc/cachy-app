@@ -49,6 +49,9 @@ export interface Ticker24h {
   provider: "bitunix" | "bitget";
   symbol: string;
   lastPrice: Decimal;
+  // BUG-0512: mark price as the venue reported it (Bitunix Get Tickers,
+  // Bitget tickers). Absent when the venue omits it — never synthesized.
+  markPrice?: Decimal;
   priceChangePercent: Decimal;
   highPrice: Decimal;
   lowPrice: Decimal;
@@ -1042,6 +1045,7 @@ export const apiService = {
               provider,
               symbol: normalized,
               lastPrice: last,
+              markPrice: ticker.markPrice ?? undefined,
               highPrice: high,
               lowPrice: low,
               volume: baseVol,
@@ -1053,10 +1057,24 @@ export const apiService = {
             const ticker = (data.data && data.data[0]) || data;
             if (!ticker) throw new Error("apiErrors.invalidResponse");
 
+            // BUG-0512: Bitget tickers carry markPrice too. Parsed
+            // defensively — an unparseable optional field must never take
+            // down the required last/high/low alongside it.
+            let bitgetMark: Decimal | undefined;
+            const rawMark = ticker.markPrice;
+            if (rawMark !== undefined && rawMark !== null && rawMark !== "") {
+              try {
+                bitgetMark = new Decimal(rawMark);
+              } catch {
+                bitgetMark = undefined;
+              }
+            }
+
             return {
               provider,
               symbol: normalized,
               lastPrice: new Decimal(ticker.last || 0),
+              markPrice: bitgetMark,
               highPrice: new Decimal(ticker.high24h || 0),
               lowPrice: new Decimal(ticker.low24h || 0),
               volume: new Decimal(ticker.volume24h || 0),
