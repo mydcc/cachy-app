@@ -2029,7 +2029,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0513",
     "title": "Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix-pkg-e-0513-0514",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -4862,7 +4864,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0514",
     "title": "Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix-pkg-e-0513-0514",
     "priority": "P2",
     "milestone": "none",
     "editions": [

@@ -31,7 +31,7 @@
     import { modalState } from "../../stores/modal.svelte";
     import SettingsGrid from "./shared/SettingsGrid.svelte";
   import { journalState } from "../../stores/journal.svelte";
-  import { confirmAndCloseAllPositions } from "../../services/closeAllFlow";
+  import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
 
   // Recomputed whenever the journal changes, so the figure the user reads is
   // the same one the gate will measure against.

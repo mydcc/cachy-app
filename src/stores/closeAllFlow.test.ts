@@ -28,10 +28,10 @@ import { Decimal } from "decimal.js";
 import { confirmAndCloseAllPositions } from "./closeAllFlow";
 
 const showMock = vi.hoisted(() => vi.fn());
-vi.mock("../stores/modal.svelte", () => ({ modalState: { show: showMock } }));
+vi.mock("./modal.svelte", () => ({ modalState: { show: showMock } }));
 
 const positionsMock = vi.hoisted(() => ({ list: [] as never[] }));
-vi.mock("../stores/account.svelte", () => ({
+vi.mock("./account.svelte", () => ({
     accountState: {
         get positions() {
             return positionsMock.list;
@@ -40,17 +40,17 @@ vi.mock("../stores/account.svelte", () => ({
 }));
 
 const toastMock = vi.hoisted(() => ({ showToast: vi.fn(), showError: vi.fn() }));
-vi.mock("../stores/ui.svelte", () => ({ uiState: toastMock }));
+vi.mock("./ui.svelte", () => ({ uiState: toastMock }));
 
 const invalidateMock = vi.hoisted(() => vi.fn());
-vi.mock("../stores/tpsl.svelte", () => ({ tpSlState: { invalidate: invalidateMock } }));
+vi.mock("./tpsl.svelte", () => ({ tpSlState: { invalidate: invalidateMock } }));
 
 const closeAllMock = vi.hoisted(() => vi.fn());
-vi.mock("./exchange", () => ({
+vi.mock("../services/exchange", () => ({
     activeExchange: () => ({ trading: { closeAllPositions: closeAllMock } }),
 }));
 
-vi.mock("./logger", () => ({
+vi.mock("../services/logger", () => ({
     logger: { warn: vi.fn(), error: vi.fn(), log: vi.fn() },
 }));
 

@@ -66,7 +66,7 @@
   import AdjustMarginModal from "./AdjustMarginModal.svelte";
   import AddToPositionModal from "./AddToPositionModal.svelte";
   import TpSlCreateModal from "./TpSlCreateModal.svelte";
-  import { confirmAndCloseAllPositions } from "../../services/closeAllFlow";
+  import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
 
   let { fetchEnabled = true }: { fetchEnabled?: boolean } = $props();
 

@@ -44,12 +44,12 @@ import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
 import { _ } from "../locales/i18n";
 import type { TranslationKey } from "../locales/schema";
-import { modalState } from "../stores/modal.svelte";
-import { accountState } from "../stores/account.svelte";
-import { uiState } from "../stores/ui.svelte";
-import { tpSlState } from "../stores/tpsl.svelte";
-import { activeExchange } from "./exchange";
-import { logger } from "./logger";
+import { modalState } from "./modal.svelte";
+import { accountState } from "./account.svelte";
+import { uiState } from "./ui.svelte";
+import { tpSlState } from "./tpsl.svelte";
+import { activeExchange } from "../services/exchange";
+import { logger } from "../services/logger";
 
 function t(key: string, values?: Record<string, string>): string {
     return get(_)(key as TranslationKey, values ? { values } : undefined);
