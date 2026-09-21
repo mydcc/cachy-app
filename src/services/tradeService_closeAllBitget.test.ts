@@ -38,6 +38,7 @@ import { accountState } from "../stores/account.svelte";
 import { exchangeSignedFetch } from "../utils/exchange/browserSigning";
 import { toastService } from "./toastService.svelte";
 import { Decimal } from "decimal.js";
+import * as paperFeed from "./paperAccountFeed";
 import type { OMSPosition } from "./omsTypes";
 
 vi.mock("./omsService", () => ({
@@ -186,11 +187,38 @@ describe("BUG-0514 — closeAllPositions on Bitget", () => {
 
         await expect(tradeService.closeAllPositions()).rejects.toThrow("trade.closeAllFailed");
         expect(closeSpy).toHaveBeenCalledTimes(2);
-        // The survivor is named — no plain success.
+        // The survivor is named — no plain success, and exactly one toast.
+        expect(vi.mocked(toastService.error)).toHaveBeenCalledTimes(1);
         expect(vi.mocked(toastService.error)).toHaveBeenCalledWith(
             expect.stringContaining("ETHUSDT"),
         );
         closeSpy.mockRestore();
+    });
+
+    it("verifies against the paper book in paper mode, not the lagging OMS mirror", async () => {
+        // The simulator owns the book; the OMS mirror only catches up on the
+        // next price tick. Post-verify must read the book, or every paper
+        // flatten would report leftovers that are already gone.
+        let book = [venuePosition("BTCUSDT", "long")];
+        const feedSpy = vi
+            .spyOn(paperFeed, "paperAccountFeed")
+            .mockReturnValue({ positions: () => [...book] } as never);
+        vi.mocked(omsService.getPositions).mockReturnValue([omsPosition("BTCUSDT", "long")]);
+        const closeSpy = vi
+            .spyOn(tradeService, "closePosition")
+            .mockImplementation(async () => {
+                book = [];
+                return {} as never;
+            });
+
+        await tradeService.closeAllPositions();
+
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+        expect(vi.mocked(toastService.error)).not.toHaveBeenCalled();
+        // No exchange read in paper mode — the book owns the truth.
+        expect(exchangeSignedFetch).not.toHaveBeenCalled();
+        closeSpy.mockRestore();
+        feedSpy.mockRestore();
     });
 
     it("reports unverified when the post-flatten read itself fails", async () => {

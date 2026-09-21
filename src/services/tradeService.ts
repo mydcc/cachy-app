@@ -44,7 +44,7 @@ import {
     BitunixPositionTierResponseSchema,
     BitgetContractsResponseSchema,
 } from "../types/apiSchemas";
-import type { OMSOrderSide, OMSPosition } from "./omsTypes";
+import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder, NormalizedPosition } from "../types/exchange";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
@@ -1990,8 +1990,8 @@ class TradeService {
      * no keys are available to sign with (the closes below then refuse loudly
      * instead). A failed read throws `FETCH_FAILED` rather than returning a
      * possibly partial list: flattening blind and reporting success is the
-     * defect this exists to prevent. Callers run this outside any
-     * close-all-failed mapping so the failure keeps its own name.
+     * defect this exists to prevent. The caller maps it to a close-all
+     * failure for the scope — nothing was attempted, and the toast says so.
      */
     private async refreshPositionsFromApi(provider: Venue): Promise<void> {
         if (paperAccountFeed()) return;
@@ -2062,19 +2062,32 @@ class TradeService {
              * so the loop's own results cannot prove flat — only a fresh read
              * can. A read that itself fails is reported as unverified rather
              * than as success.
+             *
+             * In paper mode the simulated book is the account: the OMS mirror
+             * only catches up on the next price tick, so verifying against it
+             * would report positions the simulator already closed.
              */
-            let leftover: OMSPosition[] = [];
+            let leftover: string[] = [];
             let unverified = false;
             try {
-                await this.refreshPositionsFromApi(provider);
-                const open = omsService.getPositions();
-                leftover = symbol ? open.filter(p => p.symbol === symbol) : open;
+                if (paperAccountFeed()) {
+                    const book = paperAccountFeed()?.positions() ?? [];
+                    leftover = (symbol ? book.filter((p) => p.symbol === symbol) : book).map(
+                        (p) => p.symbol,
+                    );
+                } else {
+                    await this.refreshPositionsFromApi(provider);
+                    const open = omsService.getPositions();
+                    leftover = (symbol ? open.filter((p) => p.symbol === symbol) : open).map(
+                        (p) => p.symbol,
+                    );
+                }
             } catch (e) {
                 logger.error("market", "[CloseAll] Post-flatten verification read failed", e);
                 unverified = true;
             }
-            for (const p of leftover) {
-                if (!failedSymbols.includes(p.symbol)) failedSymbols.push(p.symbol);
+            for (const name of leftover) {
+                if (!failedSymbols.includes(name)) failedSymbols.push(name);
             }
 
             if (failures.length > 0 || leftover.length > 0 || unverified) {
@@ -2091,6 +2104,10 @@ class TradeService {
 
             return results;
         } catch (e: unknown) {
+            // Already reported specifically above (failed/leftover/unverified
+            // toast) — rethrow untouched so the trader is not toasted twice,
+            // once with names and once without.
+            if (e instanceof Error && e.message === TRADE_ERRORS.CLOSE_ALL_FAILED) throw e;
             logger.error("market", "[CloseAll] Failed to close all positions", e);
             const failedSymbols = symbol || "all";
             toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }));
