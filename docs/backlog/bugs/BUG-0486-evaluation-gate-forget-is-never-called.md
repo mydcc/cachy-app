@@ -2,7 +2,10 @@
 id: BUG-0486
 title: The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0486-forget-wiring
+shipped: unreleased
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -64,6 +67,22 @@ clean slate, which is what the comment already promises a reader.
 If a caller is found that must *not* reset the anchors — re-arming a `once` rule the trader
 wants held until the next genuine close — say so in the item and keep that path out; do not
 change the guard.
+
+**Refinement (Paket B review):** since BUG-0491 the anchors are durable, which
+changes the calculus per caller:
+
+- `removeRule` / `deleteBot` — full reset (maps via `forget` plus stored
+  anchors via `clearBotAnchors`); the rule is gone.
+- `armRule` with a real content change — full reset; the old strategy's
+  anchors must not suppress the new strategy's first signal.
+- `armRule` / `setBotEnabled` with only `enabled` flipped, and `disarmRule` —
+  **no reset**. Clearing here would let a disarm+re-arm toggle re-fire the
+  same candle, i.e. a UI-built double order (the defect BUG-0491 closed).
+  `enabled` is outside the content hash on purpose — toggling is not a
+  strategy change.
+- The stored anchors must be cleared directly from these writers, not only
+  through `forget`: `forget` reaches storage only while the loop has the
+  persistence port bound, and edits happen while disarmed too.
 
 ## Acceptance criteria
 

@@ -16,8 +16,14 @@
  */
 
 
-import { beforeEach, describe, expect, it } from "vitest";
-import { armRule, RuleStoreUnreadableError } from "./armRule";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("$app/environment", () => ({ browser: true }));
+
+import { armRule, disarmRule, removeRule, RuleStoreUnreadableError } from "./armRule";
+import { deleteBot } from "./botStore";
+import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
+import { readBotAnchors, saveBotAnchors } from "./ruleStateStore";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import type { RuleDocument } from "../../lib/rules/types";
 
@@ -85,5 +91,106 @@ describe("armRule", () => {
     it("refuses a stored value that is not an array", () => {
         localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify({ rules: [] }));
         expect(() => armRule(rule("a", "70000"))).toThrow(RuleStoreUnreadableError);
+    });
+});
+
+describe("forget wiring (BUG-0486)", () => {
+    const SNAPSHOT = {
+        evaluatedAnchorMs: 1_000,
+        intrabarAnchorMs: 2_000,
+        intrabarFiredAnchorMs: null,
+    } as const;
+
+    function bot(id: string): RuleDocument {
+        return { ...rule(id, "70000"), action: { consequence_level: "simulate" } };
+    }
+
+    beforeEach(() => {
+        localStorage.clear();
+        vi.restoreAllMocks();
+        vi.spyOn(ruleEvaluationGate, "forget");
+    });
+
+    it("forgets maps and stored anchors when a rule's content is edited", () => {
+        armRule(rule("a", "70000"));
+        saveBotAnchors("a", { ...SNAPSHOT });
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+
+        armRule(rule("a", "80000"));
+
+        expect(ruleEvaluationGate.forget).toHaveBeenCalledWith("a");
+        expect(readBotAnchors("a")).toBeUndefined();
+    });
+
+    it("keeps anchors when only enabled flips (no toggle-to-refire)", () => {
+        armRule(rule("a", "70000"));
+        saveBotAnchors("a", { ...SNAPSHOT });
+
+        armRule({ ...rule("a", "70000"), enabled: false });
+
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+
+        armRule({ ...rule("a", "70000"), enabled: true });
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+    });
+
+    it("keeps anchors when only lifecycle fields change (note, frequency)", () => {
+        // FEAT-0393 lifecycle is outside the content hash on purpose: a note
+        // edit on a just-fired once rule must not make its already-seen
+        // candle decidable again.
+        armRule(rule("a", "70000"));
+        saveBotAnchors("a", { ...SNAPSHOT });
+
+        armRule({ ...rule("a", "70000"), note: "watched overnight" });
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+
+        armRule({ ...rule("a", "70000"), frequency: "every_time" });
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+    });
+
+    it("does not forget a brand-new rule", () => {
+        armRule(rule("fresh", "70000"));
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+    });
+
+    it("forgets maps and stored anchors on removeRule", () => {
+        armRule(rule("a", "70000"));
+        saveBotAnchors("a", { ...SNAPSHOT });
+
+        removeRule("a");
+
+        expect(ruleEvaluationGate.forget).toHaveBeenCalledWith("a");
+        expect(readBotAnchors("a")).toBeUndefined();
+    });
+
+    it("does not forget on disarmRule", () => {
+        armRule(rule("a", "70000"));
+        saveBotAnchors("a", { ...SNAPSHOT });
+
+        expect(disarmRule("a")).toBe(true);
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("a")).toEqual({ ...SNAPSHOT });
+    });
+
+    it("forgets maps and stored anchors on deleteBot", () => {
+        armRule(bot("bot-1"));
+        saveBotAnchors("bot-1", { ...SNAPSHOT });
+
+        expect(deleteBot("bot-1")).toBe(true);
+        expect(ruleEvaluationGate.forget).toHaveBeenCalledWith("bot-1");
+        expect(readBotAnchors("bot-1")).toBeUndefined();
+    });
+
+    it("leaves anchors alone when deleteBot refuses a non-bot", () => {
+        armRule(rule("note-1", "70000"));
+        saveBotAnchors("note-1", { ...SNAPSHOT });
+
+        expect(deleteBot("note-1")).toBe(false);
+        expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
+        expect(readBotAnchors("note-1")).toEqual({ ...SNAPSHOT });
     });
 });
