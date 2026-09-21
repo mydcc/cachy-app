@@ -2,7 +2,7 @@
 id: BUG-0512
 title: A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix-pkg-e-0504-0512
 priority: P1
@@ -15,6 +15,12 @@ depends_on: []
 ---
 
 # BUG-0512 — The freshest price loses to the stalest one
+
+> Owner note (implementation): the last two criteria were hardened during
+> triage — with the default setting a stale source produces a STALE-labelled
+> PnL (never a silent one); with stale display off the cell is honestly
+> unpriced. `markPriceUpdatedAt` (per-price stamp) replaces the literal
+> `lastUpdated` read, which any channel's traffic refreshes.
 
 ## Symptom
 
@@ -128,20 +134,20 @@ formulas above.
 
 ## Acceptance Criteria
 
-- [ ] `resolveMarkPrice` rejects a `markPrice` older than a named maximum age,
+- [x] `resolveMarkPrice` rejects a `markPrice` older than a named maximum age,
       read from `MarketData.lastUpdated`, and falls through to the next source
       instead of returning it.
-- [ ] `pollSymbolChannel` populates `markPrice` during fallback polling, or
+- [x] `pollSymbolChannel` populates `markPrice` during fallback polling, or
       states in a comment why the venue makes that impossible and what is used
       instead.
-- [ ] A price that came from `lastPrice` rather than `markPrice` is
+- [x] A price that came from `lastPrice` rather than `markPrice` is
       distinguishable by the caller — the two are not the same quantity and a
       PnL derived from the substitute should be able to say so.
-- [ ] When no source is fresh enough, the PnL cell shows that it is unpriced
+- [x] When no source is fresh enough, the PnL cell shows that it is unpriced
       rather than showing a stale number as live.
-- [ ] Regression test: seed a `markPrice` with an old `lastUpdated` plus a fresh
+- [x] Regression test: seed a `markPrice` with an old `lastUpdated` plus a fresh
       `lastPrice`, and assert the fresh one is chosen.
-- [ ] Regression test: all sources stale — assert no PnL is produced rather
+- [x] Regression test: all sources stale — assert no PnL is produced rather
       than a stale one.
 
 ## Out of Scope

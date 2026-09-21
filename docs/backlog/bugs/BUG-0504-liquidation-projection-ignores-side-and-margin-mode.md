@@ -2,7 +2,7 @@
 id: BUG-0504
 title: The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix-pkg-e-0504-0512
 priority: P1
@@ -161,16 +161,16 @@ correctness.
 
 ## Acceptance criteria
 
-- [ ] `projectLiquidation` takes the position side explicitly and no longer
+- [x] `projectLiquidation` takes the position side explicitly and no longer
       infers it from `liquidation.lt(entry)`
-- [ ] A test with `liquidation` equal to `entry` produces the long result for a
+- [x] A test with `liquidation` equal to `entry` produces the long result for a
       long, and fails without the fix
-- [ ] `projectLiquidation` takes the margin mode and produces no projected price
+- [x] `projectLiquidation` takes the margin mode and produces no projected price
       for a cross-margin position
-- [ ] The leverage UI shows an explicit reason in that case rather than an empty
+- [x] The leverage UI shows an explicit reason in that case rather than an empty
       row
-- [ ] `tighter` is never shown without a projection behind it
-- [ ] Isolated-margin projections are unchanged, verified by the existing six
+- [x] `tighter` is never shown without a projection behind it
+- [x] Isolated-margin projections are unchanged, verified by the existing six
       cases still passing
 
 ## Links
