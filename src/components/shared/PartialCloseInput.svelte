@@ -45,7 +45,6 @@
     remainingAfterClose,
     realizedPnlOnClose,
     roundDownToStep,
-    floorCloseQuantity,
     isFullClose,
     type PartialCloseContext,
   } from "../../lib/calculators/partialClose";
@@ -114,9 +113,7 @@
         return;
       }
       const stepped = roundDownToStep(parsed, ctx.stepSize);
-      // One floor for both entry paths — the slider's `quantityFromPercent`
-      // holds the same rule (BUG-0509).
-      onChange(floorCloseQuantity(ctx, stepped));
+      onChange(stepped.lte(0) ? Decimal.min(ctx.stepSize, ctx.positionAmount) : stepped);
     } catch {
       // Not a number — drop it and fall back to the committed value.
     }
@@ -178,11 +175,6 @@
     <p class={pnlTone}>
       {$_("positionsList.realizesPnl")}: {pnlText}
     </p>
-    {#if ctx.minTradeVolume !== undefined}
-      <p class="text-[var(--text-secondary)]">
-        {$_("positionsList.minimumTradeVolume", { values: { min: ctx.minTradeVolume.toString() } })}
-      </p>
-    {/if}
     {#if closesEverything}
       <p class="text-[var(--warning-color)]">
         {$_("positionsList.fullCloseBadge")}

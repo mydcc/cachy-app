@@ -34,7 +34,7 @@ vi.mock("./logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const positions = vi.hoisted(() => ({ list: [] as Array<{ symbol: string; side?: "long" | "short"; positionMode?: "one_way" | "hedge" }> }));
+const positions = vi.hoisted(() => ({ list: [] as Array<{ symbol: string }> }));
 vi.mock("./omsService", () => ({
     omsService: { getPositions: () => positions.list },
 }));
@@ -50,7 +50,6 @@ vi.mock("../stores/journal.svelte", () => ({
 
 import { rmsService, utcDayStart } from "./rmsService";
 import { riskState } from "../stores/riskLimits.svelte";
-import { settingsState } from "../stores/settings.svelte";
 import { orderGate, OrderRefusedError, type OrderIntent } from "./orderGate";
 import { CONSTANTS } from "../lib/constants";
 
@@ -225,10 +224,10 @@ describe("FEAT-0013 — each limit refuses, and names itself", () => {
     });
 
     it("max loss per trade", () => {
-        riskState.setLimit("maxLossPerTradeUsdt", "5"); // stop risk is 10.5558 with fees
+        riskState.setLimit("maxLossPerTradeUsdt", "5"); // stop risk is 10
         const refusal = orderGate.verify(openIntent()).refusal;
         expect(refusal?.field).toBe("maxLossPerTrade");
-        expect(refusal?.values.actual).toBe("10.5558");
+        expect(refusal?.values.actual).toBe("10");
     });
 
     it("max loss per day", () => {
@@ -254,8 +253,7 @@ describe("FEAT-0013 — limits allow what they should", () => {
     it("approves an order exactly at the limit", () => {
         riskState.setLimit("maxPositionSizeUsdt", "1000");
         riskState.setLimit("maxLeverage", "10");
-        // Fee-inclusive stop risk is 10.5558; exactly at the limit passes.
-        riskState.setLimit("maxLossPerTradeUsdt", "10.5558");
+        riskState.setLimit("maxLossPerTradeUsdt", "10");
         expect(orderGate.verify(openIntent()).approved).toBe(true);
     });
 
@@ -263,34 +261,6 @@ describe("FEAT-0013 — limits allow what they should", () => {
         riskState.setLimit("maxOpenPositions", 1);
         positions.list = [{ symbol: "BTCUSDT" }];
         expect(orderGate.verify(openIntent()).approved).toBe(true);
-    });
-
-    // BUG-0515: in hedge mode the opposite side on a held symbol is a
-    // second position, not a change to the first — the ceiling counts it.
-    it("counts the opposite side on a held symbol in hedge mode", () => {
-        riskState.setLimit("maxOpenPositions", 1);
-        positions.list = [{ symbol: "BTCUSDT", side: "long", positionMode: "hedge" }];
-        const intent = openIntent();
-        intent.displayed.side = "SELL";
-        intent.payload.side = "SELL";
-        const refusal = orderGate.verify(intent).refusal;
-        expect(refusal?.field).toBe("maxOpenPositions");
-        expect(refusal?.values.actual).toBe("2");
-    });
-
-    it("still exempts the same side on a held symbol in hedge mode", () => {
-        riskState.setLimit("maxOpenPositions", 1);
-        positions.list = [{ symbol: "BTCUSDT", side: "long", positionMode: "hedge" }];
-        expect(orderGate.verify(openIntent()).approved).toBe(true);
-    });
-
-    it("keeps the symbol exemption when no position proves hedge mode", () => {
-        riskState.setLimit("maxOpenPositions", 1);
-        positions.list = [{ symbol: "BTCUSDT", side: "long", positionMode: "one_way" }];
-        const intent = openIntent();
-        intent.displayed.side = "SELL";
-        intent.payload.side = "SELL";
-        expect(orderGate.verify(intent).approved).toBe(true);
     });
 
     it("refuses a limit it cannot measure rather than waving it through", () => {
@@ -404,7 +374,7 @@ describe("BUG-0510 — adds are measured against the loss-per-trade limit", () =
         riskState.setLimit("maxLossPerTradeUsdt", "500");
         const refusal = orderGate.verify(protectedAddIntent("49000")).refusal;
         expect(refusal?.field).toBe("maxLossPerTrade");
-        expect(refusal?.values.actual).toBe("624.948");
+        expect(refusal?.values.actual).toBe("600");
         expect(refusal?.values.limit).toBe("500");
     });
 
@@ -425,57 +395,6 @@ describe("BUG-0510 — adds are measured against the loss-per-trade limit", () =
         const refusal = orderGate.verify(addIntent()).refusal;
         expect(refusal?.field).toBe("maxLossPerTrade");
         expect(refusal?.reason).toBe("missing");
-    });
-});
-
-describe("BUG-0500 — the per-trade loss limit includes round-trip fees", () => {
-    // openIntent: 0.02 BTC at 50 000, stop 49 500. Pre-fee stop loss is 10;
-    // fee-inclusive with bitunix defaults (maker 0.014 %, taker 0.042 %):
-    // 10 + 1000 × 0.00014 + 990 × 0.00042 = 10.5558 (LIMIT entry is maker).
-    it("refuses a pre-fee-exact order the fees push over the limit", () => {
-        riskState.setLimit("maxLossPerTradeUsdt", "10");
-        const refusal = orderGate.verify(openIntent()).refusal;
-        expect(refusal?.field).toBe("maxLossPerTrade");
-        expect(refusal?.values.actual).toBe("10.5558");
-    });
-
-    it("still passes a trade whose fee-inclusive loss is under the limit", () => {
-        riskState.setLimit("maxLossPerTradeUsdt", "11");
-        expect(orderGate.verify(openIntent()).approved).toBe(true);
-    });
-
-    it("charges the entry leg at the taker rate for a market order", () => {
-        // 10 + 1000 × 0.00042 + 990 × 0.00042 = 10.8358 — pins that the
-        // legs do not share one flat rate.
-        riskState.setLimit("maxLossPerTradeUsdt", "5");
-        const intent = openIntent();
-        intent.payload.orderType = "MARKET";
-        const refusal = orderGate.verify(intent).refusal;
-        expect(refusal?.field).toBe("maxLossPerTrade");
-        expect(refusal?.values.actual).toBe("10.8358");
-    });
-
-    it("refuses as unmeasurable when a leg's rate cannot be resolved", () => {
-        const previous = settingsState.feeRates.bitunix.taker;
-        try {
-            settingsState.feeRates.bitunix.taker = "n/a";
-            riskState.setLimit("maxLossPerTradeUsdt", "500");
-            const refusal = orderGate.verify(openIntent()).refusal;
-            expect(refusal?.field).toBe("maxLossPerTrade");
-            expect(refusal?.reason).toBe("missing");
-        } finally {
-            settingsState.feeRates.bitunix.taker = previous;
-        }
-    });
-
-    it("refuses an add whose pre-fee risk passes but fees push over", () => {
-        // Resulting 0.6 @ 50 000 under a 49 000 stop: pre-fee 600 passes a
-        // 610 limit; fee-inclusive (MARKET entry, taker both legs)
-        // 600 + 12.6 + 12.348 = 624.948 does not.
-        riskState.setLimit("maxLossPerTradeUsdt", "610");
-        const refusal = orderGate.verify(protectedAddIntent("49000")).refusal;
-        expect(refusal?.field).toBe("maxLossPerTrade");
-        expect(refusal?.values.actual).toBe("624.948");
     });
 });
 

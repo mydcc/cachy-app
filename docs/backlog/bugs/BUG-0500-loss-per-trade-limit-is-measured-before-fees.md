@@ -2,9 +2,7 @@
 id: BUG-0500
 title: The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured
 type: bug
-status: done
-assignee: opencode
-branch: fix/paket-d-limits-close
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
