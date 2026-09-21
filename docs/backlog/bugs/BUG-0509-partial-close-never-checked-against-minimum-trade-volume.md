@@ -2,7 +2,9 @@
 id: BUG-0509
 title: A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/paket-d-limits-close
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -111,7 +113,9 @@ path until order splitting exists to make a refusal actionable.
   - a full close below `minTradeVolume` is approved;
   - `quantityFromPercent` with a minimum coarser than the step returns the
     minimum, and never more than the position;
-  - a reduce on an instrument whose meta has not loaded is approved, as today.
+  - a partial reduce on an instrument whose meta has not loaded is refused as
+    unmeasurable rather than approved (decision #3553, BUG-0501 alignment:
+    an unmeasurable size is not a verified size; full closes stay exempt).
 
 ## Out of scope
 
