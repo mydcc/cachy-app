@@ -1,18 +1,5 @@
 import { Decimal } from "decimal.js";
-
-/**
- * Whether a margin-mode string describes isolated margin.
- *
- * Venues spell it differently (Bitunix `ISOLATION`, Bitget `isolated`, the
- * position mapper lowercases whatever arrives), so the common prefix wins
- * over keeping every spelling in step. `undefined` means "not loaded yet"
- * and counts as isolated to preserve the long-standing display behaviour;
- * an explicitly non-isolated value never does.
- */
-export function isIsolatedMarginMode(marginMode: string | undefined): boolean {
-  if (marginMode === undefined) return true;
-  return marginMode.toLowerCase().startsWith("isolat");
-}
+import { normalizeMarginMode } from "../../utils/marginMode";
 
 /**
  * Project where a position would liquidate at a new leverage.
@@ -34,7 +21,9 @@ export function isIsolatedMarginMode(marginMode: string | undefined): boolean {
  * @param side Position side, read from the position — never inferred from
  *   the prices (at `liquidation === entry` the geometry guess processes a
  *   long as a short)
- * @param marginMode Position margin mode; explicitly non-isolated yields null
+ * @param marginMode Position margin mode; explicitly cross yields null.
+ *   Unknown (undefined) keeps the long-standing display behaviour and
+ *   projects — only a known cross refuses.
  * @returns { from, to, tighter } or null
  */
 export function projectLiquidation(
@@ -61,7 +50,7 @@ export function projectLiquidation(
   try {
     if (side !== "long" && side !== "short") return null;
     const isLong = side === "long";
-    if (!isIsolatedMarginMode(marginMode)) return null;
+    if (normalizeMarginMode(marginMode) === "cross") return null;
     const ratio = liquidation.div(entry);
     const invOld = new Decimal(1).div(currentLeverage);
     const invNew = new Decimal(1).div(newLeverage);

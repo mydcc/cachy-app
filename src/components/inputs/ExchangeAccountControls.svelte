@@ -71,7 +71,7 @@ import { Decimal } from "decimal.js";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { normalizeMarginMode } from "../../utils/marginMode";
-  import { isIsolatedMarginMode, projectLiquidation } from "../../lib/calculators/liquidation";
+  import { projectLiquidation } from "../../lib/calculators/liquidation";
   import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
   import type { TranslationKey } from "../../locales/schema";
   import LeverageModal from "../shared/LeverageModal.svelte";
@@ -491,7 +491,7 @@ import { Decimal } from "decimal.js";
       const crossMargin =
         openPosition !== undefined &&
         openPosition.marginMode !== undefined &&
-        !isIsolatedMarginMode(openPosition.marginMode);
+        normalizeMarginMode(openPosition.marginMode) === "cross";
       const projection =
         openPosition !== undefined && !crossMargin
           ? projectLiquidation(

@@ -43,7 +43,8 @@
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
-  import { isIsolatedMarginMode, projectLiquidation } from "../../lib/calculators/liquidation";
+  import { projectLiquidation } from "../../lib/calculators/liquidation";
+  import { normalizeMarginMode } from "../../utils/marginMode";
   import ModalFrame from "./ModalFrame.svelte";
 
   interface Props {
@@ -143,7 +144,7 @@
     projection === null &&
       position !== undefined &&
       marginMode !== undefined &&
-      !isIsolatedMarginMode(marginMode),
+      normalizeMarginMode(marginMode) === "cross",
   );
 
   function nudge(by: number) {
