@@ -71,6 +71,15 @@ export interface RawWsTpSl {
     status?: string;
     tpPrice?: string;
     slPrice?: string;
+    /**
+     * BUG-0524 — the position this plan protects, as the venue reports it
+     * (`08_websocket.md` §`tp_sl`). Carried onto the legs below so the
+     * placement confirmation can tell hedge sides apart. Deliberately no
+     * `side`: whether the venue means the stop order's side or the
+     * position's side is unconfirmed, and mapping it risks inverting the
+     * check it would serve.
+     */
+    positionId?: string | number;
 }
 
 function planTypeOf(order: TpSlOrder): "PROFIT" | "LOSS" | null {
@@ -125,6 +134,19 @@ class TpSlManager {
     }
 
     /**
+     * Every plan the store holds for a symbol, both legs, unfiltered.
+     *
+     * BUG-0524 — `plansFor` answers the cards ("show me what is on this
+     * symbol") and returns only the first plan per leg type, which in hedge
+     * mode with stops on both sides is an arbitrary one. Confirming a
+     * placement must see all of them and pick by position, so it reads here
+     * instead. A copy: callers must not reorder the store's own list.
+     */
+    public ordersFor(symbol: string): TpSlOrder[] {
+        return this._orders.filter((o) => o.symbol === symbol);
+    }
+
+    /**
      * Fetches if the cache is stale, and does nothing if it is not. Safe to
      * call from a render path: concurrent calls share one request, and a
      * failure is recorded rather than thrown — a position card must still
@@ -169,6 +191,10 @@ class TpSlManager {
         if (!orderId || !data.symbol) return;
         const symbol = data.symbol;
         const closed = data.event === "CLOSE" || ["CANCELED", "FILLED"].includes(data.status ?? "");
+        const positionId =
+            data.positionId !== undefined && data.positionId !== null && data.positionId !== ""
+                ? String(data.positionId)
+                : undefined;
 
         const applyLeg = (leg: "tp" | "sl", planType: "PROFIT" | "LOSS", price: string | undefined) => {
             if (price === undefined) return;
@@ -184,6 +210,7 @@ class TpSlManager {
                 planType,
                 triggerPrice: price,
                 status: data.status ?? "NEW",
+                ...(positionId !== undefined ? { positionId } : {}),
             };
             if (index !== -1) this._orders[index] = updated;
             else this._orders.push(updated);
