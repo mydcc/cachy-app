@@ -121,6 +121,36 @@ describe("orderGate — in-flight duplicate guard (BUG-0507)", () => {
         await expect(pending).resolves.toBe("filled");
     });
 
+    it("a refused duplicate does not open the gate for a third identical submit", async () => {
+        const first = deferred<string>();
+        const transport = vi.fn((_pass: unknown) => first.promise);
+
+        const pending = orderGate.submit(openIntent(), transport);
+        expect(transport).toHaveBeenCalledTimes(1);
+
+        // The duplicate is refused …
+        await expect(orderGate.submit(openIntent(), transport)).rejects.toMatchObject({
+            refusal: expect.objectContaining({ reason: "duplicate" }),
+        });
+        // … and the refusal must not have cleared the original flight's
+        // guard: a third identical submit during the same flight is still
+        // refused, and no second transport call happens.
+        await expect(orderGate.submit(openIntent(), transport)).rejects.toMatchObject({
+            refusal: expect.objectContaining({ reason: "duplicate" }),
+        });
+        expect(transport).toHaveBeenCalledTimes(1);
+
+        first.resolve("filled");
+        await expect(pending).resolves.toBe("filled");
+
+        // Once the flight has landed, the same intent may go again.
+        const retry = deferred<string>();
+        const pendingRetry = orderGate.submit(openIntent(), (_pass: unknown) => retry.promise);
+        retry.resolve("retried");
+        await expect(pendingRetry).resolves.toBe("retried");
+        expect(transport).toHaveBeenCalledTimes(1);
+    });
+
     it("treats key order as irrelevant — same payload, rebuilt, still a duplicate", async () => {
         const first = deferred<string>();
         const transport = vi.fn((_pass: unknown) => first.promise);

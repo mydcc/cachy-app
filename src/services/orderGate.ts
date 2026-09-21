@@ -1758,6 +1758,12 @@ class OrderGate {
         });
 
         let fingerprint: string | null = null;
+        // Ownership of the guard entry: a refused duplicate must not clear
+        // the flight it collided with. `Set.delete` removes the shared entry
+        // regardless of who added it, so only the call that added the
+        // fingerprint may remove it — deleting a key this call never added
+        // would open the gate for the still-travelling original.
+        let added = false;
         try {
             // BUG-0507: the panel's own guard used to sit past the
             // confirmation dialog, so a second submit during the dialog
@@ -1787,6 +1793,7 @@ class OrderGate {
                 throw new OrderRefusedError(refusal);
             }
             this.inFlight.add(fingerprint);
+            added = true;
             const response = await transport(pass);
             this.audit(intent, {
                 at,
@@ -1815,9 +1822,10 @@ class OrderGate {
             throw error;
         } finally {
             // The flight is over however it ended — a stuck fingerprint
-            // would refuse every identical order from here on. Deleting a
-            // key that was never added (guard refusal above) is a no-op.
-            if (fingerprint !== null) this.inFlight.delete(fingerprint);
+            // would refuse every identical order from here on. Only the call
+            // that added the entry removes it: a refused duplicate leaves
+            // the original flight's guard untouched.
+            if (added && fingerprint !== null) this.inFlight.delete(fingerprint);
         }
     }
 
