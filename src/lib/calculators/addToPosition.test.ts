@@ -22,6 +22,7 @@ import {
     percentFromAddQuantity,
     previewAdd,
     requiredMargin,
+    riskUnderStop,
     roundAddQuantityToStep,
     type AddToPositionContext,
 } from "./addToPosition";
@@ -117,6 +118,65 @@ describe("previewAdd — the average entry after scaling in", () => {
         expect(previewAdd(longCtx(), d(-1), d(28_000))).toBeNull();
         expect(previewAdd(longCtx(), d(1), d(0))).toBeNull();
         expect(previewAdd(longCtx(), d(1), new Decimal(NaN))).toBeNull();
+    });
+});
+
+describe("previewAdd — risk under the resting stop (BUG-0510)", () => {
+    it("reports what the resulting position loses if the stop fills", () => {
+        // Long 1 @ 3 000, stop at 2 940: risk 60. Add 2 @ 2 950 →
+        // average 2 966.67 on 3, risk 80. The entry improved; the risk grew.
+        const ctx = longCtx({
+            positionAmount: d(1),
+            entryPrice: d(3000),
+            markPrice: d(2950),
+        });
+        const preview = previewAdd(ctx, d(2), d(2950), d(2940));
+
+        expect(preview).not.toBeNull();
+        expect(preview!.resultingEntryPrice.minus(d("2966.67")).abs().lt("0.01")).toBe(true);
+        expect(preview!.riskUnderStop).not.toBeNull();
+        expect(preview!.riskUnderStop!.minus(d(80)).abs().lt("1e-6")).toBe(true);
+    });
+
+    it("reports null risk, never zero, when no stop is known", () => {
+        const preview = previewAdd(longCtx(), d(1), d(28_000));
+
+        expect(preview).not.toBeNull();
+        expect(preview!.riskUnderStop).toBeNull();
+    });
+
+    it("an entry-improving add can still reduce the risk", () => {
+        // Long 1 @ 3 000, stop 2 940 (risk 60). Add 1 @ 2 900 →
+        // average 2 950 on 2, risk 20: averaging down toward the stop
+        // shrinks the distance faster than the size grows it.
+        const ctx = longCtx({
+            positionAmount: d(1),
+            entryPrice: d(3000),
+            markPrice: d(2900),
+        });
+        const preview = previewAdd(ctx, d(1), d(2900), d(2940));
+
+        expect(preview!.riskUnderStop!.minus(d(20)).abs().lt("1e-6")).toBe(true);
+    });
+});
+
+describe("riskUnderStop", () => {
+    it("is |entry − stop| × amount", () => {
+        expect(riskUnderStop(d(29000), d(2), d(28000))!.equals(d(2000))).toBe(true);
+    });
+
+    it("is direction-agnostic: a stop above the entry measures the same", () => {
+        expect(riskUnderStop(d(28000), d(2), d(29000))!.equals(d(2000))).toBe(true);
+    });
+
+    it("answers null, never zero, without a stop", () => {
+        expect(riskUnderStop(d(29000), d(2), null)).toBeNull();
+        expect(riskUnderStop(d(29000), d(2))).toBeNull();
+    });
+
+    it("answers null for a non-positive stop or amount", () => {
+        expect(riskUnderStop(d(29000), d(2), d(0))).toBeNull();
+        expect(riskUnderStop(d(29000), d(0), d(28000))).toBeNull();
     });
 });
 

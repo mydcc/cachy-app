@@ -1910,7 +1910,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0501",
     "title": "Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "branch": "fix/gate-kern-paket-c",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1922,6 +1923,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md"
   },
   {
@@ -1946,7 +1948,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0505",
     "title": "Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "branch": "fix/gate-kern-paket-c",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1958,13 +1961,15 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0505-modify-quantities-leave-the-gate-unverified.md"
   },
   {
     "id": "BUG-0508",
     "title": "An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "branch": "fix/gate-kern-paket-c",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1976,13 +1981,15 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0508-adds-are-exempt-from-the-position-size-limit.md"
   },
   {
     "id": "BUG-0510",
     "title": "Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "branch": "fix/gate-kern-paket-c",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1997,6 +2004,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0502",
       "BUG-0292"
     ],
+    "assignee": "opencode",
     "file": "bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md"
   },
   {
@@ -4790,7 +4798,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0506",
     "title": "The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "branch": "fix/gate-kern-paket-c",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4802,6 +4811,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md"
   },
   {

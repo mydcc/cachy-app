@@ -34,6 +34,7 @@ import { get } from "svelte/store";
 import { settingsState, type ApiKeys } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
+import { tpSlState } from "../stores/tpsl.svelte";
 import { effectsState } from "../stores/effects.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import {
@@ -41,6 +42,7 @@ import {
     BitunixLeverageMarginModeSchema,
     BitunixTradingPairResponseSchema,
     BitunixPositionTierResponseSchema,
+    BitgetContractsResponseSchema,
 } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder } from "../types/exchange";
@@ -840,22 +842,63 @@ class TradeService {
     }
 
     // Read-only: precision, order-size limits, leverage range and status for
-    // a symbol (market/trading_pairs). Public endpoint, no credentials.
+    // a symbol. Public endpoints, no credentials.
+    //
+    // BUG-0501: venue-dispatched internally — Bitunix reads market/
+    // trading_pairs, Bitget reads V2 mix contracts — but one method, so the
+    // adapter table keeps a single verb to declare. The entry is keyed
+    // venue-normalized, and every miss path records the attempt instead of
+    // writing a stub: a failed fetch retries after the cooldown, never reads
+    // as "no precision".
     public async fetchTradingPairInfo(symbol: string): Promise<void> {
+        const venue = settingsState.apiProvider || "bitunix";
+        const key = normalizeSymbol(symbol, venue);
+        await this.fetchKeyedMeta(key, () =>
+            venue === "bitget"
+                ? this.loadBitgetInstrumentInfo(key, symbol)
+                : this.loadBitunixPairInfo(key, symbol),
+        );
+    }
+
+    /** In-flight metadata loads, so concurrent callers share one request. */
+    private metaFetchInflight: Record<string, Promise<void>> = {};
+
+    private async fetchKeyedMeta(key: string, load: () => Promise<boolean>): Promise<void> {
+        if (!marketState.shouldFetchMeta(key)) return;
+        const running = this.metaFetchInflight[key];
+        if (running) {
+            await running;
+            return;
+        }
+        const flight = (async () => {
+            try {
+                marketState.noteMetaFetch(key, await load());
+            } catch {
+                marketState.noteMetaFetch(key, false);
+            } finally {
+                delete this.metaFetchInflight[key];
+            }
+        })();
+        this.metaFetchInflight[key] = flight;
+        await flight;
+    }
+
+    /** Loads one Bitunix row; true when an entry was written. */
+    private async loadBitunixPairInfo(key: string, symbol: string): Promise<boolean> {
         try {
             const response = await appFetch(`/api/trading-pairs?symbols=${encodeURIComponent(symbol)}`);
-            if (!response.ok) return;
+            if (!response.ok) return false;
             const json = await response.json();
 
             const validation = BitunixTradingPairResponseSchema.safeParse(json);
             if (!validation.success) {
                 logger.error("network", "[TradeService] Invalid trading-pairs response", validation.error.issues);
-                return;
+                return false;
             }
             const entry = validation.data.data?.[0];
-            if (!entry) return;
+            if (!entry) return false;
 
-            marketState.setSymbolMeta(symbol, {
+            marketState.setSymbolMeta(key, {
                 symbol: entry.symbol,
                 basePrecision: entry.basePrecision,
                 quotePrecision: entry.quotePrecision,
@@ -869,8 +912,65 @@ class TradeService {
                 symbolStatus: entry.symbolStatus,
                 isApiSupported: entry.isApiSupported,
             });
+            return true;
         } catch (e) {
             logger.debug("api", "[TradeService] fetchTradingPairInfo failed", e);
+            return false;
+        }
+    }
+
+    /** Loads one Bitget V2 contracts row; true when an entry was written. */
+    private async loadBitgetInstrumentInfo(key: string, symbol: string): Promise<boolean> {
+        const toInt = (v: string | undefined): number | undefined => {
+            if (v === undefined) return undefined;
+            const n = parseInt(v, 10);
+            return Number.isFinite(n) ? n : undefined;
+        };
+        const toDecimalOrNull = (v: string | undefined): Decimal | null => {
+            if (v === undefined) return null;
+            try {
+                const d = new Decimal(v);
+                return d.isFinite() ? d : null;
+            } catch {
+                return null;
+            }
+        };
+        try {
+            const response = await appFetch(`/api/bitget/contracts?symbols=${encodeURIComponent(symbol)}`);
+            if (!response.ok) return false;
+            const json = await response.json();
+
+            const validation = BitgetContractsResponseSchema.safeParse(json);
+            if (!validation.success || validation.data.code !== "00000") {
+                logger.error("network", "[TradeService] Invalid bitget contracts response");
+                return false;
+            }
+            const row = validation.data.data?.find(
+                (r) => normalizeSymbol(r.symbol, "bitget") === key,
+            );
+            if (!row) return false;
+
+            marketState.setSymbolMeta(key, {
+                symbol: row.symbol,
+                basePrecision: toInt(row.volumePlace),
+                quotePrecision: toInt(row.pricePlace),
+                minTradeVolume: toDecimalOrNull(row.minTradeNum),
+                maxLimitOrderVolume: toDecimalOrNull(row.maxOrderQty),
+                maxMarketOrderVolume: toDecimalOrNull(row.maxMarketOrderQty),
+                minLeverage: toInt(row.minLever),
+                maxLeverage: toInt(row.maxLever),
+                defaultLeverage: undefined,
+                priceProtectScope: null,
+                // V2 reports "normal"; the gate and the panel speak Bitunix
+                // ("OPEN"). Mapped here so one vocabulary rules downstream;
+                // anything else passes through raw and refuses closed.
+                symbolStatus: row.symbolStatus === "normal" ? "OPEN" : row.symbolStatus,
+                isApiSupported: undefined,
+            });
+            return true;
+        } catch (e) {
+            logger.debug("api", "[TradeService] fetchBitgetInstrumentInfo failed", e);
+            return false;
         }
     }
 
@@ -1547,8 +1647,7 @@ class TradeService {
         const orderType = params.orderType ?? "MARKET";
         const clientId = params.clientId ?? this.newClientOrderId();
         const meta = params.symbol
-            ? (marketState?.symbolMeta?.[params.symbol] ??
-               marketState?.symbolMeta?.[normalizeSymbol(params.symbol, "bitunix")])
+            ? marketState?.symbolMeta?.[normalizeSymbol(params.symbol, settingsState.apiProvider || "bitunix")]
             : undefined;
 
         // The venue fills whole multiples of the instrument's step, so a raw
@@ -1671,9 +1770,7 @@ class TradeService {
         }
 
         const clientId = params.clientId ?? this.newClientOrderId();
-        const meta =
-            marketState?.symbolMeta?.[symbol] ??
-            marketState?.symbolMeta?.[normalizeSymbol(symbol, "bitunix")];
+        const meta = marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
 
         /*
          * Where the add is expected to fill, used for the margin check only.
@@ -1695,6 +1792,17 @@ class TradeService {
         const availableMargin = accountState.assets.find(
             (a) => a.currency === "USDT",
         )?.available;
+
+        // Account equity for the percentage position-size cap — the same
+        // tradeState the order panel reads. Unparseable means the cap is
+        // unmeasurable and the add refuses rather than passing unmeasured
+        // (BUG-0508).
+        let accountSize: Decimal | undefined;
+        try {
+            accountSize = new Decimal(tradeState.accountSize);
+        } catch {
+            accountSize = undefined;
+        }
 
         const payload: Record<string, unknown> = {
             type: "place-order",
@@ -1729,6 +1837,24 @@ class TradeService {
                 entryPrice: fillPrice,
                 positionAmount: position.amount,
                 positionId: position.positionId,
+                // For the percentage position-size cap (BUG-0508).
+                accountSize,
+                // The venue-reported average entry before the add, so the
+                // gate measures the resulting position's stop risk from
+                // displayed inputs rather than trusting constructor math.
+                positionEntryPrice: position.entryPrice,
+                // The position's resting stop when one is safely
+                // attributable, so the loss-per-trade limit can measure the
+                // add against the resulting position (BUG-0510). A dedicated
+                // field: `stopLossPrice` would claim the request carries a
+                // stop it never sends. Read from the cache, never fetched
+                // here: the add dialog warms it before this can run, and a
+                // fetch inside the order path would race the gate. Cold cache
+                // means no stop known, which the limit treats as
+                // unmeasurable, not unprotected. Scoped to this position by
+                // id (BUG-0524) — in hedge mode the first LOSS leg is an
+                // arbitrary side's stop.
+                restingStopPrice: tpSlState.restingStopPrice(symbol, positionSide, position.positionId) ?? undefined,
                 leverage: position.leverage,
                 marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
                 availableMargin,
@@ -1801,9 +1927,7 @@ class TradeService {
         // Metadata is best-effort: an instrument whose meta has not loaded
         // yields no step, and the gate then checks what it can rather than
         // refusing on an absence.
-        const meta =
-            marketState?.symbolMeta?.[symbol] ??
-            marketState?.symbolMeta?.[normalizeSymbol(symbol, "bitunix")];
+        const meta = marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
         const stepSize =
             meta?.basePrecision !== undefined
                 ? new Decimal(10).pow(-meta.basePrecision)
@@ -1951,6 +2075,10 @@ class TradeService {
                 entryPrice: params.price !== undefined ? new Decimal(params.price) : undefined,
                 stopLossPrice: params.slPrice !== undefined ? new Decimal(params.slPrice) : undefined,
                 takeProfits: params.tpPrice !== undefined ? [new Decimal(params.tpPrice)] : undefined,
+                // The quantity the caller asked for, or the live order read
+                // this request was merged with — the gate compares the
+                // payload back against it (BUG-0505).
+                modifyQuantity: params.qty !== undefined ? new Decimal(params.qty) : new Decimal(liveOrder.amount),
             },
         });
     }
@@ -2135,10 +2263,20 @@ class TradeService {
                 // meaning, and each has to land in the slot the gate checks.
                 takeProfits: params.planType === "PROFIT" ? [new Decimal(params.triggerPrice)] : undefined,
                 stopLossPrice: params.planType === "LOSS" ? new Decimal(params.triggerPrice) : undefined,
+                // The quantity travels on the same leg it prices; the gate
+                // compares it back against this (BUG-0505).
+                takeProfitQty: params.planType === "PROFIT" && params.qty !== undefined ? new Decimal(params.qty) : undefined,
+                stopLossQty: params.planType === "LOSS" && params.qty !== undefined ? new Decimal(params.qty) : undefined,
             },
             priceFields: {
                 stopLoss: "params.slPrice",
                 takeProfit: "params.tpPrice",
+            },
+            qtyFields: {
+                takeProfit: "params.tpQty",
+                takeProfitOrderType: "params.tpOrderType",
+                stopLoss: "params.slQty",
+                stopLossOrderType: "params.slOrderType",
             },
         });
     }
@@ -2273,10 +2411,20 @@ class TradeService {
                 positionId: params.positionId,
                 takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
                 stopLossPrice: params.stopLoss?.price,
+                // Fixed-quantity legs, compared back against the wire the
+                // same way prices are (BUG-0505).
+                takeProfitQty: params.takeProfit?.qty,
+                stopLossQty: params.stopLoss?.qty,
             },
             priceFields: {
                 takeProfit: "params.tpPrice",
                 stopLoss: "params.slPrice",
+            },
+            qtyFields: {
+                takeProfit: "params.tpQty",
+                takeProfitOrderType: "params.tpOrderType",
+                stopLoss: "params.slQty",
+                stopLossOrderType: "params.slOrderType",
             },
         });
     }

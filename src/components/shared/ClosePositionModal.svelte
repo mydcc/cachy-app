@@ -35,6 +35,8 @@
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import { marketState } from "../../stores/market.svelte";
+  import { settingsState } from "../../stores/settings.svelte";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import ModalFrame from "./ModalFrame.svelte";
   import PartialCloseInput from "./PartialCloseInput.svelte";
   import { isFullClose, type PartialCloseContext } from "../../lib/calculators/partialClose";
@@ -72,7 +74,10 @@
 
   /** Quantity step from the instrument's base precision; 0 disables rounding. */
   const stepSize = $derived.by(() => {
-    const precision = position ? marketState.symbolMeta[position.symbol]?.basePrecision : undefined;
+    if (!position) return new Decimal(0);
+    // Venue-normalized key (BUG-0501).
+    const venue = settingsState.apiProvider || "bitunix";
+    const precision = marketState.symbolMeta[normalizeSymbol(position.symbol, venue)]?.basePrecision;
     if (precision === undefined || precision === null) return new Decimal(0);
     return new Decimal(10).pow(-precision);
   });

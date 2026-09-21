@@ -17,7 +17,7 @@ import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
-import { exchangeAdapters } from "./exchange";
+import { exchangeAdapters, activeExchange } from "./exchange";
 import { favoritesState } from "../stores/favorites.svelte";
 import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
@@ -395,7 +395,7 @@ export const app = {
       logger.debug("api", `[handleFetchPrice] Fetched ticker:`, ticker);
       const priceVal = ticker.lastPrice;
 
-      const meta = marketState.symbolMeta[normalizeSymbol(symbol, "bitunix")];
+      const meta = marketState.symbolMeta[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
       let decPrice = new Decimal(priceVal);
       if (meta?.quotePrecision !== undefined) {
         decPrice = decPrice.toDecimalPlaces(meta.quotePrecision, Decimal.ROUND_HALF_UP);
@@ -602,7 +602,8 @@ export const app = {
     const activeSymbol = symbol || tradeState.symbol;
     if (activeSymbol) {
       tradeService.fetchLeverageMarginMode(activeSymbol);
-      tradeService.fetchTradingPairInfo(activeSymbol);
+      // Venue-routed: Bitget serves its own instrument source (BUG-0501).
+      activeExchange().account.fetchTradingPairInfo(activeSymbol);
       tradeService.fetchPositionTiers(activeSymbol);
     }
   },

@@ -3619,6 +3619,10 @@
       "tpBelowEntry": "Short: Take-Profit Ziel {price} muss unter Einstieg liegen.",
       "totalPercentExceeded": "Summe der Verkaufsanteile ({percent}%) darf 100% nicht überschreiten.",
       "slDistance": "Stop-Loss muss einen gültigen Abstand zum Einstiegspreis haben.",
+      "noSymbolMeta": "Präzision für {symbol} nicht verfügbar — keine orderbare Größe.",
+      "sizeBelowMinimum": "Größe {size} liegt unter dem Instrumenten-Minimum von {minimum}.",
+      "sizeAboveMaximum": "Größe {size} überschreitet das Instrumenten-Maximum von {maximum}.",
+      "leverageAboveMaximum": "Hebel {leverage}x überschreitet das Instrumenten-Maximum von {maximum}x.",
       "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
     },
     "logic": {
@@ -4158,6 +4162,8 @@
     "resultingSize": "Größe danach",
     "newAverageEntry": "Neuer Durchschnitts-Entry",
     "previewOnlyHint": "Schätzung zum aktuellen Mark. Nach der Ausführung gilt die Zahl der Börse.",
+    "riskUnderStop": "Risiko unter Stop",
+    "noStopAttached": "Kein Stop gesetzt — dieser Nachkauf ist ungeschützt",
     "addSubmitted": "Nachkauf-Order gesendet.",
     "remainingAfter": "Verbleibt",
     "realizesPnl": "Realisiert",
@@ -4257,7 +4263,7 @@
     "unsupported": {
       "tpSl": "Take-Profit- und Stop-Loss-Aufträge sind auf {exchange} nicht verfügbar. Es wurde nichts gesendet.",
       "leverageMarginMode": "{exchange} meldet Hebel und Margin-Modus nicht an Cachy — angezeigt werden deine lokalen Einstellungen.",
-      "tradingPairInfo": "{exchange} liefert keine Kontraktdetails an Cachy — Präzision und Größenlimits fallen auf Standardwerte zurück.",
+      "tradingPairInfo": "{exchange} liefert keine Kontraktdetails an Cachy — Präzision und Größenlimits können nicht geprüft werden. Es wurde nichts gesendet.",
       "generic": "{exchange} kann das nicht, deshalb hat Cachy die Anfrage nicht gesendet.",
       "accountSettings": "Für {exchange} hat Cachy kein geprüftes Anfrageformat, um Hebel, Margin-Modus oder Positions-Margin zu ändern — es wurde nichts gesendet. Ändere es in der Oberfläche der Börse."
     },

@@ -2,7 +2,8 @@
 id: BUG-0506
 title: The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes
 type: bug
-status: specced
+status: done
+branch: fix/gate-kern-paket-c
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +11,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0506 — The size window accepts an oversize no producer can generate

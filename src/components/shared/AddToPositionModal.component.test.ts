@@ -57,6 +57,18 @@ vi.mock("./ModalFrame.svelte", async () => ({
     default: (await import("../../tests/helpers/PassthroughModalFrame.svelte")).default,
 }));
 
+const restingStopPrice = vi.hoisted(() => vi.fn((): unknown => null));
+vi.mock("../../stores/tpsl.svelte", () => ({
+    tpSlState: {
+        restingStopPrice,
+        ensureFresh: vi.fn(async () => {}),
+    },
+}));
+
+vi.mock("../../stores/trade.svelte", () => ({
+    tradeState: { accountSize: "10000" },
+}));
+
 import AddToPositionLiveWrapper from "../../tests/helpers/AddToPositionLiveWrapper.svelte";
 import type { OMSPosition } from "../../services/omsTypes";
 
@@ -148,5 +160,33 @@ describe("BUG-0347 — AddToPositionModal keeps an edited quantity on price tick
         settle();
 
         expect(quantityInput().value).toBe("2");
+    });
+});
+
+describe("BUG-0510 — AddToPositionModal states the risk under the resting stop", () => {
+    it("shows the resulting risk beside the entry when a stop is known", () => {
+        // 4 @ 100 plus the seeded 1 @ 100 → 5 @ 100, stop at 90:
+        // risk 50, 0.5 % of the 10 000 account.
+        restingStopPrice.mockReturnValue(new Decimal(90));
+        component = mount(AddToPositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain("Risk under stop");
+        expect(host.textContent).toContain("50 (0.5%)");
+    });
+
+    it("states plainly when no stop is attached", () => {
+        restingStopPrice.mockReturnValue(null);
+        component = mount(AddToPositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain("No stop attached");
+        expect(host.textContent).not.toContain("Risk under stop");
     });
 });

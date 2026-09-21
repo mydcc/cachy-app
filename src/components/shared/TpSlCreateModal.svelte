@@ -46,6 +46,8 @@ import { Decimal } from "decimal.js";
   import TpSlEditModal from "./TpSlEditModal.svelte";
   import { tpSlState } from "../../stores/tpsl.svelte";
   import { marketState } from "../../stores/market.svelte";
+  import { settingsState } from "../../stores/settings.svelte";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import type { TpSlContext, FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
@@ -101,7 +103,9 @@ import { Decimal } from "decimal.js";
   });
 
   const tickSize = $derived.by(() => {
-    const precision = marketState.symbolMeta[position.symbol]?.quotePrecision;
+    // Venue-normalized key (BUG-0501).
+    const venue = settingsState.apiProvider || "bitunix";
+    const precision = marketState.symbolMeta[normalizeSymbol(position.symbol, venue)]?.quotePrecision;
     if (precision === undefined || precision === null) return new Decimal(0);
     return new Decimal(10).pow(-precision);
   });

@@ -23,6 +23,7 @@ import {
   type ResultsState,
 } from "../stores/results.svelte";
 import { marketState } from "../stores/market.svelte";
+import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { trackCustomEvent } from "./trackingService";
 import { get } from "svelte/store";
@@ -268,9 +269,24 @@ export class CalculatorService {
       return;
     }
 
-    const normSymbol = normalizeSymbol(currentTradeState.symbol || "", "bitunix");
-    const meta = marketState.symbolMeta[normSymbol];
-    if (meta?.basePrecision !== undefined) {
+    const venue = settingsState.apiProvider || "bitunix";
+    // Venue-normalized key only — BUG-0501. Bitunix normalization is the
+    // identity for standard symbols, so existing entries keep working; a
+    // Bitget entry (`BTCUSDT_UMCBL`) can neither be missed by a
+    // Bitunix-shaped lookup nor served for a Bitunix symbol.
+    const rawSymbol = currentTradeState.symbol || "";
+    const meta = marketState.symbolMeta[normalizeSymbol(rawSymbol, venue)];
+    // BUG-0501: metadata is a precondition, not an optimisation. Without it
+    // no rounding, no volume check and no leverage check can run — so no
+    // orderable size is emitted, and the reason is surfaced instead of a
+    // number that skipped its guards.
+    if (!meta || meta.basePrecision === undefined) {
+        const $t = get(_);
+        resultsState.reset();
+        this.uiManager.showError($t("calculator.errors.noSymbolMeta", { values: { symbol: rawSymbol } }));
+        return;
+    }
+    {
       const rounded = baseMetrics.positionSize.toDecimalPlaces(
         meta.basePrecision,
         Decimal.ROUND_DOWN,
@@ -289,6 +305,36 @@ export class CalculatorService {
         baseMetrics.entryFee = refreshed.entryFee;
       }
       baseMetrics.positionSize = rounded;
+    }
+
+    // The rounded size is what will actually be ordered, so the venue's
+    // volume and leverage bounds are enforced against it here — refusing
+    // with the figures reset, never clamping silently (BUG-0501).
+    {
+        const $t = get(_);
+        if (meta.minTradeVolume !== undefined && meta.minTradeVolume !== null &&
+            baseMetrics.positionSize.lt(meta.minTradeVolume)) {
+            resultsState.reset();
+            this.uiManager.showError($t("calculator.errors.sizeBelowMinimum", {
+                values: { size: baseMetrics.positionSize.toString(), minimum: meta.minTradeVolume.toString() },
+            }));
+            return;
+        }
+        if (meta.maxMarketOrderVolume !== undefined && meta.maxMarketOrderVolume !== null &&
+            baseMetrics.positionSize.gt(meta.maxMarketOrderVolume)) {
+            resultsState.reset();
+            this.uiManager.showError($t("calculator.errors.sizeAboveMaximum", {
+                values: { size: baseMetrics.positionSize.toString(), maximum: meta.maxMarketOrderVolume.toString() },
+            }));
+            return;
+        }
+        if (meta.maxLeverage !== undefined && values.leverage.gt(meta.maxLeverage)) {
+            resultsState.reset();
+            this.uiManager.showError($t("calculator.errors.leverageAboveMaximum", {
+                values: { leverage: values.leverage.toString(), maximum: String(meta.maxLeverage) },
+            }));
+            return;
+        }
     }
 
     // --- Fill Results ---

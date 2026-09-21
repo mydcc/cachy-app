@@ -350,11 +350,15 @@ describe("FEAT-0069 — the open path is gated", () => {
         ).rejects.toMatchObject({ refusal: { field: "accountState" } });
     });
 
-    it("tolerates rounding to the instrument's step size", async () => {
-        // basePrecision 4 → step 0.0001, so 0.0201 is one step out and passes.
+    it("tolerates rounding down to the instrument's step size (BUG-0506)", async () => {
+        // basePrecision 4 → step 0.0001. Rounding only ever shrinks, so one
+        // step below passes and one step above refuses.
+        await expect(
+            tradeService.placeOrder({ ...baseParams(), qty: new Decimal("0.0199") }),
+        ).resolves.toBeDefined();
         await expect(
             tradeService.placeOrder({ ...baseParams(), qty: new Decimal("0.0201") }),
-        ).resolves.toBeDefined();
+        ).rejects.toMatchObject({ refusal: { field: "qty", reason: "sizeMismatch" } });
     });
 });
 

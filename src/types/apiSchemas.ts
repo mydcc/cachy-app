@@ -127,6 +127,30 @@ export const BitunixTradingPairResponseSchema = z.object({
   data: z.array(BitunixTradingPairSchema).optional(),
 });
 
+// Bitget V2 mix contracts (GET /api/v2/mix/market/contracts) — precision,
+// order-size limits, leverage range and status per instrument (BUG-0501).
+// V1 (`/api/mix/v1/...`) is decommissioned and answers 30032, so this is V2
+// or nothing. All numerics arrive as strings; the mapping site converts, so
+// one bad field cannot discard the whole row. V2 symbols carry no _UMCBL
+// suffix ("BTCUSDT"); the client normalises to Cachy's venue key.
+export const BitgetContractsSchema = z.object({
+  symbol: z.string(),
+  volumePlace: z.string().optional(),
+  pricePlace: z.string().optional(),
+  minTradeNum: z.string().optional(),
+  maxOrderQty: z.string().optional(),
+  maxMarketOrderQty: z.string().optional(),
+  minLever: z.string().optional(),
+  maxLever: z.string().optional(),
+  symbolStatus: z.string().optional(),
+});
+
+export const BitgetContractsResponseSchema = z.object({
+  code: z.union([z.number(), z.string()]),
+  msg: z.string().optional(),
+  data: z.array(BitgetContractsSchema).optional(),
+});
+
 // Bitunix Position Tier Schema (position/get_position_tiers) — maintenance
 // margin per position-size bracket.
 export const BitunixPositionTierSchema = z.object({

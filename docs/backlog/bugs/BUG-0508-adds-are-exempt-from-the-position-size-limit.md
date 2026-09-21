@@ -2,7 +2,8 @@
 id: BUG-0508
 title: An add is exempt from the position-size limit, so scaling in grows a position past a cap that is only ever measured against the opening order
 type: bug
-status: specced
+status: done
+branch: fix/gate-kern-paket-c
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +11,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0508 — The notional cap stops the first order and no order after it
