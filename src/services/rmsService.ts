@@ -32,9 +32,11 @@ import { tradeState } from "../stores/trade.svelte";
 import { accountState } from "../stores/account.svelte";
 import { journalState } from "../stores/journal.svelte";
 import { riskState } from "../stores/riskLimits.svelte";
+import { settingsState } from "../stores/settings.svelte";
 import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 import { getTradePnL } from "../lib/calculators/core";
+import { entryRoleForOrderType } from "../lib/fees/feeProvenance";
 import {
     registerConfirmationCheck,
     registerKillSwitch,
@@ -163,6 +165,52 @@ function positionSideOf(side: unknown): "long" | "short" | null {
     return null;
 }
 
+/**
+ * The fee rate (percent, e.g. `0.042` for 0.042%) for one leg, or null when
+ * no rate can be resolved (BUG-0500).
+ *
+ * Broker-derived fills win when a broker is in play — paper mode has none,
+ * so a stale live-session rate must not leak into a simulation
+ * (feeProvenance). Otherwise the venue's Settings rate applies, which is the
+ * documented VIP-0 default until the trader overrides it. Null, never zero:
+ * falling back to zero fees reintroduces the pre-fee under-measurement under
+ * a different name, so the caller refuses as unmeasurable instead.
+ */
+function feeRateFor(
+    role: "maker" | "taker",
+    venue: string,
+    paperMode: boolean | undefined,
+): Decimal | null {
+    if (!paperMode) {
+        const remote =
+            role === "maker" ? tradeState.remoteMakerFee : tradeState.remoteTakerFee;
+        if (remote !== undefined && remote.isFinite()) return remote;
+    }
+    const configured =
+        venue === "bitunix" || venue === "bitget"
+            ? settingsState.feeRates[venue]?.[role]
+            : undefined;
+    const parsed = toDecimal(configured);
+    return parsed !== null && parsed.isFinite() ? parsed : null;
+}
+
+/**
+ * The venue side an intent's entry leg fills on, from the order type the
+ * intent carries (feeProvenance: only a resting limit order is a maker
+ * fill). Unknown types land on taker — the expensive rate is the safe
+ * direction for a limit that caps losses.
+ */
+function entryRoleOf(orderType: unknown): "maker" | "taker" {
+    if (typeof orderType !== "string") return "taker";
+    return entryRoleForOrderType(
+        orderType.toLowerCase() === "limit"
+            ? "limit"
+            : orderType.toLowerCase() === "market"
+              ? "market"
+              : "trigger",
+    );
+}
+
 function limitRefusal(
     field: string,
     limit: Decimal | number,
@@ -177,8 +225,7 @@ function limitRefusal(
 }
 
 /** A limit is configured but the order carries nothing to measure it against. */
-function unmeasurable(field: string): OrderRefusal {
-    return {
+function unmeasurable(field: string): OrderRefusal {    return {
         field,
         reason: "missing",
         messageKey: "orderGate.riskLimitUnmeasurable",
@@ -634,7 +681,13 @@ class RiskManagementService {
                 .times(positionAmount)
                 .plus(entryPrice.times(qty))
                 .div(resultingAmount);
-            const loss = resultingEntry.minus(restingStopPrice).abs().times(resultingAmount);
+            const loss = this.lossWithFees(
+                intent,
+                resultingAmount,
+                resultingEntry,
+                restingStopPrice,
+            );
+            if (loss === null) return unmeasurable("maxLossPerTrade");
             if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
             return null;
         }
@@ -645,13 +698,38 @@ class RiskManagementService {
             return unmeasurable("maxLossPerTrade");
         }
 
-        // The loss the stop would realise, before fees. Fees make the real
-        // loss larger, so this is the conservative direction to be wrong in
-        // only if it under-reports — it does not, because a stop that fills
-        // worse than its trigger is a slippage question, not a sizing one.
-        const loss = entryPrice.minus(stopLossPrice).abs().times(qty);
+        // The loss the stop would realise, *including* the round-trip fee
+        // (BUG-0500). The entry fee is already paid when the stop triggers
+        // and the exit fee is charged on the way out; measuring without them
+        // under-reports every time, in the same direction. Slippage stays
+        // out — unknowable at gate time, and a different question.
+        const loss = this.lossWithFees(intent, qty, entryPrice, stopLossPrice);
+        if (loss === null) return unmeasurable("maxLossPerTrade");
         if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
         return null;
+    }
+
+    /**
+     * Stop distance plus both fee legs, in quote currency — or null when a
+     * leg's rate cannot be resolved (BUG-0500). The exit leg at a stop is a
+     * taker fill; the entry leg follows the order type the intent carries.
+     * Rates are percentages, so each leg divides by 100 exactly once.
+     */
+    private lossWithFees(
+        intent: OrderIntent,
+        qty: Decimal,
+        entry: Decimal,
+        stop: Decimal,
+    ): Decimal | null {
+        const venue = intent.displayed.provider;
+        const paperMode = intent.displayed.paperMode;
+        const entryRate = feeRateFor(entryRoleOf(intent.payload.orderType), venue, paperMode);
+        const exitRate = feeRateFor("taker", venue, paperMode);
+        if (entryRate === null || exitRate === null) return null;
+        const move = entry.minus(stop).abs().times(qty);
+        const entryFee = qty.times(entry).times(entryRate).div(100);
+        const exitFee = qty.times(stop).times(exitRate).div(100);
+        return move.plus(entryFee).plus(exitFee);
     }
 
     /**

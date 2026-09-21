@@ -2444,7 +2444,7 @@
       "maxLeverage": "Max. Hebel",
       "maxLeverageHint": "Lehnt jede Order über diesem Hebel ab.",
       "maxLossPerTrade": "Max. Verlust pro Trade",
-      "maxLossPerTradeHint": "Abstand Einstieg zu Stop × Menge, vor Gebühren.",
+      "maxLossPerTradeHint": "Abstand Einstieg zu Stop × Menge, inklusive Round-Trip-Gebühren.",
       "maxDailyLoss": "Max. Verlust pro Tag",
       "maxDailyLossHint": "Gemessen am realisierten PnL des laufenden UTC-Tages. Öffnungen werden abgelehnt, solange heute nicht messbar ist: Verlust ohne Betrag, Close ohne Exit-Datum oder synchronisierte Trades ohne heutigen History-Sync. Ein manuell als Lost erfasster Scratch-Trade mit 0 zählt als fehlend — auf Won setzen; synchronisierte Nullen sind gemessen.",
       "maxOpenPositions": "Max. gleichzeitig offene Positionen",

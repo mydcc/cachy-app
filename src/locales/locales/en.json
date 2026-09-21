@@ -2444,7 +2444,7 @@
       "maxLeverage": "Max leverage",
       "maxLeverageHint": "Refuses any order above this leverage.",
       "maxLossPerTrade": "Max loss per trade",
-      "maxLossPerTradeHint": "Distance from entry to stop × quantity, before fees.",
+      "maxLossPerTradeHint": "Distance from entry to stop × quantity, including round-trip fees.",
       "maxDailyLoss": "Max loss per day",
       "maxDailyLossHint": "Measured against realised PnL for the current UTC day. Opens are refused while today cannot be measured: a loss without an amount, a close without an exit date, or synced trades without today's history sync. A manually recorded scratch trade as Lost with 0 counts as missing — put it on Won; synced zeroes are measured.",
       "maxOpenPositions": "Max concurrent open positions",
