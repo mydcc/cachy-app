@@ -108,6 +108,19 @@ describe('isImmutableAsset', () => {
     expect(isImmutableAsset('build/client/fonts/Manrope/Manrope.woff2')).toBe(true);
   });
 
+  it('treats hashed WASM and Ammo filenames as immutable, stable names as not', () => {
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm.a1b2c3d4.wasm')).toBe(true);
+    expect(isImmutableAsset('build/client/ammo/ammo.BEEF1234.js')).toBe(true);
+    // Stable filenames are rebuilt in place — never immutable (stale-indicator risk).
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm_bg.wasm')).toBe(false);
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm.js')).toBe(false);
+    expect(isImmutableAsset('build/client/ammo/ammo.wasm.wasm')).toBe(false);
+    expect(isImmutableAsset('build/client/ammo/ammo.wasm.js')).toBe(false);
+    // Non-binary sidecars under /wasm/ stay revalidating.
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm.d.ts')).toBe(false);
+    expect(isImmutableAsset('build/client/wasm/README.txt')).toBe(false);
+  });
+
   it('rejects non-immutable paths', () => {
     expect(isImmutableAsset('build/client/index.html')).toBe(false);
     expect(isImmutableAsset('build/client/favicon.ico')).toBe(false);
@@ -125,6 +138,25 @@ describe('cacheControlFor', () => {
     expect(cacheControlFor('build/client/_app/immutable/foo.abc123.js')).toBe(
       'public, max-age=31536000, immutable',
     );
+  });
+
+  it('gives versioned WASM/Ammo binaries a bounded cache window with revalidation', () => {
+    expect(cacheControlFor('build/client/wasm/technicals_wasm_bg.wasm')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+    expect(cacheControlFor('build/client/wasm/technicals_wasm.js')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+    expect(cacheControlFor('build/client/ammo/ammo.wasm.wasm')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+    expect(cacheControlFor('build/client/ammo/ammo.wasm.js')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+  });
+
+  it('forces revalidation for WASM sidecar files', () => {
+    expect(cacheControlFor('build/client/wasm/technicals_wasm.d.ts')).toBe('no-cache');
   });
 
   it('forces revalidation for everything else', () => {
