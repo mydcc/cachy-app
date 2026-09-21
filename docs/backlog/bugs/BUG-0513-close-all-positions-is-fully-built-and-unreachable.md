@@ -2,7 +2,9 @@
 id: BUG-0513
 title: Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix-pkg-e-0513-0514
 priority: P1
 milestone: none
 editions: [community, pro, private]

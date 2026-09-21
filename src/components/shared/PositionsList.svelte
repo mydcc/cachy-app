@@ -50,6 +50,14 @@
      * the other has already decided it is all of it.
      */
     onflashClose?: (pos: OMSPosition) => void;
+    /**
+     * BUG-0513 — every open position, in one confirmed action.
+     *
+     * Absent where the parent does not wire it; the list shows no button
+     * then, rather than a dead one. The confirmation (count, total notional)
+     * is the caller's job — this component only announces the intent.
+     */
+    oncloseAll?: () => void;
   }
 
   let {
@@ -61,6 +69,7 @@
     onadjustMargin,
     onadd,
     onflashClose,
+    oncloseAll,
   }: Props = $props();
 
   /*
@@ -144,6 +153,15 @@
     </div>
   {:else}
     <div class="flex flex-col gap-2">
+      {#if oncloseAll}
+        <button
+          type="button"
+          class="w-full py-1.5 text-[11px] font-bold bg-danger-paired rounded-lg border border-[var(--danger-color)] transition-colors"
+          onclick={() => oncloseAll?.()}
+        >
+          {$_("positionsList.closeAll")}
+        </button>
+      {/if}
       {#each safePositions as pos}
         <!-- Card Container -->
         <div

@@ -221,6 +221,7 @@ const trading: TradingPort = {
 
     cancelOrder: (symbol, orderId) => tradeService.cancelOrder(symbol, orderId),
     cancelAllOrders: (symbol, throwOnError = false) => tradeService.cancelAllOrders(symbol, throwOnError),
+    closeAllPositions: (symbol?: string) => tradeService.closeAllPositions(symbol),
     modifyOrder: (params: ModifyOrderParams) => tradeService.modifyOrder(params),
 
     // A read: an unsupported venue has no plans to show, and saying so is
