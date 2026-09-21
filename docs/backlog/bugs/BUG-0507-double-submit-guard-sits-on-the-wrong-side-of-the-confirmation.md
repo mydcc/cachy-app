@@ -2,7 +2,7 @@
 id: BUG-0507
 title: The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix-pkg-e-0507
 priority: P3
@@ -121,13 +121,13 @@ into the code responsible for it.
 
 ## Acceptance criteria
 
-- [ ] `submitting` is true for the entire duration of the confirmation dialog
-- [ ] A test invokes `submit` twice with the modal stubbed to confirm both, and
+- [x] `submitting` is true for the entire duration of the confirmation dialog
+- [x] A test invokes `submit` twice with the modal stubbed to confirm both, and
       asserts exactly one placement call — and fails without the fix
-- [ ] Cancelling the confirmation clears the flag and leaves the button usable
-- [ ] `OrderGate.submit` refuses a second identical intent while the first is
+- [x] Cancelling the confirmation clears the flag and leaves the button usable
+- [x] `OrderGate.submit` refuses a second identical intent while the first is
       in flight, proven by a test that does not involve the dialog
-- [ ] Bot placement is unaffected, or gains the same protection
+- [x] Bot placement is unaffected, or gains the same protection
 
 ## Links
 
