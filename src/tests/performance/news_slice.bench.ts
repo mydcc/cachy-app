@@ -1,24 +1,24 @@
 // @vitest-environment happy-dom
 import { bench, describe } from 'vitest';
 import { mount, unmount } from 'svelte';
-import NewsSentimentPanel from '../../src/components/shared/NewsSentimentPanel.svelte';
-import { newsStore } from '../../src/stores/news.svelte';
-import { settingsState } from '../../src/stores/settings.svelte';
+import NewsSentimentPanel from '../../components/shared/NewsSentimentPanel.svelte';
+import { newsStore } from '../../stores/news.svelte';
+import { settingsState } from '../../stores/settings.svelte';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('../../src/stores/ui.svelte', () => ({
+vi.mock('../../stores/ui.svelte', () => ({
     uiState: { toggleSettingsModal: vi.fn() }
 }));
 
-vi.mock('../../src/locales/i18n', () => ({
+vi.mock('../../locales/i18n', () => ({
     _: {
         subscribe: (cb: (k: string) => string) => { cb((k: string) => k); return () => {}; }
     },
     t: (key: string) => key
 }));
 
-vi.mock('../../src/services/frameSupportService', () => ({
+vi.mock('../../services/frameSupportService', () => ({
     frameSupportService: {
         isDomainFrameBlocked: () => false
     }
