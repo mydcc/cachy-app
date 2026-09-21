@@ -84,24 +84,28 @@ export async function confirmAndCloseAllPositions(symbol?: string): Promise<Clos
         uiState.showToast(t("trade.closeAllEmpty"), "info");
         return null;
     }
-    // Client-computed Σ size × mark/entry price — the same formula the
-    // positions panel totals with, so the dialog quotes the number on screen.
-    const notional = inScope.reduce(
-        (sum, p) => sum.plus(p.size.mul(p.markPrice || p.entryPrice)),
-        new Decimal(0),
-    );
-    const confirmed = await modalState.show(
-        t("trade.closeAllConfirmTitle"),
-        t("trade.closeAllConfirmMessage", {
-            count: String(inScope.length),
-            notional: notional.toFixed(2),
-        }),
-        "confirm",
-    );
-    if (confirmed !== true) return null;
-
+    // Set for the dialog already, not just the run: two rapid clicks must
+    // not open two confirmations (the modal store dedupes those as cancel,
+    // but the refusal belongs here where the race is understood). The
+    // finally below clears it on every path including cancel.
     running = true;
     try {
+        // Client-computed Σ size × mark/entry price — the same formula the
+        // positions panel totals with, so the dialog quotes the number on screen.
+        const notional = inScope.reduce(
+            (sum, p) => sum.plus(p.size.mul(p.markPrice || p.entryPrice)),
+            new Decimal(0),
+        );
+        const confirmed = await modalState.show(
+            t("trade.closeAllConfirmTitle"),
+            t("trade.closeAllConfirmMessage", {
+                count: String(inScope.length),
+                notional: notional.toFixed(2),
+            }),
+            "confirm",
+        );
+        if (confirmed !== true) return null;
+
         await activeExchange().trading.closeAllPositions(symbol);
         uiState.showToast(t("trade.closeAllSuccess", { count: String(inScope.length) }), "success");
         // Same reasoning as a full close: the exchange drops a closed
