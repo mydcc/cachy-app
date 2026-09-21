@@ -150,6 +150,19 @@ function toDecimal(value: unknown): Decimal | null {
     }
 }
 
+/**
+ * The position side an order's venue side opens, or null when the side is
+ * absent or outside the vocabulary this codebase writes (BUG-0515). Null
+ * never exempts: an unknowable side cannot prove a merge.
+ */
+function positionSideOf(side: unknown): "long" | "short" | null {
+    if (typeof side !== "string") return null;
+    const s = side.toUpperCase();
+    if (s === "BUY" || s === "LONG") return "long";
+    if (s === "SELL" || s === "SHORT") return "short";
+    return null;
+}
+
 function limitRefusal(
     field: string,
     limit: Decimal | number,
@@ -523,13 +536,38 @@ class RiskManagementService {
 
         const symbol = intent.displayed.symbol;
         const positions = omsService.getPositions();
-        // Adding to a position already open does not raise the count.
-        if (symbol !== undefined && positions.some((p) => p.symbol === symbol)) return null;
+        if (symbol !== undefined) {
+            const sameSymbol = positions.filter((p) => p.symbol === symbol);
+            if (sameSymbol.length > 0 && this.mergesIntoHeld(sameSymbol, intent)) return null;
+        }
 
         if (positions.length + 1 > max) {
             return limitRefusal("maxOpenPositions", max, positions.length + 1);
         }
         return null;
+    }
+
+    /**
+     * Whether an open merges into a position already held on the symbol, so
+     * the count does not grow (BUG-0515).
+     *
+     * One-way mode: an open on a held symbol merges into (or reduces) the
+     * existing position — the exemption as it always was. Hedge mode: long
+     * and short on one symbol are two independent positions, so only a
+     * same-side open merges; the opposite side is a new position and is
+     * counted. The mode is read per position (`positionMode`); a symbol with
+     * no hedge-marked position keeps the old exemption — Bitget legs and
+     * mode-less snapshots cannot prove hedge, and a limit must not refuse
+     * ordinary one-way adds on an unprovable mode.
+     */
+    private mergesIntoHeld(
+        sameSymbol: Array<{ side: "long" | "short"; positionMode?: "one_way" | "hedge" }>,
+        intent: OrderIntent,
+    ): boolean {
+        if (!sameSymbol.some((p) => p.positionMode === "hedge")) return true;
+        const intentSide = positionSideOf(intent.displayed.side);
+        if (intentSide === null) return false;
+        return sameSymbol.some((p) => p.side === intentSide);
     }
 
     private checkLeverage(intent: OrderIntent): OrderRefusal | null {

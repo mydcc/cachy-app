@@ -34,7 +34,7 @@ vi.mock("./logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const positions = vi.hoisted(() => ({ list: [] as Array<{ symbol: string }> }));
+const positions = vi.hoisted(() => ({ list: [] as Array<{ symbol: string; side?: "long" | "short"; positionMode?: "one_way" | "hedge" }> }));
 vi.mock("./omsService", () => ({
     omsService: { getPositions: () => positions.list },
 }));
@@ -261,6 +261,34 @@ describe("FEAT-0013 — limits allow what they should", () => {
         riskState.setLimit("maxOpenPositions", 1);
         positions.list = [{ symbol: "BTCUSDT" }];
         expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    // BUG-0515: in hedge mode the opposite side on a held symbol is a
+    // second position, not a change to the first — the ceiling counts it.
+    it("counts the opposite side on a held symbol in hedge mode", () => {
+        riskState.setLimit("maxOpenPositions", 1);
+        positions.list = [{ symbol: "BTCUSDT", side: "long", positionMode: "hedge" }];
+        const intent = openIntent();
+        intent.displayed.side = "SELL";
+        intent.payload.side = "SELL";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxOpenPositions");
+        expect(refusal?.values.actual).toBe("2");
+    });
+
+    it("still exempts the same side on a held symbol in hedge mode", () => {
+        riskState.setLimit("maxOpenPositions", 1);
+        positions.list = [{ symbol: "BTCUSDT", side: "long", positionMode: "hedge" }];
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("keeps the symbol exemption when no position proves hedge mode", () => {
+        riskState.setLimit("maxOpenPositions", 1);
+        positions.list = [{ symbol: "BTCUSDT", side: "long", positionMode: "one_way" }];
+        const intent = openIntent();
+        intent.displayed.side = "SELL";
+        intent.payload.side = "SELL";
+        expect(orderGate.verify(intent).approved).toBe(true);
     });
 
     it("refuses a limit it cannot measure rather than waving it through", () => {
