@@ -84,7 +84,32 @@ const KNOWN_STATUSES: ReadonlySet<string> = new Set(KNOWN_JOURNAL_STATUSES);
 export interface DailyLossAssessment {
     loss: Decimal;
     complete: boolean;
+    /**
+     * Why the day is unmeasurable, when it is (BUG-0523). First cause wins,
+     * so the refusal names one concrete remedy instead of "something".
+     * Null exactly when `complete` is true.
+     */
+    cause: DailyLossCause | null;
 }
+
+/**
+ * The ways a journal day can resist measurement, in the order the gate
+ * checks them. One key per cause in the refusal — a fail-closed gate must
+ * say what to fix, not just that it refused.
+ */
+export type DailyLossCause = "no-amount" | "no-exit-date" | "unknown-status" | "stale-sync";
+
+/**
+ * One refusal key per unmeasurable cause (BUG-0523). The messages name the
+ * remedy — enter the amount, set the close date, fix the status, run the
+ * history sync — because a fail-closed gate must say what to fix.
+ */
+const DAILY_LOSS_CAUSE_KEYS: Record<DailyLossCause, string> = {
+    "no-amount": "orderGate.dailyLossUnmeasurableNoAmount",
+    "no-exit-date": "orderGate.dailyLossUnmeasurableNoExitDate",
+    "unknown-status": "orderGate.dailyLossUnmeasurableUnknownStatus",
+    "stale-sync": "orderGate.dailyLossUnmeasurableStaleSync",
+};
 
 /**
  * The daily-loss window runs from 00:00 UTC to 00:00 UTC.
@@ -160,18 +185,38 @@ function unmeasurable(field: string): OrderRefusal {
  * block ordinary trading.
  */
 function hasRealisedAmount(entry: JournalEntry): boolean {
+    const parsed = readRealisedAmount(entry);
+    return parsed !== null && !parsed.isZero();
+}
+
+/**
+ * Whether the entry's realised amount counts as measured (BUG-0523).
+ *
+ * Synced rows carry actual venue figures: a recorded zero is a measured
+ * zero, not a forgotten amount. Manual rows keep the strict reading — a
+ * hand-typed 0 usually means "never entered", and for a safety gate the
+ * wrong guess in the permissive direction is the failure. Fully absent
+ * amounts stay unmeasured on both paths.
+ */
+function isMeasuredAmount(entry: JournalEntry): boolean {
+    if (entry.isManual === false) return readRealisedAmount(entry) !== null;
+    return hasRealisedAmount(entry);
+}
+
+/** The realised amount as a finite Decimal, or null when there is none. */
+function readRealisedAmount(entry: JournalEntry): Decimal | null {
     // Runtime data arrives as strings from storage, CSV and sync paths, so
     // read through `unknown` even though the type says `Decimal`.
     const raw: unknown = entry.totalNetProfit;
-    if (raw === null || raw === undefined || raw === "") return false;
+    if (raw === null || raw === undefined || raw === "") return null;
     try {
         const d =
             raw instanceof Decimal || Decimal.isDecimal(raw)
                 ? (raw as Decimal)
                 : new Decimal(raw as string | number);
-        return d.isFinite() && !d.isNaN() && !d.isZero();
+        return d.isFinite() && !d.isNaN() ? d : null;
     } catch {
-        return false;
+        return null;
     }
 }
 
@@ -330,6 +375,12 @@ class RiskManagementService {
         const dayStart = utcDayStart(now);
         let total = new Decimal(0);
         let complete = true;
+        let cause: DailyLossCause | null = null;
+        const markIncomplete = (kind: DailyLossCause): void => {
+            complete = false;
+            // First cause wins: the refusal names one concrete remedy.
+            if (cause === null) cause = kind;
+        };
         let hasSyncedSource = false;
 
         for (const entry of journalState.entries) {
@@ -344,7 +395,7 @@ class RiskManagementService {
                 }
             }
             if (!KNOWN_STATUSES.has(entry.status)) {
-                complete = false;
+                markIncomplete("unknown-status");
                 continue;
             }
             // Only synced entries that survived the day-scope above can
@@ -354,21 +405,21 @@ class RiskManagementService {
             if (!CLOSED_STATUSES.has(entry.status)) continue;
             if (
                 (entry.status === "Lost" || entry.status === "Closed") &&
-                !hasRealisedAmount(entry)
+                !isMeasuredAmount(entry)
             ) {
-                complete = false;
+                markIncomplete("no-amount");
                 continue;
             }
             // A close without a close day cannot be placed in time. Dating
             // it by its open day would hide an overnight loss from today's
             // limit, so the day reads incomplete instead.
             if (!entry.exitDate) {
-                complete = false;
+                markIncomplete("no-exit-date");
                 continue;
             }
             const ts = closeTimestamp(entry);
             if (ts === null) {
-                complete = false;
+                markIncomplete("no-exit-date");
                 continue;
             }
             if (ts < dayStart || ts > now) continue;
@@ -377,10 +428,10 @@ class RiskManagementService {
 
         if (hasSyncedSource) {
             const syncedAt = riskState.lastHistorySyncAt;
-            if (syncedAt === null || syncedAt < dayStart) complete = false;
+            if (syncedAt === null || syncedAt < dayStart) markIncomplete("stale-sync");
         }
 
-        return { loss: total, complete };
+        return { loss: total, complete, cause };
     }
 
     /** Today's realised loss as a positive number, or zero if today is up. */
@@ -430,10 +481,23 @@ class RiskManagementService {
         if (max === null) return null;
         // BUG-0499: a configured limit over an unmeasurable day refuses with
         // the gate's existing "cannot measure" vocabulary instead of passing
-        // on a zero. Closes, cancels and TP/SL modifications never reach
-        // here — `checkLimits` returns them before any limit runs.
+        // on a zero. BUG-0523: the refusal names the cause, so the trader
+        // sees the remedy, not just the refusal. Closes, cancels and TP/SL
+        // modifications never reach here — `checkLimits` returns them before
+        // any limit runs.
         const assessment = this.assessDailyLoss(now);
-        if (!assessment.complete) return unmeasurable("maxDailyLoss");
+        if (!assessment.complete) {
+            const messageKey =
+                assessment.cause !== null
+                    ? DAILY_LOSS_CAUSE_KEYS[assessment.cause]
+                    : "orderGate.riskLimitUnmeasurable";
+            return {
+                field: "maxDailyLoss",
+                reason: "missing",
+                messageKey,
+                values: { field: "maxDailyLoss" },
+            };
+        }
         const loss = assessment.loss.isNegative()
             ? assessment.loss.abs()
             : new Decimal(0);
