@@ -108,6 +108,11 @@ describe('isImmutableAsset', () => {
     expect(isImmutableAsset('build/client/fonts/Manrope/Manrope.woff2')).toBe(true);
   });
 
+  it('identifies WASM and Ammo binaries under /wasm/ and /ammo/', () => {
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm_bg.wasm')).toBe(true);
+    expect(isImmutableAsset('build/client/ammo/ammo.wasm.wasm')).toBe(true);
+  });
+
   it('rejects non-immutable paths', () => {
     expect(isImmutableAsset('build/client/index.html')).toBe(false);
     expect(isImmutableAsset('build/client/favicon.ico')).toBe(false);

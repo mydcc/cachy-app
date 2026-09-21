@@ -26,8 +26,14 @@ const app = express();
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
 
-// Apply security headers to all requests.
+// Wrap res.writeHead in Express middleware to guarantee applySecurityHeaders(res)
+// runs right before SvelteKit's handler or sirv flushes headers to the client socket.
 app.use((req, res, next) => {
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function (...args) {
+    applySecurityHeaders(res);
+    return originalWriteHead.apply(this, args);
+  };
   applySecurityHeaders(res);
   next();
 });

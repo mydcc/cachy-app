@@ -59,6 +59,9 @@ export function isImmutableAsset(filePath) {
   if (normalized.includes("/fonts/") && /\.(ttf|woff2?|eot|otf)$/i.test(normalized)) {
     return true;
   }
+  if (normalized.includes("/wasm/") || normalized.includes("/ammo/")) {
+    return true;
+  }
   return false;
 }
 
