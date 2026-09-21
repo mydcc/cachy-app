@@ -223,31 +223,38 @@
   async function submit() {
     if (!ready || !data || submitting) return;
 
-    const isPaper = paperState.enabled;
-    const confirmed = await modalState.show(
-      isPaper
-        ? $_("orderEntry.confirm.titlePaper")
-        : $_("orderEntry.confirm.titleLive"),
-      $_("orderEntry.confirm.message", {
-        values: {
-          side: $_(
-            (data.tradeType === "short"
-              ? "orderEntry.side.short"
-              : "orderEntry.side.long") as TranslationKey,
-          ),
-          qty: data.positionSize.toString(),
-          symbol: data.symbol,
-          type: typeLabel(entryType),
-          stop: data.stopLossPrice.toString(),
-        },
-      }),
-      "confirm",
-    );
-    if (confirmed !== true) return;
-
+    // BUG-0507: the guard belongs where it is checked. Set before the
+    // confirmation dialog — the await below lasts as long as the trader
+    // takes to answer, and for that whole window the flag used to stay
+    // false with the button enabled. The existing finally clears it on
+    // every exit path, including cancel.
     submitting = true;
-    result = null;
     try {
+      const isPaper = paperState.enabled;
+      const confirmed = await modalState.show(
+        isPaper
+          ? $_("orderEntry.confirm.titlePaper")
+          : $_("orderEntry.confirm.titleLive"),
+        $_("orderEntry.confirm.message", {
+          values: {
+            side: $_(
+              (data.tradeType === "short"
+                ? "orderEntry.side.short"
+                : "orderEntry.side.long") as TranslationKey,
+            ),
+            qty: data.positionSize.toString(),
+            symbol: data.symbol,
+            type: typeLabel(entryType),
+            stop: data.stopLossPrice.toString(),
+          },
+        }),
+        "confirm",
+      );
+      if (confirmed !== true) return;
+
+      // Cleared on confirm only: a cancelled dialog leaves the previous
+      // result banner exactly as it was.
+      result = null;
       // The gate refuses an entry whose leverage/margin-mode read is older
       // than its limit, and nothing refreshes that read except a symbol
       // change — so a panel left open for a minute refuses every order and

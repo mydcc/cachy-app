@@ -116,6 +116,24 @@ export function mutatingActionOf(payload: Record<string, unknown>): string | nul
     return MUTATING_ORDER_ACTIONS.has(candidate) ? candidate : null;
 }
 
+/**
+ * Deterministic serialization for intent fingerprinting (BUG-0507). Key
+ * order is normalized so two identically built payloads fingerprint alike
+ * regardless of insertion order; `Decimal` serializes through its `toJSON`,
+ * so "100.10" and 100.1 still differ here — the gate's `decimalsAgree`
+ * handles numeric equivalence during verification, while the fingerprint
+ * only ever compares payloads built by the same code path.
+ */
+export function stableStringify(value: unknown): string {
+    if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "";
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+        .sort()
+        .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+        .join(",")}}`;
+}
+
 // ---------------------------------------------------------------------------
 // Refusals
 // ---------------------------------------------------------------------------
@@ -128,6 +146,7 @@ export type RefusalReason =
     | "riskLimit"
     | "sizeMismatch"
     | "unsupported"
+    | "duplicate"
     | "unconfirmed";
 
 export interface OrderRefusal {
@@ -654,6 +673,35 @@ function decimalsAgree(a: Decimal, b: Decimal): boolean {
 // ---------------------------------------------------------------------------
 
 class OrderGate {
+    /**
+     * Fingerprints of intents with a transport call currently in flight
+     * (BUG-0507). `verify` is pure and safe to call twice, but `submit`
+     * sends — a second identical intent while the first is still travelling
+     * is a duplicate order, not a retry.
+     */
+    private inFlight = new Set<string>();
+
+    /**
+     * Identity of an intent for the in-flight guard: account, endpoint,
+     * action, symbol and the full payload. The payload carries the quantity,
+     * so two different sizes never collide — while two presses of the same
+     * button build byte-identical payloads and do.
+     */
+    private fingerprintOf(intent: OrderIntent): string {
+        const action = mutatingActionOf(intent.payload) ?? "";
+        const symbol = typeof intent.payload.symbol === "string" ? intent.payload.symbol : "";
+        return [
+            intent.kind,
+            intent.endpoint,
+            action,
+            symbol,
+            intent.displayed.provider,
+            intent.displayed.accountId ?? intent.displayed.accountFingerprint,
+            intent.displayed.paperMode === true ? "paper" : "live",
+            stableStringify(intent.payload),
+        ].join("|");
+    }
+
     /**
      * Pure verification. No network, no store reads, no side effects — safe
      * to call with the network down, and safe to call twice.
@@ -1709,7 +1757,36 @@ class OrderGate {
             paperMode: intent.displayed.paperMode === true,
         });
 
+        let fingerprint: string | null = null;
         try {
+            // BUG-0507: the panel's own guard used to sit past the
+            // confirmation dialog, so a second submit during the dialog
+            // reached this line. Refuse it here — at the one layer every
+            // order path (panel, bot, future controls) passes through.
+            fingerprint = this.fingerprintOf(intent);
+            if (this.inFlight.has(fingerprint)) {
+                const refusal: OrderRefusal = {
+                    field: "order",
+                    reason: "duplicate",
+                    messageKey: "orderGate.duplicateInFlight",
+                    values: {
+                        action,
+                        symbol:
+                            typeof intent.payload.symbol === "string"
+                                ? intent.payload.symbol
+                                : "",
+                    },
+                };
+                this.audit(intent, {
+                    at,
+                    action,
+                    outcome: "refused",
+                    checked: verdict.checked,
+                    refusal,
+                });
+                throw new OrderRefusedError(refusal);
+            }
+            this.inFlight.add(fingerprint);
             const response = await transport(pass);
             this.audit(intent, {
                 at,
@@ -1720,6 +1797,9 @@ class OrderGate {
             });
             return response;
         } catch (error) {
+            // Already audited as refused above — rethrow untouched so the
+            // refusal is not additionally recorded as a transport failure.
+            if (error instanceof OrderRefusedError) throw error;
             // A transport that threw is the most interesting case of all —
             // the order may or may not have reached the exchange.
             this.audit(intent, {
@@ -1733,6 +1813,11 @@ class OrderGate {
                 },
             });
             throw error;
+        } finally {
+            // The flight is over however it ended — a stuck fingerprint
+            // would refuse every identical order from here on. Deleting a
+            // key that was never added (guard refusal above) is a no-op.
+            if (fingerprint !== null) this.inFlight.delete(fingerprint);
         }
     }
 
