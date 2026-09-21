@@ -58,16 +58,23 @@ vi.mock("./toastService.svelte", () => ({
     toastService: { error: vi.fn(), success: vi.fn(), add: vi.fn() },
 }));
 
-// The protection read that follows a placed entry. `plansFor` is sequenced:
+// The protection read that follows a placed entry. `ordersFor` is sequenced:
 // the first call of a placement is the before-image, taken before the entry
 // exists, so it sees nothing; later calls see what the venue published.
 // A single constant object would model "the same plan before and after",
-// which the fix under test correctly reads as stale.
+// which the fix under test correctly reads as stale. Production legs always
+// carry planType, so the pair is stamped here.
 const plans = vi.hoisted(() => ({
     calls: 0,
     before: {} as Record<string, unknown>,
     after: {} as Record<string, unknown>,
 }));
+function asList(pair: Record<string, unknown>): Array<Record<string, unknown>> {
+    return [
+        ...(pair.loss ? [{ ...(pair.loss as Record<string, unknown>), planType: "LOSS" }] : []),
+        ...(pair.profit ? [{ ...(pair.profit as Record<string, unknown>), planType: "PROFIT" }] : []),
+    ];
+}
 vi.mock("../stores/tpsl.svelte", () => ({
     tpSlState: {
         invalidate: () => {},
@@ -75,6 +82,10 @@ vi.mock("../stores/tpsl.svelte", () => ({
         plansFor: () => {
             plans.calls += 1;
             return plans.calls === 1 ? plans.before : plans.after;
+        },
+        ordersFor: () => {
+            plans.calls += 1;
+            return asList(plans.calls === 1 ? plans.before : plans.after);
         },
     },
 }));

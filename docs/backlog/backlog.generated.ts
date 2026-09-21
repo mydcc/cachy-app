@@ -488,9 +488,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0524",
     "title": "Protection check cannot tell hedge sides apart because venue plans carry no usable side",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "opencode",
     "branch": "fix/bug-0522-hedge-position-scoping",
+    "shipped": "unreleased",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -4921,9 +4922,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0523",
     "title": "Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "assignee": "opencode",
     "branch": "fix/bug-0523-daily-loss-followups",
+    "shipped": "unreleased",
     "priority": "P2",
     "milestone": "none",
     "editions": [

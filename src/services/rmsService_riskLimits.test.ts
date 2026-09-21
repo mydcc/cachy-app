@@ -629,6 +629,97 @@ describe("BUG-0499 — an unmeasurable day refuses opens", () => {
     });
 });
 
+// BUG-0523 — a synced zero is a measured zero, and every unmeasurable day
+// names its cause.
+describe("BUG-0523 — synced scratch and refusal causes", () => {
+    it("keeps the day complete for a synced scratch (Lost with amount 0)", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [
+            {
+                ...closedTrade("0", Date.now()),
+                id: "t-sync-scratch",
+                status: "Lost",
+                isManual: false,
+                isPaper: false,
+            },
+        ];
+        riskState.recordHistorySync(Date.now());
+
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+        expect(rmsService.realizedLossToday(Date.now()).toString()).toBe("0");
+    });
+
+    it("still refuses a manual scratch (Lost with amount 0) and names the cause", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [
+            { ...closedTrade("0", Date.now()), id: "t-manual-scratch", status: "Lost" },
+        ];
+
+        const refusal = orderGate.verify(openIntent()).refusal;
+        expect(refusal?.field).toBe("maxDailyLoss");
+        expect(refusal?.reason).toBe("missing");
+        expect(refusal?.messageKey).toBe("orderGate.dailyLossUnmeasurableNoAmount");
+    });
+
+    it("names a missing amount when the entry carries none at all", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        const entry = closedTrade("-50", Date.now());
+        delete (entry as Record<string, unknown>).totalNetProfit;
+        journal.entries = [entry];
+
+        expect(orderGate.verify(openIntent()).refusal?.messageKey).toBe(
+            "orderGate.dailyLossUnmeasurableNoAmount",
+        );
+    });
+
+    it("names a missing exit date", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [
+            {
+                id: "t-no-exit",
+                status: "Lost",
+                date: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+                totalNetProfit: new Decimal("-50"),
+            },
+        ];
+
+        expect(orderGate.verify(openIntent()).refusal?.messageKey).toBe(
+            "orderGate.dailyLossUnmeasurableNoExitDate",
+        );
+    });
+
+    it("names an unattributable status", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        journal.entries = [
+            {
+                id: "t-foreign",
+                status: "Breakeven",
+                date: new Date(Date.now()).toISOString(),
+                exitDate: new Date(Date.now()).toISOString(),
+                totalNetProfit: new Decimal("0"),
+            },
+        ];
+
+        expect(orderGate.verify(openIntent()).refusal?.messageKey).toBe(
+            "orderGate.dailyLossUnmeasurableUnknownStatus",
+        );
+    });
+
+    it("names a stale history sync", () => {
+        riskState.setLimit("maxDailyLossUsdt", "10000");
+        journal.entries = [
+            { ...closedTrade("-10", Date.now()), isManual: false, isPaper: false },
+        ];
+
+        expect(orderGate.verify(openIntent()).refusal?.messageKey).toBe(
+            "orderGate.dailyLossUnmeasurableStaleSync",
+        );
+
+        riskState.recordHistorySync(Date.now());
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+});
+
 describe("FEAT-0013 — limit input validation", () => {
     it("rejects a value that is not a non-negative number", () => {
         expect(riskState.setLimit("maxLeverage", "abc")).toBe(false);
