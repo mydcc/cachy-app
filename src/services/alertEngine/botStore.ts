@@ -33,8 +33,10 @@
  */
 
 import type { ConsequenceLevel, RuleDocument } from "../../lib/rules/types";
+import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { armRule, readRuleStore } from "./armRule";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
+import { clearBotAnchors } from "./ruleStateStore";
 
 /**
  * The level that makes a rule a bot.
@@ -101,5 +103,10 @@ export function deleteBot(botId: string): boolean {
     RULES_STORAGE_KEY,
     JSON.stringify(rules.filter((r) => r.id !== botId)),
   );
+  // BUG-0486 — this writes the store directly, past `removeRule`, so the
+  // anchors go here too: maps via the gate, stored half directly (edits also
+  // land while the loop's persistence port is unbound).
+  ruleEvaluationGate.forget(botId);
+  clearBotAnchors(botId);
   return true;
 }

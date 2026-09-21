@@ -4677,7 +4677,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0486",
     "title": "The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0486-forget-wiring",
+    "shipped": "unreleased",
     "priority": "P2",
     "milestone": "none",
     "editions": [
