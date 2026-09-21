@@ -280,11 +280,12 @@ export interface DisplayedState {
     /**
      * Free margin the account had when the add was previewed — FEAT-0334.
      *
-     * Compared against `addQuantity × price / leverage`. Absent means the
-     * balance had not loaded, and the check is skipped rather than guessed:
-     * refusing every add on an account whose balance is still in flight would
-     * be a broken control, and the venue remains the authority on what it will
-     * fund. This catches the case where the answer is already plainly no.
+     * Compared against `addQuantity × price / leverage`. Absent on an `open`
+     * means the check is skipped rather than guessed: the open keeps its
+     * risk-derived size check. Absent on an `add` refuses (BUG-0511): margin
+     * is the only ceiling an add has, so skipping leaves the order with no
+     * ceiling at all. Paper accounts hydrate the same channel from the
+     * simulated balance, so no paper exemption is needed.
      */
     availableMargin?: Decimal;
     positionId?: string;
@@ -1263,13 +1264,28 @@ class OrderGate {
      *
      * Every input absent means the check is skipped rather than guessed, and
      * `checked` records which ones were actually compared, so the audit shows
-     * a decision rather than an omission.
+     * a decision rather than an omission — with one exception (BUG-0511): an
+     * add with no balance to measure against is refused, not skipped. An add
+     * is the one intent whose only ceiling is available margin; skipping the
+     * check leaves it with no ceiling at all, while an open keeps its
+     * risk-derived size check.
      */
     private checkMargin(intent: OrderIntent, checked: string[]): OrderRefusal | null {
         const { payload, displayed } = intent;
 
         const available = displayed.availableMargin;
-        if (available === undefined) return null;
+        if (available === undefined) {
+            if (intent.kind === "add") {
+                checked.push("availableMargin");
+                return {
+                    field: "availableMargin",
+                    reason: "missing",
+                    messageKey: "orderGate.availableMarginUnmeasured",
+                    values: { field: "availableMargin" },
+                };
+            }
+            return null;
+        }
 
         const qty = toDecimal(payload.qty);
         if (qty === null) return null;
