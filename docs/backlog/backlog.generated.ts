@@ -3066,6 +3066,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0488-bot-order-submission-guard.md"
   },
   {
+    "id": "FEAT-0526",
+    "title": "Explain the kill switch in Settings and make its behaviour configurable",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md"
+  },
+  {
     "id": "BUG-0005",
     "title": "GPU-accelerated Choppiness writes to a field nothing reads",
     "type": "bug",
@@ -6898,6 +6916,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "L",
     "estimate": "8",
     "file": "features/FEAT-0480-persistent-chart-drawings.md"
+  },
+  {
+    "id": "FEAT-0525",
+    "title": "Store the complete Bitget API reference locally, mirroring the Bitunix coverage",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0525-bitget-api-reference-stored-locally.md"
   },
   {
     "id": "BUG-0007",
