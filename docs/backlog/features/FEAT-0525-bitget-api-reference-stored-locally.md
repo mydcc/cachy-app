@@ -50,8 +50,10 @@ Bitget supports it natively or Cachy emulates it client-side.
 
 ## Open questions
 
-- Where the reference lives (alongside the Bitunix coverage, wherever that is)
-  — the implementing agent picks the spot and links it here.
+- Where the reference lives: alongside the Bitunix coverage in `docs/bitunix-api/`
+  (`00_common.md` through `10_change_log.md`, plus `README.md`,
+  `QUICK_REFERENCE.md`, `INTEGRATION_STATUS.md`) — the implementing agent
+  picks the exact spot (e.g. `docs/bitget-api/`) and links it here.
 
 ## Links
 
