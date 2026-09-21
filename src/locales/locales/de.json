@@ -4179,7 +4179,7 @@
     "unrealizedPnl": "Unrealisierter PnL",
     "pnlToggleHint": "Unrealisierter PnL dieser Position. Klicken zum Wechseln zwischen Betrag, Prozent (ROI) und Balkenansicht.",
     "stalePriceBadge": "Alt",
-    "stalePriceHint": "Mit verzögertem Preis berechnet, nicht mit live Mark. Die Zahl ist der letzte bekannte Wert, nicht der Markt.",
+    "stalePriceHint": "Mit verzögertem Preis berechnet, nicht mit live Mark. Stale Legs zeigen den letzten bekannten Wert; Legs ganz ohne Preis sind im Total ausgeschlossen.",
     "tierMmr": "Maint.-Margin-Rate (Stufe)",
     "nextTierAt": "Nächste Stufe ab",
     "tpslActive": "TP/SL",

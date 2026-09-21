@@ -25,7 +25,12 @@
 
 import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
-import { resolvePricedMark, MAX_MARK_PRICE_AGE_MS, type PriceInputs } from "./priceResolution";
+import {
+  resolvePricedMark,
+  totalPricedUnrealizedPnl,
+  MAX_MARK_PRICE_AGE_MS,
+  type PriceInputs,
+} from "./priceResolution";
 
 const NOW = 1_700_000_000_000;
 
@@ -162,5 +167,35 @@ describe("resolvePricedMark", () => {
 
     expect(result.price).toBe(last);
     expect(result.stale).toBe(true);
+  });
+});
+
+describe("totalPricedUnrealizedPnl", () => {
+  it("sums priced legs including stale-priced ones", () => {
+    const total = totalPricedUnrealizedPnl([
+      { unrealizedPnl: new Decimal("100") },
+      { unrealizedPnl: new Decimal("-40") },
+    ]);
+
+    expect(total.eq(new Decimal("60"))).toBe(true);
+  });
+
+  it("excludes unpriced legs instead of absorbing their snapshot", () => {
+    // The row shows "–" for the unpriced leg; the total must not contain
+    // the 999 snapshot hiding in its unrealizedPnl.
+    const total = totalPricedUnrealizedPnl([
+      { unrealizedPnl: new Decimal("100") },
+      { unrealizedPnl: new Decimal("999"), unpriced: true },
+    ]);
+
+    expect(total.eq(new Decimal("100"))).toBe(true);
+  });
+
+  it("is zero when every leg is unpriced", () => {
+    const total = totalPricedUnrealizedPnl([
+      { unrealizedPnl: new Decimal("999"), unpriced: true },
+    ]);
+
+    expect(total.isZero()).toBe(true);
   });
 });

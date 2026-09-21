@@ -49,7 +49,7 @@
   } from "../../utils/exchange/venueQueries";
   import type { OMSPosition } from "../../services/omsTypes";
   import { calculateLiveUnrealizedPnl } from "../../services/mappers";
-  import { resolvePricedMark } from "../../services/priceResolution";
+  import { resolvePricedMark, totalPricedUnrealizedPnl } from "../../services/priceResolution";
   import type { NormalizedOrder, NormalizedPosition } from "../../types/exchange";
   import type { TranslationKey } from "../../locales/schema";
 
@@ -271,14 +271,17 @@
   // Sum of the live-recomputed per-position PnL above, NOT
   // accountState.totalUnrealizedPnl — that getter sums the stale
   // account-channel unrealizedPnl directly, so the account summary's
-  // "Total PnL" would go stale between order events too.
-  let totalUnrealizedPnl = $derived(
-    mappedPositions.reduce((sum, p) => sum.plus(p.unrealizedPnl), new Decimal(0)),
-  );
+  // "Total PnL" would go stale between order events too. Unpriced legs are
+  // excluded by the helper: the row refuses to price them ("–"), so the
+  // total must not quietly absorb the exchange snapshot for a leg the row
+  // shows no number for. Stale-priced legs stay included — they carry the
+  // STALE badge, and the total badge below discloses the mix.
+  let totalUnrealizedPnl = $derived(totalPricedUnrealizedPnl(mappedPositions));
 
-  // BUG-0512: the total mixes priced, stale-priced and unpriced legs — a
-  // bare sum would look exact while hiding unknowns. Badge it whenever any
-  // leg is not freshly priced; the badge (not silence) carries that fact.
+  // BUG-0512: the total mixes priced and stale-priced legs, and excludes
+  // unpriced ones — a bare sum would look exact while hiding unknowns.
+  // Badge it whenever any leg is not freshly priced; the badge (not
+  // silence) carries that fact, and its hint names the exclusion.
   let totalPnlStale = $derived(mappedPositions.some((p) => p.priceStale || p.unpriced));
 
   // Subscribe to live price updates for every symbol with an open position —

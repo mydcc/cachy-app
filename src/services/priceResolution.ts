@@ -107,3 +107,21 @@ export function resolvePricedMark(
   }
   return { price: undefined, stale: false };
 }
+
+/**
+ * Total unrealized PnL over the legs a total may honestly contain.
+ *
+ * A leg the row refuses to price (`unpriced` — stale display off, nothing
+ * fresh) contributes nothing: its `unrealizedPnl` still carries the exchange
+ * snapshot for type-shape reasons, and summing it would put a number the row
+ * shows as "–" into the total. Stale-priced legs stay included — they render
+ * a labelled number, and the total badge discloses the mix.
+ */
+export function totalPricedUnrealizedPnl(
+  legs: Array<{ unrealizedPnl: Decimal; unpriced?: boolean }>,
+): Decimal {
+  return legs.reduce(
+    (sum, leg) => (leg.unpriced ? sum : sum.plus(leg.unrealizedPnl)),
+    new Decimal(0),
+  );
+}
