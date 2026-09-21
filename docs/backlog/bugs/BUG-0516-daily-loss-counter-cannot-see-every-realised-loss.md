@@ -2,7 +2,9 @@
 id: BUG-0516
 title: The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/paket-d-limits-close
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -129,3 +131,21 @@ and should not be merged.
   limit.
 - Journal statistics display (win rate, R multiples). This item only concerns
   the entries the risk counter reads.
+
+## Verification note (already fixed — no code changed in Paket D)
+
+Implemented by BUG-0499/BUG-0523 plus the journal hardening around them;
+verified green on `fix/paket-d-limits-close` without touching code:
+
+- Status union: `JournalStatus` (`src/lib/journalStatus.ts:27`), re-exported
+  through `src/stores/types.ts`; `CLOSED_JOURNAL_STATUSES` shared with the
+  gate; unknown wordings coerce to `"Closed"` on load/import and trip the
+  `unknown-status` completeness cause at the gate.
+- Close-time field: `exitDate` documented as the close day
+  (`src/stores/types.ts`); writers stamp it on open→closed transitions
+  (`src/stores/journal.svelte.ts`, pinned by `journal_persistence.test.ts`).
+- No silent open-day attribution: a closed entry without `exitDate` marks the
+  day `no-exit-date` incomplete instead of counting under the open day.
+- Covering tests in `src/services/rmsService_riskLimits.test.ts`: unknown
+  status refused, no-exitDate refused, overnight close attributed to
+  `exitDate`.
