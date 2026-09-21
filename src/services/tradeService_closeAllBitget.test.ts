@@ -153,6 +153,8 @@ describe("BUG-0514 — closeAllPositions on Bitget", () => {
             expect.objectContaining({ cachyPath: "/api/positions" }),
         );
         expect(accountState.hydratePositions).toHaveBeenCalled();
+        // … was mirrored into the OMS the closes resolve through …
+        expect(vi.mocked(omsService.updatePosition)).toHaveBeenCalledTimes(2);
         // … and both positions were attempted, including the uncached one.
         expect(closeSpy).toHaveBeenCalledTimes(2);
         expect(closeSpy).toHaveBeenCalledWith(

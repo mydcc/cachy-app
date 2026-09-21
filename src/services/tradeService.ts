@@ -51,7 +51,7 @@ import { paperState } from "../stores/paperTrading.svelte";
 import { paperAccountFeed } from "./paperAccountFeed";
 import { paperExchange } from "./paperExchange";
 import { capabilitiesOf } from "./exchangeCapabilities";
-import { unwrapApiEnvelope, formatApiNum } from "../utils/utils";
+import { unwrapApiEnvelope, formatApiNum, parseDecimal } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
@@ -1977,26 +1977,28 @@ class TradeService {
     }
 
     /**
-     * Exchange-fresh position list for the close-all fallback (BUG-0514).
+     * Exchange-fresh position list for the close-all paths (BUG-0514).
      *
-     * Reads the same provider-agnostic `/api/positions` route the positions
-     * panel reads and hydrates the result into the store, so the caller sees
-     * what the exchange sees — not what the cache happens to hold. A position
-     * opened in the venue's own UI, missed during a WebSocket outage, or never
-     * snapshotted is invisible in the cache and would otherwise survive the
-     * flatten while the call reports success.
+     * Reads the provider-agnostic `/api/positions` route — the same read the
+     * positions panel uses — and hydrates the result into the store, so the
+     * caller sees what the exchange sees. A position opened in the venue's
+     * own UI, missed during a WebSocket outage, or never snapshotted is
+     * invisible in the cache and would otherwise survive the flatten while
+     * the call reports success.
      *
-     * No-ops in paper mode (the simulated book owns the truth there) and when
-     * no keys are available to sign with (the closes below then refuse loudly
-     * instead). A failed read throws `FETCH_FAILED` rather than returning a
-     * possibly partial list: flattening blind and reporting success is the
-     * defect this exists to prevent. The caller maps it to a close-all
-     * failure for the scope — nothing was attempted, and the toast says so.
+     * Returns null when no read is possible (no keys to sign with) — the
+     * caller then proceeds on the cache and reports unverified. Throws
+     * `FETCH_FAILED` on a failed read rather than returning a possibly
+     * partial list: flattening blind and reporting success is the defect
+     * this exists to prevent. In paper mode returns the simulated book: the
+     * OMS mirror only catches up on the next price tick, so it cannot
+     * verify a flatten that just ran.
      */
-    private async refreshPositionsFromApi(provider: Venue): Promise<void> {
-        if (paperAccountFeed()) return;
+    private async readFreshPositions(provider: Venue): Promise<NormalizedPosition[] | null> {
+        const paper = paperAccountFeed();
+        if (paper) return paper.positions();
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-        if (!keys?.key || !keys?.secret) return;
+        if (!keys?.key || !keys?.secret) return null;
         const response = await exchangeSignedFetch({
             cachyPath: "/api/positions",
             keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
@@ -2010,6 +2012,97 @@ class TradeService {
         const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
         if (data === null || !data.positions) throw new Error(TRADE_ERRORS.FETCH_FAILED);
         accountState.hydratePositions(data.positions);
+        if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
+        return data.positions;
+    }
+
+    /**
+     * Mirrors an exchange-fresh list into the OMS (non-Bitunix venues only).
+     *
+     * Without this the closes below cannot run where nothing else feeds the
+     * OMS: on live Bitget neither its WS channel nor its REST refresh writes
+     * there, so `closePosition` — which resolves amounts through
+     * `ensurePositionFreshness` — would throw `POSITION_NOT_FOUND` for every
+     * leg (single closes through the same path are affected; tracked
+     * separately, not fixed here). Bitunix is excluded on purpose: its OMS
+     * feed is live over WS with real positionIds, and a mirror must never
+     * overwrite those — its close requires the venue's own id
+     * unconditionally (BUG-0062/BUG-0063). The mirror carries no id at all,
+     * so `updatePosition` merges rather than replaces, and the venue body
+     * for these venues needs none (symbol, side, amount).
+     *
+     * Add/update only, mirroring the paper simulator's lead: entries the
+     * exchange no longer lists are simply never enumerated, and the
+     * post-flatten read below is what proves them gone.
+     */
+    private mirrorPositionsToOms(list: NormalizedPosition[]): void {
+        for (const p of list) {
+            const side = p.side.toLowerCase() === "short" ? "short" : "long";
+            omsService.updatePosition({
+                symbol: p.symbol,
+                side,
+                amount: parseDecimal(p.size),
+                entryPrice: parseDecimal(p.entryPrice),
+                unrealizedPnl: parseDecimal(p.unrealizedPnL),
+                leverage: parseDecimal(p.leverage),
+                marginMode: (p.marginMode || "").toLowerCase().startsWith("isolat")
+                    ? "isolated"
+                    : "cross",
+                liquidationPrice: parseDecimal(p.liquidationPrice),
+                margin: parseDecimal(p.margin),
+                markPrice: parseDecimal(p.markPrice),
+                lastUpdated: Date.now(),
+            });
+        }
+    }
+
+    /**
+     * Post-flatten verification shared by both close-all paths: success is
+     * not reported while a position on the account remains open. A position
+     * that appeared mid-flatten was never in the work list and produces no
+     * rejection, so per-leg results cannot prove flat — only a fresh read
+     * can. Never throws: a read that itself fails is reported as unverified
+     * rather than as success.
+     */
+    private async verifyFlat(
+        provider: Venue,
+        symbol?: string,
+    ): Promise<{ leftover: string[]; unverified: boolean }> {
+        try {
+            const after = await this.readFreshPositions(provider);
+            if (after === null) return { leftover: [], unverified: true };
+            const inScope = symbol ? after.filter((p) => p.symbol === symbol) : after;
+            return { leftover: [...new Set(inScope.map((p) => p.symbol))], unverified: false };
+        } catch (e) {
+            logger.error("market", "[CloseAll] Post-flatten verification read failed", e);
+            return { leftover: [], unverified: true };
+        }
+    }
+
+    /**
+     * Reports a flatten that stopped short and throws. Failed attempts and
+     * still-open leftovers are named; an unconfirmable run says exactly
+     * that. Exactly one toast per run — the outer catch rethrows an already
+     * reported `CLOSE_ALL_FAILED` untouched.
+     */
+    private reportFlattenShortfall(args: {
+        failedCount: number;
+        failedSymbols: string[];
+        leftover: string[];
+        unverified: boolean;
+        symbol?: string;
+    }): never {
+        const { failedCount, failedSymbols, leftover, unverified, symbol } = args;
+        const names = [...new Set([...failedSymbols, ...leftover])];
+        if (unverified && failedCount === 0 && leftover.length === 0) {
+            logger.error("market", "[CloseAll] Closes sent but flat could not be confirmed");
+            toastService.error(get(_)("trade.closeAllUnverified" as import("../locales/schema").TranslationKey, { values: { scope: symbol || "all" } }));
+        } else {
+            const joined = names.join(", ");
+            logger.error("market", `[CloseAll] Failed to close ${failedCount} positions, ${leftover.length} still open: ${joined}`);
+            toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols: joined || symbol || "all" } }));
+        }
+        throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
     }
 
     public async closeAllPositions(symbol?: string) {
@@ -2017,7 +2110,7 @@ class TradeService {
         try {
             const provider = settingsState.apiProvider || "bitunix";
             if (provider === "bitunix") {
-                return await this.gatedRequest({
+                const result = await this.gatedRequest({
                     kind: "bulk",
                     endpoint: "/api/orders",
                     payload: {
@@ -2026,6 +2119,21 @@ class TradeService {
                     },
                     displayed: symbol ? { symbol } : {},
                 });
+                // The venue enumerates, so the work list cannot be stale —
+                // but a mid-flatten race (opened during the run) and a
+                // partial fill apply to this path too. Same guarantee as the
+                // fallback: no success reported while anything remains open.
+                const { leftover, unverified } = await this.verifyFlat(provider, symbol);
+                if (leftover.length > 0 || unverified) {
+                    this.reportFlattenShortfall({
+                        failedCount: 0,
+                        failedSymbols: [],
+                        leftover,
+                        unverified,
+                        symbol,
+                    });
+                }
+                return result;
             }
 
             /*
@@ -2040,13 +2148,24 @@ class TradeService {
              * reference; until then the loop below over an exchange-fresh
              * list is the complete path, not a placeholder.
              */
-            await this.refreshPositionsFromApi(provider);
-            const positions = omsService.getPositions();
-            const toClose = symbol ? positions.filter(p => p.symbol === symbol) : positions;
-            const promises = toClose.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side.toLowerCase() === "short" ? "short" : "long", forceFullClose: true }));
+            // A failed read throws FETCH_FAILED: flattening blind and
+            // reporting success is the defect. No keys means no read is
+            // possible — proceed on the cache best-effort (the closes then
+            // refuse at signing) and let verification report unverified.
+            const fresh = await this.readFreshPositions(provider);
+            const toClose = (fresh ?? omsService.getPositions())
+                .filter((p) => !symbol || p.symbol === symbol)
+                .map((p) => ({
+                    symbol: p.symbol,
+                    positionSide: (p.side.toLowerCase() === "short" ? "short" : "long") as
+                        "long" | "short",
+                }));
+            const promises = toClose.map((p) =>
+                this.closePosition({ symbol: p.symbol, positionSide: p.positionSide, forceFullClose: true }),
+            );
             const results = await Promise.allSettled(promises);
 
-            const failures = results.filter(r => r.status === "rejected");
+            const failures = results.filter((r) => r.status === "rejected");
             const failedSymbols = [
                 ...new Set(
                     results
@@ -2055,51 +2174,15 @@ class TradeService {
                 ),
             ];
 
-            /*
-             * Post-flatten verification: success is not reported while a
-             * position on the account remains open. A position that appeared
-             * mid-flatten was never in `toClose` and produces no rejection,
-             * so the loop's own results cannot prove flat — only a fresh read
-             * can. A read that itself fails is reported as unverified rather
-             * than as success.
-             *
-             * In paper mode the simulated book is the account: the OMS mirror
-             * only catches up on the next price tick, so verifying against it
-             * would report positions the simulator already closed.
-             */
-            let leftover: string[] = [];
-            let unverified = false;
-            try {
-                if (paperAccountFeed()) {
-                    const book = paperAccountFeed()?.positions() ?? [];
-                    leftover = (symbol ? book.filter((p) => p.symbol === symbol) : book).map(
-                        (p) => p.symbol,
-                    );
-                } else {
-                    await this.refreshPositionsFromApi(provider);
-                    const open = omsService.getPositions();
-                    leftover = (symbol ? open.filter((p) => p.symbol === symbol) : open).map(
-                        (p) => p.symbol,
-                    );
-                }
-            } catch (e) {
-                logger.error("market", "[CloseAll] Post-flatten verification read failed", e);
-                unverified = true;
-            }
-            for (const name of leftover) {
-                if (!failedSymbols.includes(name)) failedSymbols.push(name);
-            }
-
+            const { leftover, unverified } = await this.verifyFlat(provider, symbol);
             if (failures.length > 0 || leftover.length > 0 || unverified) {
-                if (unverified && failures.length === 0 && leftover.length === 0) {
-                    logger.error("market", "[CloseAll] Closes sent but flat could not be confirmed");
-                    toastService.error(get(_)("trade.closeAllUnverified" as import("../locales/schema").TranslationKey, { values: { scope: symbol || "all" } }));
-                } else {
-                    const names = failedSymbols.join(", ");
-                    logger.error("market", `[CloseAll] Failed to close ${failures.length} positions, ${leftover.length} still open: ${names}`);
-                    toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols: names || symbol || "all" } }));
-                }
-                throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
+                this.reportFlattenShortfall({
+                    failedCount: failures.length,
+                    failedSymbols,
+                    leftover,
+                    unverified,
+                    symbol,
+                });
             }
 
             return results;

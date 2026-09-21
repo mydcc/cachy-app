@@ -2126,6 +2126,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md"
   },
   {
+    "id": "BUG-0527",
+    "title": "Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",

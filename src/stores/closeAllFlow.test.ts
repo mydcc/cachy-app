@@ -151,10 +151,33 @@ describe("closeAllFlow", () => {
         closeAllMock.mockRejectedValue(new Error("trade.closeAllFailed"));
 
         expect(await confirmAndCloseAllPositions()).toBeNull();
-        // The service owns failure reporting — the flow stays quiet.
+        // The service owns failure reporting — the flow stays quiet …
         expect(toastMock.showToast).not.toHaveBeenCalledWith(
             expect.anything(),
             "success",
         );
+        // … but reconciles TP/SL hygiene: legs that did close before the
+        // failure must not keep cached stops.
+        expect(invalidateMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("prices notional off entry when the mark is the zero default", async () => {
+        positionsMock.list = [
+            {
+                symbol: "BTCUSDT",
+                side: "long",
+                size: new Decimal(2),
+                entryPrice: new Decimal(50000),
+                markPrice: new Decimal(0),
+            },
+        ] as never[];
+        showMock.mockResolvedValue(true);
+        closeAllMock.mockResolvedValue({});
+
+        await confirmAndCloseAllPositions();
+
+        const [, message] = showMock.mock.calls[0];
+        // 2 × 50000 entry, not 2 × 0 mark.
+        expect(message).toContain("100000");
     });
 });
