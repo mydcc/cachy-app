@@ -2,7 +2,8 @@
 id: BUG-0510
 title: Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier
 type: bug
-status: specced
+status: done
+branch: fix/gate-kern-paket-c
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +11,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: [BUG-0502, BUG-0292]
+assignee: opencode
 ---
 
 # BUG-0510 — The add moves both sides of the risk equation and reports neither
@@ -135,3 +137,14 @@ refuses to commit with the liquidation price.
   else's stop is a decision, not a calculation.
 - `maxPositionSizeUsdt` on adds — BUG-0508, which needs no stop and should not
   wait for this item's dependencies.
+
+## Attribution note (review on PR #3551)
+
+The resting-stop lookup is scoped by position id over `ordersFor` (BUG-0524),
+not first-pick by side: in hedge mode the first LOSS leg is an arbitrary
+side's stop. A leg carrying another position's id is excluded, and a leg
+carrying no id when the position is known is unattributable — for risk
+measurement that is `unmeasurable`, not unprotected. Consequence: on venues
+whose rows carry no position id, adds refuse closed whenever a
+loss-per-trade limit is configured. That is the intended fail-closed
+posture, not a regression to tune away.

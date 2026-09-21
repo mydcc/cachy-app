@@ -139,7 +139,7 @@
   );
 
   const meta = $derived(
-    data?.symbol ? marketState.symbolMeta[normalizeSymbol(data.symbol, "bitunix")] : undefined,
+    data?.symbol ? marketState.symbolMeta[normalizeSymbol(data.symbol, exchange || "bitunix")] : undefined,
   );
 
   const hasMeta = $derived(

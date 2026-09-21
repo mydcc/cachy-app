@@ -100,6 +100,15 @@ export interface AddToPositionPreview {
     /** Average entry afterwards. The number this whole feature exists for. */
     resultingEntryPrice: Decimal;
     /**
+     * What the resulting position loses if the resting stop fills:
+     * `|resultingEntry − stop| × resultingAmount` — BUG-0510.
+     *
+     * Null when no stop is known — never a zero that reads as "no risk".
+     * Unlike the liquidation price this depends on no venue margin model:
+     * every term is a fact this module already holds or just computed.
+     */
+    riskUnderStop: Decimal | null;
+    /**
      * How far the average entry moves, signed in price terms
      * (`resulting − current`). Positive means the entry rises.
      */
@@ -188,11 +197,16 @@ export function percentFromAddQuantity(
  * add, a non-finite or non-positive price, or a total size of zero. `null`
  * rather than a zero-filled preview, because a preview of zeros is a number a
  * trader can read as an answer.
+ *
+ * `stopPrice` is the position's resting stop when known. The preview reports
+ * what the resulting position loses if it fills; null stop means null risk,
+ * never zero (BUG-0510).
  */
 export function previewAdd(
     ctx: AddToPositionContext,
     addQuantity: Decimal,
     fillPrice: Decimal,
+    stopPrice?: Decimal | null,
 ): AddToPositionPreview | null {
     if (!addQuantity.isFinite() || addQuantity.lte(0)) return null;
     if (!fillPrice.isFinite() || fillPrice.lte(0)) return null;
@@ -217,7 +231,29 @@ export function previewAdd(
         resultingEntryPrice,
         entryShift,
         worsensEntry,
+        riskUnderStop: riskUnderStop(resultingEntryPrice, resultingAmount, stopPrice),
     };
+}
+
+/**
+ * What a position loses if its stop fills: `|entry − stop| × amount`.
+ *
+ * Exact inputs, exact answer — no venue margin model involved, which is why
+ * this lives beside the preview while the liquidation price does not.
+ * Null stop means null risk, never zero: zero would read as "no risk" on a
+ * position whose protection is merely unknown.
+ */
+export function riskUnderStop(
+    resultingEntryPrice: Decimal,
+    resultingAmount: Decimal,
+    stopPrice?: Decimal | null,
+): Decimal | null {
+    if (stopPrice === null || stopPrice === undefined) return null;
+    if (!stopPrice.isFinite() || stopPrice.lte(0)) return null;
+    if (!resultingEntryPrice.isFinite() || !resultingAmount.isFinite() || resultingAmount.lte(0)) {
+        return null;
+    }
+    return resultingEntryPrice.minus(stopPrice).abs().times(resultingAmount);
 }
 
 /**

@@ -23,6 +23,7 @@ import {
   BitunixTradingPairResponseSchema,
   BitunixPositionTierResponseSchema,
   BitunixLeverageMarginModeSchema,
+  BitgetContractsResponseSchema,
 } from './apiSchemas';
 
 // Regression (BUG-0062): PositionRawSchema didn't declare positionId/
@@ -62,6 +63,35 @@ describe('BitunixTradingPairResponseSchema', () => {
     expect(typeof result.data?.[0].maxLeverage).toBe('number');
     expect(result.data?.[0].isApiSupported).toBe(true);
     expect(result.data?.[0].minTradeVolume?.toString()).toBe('0.0001');
+  });
+});
+
+// BUG-0501 — V2 mix contracts carry the same guards in a different shape:
+// stringified numerics, min/max leverage as minLever/maxLever, and no
+// _UMCBL suffix on the symbol.
+describe('BitgetContractsResponseSchema', () => {
+  it('parses a real V2 contracts response', () => {
+    const result = BitgetContractsResponseSchema.parse({
+      code: '00000',
+      msg: 'success',
+      data: [{
+        symbol: 'BTCUSDT', baseCoin: 'BTC', quoteCoin: 'USDT',
+        minTradeNum: '0.0001', volumePlace: '4', pricePlace: '1',
+        maxOrderQty: '1200', maxMarketOrderQty: '220',
+        minLever: '1', maxLever: '150', symbolStatus: 'normal',
+      }],
+    });
+    expect(result.data?.[0].symbol).toBe('BTCUSDT');
+    expect(result.data?.[0].maxLever).toBe('150');
+    expect(result.data?.[0].symbolStatus).toBe('normal');
+  });
+
+  it('rejects a row without a symbol', () => {
+    const result = BitgetContractsResponseSchema.safeParse({
+      code: '00000',
+      data: [{ volumePlace: '4' }],
+    });
+    expect(result.success).toBe(false);
   });
 });
 

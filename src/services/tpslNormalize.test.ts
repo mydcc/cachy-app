@@ -28,7 +28,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { normalizeTpSlRow, normalizeTpSlRows, stripLegSuffix } from "./tpslNormalize";
+import { normalizeTpSlRow, normalizeTpSlRows, stripLegSuffix, planSideMatchesEntry } from "./tpslNormalize";
 
 /** Verbatim from `06_tp_sl.md` §Get Pending TP/SL Order → Response Example. */
 const DOCUMENTED_ROW = {
@@ -267,5 +267,23 @@ describe("stripLegSuffix", () => {
         // truncated into a different, wrong id.
         expect(stripLegSuffix("abc-tp", "tp")).toBe("abc-tp");
         expect(stripLegSuffix("ORDER123-tp", "tp")).toBe("ORDER123-tp");
+    });
+});
+
+// Review on PR #3551 — one shared side rule for the placement confirmation
+// and the resting-stop read, so the two cannot drift.
+describe("planSideMatchesEntry", () => {
+    it("matches the entry side on known vocabulary", () => {
+        expect(planSideMatchesEntry("BUY", "BUY")).toBe(true);
+        expect(planSideMatchesEntry("SELL", "BUY")).toBe(false);
+        expect(planSideMatchesEntry("LONG", "BUY")).toBe(true);
+        expect(planSideMatchesEntry("SHORT", "BUY")).toBe(false);
+        expect(planSideMatchesEntry("SHORT", "SELL")).toBe(true);
+    });
+
+    it("passes unknown vocabulary rather than excluding", () => {
+        expect(planSideMatchesEntry("STOP", "BUY")).toBe(true);
+        expect(planSideMatchesEntry(undefined, "BUY")).toBe(true);
+        expect(planSideMatchesEntry(null, "SELL")).toBe(true);
     });
 });

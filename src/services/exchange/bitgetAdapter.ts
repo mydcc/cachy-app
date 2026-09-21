@@ -140,7 +140,9 @@ const marketData: MarketDataPort = {
 const SUPPORTS: TradingSupport = {
     tpSl: false,
     leverageMarginMode: false,
-    tradingPairInfo: false,
+    // BUG-0501: wired end-to-end — V2 mix contracts through the proxy,
+    // normalised into TradingPairInfo (tradeService.fetchBitgetInstrumentInfo).
+    tradingPairInfo: true,
     // Bitget has these endpoints; Cachy has no verified request format for
     // them (FEAT-0068 keeps them out of scope until the M2 adapter shape
     // exists). Declared false so the write is refused here rather than being
@@ -165,11 +167,11 @@ const account: AccountPort = {
     fetchFundingRateHistory: (): Promise<FundingRateHistoryItem[]> => Promise.resolve([]),
 
     // Reads, so they resolve rather than throw — but they resolve *here*.
-    // Both used to travel: `fetchLeverageMarginMode` to be dropped by
-    // tradeService's own provider check, `fetchTradingPairInfo` to hit a
-    // Bitunix-only route and fail its schema. Neither ever wrote anything on
-    // Bitget, so nothing observable changes; what goes is the pointless
-    // request.
+    // `fetchLeverageMarginMode` used to travel only to be dropped by
+    // tradeService's own provider check; it never wrote anything on Bitget,
+    // so nothing observable changes; what goes is the pointless request.
+    // `fetchTradingPairInfo` dispatches on the venue inside tradeService
+    // (BUG-0501: V2 mix contracts, normalised to TradingPairInfo).
     fetchLeverageMarginMode: async (symbol) =>
         SUPPORTS.leverageMarginMode
             ? tradeService.fetchLeverageMarginMode(symbol)

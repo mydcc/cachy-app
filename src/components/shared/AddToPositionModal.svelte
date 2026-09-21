@@ -44,6 +44,10 @@
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
   import { marketState } from "../../stores/market.svelte";
+  import { tpSlState } from "../../stores/tpsl.svelte";
+  import { tradeState } from "../../stores/trade.svelte";
+  import { settingsState } from "../../stores/settings.svelte";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import ModalFrame from "./ModalFrame.svelte";
   import AddToPositionInput from "./AddToPositionInput.svelte";
   import {
@@ -65,7 +69,10 @@
 
   /** Quantity step from the instrument's base precision; 0 disables rounding. */
   const stepSize = $derived.by(() => {
-    const precision = position ? marketState.symbolMeta[position.symbol]?.basePrecision : undefined;
+    if (!position) return new Decimal(0);
+    // Venue-normalized key (BUG-0501).
+    const venue = settingsState.apiProvider || "bitunix";
+    const precision = marketState.symbolMeta[normalizeSymbol(position.symbol, venue)]?.basePrecision;
     if (precision === undefined || precision === null) return new Decimal(0);
     return new Decimal(10).pow(-precision);
   });
@@ -100,6 +107,30 @@
       side: position.side === "long" ? "LONG" : "SHORT",
       stepSize,
     };
+  });
+
+  /*
+   * The resting stop when one is safely attributable — the figure the risk
+   * preview and the gate both measure against (BUG-0510). Warmed here so
+   * the dialog never reports "no stop" from a cold cache: the fetch is
+   * deduped and never throws, so a failing endpoint still renders.
+   */
+  $effect(() => {
+    void tpSlState.ensureFresh();
+  });
+
+  const stopPrice = $derived(
+    position ? tpSlState.restingStopPrice(position.symbol, position.side, position.positionId) : null,
+  );
+
+  /** Account equity for the risk share; null when not loaded. */
+  const accountSize = $derived.by(() => {
+    try {
+      const v = new Decimal(tradeState.accountSize);
+      return v.isFinite() && v.gt(0) ? v : null;
+    } catch {
+      return null;
+    }
   });
 
   /** The share of the position the dialog opens on. Also a slider mark. */
@@ -183,6 +214,8 @@
         {ctx}
         {quantity}
         fillPrice={markPrice}
+        {stopPrice}
+        {accountSize}
         disabled={loading}
         onChange={(next) => (quantity = next)}
       />

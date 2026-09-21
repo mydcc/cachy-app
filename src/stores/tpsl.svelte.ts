@@ -42,8 +42,10 @@
  * for it and caching it would buy nothing.
  */
 
+import { Decimal } from "decimal.js";
 import { activeExchange, type TpSlOrder } from "../services/exchange";
 import { logger } from "../services/logger";
+import { planSideMatchesEntry } from "../services/tpslNormalize";
 
 /**
  * How long a fetched set is treated as current. Plans change when the user
@@ -144,6 +146,43 @@ class TpSlManager {
      */
     public ordersFor(symbol: string): TpSlOrder[] {
         return this._orders.filter((o) => o.symbol === symbol);
+    }
+
+    /**
+     * The resting stop trigger for a position, or null when none is safely
+     * attributable — BUG-0510.
+     *
+     * Scoped by position over the whole list, not first-pick by side
+     * (BUG-0524): in hedge mode both sides hold stops and the first LOSS
+     * leg is an arbitrary one. A leg carrying another position's id is out;
+     * a leg carrying no id when the position is known cannot be attributed
+     * and is out too — for risk measurement unknown means unmeasurable,
+     * not unprotected. The side rule stays as the second gate
+     * (`planSideMatchesEntry`, shared with the placement confirmation):
+     * production plans carry no side and pass it, a contradicting side
+     * excludes. Null, never zero: zero would read as "no risk".
+     */
+    public restingStopPrice(
+        symbol: string,
+        side: "long" | "short",
+        positionId?: string | null,
+    ): Decimal | null {
+        const entrySide = side === "short" ? "SELL" : "BUY";
+        const losses = this.ordersFor(symbol).filter((o) => planTypeOf(o) === "LOSS");
+        const scoped = positionId
+            ? losses.filter((o) => o.positionId === positionId)
+            : losses;
+        for (const loss of scoped) {
+            if (!planSideMatchesEntry(loss.side, entrySide)) continue;
+            try {
+                const price = new Decimal(loss.triggerPrice);
+                if (!price.isFinite() || price.lte(0)) continue;
+                return price;
+            } catch {
+                continue;
+            }
+        }
+        return null;
     }
 
     /**

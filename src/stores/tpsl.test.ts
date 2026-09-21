@@ -185,6 +185,71 @@ describe("tpSlState — plansFor", () => {
     });
 });
 
+describe("tpSlState — restingStopPrice (BUG-0510, scoped BUG-0524)", () => {
+    beforeEach(async () => {
+        fetchTpSl.mockResolvedValue([
+            { ...plan("BTCUSDT", "LOSS", "45000"), side: "BUY", positionId: "pos-1" },
+            { ...plan("ETHUSDT", "LOSS", "2800"), side: "SELL", positionId: "pos-9" },
+        ]);
+        await tpSlState.ensureFresh();
+    });
+
+    it("returns the loss trigger of the matching position as a Decimal", () => {
+        expect(tpSlState.restingStopPrice("BTCUSDT", "long", "pos-1")?.toString()).toBe("45000");
+    });
+
+    it("excludes a stop carrying another position's id", () => {
+        expect(tpSlState.restingStopPrice("BTCUSDT", "long", "pos-2")).toBeNull();
+    });
+
+    it("cannot attribute an id-less leg to a known position", () => {
+        // The venue did not say which position this stop protects — for
+        // risk measurement that is unmeasurable, not unprotected.
+        tpSlState.updateFromWs({ orderId: "9", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")).toBeNull();
+    });
+
+    it("attributes an id-less leg when the position is unknown (display fallback)", () => {
+        tpSlState.updateFromWs({ orderId: "9", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long")?.toString()).toBe("85");
+    });
+
+    it("picks the position's own stop in hedge mode, not the first leg", async () => {
+        fetchTpSl.mockResolvedValue([
+            { ...plan("BTCUSDT", "LOSS", "44000"), positionId: "pos-short" },
+            { ...plan("BTCUSDT", "LOSS", "45000"), positionId: "pos-1" },
+        ]);
+        tpSlState.invalidate();
+        await tpSlState.ensureFresh();
+
+        expect(tpSlState.restingStopPrice("BTCUSDT", "long", "pos-1")?.toString()).toBe("45000");
+        expect(tpSlState.restingStopPrice("BTCUSDT", "short", "pos-short")?.toString()).toBe("44000");
+    });
+
+    it("excludes a stop on the opposite side (BUG-0502)", () => {
+        // A SELL-side stop cannot belong to a long: sizing risk off it is
+        // worse than reporting none.
+        expect(tpSlState.restingStopPrice("ETHUSDT", "long", "pos-9")).toBeNull();
+        expect(tpSlState.restingStopPrice("ETHUSDT", "short", "pos-9")?.toString()).toBe("2800");
+    });
+
+    it("returns null when the symbol has no loss plan", () => {
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")).toBeNull();
+    });
+
+    it("returns null for an unparseable or non-positive trigger", async () => {
+        fetchTpSl.mockResolvedValue([
+            { ...plan("XRPUSDT", "LOSS", "not-a-price"), positionId: "pos-1" },
+            { ...plan("DOGEUSDT", "LOSS", "0"), positionId: "pos-1" },
+        ]);
+        tpSlState.invalidate();
+        await tpSlState.ensureFresh();
+
+        expect(tpSlState.restingStopPrice("XRPUSDT", "long", "pos-1")).toBeNull();
+        expect(tpSlState.restingStopPrice("DOGEUSDT", "long", "pos-1")).toBeNull();
+    });
+});
+
 describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
     it("adds a take-profit leg from a push carrying only tpPrice", () => {
         tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" });

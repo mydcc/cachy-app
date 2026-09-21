@@ -2,7 +2,8 @@
 id: BUG-0505
 title: Every quantity sent on a modify leaves the gate unverified, including the stop quantity that decides how much of a position is actually protected
 type: bug
-status: specced
+status: done
+branch: fix/gate-kern-paket-c
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +11,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0505 — A modify's quantity is never compared against anything

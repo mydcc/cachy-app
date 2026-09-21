@@ -2707,6 +2707,8 @@
     "resultingSize": "Resulting size",
     "newAverageEntry": "New average entry",
     "previewOnlyHint": "Estimate at the current mark. The exchange's figure replaces it once filled.",
+    "riskUnderStop": "Risk under stop",
+    "noStopAttached": "No stop attached — this add is unprotected",
     "addSubmitted": "Add order sent.",
     "remainingAfter": "Remaining",
     "realizesPnl": "Realizes",
@@ -3654,6 +3656,10 @@
       "tpBelowEntry": "Short: Take-Profit target {price} must be below Entry.",
       "totalPercentExceeded": "Total sell percentage ({percent}%) must not exceed 100%.",
       "slDistance": "Stop-Loss must have a valid distance from entry price.",
+      "noSymbolMeta": "Precision for {symbol} is not available — no orderable size.",
+      "sizeBelowMinimum": "Size {size} is below the instrument minimum of {minimum}.",
+      "sizeAboveMaximum": "Size {size} exceeds the instrument maximum of {maximum}.",
+      "leverageAboveMaximum": "Leverage {leverage}x exceeds the instrument maximum of {maximum}x.",
       "generic": "An error occurred during calculation."
     },
     "logic": {
@@ -4257,7 +4263,7 @@
     "unsupported": {
       "tpSl": "Take-profit and stop-loss orders are not available on {exchange}. Nothing was sent.",
       "leverageMarginMode": "{exchange} does not report leverage and margin mode to Cachy, so the values shown are your local settings.",
-      "tradingPairInfo": "{exchange} does not provide contract details to Cachy, so precision and size limits fall back to defaults.",
+      "tradingPairInfo": "{exchange} does not provide contract details to Cachy, so precision and size limits cannot be verified. Nothing was sent.",
       "generic": "{exchange} cannot do that, so Cachy did not send the request.",
       "accountSettings": "Cachy has no verified request format for changing leverage, margin mode or position margin on {exchange}, so nothing was sent. Change it in the exchange's own interface."
     },

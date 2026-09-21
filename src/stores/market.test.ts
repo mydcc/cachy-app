@@ -62,6 +62,33 @@ describe('MarketManager', () => {
     expect(market.positionTiers['BTCUSDT'][0].maintenanceMarginRate?.toString()).toBe('0.004');
   });
 
+  // BUG-0501 — the fetch-state that tells "not fetched yet" apart from
+  // "fetched, none available", so a transient failure retries instead of
+  // permanently reading as "no precision".
+  it('treats a missing entry with no attempt as due for a fetch', () => {
+    expect(market.shouldFetchMeta('BTCUSDT')).toBe(true);
+  });
+
+  it('treats a cached entry as fresh', () => {
+    market.setSymbolMeta('BTCUSDT', { symbol: 'BTCUSDT', basePrecision: 4 });
+    market.noteMetaFetch('BTCUSDT', true);
+    expect(market.shouldFetchMeta('BTCUSDT')).toBe(false);
+  });
+
+  it('blocks a retry within the cooldown after a failure, then allows it', () => {
+    const at = Date.now();
+    market.noteMetaFetch('BTCUSDT', false, at);
+    expect(market.shouldFetchMeta('BTCUSDT', at + 1_000)).toBe(false);
+    expect(market.shouldFetchMeta('BTCUSDT', at + 60_000)).toBe(true);
+  });
+
+  it('refetches a successful entry that was evicted since', () => {
+    market.setSymbolMeta('BTCUSDT', { symbol: 'BTCUSDT', basePrecision: 4 });
+    market.noteMetaFetch('BTCUSDT', true);
+    delete market.symbolMeta['BTCUSDT'];
+    expect(market.shouldFetchMeta('BTCUSDT')).toBe(true);
+  });
+
   it('prunes symbolMeta and positionTiers when a symbol is evicted', () => {
     settingsState.marketCacheSize = 2;
     const tiers = [
