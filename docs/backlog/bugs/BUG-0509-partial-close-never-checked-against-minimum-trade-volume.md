@@ -2,7 +2,7 @@
 id: BUG-0509
 title: A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix/paket-d-limits-close
 priority: P2

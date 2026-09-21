@@ -2,7 +2,7 @@
 id: BUG-0516
 title: The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix/paket-d-limits-close
 priority: P1
