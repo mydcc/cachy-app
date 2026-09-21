@@ -83,6 +83,20 @@
   });
 
   /*
+   * Venue minimum for the partial-close floor (BUG-0509). Read off the same
+   * metadata entry as the step; absent stays absent — the calculator keeps
+   * its step-only behaviour and the gate refuses the unmeasurable partial.
+   */
+  const minTradeVolume = $derived.by(() => {
+    if (!position) return undefined;
+    const venue = settingsState.apiProvider || "bitunix";
+    return (
+      marketState.symbolMeta[normalizeSymbol(position.symbol, venue)]?.minTradeVolume ??
+      undefined
+    );
+  });
+
+  /*
    * `markPrice` is optional on `OMSPosition` — Bitget does not always send it.
    * Where it is missing it is recovered from the unrealised PnL the venue does
    * report, which is the same number seen from the other side: PnL is the mark
@@ -110,6 +124,7 @@
       markPrice,
       side: position.side === "long" ? "LONG" : "SHORT",
       stepSize,
+      minTradeVolume,
     };
   });
 
