@@ -4283,6 +4283,7 @@
       "leverageIncrease": "Hebel erhöhen",
       "liquidationEstimate": "Liquidation (Schätzung)",
       "liquidationEstimateNote": "Näherung aus den Zahlen der Börse. Gebühren, Funding und gestaffelte Maintenance-Margin sind nicht enthalten.",
+      "liquidationCrossMarginNote": "Cross-Margin: Die Liquidation hängt vom gesamten Konto-Eigenkapital ab, nicht allein vom Hebel dieser Position – keine Projektion.",
       "diagramSharedPool": "Gemeinsame Margin",
       "diagramMarginA": "Margin A",
       "diagramMarginB": "Margin B",

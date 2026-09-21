@@ -43,7 +43,7 @@
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
-  import { projectLiquidation } from "../../lib/calculators/liquidation";
+  import { isIsolatedMarginMode, projectLiquidation } from "../../lib/calculators/liquidation";
   import ModalFrame from "./ModalFrame.svelte";
 
   interface Props {
@@ -65,6 +65,8 @@
       entryPrice: Decimal;
       liquidationPrice: Decimal;
       leverage: Decimal;
+      /** Read from the position — never inferred from prices (BUG-0504). */
+      side: "long" | "short";
     };
     /** Margin mode: ISOLATION (show projection) or CROSS (show warning). */
     marginMode?: string;
@@ -133,8 +135,16 @@
     if (!p) return null;
     if (next === null || !inRange) return null;
 
-    return projectLiquidation(p.entryPrice, p.liquidationPrice, p.leverage, next);
+    return projectLiquidation(p.entryPrice, p.liquidationPrice, p.leverage, next, p.side, marginMode);
   });
+
+  /** Explicitly cross-margin: no projection exists, so the row says why. */
+  const crossMarginNoProjection = $derived(
+    projection === null &&
+      position !== undefined &&
+      marginMode !== undefined &&
+      !isIsolatedMarginMode(marginMode),
+  );
 
   function nudge(by: number) {
     const base = parsed ?? new Decimal(minLeverage);
@@ -238,6 +248,18 @@
         </div>
         <p class="text-[10px] text-[var(--text-tertiary)]">
           {$_("exchange.accountSettings.liquidationEstimateNote")}
+        </p>
+      </div>
+    {:else if crossMarginNoProjection}
+      <!--
+        BUG-0504: cross-margin liquidation depends on total account equity,
+        not on this position's leverage — showing the isolated projection
+        here would be a confident wrong number. The row states the reason
+        instead of going silently empty.
+      -->
+      <div class="flex flex-col gap-0.5" data-track-id="leverage-liquidation-cross">
+        <p class="text-[10px] text-[var(--text-tertiary)]">
+          {$_("exchange.accountSettings.liquidationCrossMarginNote")}
         </p>
       </div>
     {/if}

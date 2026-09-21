@@ -4283,6 +4283,7 @@
       "leverageIncrease": "Increase leverage",
       "liquidationEstimate": "Liquidation (estimate)",
       "liquidationEstimateNote": "Approximated from the exchange's own figures. Fees, funding and tiered maintenance margin are not included.",
+      "liquidationCrossMarginNote": "Cross margin: liquidation depends on total account equity, not on this position's leverage alone — no projection shown.",
       "diagramSharedPool": "Shared margin",
       "diagramMarginA": "Margin A",
       "diagramMarginB": "Margin B",

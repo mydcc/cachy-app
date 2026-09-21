@@ -3519,6 +3519,7 @@ export type TranslationKey =
   | "exchange.accountSettings.leverageIncrease"
   | "exchange.accountSettings.liquidationEstimate"
   | "exchange.accountSettings.liquidationEstimateNote"
+  | "exchange.accountSettings.liquidationCrossMarginNote"
   | "exchange.accountSettings.diagramSharedPool"
   | "exchange.accountSettings.diagramMarginA"
   | "exchange.accountSettings.diagramMarginB"

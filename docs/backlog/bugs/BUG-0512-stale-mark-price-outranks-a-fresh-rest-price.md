@@ -2,7 +2,9 @@
 id: BUG-0512
 title: A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix-pkg-e-0504-0512
 priority: P1
 milestone: none
 editions: [community, pro, private]

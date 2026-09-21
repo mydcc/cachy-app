@@ -2,7 +2,9 @@
 id: BUG-0504
 title: The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix-pkg-e-0504-0512
 priority: P1
 milestone: none
 editions: [community, pro, private]
