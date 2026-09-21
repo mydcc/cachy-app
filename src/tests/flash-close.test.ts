@@ -78,6 +78,15 @@ vi.mock('../stores/market.svelte', () => ({
             'ETHUSDT': {
                 lastPrice: new (require('decimal.js').Decimal)('3000')
             }
+        },
+        // Partial closes state the venue minimum (BUG-0509) — without
+        // metadata the gate refuses them as unmeasurable rather than
+        // approving.
+        symbolMeta: {
+            'BTCUSDT': {
+                symbol: 'BTCUSDT',
+                minTradeVolume: new (require('decimal.js').Decimal)('0.001')
+            }
         }
     }
 }));

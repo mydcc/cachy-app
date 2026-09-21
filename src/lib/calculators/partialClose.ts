@@ -97,6 +97,30 @@ export function isWholeMultipleOfStep(qty: Decimal, stepSize: Decimal): boolean 
 }
 
 /**
+ * The floor under a close quantity, shared by the slider
+ * (`quantityFromPercent`) and the typed field (`PartialCloseInput`), so the
+ * two cannot offer different minima (BUG-0509).
+ *
+ * Below the venue minimum snaps up to it when one is known; otherwise a
+ * zero-or-negative rounding snaps to one step. Never above the position
+ * itself — a position smaller than the minimum closes in full instead, and
+ * the gate exempts full closes for exactly that reason.
+ */
+export function floorCloseQuantity(
+    ctx: PartialCloseContext,
+    qty: Decimal,
+): Decimal {
+    if (ctx.minTradeVolume !== undefined) {
+        const floor = Decimal.min(ctx.minTradeVolume, ctx.positionAmount);
+        return qty.lt(floor) ? floor : qty;
+    }
+    if (qty.lte(0)) {
+        return Decimal.min(ctx.stepSize, ctx.positionAmount);
+    }
+    return qty;
+}
+
+/**
  * The quantity a percentage of the position represents.
  *
  * `percent` runs 0..100 against the position size the venue reports *now*, so
@@ -119,22 +143,7 @@ export function quantityFromPercent(
     if (percent.lte(0)) return new Decimal(0);
 
     const raw = ctx.positionAmount.times(percent).div(100);
-    const rounded = roundDownToStep(raw, ctx.stepSize);
-
-    if (ctx.minTradeVolume !== undefined) {
-        const floor = Decimal.min(ctx.minTradeVolume, ctx.positionAmount);
-        if (rounded.lt(floor)) return floor;
-        return rounded;
-    }
-
-    // Rounding down can reach zero for a small percentage of a small position.
-    // One step is the smallest order the venue accepts, so that is the floor —
-    // but never above the position itself, which a one-step floor could exceed
-    // on an instrument whose step is coarser than the position.
-    if (rounded.lte(0)) {
-        return Decimal.min(ctx.stepSize, ctx.positionAmount);
-    }
-    return rounded;
+    return floorCloseQuantity(ctx, roundDownToStep(raw, ctx.stepSize));
 }
 
 /**

@@ -21,6 +21,7 @@ import {
     roundDownToStep,
     isWholeMultipleOfStep,
     quantityFromPercent,
+    floorCloseQuantity,
     percentFromQuantity,
     remainingAfterClose,
     realizedPnlOnClose,
@@ -155,6 +156,29 @@ describe("quantityFromPercent", () => {
         // 5% of 2 = 0.1 — above the step floor, untouched with or without a
         // minimum on the context.
         expect(quantityFromPercent(ctx, new Decimal(5)).toString()).toBe("0.1");
+    });
+});
+
+describe("floorCloseQuantity", () => {
+    it("snaps below-minimum quantities up to the venue minimum", () => {
+        const ctx = { ...LONG, minTradeVolume: new Decimal("0.5") };
+        expect(floorCloseQuantity(ctx, new Decimal("0.2")).toString()).toBe("0.5");
+        expect(floorCloseQuantity(ctx, new Decimal("0.7")).toString()).toBe("0.7");
+    });
+
+    it("caps the minimum floor at the position itself", () => {
+        const tiny: PartialCloseContext = {
+            ...LONG,
+            positionAmount: new Decimal("0.2"),
+            minTradeVolume: new Decimal("0.5"),
+        };
+        expect(floorCloseQuantity(tiny, new Decimal("0.1")).toString()).toBe("0.2");
+    });
+
+    it("falls back to one step for zero without a known minimum", () => {
+        const ctx = { ...LONG, stepSize: new Decimal("0.1") };
+        expect(floorCloseQuantity(ctx, new Decimal(0)).toString()).toBe("0.1");
+        expect(floorCloseQuantity(ctx, new Decimal("0.3")).toString()).toBe("0.3");
     });
 });
 

@@ -172,9 +172,14 @@ function positionSideOf(side: unknown): "long" | "short" | null {
  * Broker-derived fills win when a broker is in play — paper mode has none,
  * so a stale live-session rate must not leak into a simulation
  * (feeProvenance). Otherwise the venue's Settings rate applies, which is the
- * documented VIP-0 default until the trader overrides it. Null, never zero:
- * falling back to zero fees reintroduces the pre-fee under-measurement under
- * a different name, so the caller refuses as unmeasurable instead.
+ * documented VIP-0 default until the trader overrides it. Each leg resolves
+ * independently: a maker rate without a taker rate (or vice versa) still
+ * refuses as unmeasurable rather than borrowing the other leg's number.
+ * Null, never zero: falling back to zero fees reintroduces the pre-fee
+ * under-measurement under a different name, so the caller refuses as
+ * unmeasurable instead. Venues are looked up, not enumerated, so a future
+ * venue works without touching this function — an unknown venue resolves to
+ * null and refuses closed.
  */
 function feeRateFor(
     role: "maker" | "taker",
@@ -186,11 +191,10 @@ function feeRateFor(
             role === "maker" ? tradeState.remoteMakerFee : tradeState.remoteTakerFee;
         if (remote !== undefined && remote.isFinite()) return remote;
     }
-    const configured =
-        venue === "bitunix" || venue === "bitget"
-            ? settingsState.feeRates[venue]?.[role]
-            : undefined;
-    const parsed = toDecimal(configured);
+    const table = (settingsState.feeRates as Partial<
+        Record<string, { maker?: unknown; taker?: unknown }>
+    >)[venue];
+    const parsed = toDecimal(table?.[role]);
     return parsed !== null && parsed.isFinite() ? parsed : null;
 }
 
@@ -225,7 +229,8 @@ function limitRefusal(
 }
 
 /** A limit is configured but the order carries nothing to measure it against. */
-function unmeasurable(field: string): OrderRefusal {    return {
+function unmeasurable(field: string): OrderRefusal {
+    return {
         field,
         reason: "missing",
         messageKey: "orderGate.riskLimitUnmeasurable",

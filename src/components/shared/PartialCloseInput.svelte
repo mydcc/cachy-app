@@ -45,6 +45,7 @@
     remainingAfterClose,
     realizedPnlOnClose,
     roundDownToStep,
+    floorCloseQuantity,
     isFullClose,
     type PartialCloseContext,
   } from "../../lib/calculators/partialClose";
@@ -113,18 +114,9 @@
         return;
       }
       const stepped = roundDownToStep(parsed, ctx.stepSize);
-      if (stepped.lte(0)) {
-        onChange(Decimal.min(ctx.stepSize, ctx.positionAmount));
-        return;
-      }
-      // Below the venue minimum is not a quantity the venue can fill — snap
-      // to the minimum rather than offering a refusal (BUG-0509). Never
-      // above the position itself.
-      if (ctx.minTradeVolume !== undefined && stepped.lt(ctx.minTradeVolume)) {
-        onChange(Decimal.min(ctx.minTradeVolume, ctx.positionAmount));
-        return;
-      }
-      onChange(stepped);
+      // One floor for both entry paths — the slider's `quantityFromPercent`
+      // holds the same rule (BUG-0509).
+      onChange(floorCloseQuantity(ctx, stepped));
     } catch {
       // Not a number — drop it and fall back to the committed value.
     }

@@ -1786,10 +1786,11 @@ class TradeService {
                     ? position.markPrice
                     : position.entryPrice;
 
-        // The settlement asset's free balance. Absent means the balance has
-        // not loaded, and the gate refuses the add rather than guessing —
-        // margin is its only ceiling (BUG-0511). Paper accounts hydrate the
-        // same channel from the simulated balance — see `checkMargin`.
+        // The settlement asset's free balance. This only carries the reading —
+        // the refusal decision lives in `checkMargin` (orderGate.ts), which
+        // refuses the add when the balance has not loaded, since margin is
+        // its only ceiling (BUG-0511). Paper accounts hydrate the same
+        // channel from the simulated balance.
         const availableMargin = accountState.assets.find(
             (a) => a.currency === "USDT",
         )?.available;
