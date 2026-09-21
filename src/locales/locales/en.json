@@ -2712,6 +2712,7 @@
     "addSubmitted": "Add order sent.",
     "remainingAfter": "Remaining",
     "realizesPnl": "Realizes",
+    "minimumTradeVolume": "Minimum: {min}",
     "fullCloseBadge": "Closes the whole position",
     "roi": "ROI",
     "margin": "Margin",

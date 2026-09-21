@@ -1016,6 +1016,16 @@ class OrderGate {
             // inside their own position, which is a worse failure than the one
             // it prevents.
             //
+            // The same exemption logic covers the venue minimum (BUG-0509): a
+            // partial below `minTradeVolume` is refused here, where the trader
+            // can still act; a full close of a position smaller than the
+            // minimum must still go out. A partial whose instrument metadata
+            // never loaded states no minimum and is refused rather than
+            // approved — an unmeasurable size is not a verified size
+            // (BUG-0501). Maximum volumes stay out deliberately: a position
+            // larger than the maximum cannot be closed in one order, and
+            // refusing it would lock the trader in; splitting is its own item.
+            //
             // The modulo is written out rather than taken from
             // `partialClose.ts`, whose `isWholeMultipleOfStep` the input uses to
             // *produce* this quantity. Checking with the producer's own function
@@ -1038,6 +1048,23 @@ class OrderGate {
                         values: {
                             field: "stepSize",
                             step: step.toString(),
+                            actual: payloadQty.toString(),
+                        },
+                    };
+                }
+            }
+            if (displayed.fullClose !== true) {
+                const minVolume = displayed.minTradeVolume;
+                if (minVolume === undefined) return missing("minTradeVolume");
+                checked.push("minTradeVolume");
+                if (payloadQty.lt(minVolume)) {
+                    return {
+                        field: "minTradeVolume",
+                        reason: "riskLimit",
+                        messageKey: "orderGate.minTradeVolume",
+                        values: {
+                            field: "minTradeVolume",
+                            limit: minVolume.toString(),
                             actual: payloadQty.toString(),
                         },
                     };

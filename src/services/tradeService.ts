@@ -1925,9 +1925,12 @@ class TradeService {
         // step, i.e. lock the trader in.
         const closesEverything = !amount || amount.eq(position.amount);
 
-        // Metadata is best-effort: an instrument whose meta has not loaded
-        // yields no step, and the gate then checks what it can rather than
-        // refusing on an absence.
+        // Metadata is best-effort for the step size; the minimum is a
+        // precondition for a partial close. A partial whose instrument
+        // metadata never loaded states no minimum, and the gate refuses it
+        // rather than approving an unmeasurable size (BUG-0509, BUG-0501).
+        // Full closes stay exempt — a position under the minimum must still
+        // be closable.
         const meta = marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
         const stepSize =
             meta?.basePrecision !== undefined
@@ -1964,6 +1967,7 @@ class TradeService {
                 positionAmount: position.amount,
                 fullClose: closesEverything,
                 stepSize,
+                minTradeVolume: meta?.minTradeVolume ?? undefined,
                 positionId,
             },
         });

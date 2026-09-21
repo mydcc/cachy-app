@@ -4168,6 +4168,7 @@
     "addSubmitted": "Nachkauf-Order gesendet.",
     "remainingAfter": "Verbleibt",
     "realizesPnl": "Realisiert",
+    "minimumTradeVolume": "Minimum: {min}",
     "fullCloseBadge": "Schließt die gesamte Position",
     "roi": "ROI",
     "margin": "Margin",

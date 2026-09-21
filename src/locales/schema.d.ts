@@ -2361,6 +2361,7 @@ export type TranslationKey =
   | "positionsList.addSubmitted"
   | "positionsList.remainingAfter"
   | "positionsList.realizesPnl"
+  | "positionsList.minimumTradeVolume"
   | "positionsList.fullCloseBadge"
   | "positionsList.roi"
   | "positionsList.margin"

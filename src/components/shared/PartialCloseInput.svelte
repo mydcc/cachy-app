@@ -113,7 +113,18 @@
         return;
       }
       const stepped = roundDownToStep(parsed, ctx.stepSize);
-      onChange(stepped.lte(0) ? Decimal.min(ctx.stepSize, ctx.positionAmount) : stepped);
+      if (stepped.lte(0)) {
+        onChange(Decimal.min(ctx.stepSize, ctx.positionAmount));
+        return;
+      }
+      // Below the venue minimum is not a quantity the venue can fill — snap
+      // to the minimum rather than offering a refusal (BUG-0509). Never
+      // above the position itself.
+      if (ctx.minTradeVolume !== undefined && stepped.lt(ctx.minTradeVolume)) {
+        onChange(Decimal.min(ctx.minTradeVolume, ctx.positionAmount));
+        return;
+      }
+      onChange(stepped);
     } catch {
       // Not a number — drop it and fall back to the committed value.
     }
@@ -175,6 +186,11 @@
     <p class={pnlTone}>
       {$_("positionsList.realizesPnl")}: {pnlText}
     </p>
+    {#if ctx.minTradeVolume !== undefined}
+      <p class="text-[var(--text-secondary)]">
+        {$_("positionsList.minimumTradeVolume", { values: { min: ctx.minTradeVolume.toString() } })}
+      </p>
+    {/if}
     {#if closesEverything}
       <p class="text-[var(--warning-color)]">
         {$_("positionsList.fullCloseBadge")}
