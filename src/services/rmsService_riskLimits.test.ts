@@ -557,6 +557,28 @@ describe("FEAT-0013 — kill switch", () => {
         ).toBe(true);
     });
 
+    it("sends a bulk close while engaged — the panic path, end to end", async () => {
+        // verify()-approved is not submit-succeeds: the transport, the
+        // in-flight guard and the pass check all run after approval. The
+        // panic button exists for exactly this state, so the whole send
+        // path is pinned, not just the verdict.
+        riskState.engageKillSwitch();
+        const transport = vi.fn(async () => ({ closed: true }));
+
+        await expect(
+            orderGate.submit(
+                {
+                    kind: "bulk",
+                    endpoint: "/api/orders",
+                    payload: { type: "close-all-positions", symbol: undefined },
+                    displayed: { ...ACCOUNT },
+                },
+                transport,
+            ),
+        ).resolves.toMatchObject({ closed: true });
+        expect(transport).toHaveBeenCalledTimes(1);
+    });
+
     it("lets a stop-loss adjustment through", () => {
         // Blocking a stop move mid-panic is worse than allowing one.
         riskState.engageKillSwitch();

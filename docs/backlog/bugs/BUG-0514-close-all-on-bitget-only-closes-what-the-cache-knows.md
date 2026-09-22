@@ -2,7 +2,9 @@
 id: BUG-0514
 title: Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix-pkg-e-0513-0514
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -79,16 +81,16 @@ a trader rather than by a reader.
 
 ## Acceptance Criteria
 
-- [ ] The non-Bitunix branch fetches positions from the exchange before
+- [x] The non-Bitunix branch fetches positions from the exchange before
       computing its work list, rather than reading the cache.
-- [ ] A position discovered during the flatten is included in it, or the call
+- [x] A position discovered during the flatten is included in it, or the call
       reports explicitly that it stopped short and names what it left open.
-- [ ] Success is not reported while a position on the account remains open —
+- [x] Success is not reported while a position on the account remains open —
       a post-flatten read confirms flat, or the result says it could not
       confirm.
-- [ ] Bitget's native bulk-close endpoint is used if one exists; if it does
+- [x] Bitget's native bulk-close endpoint is used if one exists; if it does
       not, a comment states that, so the next reader does not re-derive it.
-- [ ] Regression test: cache holds one position, exchange holds two — assert
+- [x] Regression test: cache holds one position, exchange holds two — assert
       the second is closed or explicitly reported, and that the call does not
       report plain success.
 

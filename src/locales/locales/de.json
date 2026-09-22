@@ -2430,6 +2430,11 @@
         "confirmTitle": "Kill Switch lösen?",
         "confirmMessage": "Ab sofort werden wieder Orders gesendet, die Positionen eröffnen oder vergrößern. Fortfahren?"
       },
+      "closeAll": {
+        "title": "Alle Positionen schließen",
+        "description": "Schließt auf einmal alle offenen Positionen zum Marktpreis — nach einmaliger Nachfrage mit Anzahl und Gesamt-Notional. Funktioniert auch bei aktivem Kill Switch — Schließen wird nie blockiert.",
+        "button": "Alle Positionen jetzt schließen"
+      },
       "dailyStatusTitle": "Heute",
       "realizedToday": "Realisierter PnL heute: {amount} USDT",
       "resetBoundary": "Das Tagesfenster läuft von 00:00 bis 00:00 UTC. Nächster Reset: {local} (deine lokale Zeit).",
@@ -4153,6 +4158,7 @@
   },
   "positionsList": {
     "noOpenPositions": "Keine offenen Positionen.",
+    "closeAll": "Alle schließen",
     "size": "Größe",
     "close": "Schließen",
     "tpsl": "TP/SL",
@@ -4195,7 +4201,12 @@
   "trade": {
     "apiError": "API-Fehler: {error}",
     "closeAbortedSafety": "Schließen sicherheitshalber abgebrochen. Offene Orders konnten nicht storniert werden.",
-    "closeAllFailed": "Flash Close fehlgeschlagen für: {failedSymbols}",
+    "closeAllFailed": "Close-All fehlgeschlagen für: {failedSymbols}",
+    "closeAllUnverified": "Closes gesendet, aber flach konnte für {scope} nicht bestätigt werden. Bitte Positionen prüfen.",
+    "closeAllEmpty": "Keine offenen Positionen zum Schließen.",
+    "closeAllSuccess": "Alle {count} Positionen geschlossen.",
+    "closeAllConfirmTitle": "Alle Positionen schließen?",
+    "closeAllConfirmMessage": "Dies schließt {count} Position(en) mit einem Gesamt-Notional von {notional} USDT zum Marktpreis. Dies kann nicht rückgängig gemacht werden.",
     "fetchFailed": "Abrufen fehlgeschlagen",
     "flashCloseFailed": "Flash Close fehlgeschlagen: {msg}",
     "tpSlUpdated": "TP/SL aktualisiert",

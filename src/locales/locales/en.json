@@ -2430,6 +2430,11 @@
         "confirmTitle": "Release the kill switch?",
         "confirmMessage": "Orders that open or increase a position will be sent again from this moment on. Continue?"
       },
+      "closeAll": {
+        "title": "Close all positions",
+        "description": "Flattens every open position at market after asking once, with the count and total notional stated. Works while the kill switch is engaged — closing is never blocked.",
+        "button": "Close all positions now"
+      },
       "dailyStatusTitle": "Today",
       "realizedToday": "Realised PnL today: {amount} USDT",
       "resetBoundary": "The daily window runs 00:00–00:00 UTC. Next reset: {local} (your local time).",
@@ -2696,6 +2701,7 @@
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",
+    "closeAll": "Close all",
     "size": "Size",
     "close": "Close",
     "tpsl": "TP/SL",
@@ -4143,7 +4149,12 @@
   },
   "trade": {
     "closeAbortedSafety": "Close aborted for safety. Failed to cancel open orders.",
-    "closeAllFailed": "Flash Close Failed for: {failedSymbols}",
+    "closeAllFailed": "Close-all failed for: {failedSymbols}",
+    "closeAllUnverified": "Closes sent but the account could not be confirmed flat for: {scope}. Please check your positions.",
+    "closeAllEmpty": "No open positions to close.",
+    "closeAllSuccess": "All {count} positions closed.",
+    "closeAllConfirmTitle": "Close all positions?",
+    "closeAllConfirmMessage": "This closes {count} position(s) with a total notional of {notional} USDT at market. This cannot be undone.",
     "apiError": "API Error: {error}",
     "fetchFailed": "Fetch failed",
     "flashCloseFailed": "Flash Close Failed: {msg}",

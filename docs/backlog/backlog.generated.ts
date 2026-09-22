@@ -2033,7 +2033,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0513",
     "title": "Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix-pkg-e-0513-0514",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2126,6 +2128,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md"
+  },
+  {
+    "id": "BUG-0527",
+    "title": "Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md"
   },
   {
     "id": "FEAT-0014",
@@ -4884,7 +4904,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0514",
     "title": "Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix-pkg-e-0513-0514",
     "priority": "P2",
     "milestone": "none",
     "editions": [

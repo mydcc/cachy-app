@@ -67,6 +67,7 @@
   import AdjustMarginModal from "./AdjustMarginModal.svelte";
   import AddToPositionModal from "./AddToPositionModal.svelte";
   import TpSlCreateModal from "./TpSlCreateModal.svelte";
+  import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
 
   let { fetchEnabled = true }: { fetchEnabled?: boolean } = $props();
 
@@ -961,6 +962,27 @@
     tpSlState.invalidate();
   }
 
+  /*
+   * BUG-0513 — the reachable end of `tradeService.closeAllPositions`.
+   *
+   * The confirmation (count, total notional) and the run live in the shared
+   * flow; this only disables the button while it works. Deliberately
+   * reachable while the kill switch is engaged — the gate permits bulk
+   * closes in that state because blocking an exit mid-panic is worse than
+   * allowing one, and a panic button that disappears in a panic is not one.
+   */
+  let closingAll = $state(false);
+
+  async function handleCloseAll() {
+    if (closingAll) return;
+    closingAll = true;
+    try {
+      await confirmAndCloseAllPositions();
+    } finally {
+      closingAll = false;
+    }
+  }
+
   async function handleCancelOrder(orderId: string, symbol: string) {
     try {
         const res = (await activeExchange().trading.cancelOrder(symbol, orderId)) as { error?: string } | undefined;
@@ -1243,6 +1265,7 @@
           error={errorPositions}
           onclose={handleClosePosition}
           onflashClose={handleFlashClose}
+          oncloseAll={closingAll ? undefined : handleCloseAll}
           ontpSl={handleTpSl}
           onadjustMargin={handleAdjustMargin}
           onadd={canAddToPosition ? handleAdd : undefined}
