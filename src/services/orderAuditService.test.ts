@@ -148,6 +148,54 @@ describe("FEAT-0015 — every attempt is recorded", () => {
         expect(entry.error).toMatchObject({ name: "Error", message: "ENETDOWN" });
     });
 
+    it("records an in-flight duplicate once, not twice", async () => {
+        let release!: (value: string) => void;
+        const gate = new Promise<string>((resolve) => {
+            release = resolve;
+        });
+        const pending = orderGate.submit(reduceIntent(), () => gate);
+
+        await expect(orderGate.submit(reduceIntent(), vi.fn())).rejects.toBeInstanceOf(
+            OrderRefusedError,
+        );
+        release("filled");
+        await pending;
+
+        // One refused entry for the duplicate, one sent entry for the
+        // original flight — the refusal path must not record itself again
+        // on the way out.
+        const entries = orderAuditService.getEntries();
+        expect(entries.filter((e) => e.outcome === "refused")).toHaveLength(1);
+        expect(entries.filter((e) => e.outcome === "sent")).toHaveLength(1);
+    });
+
+    it("records a refusal discovered after approval as refused, not failed", async () => {
+        // `assertGatePass` throws inside the transport when the account
+        // changed between approval and transmission. That is still a
+        // refusal — and exactly one entry, not a transport failure and not
+        // a double record.
+        const lateRefusal = {
+            field: "account",
+            reason: "mismatch" as const,
+            messageKey: "orderGate.unconfirmed",
+            values: { expected: "a", actual: "b" },
+        };
+        await expect(
+            orderGate.submit(reduceIntent(), async () => {
+                throw new OrderRefusedError(lateRefusal);
+            }),
+        ).rejects.toBeInstanceOf(OrderRefusedError);
+
+        const entries = orderAuditService.getEntries();
+        expect(entries).toHaveLength(1);
+        expect(entries[0].outcome).toBe("refused");
+        expect(entries[0].refusal).toMatchObject({
+            field: "account",
+            reason: "mismatch",
+        });
+        expect(entries[0].error).toBeUndefined();
+    });
+
     it("records which fields the gate compared", async () => {
         await orderGate.submit(reduceIntent(), async () => ({}));
         expect(orderAuditService.getEntries()[0].checked).toEqual(
