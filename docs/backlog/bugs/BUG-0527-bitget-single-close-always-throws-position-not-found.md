@@ -67,6 +67,13 @@ What to leave alone: the close-all fallback's own mirror in
 about the single/flash paths (`closePosition`, `flashClosePosition`,
 `addToPosition` reads the same store).
 
+Note (from the #3564 review): the bulk mirror tracks its keys
+(`mirroredOmsKeys`) and the post-flatten read evicts tracked keys the
+exchange no longer lists, so flattened positions do not linger as OMS
+ghosts a later single close would size off. Whatever feed fixes this item
+should offer the same guarantee — a write-only mirror without eviction
+recreates the ghost problem one layer down.
+
 ## Acceptance criteria
 
 - [ ] A test reproduces the defect (Bitget provider, position present on the

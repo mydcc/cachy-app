@@ -45,6 +45,7 @@ vi.mock("./omsService", () => ({
     omsService: {
         getPositions: vi.fn(),
         updatePosition: vi.fn(),
+        removePosition: vi.fn(),
         addOptimisticOrder: vi.fn(),
         removeOrder: vi.fn(),
         getOrder: vi.fn(),
@@ -160,6 +161,11 @@ describe("BUG-0514 — closeAllPositions on Bitget", () => {
         expect(closeSpy).toHaveBeenCalledWith(
             expect.objectContaining({ symbol: "ETHUSDT", positionSide: "short", forceFullClose: true }),
         );
+        // The post-flatten read found nothing, so the mirrored entries were
+        // evicted rather than left as ghosts a later single close would
+        // size off.
+        expect(vi.mocked(omsService.removePosition)).toHaveBeenCalledWith("BTCUSDT", "long");
+        expect(vi.mocked(omsService.removePosition)).toHaveBeenCalledWith("ETHUSDT", "short");
         closeSpy.mockRestore();
     });
 

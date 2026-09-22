@@ -2017,6 +2017,16 @@ class TradeService {
     }
 
     /**
+     * OMS keys (`symbol:side`) this service mirrored from an exchange-fresh
+     * read (non-Bitunix venues only — see `mirrorPositionsToOms`). The
+     * post-flatten read evicts tracked keys the exchange no longer lists, so
+     * a flattened position does not linger as an OMS ghost that a later
+     * single close would size off (BUG-0527's evidence calls this out: single
+     * closes resolve amounts through the OMS).
+     */
+    private mirroredOmsKeys = new Set<string>();
+
+    /**
      * Mirrors an exchange-fresh list into the OMS (non-Bitunix venues only).
      *
      * Without this the closes below cannot run where nothing else feeds the
@@ -2038,6 +2048,7 @@ class TradeService {
     private mirrorPositionsToOms(list: NormalizedPosition[]): void {
         for (const p of list) {
             const side = p.side.toLowerCase() === "short" ? "short" : "long";
+            this.mirroredOmsKeys.add(`${p.symbol}:${side}`);
             omsService.updatePosition({
                 symbol: p.symbol,
                 side,
@@ -2071,11 +2082,35 @@ class TradeService {
         try {
             const after = await this.readFreshPositions(provider);
             if (after === null) return { leftover: [], unverified: true };
+            this.evictMirroredGhosts(after);
             const inScope = symbol ? after.filter((p) => p.symbol === symbol) : after;
             return { leftover: [...new Set(inScope.map((p) => p.symbol))], unverified: false };
         } catch (e) {
             logger.error("market", "[CloseAll] Post-flatten verification read failed", e);
             return { leftover: [], unverified: true };
+        }
+    }
+
+    /**
+     * Drops mirrored OMS entries the exchange no longer lists. Only keys
+     * this service mirrored are ever evicted — the Bitunix WS feed's entries
+     * (with real positionIds) are never tracked and never touched. Runs on
+     * the full fresh list regardless of symbol scope: a position absent
+     * account-wide is gone, not out of scope.
+     */
+    private evictMirroredGhosts(fresh: NormalizedPosition[]): void {
+        const open = new Set(
+            fresh.map((p) => `${p.symbol}:${p.side.toLowerCase() === "short" ? "short" : "long"}`),
+        );
+        for (const key of this.mirroredOmsKeys) {
+            if (open.has(key)) continue;
+            const separator = key.lastIndexOf(":");
+            const symbol = key.slice(0, separator);
+            const side = key.slice(separator + 1);
+            if (symbol && (side === "long" || side === "short")) {
+                omsService.removePosition(symbol, side);
+            }
+            this.mirroredOmsKeys.delete(key);
         }
     }
 

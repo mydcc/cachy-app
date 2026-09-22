@@ -90,17 +90,17 @@ export async function confirmAndCloseAllPositions(symbol?: string): Promise<Clos
     // finally below clears it on every path including cancel.
     running = true;
     try {
-    // Client-computed Σ size × price — the same formula the positions panel
-    // totals with, so the dialog quotes the number on screen. A Decimal is
-    // always truthy, including the structural Decimal(0) "no data" default,
-    // so the mark is only used when it is actually positive — otherwise the
-    // dialog would understate notional with zero-priced legs.
-    const priceOf = (p: (typeof inScope)[number]) =>
-        p.markPrice && p.markPrice.gt(0) ? p.markPrice : p.entryPrice;
-    const notional = inScope.reduce(
-        (sum, p) => sum.plus(p.size.mul(priceOf(p))),
-        new Decimal(0),
-    );
+        // Client-computed Σ size × price — the same formula the positions panel
+        // totals with, so the dialog quotes the number on screen. A Decimal is
+        // always truthy, including the structural Decimal(0) "no data" default,
+        // so the mark is only used when it is actually positive — otherwise the
+        // dialog would understate notional with zero-priced legs.
+        const priceOf = (p: (typeof inScope)[number]) =>
+            p.markPrice && p.markPrice.gt(0) ? p.markPrice : p.entryPrice;
+        const notional = inScope.reduce(
+            (sum, p) => sum.plus(p.size.mul(priceOf(p))),
+            new Decimal(0),
+        );
         const confirmed = await modalState.show(
             t("trade.closeAllConfirmTitle"),
             t("trade.closeAllConfirmMessage", {
