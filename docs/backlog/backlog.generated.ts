@@ -7712,8 +7712,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0497",
     "title": "The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
+    "assignee": "opencode",
+    "branch": "fix/BUG-0497-x-api-sign-redaction",
     "milestone": "none",
     "editions": [
       "community",
@@ -7745,6 +7747,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md"
+  },
+  {
+    "id": "BUG-0528",
+    "title": "redactString leaves prefixed sign spellings unredacted in embedded JSON",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "assignee": "opencode",
+    "branch": "fix/BUG-0497-x-api-sign-redaction",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "ADR-0013",
+    "depends_on": [],
+    "file": "bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md"
   },
   {
     "id": "FEAT-0022",
