@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   SECURITY_HEADERS,
   applySecurityHeaders,
@@ -150,5 +150,30 @@ describe('static asset headers integration', () => {
     expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+  });
+
+  it('applies security headers when res.writeHead is intercepted by express middleware', () => {
+    const res = mockRes();
+    const originalWriteHead = vi.fn();
+    res.writeHead = originalWriteHead;
+
+    // Simulate Express middleware wrapping res.writeHead (server.js pattern)
+    const wrappedWriteHead = res.writeHead;
+    res.writeHead = function (...args) {
+      applySecurityHeaders(res);
+      return wrappedWriteHead.apply(this, args);
+    };
+
+    // Simulate SvelteKit / sirv handler invoking res.writeHead(200, { 'content-type': 'text/html' })
+    res.writeHead(200, { 'content-type': 'text/html' });
+
+    expect(res.headers.get('Strict-Transport-Security')).toBe(
+      'max-age=31536000; includeSubDomains; preload',
+    );
+    expect(res.headers.get('Content-Security-Policy')).toBeDefined();
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(originalWriteHead).toHaveBeenCalledWith(200, { 'content-type': 'text/html' });
   });
 });
