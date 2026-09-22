@@ -1804,9 +1804,25 @@ class OrderGate {
             });
             return response;
         } catch (error) {
-            // Already audited as refused above — rethrow untouched so the
-            // refusal is not additionally recorded as a transport failure.
-            if (error instanceof OrderRefusedError) throw error;
+            if (error instanceof OrderRefusedError) {
+                // A refusal discovered late — the account, credentials or
+                // mode changed between approval and transmission, so
+                // `assertGatePass` threw inside the transport — is still a
+                // refusal, not a transport failure. One already recorded
+                // (the in-flight guard above, which throws before adding)
+                // is not recorded twice: `added` tells them apart, so the
+                // audit log keeps exactly one entry per attempt.
+                if (added) {
+                    this.audit(intent, {
+                        at,
+                        action,
+                        outcome: "refused",
+                        checked: verdict.checked,
+                        refusal: error.refusal,
+                    });
+                }
+                throw error;
+            }
             // A transport that threw is the most interesting case of all —
             // the order may or may not have reached the exchange.
             this.audit(intent, {
