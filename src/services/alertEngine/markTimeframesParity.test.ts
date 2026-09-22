@@ -290,7 +290,7 @@ describe("mark-timeframe parity with the core — BUG-0482", () => {
       try {
         fromCore = [...core.rule_mark_timeframes(JSON.stringify(document))].sort();
       } catch (e) {
-        throw new Error(`core refused a corpus document (${name}): ${tryStringify(e)}`);
+        throw new Error(`core refused a corpus document (${name}): ${tryStringify(e)}`, { cause: e });
       }
 
       expect(fromTs).toEqual(fromCore);
