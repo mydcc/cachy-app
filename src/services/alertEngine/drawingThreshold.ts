@@ -78,6 +78,15 @@ export interface DrawingThresholdPorts {
     /** The drawing, or null when the store does not have it. */
     drawing: (drawingId: string) => ChartDrawing | null;
     /**
+     * Hydrate the drawing store before it is read.
+     *
+     * Called only on the path that actually names a drawing (BUG-0484): the
+     * overwhelming majority of resolutions ends at `not-anchored` without
+     * ever touching the store, and loading it for those would tax every rule
+     * on every evaluation for nothing.
+     */
+    loadDrawings: () => void;
+    /**
      * Whether the drawing store was readable at all.
      *
      * Same distinction `readAlertStoreSnapshot` draws for FEAT-0387: a store
@@ -132,6 +141,7 @@ export function resolveDrawingThreshold(
     const anchor = snapshot.ledger[rule.id];
     if (!anchor) return { kind: "not-anchored" };
 
+    ports.loadDrawings();
     const drawing = ports.drawing(anchor.drawingId);
     if (!drawing) {
         // `storePresent` is asked only here, on the path where the answer

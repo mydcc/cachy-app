@@ -265,6 +265,37 @@ describe("rule loop wiring", () => {
       localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify({ not: "a list" }));
       expect(readStoredRules()).toEqual([]);
     });
+
+    /**
+     * BUG-0484 — the websocket tick path used to re-read and re-parse the
+     * whole rule set on every tick. The parse is now skipped while the stored
+     * bytes are unchanged: reference stability across reads is the observable
+     * proof no second parse happened.
+     */
+    it("reuses the parse across repeated reads of unchanged content", () => {
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1" }]));
+
+      const first = readStoredRules();
+      for (let i = 0; i < 10; i++) readStoredRules();
+
+      expect(readStoredRules()).toBe(first);
+    });
+
+    /**
+     * Content-keyed, not writer-keyed: any path that changes the bytes —
+     * arm, disarm, delete, or a raw write — is visible to the next read
+     * without a reload and without a version bump to remember.
+     */
+    it("sees edits, disarms and deletes without a reload", () => {
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1", enabled: true }]));
+      expect(readStoredRules()).toHaveLength(1);
+
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1", enabled: false }]));
+      expect(readStoredRules()[0]).toMatchObject({ id: "r1", enabled: false });
+
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([]));
+      expect(readStoredRules()).toEqual([]);
+    });
   });
 
   describe("ledger sinks", () => {

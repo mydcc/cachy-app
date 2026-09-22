@@ -20,7 +20,7 @@
  * time (tested at two different times), and moving a drawing moves its alert.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
 import type { RuleDocument } from "../../lib/rules/types";
@@ -69,6 +69,7 @@ function ports(overrides: Partial<DrawingThresholdPorts> = {}): DrawingThreshold
     const snapshot: DrawingAnchorLedgerSnapshot = { present: true, ledger };
     return {
         ledger: () => snapshot,
+        loadDrawings: () => {},
         drawing: (id) => (id === "draw-1" ? trend : null),
         storePresent: () => true,
         ...overrides,
@@ -257,5 +258,38 @@ describe("an unreadable anchor ledger — BUG-0498", () => {
 
     it("still resolves through a readable ledger", () => {
         expect(threshold(resolveDrawingThreshold(rule(), T0 + 2 * HOUR, ports()))).toBe("50200");
+    });
+});
+
+describe("loading the drawing store — BUG-0484", () => {
+    it("does not load the store for a rule anchored to no drawing", () => {
+        const plain = rule({ id: "rule-other" });
+        const loadDrawings = vi.fn();
+        const portsWithCountingLoad = ports({ loadDrawings });
+
+        expect(resolveDrawingThreshold(plain, T0, portsWithCountingLoad)).toEqual({
+            kind: "not-anchored",
+        });
+        expect(loadDrawings).not.toHaveBeenCalled();
+    });
+
+    it("loads the store before reading a drawing the rule is anchored to", () => {
+        const loadDrawings = vi.fn();
+        const order: string[] = [];
+        const trackingPorts = ports({
+            loadDrawings: () => {
+                order.push("load");
+                loadDrawings();
+            },
+            drawing: (id) => {
+                order.push("drawing");
+                return id === "draw-1" ? trend : null;
+            },
+        });
+
+        resolveDrawingThreshold(rule(), T0 + 2 * HOUR, trackingPorts);
+
+        expect(loadDrawings).toHaveBeenCalledTimes(1);
+        expect(order).toEqual(["load", "drawing"]);
     });
 });
