@@ -309,7 +309,7 @@ export class RuleEvaluationLoop {
    */
   observeCandles(symbol: string, timeframe: string, candles: readonly { time: number }[]): RuleFiring[] {
     try {
-      const anchorMs = this.advance(symbol, timeframe, candles);
+      const closes = this.advance(symbol, timeframe, candles);
 
       // Runs on every call, including the ones that closed nothing — that is
       // the whole of what intrabar means. Deliberately after `advance`, so the
@@ -318,14 +318,21 @@ export class RuleEvaluationLoop {
       // that just closed is handled below by the close path instead.
       const firings = this.evaluateForming(symbol, timeframe);
 
-      if (anchorMs === undefined) return firings;
+      if (closes.length === 0) return firings;
 
       // Before evaluating: a caller re-syncing coverage here has already
       // dropped a newly-covered alert from the legacy engine by the time a
       // rule below could notify for this same close.
-      this.onClose(symbol, timeframe, anchorMs);
+      const last = closes[closes.length - 1];
+      this.onClose(symbol, timeframe, last);
 
-      firings.push(...this.evaluateSeries(symbol, timeframe, anchorMs));
+      // One decision per close, oldest first. A batch that jumps several
+      // candles replays each skipped close against history truncated to it
+      // (BUG-0483 part 2), so a crossing strictly inside the gap is decided
+      // where it happened rather than missed in silence.
+      for (const anchorMs of closes) {
+        firings.push(...this.evaluateSeries(symbol, timeframe, anchorMs));
+      }
       return firings;
     } catch (e) {
       logger.error("alerts", `[RuleEngine] Rule evaluation failed for ${symbol} ${timeframe}`, e);
@@ -334,35 +341,27 @@ export class RuleEvaluationLoop {
   }
 
   /**
-   * Records the highest open time seen for a series and reports the anchor if
-   * this call closed a candle.
+   * Records the highest open time seen for a series and reports every candle
+   * this call closed, oldest first.
    *
    * Out-of-order and repeated candles are normal on a reconnect or a REST
-   * backfill; only a strictly greater open time closes something, so a
+   * backfill; only strictly greater open times close something, so a
    * late-arriving older candle cannot re-fire an anchor the gate already saw.
    *
-   * The anchor is the last *closed* candle this call knows about: the newest
-   * open time in the batch is still forming, and everything below it — the
-   * previous high-water mark included — has closed. On a batch that jumps
-   * several candles at once that is the newest candle of the batch, not the
-   * pre-batch mark (BUG-0483): stamping the verdict with a five-candle-old
-   * anchor keyed the notification dedupe, the fired history and the bot's
-   * entry-price lookup to the wrong candle.
-   *
-   * Still one anchor per call: candles that opened and closed strictly inside
-   * the jump are not reported separately. Their crossings are not recovered
-   * here — a `cross` is decided from the adjacent pair, and evaluating "at"
-   * an intermediate anchor against post-backfill history would answer from
-   * the wrong data, not merely late. Replaying the gap against history
-   * truncated to each skipped close is the follow-up this deliberately leaves
-   * open (BUG-0483 part 2), not a detail.
+   * The usual call closes exactly one candle — the pre-batch mark, whose
+   * closed candle is not in the batch at all. A batch that jumps several
+   * candles at once additionally reports every batch open below the
+   * still-forming newest, so the caller can replay each skipped close
+   * (BUG-0483 part 2) instead of stamping one verdict with a five-candle-old
+   * anchor (part 1). What is returned is always ascending and duplicate-free,
+   * which is what the gate's monotonic guard needs to walk it.
    */
   private advance(
     symbol: string,
     timeframe: string,
     candles: readonly { time: number }[],
-  ): number | undefined {
-    if (!Array.isArray(candles) || candles.length === 0) return undefined;
+  ): number[] {
+    if (!Array.isArray(candles) || candles.length === 0) return [];
 
     const key = `${symbol}:${timeframe}`;
     const previous = this.highestOpenMs.get(key);
@@ -373,26 +372,26 @@ export class RuleEvaluationLoop {
       if (typeof time !== "number" || !Number.isFinite(time)) continue;
       if (highest === undefined || time > highest) highest = time;
     }
-    if (highest === undefined) return undefined;
+    if (highest === undefined) return [];
 
     this.highestOpenMs.set(key, highest);
 
     // Nothing closed: either this is the first candle of the series (no
     // earlier candle exists to have closed), or the open candle was merely
     // updated in place.
-    if (previous === undefined || highest <= previous) return undefined;
+    if (previous === undefined || highest <= previous) return [];
 
-    // The last closed candle of this call: the newest batch open below the
-    // still-forming `highest`, falling back to the pre-batch mark when the
-    // batch carries nothing below it (the ordinary single close, whose closed
-    // candle is not in the batch at all).
-    let anchor = previous;
+    // The closes of this call: the pre-batch mark first, then every batch
+    // open below the still-forming `highest`. Late or repeated candles at or
+    // below the mark close nothing and are left out.
+    const closes = [previous];
     for (const candle of candles) {
       const time = candle?.time;
       if (typeof time !== "number" || !Number.isFinite(time)) continue;
-      if (time > anchor && time < highest) anchor = time;
+      if (time > previous && time < highest) closes.push(time);
     }
-    return anchor;
+    closes.sort((a, b) => a - b);
+    return [...new Set(closes)];
   }
 
   /**
@@ -454,7 +453,7 @@ export class RuleEvaluationLoop {
   private evaluateSeries(symbol: string, timeframe: string, anchorMs: number): RuleFiring[] {
     const rules = this.rulesFor(symbol, timeframe, false);
     if (rules.length === 0) return [];
-    return this.evaluateRules(rules, symbol, timeframe, anchorMs, false);
+    return this.evaluateRules(rules, symbol, timeframe, anchorMs, false, anchorMs);
   }
 
   private evaluateRules(
@@ -463,6 +462,7 @@ export class RuleEvaluationLoop {
     timeframe: string,
     anchorMs: number,
     intrabar: boolean,
+    asOf?: number,
   ): RuleFiring[] {
     const firings: RuleFiring[] = [];
     for (const rule of rules) {
@@ -472,7 +472,7 @@ export class RuleEvaluationLoop {
       // every candle (BUG-0449).
       let firing: RuleFiring | undefined;
       try {
-        firing = this.evaluateRule(rule, symbol, timeframe, anchorMs, intrabar);
+        firing = this.evaluateRule(rule, symbol, timeframe, anchorMs, intrabar, asOf);
       } catch (e) {
         // A refusal is the core saying this document is not a rule it accepts,
         // and it will say so on every close: the same document, the same core.
@@ -506,6 +506,7 @@ export class RuleEvaluationLoop {
     timeframe: string,
     anchorMs: number,
     intrabar: boolean,
+    asOf?: number,
   ): RuleFiring | undefined {
     // Read per rule, not once per series: two rules on the same trigger
     // timeframe can still read different timeframes, and the reader is the
@@ -521,13 +522,13 @@ export class RuleEvaluationLoop {
     }
     rule = resolved.rule;
 
-    const ctx = this.contextFor(rule, symbol, timeframe, intrabar);
+    const ctx = this.contextFor(rule, symbol, timeframe, intrabar, asOf);
     // Undefined means the rule cannot be honestly evaluated at all — not that
     // it did not fire. Skipping is the safe direction; `contextFor` has
     // already said so out loud.
     if (ctx === undefined) return undefined;
 
-    const markCandles = this.markCandlesFor(rule, symbol);
+    const markCandles = this.markCandlesFor(rule, symbol, asOf);
     if (markCandles) {
       ctx.mark_candles = markCandles;
     }
@@ -562,16 +563,25 @@ export class RuleEvaluationLoop {
     symbol: string,
     triggerTimeframe: string,
     intrabar: boolean,
+    asOf?: number,
   ): Record<string, EvaluationCandle[]> {
+    // A replayed close is decided against history truncated to it: without
+    // the ceiling, every skipped close would answer from post-backfill data
+    // and a crossing inside the gap would still be invisible (BUG-0483 part
+    // 2). This is also what makes the gate's contract true — the open time of
+    // the context's last closed candle is the stamped anchor.
+    const read = (s: string, t: string, forming: boolean): EvaluationCandle[] => {
+      const series = forming ? this.readFormingCandles(s, t) : this.readCandles(s, t);
+      if (asOf === undefined) return series;
+      return series.filter((c) => c.open_time_ms <= asOf);
+    };
     const candles: Record<string, EvaluationCandle[]> = {
-      [triggerTimeframe]: intrabar
-        ? this.readFormingCandles(symbol, triggerTimeframe)
-        : this.readCandles(symbol, triggerTimeframe),
+      [triggerTimeframe]: read(symbol, triggerTimeframe, intrabar),
     };
 
     for (const timeframe of collectTimeframes(rule)) {
       if (timeframe === triggerTimeframe) continue;
-      candles[timeframe] = this.readCandles(symbol, timeframe);
+      candles[timeframe] = read(symbol, timeframe, false);
     }
     return candles;
   }
@@ -594,8 +604,9 @@ export class RuleEvaluationLoop {
     symbol: string,
     triggerTimeframe: string,
     intrabar: boolean,
+    asOf?: number,
   ): EvaluationContext | undefined {
-    const candles = this.candlesFor(rule, symbol, triggerTimeframe, intrabar);
+    const candles = this.candlesFor(rule, symbol, triggerTimeframe, intrabar, asOf);
     const indicators: EvaluationIndicatorSeries[] = [];
 
     for (const request of collectIndicators(rule)) {
@@ -685,13 +696,15 @@ export class RuleEvaluationLoop {
   private markCandlesFor(
     rule: RuleDocument,
     symbol: string,
+    asOf?: number,
   ): Record<string, EvaluationCandle[]> | undefined {
     const timeframes = collectMarkTimeframes(rule);
     if (timeframes.size === 0) return undefined;
 
     const candles: Record<string, EvaluationCandle[]> = {};
     for (const timeframe of timeframes) {
-      candles[timeframe] = this.readMarkCandles(symbol, timeframe);
+      const series = this.readMarkCandles(symbol, timeframe);
+      candles[timeframe] = asOf === undefined ? series : series.filter((c) => c.open_time_ms <= asOf);
     }
     return candles;
   }
