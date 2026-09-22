@@ -2697,6 +2697,8 @@
       "orderRefusedNoStop": "“{name}” fired, but placed nothing: a bot needs a stop before it can size a position.",
       "orderRefusedReduceOnly": "“{name}” fired, but placed nothing: a bot that only closes a position cannot be placed yet.",
       "orderRefusedLevelNotSupported": "“{name}” fired, but placed nothing: this rule asks for live sending, which is not available yet.",
+      "orderRefusedNoLivePrice": "“{name}” fired, but placed nothing: no live price was available to size the order.",
+      "orderRefusedStaleAnchor": "“{name}” fired, but placed nothing: the market moved too far from the fired candle.",
       "orderRefusedOther": "“{name}” fired, but placed nothing."
     }
   },

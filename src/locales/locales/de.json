@@ -2697,6 +2697,8 @@
       "orderRefusedNoStop": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot braucht einen Stop, um eine Position zu dimensionieren.",
       "orderRefusedReduceOnly": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot, der nur eine Position schließt, kann noch nicht platziert werden.",
       "orderRefusedLevelNotSupported": "„{name}“ hat ausgelöst, aber nichts platziert: Diese Regel verlangt Live-Versand, der noch nicht verfügbar ist.",
+      "orderRefusedNoLivePrice": "„{name}“ hat ausgelöst, aber nichts platziert: Es war kein Live-Preis verfügbar, um die Order zu dimensionieren.",
+      "orderRefusedStaleAnchor": "„{name}“ hat ausgelöst, aber nichts platziert: Der Markt hat sich zu weit von der ausgelösten Kerze entfernt.",
       "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert."
     }
   },
