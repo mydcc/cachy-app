@@ -52,6 +52,7 @@ import {
   type BotOrderEnvironment,
 } from "./botOrders";
 import type { RuleFiring } from "./ruleEvaluationLoop";
+import { BOT_PAPER_ONLY_MESSAGE_KEY } from "../orderGate";
 
 // BUG-0491: the composition below drives the real gate, so the real core
 // must stay out of it — the verdicts are the test's, not the market's.
@@ -252,6 +253,48 @@ describe("what a fired bot submits", () => {
 
     expect(await submitBotOrder(firingOf(botDocument()), env)).toBe("no-equity");
     expect(place).not.toHaveBeenCalled();
+  });
+
+  it("reports paper-trading-off when the stamped order was refused downstream — BUG-0494", async () => {
+    // The flip case: paper was on at the pre-check and off when the gate or
+    // the transport saw the stamped order. `placeEntryGroup` reports that
+    // refusal as a result rather than throwing, so without this mapping the
+    // trader's toast would never fire.
+    const place = vi.fn(async () => ({
+      entryPlaced: false,
+      stopLoss: "none" as const,
+      takeProfit: "none" as const,
+      unprotected: false,
+      errorKey: BOT_PAPER_ONLY_MESSAGE_KEY,
+      refusal: {
+        field: "mode",
+        reason: "unsupported",
+        messageKey: BOT_PAPER_ONLY_MESSAGE_KEY,
+        values: {},
+      },
+    }));
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+
+    expect(await submitBotOrder(firingOf(botDocument()), env)).toBe("paper-trading-off");
+    expect(place).toHaveBeenCalledTimes(1);
+    // BUG-0494 — the stamp is what the downstream refusal keys off. Without
+    // this assertion the `origin: "bot"` line could be deleted and every
+    // test would stay green.
+    expect(place.mock.calls[0][0]).toMatchObject({ origin: "bot" });
+  });
+
+  it("does not mistake any other failed placement for a paper refusal", async () => {
+    const place = vi.fn(async () => ({
+      entryPlaced: false,
+      stopLoss: "none" as const,
+      takeProfit: "none" as const,
+      unprotected: false,
+      errorKey: "orderEntry.errors.entryRejected",
+    }));
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+
+    // Any other failure keeps today's behaviour: no invented cause.
+    expect(await submitBotOrder(firingOf(botDocument()), env)).toBeNull();
   });
 });
 

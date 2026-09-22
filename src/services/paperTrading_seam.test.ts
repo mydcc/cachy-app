@@ -180,10 +180,13 @@ describe("FEAT-0012 — one seam", () => {
 
         // The remaining reads are not branches: they record the mode onto the
         // intent and onto the gate-pass context so the transport can compare
-        // them, and one relaxes a credential guard (FEAT-0327) in front of a
-        // read that goes through the seam and therefore needs no credentials.
-        // None of them changes what the request is.
-        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(5);
+        // them, one relaxes a credential guard (FEAT-0327) in front of a
+        // read that goes through the seam and therefore needs no credentials,
+        // and one refuses a bot-stamped order while paper is off (BUG-0494).
+        // None of them changes what the request is: the provenance refusal
+        // stops a paper-only order from reaching the live branch, it never
+        // routes anything.
+        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(6);
         expect(
             source.match(/if \(!paperState\.enabled && \(!keys\?\.key/g) ?? [],
         ).toHaveLength(1);

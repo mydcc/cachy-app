@@ -107,7 +107,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         symbol: "BTCUSDT",
         type: "cancel-all",
-      }, GATE_PASS);
+      }, GATE_PASS, undefined, undefined);
     });
 
     it("issues a single request with type=cancel-all without symbol", async () => {
@@ -121,7 +121,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         symbol: undefined,
         type: "cancel-all",
-      }, GATE_PASS);
+      }, GATE_PASS, undefined, undefined);
     });
   });
 
@@ -137,7 +137,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       expect(signedRequestSpy).toHaveBeenCalledWith("/api/orders", {
         type: "close-all-positions",
         symbol: "BTCUSDT",
-      }, GATE_PASS);
+      }, GATE_PASS, undefined, undefined);
       // Verify no OMS iteration occurred
       expect(omsService.getPositions).not.toHaveBeenCalled();
     });
@@ -204,7 +204,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
         type: "flash-close-position",
         symbol: "BTCUSDT",
         positionId: "pos-123456",
-      }, GATE_PASS);
+      }, GATE_PASS, undefined, undefined);
     });
   });
 
@@ -280,7 +280,7 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
         slPrice: "142", // updated (formatApiNum strips trailing zero)
         slStopType: "MARK_PRICE", // preserved
         slOrderType: "MARKET", // preserved
-      }, GATE_PASS);
+      }, GATE_PASS, undefined, undefined);
       expect(result).toEqual({ orderId: "order-999", clientId: "client-abc" });
     });
 
@@ -317,7 +317,9 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
           qty: "10",
           price: "148.5",
         }),
-        GATE_PASS
+        GATE_PASS,
+        undefined,
+        undefined
       );
     });
   });

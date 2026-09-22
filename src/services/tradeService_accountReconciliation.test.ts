@@ -111,6 +111,8 @@ describe("BUG-0249 — post-action account reconciliation", () => {
         await tradeService.placeOrder({
             symbol: "BTCUSDT",
             side: "BUY",
+            // BUG-0494 — this case exercises a manual flow.
+            origin: "manual",
             orderType: "LIMIT",
             qty: new Decimal("0.02"),
             price: new Decimal(50000),
@@ -150,6 +152,8 @@ describe("BUG-0249 — post-action account reconciliation", () => {
             tradeService.placeOrder({
                 symbol: "BTCUSDT",
                 side: "BUY",
+                // BUG-0494 — this case exercises a manual flow.
+                origin: "manual",
                 orderType: "LIMIT",
                 qty: new Decimal("0.02"),
                 price: new Decimal(50000),

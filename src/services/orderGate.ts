@@ -159,6 +159,22 @@ export interface OrderRefusal {
     values: Record<string, string>;
 }
 
+/**
+ * Where an order came from. BUG-0494 — a bot's order carries its provenance
+ * so "paper only" is a property of the order rather than a precondition read
+ * twice from mutable global state. The transport could not honour "this one
+ * is paper only" before because nothing on the order said so.
+ */
+export type OrderOrigin = "manual" | "bot";
+
+/**
+ * Refusal key for a bot order that reached approval or transmission while
+ * paper trading is off. Shared with the transport (`signedRequest`) and the
+ * bot submission path (`submitBotOrder` maps it back to the trader-facing
+ * `paper-trading-off` toast), so all three name the same cause.
+ */
+export const BOT_PAPER_ONLY_MESSAGE_KEY = "orderGate.botPaperOnly";
+
 export class OrderRefusedError extends Error {
     public readonly refusal: OrderRefusal;
     constructor(refusal: OrderRefusal) {
@@ -390,6 +406,13 @@ export interface OrderIntent {
     /** The exact payload that will be transmitted. */
     payload: Record<string, unknown>;
     displayed: DisplayedState;
+    /**
+     * Where the order came from. Absent means "not a bot order" — every
+     * pre-provenance call site (closes, cancels, modifies) keeps its exact
+     * behaviour, and only the entry path stamps it. The gate refuses a
+     * bot-stamped intent approved while paper trading is off (BUG-0494).
+     */
+    origin?: OrderOrigin;
     /** Overrides for endpoints whose payload shape deviates from the default. */
     priceFields?: PriceFieldMap;
     /** Quantity-path overrides for endpoints that nest their quantities. */
@@ -723,6 +746,27 @@ class OrderGate {
                 field: "killSwitch",
                 reason: "killSwitch",
                 messageKey: "orderGate.killSwitch",
+                values: {},
+            });
+        }
+
+        // --- provenance (BUG-0494) ---------------------------------------
+        // A bot proposes an order into paper; live sending is FEAT-0035.
+        // The bot's own `paperEnabled()` pre-check and the transport's paper
+        // seam each re-read mutable global state with an `await` and a module
+        // fetch between them, so a switch flipped in between used to send a
+        // never-clicked order to the real venue. The order now carries its
+        // provenance, and the gate — which reads the mode fresh at approval
+        // time — refuses a bot-stamped intent that is not paper. The
+        // approval-to-transmission flip stays covered by the pass's paperMode
+        // comparison in `assertGatePass`; the transport repeats this refusal
+        // as defence in depth. Pure: both inputs ride the intent already.
+        checked.push("provenance");
+        if (intent.origin === "bot" && displayed.paperMode !== true) {
+            return refuse({
+                field: "mode",
+                reason: "unsupported",
+                messageKey: BOT_PAPER_ONLY_MESSAGE_KEY,
                 values: {},
             });
         }

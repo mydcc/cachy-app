@@ -117,7 +117,9 @@ describe('TradeService Flash Close Vulnerability', () => {
         expect(requestSpy).toHaveBeenCalledWith(
             '/api/orders',
             expect.objectContaining({ side: 'BUY', tradeSide: 'CLOSE', orderType: 'MARKET', reduceOnly: true }),
-            GATE_PASS
+            GATE_PASS,
+            undefined,
+            undefined
         );
     });
 });

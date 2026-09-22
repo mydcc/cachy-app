@@ -122,6 +122,9 @@ function plan(overrides: Partial<EntryPlan> = {}): EntryPlan {
     return {
         exchange: "bitunix",
         symbol: "BTCUSDT",
+        // BUG-0494 — existing cases exercise manual flows; the provenance is
+        // stated so the required field does not change what they assert.
+        origin: "manual",
         tradeType: "long",
         entryType: "market",
         qty: new Decimal("0.02"),

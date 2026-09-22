@@ -178,6 +178,6 @@ describe("TradeService Safety - Flash Close", () => {
             side: "BUY",
             tradeSide: "CLOSE",
             reduceOnly: true
-        }), GATE_PASS);
+        }), GATE_PASS, undefined, undefined);
     });
 });

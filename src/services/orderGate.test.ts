@@ -1318,3 +1318,34 @@ describe("FEAT-0067 — trading pair metadata validation", () => {
         expect(verdict.refusal).toBeNull();
     });
 });
+
+describe("orderGate — provenance (BUG-0494)", () => {
+    it("refuses a bot-stamped intent while paper trading is off", () => {
+        // The flip case: the bot's pre-check saw paper on, the gate reads
+        // the mode fresh at approval time and sees it off. Without the
+        // stamp the gate would approve this as a live order.
+        const intent = openIntent();
+        intent.origin = "bot";
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.messageKey).toBe("orderGate.botPaperOnly");
+    });
+
+    it("approves the same bot-stamped intent in paper mode", () => {
+        const intent = openIntent();
+        intent.origin = "bot";
+        intent.displayed.paperMode = true;
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(true);
+        expect(verdict.refusal).toBeNull();
+    });
+
+    it("leaves manual and unstamped intents on their exact behaviour", () => {
+        const manual = openIntent();
+        manual.origin = "manual";
+        expect(orderGate.verify(manual).approved).toBe(true);
+        // Absent means "not a bot order": every pre-provenance call site
+        // (closes, cancels, modifies) is unaffected.
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+});

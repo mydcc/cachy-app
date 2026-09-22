@@ -268,6 +268,9 @@
       result = await orderPlacementService.placeEntryGroup({
         exchange,
         symbol: data.symbol,
+        // BUG-0494 — a clicked order is manual provenance. Required on the
+        // plan so no call site can omit it and silently take the live path.
+        origin: "manual",
         tradeType: data.tradeType,
         entryType,
         qty: data.positionSize,
