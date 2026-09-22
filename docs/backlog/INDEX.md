@@ -4,7 +4,7 @@
 
 409 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 36 · ✅ done 349 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 35 · ✅ done 350 · ⛔ dropped 1
 
 ---
 
@@ -346,7 +346,7 @@ Counts by status: 💡 idea 23 · 📋 specced 36 · ✅ done 349 · ⛔ dropped
 | [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | ✅ done | alerts |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | execution |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | execution |
-| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
+| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | ✅ done | execution |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | execution |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | execution |
@@ -704,7 +704,7 @@ Counts by status: 💡 idea 23 · 📋 specced 36 · ✅ done 349 · ⛔ dropped
 | [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
+| [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | ✅ done | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | none | community, pro, private | none | none | — |
