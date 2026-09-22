@@ -2347,6 +2347,8 @@ export type TranslationKey =
   | "settings.automation.orderRefusedNoStop"
   | "settings.automation.orderRefusedReduceOnly"
   | "settings.automation.orderRefusedLevelNotSupported"
+  | "settings.automation.orderRefusedNoLivePrice"
+  | "settings.automation.orderRefusedStaleAnchor"
   | "settings.automation.orderRefusedOther"
   | "positionsList.noOpenPositions"
   | "positionsList.closeAll"

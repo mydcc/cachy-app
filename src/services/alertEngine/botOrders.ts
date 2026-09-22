@@ -135,6 +135,8 @@ export type BotOrderRefusal =
   | "reduce-only-unsupported"
   | "no-stop"
   | "no-entry-price"
+  | "no-live-price"
+  | "stale-anchor-price"
   | "no-equity"
   | "size-not-positive"
   | "level-not-supported";
@@ -157,6 +159,8 @@ export interface BotOrderEnvironment {
   exchange: () => string;
   /** The close of the candle the rule fired on, or null when it is not held. */
   closeAt: (symbol: string, timeframe: string, anchorMs: number) => Decimal | null;
+  /** The freshest price the engine holds, or null when the series is not held. */
+  livePrice: (symbol: string, timeframe: string) => Decimal | null;
   place: typeof orderPlacementService.placeEntryGroup;
 }
 
@@ -176,6 +180,40 @@ export function closeAtAnchor(symbol: string, timeframe: string, anchorMs: numbe
   }
   return null;
 }
+
+/**
+ * The close of the candle currently forming — the freshest price the engine
+ * holds, updated on every tick.
+ *
+ * BUG-0489 — this is what a market order is sized and stopped against, not
+ * the anchor close. `closeAtAnchor` proves *which* candle the verdict belongs
+ * to; this answers what the market looks like *now*. One price doing both
+ * jobs is what sized every bot from the past. Null when the series is not
+ * held at all, which refuses rather than falls back: a bot that does nothing
+ * and says so beats one sized on a stale close.
+ */
+export function livePriceAt(symbol: string, timeframe: string): Decimal | null {
+  const forming = readFormingCandles(symbol, timeframe);
+  if (forming.length === 0) return null;
+  try {
+    const close = new Decimal(forming[forming.length - 1].close);
+    return close.isFinite() ? close : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * How far the market may have moved from the fired candle before the firing
+ * no longer describes the trade.
+ *
+ * A fixed fraction, not a per-rule field: a per-rule field is a schema change
+ * and moves the content hash. A submission runs milliseconds after its close,
+ * so 1% is a tripwire for a stale anchor (a late-processed or backfilled
+ * firing, BUG-0483's shape) rather than a slippage control — in normal
+ * operation the drift is a tick, and the guard never trips.
+ */
+export const MAX_ANCHOR_PRICE_DRIFT = 0.01;
 
 /**
  * Turns one firing into an order, or says why it could not.
@@ -215,8 +253,21 @@ export async function submitBotOrder(
 
   if (!order.stop) return "no-stop";
 
-  const entryPrice = env.closeAt(firing.rule.symbol, firing.rule.trigger_timeframe, firing.anchorMs);
-  if (!entryPrice || entryPrice.lte(0)) return "no-entry-price";
+  // BUG-0489 — the anchor close proves which candle the verdict belongs to,
+  // and that is all it proves. A market order fills at the current price, so
+  // quantity, stop and declared risk are computed from the live price. Sizing
+  // from the anchor close fills further away the longer the trigger timeframe
+  // is, and `percent_risk` — the sizing this calculator exists for — carries
+  // the entry price twice, so it drifts the most.
+  const anchorClose = env.closeAt(firing.rule.symbol, firing.rule.trigger_timeframe, firing.anchorMs);
+  if (!anchorClose || anchorClose.lte(0)) return "no-entry-price";
+
+  const entryPrice = env.livePrice(firing.rule.symbol, firing.rule.trigger_timeframe);
+  if (!entryPrice || entryPrice.lte(0)) return "no-live-price";
+
+  if (entryPrice.minus(anchorClose).abs().div(anchorClose).gt(MAX_ANCHOR_PRICE_DRIFT)) {
+    return "stale-anchor-price";
+  }
 
   const equity = env.equity();
   if (equity.lte(0)) return "no-equity";

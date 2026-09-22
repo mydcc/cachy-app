@@ -113,6 +113,7 @@ function environment(overrides: Partial<BotOrderEnvironment> = {}) {
     equity: () => new Decimal("10000"),
     exchange: () => "bitunix",
     closeAt: () => new Decimal("50000"),
+    livePrice: () => new Decimal("50000"),
     place,
     ...overrides,
   };
@@ -294,6 +295,64 @@ describe("what a fired bot submits", () => {
 
     // Any other failure keeps today's behaviour: no invented cause.
     expect(await submitBotOrder(firingOf(botDocument()), env)).toBeNull();
+  });
+});
+
+describe("live-price sizing — BUG-0489", () => {
+  // percent_risk carries the entry price twice (quantity and stop distance),
+  // so it is the basis that drifts the most when sized from a stale close.
+  function percentRiskBot(): RuleDocument {
+    return botDocument("percent_risk", "1", { basis: "percent_of_entry", distance: "2" });
+  }
+
+  it("sizes quantity, stop and declared risk from the live price, not the anchor close", async () => {
+    // Anchor close 50000, live 50200 (0.4% — inside the staleness tripwire).
+    const { env, place } = environment({ livePrice: () => new Decimal("50200") });
+
+    expect(await submitBotOrder(firingOf(percentRiskBot()), env)).toBeNull();
+
+    const live = new Decimal("50200");
+    const equity = new Decimal("10000");
+    const stop = stopPriceFor(live, "buy", { basis: "percent_of_entry", distance: "2" });
+    const qty = quantityFor(
+      { side: "buy", size_basis: "percent_risk", size: "1" },
+      equity,
+      live,
+      stop,
+    );
+    expect(place).toHaveBeenCalledTimes(1);
+    const plan = place.mock.calls[0][0];
+    expect(plan.entryPrice.toString()).toBe("50200");
+    expect(plan.stopLossPrice.toString()).toBe(stop.toString());
+    expect(plan.qty.toString()).toBe(qty.toString());
+    // The gate re-derives an `open`'s size from this number (FEAT-0011), so it
+    // must agree with the quantity actually submitted.
+    expect(plan.riskPercentage.toString()).toBe(
+      riskPercentageFor(qty, equity, live, stop).toString(),
+    );
+  });
+
+  it("refuses rather than falling back to the stale close when no live price is held", async () => {
+    const { env, place } = environment({ livePrice: () => null });
+
+    expect(await submitBotOrder(firingOf(percentRiskBot()), env)).toBe("no-live-price");
+    expect(place).not.toHaveBeenCalled();
+  });
+
+  it("withholds the order when the market ran away from the fired candle", async () => {
+    // 51000 against an anchor of 50000 is 2% — past the 1% tripwire. A fill
+    // there is not the trade the document describes.
+    const { env, place } = environment({ livePrice: () => new Decimal("51000") });
+
+    expect(await submitBotOrder(firingOf(percentRiskBot()), env)).toBe("stale-anchor-price");
+    expect(place).not.toHaveBeenCalled();
+  });
+
+  it("still refuses a firing whose candle is no longer held", async () => {
+    const { env, place } = environment({ closeAt: () => null });
+
+    expect(await submitBotOrder(firingOf(botDocument()), env)).toBe("no-entry-price");
+    expect(place).not.toHaveBeenCalled();
   });
 });
 
