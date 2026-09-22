@@ -4046,6 +4046,7 @@
     "killSwitch": "Order abgelehnt: Der Kill Switch ist aktiv. Solange er an ist, werden keine Orders gesendet, die eine Position eröffnen oder vergrößern — Positionen schließen, Orders stornieren und Stops anpassen funktioniert weiterhin.",
     "riskLimit": "Order abgelehnt: {field} überschreitet das konfigurierte Limit (Limit {limit}, diese Order {actual}). Die Order wurde nicht gesendet.",
     "unconfirmed": "Order abgelehnt: Für {action} ist eine Bestätigung eingestellt, die nicht erfolgt ist. Die Order wurde nicht gesendet.",
+    "duplicateInFlight": "Order abgelehnt: Eine identische {action}-Order für {symbol} wird bereits gesendet. Das Duplikat wurde nicht gesendet.",
     "minTradeVolume": "Order abgelehnt: Die Positionsgröße {actual} liegt unter dem Mindesthandelsvolumen von {limit}. Die Order wurde nicht gesendet.",
     "maxOrderVolume": "Order abgelehnt: Die Positionsgröße {actual} überschreitet das maximale Ordervolumen von {limit}. Die Order wurde nicht gesendet.",
     "insufficientMargin": "Order abgelehnt: Der Nachkauf benötigt {actual} Margin, verfügbar sind nur {limit}. Die Order wurde nicht gesendet.",
