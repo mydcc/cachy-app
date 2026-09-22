@@ -100,6 +100,9 @@ function plan(overrides: Partial<EntryPlan> = {}): EntryPlan {
     return {
         exchange: "bitunix",
         symbol: "BTCUSDT",
+        // BUG-0494 — existing cases exercise manual flows; the provenance is
+        // stated so the required field does not change what they assert.
+        origin: "manual",
         tradeType: "long",
         entryType: "limit",
         qty: new Decimal("0.02"),
@@ -253,6 +256,8 @@ describe("BUG-0297 — an entry on a venue that cannot attach protection", () =>
                 tradeService.placeOrder({
                     symbol: "BTCUSDT",
                     side: "BUY",
+                    // BUG-0494 — these cases exercise manual flows.
+                    origin: "manual",
                     orderType: "LIMIT",
                     qty: new Decimal("0.02"),
                     price: new Decimal(50000),
@@ -277,6 +282,8 @@ describe("BUG-0297 — an entry on a venue that cannot attach protection", () =>
                 tradeService.placeOrder({
                     symbol: "BTCUSDT",
                     side: "BUY",
+                    // BUG-0494 — these cases exercise manual flows.
+                    origin: "manual",
                     orderType: "LIMIT",
                     qty: new Decimal("0.02"),
                     price: new Decimal(50000),
@@ -318,6 +325,8 @@ describe("the account id the pass carries", () => {
     const fullOrder = (displayed: Record<string, unknown>) => ({
         symbol: "BTCUSDT",
         side: "BUY" as const,
+        // BUG-0494 — these cases exercise manual flows.
+        origin: "manual" as const,
         orderType: "LIMIT" as const,
         qty: new Decimal("0.02"),
         price: new Decimal(50000),

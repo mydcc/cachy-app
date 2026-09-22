@@ -1854,8 +1854,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0494",
     "title": "A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
+    "assignee": "opencode",
+    "branch": "fix/BUG-0494-bot-paper-provenance",
     "milestone": "none",
     "editions": [
       "community",

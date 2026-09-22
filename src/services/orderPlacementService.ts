@@ -48,7 +48,7 @@ import { accountState } from "../stores/account.svelte";
 import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
 import { logger } from "./logger";
-import { OrderRefusedError, type OrderRefusal } from "./orderGate";
+import { OrderRefusedError, type OrderRefusal, type OrderOrigin } from "./orderGate";
 // Shared with the resting-stop read (review on PR #3551) so the two cannot drift.
 import { planSideMatchesEntry as sideCompatible } from "./tpslNormalize";
 import { getDisplayMessage } from "../utils/errorUtils";
@@ -93,6 +93,13 @@ export interface PlacementResult {
 export interface EntryPlan {
     exchange: string;
     symbol: string;
+    /**
+     * Where the order came from. Required, not optional-with-default, so a
+     * new call site cannot omit it and silently take the live path
+     * (BUG-0494): the gate and the transport refuse a bot-stamped plan while
+     * paper trading is off instead of falling through to the venue.
+     */
+    origin: OrderOrigin;
     /** "long" or "short", as the calculator states it. */
     tradeType: string;
     entryType: OrderEntryType;
@@ -259,6 +266,7 @@ class OrderPlacementService {
             const submitted = await tradeService.placeOrder({
                 symbol: plan.symbol,
                 side,
+                origin: plan.origin,
                 orderType: plan.entryType === "market" ? "MARKET" : "LIMIT",
                 qty: plan.qty,
                 price: plan.entryType === "market" ? undefined : plan.entryPrice,

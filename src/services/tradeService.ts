@@ -66,9 +66,11 @@ import {
     translateRefusal,
     OrderRefusedError,
     mismatch,
+    BOT_PAPER_ONLY_MESSAGE_KEY,
     type GatePass,
     type DisplayedState,
     type OrderIntent,
+    type OrderOrigin,
 } from "./orderGate";
 import { exchangeSignedFetch, SIGNING_ERRORS } from "../utils/exchange/browserSigning";
 import {
@@ -154,6 +156,13 @@ export class BitunixApiError extends Error {
 export interface PlaceOrderParams {
     symbol: string;
     side: "BUY" | "SELL";
+    /**
+     * Where the order came from. Required, not optional-with-default: a new
+     * call site that omits it must fail to compile rather than silently take
+     * the live path (BUG-0494). The venue adapters forward params wholesale,
+     * so they carry it without knowing it.
+     */
+    origin: OrderOrigin;
     orderType?: "LIMIT" | "MARKET";
     qty: Decimal | string;
     price?: Decimal | string;
@@ -283,6 +292,17 @@ class TradeService {
          * routes, where the body is what is signed.
          */
         queryParams?: Record<string, string>,
+        /**
+         * Where the order came from, when the caller is placing one
+         * (BUG-0494). Only the gated entry path sets it; reads leave it
+         * absent and keep their exact behaviour. A bot-stamped request with
+         * paper trading off is refused here — loudly, before the paper seam
+         * below could fall through to the live branch — as defence in depth
+         * behind the gate's own approval-time refusal. Deliberately *before*
+         * `assertGatePass`: provenance outranks the pass, and the refusal is
+         * testable without minting one.
+         */
+        origin?: OrderOrigin,
     ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
@@ -303,6 +323,21 @@ class TradeService {
             provider,
         );
         const keys = account?.keys ?? EMPTY_KEYS;
+
+        // BUG-0494 — provenance outranks the pass. A bot-stamped order with
+        // paper trading off never reaches the live branch below: the gate
+        // already refuses it at approval time, and this repeats the refusal
+        // for any path that reaches the transport directly. Deliberately
+        // before `assertGatePass`, so the refusal is testable without
+        // minting a pass and names the true cause instead of "bypassed".
+        if (origin === "bot" && !paperState.enabled) {
+            throw new OrderRefusedError({
+                field: "mode",
+                reason: "unsupported",
+                messageKey: BOT_PAPER_ONLY_MESSAGE_KEY,
+                values: {},
+            });
+        }
 
         // Re-read of the account the request will actually be signed with,
         // compared against the account the gate approved. Settings can change
@@ -1145,7 +1180,7 @@ class TradeService {
     private async gatedRequest<T>(intent: PartialIntent): Promise<T> {
         const full = this.completeIntent(intent);
         const result = await orderGate.submit<T>(full, (pass) =>
-            this.signedRequest<T>(full.endpoint, full.payload, pass),
+            this.signedRequest<T>(full.endpoint, full.payload, pass, undefined, full.origin),
         );
         // Eager post-action reconciliation: refresh account balance & positions
         try {
@@ -1706,6 +1741,7 @@ class TradeService {
             kind: "open",
             endpoint: "/api/orders",
             payload,
+            origin: params.origin,
             displayed: {
                 symbol: params.symbol,
                 side: params.side,

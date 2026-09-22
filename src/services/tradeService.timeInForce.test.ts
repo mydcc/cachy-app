@@ -89,6 +89,8 @@ function baseParams() {
     return {
         symbol: "BTCUSDT" as const,
         side: "BUY" as const,
+        // BUG-0494 — these cases exercise manual flows.
+        origin: "manual" as const,
         orderType: "LIMIT" as const,
         qty: new Decimal("0.02"),
         price: new Decimal(50000),

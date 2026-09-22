@@ -55,6 +55,7 @@ import { Decimal } from "decimal.js";
 
 import type { OrderIntent, StopDistance } from "../../lib/rules/types";
 import { logger } from "../logger";
+import { BOT_PAPER_ONLY_MESSAGE_KEY } from "../orderGate";
 import type { orderPlacementService } from "../orderPlacementService";
 import { isBot } from "./botStore";
 import type { FiringSink, RuleFiring } from "./ruleEvaluationLoop";
@@ -223,9 +224,15 @@ export async function submitBotOrder(
   const quantity = quantityFor(order, equity, entryPrice, stopPrice);
   if (!quantity.isFinite() || quantity.lte(0)) return "size-not-positive";
 
-  await env.place({
+  const result = await env.place({
     exchange: env.exchange(),
     symbol: firing.rule.symbol,
+    // BUG-0494 — the provenance travels with the order. The pre-check above
+    // reads mutable global state and the transport reads it again after an
+    // `await` plus a module fetch; a switch flipped in between used to send
+    // this to the real venue. Stamped `bot`, the gate and the transport
+    // refuse it while paper trading is off instead of falling through.
+    origin: "bot",
     tradeType: order.side === "buy" ? "long" : "short",
     entryType: "market",
     qty: quantity,
@@ -238,6 +245,16 @@ export async function submitBotOrder(
     accountSize: equity,
     riskPercentage: riskPercentageFor(quantity, equity, entryPrice, stopPrice),
   });
+
+  // BUG-0494 — the flip case lands here, not in the pre-check above: paper
+  // was on when this ran and off when the gate or transport saw the stamped
+  // order. `placeEntryGroup` reports a refusal as a result rather than
+  // throwing, so without this the trader's toast would never fire. Only the
+  // provenance refusal maps — anything else keeps today's behaviour, and a
+  // refusal that names the wrong cause is worse than a silent one.
+  if (!result.entryPlaced && result.refusal?.messageKey === BOT_PAPER_ONLY_MESSAGE_KEY) {
+    return "paper-trading-off";
+  }
 
   return null;
 }

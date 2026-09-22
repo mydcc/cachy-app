@@ -3377,6 +3377,7 @@ export type TranslationKey =
   | "orderGate.symbolStatus"
   | "orderGate.apiUnsupported"
   | "orderGate.bypassed"
+  | "orderGate.botPaperOnly"
   | "orderGate.fields.account"
   | "orderGate.fields.accountState"
   | "orderGate.fields.action"
