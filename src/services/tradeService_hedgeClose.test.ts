@@ -19,6 +19,7 @@ import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService } from "./tradeService";
 import { omsService } from "./omsService";
+import { registerRiskLimitCheck, type OrderIntent } from "./orderGate";
 import { Decimal } from "decimal.js";
 
 // Regression (BUG-0062/BUG-0063): closing a position 500'd with "must not
@@ -56,7 +57,12 @@ vi.mock("../stores/settings.svelte", () => ({
 vi.mock("../stores/market.svelte", async () => {
   const { Decimal } = await import("decimal.js");
   return {
-    marketState: { data: { XRPUSDT: { lastPrice: new Decimal(1.05) } } },
+    marketState: {
+      data: { XRPUSDT: { lastPrice: new Decimal(1.05) } },
+      symbolMeta: {
+        BTCUSDT: { symbol: "BTCUSDT", minTradeVolume: new Decimal("0.1") },
+      },
+    },
   };
 });
 
@@ -216,6 +222,59 @@ describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
       expect(body.type).toBe("flash-close-position");
       expect(body.symbol).toBe("XRPUSDT");
       expect(body.positionId).toBe("662491704776252252");
+    });
+  });
+
+  describe("closePosition carries the venue minimum (BUG-0509)", () => {
+    function btcLong() {
+      return {
+        symbol: "BTCUSDT",
+        side: "long" as const,
+        amount: new Decimal(1),
+        entryPrice: new Decimal(50000),
+        markPrice: new Decimal(50000),
+        unrealizedPnl: new Decimal(0),
+        leverage: new Decimal(10),
+        marginMode: "isolated" as const,
+        positionId: "pos-1",
+        lastUpdated: Date.now(),
+      };
+    }
+
+    it("puts minTradeVolume on the reduce intent when metadata is loaded", async () => {
+      vi.mocked(omsService.getPositions).mockReturnValue([btcLong()]);
+      const seen: { current: OrderIntent | null } = { current: null };
+      registerRiskLimitCheck((intent) => {
+        seen.current = intent;
+        return null;
+      });
+      try {
+        await tradeService.closePosition({
+          symbol: "BTCUSDT",
+          positionSide: "long",
+          amount: new Decimal("0.5"),
+        });
+      } finally {
+        registerRiskLimitCheck(null);
+      }
+      expect(seen.current?.displayed.minTradeVolume?.toString()).toBe("0.1");
+    });
+
+    it("refuses a partial close whose minimum never loaded", async () => {
+      // Fail closed per BUG-0501 (decision #3553): the gate refuses the
+      // unmeasurable partial instead of approving it.
+      vi.mocked(omsService.getPositions).mockReturnValue([
+        { ...btcLong(), symbol: "ETHUSDT" },
+      ]);
+      await expect(
+        tradeService.closePosition({
+          symbol: "ETHUSDT",
+          positionSide: "long",
+          amount: new Decimal("0.5"),
+        }),
+      ).rejects.toMatchObject({
+        refusal: { field: "minTradeVolume", reason: "missing" },
+      });
     });
   });
 });

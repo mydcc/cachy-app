@@ -155,7 +155,9 @@
       <span
         class:text-[var(--success-color)]={new Decimal(account.crossUnrealizedPNL || 0).gt(0)}
         class:text-[var(--danger-color)]={new Decimal(account.crossUnrealizedPNL || 0).lt(0)}
+        aria-live="off"
       >
+        <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
         {formatDynamicDecimal(account.crossUnrealizedPNL)}
       </span>
     </div>
@@ -167,7 +169,9 @@
         <span
           class:text-[var(--success-color)]={new Decimal(account.isolationUnrealizedPNL || 0).gt(0)}
           class:text-[var(--danger-color)]={new Decimal(account.isolationUnrealizedPNL || 0).lt(0)}
+          aria-live="off"
         >
+          <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
           {formatDynamicDecimal(account.isolationUnrealizedPNL)}
         </span>
       </div>

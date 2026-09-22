@@ -2,7 +2,9 @@
 id: BUG-0515
 title: The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/paket-d-limits-close
 priority: P2
 milestone: none
 editions: [community, pro, private]

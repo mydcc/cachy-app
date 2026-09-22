@@ -608,6 +608,7 @@ describe("orderGate — reduce-only sizing", () => {
     it("allows a partial close below the position size", () => {
         const intent = reduceIntent();
         intent.displayed.fullClose = false;
+        intent.displayed.minTradeVolume = new Decimal("0.1");
         intent.payload.qty = "0.25";
         expect(orderGate.verify(intent).approved).toBe(true);
     });
@@ -626,11 +627,12 @@ describe("orderGate — reduce-only sizing", () => {
 });
 
 describe("orderGate — reduce step size (FEAT-0256)", () => {
-    /** A position of 0.5 on an instrument whose step is 0.1. */
+    /** A position of 0.5 on an instrument whose step is 0.1, minimum 0.1. */
     function steppedReduce(): OrderIntent {
         const intent = reduceIntent();
         intent.displayed.fullClose = false;
         intent.displayed.stepSize = new Decimal("0.1");
+        intent.displayed.minTradeVolume = new Decimal("0.1");
         intent.payload.qty = "0.2";
         return intent;
     }
@@ -688,6 +690,62 @@ describe("orderGate — reduce step size (FEAT-0256)", () => {
         const intent = steppedReduce();
         intent.payload.qty = "0.65";
         expect(orderGate.verify(intent).refusal?.field).toBe("qty");
+    });
+});
+
+describe("orderGate — reduce minimum trade volume (BUG-0509)", () => {
+    /** A position of 0.5, step 0.1, venue minimum 0.1. */
+    function minReduce(): OrderIntent {
+        const intent = reduceIntent();
+        intent.displayed.fullClose = false;
+        intent.displayed.stepSize = new Decimal("0.1");
+        intent.displayed.minTradeVolume = new Decimal("0.1");
+        intent.payload.qty = "0.2";
+        return intent;
+    }
+
+    it("refuses a partial close below the venue minimum", () => {
+        // Step-valid (0.05 is a multiple of 0.01) but below the 0.1
+        // minimum — isolates the minimum rule from the step rule.
+        const intent = minReduce();
+        intent.displayed.stepSize = new Decimal("0.01");
+        intent.payload.qty = "0.05";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("minTradeVolume");
+        expect(refusal?.messageKey).toBe("orderGate.minTradeVolume");
+        expect(refusal?.values.limit).toBe("0.1");
+        expect(refusal?.values.actual).toBe("0.05");
+    });
+
+    it("records that it checked the minimum", () => {
+        expect(orderGate.verify(minReduce()).checked).toContain("minTradeVolume");
+    });
+
+    it("approves a partial close at the venue minimum", () => {
+        const intent = minReduce();
+        intent.payload.qty = "0.1";
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("does not apply the minimum to a full close below it", () => {
+        // The exemption that keeps small positions closable: a position of
+        // 0.05 under a 0.1 minimum must still go out in full.
+        const intent = reduceIntent();
+        intent.displayed.positionAmount = new Decimal("0.05");
+        intent.displayed.minTradeVolume = new Decimal("0.1");
+        intent.payload.qty = "0.05";
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("refuses a partial close whose minimum never loaded", () => {
+        // Fail closed per BUG-0501 (decision #3553): an unmeasurable size is
+        // not a verified size. Full closes stay exempt.
+        const intent = minReduce();
+        delete intent.displayed.minTradeVolume;
+        intent.payload.qty = "0.2";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("minTradeVolume");
+        expect(refusal?.reason).toBe("missing");
     });
 });
 

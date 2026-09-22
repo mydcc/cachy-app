@@ -74,6 +74,22 @@ function priceAt(value: Decimal) {
     marketState.data = {
         BTCUSDT: { lastPrice: value, markPrice: value },
     } as unknown as typeof marketState.data;
+    // Partial closes state the venue minimum (BUG-0509) — without metadata
+    // the gate refuses them as unmeasurable rather than approving.
+    marketState.setSymbolMeta("BTCUSDT", {
+        symbol: "BTCUSDT",
+        basePrecision: 4,
+        quotePrecision: 2,
+        minTradeVolume: new Decimal("0.1"),
+        maxLimitOrderVolume: null,
+        maxMarketOrderVolume: null,
+        minLeverage: 1,
+        maxLeverage: 125,
+        defaultLeverage: 10,
+        priceProtectScope: null,
+        symbolStatus: "OPEN",
+        isApiSupported: true,
+    });
 }
 
 beforeEach(() => {

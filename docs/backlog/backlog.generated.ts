@@ -2047,7 +2047,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0516",
     "title": "The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/paket-d-limits-close",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3062,6 +3064,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "ADR-0012",
     "depends_on": [],
     "file": "features/FEAT-0488-bot-order-submission-guard.md"
+  },
+  {
+    "id": "FEAT-0526",
+    "title": "Explain the kill switch in Settings and make its behaviour configurable",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md"
   },
   {
     "id": "BUG-0005",
@@ -4780,7 +4800,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0500",
     "title": "The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/paket-d-limits-close",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4818,7 +4840,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0509",
     "title": "A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/paket-d-limits-close",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4836,7 +4860,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0511",
     "title": "The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/paket-d-limits-close",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4874,7 +4900,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0515",
     "title": "The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/paket-d-limits-close",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6888,6 +6916,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "size": "L",
     "estimate": "8",
     "file": "features/FEAT-0480-persistent-chart-drawings.md"
+  },
+  {
+    "id": "FEAT-0525",
+    "title": "Store the complete Bitget API reference locally, mirroring the Bitunix coverage",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0525-bitget-api-reference-stored-locally.md"
   },
   {
     "id": "BUG-0007",

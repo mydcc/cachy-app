@@ -131,7 +131,9 @@
       class="text-sm font-bold"
       class:text-[var(--success-color)]={new Decimal(pnl || 0).gt(0)}
       class:text-[var(--danger-color)]={new Decimal(pnl || 0).lt(0)}
+      aria-live="off"
     >
+      <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
       {new Decimal(pnl || 0).gt(0) ? "+" : ""}{formatDynamicDecimal(pnl, 2)}
       {currency}
     </span>

@@ -2,7 +2,9 @@
 id: BUG-0511
 title: The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/paket-d-limits-close
 priority: P2
 milestone: none
 editions: [community, pro, private]

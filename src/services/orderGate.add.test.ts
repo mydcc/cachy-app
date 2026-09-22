@@ -179,17 +179,35 @@ describe("FEAT-0334 — the gate's add path", () => {
         expect(verdict.refusal?.field).toBe("availableMargin");
     });
 
-    it("skips the margin check when the balance has not loaded", () => {
-        // Absent, not zero. Refusing every add on an account whose balance is
-        // still in flight would be a broken control, and the venue remains the
-        // authority on what it funds.
+    it("refuses an add when the balance has not loaded", () => {
+        // BUG-0511: Absent, not zero. Margin is the only ceiling an add
+        // has — skipping the check leaves the order with no ceiling at
+        // all, while every other unverifiable input in the gate fails
+        // closed.
         const intent = addIntent();
         delete intent.displayed.availableMargin;
 
         const verdict = orderGate.verify(intent);
 
-        expect(verdict.approved).toBe(true);
-        expect(verdict.checked).not.toContain("availableMargin");
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.field).toBe("availableMargin");
+        expect(verdict.refusal?.reason).toBe("missing");
+        expect(verdict.refusal?.messageKey).toBe("orderGate.availableMarginUnmeasured");
+        expect(verdict.checked).toContain("availableMargin");
+    });
+
+    it("still skips the margin check on an open without a balance", () => {
+        // An open keeps its risk-derived size check, so the absence is not
+        // disqualifying there — only the add path, which has no other
+        // ceiling, fails closed.
+        const intent = addIntent();
+        intent.kind = "open";
+        delete intent.displayed.availableMargin;
+
+        const verdict = orderGate.verify(intent);
+
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.field).toBe("qty.inputs");
     });
 
     it("prices a market add off the previewed fill rather than skipping the check", () => {

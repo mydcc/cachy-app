@@ -32,9 +32,11 @@ import { tradeState } from "../stores/trade.svelte";
 import { accountState } from "../stores/account.svelte";
 import { journalState } from "../stores/journal.svelte";
 import { riskState } from "../stores/riskLimits.svelte";
+import { settingsState } from "../stores/settings.svelte";
 import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 import { getTradePnL } from "../lib/calculators/core";
+import { entryRoleForOrderType } from "../lib/fees/feeProvenance";
 import {
     registerConfirmationCheck,
     registerKillSwitch,
@@ -148,6 +150,69 @@ function toDecimal(value: unknown): Decimal | null {
     } catch {
         return null;
     }
+}
+
+/**
+ * The position side an order's venue side opens, or null when the side is
+ * absent or outside the vocabulary this codebase writes (BUG-0515). Null
+ * never exempts: an unknowable side cannot prove a merge.
+ */
+function positionSideOf(side: unknown): "long" | "short" | null {
+    if (typeof side !== "string") return null;
+    const s = side.toUpperCase();
+    if (s === "BUY" || s === "LONG") return "long";
+    if (s === "SELL" || s === "SHORT") return "short";
+    return null;
+}
+
+/**
+ * The fee rate (percent, e.g. `0.042` for 0.042%) for one leg, or null when
+ * no rate can be resolved (BUG-0500).
+ *
+ * Broker-derived fills win when a broker is in play — paper mode has none,
+ * so a stale live-session rate must not leak into a simulation
+ * (feeProvenance). Otherwise the venue's Settings rate applies, which is the
+ * documented VIP-0 default until the trader overrides it. Each leg resolves
+ * independently: a maker rate without a taker rate (or vice versa) still
+ * refuses as unmeasurable rather than borrowing the other leg's number.
+ * Null, never zero: falling back to zero fees reintroduces the pre-fee
+ * under-measurement under a different name, so the caller refuses as
+ * unmeasurable instead. Venues are looked up, not enumerated, so a future
+ * venue works without touching this function — an unknown venue resolves to
+ * null and refuses closed.
+ */
+function feeRateFor(
+    role: "maker" | "taker",
+    venue: string,
+    paperMode: boolean | undefined,
+): Decimal | null {
+    if (!paperMode) {
+        const remote =
+            role === "maker" ? tradeState.remoteMakerFee : tradeState.remoteTakerFee;
+        if (remote !== undefined && remote.isFinite()) return remote;
+    }
+    const table = (settingsState.feeRates as Partial<
+        Record<string, { maker?: unknown; taker?: unknown }>
+    >)[venue];
+    const parsed = toDecimal(table?.[role]);
+    return parsed !== null && parsed.isFinite() ? parsed : null;
+}
+
+/**
+ * The venue side an intent's entry leg fills on, from the order type the
+ * intent carries (feeProvenance: only a resting limit order is a maker
+ * fill). Unknown types land on taker — the expensive rate is the safe
+ * direction for a limit that caps losses.
+ */
+function entryRoleOf(orderType: unknown): "maker" | "taker" {
+    if (typeof orderType !== "string") return "taker";
+    return entryRoleForOrderType(
+        orderType.toLowerCase() === "limit"
+            ? "limit"
+            : orderType.toLowerCase() === "market"
+              ? "market"
+              : "trigger",
+    );
 }
 
 function limitRefusal(
@@ -523,13 +588,38 @@ class RiskManagementService {
 
         const symbol = intent.displayed.symbol;
         const positions = omsService.getPositions();
-        // Adding to a position already open does not raise the count.
-        if (symbol !== undefined && positions.some((p) => p.symbol === symbol)) return null;
+        if (symbol !== undefined) {
+            const sameSymbol = positions.filter((p) => p.symbol === symbol);
+            if (sameSymbol.length > 0 && this.mergesIntoHeld(sameSymbol, intent)) return null;
+        }
 
         if (positions.length + 1 > max) {
             return limitRefusal("maxOpenPositions", max, positions.length + 1);
         }
         return null;
+    }
+
+    /**
+     * Whether an open merges into a position already held on the symbol, so
+     * the count does not grow (BUG-0515).
+     *
+     * One-way mode: an open on a held symbol merges into (or reduces) the
+     * existing position — the exemption as it always was. Hedge mode: long
+     * and short on one symbol are two independent positions, so only a
+     * same-side open merges; the opposite side is a new position and is
+     * counted. The mode is read per position (`positionMode`); a symbol with
+     * no hedge-marked position keeps the old exemption — Bitget legs and
+     * mode-less snapshots cannot prove hedge, and a limit must not refuse
+     * ordinary one-way adds on an unprovable mode.
+     */
+    private mergesIntoHeld(
+        sameSymbol: Array<{ side: "long" | "short"; positionMode?: "one_way" | "hedge" }>,
+        intent: OrderIntent,
+    ): boolean {
+        if (!sameSymbol.some((p) => p.positionMode === "hedge")) return true;
+        const intentSide = positionSideOf(intent.displayed.side);
+        if (intentSide === null) return false;
+        return sameSymbol.some((p) => p.side === intentSide);
     }
 
     private checkLeverage(intent: OrderIntent): OrderRefusal | null {
@@ -596,7 +686,13 @@ class RiskManagementService {
                 .times(positionAmount)
                 .plus(entryPrice.times(qty))
                 .div(resultingAmount);
-            const loss = resultingEntry.minus(restingStopPrice).abs().times(resultingAmount);
+            const loss = this.lossWithFees(
+                intent,
+                resultingAmount,
+                resultingEntry,
+                restingStopPrice,
+            );
+            if (loss === null) return unmeasurable("maxLossPerTrade");
             if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
             return null;
         }
@@ -607,13 +703,38 @@ class RiskManagementService {
             return unmeasurable("maxLossPerTrade");
         }
 
-        // The loss the stop would realise, before fees. Fees make the real
-        // loss larger, so this is the conservative direction to be wrong in
-        // only if it under-reports — it does not, because a stop that fills
-        // worse than its trigger is a slippage question, not a sizing one.
-        const loss = entryPrice.minus(stopLossPrice).abs().times(qty);
+        // The loss the stop would realise, *including* the round-trip fee
+        // (BUG-0500). The entry fee is already paid when the stop triggers
+        // and the exit fee is charged on the way out; measuring without them
+        // under-reports every time, in the same direction. Slippage stays
+        // out — unknowable at gate time, and a different question.
+        const loss = this.lossWithFees(intent, qty, entryPrice, stopLossPrice);
+        if (loss === null) return unmeasurable("maxLossPerTrade");
         if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
         return null;
+    }
+
+    /**
+     * Stop distance plus both fee legs, in quote currency — or null when a
+     * leg's rate cannot be resolved (BUG-0500). The exit leg at a stop is a
+     * taker fill; the entry leg follows the order type the intent carries.
+     * Rates are percentages, so each leg divides by 100 exactly once.
+     */
+    private lossWithFees(
+        intent: OrderIntent,
+        qty: Decimal,
+        entry: Decimal,
+        stop: Decimal,
+    ): Decimal | null {
+        const venue = intent.displayed.provider;
+        const paperMode = intent.displayed.paperMode;
+        const entryRate = feeRateFor(entryRoleOf(intent.payload.orderType), venue, paperMode);
+        const exitRate = feeRateFor("taker", venue, paperMode);
+        if (entryRate === null || exitRate === null) return null;
+        const move = entry.minus(stop).abs().times(qty);
+        const entryFee = qty.times(entry).times(entryRate).div(100);
+        const exitFee = qty.times(stop).times(exitRate).div(100);
+        return move.plus(entryFee).plus(exitFee);
     }
 
     /**

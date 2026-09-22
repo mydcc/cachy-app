@@ -2,9 +2,9 @@
 
 # Backlog index
 
-405 items. How to read and add them: [README.md](README.md).
+407 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 41 · ✅ done 342 · ⛔ dropped 1
 
 ---
 
@@ -268,7 +268,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | ✅ done | execution |
 | [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | exchange |
 | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | execution |
-| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | execution |
+| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | ✅ done | execution |
 | [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | ✅ done | security |
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | security |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | security |
@@ -278,6 +278,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 📋 specced | ui |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | security |
 | [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | execution |
+| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | execution |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -346,12 +347,12 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | execution |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | execution |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
-| [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | 📋 specced | execution |
+| [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | execution |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | execution |
-| [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | execution |
-| [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | 📋 specced | execution |
+| [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | ✅ done | execution |
+| [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | ✅ done | execution |
 | [BUG-0514](bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md) | Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success | P2 | 📋 specced | exchange |
-| [BUG-0515](bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md) | The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts | P2 | 📋 specced | execution |
+| [BUG-0515](bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md) | The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts | P2 | ✅ done | execution |
 | [BUG-0520](bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md) | attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path | P2 | ✅ done | security |
 | [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | ✅ done | security |
 | [BUG-0523](bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md) | Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day | P2 | ✅ done | execution |
@@ -395,6 +396,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | ✅ done | trade-panel |
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | trade-panel |
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | exchange |
+| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | exchange |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -573,7 +575,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [BUG-0510](bugs/BUG-0510-add-never-measures-the-risk-under-the-resting-stop.md) | Scaling in never measures what the add does to the risk under the position's resting stop, although the new average entry is computed one line earlier | P1 | ✅ done | none | community, pro, private | none | none | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md), [BUG-0292](bugs/BUG-0292-tpsl-plans-never-typed-for-bitunix.md) |
 | [BUG-0512](bugs/BUG-0512-stale-mark-price-outranks-a-fresh-rest-price.md) | A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) | Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0516](bugs/BUG-0516-daily-loss-counter-cannot-see-every-realised-loss.md) | The daily-loss counter recognises two hardcoded status strings and dates a close by its open day when exitDate is absent, so realised losses go uncounted in both directions | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | none | community, pro, private | A | none | — |
@@ -617,6 +619,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
 | [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
+| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -700,12 +703,12 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | 📋 specced | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
-| [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0511](bugs/BUG-0511-margin-check-approves-when-it-cannot-measure.md) | The margin check approves when it cannot measure, leaving an add with no ceiling at all while every other unverifiable input in the gate fails closed | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0514](bugs/BUG-0514-close-all-on-bitget-only-closes-what-the-cache-knows.md) | Close-all on any non-Bitunix venue iterates the cached position list, so a position the cache is missing survives the flatten and the call still reports success | P2 | 📋 specced | none | community, pro, private | none | none | [BUG-0513](bugs/BUG-0513-close-all-positions-is-fully-built-and-unreachable.md) |
-| [BUG-0515](bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md) | The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0515](bugs/BUG-0515-open-positions-limit-matches-by-symbol-so-hedge-mode-slips-past.md) | The open-positions limit exempts any symbol already held, so in hedge mode the opposite side opens a second position the configured ceiling never counts | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0520](bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md) | attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0523](bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md) | Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day | P2 | ✅ done | none | community, pro, private | A | none | — |
@@ -794,6 +797,7 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | — |
 | [FEAT-0471](features/FEAT-0471-single-provider-registry-five-tabs.md) | Single AI provider registry with five tabs and fetched model pickers | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) |
 | [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | ✅ done | M4 | community, pro, private | A | none | — |
+| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -884,4 +888,4 @@ Counts by status: 💡 idea 23 · 📋 specced 44 · ✅ done 337 · ⛔ dropped
 
 ---
 
-Next free number: **0525**
+Next free number: **0527**
