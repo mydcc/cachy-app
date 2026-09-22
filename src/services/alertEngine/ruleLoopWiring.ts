@@ -274,7 +274,16 @@ let cachedRuleStore: RuleDocument[] = [];
 export function readStoredRules(): RuleDocument[] {
   if (!browser) return [];
 
-  const raw = localStorage.getItem(RULES_STORAGE_KEY);
+  // A throwing store reads as no rules, exactly as before: the loop must
+  // never lose every rule's evaluation to one unreadable key, and the cache
+  // is left untouched so a transient failure does not poison later reads.
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(RULES_STORAGE_KEY);
+  } catch (e) {
+    logger.error("alerts", "[Cutover] Reading stored rules failed", e);
+    return [];
+  }
   if (raw === cachedRuleStoreRaw) return cachedRuleStore;
   cachedRuleStoreRaw = raw;
   cachedRuleStore = parseRuleStore(raw);

@@ -296,6 +296,24 @@ describe("rule loop wiring", () => {
       localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([]));
       expect(readStoredRules()).toEqual([]);
     });
+
+    it("reads no rules when the store itself throws, without poisoning the cache", () => {
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1" }]));
+      const cached = readStoredRules();
+      const getItem = vi.spyOn(localStorage, "getItem").mockImplementation(() => {
+        throw new Error("denied");
+      });
+
+      try {
+        expect(readStoredRules()).toEqual([]);
+      } finally {
+        getItem.mockRestore();
+      }
+
+      // The failed read left the cache alone: the rules are back as soon as
+      // the store answers again.
+      expect(readStoredRules()).toBe(cached);
+    });
   });
 
   describe("ledger sinks", () => {
