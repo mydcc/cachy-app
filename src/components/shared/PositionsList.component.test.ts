@@ -141,3 +141,60 @@ describe("BUG-0211 — Position details rendered inline without hover delay", ()
         expect(text).toContain("-");
     });
 });
+
+describe("BUG-0512 — a PnL priced off a stale price wears the badge", () => {
+    const STALE_POSITION: OMSPosition = {
+        symbol: "BTCUSDT",
+        side: "long",
+        amount: new Decimal("0.5"),
+        entryPrice: new Decimal("64000"),
+        markPrice: new Decimal("65000"),
+        unrealizedPnl: new Decimal("500"),
+        leverage: new Decimal("10"),
+        marginMode: "cross",
+        margin: new Decimal("3200"),
+        priceStale: true,
+    };
+
+    const FRESH_POSITION: OMSPosition = {
+        ...STALE_POSITION,
+        priceStale: false,
+    };
+
+    it("shows the STALE badge next to a stale-priced PnL", async () => {
+        component = mount(PositionsList, {
+            target: host,
+            props: { positions: [STALE_POSITION] },
+        }) as never;
+        await settle();
+
+        const badge = host.querySelector('[data-track-id="stale-price-badge"]');
+        expect(badge).not.toBeNull();
+        expect(badge?.textContent).toContain("Stale");
+        // The number stays visible — labelled, never silently live.
+        expect(host.textContent).toContain("500");
+    });
+
+    it("shows no badge for a freshly priced PnL", async () => {
+        component = mount(PositionsList, {
+            target: host,
+            props: { positions: [FRESH_POSITION] },
+        }) as never;
+        await settle();
+
+        expect(host.querySelector('[data-track-id="stale-price-badge"]')).toBeNull();
+        expect(host.textContent).toContain("500");
+    });
+
+    it("shows honestly unpriced instead of any number when stale display is off", async () => {
+        const unpriced: OMSPosition = { ...STALE_POSITION, priceStale: false, unpriced: true };
+        component = mount(PositionsList, {
+            target: host,
+            props: { positions: [unpriced] },
+        }) as never;
+        await settle();
+
+        expect(host.querySelector('[data-track-id="unpriced-pnl"]')).not.toBeNull();
+        expect(host.querySelector('[data-track-id="stale-price-badge"]')).toBeNull();
+    });
+});

@@ -44,6 +44,14 @@ export interface MarketData {
   klinesBuffers?: Map<string, KlineBuffers>;
   technicals?: Record<string, import("../../services/technicalsTypes").TechnicalsData>;
   lastUpdated?: number;
+  /**
+   * When `markPrice` last arrived with a real value (WS tick or REST
+   * gap-bridge), independent of `lastUpdated` — which any channel's traffic
+   * refreshes. BUG-0512: pricing money off `markPrice` needs the age of the
+   * price, not the age of the object. Stamped in `applyUpdate`, read by the
+   * price resolver; nothing else should write it.
+   */
+  markPriceUpdatedAt?: number;
   /** Per-timeframe freshness — set whenever klines for that tf are updated (WS or REST).
    *  Used by the polling loop to detect stale kline channels independently of the
    *  global lastUpdated (which is refreshed by ticker/price messages and would otherwise

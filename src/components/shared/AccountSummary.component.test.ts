@@ -107,3 +107,23 @@ describe("FEAT-0346 — AccountSummary reports the account honestly", () => {
         expect(host.textContent).toContain("1500.00 USDT");
     });
 });
+
+describe("BUG-0512 — the total wears the badge when any leg is not fresh", () => {
+    it("badges a total built from stale-priced legs", () => {
+        render({ pnl: 12.5, pnlStale: true });
+
+        const badge = host.querySelector('[data-track-id="stale-price-badge"]');
+        expect(badge).not.toBeNull();
+        // The number stays — labelled, never silently exact.
+        expect(host.textContent).toContain("+12.50");
+        // The total hint names the mix (stale included, unpriced excluded),
+        // not the row-level wording.
+        expect(badge?.getAttribute("title")).toBe(lookup("positionsList.staleTotalHint"));
+    });
+
+    it("shows no badge for a freshly priced total", () => {
+        render({ pnl: 12.5 });
+
+        expect(host.querySelector('[data-track-id="stale-price-badge"]')).toBeNull();
+    });
+});

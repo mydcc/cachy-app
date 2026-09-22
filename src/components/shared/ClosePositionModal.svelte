@@ -178,6 +178,19 @@
     <div class="text-sm text-[var(--text-secondary)]">
       {$_("journal.symbol")}:
       <span class="text-[var(--text-primary)] font-bold">{position?.symbol}</span>
+      {#if position?.priceStale || position?.unpriced}
+        <!--
+          The preview below prices off the resolved mark, which may be a
+          substitute, a stale value, or — on an unpriced leg — recovered
+          from the venue snapshot. Never presented as live.
+        -->
+        <span
+          class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider bg-[var(--bg-secondary)] text-[var(--warning-color)] border border-[var(--border-color)] ml-1"
+          title={$_("positionsList.stalePriceHint")}
+        >
+          {$_("positionsList.stalePriceBadge")}
+        </span>
+      {/if}
     </div>
 
     {#if ctx && quantity}
