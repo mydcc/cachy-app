@@ -126,7 +126,8 @@ export function readDrawingAnchorLedger(): DrawingAnchorLedgerSnapshot {
  *
  * BUG-0498 — reports whether the write landed. A quota-full device swallows
  * the binding while the chart claims the alert is armed on the line; the
- * caller refuses instead.
+ * caller refuses instead. `ledger` is the in-memory state including the new
+ * entry, whether or not it landed — the caller decides from `ok` alone.
  */
 export function recordDrawingAnchor(
     ruleId: string,
@@ -138,6 +139,8 @@ export function recordDrawingAnchor(
 }
 
 function persist(ledger: DrawingAnchorLedger): boolean {
+    // No storage off the client, and arming happens on the client — nothing
+    // to report.
     if (!browser) return true;
     try {
         localStorage.setItem(RULE_DRAWING_STORAGE_KEY, JSON.stringify(ledger));
