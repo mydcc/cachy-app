@@ -56,7 +56,10 @@ const SENSITIVE_PATTERNS: RegExp[] = [
     /authorization/i,
     /bearer/i,
     /^private[-_]?key$/i,
-    /^sign$/i,
+    // Segment-bounded, not anchored: matches `sign`, `x-api-sign`,
+    // `ACCESS-SIGN` and `api-sign`, but not ordinary words containing
+    // "sign" (`signal`, `assigned`, `designation`). BUG-0497.
+    /(^|[-_])sign($|[-_])/i,
 ];
 
 export function isSensitiveKey(key: string): boolean {

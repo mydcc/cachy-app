@@ -7712,8 +7712,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0497",
     "title": "The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
+    "assignee": "opencode",
+    "branch": "fix/BUG-0497-x-api-sign-redaction",
     "milestone": "none",
     "editions": [
       "community",

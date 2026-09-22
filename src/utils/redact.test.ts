@@ -34,6 +34,11 @@ describe("isSensitiveKey", () => {
         "api-key",
         "signature",
         "sign",
+        // BUG-0497 — the header spellings actually transmitted. `sign`
+        // alone matched; `x-api-sign` and `ACCESS-SIGN` fell through.
+        "x-api-sign",
+        "ACCESS-SIGN",
+        "api-sign",
         "authorization",
         "accessToken",
         "bearer",
@@ -55,6 +60,10 @@ describe("isSensitiveKey", () => {
         // "which account was this order on" unanswerable in the audit trail.
         "accountFingerprint",
         "fingerprint",
+        // BUG-0497 — ordinary words containing "sign" must stay readable.
+        "signal",
+        "assigned",
+        "designation",
     ])("leaves %s alone", (key) => {
         expect(isSensitiveKey(key)).toBe(false);
     });
@@ -177,6 +186,9 @@ describe("redaction stays in step with the server-side logger", () => {
             "authorization",
             "bearer",
             "private_key",
+            // BUG-0497 — the signature header spelling the server logger
+            // already redacts must stay redacted here too.
+            "x-api-sign",
         ]) {
             expect(isSensitiveKey(key)).toBe(true);
         }
