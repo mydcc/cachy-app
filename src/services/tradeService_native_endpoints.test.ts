@@ -19,6 +19,8 @@ import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService } from "./tradeService";
 import { omsService } from "./omsService";
+import { exchangeSignedFetch } from "../utils/exchange/browserSigning";
+import { toastService } from "./toastService.svelte";
 import { Decimal } from "decimal.js";
 import type { NormalizedOrder } from "./types";
 
@@ -70,6 +72,16 @@ vi.mock("./toastService.svelte", () => ({
     success: vi.fn(),
     info: vi.fn(),
   },
+}));
+
+// The Bitunix native close-all verifies flat afterwards through the same
+// `/api/positions` read the positions panel uses. Pin it to an empty book
+// so no test performs an exchange read.
+vi.mock("../utils/exchange/browserSigning", () => ({
+  exchangeSignedFetch: vi.fn(async () => ({
+    json: async () => ({ success: true, data: { positions: [] } }),
+  })),
+  SIGNING_ERRORS: {},
 }));
 
 // FEAT-0011: every state-mutating call carries an order-gate pass as its
@@ -128,6 +140,39 @@ describe("FEAT-0071: TradeService Native Endpoints & Safe Modify", () => {
       }, GATE_PASS);
       // Verify no OMS iteration occurred
       expect(omsService.getPositions).not.toHaveBeenCalled();
+    });
+
+    it("verifies flat after the native close and reports a position that survived it", async () => {
+      const signedRequestSpy = vi
+        .spyOn(tradeService, "signedRequest")
+        .mockResolvedValue({ success: true });
+      // The venue said success, but the post-flatten read still sees ETHUSDT.
+      vi.mocked(exchangeSignedFetch).mockResolvedValueOnce({
+        json: async () => ({
+          success: true,
+          data: {
+            positions: [
+              {
+                symbol: "ETHUSDT",
+                side: "LONG",
+                size: "1",
+                entryPrice: "3000",
+                markPrice: "3100",
+                leverage: "10",
+                marginMode: "cross",
+              },
+            ],
+          },
+        }),
+      } as unknown as Response);
+
+      await expect(tradeService.closeAllPositions()).rejects.toThrow("trade.closeAllFailed");
+      expect(signedRequestSpy).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(toastService.error)).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(toastService.error)).toHaveBeenCalledWith(
+        expect.stringContaining("ETHUSDT"),
+      );
+      signedRequestSpy.mockRestore();
     });
   });
 

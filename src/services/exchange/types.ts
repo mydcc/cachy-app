@@ -295,6 +295,17 @@ export interface TradingPort {
 
     cancelOrder(symbol: string, orderId: string): Promise<unknown>;
     cancelAllOrders(symbol?: string, throwOnError?: boolean): Promise<unknown>;
+
+    /**
+     * Every open position, optionally scoped to one symbol — BUG-0513.
+     *
+     * One venue call on Bitunix (the venue enumerates); a loop over an
+     * exchange-fresh list with post-flatten verification elsewhere
+     * (BUG-0514). Always confirmed by the caller before it runs: a bulk
+     * close is not in the confirmation-policy catalogue on purpose, so no
+     * settings toggle can unguard it — the dialog is unconditional.
+     */
+    closeAllPositions(symbol?: string): Promise<unknown>;
     modifyOrder(params: ModifyOrderParams): Promise<unknown>;
 
     /** Resting TP/SL plans. `supports.tpSl === false` means the venue's route refuses these. */

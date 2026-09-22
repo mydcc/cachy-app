@@ -31,6 +31,7 @@
     import { modalState } from "../../stores/modal.svelte";
     import SettingsGrid from "./shared/SettingsGrid.svelte";
   import { journalState } from "../../stores/journal.svelte";
+  import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
 
   // Recomputed whenever the journal changes, so the figure the user reads is
   // the same one the gate will measure against.
@@ -128,6 +129,24 @@
     );
     if (confirmed === true) riskState.resetLimits();
   }
+
+  /*
+   * BUG-0513, variant c — the panic spot next to the kill switch. Same
+   * shared flow as the positions panel button: one confirmation stating
+   * count and total notional, then the flatten. Reachable while the kill
+   * switch is engaged on purpose — see the sidebar's handler for why.
+   */
+  let closingAll = $state(false);
+
+  async function closeAll() {
+    if (closingAll) return;
+    closingAll = true;
+    try {
+      await confirmAndCloseAllPositions();
+    } finally {
+      closingAll = false;
+    }
+  }
 </script>
 
 <div class="space-y-6">
@@ -179,6 +198,27 @@
             {$_("settings.risk.killSwitch.engage")}
           </button>
         {/if}
+      </div>
+    </div>
+  </section>
+
+  <!-- Daily loss status -->
+  <section class="settings-section">
+    <h3 class="section-title mb-3">{$_("settings.risk.closeAll.title")}</h3>
+    <div
+      class="rounded-xl border border-[var(--danger-color)] bg-danger-paired p-4"
+    >
+      <p class="text-[11px] mt-1 text-[var(--text-secondary)]">
+        {$_("settings.risk.closeAll.description")}
+      </p>
+      <div class="mt-3">
+        <button
+          class="px-4 py-2 text-xs font-bold rounded-lg bg-danger-paired border border-[var(--danger-color)] transition-colors disabled:opacity-50"
+          disabled={closingAll}
+          onclick={closeAll}
+        >
+          {$_("settings.risk.closeAll.button")}
+        </button>
       </div>
     </div>
   </section>
