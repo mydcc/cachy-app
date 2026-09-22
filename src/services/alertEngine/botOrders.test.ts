@@ -305,6 +305,47 @@ describe("the sink that wraps a firing", () => {
 
     expect(onRefusal).toHaveBeenCalledTimes(1);
   });
+
+  it("refuses a send-level rule loudly instead of dropping its order intent — BUG-0487", async () => {
+    // A `send` document is fully formed by the time it reaches this gate, but
+    // there is no `send` path until FEAT-0035. The old code took the silent
+    // `return` branch, indistinguishable from an alert that never meant to
+    // trade. `isBot` stays the Automation-tab predicate; the submission gate
+    // asks its own question.
+    const send = botDocument();
+    send.action = {
+      consequence_level: "send",
+      order: { side: "buy", size_basis: "base_quantity", size: "0.01" },
+    };
+    const { env, place } = environment();
+    const inner = vi.fn();
+    const onRefusal = vi.fn();
+
+    withBotOrders(inner, env, onRefusal)(firingOf(send));
+    await vi.waitFor(() => expect(onRefusal).toHaveBeenCalled());
+
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(onRefusal.mock.calls[0][1]).toBe("level-not-supported");
+    expect(place).not.toHaveBeenCalled();
+  });
+
+  it("reports the send-level refusal once per rule, not once per candle", async () => {
+    const send = botDocument();
+    send.action = {
+      consequence_level: "send",
+      order: { side: "buy", size_basis: "base_quantity", size: "0.01" },
+    };
+    const { env } = environment();
+    const onRefusal = vi.fn();
+    const sink = withBotOrders(vi.fn(), env, onRefusal);
+    const firing = firingOf(send);
+
+    sink(firing);
+    sink(firing);
+    await vi.waitFor(() => expect(onRefusal).toHaveBeenCalled());
+
+    expect(onRefusal).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("no second order on the same candle after a reload — BUG-0491", () => {

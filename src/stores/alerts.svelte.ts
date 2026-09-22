@@ -312,6 +312,7 @@ const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, TranslationKey> = {
     "no-entry-price": "settings.automation.orderRefusedOther",
     "no-equity": "settings.automation.orderRefusedOther",
     "size-not-positive": "settings.automation.orderRefusedOther",
+    "level-not-supported": "settings.automation.orderRefusedLevelNotSupported",
 };
 
 export function reportBotOrderRefusal(
