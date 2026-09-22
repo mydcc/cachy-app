@@ -205,3 +205,37 @@ describe("BUG-0347 — ClosePositionModal keeps an edited quantity on price tick
         expect(closeSpy).not.toHaveBeenCalled();
     });
 });
+
+describe("BUG-0512 — ClosePositionModal discloses a non-live preview price", () => {
+    it("shows no badge on a fresh mark", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        expect(host.textContent).not.toContain(lookup("positionsList.stalePriceBadge"));
+    });
+
+    it("badges a stale-priced preview", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: { ...POSITION, priceStale: true } },
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain(lookup("positionsList.stalePriceBadge"));
+    });
+
+    it("badges an unpriced preview whose mark is recovered from the snapshot", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: {
+                initialPosition: { ...POSITION, markPrice: undefined, unpriced: true },
+            },
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain(lookup("positionsList.stalePriceBadge"));
+    });
+});

@@ -329,6 +329,13 @@ export interface Settings {
    * whichever way this is set.
    */
   journalPaperTrades: boolean;
+  /**
+   * BUG-0512: when no price source is provably fresh, keep showing the
+   * last-known price with an unmissable STALE badge (true) or show honestly
+   * unpriced instead (false). Default true: a labelled number keeps the row
+   * live while never looking live. Class A: never leaves the device.
+   */
+  showStalePriceBadge: boolean;
   positionViewMode?: PositionViewMode;
   pnlViewMode?: PnlViewMode;
   isPro: boolean;
@@ -606,6 +613,7 @@ const defaultSettings: Settings = {
   technicalsFullHeight: false,
   hideUnfilledOrders: false,
   journalPaperTrades: true,
+  showStalePriceBadge: true,
   positionViewMode: "detailed",
   isPro: false,
   feePreference: "taker",
@@ -908,6 +916,7 @@ export class SettingsManager {
   technicalsFullHeight = $state<boolean>(defaultSettings.technicalsFullHeight);
   hideUnfilledOrders = $state<boolean>(defaultSettings.hideUnfilledOrders);
   journalPaperTrades = $state<boolean>(defaultSettings.journalPaperTrades);
+  showStalePriceBadge = $state<boolean>(defaultSettings.showStalePriceBadge);
   positionViewMode = $state<PositionViewMode | undefined>(
     defaultSettings.positionViewMode,
   );
@@ -2038,6 +2047,7 @@ export class SettingsManager {
     this.technicalsFullHeight = merged.technicalsFullHeight;
     this.hideUnfilledOrders = merged.hideUnfilledOrders;
     this.journalPaperTrades = merged.journalPaperTrades ?? defaultSettings.journalPaperTrades;
+    this.showStalePriceBadge = merged.showStalePriceBadge ?? defaultSettings.showStalePriceBadge;
     this.positionViewMode = merged.positionViewMode;
     this.pnlViewMode = merged.pnlViewMode;
     this.entitlement.isPro = merged.isPro;
@@ -2422,6 +2432,7 @@ export class SettingsManager {
       technicalsFullHeight: this.technicalsFullHeight,
       hideUnfilledOrders: this.hideUnfilledOrders,
       journalPaperTrades: this.journalPaperTrades,
+      showStalePriceBadge: this.showStalePriceBadge,
       positionViewMode: this.positionViewMode,
       pnlViewMode: this.pnlViewMode,
       isPro: this.entitlement.isPro,

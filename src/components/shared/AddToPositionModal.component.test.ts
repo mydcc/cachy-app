@@ -190,3 +190,40 @@ describe("BUG-0510 — AddToPositionModal states the risk under the resting stop
         expect(host.textContent).not.toContain("Risk under stop");
     });
 });
+
+describe("BUG-0512 — AddToPositionModal discloses a non-live preview price", () => {
+    it("shows no badge on a fresh mark", () => {
+        restingStopPrice.mockReturnValue(null);
+        component = mount(AddToPositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        expect(host.textContent).not.toContain(lookup("positionsList.stalePriceBadge"));
+    });
+
+    it("badges a stale-priced preview", () => {
+        restingStopPrice.mockReturnValue(null);
+        component = mount(AddToPositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: { ...POSITION, priceStale: true } },
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain(lookup("positionsList.stalePriceBadge"));
+    });
+
+    it("badges an unpriced preview whose mark is recovered from the snapshot", () => {
+        restingStopPrice.mockReturnValue(null);
+        component = mount(AddToPositionLiveWrapper, {
+            target: host,
+            props: {
+                initialPosition: { ...POSITION, markPrice: undefined, unpriced: true },
+            },
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain(lookup("positionsList.stalePriceBadge"));
+    });
+});

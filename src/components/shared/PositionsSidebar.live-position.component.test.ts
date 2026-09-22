@@ -58,6 +58,9 @@ const settings = vi.hoisted(() => ({
         },
     ],
     hideUnfilledOrders: false,
+    // BUG-0512: shipped default — stale display on, so seeded positions
+    // keep resolving exactly like production.
+    showStalePriceBadge: true,
     positionViewMode: "detailed",
 }));
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
