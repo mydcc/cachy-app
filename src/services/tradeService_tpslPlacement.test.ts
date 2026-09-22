@@ -100,7 +100,7 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         const [endpoint, body] = spy.mock.calls[0];
         expect(endpoint).toBe("/api/tpsl");
         expect((body as { action: string }).action).toBe("place-position");
-        expect(spy).toHaveBeenCalledWith("/api/tpsl", expect.anything(), GATE_PASS);
+        expect(spy).toHaveBeenCalledWith("/api/tpsl", expect.anything(), GATE_PASS, undefined, undefined);
     });
 
     it("sends both legs when both are given", async () => {
