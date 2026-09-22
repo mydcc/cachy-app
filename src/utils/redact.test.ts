@@ -151,6 +151,24 @@ describe("redactString", () => {
         expect(redactedJson).toContain('"signal": "buy"');
         expect(redactedJson).toContain('"design": "dark"');
     });
+
+    it("redacts prefixed sign spellings in embedded JSON — BUG-0528", () => {
+        // The key=value shape already redacted these; the JSON shape passed
+        // the secret through in clear.
+        for (const key of ["x-api-sign", "ACCESS-SIGN", "api-sign"]) {
+            const out = redactString(`{"${key}": "SECRET"}`);
+            expect(out).toContain(`"${key}": "***REDACTED***"`);
+            expect(out).not.toContain("SECRET");
+        }
+    });
+
+    it("leaves ordinary words containing sign untouched in embedded JSON", () => {
+        const out = redactString('{"signal": "buy", "assigned": "alice", "designation": "x"}');
+        expect(out).toContain('"signal": "buy"');
+        expect(out).toContain('"assigned": "alice"');
+        expect(out).toContain('"designation": "x"');
+        expect(out).not.toContain(REDACTED);
+    });
 });
 
 describe("redaction stays in step with the server-side logger", () => {
