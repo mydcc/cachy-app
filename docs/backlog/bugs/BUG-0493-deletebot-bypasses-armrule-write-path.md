@@ -2,8 +2,10 @@
 id: BUG-0493
 title: deleteBot writes localStorage directly and bypasses the shared rule-store write path
 type: bug
-status: specced
+status: done
 priority: P2
+assignee: opencode
+branch: fix/BUG-0493-deletebot-write-path
 milestone: none
 editions: [community, pro, private]
 area: execution
