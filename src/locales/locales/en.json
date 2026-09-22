@@ -2696,6 +2696,7 @@
       "orderRefusedPaperOff": "“{name}” fired, but placed nothing: paper trading is switched off.",
       "orderRefusedNoStop": "“{name}” fired, but placed nothing: a bot needs a stop before it can size a position.",
       "orderRefusedReduceOnly": "“{name}” fired, but placed nothing: a bot that only closes a position cannot be placed yet.",
+      "orderRefusedLevelNotSupported": "“{name}” fired, but placed nothing: this rule asks for live sending, which is not available yet.",
       "orderRefusedOther": "“{name}” fired, but placed nothing."
     }
   },

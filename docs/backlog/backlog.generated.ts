@@ -4752,8 +4752,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0487",
     "title": "A send-level rule fires, drops its order intent and reports nothing",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
+    "assignee": "opencode",
+    "branch": "fix/BUG-0487-send-level-refusal",
     "milestone": "none",
     "editions": [
       "community",
