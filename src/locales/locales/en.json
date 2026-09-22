@@ -4093,6 +4093,7 @@
     "killSwitch": "Order refused: the kill switch is engaged. No orders that open or increase a position are sent while it is on — closing positions, cancelling orders and adjusting stops still work.",
     "riskLimit": "Order refused: {field} exceeds the configured limit (limit {limit}, this order {actual}). The order was not sent.",
     "unconfirmed": "Order refused: {action} is set to ask for confirmation first, and none was given. The order was not sent.",
+    "duplicateInFlight": "Order refused: an identical {action} order for {symbol} is already being sent. The duplicate was not sent.",
     "minTradeVolume": "Order refused: the order size {actual} is below the minimum trade volume of {limit}. The order was not sent.",
     "maxOrderVolume": "Order refused: the order size {actual} exceeds the maximum order volume of {limit}. The order was not sent.",
     "insufficientMargin": "Order refused: the add needs {actual} margin but only {limit} is available. The order was not sent.",

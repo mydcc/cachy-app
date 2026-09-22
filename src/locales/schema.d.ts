@@ -3368,6 +3368,7 @@ export type TranslationKey =
   | "orderGate.killSwitch"
   | "orderGate.riskLimit"
   | "orderGate.unconfirmed"
+  | "orderGate.duplicateInFlight"
   | "orderGate.minTradeVolume"
   | "orderGate.maxOrderVolume"
   | "orderGate.insufficientMargin"
