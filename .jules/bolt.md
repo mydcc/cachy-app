@@ -6,13 +6,6 @@ Using array transformations like `.filter()` or `.map()` inline inside `{#each}`
 **Fix:**
 - Always lift filtering logic into `$derived()` runes inside the script block.
 - For iterating just to obtain an index (e.g., `array.map((_, i) => i)`), rely on Svelte's native `{#each array as item, index}` rather than fabricating intermediary arrays.
-
-### `Array.slice()` in `{#each}` loops
-Using `.slice()` inside a `{#each}` block (e.g. `{#each array.slice(0, 5) as item}`) similarly forces an array re-allocation on each reactivity update.
-
-**Fix:**
-- Hoist slicing logic into a derived variable (e.g. `let topItems = $derived(array.slice(0, 5));`) to maintain stable references.
-
 ## Real-time WS Kline Ingestion
 
 High-frequency WS streams often broadcast the same candlestick multiple times per second (updating only the high/low/close/volume) with the exact same timestamp. Blindly pushing these to a pending buffer array forces the downstream flush cycle to handle massive deduplication, causing memory and CPU spikes.

@@ -18,7 +18,7 @@
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
-import { applySecurityHeaders, cacheControlFor, wrapWriteHead } from './server-headers.js';
+import { applySecurityHeaders, cacheControlFor } from './server-headers.js';
 
 const app = express();
 
@@ -26,11 +26,15 @@ const app = express();
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
 
-// Apply security headers to all requests. wrapWriteHead ensures that even
-// when SvelteKit's handler or sirv flushes headers directly via writeHead(),
+// Apply security headers to all requests. Wrapping res.writeHead ensures that
+// even when SvelteKit's handler or sirv flushes headers directly via writeHead(),
 // applySecurityHeaders(res) is executed right before the head is written.
 app.use((req, res, next) => {
-  wrapWriteHead(res);
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function (...args) {
+    applySecurityHeaders(res);
+    return originalWriteHead.apply(this, args);
+  };
   applySecurityHeaders(res);
   next();
 });

@@ -43,24 +43,6 @@ export function applySecurityHeaders(res) {
 }
 
 /**
- * Wrap res.writeHead so security headers are applied right before the head
- * is flushed. SvelteKit's adapter-node handler and sirv can bypass Express
- * middleware by calling res.writeHead() directly (SPA fallback / SSR-off
- * HTML routes); the wrapper guarantees applySecurityHeaders(res) still runs.
- * Idempotent: safe to call when the middleware already applied the headers,
- * since setHeader overwrites identical values. Preserves `this`, all
- * writeHead overloads, and the return value of the original.
- * @param {{ setHeader: (name: string, value: string) => unknown, writeHead: (...args: any[]) => any }} res
- */
-export function wrapWriteHead(res) {
-  const originalWriteHead = res.writeHead;
-  res.writeHead = function (...args) {
-    applySecurityHeaders(res);
-    return originalWriteHead.apply(this, args);
-  };
-}
-
-/**
  * Fingerprinted SvelteKit assets live under /_app/immutable/ and static fonts
  * under /fonts/ are safe to cache forever (immutable content/versioned assets).
  * Everything else — index.html, favicon.ico, non-hashed files — must revalidate.
