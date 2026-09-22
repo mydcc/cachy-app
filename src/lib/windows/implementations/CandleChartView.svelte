@@ -695,12 +695,15 @@
         }
         // Each refusal tells the trader what is actually missing: on the line
         // there is no side to cross from, without a level there is nothing to
-        // watch at all. The developer-facing distinction stays in the type.
+        // watch at all, and without a persisted anchor the line would never be
+        // followed. The developer-facing distinction stays in the type.
         toastService.error(
             $_(
                 result.reason === "drawing-has-no-level"
                     ? "chartView.drawings.alertNoLevel"
-                    : "chartView.drawings.alertOnTheLine",
+                    : result.reason === "drawing-anchor-not-persisted"
+                      ? "chartView.drawings.alertAnchorFailed"
+                      : "chartView.drawings.alertOnTheLine",
             ),
         );
     }

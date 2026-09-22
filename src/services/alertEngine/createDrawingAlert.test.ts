@@ -30,8 +30,9 @@ import { Decimal } from "decimal.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
-import { readDrawingAnchorLedger } from "./drawingAnchors";
+import { RULE_DRAWING_STORAGE_KEY, readDrawingAnchorLedger } from "./drawingAnchors";
 import { armDrawingAlert, buildDrawingAlert } from "./createDrawingAlert";
+import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 
 vi.mock("$app/environment", () => ({ browser: true, dev: false }));
 
@@ -150,7 +151,7 @@ describe("arming it", () => {
 
         expect(result.ok).toBe(true);
         const ruleId = result.ok ? result.rule.id : "";
-        expect(readDrawingAnchorLedger()[ruleId]).toMatchObject({
+        expect(readDrawingAnchorLedger().ledger[ruleId]).toMatchObject({
             drawingId: "draw-1",
             symbol: "BTCUSDT",
         });
@@ -161,12 +162,56 @@ describe("arming it", () => {
         const second = armDrawingAlert(request());
 
         expect(first.ok && second.ok && first.rule.id).not.toBe(second.ok && second.rule.id);
-        expect(Object.keys(readDrawingAnchorLedger())).toHaveLength(2);
+        expect(Object.keys(readDrawingAnchorLedger().ledger)).toHaveLength(2);
     });
 
     it("writes nothing when the drawing is refused", () => {
         armDrawingAlert(request({ currentPrice: new Decimal("50000") }));
 
-        expect(readDrawingAnchorLedger()).toEqual({});
+        expect(readDrawingAnchorLedger().ledger).toEqual({});
+    });
+});
+
+describe("a binding that cannot be persisted — BUG-0498", () => {
+    function failWritesFor(key: string) {
+        const original = localStorage.setItem.bind(localStorage);
+        return vi.spyOn(localStorage, "setItem").mockImplementation((k: string, v: string) => {
+            if (k === key) throw new Error("quota exceeded");
+            original(k, v);
+        });
+    }
+
+    function storedRules(): unknown[] {
+        const raw = localStorage.getItem(RULES_STORAGE_KEY);
+        return raw === null ? [] : (JSON.parse(raw) as unknown[]);
+    }
+
+    it("refuses instead of reporting the alert armed when the anchor write fails", () => {
+        const setItem = failWritesFor(RULE_DRAWING_STORAGE_KEY);
+
+        const result = armDrawingAlert(request());
+
+        expect(result).toEqual({ ok: false, reason: "drawing-anchor-not-persisted" });
+        setItem.mockRestore();
+    });
+
+    it("leaves no phantom constant alert behind a failed anchor write", () => {
+        const setItem = failWritesFor(RULE_DRAWING_STORAGE_KEY);
+
+        armDrawingAlert(request());
+
+        expect(storedRules()).toHaveLength(0);
+        expect(readDrawingAnchorLedger().ledger).toEqual({});
+        setItem.mockRestore();
+    });
+
+    it("refuses when the rule store itself cannot be written", () => {
+        const setItem = failWritesFor(RULES_STORAGE_KEY);
+
+        const result = armDrawingAlert(request());
+
+        expect(result).toEqual({ ok: false, reason: "drawing-anchor-not-persisted" });
+        expect(storedRules()).toHaveLength(0);
+        setItem.mockRestore();
     });
 });

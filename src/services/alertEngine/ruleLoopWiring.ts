@@ -362,8 +362,14 @@ export function drawingThresholdResolver(
   if (resolved.kind === "not-anchored") return { rule };
   if (resolved.kind === "rewritten") return { rule: resolved.rule };
   // Developer-facing English, as `UnevaluableRule.reason` specifies; the panel
-  // renders its own wording from it.
-  return { unevaluable: `${resolved.reason} (drawing ${resolved.drawingId})` };
+  // renders its own wording from it. The drawing suffix is absent exactly when
+  // there is no binding to name — BUG-0498, unreadable anchor ledger.
+  return {
+    unevaluable:
+      resolved.drawingId === undefined
+        ? resolved.reason
+        : `${resolved.reason} (drawing ${resolved.drawingId})`,
+  };
 }
 
 export function startRuleEvaluationLoop(

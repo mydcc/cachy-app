@@ -4417,6 +4417,7 @@
       "alertArmed": "Alert auf die Zeichnung gesetzt",
       "alertOnTheLine": "Der Kurs liegt genau auf der Linie — es gibt keine Seite, von der er kreuzen könnte",
       "alertNoLevel": "Diese Zeichnung hat kein zu überwachendes Kursniveau — Alerts brauchen eine horizontale oder geneigte Linie",
+      "alertAnchorFailed": "Der Alert konnte nicht an diese Linie gebunden werden — der Speicher ist nicht verfügbar, daher wurde kein Alert gesetzt",
       "alertNoPrice": "Kein aktueller Kurs für dieses Symbol"
     }
   },

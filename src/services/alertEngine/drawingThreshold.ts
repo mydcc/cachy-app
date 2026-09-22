@@ -44,7 +44,7 @@ import { Decimal } from "decimal.js";
 import { levelAt } from "../../lib/chart/drawings/levelAt";
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
 import type { RuleDocument } from "../../lib/rules/types";
-import type { DrawingAnchorLedger } from "./drawingAnchors";
+import type { DrawingAnchorLedgerSnapshot } from "./drawingAnchors";
 
 /** Why a drawing-anchored rule could not be evaluated at this anchor. */
 export type DrawingThresholdRefusal =
@@ -52,6 +52,12 @@ export type DrawingThresholdRefusal =
     | "drawing-missing"
     /** The drawing store could not be read; absence proves nothing. */
     | "drawing-store-unreadable"
+    /**
+     * The anchor ledger could not be read, so a rule with the drawing-alert
+     * shape cannot be told apart from a rule that merely looks like one —
+     * BUG-0498. Held rather than evaluated on a possibly abandoned constant.
+     */
+    | "drawing-anchor-ledger-unreadable"
     /** A vertical trend line: no level at any timestamp. */
     | "drawing-has-no-level"
     /** The rule is not the single comparison this feature knows how to rewrite. */
@@ -61,10 +67,14 @@ export type ThresholdResolution =
     /** Not anchored to a drawing — evaluate the document unchanged. */
     | { kind: "not-anchored" }
     | { kind: "rewritten"; rule: RuleDocument; level: Decimal }
-    | { kind: "unresolvable"; reason: DrawingThresholdRefusal; drawingId: string };
+    /**
+     * The drawing the binding was lost to. Absent exactly when there is no
+     * binding to name — the ledger itself could not be read.
+     */
+    | { kind: "unresolvable"; reason: DrawingThresholdRefusal; drawingId?: string };
 
 export interface DrawingThresholdPorts {
-    ledger: () => DrawingAnchorLedger;
+    ledger: () => DrawingAnchorLedgerSnapshot;
     /** The drawing, or null when the store does not have it. */
     drawing: (drawingId: string) => ChartDrawing | null;
     /**
@@ -104,7 +114,22 @@ export function resolveDrawingThreshold(
     anchorMs: number,
     ports: DrawingThresholdPorts,
 ): ThresholdResolution {
-    const anchor = ports.ledger()[rule.id];
+    const snapshot = ports.ledger();
+    if (!snapshot.present) {
+        // BUG-0498 — the binding store is unreadable, so no rule id can be
+        // attributed to a drawing. A rule with the drawing-alert shape (the
+        // single comparison `createDrawingAlert` produces) might be watching
+        // a line that has long since moved: evaluating its stored constant
+        // would fire — and, with an order intent, submit — at an abandoned
+        // level, in silence. Held with a reason instead. Anything with any
+        // other shape provably was never a drawing alert and keeps evaluating
+        // normally, so an unreadable ledger does not make ordinary alerts
+        // inert wholesale.
+        if (!rewritableRight(rule)) return { kind: "not-anchored" };
+        return { kind: "unresolvable", reason: "drawing-anchor-ledger-unreadable" };
+    }
+
+    const anchor = snapshot.ledger[rule.id];
     if (!anchor) return { kind: "not-anchored" };
 
     const drawing = ports.drawing(anchor.drawingId);

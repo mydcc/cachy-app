@@ -48,7 +48,8 @@ import { levelAt } from "../../lib/chart/drawings/levelAt";
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
 import type { RuleDocument } from "../../lib/rules/types";
 import { generateId } from "../../utils/utils";
-import { armRule } from "./armRule";
+import { logger } from "../logger";
+import { armRule, removeRule } from "./armRule";
 import { recordDrawingAnchor } from "./drawingAnchors";
 
 export interface DrawingAlertRequest {
@@ -64,7 +65,15 @@ export interface DrawingAlertRequest {
 }
 
 /** Why a drawing could not be armed. */
-export type DrawingAlertRefusal = "drawing-has-no-level" | "price-on-the-line";
+export type DrawingAlertRefusal =
+    | "drawing-has-no-level"
+    | "price-on-the-line"
+    /**
+     * The binding of the rule to its line could not be persisted — BUG-0498.
+     * Refusing is honest: the chart would otherwise report the alert armed on
+     * a line it never follows.
+     */
+    | "drawing-anchor-not-persisted";
 
 export type DrawingAlertResult =
     | { ok: true; rule: RuleDocument }
@@ -120,16 +129,36 @@ export function buildDrawingAlert(request: DrawingAlertRequest): DrawingAlertRes
  * a rule that was never stored would make the reconciliation report a rule
  * nobody can see, and the opposite order merely leaves an ordinary rule with a
  * stale constant — recoverable, and visible.
+ *
+ * BUG-0498 — either write can fail on a quota-full device, and a success
+ * report then lies about an alert that never follows its line. A rule store
+ * that throws is refused outright; a ledger that does not land is refused
+ * after a best-effort rollback of the rule, so no phantom constant alert is
+ * left armed behind a failure report. Neither rollback nor refusal ever
+ * throws: the chart calls this from a click handler.
  */
 export function armDrawingAlert(request: DrawingAlertRequest): DrawingAlertResult {
     const built = buildDrawingAlert(request);
     if (!built.ok) return built;
 
-    armRule(built.rule);
-    recordDrawingAnchor(built.rule.id, {
+    try {
+        armRule(built.rule);
+    } catch (e) {
+        logger.warn("alerts", "[FEAT-0029] Drawing alert rule could not be written", e);
+        return { ok: false, reason: "drawing-anchor-not-persisted" };
+    }
+    const anchored = recordDrawingAnchor(built.rule.id, {
         drawingId: request.drawing.id,
         symbol: request.drawing.symbol,
         createdAtMs: request.nowMs,
     });
+    if (!anchored.ok) {
+        try {
+            removeRule(built.rule.id);
+        } catch (e) {
+            logger.warn("alerts", "[FEAT-0029] Drawing alert rollback failed", e);
+        }
+        return { ok: false, reason: "drawing-anchor-not-persisted" };
+    }
     return built;
 }
