@@ -34,6 +34,11 @@ describe("isSensitiveKey", () => {
         "api-key",
         "signature",
         "sign",
+        // BUG-0497 — the header spellings actually transmitted. `sign`
+        // alone matched; `x-api-sign` and `ACCESS-SIGN` fell through.
+        "x-api-sign",
+        "ACCESS-SIGN",
+        "api-sign",
         "authorization",
         "accessToken",
         "bearer",
@@ -55,6 +60,10 @@ describe("isSensitiveKey", () => {
         // "which account was this order on" unanswerable in the audit trail.
         "accountFingerprint",
         "fingerprint",
+        // BUG-0497 — ordinary words containing "sign" must stay readable.
+        "signal",
+        "assigned",
+        "designation",
     ])("leaves %s alone", (key) => {
         expect(isSensitiveKey(key)).toBe(false);
     });
@@ -151,6 +160,24 @@ describe("redactString", () => {
         expect(redactedJson).toContain('"signal": "buy"');
         expect(redactedJson).toContain('"design": "dark"');
     });
+
+    it("redacts prefixed sign spellings in embedded JSON — BUG-0528", () => {
+        // The key=value shape already redacted these; the JSON shape passed
+        // the secret through in clear.
+        for (const key of ["x-api-sign", "ACCESS-SIGN", "api-sign"]) {
+            const out = redactString(`{"${key}": "SECRET"}`);
+            expect(out).toContain(`"${key}": "***REDACTED***"`);
+            expect(out).not.toContain("SECRET");
+        }
+    });
+
+    it("leaves ordinary words containing sign untouched in embedded JSON", () => {
+        const out = redactString('{"signal": "buy", "assigned": "alice", "designation": "x"}');
+        expect(out).toContain('"signal": "buy"');
+        expect(out).toContain('"assigned": "alice"');
+        expect(out).toContain('"designation": "x"');
+        expect(out).not.toContain(REDACTED);
+    });
 });
 
 describe("redaction stays in step with the server-side logger", () => {
@@ -177,6 +204,9 @@ describe("redaction stays in step with the server-side logger", () => {
             "authorization",
             "bearer",
             "private_key",
+            // BUG-0497 — the signature header spelling the server logger
+            // already redacts must stay redacted here too.
+            "x-api-sign",
         ]) {
             expect(isSensitiveKey(key)).toBe(true);
         }

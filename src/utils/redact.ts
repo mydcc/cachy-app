@@ -56,7 +56,10 @@ const SENSITIVE_PATTERNS: RegExp[] = [
     /authorization/i,
     /bearer/i,
     /^private[-_]?key$/i,
-    /^sign$/i,
+    // Segment-bounded, not anchored: matches `sign`, `x-api-sign`,
+    // `ACCESS-SIGN` and `api-sign`, but not ordinary words containing
+    // "sign" (`signal`, `assigned`, `designation`). BUG-0497.
+    /(^|[-_])sign($|[-_])/i,
 ];
 
 export function isSensitiveKey(key: string): boolean {
@@ -124,8 +127,13 @@ export function redactString(input: string): string {
     );
 
     // "key": "value" in embedded JSON
+    // BUG-0528 — the `sign` alternative is segment-bounded, not a whole-key
+    // literal: `"x-api-sign"`, `"ACCESS-SIGN"` and `"api-sign"` redact while
+    // `"signal"`, `"assigned"` and `"designation"` pass through. The
+    // `key=value` shape above already redacts the prefixed spellings via its
+    // word boundary and is deliberately left alone.
     out = out.replace(
-        /(["'])([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api\s*[-_]?\s*key|signature|authorization|bearer)[\w-]*|sign)\1(\s*:\s*)(["'])(?:[^"'\\]|\\.)*\4/gi,
+        /(["'])([\w-]*(?:passw(?:or)?d|passphrase|secret|token|api\s*[-_]?\s*key|signature|authorization|bearer)[\w-]*|(?:[\w-]*[-_])?sign(?:[-_][\w-]*)?)\1(\s*:\s*)(["'])(?:[^"'\\]|\\.)*\4/gi,
         (_match, q: string, key: string, sep: string, vq: string) =>
             `${q}${key}${q}${sep}${vq}${REDACTED}${vq}`,
     );
