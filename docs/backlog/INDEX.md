@@ -4,7 +4,7 @@
 
 409 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 30 · ✅ done 355 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 29 · 🟡 in-progress 1 · ✅ done 355 · ⛔ dropped 1
 
 ---
 
@@ -256,7 +256,7 @@ Counts by status: 💡 idea 23 · 📋 specced 30 · ✅ done 355 · ⛔ dropped
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | security |
 | [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 📋 specced | alerts |
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | ✅ done | alerts |
-| [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 📋 specced | alerts |
+| [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 🟡 in-progress | alerts |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | alerts |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | ✅ done | execution |
 | [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | execution |
@@ -565,7 +565,7 @@ Counts by status: 💡 idea 23 · 📋 specced 30 · ✅ done 355 · ⛔ dropped
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | ✅ done | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
