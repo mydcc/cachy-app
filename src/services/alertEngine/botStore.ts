@@ -33,10 +33,7 @@
  */
 
 import type { ConsequenceLevel, RuleDocument } from "../../lib/rules/types";
-import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
-import { armRule, readRuleStore } from "./armRule";
-import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
-import { clearBotAnchors } from "./ruleStateStore";
+import { armRule, readRuleStore, removeRule } from "./armRule";
 
 /**
  * The level that makes a rule a bot.
@@ -95,18 +92,13 @@ export function setBotEnabled(botId: string, enabled: boolean): RuleDocument | u
  * function unable to express it.
  */
 export function deleteBot(botId: string): boolean {
-  const rules = readRuleStore();
-  const target = rules.find((r) => r.id === botId);
+  const target = readRuleStore().find((r) => r.id === botId);
   if (!target || !isBot(target)) return false;
 
-  localStorage.setItem(
-    RULES_STORAGE_KEY,
-    JSON.stringify(rules.filter((r) => r.id !== botId)),
-  );
-  // BUG-0486 — this writes the store directly, past `removeRule`, so the
-  // anchors go here too: maps via the gate, stored half directly (edits also
-  // land while the loop's persistence port is unbound).
-  ruleEvaluationGate.forget(botId);
-  clearBotAnchors(botId);
+  // BUG-0493 — the guard above is what makes this function worth having; the
+  // write itself goes through `removeRule`, so there is one removal write to
+  // `cachy_rules_v1` and every invalidation it performs (BUG-0486's anchor
+  // forget) applies to a deleted bot too.
+  removeRule(botId);
   return true;
 }
