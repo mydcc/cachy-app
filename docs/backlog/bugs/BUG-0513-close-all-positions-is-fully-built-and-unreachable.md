@@ -2,7 +2,9 @@
 id: BUG-0513
 title: Close-all-positions is implemented end to end through gate, signing, venue and simulator, and no caller anywhere in the app reaches it
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix-pkg-e-0513-0514
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -73,17 +75,18 @@ call away.
 
 ## Acceptance Criteria
 
-- [ ] A user-reachable control flattens all positions, or optionally all
+- [x] A user-reachable control flattens all positions, or optionally all
       positions on one symbol (the method already takes that argument).
-- [ ] The control is reachable while the kill switch is engaged, since the gate
+- [x] The control is reachable while the kill switch is engaged, since the gate
       already permits the operation in that state.
-- [ ] `trade.closeAllFailed` names close-all, not flash-close, in both locales,
+- [x] `trade.closeAllFailed` names close-all, not flash-close, in both locales,
       and `npm run i18n` parity stays green.
-- [ ] The confirmation the control raises states how many positions and what
+- [x] The confirmation the control raises states how many positions and what
       total notional is about to be closed.
 - [ ] If the decision is instead that this capability should not exist, the
       whole slice is removed rather than left as reachable-looking dead code —
-      including the venue branch and the schema literal.
+      including the venue branch and the schema literal. (Not taken — wired
+      instead, per user decision for option A + UI variant c.)
 
 ## Out of Scope
 

@@ -58,6 +58,7 @@ const tradeServiceMock = vi.hoisted(() => ({
     flashClosePosition: vi.fn(async () => ({ ok: true })),
     cancelOrder: vi.fn(async () => ({ ok: true })),
     cancelAllOrders: vi.fn(async () => ({ ok: true })),
+    closeAllPositions: vi.fn(async () => ({ ok: true })),
     modifyOrder: vi.fn(async () => ({ ok: true })),
     fetchTpSlOrders: vi.fn(async () => [{ orderId: "1" }]),
     cancelTpSlOrder: vi.fn(async () => ({ ok: true })),
@@ -278,6 +279,10 @@ const TRADING_VERBS: Record<string, VerbSpec> = {
     },
     cancelOrder: { gate: null, kind: "write", args: ["BTCUSDT", "1"], transport: "cancelOrder" },
     cancelAllOrders: { gate: null, kind: "write", args: ["BTCUSDT"], transport: "cancelAllOrders" },
+    // BUG-0513. Never gated by `supports`: Bitunix takes the native
+    // bulk verb, every other venue flattens through the tradeService loop —
+    // both paths live behind the same transport method either way.
+    closeAllPositions: { gate: null, kind: "write", args: ["BTCUSDT"], transport: "closeAllPositions" },
     modifyOrder: { gate: null, kind: "write", args: [{ orderId: "1" }], transport: "modifyOrder" },
     fetchTpSlOrders: { gate: "tpSl", kind: "read", args: ["pending"], transport: "fetchTpSlOrders" },
     cancelTpSlOrder: {
