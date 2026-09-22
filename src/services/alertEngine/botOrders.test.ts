@@ -276,6 +276,10 @@ describe("what a fired bot submits", () => {
 
     expect(await submitBotOrder(firingOf(botDocument()), env)).toBe("paper-trading-off");
     expect(place).toHaveBeenCalledTimes(1);
+    // BUG-0494 — the stamp is what the downstream refusal keys off. Without
+    // this assertion the `origin: "bot"` line could be deleted and every
+    // test would stay green.
+    expect(place.mock.calls[0][0]).toMatchObject({ origin: "bot" });
   });
 
   it("does not mistake any other failed placement for a paper refusal", async () => {
