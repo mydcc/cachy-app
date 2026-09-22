@@ -146,7 +146,7 @@
       {#if pnlStale}
         <span
           class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider bg-[var(--bg-secondary)] text-[var(--warning-color)] border border-[var(--border-color)] ml-1"
-          title={$_("positionsList.stalePriceHint")}
+          title={$_("positionsList.staleTotalHint")}
           data-track-id="stale-price-badge"
         >
           {$_("positionsList.stalePriceBadge")}

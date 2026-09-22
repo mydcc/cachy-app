@@ -2373,6 +2373,7 @@ export type TranslationKey =
   | "positionsList.pnlToggleHint"
   | "positionsList.stalePriceBadge"
   | "positionsList.stalePriceHint"
+  | "positionsList.staleTotalHint"
   | "positionsList.tierMmr"
   | "positionsList.nextTierAt"
   | "positionsList.tpslActive"
