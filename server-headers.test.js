@@ -19,6 +19,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   SECURITY_HEADERS,
   applySecurityHeaders,
+  overlaySecurityHeaders,
   wrapWriteHead,
   isImmutableAsset,
   cacheControlFor,
@@ -97,6 +98,60 @@ describe('applySecurityHeaders', () => {
   });
 });
 
+describe('overlaySecurityHeaders', () => {
+  it('overlays security headers onto an explicit object, preserving other headers', () => {
+    const explicit = {
+      'X-Content-Type-Options': 'evil',
+      'Content-Type': 'text/html',
+      'Cache-Control': 'public, max-age=3600, must-revalidate',
+    };
+    overlaySecurityHeaders(explicit);
+    expect(explicit['X-Content-Type-Options']).toBe('nosniff');
+    expect(explicit['Content-Type']).toBe('text/html');
+    expect(explicit['Cache-Control']).toBe('public, max-age=3600, must-revalidate');
+    for (const [name, value] of SECURITY_HEADERS) {
+      const key = Object.keys(explicit).find((k) => k.toLowerCase() === name.toLowerCase());
+      expect(explicit[key]).toBe(value);
+    }
+  });
+
+  it('overlays security headers onto a flat explicit array', () => {
+    const explicit = ['X-Frame-Options', 'evil', 'Content-Type', 'text/html'];
+    overlaySecurityHeaders(explicit);
+    expect(explicit.filter((v) => v === 'evil')).toHaveLength(0);
+    expect(explicit).toContain('Content-Type');
+    for (const [name, value] of SECURITY_HEADERS) {
+      const i = explicit.findIndex((v) => String(v).toLowerCase() === name.toLowerCase());
+      expect(explicit[i + 1]).toBe(value);
+    }
+  });
+
+  it('overlays security headers onto an explicit array of pairs without corrupting it', () => {
+    const explicit = [
+      ['X-Content-Type-Options', 'evil'],
+      ['Content-Type', 'text/html'],
+    ];
+    overlaySecurityHeaders(explicit);
+    expect(explicit.every((entry) => Array.isArray(entry))).toBe(true);
+    const overridden = explicit.filter(
+      ([name]) => name.toLowerCase() === 'x-content-type-options',
+    );
+    expect(overridden).toHaveLength(1);
+    expect(overridden[0][1]).toBe('nosniff');
+    expect(explicit).toContainEqual(['Content-Type', 'text/html']);
+    for (const [name, value] of SECURITY_HEADERS) {
+      expect(explicit).toContainEqual([name, value]);
+    }
+  });
+
+  it('ignores missing or non-object headers arguments', () => {
+    expect(() => overlaySecurityHeaders(undefined)).not.toThrow();
+    expect(() => overlaySecurityHeaders(null)).not.toThrow();
+    expect(() => overlaySecurityHeaders(200)).not.toThrow();
+    expect(() => overlaySecurityHeaders('OK')).not.toThrow();
+  });
+});
+
 describe('isImmutableAsset', () => {
   it('identifies fingerprinted SvelteKit assets under /_app/immutable/', () => {
     expect(isImmutableAsset('build/client/_app/immutable/entry/start.abc123.js')).toBe(true);
@@ -107,6 +162,19 @@ describe('isImmutableAsset', () => {
   it('identifies font assets under /fonts/', () => {
     expect(isImmutableAsset('build/client/fonts/Inter/Inter-VariableFont_opsz,wght.ttf')).toBe(true);
     expect(isImmutableAsset('build/client/fonts/Manrope/Manrope.woff2')).toBe(true);
+  });
+
+  it('treats hashed WASM and Ammo filenames as immutable, stable names as not', () => {
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm.a1b2c3d4.wasm')).toBe(true);
+    expect(isImmutableAsset('build/client/ammo/ammo.BEEF1234.js')).toBe(true);
+    // Stable filenames are rebuilt in place — never immutable (stale-indicator risk).
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm_bg.wasm')).toBe(false);
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm.js')).toBe(false);
+    expect(isImmutableAsset('build/client/ammo/ammo.wasm.wasm')).toBe(false);
+    expect(isImmutableAsset('build/client/ammo/ammo.wasm.js')).toBe(false);
+    // Non-binary sidecars under /wasm/ stay revalidating.
+    expect(isImmutableAsset('build/client/wasm/technicals_wasm.d.ts')).toBe(false);
+    expect(isImmutableAsset('build/client/wasm/README.txt')).toBe(false);
   });
 
   it('rejects non-immutable paths', () => {
@@ -126,6 +194,25 @@ describe('cacheControlFor', () => {
     expect(cacheControlFor('build/client/_app/immutable/foo.abc123.js')).toBe(
       'public, max-age=31536000, immutable',
     );
+  });
+
+  it('gives versioned WASM/Ammo binaries a bounded cache window with revalidation', () => {
+    expect(cacheControlFor('build/client/wasm/technicals_wasm_bg.wasm')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+    expect(cacheControlFor('build/client/wasm/technicals_wasm.js')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+    expect(cacheControlFor('build/client/ammo/ammo.wasm.wasm')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+    expect(cacheControlFor('build/client/ammo/ammo.wasm.js')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+  });
+
+  it('forces revalidation for WASM sidecar files', () => {
+    expect(cacheControlFor('build/client/wasm/technicals_wasm.d.ts')).toBe('no-cache');
   });
 
   it('forces revalidation for everything else', () => {
@@ -172,7 +259,12 @@ describe('wrapWriteHead', () => {
     expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-    expect(originalWriteHead).toHaveBeenCalledWith(200, { 'content-type': 'text/html' });
+    // The explicit headers object is passed through by reference, with the
+    // security headers overlaid (Node would otherwise prefer it over setHeader).
+    expect(originalWriteHead).toHaveBeenCalledWith(200, {
+      'content-type': 'text/html',
+      ...Object.fromEntries(SECURITY_HEADERS),
+    });
     expect(returned).toBe('sentinel');
   });
 

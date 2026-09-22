@@ -26,10 +26,13 @@ const app = express();
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
 
-// Apply security headers to all requests. wrapWriteHead ensures that even
-// when SvelteKit's handler or sirv flushes headers directly via writeHead()
-// (SPA fallback / SSR-off HTML routes), applySecurityHeaders(res) runs right
-// before the head is written.
+// Guarantee security headers on every response, including SvelteKit fallback
+// and static responses. setHeader() alone is not enough: Node lets headers
+// passed explicitly to res.writeHead() win over earlier setHeader() calls, so
+// wrapWriteHead re-applies our headers right before the flush and overlays them
+// onto any explicit headers argument (object, flat-array or pairs-array form).
+// Cache-Control is not part of SECURITY_HEADERS, so per-asset cache policies
+// from setHeaders survive untouched.
 app.use((req, res, next) => {
   wrapWriteHead(res);
   applySecurityHeaders(res);
