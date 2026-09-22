@@ -313,6 +313,26 @@
                         />
                     </label>
 
+                    <!--
+                        BUG-0512 — stale price display. On: a provably old
+                        price keeps showing with an unmissable STALE badge.
+                        Off: the PnL cell honestly shows unpriced instead.
+                    -->
+                    <label class="toggle-card gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.stalePriceBadge")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.stalePriceBadgeDesc")}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.showStalePriceBadge}
+                        />
+                    </label>
+
                     <!-- Automation & Advanced (moved from Chart & Data; execution behaviour lives with execution) -->
                     <div class="border-t border-[var(--border-color)] pt-4 mt-4 mb-4 col-span-full">
                         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">

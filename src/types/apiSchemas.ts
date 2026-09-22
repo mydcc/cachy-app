@@ -36,6 +36,11 @@ const MoneyLike = z.union([z.string(), z.number()]).transform((v) => String(v));
 export const BitunixTickerSchema = z.object({
   symbol: z.string(),
   lastPrice: StrictPositiveDecimal,
+  // BUG-0512: the venue sends markPrice on this endpoint
+  // (docs/bitunix-api/04_market.md — Get Tickers). It used to be dropped
+  // here, so the REST gap-bridge could never refresh the mark price and
+  // every PnL kept pricing off a frozen WS value.
+  markPrice: StrictDecimal.nullable().optional(),
   open: StrictDecimal.nullable().optional(),
   high: StrictDecimal.nullable().optional(),
   low: StrictDecimal.nullable().optional(),

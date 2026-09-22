@@ -61,7 +61,14 @@ export function applyUpdate(marketManager: import("../market.svelte").MarketMana
     }
     if (partial.markPrice !== undefined) {
       const newVal = toDecimal(partial.markPrice, current.markPrice);
-      if (newVal !== undefined) current.markPrice = newVal;
+      if (newVal !== undefined) {
+        current.markPrice = newVal;
+        // BUG-0512: stamp only when a real value arrived. An explicit
+        // `markPrice: undefined` on a partial (e.g. an index-price-only WS
+        // tick) keeps the old price AND the old stamp — the price did not
+        // get fresher.
+        if (newVal !== null) current.markPriceUpdatedAt = Date.now();
+      }
     }
     if (partial.highPrice !== undefined) {
       const newVal = toDecimal(partial.highPrice, current.highPrice);

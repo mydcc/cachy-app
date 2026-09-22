@@ -31,12 +31,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
 
 vi.mock("../apiService", () => ({
-    apiService: { fetchBitunixKlines: vi.fn() },
+    apiService: { fetchBitunixKlines: vi.fn(), fetchTicker24h: vi.fn() },
 }));
 vi.mock("../../stores/market.svelte", () => ({
     marketState: {
         data: {} as Record<string, unknown>,
         updateSymbolKlines: vi.fn(),
+        updateSymbol: vi.fn(),
     },
 }));
 vi.mock("../../stores/trade.svelte", () => ({
@@ -155,5 +156,65 @@ describe("BUG-0296 — HistoryFetcher.loadMoreHistory result semantics", () => {
 
         expect(result).toBe("busy");
         expect(fetchKlines).not.toHaveBeenCalled();
+    });
+});
+
+describe("BUG-0512 — the gap-bridge carries the venue mark price", () => {
+    let fetcher: HistoryFetcher;
+    const updateSymbol = vi.mocked(marketState.updateSymbol as unknown as ReturnType<typeof vi.fn>);
+    const fetchTicker = vi.mocked(
+        (apiService as unknown as { fetchTicker24h: ReturnType<typeof vi.fn> }).fetchTicker24h,
+    );
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        store.data = {};
+        fetcher = makeFetcher();
+    });
+
+    it("writes the ticker mark price into the store on a price-channel poll", async () => {
+        const last = new Decimal("60001");
+        const mark = new Decimal("60000");
+        fetchTicker.mockResolvedValue({
+            provider: "bitunix",
+            symbol: "BTCUSDT",
+            lastPrice: last,
+            markPrice: mark,
+            highPrice: last,
+            lowPrice: last,
+            volume: new Decimal(1),
+            priceChangePercent: new Decimal(0),
+        });
+
+        await fetcher.pollSymbolChannel("BTCUSDT", "price", "bitunix");
+
+        expect(fetchTicker).toHaveBeenCalledWith("BTCUSDT", "bitunix", "normal", 10000);
+        expect(updateSymbol).toHaveBeenCalledWith(
+            "BTCUSDT",
+            expect.objectContaining({ lastPrice: last, markPrice: mark }),
+        );
+    });
+
+    it("leaves the stored mark untouched when the venue sends none", async () => {
+        const last = new Decimal("60001");
+        fetchTicker.mockResolvedValue({
+            provider: "bitunix",
+            symbol: "BTCUSDT",
+            lastPrice: last,
+            markPrice: undefined,
+            highPrice: last,
+            lowPrice: last,
+            volume: new Decimal(1),
+            priceChangePercent: new Decimal(0),
+        });
+
+        await fetcher.pollSymbolChannel("BTCUSDT", "price", "bitunix");
+
+        // updateSymbol skips undefined fields, so no frozen value is written
+        // and no live one is wiped — the stored mark survives the poll.
+        expect(updateSymbol).toHaveBeenCalledWith(
+            "BTCUSDT",
+            expect.objectContaining({ lastPrice: last, markPrice: undefined }),
+        );
     });
 });
