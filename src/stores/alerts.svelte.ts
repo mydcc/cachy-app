@@ -268,12 +268,16 @@ export function firingMessage(rule: RuleDocument): string {
  * that could read the funded account would be one line away from sizing against
  * it.
  */
-function botOrderEnvironment(closeAt: BotOrderEnvironment["closeAt"]): BotOrderEnvironment {
+function botOrderEnvironment(
+    closeAt: BotOrderEnvironment["closeAt"],
+    livePrice: BotOrderEnvironment["livePrice"],
+): BotOrderEnvironment {
     return {
         paperEnabled: () => paperState.enabled,
         equity: () => paperState.balance,
         exchange: () => settingsState.apiProvider,
         closeAt,
+        livePrice,
         // Imported at the moment an order is actually placed, not at startup.
         // `orderPlacementService` pulls the account and TP/SL stores in behind
         // it, and the alert engine starts on every session — including the
@@ -310,6 +314,8 @@ const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, TranslationKey> = {
     "reduce-only-unsupported": "settings.automation.orderRefusedReduceOnly",
     "no-stop": "settings.automation.orderRefusedNoStop",
     "no-entry-price": "settings.automation.orderRefusedOther",
+    "no-live-price": "settings.automation.orderRefusedNoLivePrice",
+    "stale-anchor-price": "settings.automation.orderRefusedStaleAnchor",
     "no-equity": "settings.automation.orderRefusedOther",
     "size-not-positive": "settings.automation.orderRefusedOther",
     "level-not-supported": "settings.automation.orderRefusedLevelNotSupported",
@@ -495,7 +501,7 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
     );
     // Bots ride the same sink the alerts do, so they load with it rather than
     // at module scope: a session with no bot never pays for the order path.
-    const { closeAtAnchor, withBotOrders } = await import("../services/alertEngine/botOrders");
+    const { closeAtAnchor, livePriceAt, withBotOrders } = await import("../services/alertEngine/botOrders");
 
     // FEAT-0406: one read, and every later tick re-decides from its own.
     const ready = ruleSchema.isReady();
@@ -524,7 +530,7 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
         mode === "live"
             ? withBotOrders(
                   notifyingRuleSink,
-                  botOrderEnvironment(closeAtAnchor),
+                  botOrderEnvironment(closeAtAnchor, livePriceAt),
                   reportBotOrderRefusal,
               )
             : ledgerSink,

@@ -2,8 +2,10 @@
 id: BUG-0489
 title: A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price
 type: bug
-status: specced
+status: done
 priority: P2
+assignee: opencode
+branch: fix/BUG-0489-bot-live-price-sizing
 milestone: none
 editions: [community, pro, private]
 area: execution
