@@ -1,20 +1,29 @@
 import { Decimal } from "decimal.js";
+import { normalizeMarginMode } from "../../utils/marginMode";
 
 /**
  * Project where a position would liquidate at a new leverage.
  *
  * Given the venue's entry/liquidation/current leverage for an open position,
  * solve for the maintenance-margin rate (MMR), then re-apply it at the new
- * leverage. Direction (long/short) is inferred from the numbers: a long
- * liquidates below its entry, a short above it.
+ * leverage.
  *
  * Returns null if any input is missing, non-finite, or non-positive — a wrong
- * number on a money screen is worse than none.
+ * number on a money screen is worse than none. It also returns null for an
+ * explicitly cross-margin position: cross-margin liquidation is a function of
+ * total account equity, not of this position's leverage, so the isolated
+ * formula answers a different question there (BUG-0504).
  *
  * @param entry Position entry price (Decimal)
  * @param liquidation Current liquidation price (Decimal)
  * @param currentLeverage Current leverage (Decimal)
  * @param newLeverage Target leverage (Decimal)
+ * @param side Position side, read from the position — never inferred from
+ *   the prices (at `liquidation === entry` the geometry guess processes a
+ *   long as a short)
+ * @param marginMode Position margin mode; explicitly cross yields null.
+ *   Unknown (undefined) keeps the long-standing display behaviour and
+ *   projects — only a known cross refuses.
  * @returns { from, to, tighter } or null
  */
 export function projectLiquidation(
@@ -22,6 +31,8 @@ export function projectLiquidation(
   liquidation: Decimal,
   currentLeverage: Decimal,
   newLeverage: Decimal,
+  side: "long" | "short",
+  marginMode?: string,
 ): { from: Decimal; to: Decimal; tighter: boolean } | null {
   if (
     !entry?.isFinite() ||
@@ -37,7 +48,9 @@ export function projectLiquidation(
   }
 
   try {
-    const isLong = liquidation.lt(entry);
+    if (side !== "long" && side !== "short") return null;
+    const isLong = side === "long";
+    if (normalizeMarginMode(marginMode) === "cross") return null;
     const ratio = liquidation.div(entry);
     const invOld = new Decimal(1).div(currentLeverage);
     const invNew = new Decimal(1).div(newLeverage);

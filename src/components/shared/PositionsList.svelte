@@ -210,7 +210,20 @@
                     }
                   }}
                 >
-                  {#if pnlMode === "bar"}
+                  {#if pos.unpriced}
+                    <!--
+                      BUG-0512: nothing provably fresh and the trader disabled
+                      stale display — honestly unpriced ("–") rather than any
+                      number. The totals badge that a leg is missing.
+                    -->
+                    <span
+                      class="font-bold text-sm text-[var(--text-tertiary)]"
+                      aria-live="off"
+                      title={$_("positionsList.stalePriceHint")}
+                      data-track-id="unpriced-pnl"
+                      >–</span
+                    >
+                  {:else if pnlMode === "bar"}
                     <!-- Bar Representation -->
                     <div
                       class="h-5 w-20 bg-[var(--bg-secondary)] rounded relative overflow-hidden flex items-center justify-center border border-[var(--border-color)]"
@@ -242,6 +255,20 @@
                       class:text-[var(--danger-color)]={pos.unrealizedPnl.lt(0)}
                     >
                       {getPnlDisplay(pos, pnlMode)}
+                    </span>
+                  {/if}
+                  {#if pos.priceStale}
+                    <!--
+                      BUG-0512: this PnL was priced off a substitute or a
+                      stale mark, never presented as live. Unmissable by
+                      design — a stale number that looks live is the defect.
+                    -->
+                    <span
+                      class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider bg-[var(--bg-secondary)] text-[var(--warning-color)] border border-[var(--border-color)]"
+                      title={$_("positionsList.stalePriceHint")}
+                      data-track-id="stale-price-badge"
+                    >
+                      {$_("positionsList.stalePriceBadge")}
                     </span>
                   {/if}
                 </div>

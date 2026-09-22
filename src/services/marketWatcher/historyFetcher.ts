@@ -369,6 +369,11 @@ export class HistoryFetcher {
                     );
                     marketState.updateSymbol(symbol, {
                       lastPrice: data.lastPrice,
+                      // BUG-0512: the bridge used to refresh every price field
+                      // except the one PnL is priced from. The venue sends a
+                      // mark price on this endpoint, so the gap-bridge now
+                      // carries it — WS stays primary, REST only fills gaps.
+                      markPrice: data.markPrice,
                       highPrice: data.highPrice,
                       lowPrice: data.lowPrice,
                       volume: data.volume,

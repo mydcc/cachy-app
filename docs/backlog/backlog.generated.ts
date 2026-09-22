@@ -1930,7 +1930,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0504",
     "title": "The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix-pkg-e-0504-0512",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2011,7 +2013,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0512",
     "title": "A stale mark price outranks a fresh REST price, so every position's PnL keeps being recomputed from a frozen number during a WebSocket price gap",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix-pkg-e-0504-0512",
     "priority": "P1",
     "milestone": "none",
     "editions": [
