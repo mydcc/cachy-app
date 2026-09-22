@@ -74,6 +74,8 @@
     return Math.min(Math.max((analysis.score + 1) * 50, 0), 100);
   });
 
+  let topNews = $derived(news.slice(0, 5));
+
   // Track initial symbol to prevent auto-fetching if it was passed via props
   let hasAutoFetched = false;
 
@@ -264,7 +266,7 @@
           <div
             class="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar"
           >
-            {#each news.slice(0, 5) as item}
+            {#each topNews as item}
               <div
                 class="group flex items-start justify-between p-1.5 hover:bg-[var(--bg-tertiary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)] text-left w-full cursor-pointer"
                 onclick={(e) => handleArticleClick(e, item)}
@@ -412,7 +414,7 @@
           <div
             class="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar"
           >
-            {#each news.slice(0, 5) as item}
+            {#each topNews as item}
               <div
                 class="group flex items-start justify-between p-2 hover:bg-[var(--bg-secondary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)] text-left w-full cursor-pointer"
                 onclick={(e) => handleArticleClick(e, item)}
