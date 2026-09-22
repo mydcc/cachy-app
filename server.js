@@ -18,7 +18,7 @@
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
-import { SECURITY_HEADERS, applySecurityHeaders, cacheControlFor } from './server-headers.js';
+import { applySecurityHeaders, cacheControlFor, overlaySecurityHeaders } from './server-headers.js';
 
 const app = express();
 
@@ -30,32 +30,14 @@ app.use(compression({ level: 6 }));
 // and static responses. setHeader() alone is not enough: Node lets headers
 // passed explicitly to res.writeHead() win over earlier setHeader() calls, so
 // the wrapper re-applies our headers right before the flush and overlays them
-// onto any explicit headers argument (object or [name, value, ...] array form).
+// onto any explicit headers argument (object, flat-array or pairs-array form).
 // Cache-Control is not part of SECURITY_HEADERS, so per-asset cache policies
 // from setHeaders survive untouched.
 app.use((req, res, next) => {
   const originalWriteHead = res.writeHead;
   res.writeHead = function (...args) {
     applySecurityHeaders(res);
-    const explicit = args.find((arg) => arg !== null && typeof arg === "object");
-    if (Array.isArray(explicit)) {
-      const names = new Set(SECURITY_HEADERS.map(([name]) => name.toLowerCase()));
-      for (let i = explicit.length - 2; i >= 0; i -= 2) {
-        if (names.has(String(explicit[i]).toLowerCase())) {
-          explicit.splice(i, 2);
-        }
-      }
-      for (const [name, value] of SECURITY_HEADERS) {
-        explicit.push(name, value);
-      }
-    } else if (explicit) {
-      for (const [name, value] of SECURITY_HEADERS) {
-        const existing = Object.keys(explicit).find(
-          (key) => key.toLowerCase() === name.toLowerCase(),
-        );
-        explicit[existing ?? name] = value;
-      }
-    }
+    overlaySecurityHeaders(args.find((arg) => arg !== null && typeof arg === "object"));
     return originalWriteHead.apply(this, args);
   };
   applySecurityHeaders(res);

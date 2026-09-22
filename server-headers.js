@@ -42,6 +42,53 @@ export function applySecurityHeaders(res) {
   }
 }
 
+/**
+ * Overlay SECURITY_HEADERS onto headers passed explicitly to res.writeHead().
+ * Node lets explicit writeHead() headers win over earlier setHeader() calls,
+ * so without this a caller passing its own headers could silently drop our
+ * security headers. Cache-Control is not part of SECURITY_HEADERS, so
+ * per-asset cache policies survive untouched.
+ * Handles every Node header shape: plain objects, flat arrays
+ * ([name, value, ...]) and arrays of pairs ([[name, value], ...]).
+ * Array-form headers are mutated in place, preserving their shape.
+ * @param {unknown} explicit the headers argument of the writeHead() call, if any
+ */
+export function overlaySecurityHeaders(explicit) {
+  if (explicit === null || typeof explicit !== "object") {
+    return;
+  }
+  if (Array.isArray(explicit)) {
+    const names = new Set(SECURITY_HEADERS.map(([name]) => name.toLowerCase()));
+    if (explicit.length > 0 && explicit.every((entry) => Array.isArray(entry))) {
+      for (let i = explicit.length - 1; i >= 0; i -= 1) {
+        if (names.has(String(explicit[i][0]).toLowerCase())) {
+          explicit.splice(i, 1);
+        }
+      }
+      for (const [name, value] of SECURITY_HEADERS) {
+        explicit.push([name, value]);
+      }
+    } else {
+      for (let i = explicit.length - 2; i >= 0; i -= 2) {
+        if (names.has(String(explicit[i]).toLowerCase())) {
+          explicit.splice(i, 2);
+        }
+      }
+      for (const [name, value] of SECURITY_HEADERS) {
+        explicit.push(name, value);
+      }
+    }
+    return;
+  }
+  const headers = /** @type {Record<string, string>} */ (explicit);
+  for (const [name, value] of SECURITY_HEADERS) {
+    const existing = Object.keys(headers).find(
+      (key) => key.toLowerCase() === name.toLowerCase(),
+    );
+    headers[existing ?? name] = value;
+  }
+}
+
 // Content-hash fingerprint as emitted by bundlers: name.<hex8+>.ext
 // (e.g. start.abc123.js). Minimum 8 hex chars so plain version segments like
 // the ".wasm" in ammo.wasm.wasm never match.

@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import {
   SECURITY_HEADERS,
   applySecurityHeaders,
+  overlaySecurityHeaders,
   isImmutableAsset,
   cacheControlFor,
 } from './server-headers.js';
@@ -93,6 +94,60 @@ describe('applySecurityHeaders', () => {
     for (const [name, value] of SECURITY_HEADERS) {
       expect(res.headers.get(name)).toBe(value);
     }
+  });
+});
+
+describe('overlaySecurityHeaders', () => {
+  it('overlays security headers onto an explicit object, preserving other headers', () => {
+    const explicit = {
+      'X-Content-Type-Options': 'evil',
+      'Content-Type': 'text/html',
+      'Cache-Control': 'public, max-age=3600, must-revalidate',
+    };
+    overlaySecurityHeaders(explicit);
+    expect(explicit['X-Content-Type-Options']).toBe('nosniff');
+    expect(explicit['Content-Type']).toBe('text/html');
+    expect(explicit['Cache-Control']).toBe('public, max-age=3600, must-revalidate');
+    for (const [name, value] of SECURITY_HEADERS) {
+      const key = Object.keys(explicit).find((k) => k.toLowerCase() === name.toLowerCase());
+      expect(explicit[key]).toBe(value);
+    }
+  });
+
+  it('overlays security headers onto a flat explicit array', () => {
+    const explicit = ['X-Frame-Options', 'evil', 'Content-Type', 'text/html'];
+    overlaySecurityHeaders(explicit);
+    expect(explicit.filter((v) => v === 'evil')).toHaveLength(0);
+    expect(explicit).toContain('Content-Type');
+    for (const [name, value] of SECURITY_HEADERS) {
+      const i = explicit.findIndex((v) => String(v).toLowerCase() === name.toLowerCase());
+      expect(explicit[i + 1]).toBe(value);
+    }
+  });
+
+  it('overlays security headers onto an explicit array of pairs without corrupting it', () => {
+    const explicit = [
+      ['X-Content-Type-Options', 'evil'],
+      ['Content-Type', 'text/html'],
+    ];
+    overlaySecurityHeaders(explicit);
+    expect(explicit.every((entry) => Array.isArray(entry))).toBe(true);
+    const overridden = explicit.filter(
+      ([name]) => name.toLowerCase() === 'x-content-type-options',
+    );
+    expect(overridden).toHaveLength(1);
+    expect(overridden[0][1]).toBe('nosniff');
+    expect(explicit).toContainEqual(['Content-Type', 'text/html']);
+    for (const [name, value] of SECURITY_HEADERS) {
+      expect(explicit).toContainEqual([name, value]);
+    }
+  });
+
+  it('ignores missing or non-object headers arguments', () => {
+    expect(() => overlaySecurityHeaders(undefined)).not.toThrow();
+    expect(() => overlaySecurityHeaders(null)).not.toThrow();
+    expect(() => overlaySecurityHeaders(200)).not.toThrow();
+    expect(() => overlaySecurityHeaders('OK')).not.toThrow();
   });
 });
 
