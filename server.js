@@ -18,7 +18,7 @@
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
-import { applySecurityHeaders, cacheControlFor, overlaySecurityHeaders } from './server-headers.js';
+import { applySecurityHeaders, cacheControlFor, wrapWriteHead } from './server-headers.js';
 
 const app = express();
 
@@ -29,17 +29,12 @@ app.use(compression({ level: 6 }));
 // Guarantee security headers on every response, including SvelteKit fallback
 // and static responses. setHeader() alone is not enough: Node lets headers
 // passed explicitly to res.writeHead() win over earlier setHeader() calls, so
-// the wrapper re-applies our headers right before the flush and overlays them
+// wrapWriteHead re-applies our headers right before the flush and overlays them
 // onto any explicit headers argument (object, flat-array or pairs-array form).
 // Cache-Control is not part of SECURITY_HEADERS, so per-asset cache policies
 // from setHeaders survive untouched.
 app.use((req, res, next) => {
-  const originalWriteHead = res.writeHead;
-  res.writeHead = function (...args) {
-    applySecurityHeaders(res);
-    overlaySecurityHeaders(args.find((arg) => arg !== null && typeof arg === "object"));
-    return originalWriteHead.apply(this, args);
-  };
+  wrapWriteHead(res);
   applySecurityHeaders(res);
   next();
 });
