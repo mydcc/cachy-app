@@ -204,16 +204,15 @@ describe("RuleEvaluationLoop", () => {
     });
 
     /**
-     * BUG-0483 part 1 — a batch that jumps several candles at once used to be
-     * stamped with the pre-batch high-water mark while the verdict was
-     * computed on the newest data: the firing named a candle five closes old,
-     * and everything keyed on the anchor (notification dedupe,
-     * `last_fired_anchor_ms`, the bot's entry-price lookup) inherited the
-     * lie. The anchor is now the last closed candle of the batch, so the
-     * stamp and the data agree. Recovering the crossings strictly inside the
-     * gap is part 2, not this.
+     * BUG-0483 — a batch that jumps several candles replays each skipped
+     * close, oldest first, each stamped with its own anchor: the firing that
+     * used to name a candle five closes old is now five firings, each keyed
+     * to the candle it was decided on (notification dedupe,
+     * `last_fired_anchor_ms`, the bot's entry-price lookup). Recovering the
+     * crossings strictly inside the gap — rather than merely stamping the
+     * last one right — is part 2.
      */
-    it("stamps a backfill batch with its last closed candle", () => {
+    it("replays every skipped close of a backfill batch with its own anchor", () => {
       const { loop } = loopWith([rule()]);
       loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
 
@@ -225,8 +224,7 @@ describe("RuleEvaluationLoop", () => {
         { time: 301_000 },
       ]);
 
-      expect(firings).toHaveLength(1);
-      expect(firings[0].anchorMs).toBe(241_000);
+      expect(firings.map((f) => f.anchorMs)).toEqual([1_000, 61_000, 121_000, 181_000, 241_000]);
     });
 
     it("still stamps the pre-batch mark when the batch carries nothing below the new open", () => {
