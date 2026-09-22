@@ -3625,6 +3625,7 @@ export type TranslationKey =
   | "chartView.drawings.alertArmed"
   | "chartView.drawings.alertOnTheLine"
   | "chartView.drawings.alertNoLevel"
+  | "chartView.drawings.alertAnchorFailed"
   | "chartView.drawings.alertNoPrice"
   | "chart.pane.collapse"
   | "chart.pane.expand"
