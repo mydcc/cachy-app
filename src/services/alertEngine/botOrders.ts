@@ -135,7 +135,8 @@ export type BotOrderRefusal =
   | "no-stop"
   | "no-entry-price"
   | "no-equity"
-  | "size-not-positive";
+  | "size-not-positive"
+  | "level-not-supported";
 
 /**
  * The store reads this module needs, as ports rather than imports.
@@ -263,7 +264,22 @@ export function withBotOrders(
 
   return (firing) => {
     inner(firing);
-    if (!isBot(firing.rule)) return;
+    if (!isBot(firing.rule)) {
+      // BUG-0487 — `isBot` answers "does this belong on the Automation tab",
+      // not "does this submit". A `send` document carries a fully-formed order
+      // intent the core validated, but there is no `send` path until FEAT-0035
+      // builds one. Dropping it silently reads as a strategy that found no
+      // setup, so it gets its own refusal through the same channel rather
+      // than the silent `return` below. Deliberately not submitted here:
+      // this item must not become a foothold for live sending.
+      if (firing.rule.action?.consequence_level === "send") {
+        const seen = `${firing.rule.id}:level-not-supported`;
+        if (reported.has(seen)) return;
+        reported.add(seen);
+        onRefusal(firing, "level-not-supported");
+      }
+      return;
+    }
 
     void submitBotOrder(firing, env)
       .then((refusal) => {
