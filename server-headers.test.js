@@ -19,6 +19,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   SECURITY_HEADERS,
   applySecurityHeaders,
+  wrapWriteHead,
   isImmutableAsset,
   cacheControlFor,
 } from './server-headers.js';
@@ -152,20 +153,15 @@ describe('static asset headers integration', () => {
     expect(res.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
   });
 
-  it('applies security headers when res.writeHead is intercepted by express middleware', () => {
+  it('applies security headers when the express middleware wraps res.writeHead', () => {
     const res = mockRes();
-    const originalWriteHead = vi.fn();
+    const originalWriteHead = vi.fn().mockReturnValue('sentinel');
     res.writeHead = originalWriteHead;
 
-    // Simulate Express middleware wrapping res.writeHead (server.js pattern)
-    const wrappedWriteHead = res.writeHead;
-    res.writeHead = function (...args) {
-      applySecurityHeaders(res);
-      return wrappedWriteHead.apply(this, args);
-    };
-
-    // Simulate SvelteKit / sirv handler invoking res.writeHead(200, { 'content-type': 'text/html' })
-    res.writeHead(200, { 'content-type': 'text/html' });
+    // Exercise the real helper used by the server.js middleware, then simulate
+    // a SvelteKit / sirv handler invoking res.writeHead(200, { 'content-type': 'text/html' })
+    wrapWriteHead(res);
+    const returned = res.writeHead(200, { 'content-type': 'text/html' });
 
     expect(res.headers.get('Strict-Transport-Security')).toBe(
       'max-age=31536000; includeSubDomains; preload',
@@ -175,5 +171,24 @@ describe('static asset headers integration', () => {
     expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(res.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
     expect(originalWriteHead).toHaveBeenCalledWith(200, { 'content-type': 'text/html' });
+    expect(returned).toBe('sentinel');
+  });
+
+  it('preserves writeHead receiver, overloads, and repeated calls', () => {
+    const res = mockRes();
+    let observedThis;
+    res.writeHead = function (...args) {
+      observedThis = this;
+      return args.length;
+    };
+
+    wrapWriteHead(res);
+
+    // 3-arg overload with status message, called with explicit receiver
+    expect(res.writeHead.call(res, 200, 'OK', { 'content-type': 'text/html' })).toBe(3);
+    expect(observedThis).toBe(res);
+    // Repeated calls stay idempotent — headers are simply overwritten
+    res.writeHead(404);
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 });
