@@ -1,4 +1,10 @@
 // @vitest-environment happy-dom
+//
+// Render smoke benchmark for NewsSentimentPanel: measures absolute
+// mount/unmount cost so perf regressions of the panel show up as timing
+// drift. It does NOT compare against the pre-`$derived` template — a bench
+// mounts one component version only, so it can never prove the slice hoist
+// itself made anything faster.
 import { bench, describe } from 'vitest';
 import { mount, unmount } from 'svelte';
 import NewsSentimentPanel from '../../components/shared/NewsSentimentPanel.svelte';
@@ -13,7 +19,7 @@ vi.mock('../../stores/ui.svelte', () => ({
 
 vi.mock('../../locales/i18n', () => ({
     _: {
-        subscribe: (cb: (k: string) => string) => { cb((k: string) => k); return () => {}; }
+        subscribe: (cb: (t: (k: string) => string) => void) => { cb((k: string) => k); return () => {}; }
     },
     t: (key: string) => key
 }));
@@ -38,7 +44,7 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     }));
 }
 
-describe('NewsSentimentPanel render benchmark', () => {
+describe('NewsSentimentPanel render smoke benchmark', () => {
     // Generate dummy news
     const fakeNews = Array.from({ length: 50 }).map((_, i) => ({
         title: `News article ${i}`,
@@ -58,7 +64,8 @@ describe('NewsSentimentPanel render benchmark', () => {
         newsStore.sentiment = {
              score: 0.5,
              summary: "test",
-             regime: "bull"
+             regime: "BULLISH",
+             keyFactors: []
         };
         newsStore.isLoading = false;
 
@@ -70,7 +77,7 @@ describe('NewsSentimentPanel render benchmark', () => {
         document.body.removeChild(target);
     });
 
-    bench('render panel', () => {
+    bench('mount and unmount panel', () => {
         const component = mount(NewsSentimentPanel, {
             target,
             props: { variant: 'main' }
