@@ -70,4 +70,18 @@ export interface OMSPosition {
     // Summary "Mode: HEDGE/ONE_WAY").
     positionId?: string;
     positionMode?: "one_way" | "hedge";
+    /**
+     * BUG-0512: true when `markPrice` is not a fresh mark — substitute or
+     * stale. Set by the positions panel's resolver; absent means fresh (or
+     * unknown for producers that predate the flag). Render a badge, never a
+     * silent number.
+     */
+    priceStale?: boolean;
+    /**
+     * BUG-0512: true when nothing provably fresh exists AND the trader
+     * disabled stale display — the row honestly shows unpriced ("–") instead
+     * of any number. `unrealizedPnl` then carries a placeholder that must
+     * never render; totals must badge rather than silently absorb it.
+     */
+    unpriced?: boolean;
 }

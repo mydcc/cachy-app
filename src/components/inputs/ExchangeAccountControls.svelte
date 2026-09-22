@@ -435,11 +435,14 @@ import { Decimal } from "decimal.js";
   /*
    * The liquidation price the position would sit at under a new leverage,
    * calibrated out of the venue's own entry/liquidation/leverage triple
-   * rather than a guessed maintenance-margin rate. Direction comes from the
-   * numbers — a long liquidates below its entry, a short above it.
+   * rather than a guessed maintenance-margin rate. Side and margin mode come
+   * from the position itself (BUG-0504) — never inferred from the numbers,
+   * and never projected for cross margin, where liquidation is a function of
+   * total account equity rather than this position's leverage.
    *
-   * An ESTIMATE, labelled as one, and null whenever an input is missing: a
-   * wrong number on a money screen is worse than none.
+   * An ESTIMATE, labelled as one, and null whenever an input is missing or
+   * the position is cross-margin: a wrong number on a money screen is worse
+   * than none.
    */
 
   function report(e: unknown) {
@@ -485,9 +488,21 @@ import { Decimal } from "decimal.js";
      * is "do you want to be asked", and the user's setting decides.
      */
     if (symbolBusy || confirmationPolicyStore.requires("leverage-change")) {
-      const projection = openPosition
-        ? projectLiquidation(openPosition.entryPrice, openPosition.liquidationPrice, openPosition.leverage, desired)
-        : null;
+      const crossMargin =
+        openPosition !== undefined &&
+        openPosition.marginMode !== undefined &&
+        normalizeMarginMode(openPosition.marginMode) === "cross";
+      const projection =
+        openPosition !== undefined && !crossMargin
+          ? projectLiquidation(
+              openPosition.entryPrice,
+              openPosition.liquidationPrice,
+              openPosition.leverage,
+              desired,
+              openPosition.side,
+              openPosition.marginMode,
+            )
+          : null;
       const base = $_("exchange.accountSettings.confirmLeverageMessage", {
         values: {
           symbol: venueSymbol,
@@ -504,7 +519,9 @@ import { Decimal } from "decimal.js";
               to: formatDynamicDecimal(projection.to),
             },
           })
-        : base;
+        : crossMargin
+          ? base + "\n\n" + $_("exchange.accountSettings.liquidationCrossMarginNote")
+          : base;
 
       const confirmed = await modalState.show(
         $_("exchange.accountSettings.confirmLeverageTitle"),

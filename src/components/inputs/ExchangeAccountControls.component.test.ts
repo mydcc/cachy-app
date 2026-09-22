@@ -161,7 +161,10 @@ let component: Record<string, unknown> | null = null;
 
 /** A position shaped the way the store really holds one. */
 function position(overrides: Record<string, unknown> = {}) {
-    return { symbol: "BTCUSDT", ...overrides };
+    // BUG-0504: the store's `Position` always carries side and marginMode —
+    // the liquidation projection reads both and refuses without them, so the
+    // mock must carry them too rather than a shape no venue ever produces.
+    return { symbol: "BTCUSDT", side: "long", marginMode: "ISOLATION", ...overrides };
 }
 
 beforeEach(() => {

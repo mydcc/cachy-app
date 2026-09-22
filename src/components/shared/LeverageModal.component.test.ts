@@ -21,54 +21,116 @@
  * Direct unit test of the modal's liquidation projection path.
  */
 
-import { describe, it, expect, vi } from "vitest";
-import { mount } from "svelte";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mount, unmount, flushSync } from "svelte";
 import { Decimal } from "decimal.js";
+import en from "../../locales/locales/en.json";
 import LeverageModal from "./LeverageModal.svelte";
+
+function lookup(key: string): string {
+    return key
+        .split(".")
+        .reduce<unknown>((acc, part) => (acc as Record<string, unknown>)?.[part], en) as string;
+}
+
+vi.mock("../../locales/i18n", async () => {
+    const { readable: r } = await import("svelte/store");
+    return {
+        _: r((key: string) => lookup(key) ?? key),
+        locale: r("en"),
+        setLocale: vi.fn(),
+    };
+});
+
+vi.mock("./ModalFrame.svelte", async () => ({
+    default: (await import("../../tests/helpers/PassthroughModalFrame.svelte")).default,
+}));
+
+let host: HTMLElement;
+let component: Record<string, unknown> | null = null;
+
+beforeEach(() => {
+    host = document.createElement("div");
+    document.body.appendChild(host);
+});
+
+afterEach(() => {
+    if (component) unmount(component);
+    component = null;
+    host.remove();
+});
+
+function renderModal(props: Record<string, unknown>) {
+    component = mount(LeverageModal, { target: host, props: props as never }) as never;
+    flushSync();
+}
 
 describe("LeverageModal", () => {
     it("projects liquidation when position exists", () => {
         const confirmSpy = vi.fn();
-        mount(LeverageModal, {
-            props: {
-                current: "10",
-                minLeverage: 1,
-                maxLeverage: 50,
-                localOnly: false,
-                busy: false,
-                position: {
-                    entryPrice: new Decimal("100"),
-                    liquidationPrice: new Decimal("91"),
-                    leverage: new Decimal("10"),
-                },
-                onclose: vi.fn(),
-                onconfirm: confirmSpy,
+        renderModal({
+            current: "10",
+            minLeverage: 1,
+            maxLeverage: 50,
+            localOnly: false,
+            busy: false,
+            position: {
+                entryPrice: new Decimal("100"),
+                liquidationPrice: new Decimal("91"),
+                leverage: new Decimal("10"),
+                side: "long",
             },
-            target: document.body,
+            marginMode: "ISOLATION",
+            onclose: vi.fn(),
+            onconfirm: confirmSpy,
         });
 
         // Liquidation projection renders for open position
         // Entry 100, liq 91 at 10x → MMR 0.01
         // Component should calculate projected liq at new leverage
+        expect(host.querySelector('[data-track-id="leverage-liquidation"]')).not.toBeNull();
+        expect(host.querySelector('[data-track-id="leverage-liquidation-cross"]')).toBeNull();
         expect(confirmSpy).toBeDefined();
+    });
+
+    it("shows the cross-margin reason instead of a projection (BUG-0504)", () => {
+        renderModal({
+            current: "10",
+            minLeverage: 1,
+            maxLeverage: 50,
+            localOnly: false,
+            busy: false,
+            position: {
+                entryPrice: new Decimal("100"),
+                liquidationPrice: new Decimal("91"),
+                leverage: new Decimal("10"),
+                side: "long",
+            },
+            marginMode: "CROSS",
+            onclose: vi.fn(),
+            onconfirm: vi.fn(),
+        });
+
+        // No projected price — and no silent empty row either: the reason renders.
+        expect(host.querySelector('[data-track-id="leverage-liquidation"]')).toBeNull();
+        const crossRow = host.querySelector('[data-track-id="leverage-liquidation-cross"]');
+        expect(crossRow).not.toBeNull();
+        expect(crossRow?.textContent).toContain("Cross margin");
     });
 
     it("sends nothing until Confirm is clicked", () => {
         const confirmSpy = vi.fn();
-        mount(LeverageModal, {
-            props: {
-                current: "10",
-                minLeverage: 1,
-                maxLeverage: 50,
-                localOnly: false,
-                busy: false,
-                onclose: vi.fn(),
-                onconfirm: confirmSpy,
-            },
-            target: document.body,
+        renderModal({
+            current: "10",
+            minLeverage: 1,
+            maxLeverage: 50,
+            localOnly: false,
+            busy: false,
+            onclose: vi.fn(),
+            onconfirm: confirmSpy,
         });
 
-        const slider = document.querySelector('input[type="range"]') as HTMLInputElement | null;
+        const slider = host.querySelector('input[type="range"]') as HTMLInputElement | null;
         if (slider) {
             slider.value = "20";
             slider.dispatchEvent(new Event("input"));
@@ -80,17 +142,14 @@ describe("LeverageModal", () => {
 
     it("works in paper-trading mode (localOnly)", () => {
         const confirmSpy = vi.fn();
-        mount(LeverageModal, {
-            props: {
-                current: "10",
-                minLeverage: 1,
-                maxLeverage: 50,
-                localOnly: true,
-                busy: false,
-                onclose: vi.fn(),
-                onconfirm: confirmSpy,
-            },
-            target: document.body,
+        renderModal({
+            current: "10",
+            minLeverage: 1,
+            maxLeverage: 50,
+            localOnly: true,
+            busy: false,
+            onclose: vi.fn(),
+            onconfirm: confirmSpy,
         });
 
         expect(confirmSpy).toBeDefined();

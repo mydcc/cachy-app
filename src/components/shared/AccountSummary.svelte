@@ -27,6 +27,12 @@
     available?: FinancialValue;
     margin?: FinancialValue;
     pnl?: FinancialValue;
+    /**
+     * BUG-0512: true when any leg of the total is not freshly priced —
+     * the sum mixes priced, stale-priced and unpriced legs, so it wears
+     * the same badge as the rows rather than looking exact.
+     */
+    pnlStale?: boolean;
     currency?: string;
     // Extended props
     frozen?: FinancialValue;
@@ -54,6 +60,7 @@
     available = 0,
     margin = 0,
     pnl = 0,
+    pnlStale = false,
     currency = "USDT",
     frozen = 0,
     transfer = 0,
@@ -136,6 +143,15 @@
       <!-- Ticking PnL should have aria-live="off" to prevent overwhelming screen reader users -->
       {new Decimal(pnl || 0).gt(0) ? "+" : ""}{formatDynamicDecimal(pnl, 2)}
       {currency}
+      {#if pnlStale}
+        <span
+          class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider bg-[var(--bg-secondary)] text-[var(--warning-color)] border border-[var(--border-color)] ml-1"
+          title={$_("positionsList.staleTotalHint")}
+          data-track-id="stale-price-badge"
+        >
+          {$_("positionsList.stalePriceBadge")}
+        </span>
+      {/if}
     </span>
   </div>
 
