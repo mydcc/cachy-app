@@ -341,18 +341,21 @@ export class RuleEvaluationLoop {
    * backfill; only a strictly greater open time closes something, so a
    * late-arriving older candle cannot re-fire an anchor the gate already saw.
    *
-   * **Known limit, not fixed here.** A batch that jumps several candles at
-   * once — a REST backfill after a reconnect gap — only ever reports the one
-   * anchor that was the high-water mark before the jump; every candle that
-   * opened and closed strictly between it and the batch's newest open is
-   * never reported. Reporting each of them would not actually recover their
-   * verdicts, though: `readCandles` always returns the *current* full closed
-   * history, not a snapshot truncated to a specific historical anchor, so
-   * evaluating "at" an intermediate anchor would run against the same
-   * post-backfill data as evaluating at the newest one — identical verdicts,
-   * consuming extra gate-dedup slots for no new information. A real fix needs
-   * `CandleReader` to answer "as of this anchor", which is a larger change
-   * than this file's edge case earns on its own.
+   * The anchor is the last *closed* candle this call knows about: the newest
+   * open time in the batch is still forming, and everything below it — the
+   * previous high-water mark included — has closed. On a batch that jumps
+   * several candles at once that is the newest candle of the batch, not the
+   * pre-batch mark (BUG-0483): stamping the verdict with a five-candle-old
+   * anchor keyed the notification dedupe, the fired history and the bot's
+   * entry-price lookup to the wrong candle.
+   *
+   * Still one anchor per call: candles that opened and closed strictly inside
+   * the jump are not reported separately. Their crossings are not recovered
+   * here — a `cross` is decided from the adjacent pair, and evaluating "at"
+   * an intermediate anchor against post-backfill history would answer from
+   * the wrong data, not merely late. Replaying the gap against history
+   * truncated to each skipped close is the follow-up this deliberately leaves
+   * open (BUG-0483 part 2), not a detail.
    */
   private advance(
     symbol: string,
@@ -378,7 +381,18 @@ export class RuleEvaluationLoop {
     // earlier candle exists to have closed), or the open candle was merely
     // updated in place.
     if (previous === undefined || highest <= previous) return undefined;
-    return previous;
+
+    // The last closed candle of this call: the newest batch open below the
+    // still-forming `highest`, falling back to the pre-batch mark when the
+    // batch carries nothing below it (the ordinary single close, whose closed
+    // candle is not in the batch at all).
+    let anchor = previous;
+    for (const candle of candles) {
+      const time = candle?.time;
+      if (typeof time !== "number" || !Number.isFinite(time)) continue;
+      if (time > anchor && time < highest) anchor = time;
+    }
+    return anchor;
   }
 
   /**

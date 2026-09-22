@@ -1818,7 +1818,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0483",
     "title": "After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0483-anchor-stamp",
     "priority": "P1",
     "milestone": "none",
     "editions": [

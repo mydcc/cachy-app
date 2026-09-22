@@ -203,6 +203,44 @@ describe("RuleEvaluationLoop", () => {
       expect(firings[0].anchorMs).toBe(61_000);
     });
 
+    /**
+     * BUG-0483 part 1 — a batch that jumps several candles at once used to be
+     * stamped with the pre-batch high-water mark while the verdict was
+     * computed on the newest data: the firing named a candle five closes old,
+     * and everything keyed on the anchor (notification dedupe,
+     * `last_fired_anchor_ms`, the bot's entry-price lookup) inherited the
+     * lie. The anchor is now the last closed candle of the batch, so the
+     * stamp and the data agree. Recovering the crossings strictly inside the
+     * gap is part 2, not this.
+     */
+    it("stamps a backfill batch with its last closed candle", () => {
+      const { loop } = loopWith([rule()]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+
+      const firings = loop.observeCandles("BTCUSDT", "1m", [
+        { time: 61_000 },
+        { time: 121_000 },
+        { time: 181_000 },
+        { time: 241_000 },
+        { time: 301_000 },
+      ]);
+
+      expect(firings).toHaveLength(1);
+      expect(firings[0].anchorMs).toBe(241_000);
+    });
+
+    it("still stamps the pre-batch mark when the batch carries nothing below the new open", () => {
+      const { loop } = loopWith([rule()]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+
+      // The ordinary single close: the closed candle is not in the batch at
+      // all, so the previous mark is the last closed candle known.
+      const firings = loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      expect(firings).toHaveLength(1);
+      expect(firings[0].anchorMs).toBe(1_000);
+    });
+
     it("ignores candles with an unusable open time", () => {
       const { loop } = loopWith([rule()]);
 
