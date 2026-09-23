@@ -16,7 +16,6 @@
  */
 
 import { marked, type Tokens } from "marked";
-import markedKatex from "marked-katex-extension";
 import { locale } from "../locales/i18n";
 import { ensureKatexCss } from "../utils/markdownUtils";
 import { get } from "svelte/store";
@@ -115,13 +114,10 @@ const slugify = (text: string) => {
   );
 };
 
-// Register KaTeX extension and Heading ID logic
+// Heading ID logic. The KaTeX extension is registered exactly once in
+// `../utils/markdownUtils` (imported above via `ensureKatexCss`), so this
+// module only adds its renderer without re-registering KaTeX.
 marked.use(
-  markedKatex({
-    throwOnError: false,
-    displayMode: false,
-    nonStandard: true
-  }),
   {
     renderer: {
       heading({ tokens, depth, raw }: Tokens.Heading) {

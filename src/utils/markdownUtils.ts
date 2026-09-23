@@ -19,7 +19,9 @@ import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
 import DOMPurify from "dompurify";
 
-// Configure marked with KaTeX support
+// Single KaTeX registration for the global `marked` instance (FEAT-0537).
+// `markdownLoader` consumes this setup via its `ensureKatexCss` import and
+// must not re-register the extension.
 marked.use(markedKatex({
     throwOnError: false,
     displayMode: false, // Default to inline unless $$ is used
