@@ -30,6 +30,7 @@
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
+  import { readCssColor } from "../../../lib/themeColors";
 
   // Register necessary components for Radar
   Chart.register(
@@ -64,7 +65,7 @@
       title: {
         display: !!title,
         text: title,
-        color: "#94a3b8",
+        color: readCssColor("--text-secondary", "#94a3b8"),
       },
       tooltip: {
         callbacks: {
@@ -85,7 +86,7 @@
           color: "rgba(148, 163, 184, 0.1)",
         },
         pointLabels: {
-          color: "#94a3b8",
+          color: readCssColor("--text-secondary", "#94a3b8"),
           font: {
             size: 11,
           },
@@ -101,6 +102,10 @@
   });
 
   // Construct chart data format
+  // Data hues resolve the active theme tokens (FEAT-0344) instead of
+  // hardcoding Chart.js blues, so the radar follows light/dark themes.
+  const chartAccent = readCssColor("--accent-color", "rgb(54, 162, 235)");
+  const chartPointFill = readCssColor("--bg-primary", "#fff");
   let chartData = $derived({
     labels: labels.length > 0 ? labels : data?.labels || [],
     datasets: [
@@ -109,11 +114,11 @@
         data: data?.data || [],
         fill: true,
         backgroundColor: "rgba(54, 162, 235, 0.2)", // Default blue
-        borderColor: "rgb(54, 162, 235)",
-        pointBackgroundColor: "rgb(54, 162, 235)",
-        pointBorderColor: "#fff",
-        pointHoverBackgroundColor: "#fff",
-        pointHoverBorderColor: "rgb(54, 162, 235)",
+        borderColor: chartAccent,
+        pointBackgroundColor: chartAccent,
+        pointBorderColor: chartPointFill,
+        pointHoverBackgroundColor: chartPointFill,
+        pointHoverBorderColor: chartAccent,
       },
     ],
   });

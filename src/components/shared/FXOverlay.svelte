@@ -155,6 +155,9 @@
     }
 
     // --- 3. CRYPTO COIN ---
+    // Coin hues resolve the theme warning token (FEAT-0344) instead of
+    // hardcoded gold, so the celebration FX follows light/dark themes. The
+    // two-tone edge is derived by darkening, never by a second literal.
     function createCoinTexture() {
         if (!browser) return new THREE.Texture();
         const canvas = document.createElement("canvas");
@@ -162,14 +165,16 @@
         canvas.height = 128;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-            ctx.fillStyle = "#FFD700";
+            const coin = getThemePalette().warning;
+            const edge = `#${new THREE.Color(coin).offsetHSL(0, 0, -0.18).getHexString()}`;
+            ctx.fillStyle = coin;
             ctx.fillRect(0, 0, 128, 128);
-            ctx.strokeStyle = "#B8860B";
+            ctx.strokeStyle = edge;
             ctx.lineWidth = 10;
             ctx.beginPath();
             ctx.arc(64, 64, 55, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.fillStyle = "#B8860B";
+            ctx.fillStyle = edge;
             ctx.font = "bold 80px sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -200,7 +205,7 @@
         canvas.height = 64;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-            ctx.fillStyle = "#00ff00";
+            ctx.fillStyle = getThemePalette().success;
             ctx.font = "bold 48px monospace";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
