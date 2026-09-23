@@ -27,24 +27,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { flattenKeys } from './lib/i18nKeys.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const EN_PATH = path.join(__dirname, '../src/locales/locales/en.json');
 const DE_PATH = path.join(__dirname, '../src/locales/locales/de.json');
-
-function flattenKeys(obj, prefix = '') {
-    let keys = [];
-    for (const key in obj) {
-        if (typeof obj[key] === 'object' && obj[key] !== null) {
-            keys = keys.concat(flattenKeys(obj[key], prefix + key + '.'));
-        } else {
-            keys.push(prefix + key);
-        }
-    }
-    return keys;
-}
 
 try {
     console.log('📖 Reading locales...');
