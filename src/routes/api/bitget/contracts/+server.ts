@@ -20,22 +20,7 @@ import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../../utils/server/fetchWithTimeout";
-
-interface StatusError {
-  status: number;
-  message: string;
-}
-
-function isStatusError(error: unknown): error is StatusError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    "message" in error &&
-    typeof (error as { status: unknown }).status === "number" &&
-    typeof (error as { message: unknown }).message === "string"
-  );
-}
+import { isStatusError } from "../../../../utils/server/httpErrors";
 
 // Public, no auth. Bitget V2 mix contracts (precision, size limits, leverage
 // range, status per instrument) change rarely, so a longer TTL is fine.
