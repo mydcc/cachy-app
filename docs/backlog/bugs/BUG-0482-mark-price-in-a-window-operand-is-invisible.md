@@ -2,7 +2,10 @@
 id: BUG-0482
 title: A mark-price operand inside a window is never supplied with mark candles and the rule never fires
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0482-mark-window-parity
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]

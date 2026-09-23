@@ -800,8 +800,13 @@ function collectTimeframes(rule: RuleDocument): Set<string> {
  * Empty for every rule that names no mark price, which is the overwhelming
  * majority: a mark series is a second request per symbol and timeframe, and not
  * every venue serves one at all.
+ *
+ * Exported as the seam the parity test holds to the core's
+ * `rule_mark_timeframes`: the two must agree over every condition and operand
+ * shape, and the test (BUG-0482) is what stops the next nested operand
+ * re-opening this.
  */
-function collectMarkTimeframes(rule: RuleDocument): Set<string> {
+export function collectMarkTimeframes(rule: RuleDocument): Set<string> {
   const found = new Set<string>();
 
   /**
