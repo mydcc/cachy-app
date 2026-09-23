@@ -4,7 +4,7 @@
 
 410 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 5 · ✅ done 358 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 2 · ✅ done 361 · ⛔ dropped 1
 
 ---
 
@@ -254,12 +254,12 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 5 · ✅ done 35
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | security |
-| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 🟢 ready | alerts |
+| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | ✅ done | alerts |
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | ✅ done | alerts |
 | [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | ✅ done | alerts |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | ✅ done | alerts |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | ✅ done | execution |
-| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 🟢 ready | execution |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | ✅ done | execution |
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | ✅ done | alerts |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | ✅ done | calculation |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | ✅ done | calculation |
@@ -347,7 +347,7 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 5 · ✅ done 35
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | ✅ done | execution |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | ✅ done | execution |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | ✅ done | execution |
-| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 🟢 ready | security |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | ✅ done | security |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | execution |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | execution |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | ✅ done | execution |
@@ -564,12 +564,12 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 5 · ✅ done 35
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | ✅ done | none | community, pro, private | A | ADR-0012 | — |
-| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 🟢 ready | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | ✅ done | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | ✅ done | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | ✅ done | none | community, pro, private | none | none | — |
@@ -706,7 +706,7 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 5 · ✅ done 35
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | ✅ done | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | ✅ done | none | community, pro, private | A | ADR-0001 | — |
-| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 🟢 ready | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | ✅ done | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | ✅ done | none | community, pro, private | none | none | — |

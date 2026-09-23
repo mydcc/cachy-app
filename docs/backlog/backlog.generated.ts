@@ -1782,8 +1782,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0481",
     "title": "Every alert that is not a plain price rule announces itself with an empty value",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
+    "assignee": "opencode",
     "milestone": "none",
     "editions": [
       "community",
@@ -1883,8 +1884,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0495",
     "title": "The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
+    "assignee": "opencode",
     "milestone": "none",
     "editions": [
       "community",
@@ -4824,8 +4826,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0496",
     "title": "Three separate lists answer whether a route is cut over, and nothing makes them agree",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
+    "assignee": "opencode",
     "milestone": "none",
     "editions": [
       "community",

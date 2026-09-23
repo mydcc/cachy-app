@@ -2,8 +2,9 @@
 id: BUG-0481
 title: Every alert that is not a plain price rule announces itself with an empty value
 type: bug
-status: ready
+status: done
 priority: P1
+assignee: opencode
 milestone: none
 editions: [community, pro, private]
 area: alerts
