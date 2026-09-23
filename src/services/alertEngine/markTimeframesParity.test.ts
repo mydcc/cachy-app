@@ -109,7 +109,7 @@ const windowOf = (of: Operand): Operand => ({
   lookback: 20,
 });
 
-interface CorpusCase {  name: string;
+interface CorpusCase { name: string;
   conditions: Condition;
   veto?: Condition;
   /**
