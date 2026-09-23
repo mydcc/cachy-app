@@ -4,7 +4,7 @@
 
 410 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 6 · ✅ done 357 · ⛔ dropped 1
 
 ---
 
@@ -254,12 +254,12 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | alerts |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | alerts |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | security |
-| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 📋 specced | alerts |
+| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 🟢 ready | alerts |
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | ✅ done | alerts |
 | [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | ✅ done | alerts |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | ✅ done | alerts |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | ✅ done | execution |
-| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | execution |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 🟢 ready | execution |
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | ✅ done | alerts |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | ✅ done | calculation |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | ✅ done | calculation |
@@ -272,7 +272,7 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | ✅ done | security |
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | security |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | security |
-| [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | 📋 specced | exchange |
+| [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | 🟢 ready | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -342,12 +342,12 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | tooling |
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | security |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | security |
-| [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 📋 specced | alerts |
+| [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 🟢 ready | alerts |
 | [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | ✅ done | alerts |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | ✅ done | execution |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | ✅ done | execution |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | ✅ done | execution |
-| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | security |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 🟢 ready | security |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | execution |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | execution |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | ✅ done | execution |
@@ -434,7 +434,7 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | alerts |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | alerts |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | alerts |
-| [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | docs |
+| [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 🟢 ready | docs |
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | security |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | execution |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
@@ -564,12 +564,12 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0449](bugs/BUG-0449-hma-alert-throws-and-silences-series.md) | An HMA alert throws on every close and silences every rule after it on the same series | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0451](bugs/BUG-0451-panel-offers-indicators-that-cannot-fire.md) | The alert panel offers fourteen indicators whose alerts can never fire | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0472](bugs/BUG-0472-ai-actions-execute-without-confirmation.md) | AI trade-setup actions execute immediately unless the user opted into confirmation | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0481](bugs/BUG-0481-firing-message-empty-for-non-price-rules.md) | Every alert that is not a plain price rule announces itself with an empty value | P1 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0482](bugs/BUG-0482-mark-price-in-a-window-operand-is-invisible.md) | A mark-price operand inside a window is never supplied with mark candles and the rule never fires | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0483](bugs/BUG-0483-backfill-anchor-names-the-wrong-candle.md) | After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0484](bugs/BUG-0484-rule-store-reparsed-on-every-kline-tick.md) | The rule store is read from localStorage and reparsed on every kline tick, not once per candle close | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0494](bugs/BUG-0494-bot-order-carries-no-paper-provenance.md) | A bot's order carries no paper provenance, so the paper switch is read twice and can flip in between | P1 | ✅ done | none | community, pro, private | A | ADR-0012 | — |
-| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
+| [BUG-0495](bugs/BUG-0495-orders-route-is-planned-but-not-migrated.md) | The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement | P1 | 🟢 ready | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) | A lost drawing anchor silently turns a line alert back into the constant it was created with | P1 | ✅ done | none | community, pro, private | A | ADR-0001 | — |
 | [BUG-0501](bugs/BUG-0501-missing-symbol-meta-silently-skips-every-size-guard.md) | Missing symbol metadata silently skips size rounding and every volume and leverage guard instead of refusing | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0504](bugs/BUG-0504-liquidation-projection-ignores-side-and-margin-mode.md) | The liquidation projection guesses the position side and assumes isolated margin, so it shows a confident wrong number for cross-margin positions | P1 | ✅ done | none | community, pro, private | none | none | — |
@@ -582,7 +582,7 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0517](bugs/BUG-0517-canary-guard-made-the-legacy-device-key-migration-unreachable.md) | The BUG-0053 canary guard runs before the legacy device-key migration, so an upgrading user is told the key is lost while it still sits in localStorage | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -701,12 +701,12 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0470](bugs/BUG-0470-worktree-cleanup-retires-unworked-branches.md) | worktree-cleanup.sh retires a fresh task worktree that has no commits yet | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0473](bugs/BUG-0473-news-headlines-unquoted-in-ai-prompt.md) | News headlines enter the AI prompt unquoted with no data-only instruction | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0474](bugs/BUG-0474-ai-actions-executed-without-schema-validation.md) | Parsed AI actions are executed without schema validation | P2 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0485](bugs/BUG-0485-broken-alert-record-is-built-and-never-read.md) | The broken-alert record is built, never read and never cleared | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0486](bugs/BUG-0486-evaluation-gate-forget-is-never-called.md) | The evaluation gate's forget is never called, so its monotonic guard rests on a premise that is not true | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0487](bugs/BUG-0487-send-level-rule-drops-its-order-intent-silently.md) | A send-level rule fires, drops its order intent and reports nothing | P2 | ✅ done | none | community, pro, private | A | ADR-0012 | — |
 | [BUG-0489](bugs/BUG-0489-bot-sizes-from-a-stale-anchor-close.md) | A bot sizes and places its stop from the anchor candle's close while submitting a market order at the current price | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0493](bugs/BUG-0493-deletebot-bypasses-armrule-write-path.md) | deleteBot writes localStorage directly and bypasses the shared rule-store write path | P2 | ✅ done | none | community, pro, private | A | ADR-0001 | — |
-| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 📋 specced | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
+| [BUG-0496](bugs/BUG-0496-three-sources-of-truth-for-route-migration.md) | Three separate lists answer whether a route is cut over, and nothing makes them agree | P2 | 🟢 ready | none | community, pro, private | A | ADR-0013 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) |
 | [BUG-0500](bugs/BUG-0500-loss-per-trade-limit-is-measured-before-fees.md) | The per-trade loss limit is measured before fees, so the loss it permits is always larger than the one configured | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0506](bugs/BUG-0506-size-tolerance-is-symmetric-around-a-one-sided-rounding.md) | The gate's size tolerance is symmetric while the rounding it exists to absorb is one-directional, so an order up to a full step oversized passes | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0509](bugs/BUG-0509-partial-close-never-checked-against-minimum-trade-volume.md) | A partial close is never measured against the venue's minimum trade volume, and the percentage slider routinely produces one below it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -839,7 +839,7 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [BUG-0475](bugs/BUG-0475-gpu-stages-start-before-their-input.md) | The WebGPU path seeds ATR, SuperTrend and the MACD signal from values that do not exist yet | P3 | ✅ done | none | community, pro, private | C | none | [FEAT-0439](features/FEAT-0439-webgpu-cross-path-parity.md) |
 | [BUG-0476](bugs/BUG-0476-stoch-raw-shader-caps-lows-at-ten-million.md) | The raw stochastic shader cannot see a low above 10,000,000 | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [BUG-0478](bugs/BUG-0478-indicator-i18n-guard-misses-enum-keys.md) | Indicator i18n guard misses runtime keys built from condition enums | P3 | ✅ done | none | community, pro, private | A | none | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
-| [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0490](bugs/BUG-0490-alert-system-doc-describes-the-retired-cutover.md) | The alert system document still describes the two-engine cutover that FEAT-0399 removed | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |

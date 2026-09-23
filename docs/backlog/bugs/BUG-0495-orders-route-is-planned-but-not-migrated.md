@@ -2,7 +2,7 @@
 id: BUG-0495
 title: The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]

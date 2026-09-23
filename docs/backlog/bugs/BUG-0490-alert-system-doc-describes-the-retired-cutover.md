@@ -2,7 +2,7 @@
 id: BUG-0490
 title: The alert system document still describes the two-engine cutover that FEAT-0399 removed
 type: bug
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]

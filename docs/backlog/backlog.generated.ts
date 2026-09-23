@@ -1782,7 +1782,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0481",
     "title": "Every alert that is not a plain price rule announces itself with an empty value",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -1883,7 +1883,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0495",
     "title": "The orders route is listed as migrated but never checks an envelope, so the planned A5 cleanup will break order placement",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2147,7 +2147,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0527",
     "title": "Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -4725,7 +4725,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0485",
     "title": "The broken-alert record is built, never read and never cleared",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -4824,7 +4824,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0496",
     "title": "Three separate lists answer whether a route is cut over, and nothing makes them agree",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7734,7 +7734,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0490",
     "title": "The alert system document still describes the two-engine cutover that FEAT-0399 removed",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P3",
     "milestone": "none",
     "editions": [
