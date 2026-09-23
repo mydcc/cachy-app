@@ -112,23 +112,22 @@ export function validateBitgetKeys(
 }
 
 /**
- * Asynchronously validates Bitunix API credentials with a structural signature test.
- * Returns null if valid, or an error message string if invalid.
+ * Shared validation flow for the async credential validators (FEAT-0540).
+ *
+ * Runs the venue's synchronous shape check first, then proves the secret can
+ * structurally produce a signature via the venue's signing-test callback.
+ * Rejection strings are owned here so both venues reject identically — a fix
+ * to the flow belongs in this helper, not in two credential-adjacent copies.
  */
-export async function validateBitunixKeysAsync(
-  apiKey: unknown,
-  apiSecret: unknown,
+export async function validateKeysWithSigningTest(
+  validateSync: () => string | null,
+  signingTest: () => Promise<{ signature: string }>,
 ): Promise<string | null> {
-  const syncError = validateBitunixKeys(apiKey, apiSecret);
+  const syncError = validateSync();
   if (syncError) return syncError;
 
   try {
-    const testResult = await signBitunixRequest(
-      apiKey as string,
-      apiSecret as string,
-      {},
-      null,
-    );
+    const testResult = await signingTest();
 
     if (!testResult.signature || testResult.signature.length < 10) {
       return "Signature generation failed (check credentials)";
@@ -137,6 +136,20 @@ export async function validateBitunixKeysAsync(
   } catch (e) {
     return `Credential validation error: ${e instanceof Error ? e.message : "unknown"}`;
   }
+}
+
+/**
+ * Asynchronously validates Bitunix API credentials with a structural signature test.
+ * Returns null if valid, or an error message string if invalid.
+ */
+export async function validateBitunixKeysAsync(
+  apiKey: unknown,
+  apiSecret: unknown,
+): Promise<string | null> {
+  return validateKeysWithSigningTest(
+    () => validateBitunixKeys(apiKey, apiSecret),
+    () => signBitunixRequest(apiKey as string, apiSecret as string, {}, null),
+  );
 }
 
 /**
@@ -149,25 +162,17 @@ export async function validateBitgetKeysAsync(
   apiSecret: unknown,
   passphrase: unknown,
 ): Promise<string | null> {
-  const syncError = validateBitgetKeys(apiKey, apiSecret, passphrase);
-  if (syncError) return syncError;
-
-  try {
-    const testResult = await signBitgetRequest(
-      apiSecret as string,
-      "GET",
-      "/api/v5/account/balance",
-      {},
-      null,
-    );
-
-    if (!testResult.signature || testResult.signature.length < 10) {
-      return "Signature generation failed (check credentials)";
-    }
-    return null;
-  } catch (e) {
-    return `Credential validation error: ${e instanceof Error ? e.message : "unknown"}`;
-  }
+  return validateKeysWithSigningTest(
+    () => validateBitgetKeys(apiKey, apiSecret, passphrase),
+    () =>
+      signBitgetRequest(
+        apiSecret as string,
+        "GET",
+        "/api/v5/account/balance",
+        {},
+        null,
+      ),
+  );
 }
 
 /**
