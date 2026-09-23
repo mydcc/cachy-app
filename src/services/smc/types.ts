@@ -38,21 +38,25 @@ export interface Structure {
     relatedPivot?: Pivot;
 }
 
-export interface OrderBlock {
-    top: number;
-    bottom: number;
-    bias: TrendBias;
-    startIndex: number;
+export interface OrderBlock extends MitigationZone {
     startTime: number;
-    mitigated: boolean;
 }
 
-export interface FairValueGap {
+export interface FairValueGap extends MitigationZone {
+    startTime: number;
+}
+
+/**
+ * Structural shape the sweep-line mitigation check operates on (FEAT-0538).
+ * Order blocks and fair value gaps share these fields; the zone kind only
+ * changes the activation offset and the overlap predicate, which the
+ * wrappers inject.
+ */
+export interface MitigationZone {
     top: number;
     bottom: number;
     bias: TrendBias;
     startIndex: number;
-    startTime: number;
     mitigated: boolean;
 }
 
