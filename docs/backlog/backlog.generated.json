@@ -2135,6 +2135,24 @@
       "file": "bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md"
     },
     {
+      "id": "BUG-0541",
+      "title": "Promoted bot without stop can never submit and fails silently as no-stop",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0541-promoted-bot-without-stop-never-submits.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -3093,6 +3111,24 @@
       "adr": "none",
       "depends_on": [],
       "file": "features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md"
+    },
+    {
+      "id": "FEAT-0544",
+      "title": "Inspect and edit bot order intent including stop-loss",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md"
     },
     {
       "id": "BUG-0005",
@@ -7038,6 +7074,42 @@
       "file": "features/FEAT-0540-shared-key-validation-helper.md"
     },
     {
+      "id": "FEAT-0542",
+      "title": "View and edit an armed alert from Manage",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0542-view-and-edit-armed-alert-from-manage.md"
+    },
+    {
+      "id": "FEAT-0543",
+      "title": "Show full rule configuration on each Manage row",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "alerts",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md"
+    },
+    {
       "id": "BUG-0007",
       "title": "Several UI strings are hardcoded instead of translated",
       "type": "bug",
@@ -8940,5 +9012,5 @@
       "file": "ideas/IDEA-0413-market-data-polling-volume.md"
     }
   ],
-  "count": 417
+  "count": 421
 }
