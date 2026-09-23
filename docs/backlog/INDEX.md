@@ -2,9 +2,9 @@
 
 # Backlog index
 
-421 items. How to read and add them: [README.md](README.md).
+422 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 362 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 34 · 🟢 ready 1 · ✅ done 362 · ⛔ dropped 1
 
 ---
 
@@ -406,6 +406,7 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | 📋 specced | security |
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 📋 specced | alerts |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 📋 specced | alerts |
+| [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 📋 specced | ui |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -821,6 +822,7 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -916,4 +918,4 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 36
 
 ---
 
-Next free number: **0545**
+Next free number: **0546**

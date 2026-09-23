@@ -7139,6 +7139,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md"
   },
   {
+    "id": "FEAT-0545",
+    "title": "Duck companion settings with master toggle in Visuals",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0545-duck-companion-settings-with-master-toggle.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
