@@ -24,7 +24,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
 import type { RuleDocument } from "../../lib/rules/types";
-import type { DrawingAnchorLedger } from "./drawingAnchors";
+import type { DrawingAnchorLedger, DrawingAnchorLedgerSnapshot } from "./drawingAnchors";
 import { resolveDrawingThreshold, type DrawingThresholdPorts } from "./drawingThreshold";
 
 const T0 = 1_757_030_400_000;
@@ -66,8 +66,9 @@ function ports(overrides: Partial<DrawingThresholdPorts> = {}): DrawingThreshold
     const ledger: DrawingAnchorLedger = {
         "rule-1": { drawingId: "draw-1", symbol: "BTCUSDT", createdAtMs: T0 },
     };
+    const snapshot: DrawingAnchorLedgerSnapshot = { present: true, ledger };
     return {
-        ledger: () => ledger,
+        ledger: () => snapshot,
         drawing: (id) => (id === "draw-1" ? trend : null),
         storePresent: () => true,
         ...overrides,
@@ -217,5 +218,44 @@ describe("refusing rather than guessing", () => {
         expect(resolveDrawingThreshold(indicatorRight, T0, ports())).toMatchObject({
             reason: "unsupported-condition",
         });
+    });
+});
+
+describe("an unreadable anchor ledger — BUG-0498", () => {
+    const unreadable = () => ({ present: false as const, ledger: {} });
+
+    it("holds a drawing-shaped rule rather than evaluating its stored constant", () => {
+        const result = resolveDrawingThreshold(rule(), T0, ports({ ledger: unreadable }));
+
+        expect(result).toEqual({
+            kind: "unresolvable",
+            reason: "drawing-anchor-ledger-unreadable",
+        });
+    });
+
+    it("leaves a rule the drawing feature could never produce alone", () => {
+        const grouped = rule({
+            conditions: {
+                kind: "group",
+                op: "all",
+                of: [
+                    {
+                        kind: "compare",
+                        left: { kind: "price", field: "close" },
+                        op: "gte",
+                        right: { kind: "constant", value: "1" },
+                        timeframe: "1h",
+                    },
+                ],
+            },
+        } as unknown as RuleDocument);
+
+        expect(resolveDrawingThreshold(grouped, T0, ports({ ledger: unreadable }))).toEqual({
+            kind: "not-anchored",
+        });
+    });
+
+    it("still resolves through a readable ledger", () => {
+        expect(threshold(resolveDrawingThreshold(rule(), T0 + 2 * HOUR, ports()))).toBe("50200");
     });
 });

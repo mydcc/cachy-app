@@ -4417,6 +4417,7 @@
       "alertArmed": "Alert armed on the drawing",
       "alertOnTheLine": "Price sits exactly on the line — there is no side to cross from",
       "alertNoLevel": "This drawing has no price level to watch — alerts need a horizontal or sloped line",
+      "alertAnchorFailed": "Could not bind the alert to this line — storage is unavailable, so the alert was not armed",
       "alertNoPrice": "No current price for this symbol"
     }
   },

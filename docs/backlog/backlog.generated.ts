@@ -1894,7 +1894,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0498",
     "title": "A lost drawing anchor silently turns a line alert back into the constant it was created with",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0498-drawing-anchor",
+    "shipped": "unreleased",
     "priority": "P1",
     "milestone": "none",
     "editions": [

@@ -172,7 +172,7 @@ export function reconcileStoredDrawingRules(): DrawingReconciliation {
         const result = reconcileDrawingRules(
             parsed as RuleDocument[],
             readDrawingStoreSnapshot(),
-            readDrawingAnchorLedger(),
+            readDrawingAnchorLedger().ledger,
         );
 
         if (result.suspended.length > 0) {

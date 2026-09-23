@@ -68,13 +68,34 @@ export type DrawingAnchorLedger = Readonly<Record<string, DrawingAnchor>>;
 
 const EMPTY: DrawingAnchorLedger = Object.freeze({});
 
-export function readDrawingAnchorLedger(): DrawingAnchorLedger {
-    if (!browser) return EMPTY;
+/**
+ * The anchor ledger as it was found, not merely the anchors in it.
+ *
+ * BUG-0498 — the sibling store (`readDrawingStoreSnapshot`) already draws
+ * this distinction and this one must too: a key holding `{}` is a trader who
+ * never armed a drawing alert, while a key that throws or parses to nothing
+ * usable is a binding that may have been lost. Flattening both to empty made
+ * the loss indistinguishable from the honest case, and the resolver went on
+ * evaluating possibly-anchored rules against their stored constants.
+ */
+export interface DrawingAnchorLedgerSnapshot {
+    /** False when the ledger could not be read at all. */
+    present: boolean;
+    ledger: DrawingAnchorLedger;
+}
+
+export function readDrawingAnchorLedger(): DrawingAnchorLedgerSnapshot {
+    const missing: DrawingAnchorLedgerSnapshot = { present: false, ledger: EMPTY };
+    if (!browser) return missing;
     try {
         const raw = localStorage.getItem(RULE_DRAWING_STORAGE_KEY);
-        if (raw === null) return EMPTY;
+        // No key, no bindings: the honest empty, not a loss.
+        if (raw === null) return { present: true, ledger: EMPTY };
         const parsed: unknown = JSON.parse(raw);
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return EMPTY;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            logger.warn("alerts", "[FEAT-0029] Drawing anchor ledger has no ledger shape");
+            return missing;
+        }
 
         const ledger: Record<string, DrawingAnchor> = {};
         for (const [ruleId, entry] of Object.entries(parsed as Record<string, unknown>)) {
@@ -90,32 +111,42 @@ export function readDrawingAnchorLedger(): DrawingAnchorLedger {
                         : 0,
             };
         }
-        return ledger;
+        return { present: true, ledger };
     } catch (e) {
-        // Unreadable is not evidence of anything. Returning empty means no
-        // rule is treated as drawing-anchored this session, which leaves every
-        // rule evaluating on its stored constant — stale, but armed. The
-        // opposite default would disarm the trader silently.
+        // Unreadable is not evidence of anything — and, since BUG-0498, not
+        // evidence of nothing either. The resolver holds drawing-shaped rules
+        // rather than evaluating them on possibly abandoned constants.
         logger.warn("alerts", "[FEAT-0029] Drawing anchor ledger unreadable", e);
-        return EMPTY;
+        return missing;
     }
 }
 
-/** Records that `ruleId` watches `drawingId`. Returns the ledger as written. */
+/**
+ * Records that `ruleId` watches `drawingId`.
+ *
+ * BUG-0498 — reports whether the write landed. A quota-full device swallows
+ * the binding while the chart claims the alert is armed on the line; the
+ * caller refuses instead. `ledger` is the in-memory state including the new
+ * entry, whether or not it landed — the caller decides from `ok` alone.
+ */
 export function recordDrawingAnchor(
     ruleId: string,
     anchor: DrawingAnchor,
-): DrawingAnchorLedger {
-    const next = { ...readDrawingAnchorLedger(), [ruleId]: anchor };
-    persist(next);
-    return next;
+): { ok: boolean; ledger: DrawingAnchorLedger } {
+    const next = { ...readDrawingAnchorLedger().ledger, [ruleId]: anchor };
+    const ok = persist(next);
+    return { ok, ledger: next };
 }
 
-function persist(ledger: DrawingAnchorLedger): void {
-    if (!browser) return;
+function persist(ledger: DrawingAnchorLedger): boolean {
+    // No storage off the client, and arming happens on the client — nothing
+    // to report.
+    if (!browser) return true;
     try {
         localStorage.setItem(RULE_DRAWING_STORAGE_KEY, JSON.stringify(ledger));
+        return true;
     } catch (e) {
         logger.warn("alerts", "[FEAT-0029] Drawing anchor ledger could not be written", e);
+        return false;
     }
 }

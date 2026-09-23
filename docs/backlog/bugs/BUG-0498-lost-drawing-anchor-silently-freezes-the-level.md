@@ -2,7 +2,10 @@
 id: BUG-0498
 title: A lost drawing anchor silently turns a line alert back into the constant it was created with
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0498-drawing-anchor
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -135,6 +138,17 @@ schema change and a migration, so it belongs in its own item.
       asserts the trader sees a refusal, not `chartView.drawings.alertArmed`
 - [ ] The refusal reason reaches the alert panel through the existing
       unevaluable channel — no second dialect
+
+## Accepted deviation (review, PR #3579)
+
+While the anchor ledger is unreadable, the hold applies to every rule with
+the drawing-alert shape (single top-level compare against a constant) —
+which is also the shape of an ordinary price alert. Such a rule cannot be
+told apart from a lost drawing alert without a schema change (the "stronger
+variant" above), and evaluating it on a possibly abandoned constant risks a
+silent firing at a level the trader moved away from, so holding it with an
+explanatory reason is the money-safe direction. Do not "fix" the hold back
+into silent evaluation; close the gap with the schema change instead.
 
 ## Links
 
