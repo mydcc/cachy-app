@@ -2,7 +2,10 @@
 id: BUG-0484
 title: The rule store is read from localStorage and reparsed on every kline tick, not once per candle close
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0484-rule-cache
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]

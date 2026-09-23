@@ -227,26 +227,67 @@ export function isSeriesObserved(symbol: string, timeframe: string): boolean {
 }
 
 /**
- * The stored rule set.
+ * The stored rule set, parsed.
  *
- * Read per candle close rather than cached: a close happens once per timeframe
- * period per series, so this is a handful of reads a minute, and a cache would
- * have to be invalidated from every place that can edit a rule — a staleness
- * bug that would quietly evaluate a rule the trader already changed.
+ * Pure over the raw document: everything that can go wrong with the bytes —
+ * absent, corrupt, not a list — reads as no rules, exactly as before.
  */
-export function readStoredRules(): RuleDocument[] {
-  if (!browser) return [];
+export function parseRuleStore(raw: string | null): RuleDocument[] {
+  if (raw === null) return [];
 
   try {
-    const raw = localStorage.getItem(RULES_STORAGE_KEY);
-    if (raw === null) return [];
-
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as RuleDocument[]) : [];
   } catch (e) {
     logger.error("alerts", "[Cutover] Reading stored rules failed", e);
     return [];
   }
+}
+
+/**
+ * The stored rule set.
+ *
+ * BUG-0484 — content-keyed, not version-keyed. `evaluateForming` runs on
+ * every websocket tick and used to re-read and re-parse the whole rule set
+ * through this function on each one, ahead of the chart's paint. The parse
+ * is now skipped while the stored bytes are unchanged: one `getItem` and one
+ * string comparison per call, no object graph.
+ *
+ * Deliberately not keyed on `alertState.rulesVersion`: the audit found nine
+ * `setItem(RULES_STORAGE_KEY)` sites (arm, remove, disarm, both reconcilers,
+ * migration ×3, legacy handoff) against four version bumps, all at UI and
+ * store call sites — and `armRule.ts` cannot import the store without a
+ * module cycle (`alerts.svelte.ts` already imports it). A version-keyed cache
+ * would evaluate stale rules the moment any unbumped path writes, which
+ * trades a performance bug for a money bug. Content-keying cannot go stale
+ * by construction: any writer, on any path, changes the bytes and therefore
+ * misses the cache.
+ *
+ * The returned array is shared while the bytes are unchanged. That is safe
+ * for the single production caller: the loop's `rulesFor` filters into a new
+ * array, and nothing downstream mutates a document (the drawing resolver
+ * copies before rewriting). Do not mutate what this returns.
+ */
+let cachedRuleStoreRaw: string | null | undefined;
+let cachedRuleStore: RuleDocument[] = [];
+
+export function readStoredRules(): RuleDocument[] {
+  if (!browser) return [];
+
+  // A throwing store reads as no rules, exactly as before: the loop must
+  // never lose every rule's evaluation to one unreadable key, and the cache
+  // is left untouched so a transient failure does not poison later reads.
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(RULES_STORAGE_KEY);
+  } catch (e) {
+    logger.error("alerts", "[Cutover] Reading stored rules failed", e);
+    return [];
+  }
+  if (raw === cachedRuleStoreRaw) return cachedRuleStore;
+  cachedRuleStoreRaw = raw;
+  cachedRuleStore = parseRuleStore(raw);
+  return cachedRuleStore;
 }
 
 /**
@@ -339,12 +380,12 @@ export const settingsAwareUnevaluableSink: UnevaluableSink = (rule) => {
 /**
  * FEAT-0029 — where a drawing-anchored rule's threshold comes from.
  *
- * `drawingStore.load()` is called on every resolution and is idempotent: the
- * engine runs whether or not a chart window is open, so it cannot rely on the
- * chart having hydrated the store first.
+ * The store is hydrated only on the path that names a drawing (BUG-0484):
+ * `loadDrawings` runs after the ledger lookup found an anchor, never for the
+ * rules anchored to no drawing.
  *
  * A refusal is reported through the loop's existing unevaluable channel rather
- * than through a new one. That channel already dedupes per rule and already
+ * through a new one. That channel already dedupes per rule and already
  * reaches the panel — a rule whose drawing was deleted is exactly what it
  * means by inert, and giving it a second path would be a second dialect.
  */
@@ -352,9 +393,9 @@ export function drawingThresholdResolver(
   rule: RuleDocument,
   anchorMs: number,
 ): { rule: RuleDocument } | { unevaluable: string } {
-  drawingStore.load();
   const resolved = resolveDrawingThreshold(rule, anchorMs, {
     ledger: readDrawingAnchorLedger,
+    loadDrawings: () => drawingStore.load(),
     drawing: (id) => drawingStore.byId(id),
     storePresent: () => readDrawingStoreSnapshot().present,
   });
