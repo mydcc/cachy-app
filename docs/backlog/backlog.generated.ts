@@ -6982,6 +6982,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0525-bitget-api-reference-stored-locally.md"
   },
   {
+    "id": "FEAT-0529",
+    "title": "Carry the drawing anchor inside the rule document",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0498"
+    ],
+    "file": "features/FEAT-0529-carry-drawing-anchor-in-rule-document.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",

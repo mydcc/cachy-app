@@ -75,6 +75,12 @@ history remains available in git.
   and overlapping reads can no longer let a stale response win.
 - Chart candle freezes and the Market Overview reload loop are fixed, and the
   app recovers from a stale deployment instead of failing on missing chunks.
+- Price alerts stay correct across reconnects: backfilled candles are stamped
+  with the candle actually evaluated and skipped closes are replayed, window
+  conditions on the mark price receive their mark series, and a drawing alert
+  whose anchor is lost refuses loudly instead of firing at an abandoned level.
+- The alert engine no longer reparses the rule store on every price tick, so
+  watching many symbols no longer stutters the chart.
 
 ## [1.5.0](https://github.com/mydcc/cachy-app/compare/v1.4.0...v1.5.0) (2026-08-12)
 
