@@ -2,9 +2,9 @@
 
 # Backlog index
 
-410 items. How to read and add them: [README.md](README.md).
+414 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 6 · ✅ done 357 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 26 · 🟢 ready 6 · ✅ done 357 · ⛔ dropped 1
 
 ---
 
@@ -273,6 +273,10 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 6 · ✅ done 35
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | security |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | security |
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | 🟢 ready | exchange |
+| [BUG-0530](bugs/BUG-0530-MarketOverview-svelte.md) | Native number arithmetic used for financial value in MarketOverview.svelte | P1 | 📋 specced | ui |
+| [BUG-0531](bugs/BUG-0531-MarketDashboardModal-svelte.md) | Native number arithmetic used for financial value in MarketDashboardModal.svelte | P1 | 📋 specced | ui |
+| [BUG-0532](bugs/BUG-0532-TradeFlowBackground-svelte.md) | Native number arithmetic used for financial value in TradeFlowBackground.svelte | P1 | 📋 specced | ui |
+| [BUG-0533](bugs/BUG-0533-TradeSetupInputs-svelte.md) | Native number arithmetic used for financial value in TradeSetupInputs.svelte | P1 | 📋 specced | ui |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -583,6 +587,10 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 6 · ✅ done 35
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0530](bugs/BUG-0530-MarketOverview-svelte.md) | Native number arithmetic used for financial value in MarketOverview.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0531](bugs/BUG-0531-MarketDashboardModal-svelte.md) | Native number arithmetic used for financial value in MarketDashboardModal.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0532](bugs/BUG-0532-TradeFlowBackground-svelte.md) | Native number arithmetic used for financial value in TradeFlowBackground.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0533](bugs/BUG-0533-TradeSetupInputs-svelte.md) | Native number arithmetic used for financial value in TradeSetupInputs.svelte | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -894,4 +902,4 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 6 · ✅ done 35
 
 ---
 
-Next free number: **0530**
+Next free number: **0534**

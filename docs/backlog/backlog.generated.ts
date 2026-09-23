@@ -2162,6 +2162,78 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md"
   },
   {
+    "id": "BUG-0530",
+    "title": "Native number arithmetic used for financial value in MarketOverview.svelte",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0530-MarketOverview-svelte.md"
+  },
+  {
+    "id": "BUG-0531",
+    "title": "Native number arithmetic used for financial value in MarketDashboardModal.svelte",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0531-MarketDashboardModal-svelte.md"
+  },
+  {
+    "id": "BUG-0532",
+    "title": "Native number arithmetic used for financial value in TradeFlowBackground.svelte",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0532-TradeFlowBackground-svelte.md"
+  },
+  {
+    "id": "BUG-0533",
+    "title": "Native number arithmetic used for financial value in TradeSetupInputs.svelte",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0533-TradeSetupInputs-svelte.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
