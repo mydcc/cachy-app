@@ -137,8 +137,7 @@ export function readRuleState(ruleId: string): RuleState {
 
 function writeRuleStates(states: RuleStateMap): boolean {
   try {
-    safeLocalStorage.setItem(RULE_STATE_STORAGE_KEY, JSON.stringify(states));
-    return true;
+    return safeLocalStorage.setItem(RULE_STATE_STORAGE_KEY, JSON.stringify(states));
   } catch (e) {
     logger.error("alerts", "[RuleState] Persisting fire state failed", e);
     return false;

@@ -161,11 +161,10 @@ export function recordFiring(record: ShadowFiringRecord): boolean {
         ? records.slice(records.length - SHADOW_LEDGER_MAX_RECORDS)
         : records;
 
-    safeLocalStorage.setItem(
+    return safeLocalStorage.setItem(
       SHADOW_LEDGER_STORAGE_KEY,
       JSON.stringify({ schema_version: SHADOW_LEDGER_SCHEMA_VERSION, records: trimmed }),
     );
-    return true;
   } catch (e) {
     logger.warn("alerts", "[Shadow] Could not record a firing", e);
     return false;
@@ -196,8 +195,7 @@ export function clearShadowLedger(): boolean {
   if (!browser) return false;
 
   try {
-    safeLocalStorage.removeItem(SHADOW_LEDGER_STORAGE_KEY);
-    return true;
+    return safeLocalStorage.removeItem(SHADOW_LEDGER_STORAGE_KEY);
   } catch (e) {
     logger.warn("alerts", "[Shadow] Could not clear the ledger", e);
     return false;
