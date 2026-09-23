@@ -440,9 +440,11 @@ export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<v
 
     // FEAT-0388: one-shot, best-effort — migrateAlertsToRuleDocuments()
     // never throws, so a migration hiccup cannot block the engine below.
-    // FEAT-0399 left this in place deliberately: it is now the only reader of
-    // `cachy_alerts_v1`, and deleting it would strand every trader who has
-    // legacy alerts and has not started the app since they were written.
+    // FEAT-0399 left this in place deliberately: the startup path below is
+    // the only remaining consumer of `cachy_alerts_v1` (migration plus its
+    // verify/reconcile/handoff helpers), and deleting it would strand every
+    // trader who has legacy alerts and has not started the app since they
+    // were written.
     await migrateAlertsToRuleDocuments();
 
     // FEAT-0387 cutover: ordered after the migration, never before. The
