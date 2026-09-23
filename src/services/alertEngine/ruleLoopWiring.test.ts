@@ -84,8 +84,7 @@ describe("rule loop wiring", () => {
     expect(marketState.data["BTCUSDT"]?.klines?.["1m"]).toHaveLength(3);
   });
 
-  describe("readClosedCandles", () => {
-    it("drops the candle that is still forming", () => {
+  describe("readClosedCandles", () => {    it("drops the candle that is still forming", () => {
       marketState.applySymbolKlines("BTCUSDT", "1m", CANDLES);
 
       const closed = readClosedCandles("BTCUSDT", "1m");
@@ -359,5 +358,45 @@ describe("rule loop wiring", () => {
     // The sink is the ledger sink and nothing else: it records, and the
     // cutover that swaps in a notifying sink is a separate change.
     expect(configure.mock.calls[0][0].onFiring).toBe(ledgerSink);
+  });
+
+  /**
+   * BUG-0483 part 1 — the entry price a bot sizes from is looked up by the
+   * firing's anchor. With the loop stamping the last closed candle of a
+   * backfill batch, that lookup must answer that candle's close: the stale
+   * pre-batch anchor answered a five-candle-old close — or nothing at all
+   * once the old candle trimmed out — which is the `no-entry-price` the
+   * symptom describes.
+   */
+  describe("closeAtAnchor after a backfill", () => {
+    const BACKFILL = [
+      { open: "100", high: "110", low: "90", close: "105", volume: "1", time: 1_000 },
+      { open: "105", high: "115", low: "95", close: "112", volume: "2", time: 61_000 },
+      { open: "112", high: "120", low: "100", close: "118", volume: "3", time: 121_000 },
+      { open: "118", high: "125", low: "110", close: "122", volume: "4", time: 181_000 },
+      { open: "122", high: "130", low: "118", close: "127", volume: "5", time: 241_000 },
+      { open: "127", high: "135", low: "125", close: "131", volume: "6", time: 301_000 },
+    ];
+
+    it("resolves the stamped anchor to the evaluated candle's close", async () => {
+      const { closeAtAnchor } = await import("./botOrders");
+
+      marketState.applySymbolKlines("BTCUSDT", "1m", BACKFILL);
+
+      // 301_000 is still forming; the loop stamps 241_000 (covered at the
+      // loop level), and the lookup answers that candle — not nothing.
+      expect(closeAtAnchor("BTCUSDT", "1m", 241_000)?.toString()).toBe("127");
+    });
+
+    it("shows what the stale anchor cost: a five-candle-old close", async () => {
+      const { closeAtAnchor } = await import("./botOrders");
+
+      marketState.applySymbolKlines("BTCUSDT", "1m", BACKFILL);
+
+      // The pre-batch mark the old code stamped. It resolves — to the wrong
+      // candle — while that candle is still buffered, which is why the bot
+      // sized from ancient history instead of refusing.
+      expect(closeAtAnchor("BTCUSDT", "1m", 1_000)?.toString()).toBe("105");
+    });
   });
 });

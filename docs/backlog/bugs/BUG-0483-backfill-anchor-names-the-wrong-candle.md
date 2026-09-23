@@ -2,7 +2,10 @@
 id: BUG-0483
 title: After a multi-candle backfill a firing is stamped with the wrong candle and crossings inside the gap are lost
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0483-backfill
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]

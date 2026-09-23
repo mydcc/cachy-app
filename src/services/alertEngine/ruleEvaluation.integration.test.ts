@@ -200,7 +200,12 @@ describe("rule evaluation against the real wasm core", () => {
     it("evaluates once per close, not once per tick", () => {
       const evaluate = vi.spyOn(ruleSchema, "evaluate");
       loop.observeCandles("BTCUSDT", "1m", [{ time: CANDLE_OPEN_MS }]);
-      candles = [candle(CANDLE_OPEN_MS, "49000"), candle(CANDLE_OPEN_MS + MINUTE_MS, "49500")];
+      // The history the loop has actually seen: ends at the forming candle's
+      // open, so the replay truncates to exactly these two closes (BUG-0483
+      // part 2). Stuffing a newer closed candle in here would describe a
+      // store the loop is behind — a corner where the truncated anchor
+      // honestly withholds until the loop catches up, not this test's topic.
+      candles = [candle(CANDLE_OPEN_MS - MINUTE_MS, "49000"), candle(CANDLE_OPEN_MS, "49500")];
 
       // One close, then several ticks inside the candle that followed it.
       loop.observeCandles("BTCUSDT", "1m", [{ time: CANDLE_OPEN_MS + MINUTE_MS }]);
