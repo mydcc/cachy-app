@@ -2,9 +2,9 @@
 
 # Backlog index
 
-411 items. How to read and add them: [README.md](README.md).
+417 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 1 · ✅ done 362 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 29 · 🟢 ready 1 · ✅ done 362 · ⛔ dropped 1
 
 ---
 
@@ -399,6 +399,9 @@ Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | exchange |
 | [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | exchange |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | alerts |
+| [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | 📋 specced | indicators |
+| [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | 📋 specced | architecture |
+| [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | 📋 specced | security |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -467,6 +470,9 @@ Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0454](features/FEAT-0454-alert-on-indicator-price-source.md) | Let an indicator alert compute over the price source its card is set to | P3 | ✅ done | alerts |
 | [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | ✅ done | alerts |
 | [FEAT-0522](features/FEAT-0522-palette-disable-aria-live-ticking.md) | Palette: Disable aria-live on ticking market data | P3 | ✅ done | ui |
+| [FEAT-0535](features/FEAT-0535-flattenkeys-i18n-scripts.md) | Extract shared flattenKeys helper for i18n scripts | P3 | 📋 specced | tooling |
+| [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | 📋 specced | exchange |
+| [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | 📋 specced | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -804,6 +810,9 @@ Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) |
+| [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -878,6 +887,9 @@ Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0454](features/FEAT-0454-alert-on-indicator-price-source.md) | Let an indicator alert compute over the price source its card is set to | P3 | ✅ done | none | community, pro, private | none | ADR-0012 | [BUG-0453](bugs/BUG-0453-card-alert-ignores-price-source.md) |
 | [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | ✅ done | none | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0522](features/FEAT-0522-palette-disable-aria-live-ticking.md) | Palette: Disable aria-live on ticking market data | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0535](features/FEAT-0535-flattenkeys-i18n-scripts.md) | Extract shared flattenKeys helper for i18n scripts | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -896,4 +908,4 @@ Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 1 · ✅ done 36
 
 ---
 
-Next free number: **0535**
+Next free number: **0541**

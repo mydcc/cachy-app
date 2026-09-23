@@ -7006,6 +7006,67 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0529-carry-drawing-anchor-in-rule-document.md"
   },
   {
+    "id": "FEAT-0538",
+    "title": "Unify the duplicated SMC mitigation checks",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "indicators",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0538-unify-smc-mitigation-checks.md"
+  },
+  {
+    "id": "FEAT-0539",
+    "title": "Break the service import cycles",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "architecture",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "size": "M",
+    "estimate": "5",
+    "file": "features/FEAT-0539-break-service-import-cycles.md"
+  },
+  {
+    "id": "FEAT-0540",
+    "title": "Extract a shared key-validation helper for exchange signing",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "size": "S",
+    "estimate": "2",
+    "file": "features/FEAT-0540-shared-key-validation-helper.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
@@ -8532,6 +8593,69 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "Palette",
     "file": "features/FEAT-0522-palette-disable-aria-live-ticking.md"
+  },
+  {
+    "id": "FEAT-0535",
+    "title": "Extract shared flattenKeys helper for i18n scripts",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "tooling",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "size": "XS",
+    "estimate": "1",
+    "file": "features/FEAT-0535-flattenkeys-i18n-scripts.md"
+  },
+  {
+    "id": "FEAT-0536",
+    "title": "Extract shared isStatusError helper for API routes",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "size": "S",
+    "estimate": "2",
+    "file": "features/FEAT-0536-isstatuserror-shared-http-errors.md"
+  },
+  {
+    "id": "FEAT-0537",
+    "title": "Unify the double KaTeX marked setup into one place",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "size": "S",
+    "estimate": "2",
+    "file": "features/FEAT-0537-single-katex-marked-setup.md"
   },
   {
     "id": "IDEA-0036",
