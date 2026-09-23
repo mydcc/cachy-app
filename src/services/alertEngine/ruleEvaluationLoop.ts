@@ -596,18 +596,18 @@ export class RuleEvaluationLoop {
     // anchor it has already decided, the intrabar path may look at the same
     // forming candle again and again, and the two keep separate records so one
     // cannot swallow the other's anchor.
-    //
-    // BUG-0485 — reaching the gate means the rule evaluated again: its
-    // threshold resolved, its context built, and the core accepted the
-    // document (a refusal throws before this point). Whatever made the rule
-    // inert no longer holds, so the record drops itself here rather than
-    // waiting for a writer to clear it. Only reachable when no unevaluable
-    // report fired above, so the once-per-session sink cannot re-fire from
-    // this.
-    if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
     const verdict = intrabar
       ? ruleEvaluationGate.evaluateIntrabar(rule, ctx, anchorMs)
       : ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
+    // BUG-0485 — returning from the gate means the rule evaluated again: its
+    // threshold resolved, its context built, and the core produced a verdict
+    // attempt. Whatever made the rule inert no longer holds, so the record
+    // drops itself here rather than waiting for a writer to clear it. Placed
+    // after the call on purpose: a refusal throws out of the gate and never
+    // reaches this, so the catch's re-report still finds the previous record
+    // and stays silent through the steady-state guard instead of churning
+    // delete/re-add on every close.
+    if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
     if (verdict === undefined || verdict.verdict !== "fires") return undefined;
     return { rule, verdict, anchorMs };
   }

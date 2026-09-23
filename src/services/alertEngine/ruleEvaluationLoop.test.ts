@@ -1126,5 +1126,35 @@ describe("RuleEvaluationLoop", () => {
 
       expect(seen).toEqual([["r"], []]);
     });
+
+    it("stays silent to subscribers while a refused rule stays refused", () => {
+      gateEvaluate.mockImplementation(((document: RuleDocument) => {
+        if (document.id === "refused") throw refusal();
+        return FIRES;
+      }) as never);
+      const seen: string[][] = [];
+      const onUnevaluable = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "refused" })],
+        onFiring: vi.fn(),
+        onUnevaluable,
+      });
+      const unsubscribe = loop.subscribeUnevaluable((rules) =>
+        seen.push(rules.map((r) => r.ruleId)),
+      );
+
+      // First close reports; the second close re-reports the same cause,
+      // which must refresh nothing and emit nothing — not even the
+      // delete/re-add round-trip through the gate.
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 121_000 }]);
+      unsubscribe();
+
+      expect(loop.unevaluableRules().map((r) => r.ruleId)).toEqual(["refused"]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+      expect(seen).toEqual([["refused"]]);
+    });
   });
 });
