@@ -57,16 +57,22 @@ conditions or consequence level does. That is what makes a journal entry able to
 
 ## Evaluation
 
-> Status: both paths run, and which one serves an alert is decided per alert.
-> FEAT-0387's cutover is live, so a `RuleDocument` that covers a stored alert is
-> evaluated on candle close and that alert is taken off the legacy engine
-> (`alertsForLegacyEngine`). An alert nothing covers — no rule, a disabled rule, an
-> unmigrated one, or a series that has stopped being observed — stays on the legacy
-> per-tick path (`alertEngine.evaluate` on every price tick). Coverage is recomputed
-> on every close and once a minute besides, so neither engine can end up holding an
-> alert the other is also serving, and neither can drop one the other never took.
-> The legacy store `cachy_alerts_v1` is removed by
-> [`FEAT-0399`](backlog/features/FEAT-0399-remove-legacy-alerts-v1.md), not before.
+> Status: one engine. FEAT-0399 retired the legacy per-tick engine and its
+> `cachy_alerts_v1` store, so every `RuleDocument` is evaluated on candle close
+> by the rule evaluator and nothing else. There is no coverage computation, no
+> per-minute re-sync, and no `alertsForLegacyEngine` — any text still
+> describing them as live machinery describes a system that no longer exists.
+> (Historical references — `[Cutover]` log tags, the cutover notice,
+> FEAT-0387/0399 comments — intentionally keep the names for archaeology; they
+> describe what was, not what runs.)
+>
+> The legacy store is not gone from the device: the startup path in
+> `initAlertEngine` — the one-shot FEAT-0388 migration plus its
+> verify/reconcile/handoff helpers — is now the only remaining consumer of
+> `cachy_alerts_v1`. It converts each stored alert into a `RuleDocument` and
+> records the origin in the migration ledger; deleting that path would strand
+> every trader who has legacy alerts and has not started the app since they
+> were written.
 
 A `RuleDocument` is evaluated **once per close of its trigger timeframe**. Every condition then
 reads the last candle of *its own* timeframe that had already closed at that instant.
@@ -145,6 +151,11 @@ method chosen on the rule selects which channels announce it.
 Above `notify`, the verdict instead becomes an order intent, and every existing
 guard — the order gate, the risk limits, the confirmation settings — applies
 unchanged. The rule engine proposes; it does not send.
+
+No UI can author a `send` document today: the Automation tab writes `simulate`
+only, and `authorise(Send)` on a `simulate` document refuses. Should a `send`
+rule fire anyway, it is refused with `level-not-supported` through the normal
+refusal channel (BUG-0487) — never silently dropped, never submitted.
 
 ## Related
 
