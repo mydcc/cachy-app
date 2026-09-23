@@ -2,9 +2,9 @@
 
 # Backlog index
 
-409 items. How to read and add them: [README.md](README.md).
+410 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 28 · ✅ done 357 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 357 · ⛔ dropped 1
 
 ---
 
@@ -398,6 +398,7 @@ Counts by status: 💡 idea 23 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | trade-panel |
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | exchange |
 | [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | exchange |
+| [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | alerts |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -801,6 +802,7 @@ Counts by status: 💡 idea 23 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 | [FEAT-0471](features/FEAT-0471-single-provider-registry-five-tabs.md) | Single AI provider registry with five tabs and fetched model pickers | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) |
 | [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | ✅ done | M4 | community, pro, private | A | none | — |
 | [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -892,4 +894,4 @@ Counts by status: 💡 idea 23 · 📋 specced 28 · ✅ done 357 · ⛔ dropped
 
 ---
 
-Next free number: **0529**
+Next free number: **0530**
