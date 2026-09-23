@@ -32,6 +32,9 @@ function mockRes() {
     setHeader(name, value) {
       headers.set(name, value);
     },
+    getHeader(name) {
+      return headers.get(name);
+    },
   };
 }
 
@@ -96,6 +99,26 @@ describe('applySecurityHeaders', () => {
       expect(res.headers.get(name)).toBe(value);
     }
   });
+
+  it('preserves an existing nonce CSP (SvelteKit kit.csp.mode "auto") and still sets the other headers', () => {
+    const res = mockRes();
+    const nonceCsp =
+      "default-src 'self'; script-src 'self' 'nonce-abc123' 'wasm-unsafe-eval' https://s.cachy.app blob:";
+    res.setHeader('Content-Security-Policy', nonceCsp);
+    applySecurityHeaders(res);
+    expect(res.headers.get('Content-Security-Policy')).toBe(nonceCsp);
+    expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(res.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+  });
+
+  it('still overwrites a nonce-less CSP', () => {
+    const res = mockRes();
+    res.setHeader('Content-Security-Policy', "default-src 'self'");
+    applySecurityHeaders(res);
+    expect(res.headers.get('Content-Security-Policy')).toBe(
+      SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')[1],
+    );
+  });
 });
 
 describe('overlaySecurityHeaders', () => {
@@ -149,6 +172,42 @@ describe('overlaySecurityHeaders', () => {
     expect(() => overlaySecurityHeaders(null)).not.toThrow();
     expect(() => overlaySecurityHeaders(200)).not.toThrow();
     expect(() => overlaySecurityHeaders('OK')).not.toThrow();
+  });
+
+  it('preserves a nonce CSP in an explicit object while overlaying the rest', () => {
+    const nonceCsp = "script-src 'self' 'nonce-abc123'";
+    const explicit = {
+      'content-security-policy': nonceCsp,
+      'X-Frame-Options': 'evil',
+    };
+    overlaySecurityHeaders(explicit);
+    expect(explicit['content-security-policy']).toBe(nonceCsp);
+    expect(explicit['X-Frame-Options']).toBe('SAMEORIGIN');
+  });
+
+  it('preserves a nonce CSP in a flat explicit array', () => {
+    const nonceCsp = "script-src 'self' 'nonce-abc123'";
+    const explicit = ['Content-Security-Policy', nonceCsp, 'X-Frame-Options', 'evil'];
+    overlaySecurityHeaders(explicit);
+    const i = explicit.findIndex(
+      (v) => String(v).toLowerCase() === 'content-security-policy',
+    );
+    expect(explicit[i + 1]).toBe(nonceCsp);
+    expect(explicit.filter((v) => v === 'evil')).toHaveLength(0);
+    // The static CSP must not be appended a second time
+    expect(
+      explicit.filter((v) => String(v).toLowerCase() === 'content-security-policy'),
+    ).toHaveLength(1);
+  });
+
+  it('preserves a nonce CSP in an explicit array of pairs', () => {
+    const nonceCsp = "script-src 'self' 'nonce-abc123'";
+    const explicit = [['Content-Security-Policy', nonceCsp]];
+    overlaySecurityHeaders(explicit);
+    expect(explicit).toContainEqual(['Content-Security-Policy', nonceCsp]);
+    expect(
+      explicit.filter(([name]) => String(name).toLowerCase() === 'content-security-policy'),
+    ).toHaveLength(1);
   });
 });
 
@@ -283,5 +342,29 @@ describe('wrapWriteHead', () => {
     expect(res.writeHead(200, 'OK', { 'content-type': 'text/html' })).toBe(3);
     // Repeated calls stay idempotent — headers are simply overwritten
     expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('keeps the adapter-node nonce CSP end to end (blank-app regression)', () => {
+    const res = mockRes();
+    const originalWriteHead = vi.fn();
+    res.writeHead = originalWriteHead;
+    wrapWriteHead(res);
+
+    // adapter-node path: res.writeHead(code, headers) with SvelteKit's
+    // per-request nonce CSP in the explicit headers object. Node prefers the
+    // explicit object over setHeader, so the nonce policy must survive there.
+    const nonceCsp = "script-src 'self' 'nonce-abc123'";
+    res.writeHead(200, {
+      'Content-Type': 'text/html',
+      'Content-Security-Policy': nonceCsp,
+    });
+
+    expect(originalWriteHead).toHaveBeenCalledWith(200, {
+      'Content-Type': 'text/html',
+      'Content-Security-Policy': nonceCsp,
+      ...Object.fromEntries(
+        SECURITY_HEADERS.filter(([name]) => name !== 'Content-Security-Policy'),
+      ),
+    });
   });
 });

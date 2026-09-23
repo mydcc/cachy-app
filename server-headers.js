@@ -34,10 +34,35 @@ export const SECURITY_HEADERS = [
 ];
 
 /**
- * @param {{ setHeader: (name: string, value: string) => unknown }} res
+ * SvelteKit (kit.csp.mode "auto") emits a per-request Content-Security-Policy
+ * carrying `nonce-…` tokens that match the inline scripts in the served HTML
+ * (app.html helpers, theme init, SvelteKit bootstrap). That policy is
+ * complete — generated from the directives in svelte.config.js — so wherever
+ * it is present it must win: overwriting it with the static policy below
+ * strips the nonces, the browser blocks every inline script including
+ * kit.start(), and the app stays blank (SSR is disabled, so nothing renders
+ * without the client bootstrap).
+ * @param {unknown} value a header value in any Node shape
+ * @returns {boolean}
+ */
+function cspHasNonce(value) {
+  if (typeof value === "string") return value.includes("nonce-");
+  if (Array.isArray(value)) return value.some((entry) => cspHasNonce(entry));
+  return false;
+}
+
+/**
+ * @param {{ setHeader: (name: string, value: string) => unknown, getHeader?: (name: string) => unknown }} res
  */
 export function applySecurityHeaders(res) {
   for (const [name, value] of SECURITY_HEADERS) {
+    if (
+      name === "Content-Security-Policy" &&
+      typeof res.getHeader === "function" &&
+      cspHasNonce(res.getHeader("Content-Security-Policy"))
+    ) {
+      continue;
+    }
     res.setHeader(name, value);
   }
 }
@@ -51,6 +76,10 @@ export function applySecurityHeaders(res) {
  * Handles every Node header shape: plain objects, flat arrays
  * ([name, value, ...]) and arrays of pairs ([[name, value], ...]).
  * Array-form headers are mutated in place, preserving their shape.
+ * Exception: a Content-Security-Policy that already carries `nonce-…` tokens
+ * (SvelteKit's per-request policy, see cspHasNonce) is left untouched —
+ * overwriting it would strip the nonces and break the inline bootstrap
+ * scripts, leaving a blank app.
  * @param {unknown} explicit the headers argument of the writeHead() call, if any
  */
 export function overlaySecurityHeaders(explicit) {
@@ -60,21 +89,40 @@ export function overlaySecurityHeaders(explicit) {
   if (Array.isArray(explicit)) {
     const names = new Set(SECURITY_HEADERS.map(([name]) => name.toLowerCase()));
     if (explicit.length > 0 && explicit.every((entry) => Array.isArray(entry))) {
+      const keepCsp = explicit.some(
+        ([name, value]) =>
+          String(name).toLowerCase() === "content-security-policy" &&
+          cspHasNonce(value),
+      );
+      if (keepCsp) names.delete("content-security-policy");
       for (let i = explicit.length - 1; i >= 0; i -= 1) {
         if (names.has(String(explicit[i][0]).toLowerCase())) {
           explicit.splice(i, 1);
         }
       }
       for (const [name, value] of SECURITY_HEADERS) {
+        if (!names.has(name.toLowerCase())) continue;
         explicit.push([name, value]);
       }
     } else {
+      let keepCsp = false;
+      for (let i = 0; i < explicit.length - 1; i += 2) {
+        if (
+          String(explicit[i]).toLowerCase() === "content-security-policy" &&
+          cspHasNonce(explicit[i + 1])
+        ) {
+          keepCsp = true;
+          break;
+        }
+      }
+      if (keepCsp) names.delete("content-security-policy");
       for (let i = explicit.length - 2; i >= 0; i -= 2) {
         if (names.has(String(explicit[i]).toLowerCase())) {
           explicit.splice(i, 2);
         }
       }
       for (const [name, value] of SECURITY_HEADERS) {
+        if (!names.has(name.toLowerCase())) continue;
         explicit.push(name, value);
       }
     }
@@ -85,6 +133,13 @@ export function overlaySecurityHeaders(explicit) {
     const existing = Object.keys(headers).find(
       (key) => key.toLowerCase() === name.toLowerCase(),
     );
+    if (
+      name === "Content-Security-Policy" &&
+      existing !== undefined &&
+      cspHasNonce(headers[existing])
+    ) {
+      continue;
+    }
     headers[existing ?? name] = value;
   }
 }
@@ -97,7 +152,9 @@ export function overlaySecurityHeaders(explicit) {
  * Headers passed explicitly to writeHead() are overlaid via
  * overlaySecurityHeaders(), since Node lets them win over earlier
  * setHeader() calls — Cache-Control is untouched, so per-asset cache
- * policies survive.
+ * policies survive. A Content-Security-Policy carrying `nonce-…` tokens
+ * (SvelteKit's per-request policy) is preserved on both paths: stripping it
+ * would block the inline bootstrap scripts and leave a blank app.
  * Idempotent: safe to call when the middleware already applied the headers,
  * since setHeader overwrites identical values. Preserves `this`, all
  * writeHead overloads, and the return value of the original.
