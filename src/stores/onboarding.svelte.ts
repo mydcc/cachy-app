@@ -18,6 +18,7 @@
 import { ONBOARDING_STEPS, type OnboardingStep } from "../lib/onboarding/steps";
 import { effectsState } from "./effects.svelte";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 /**
  * Records how the tour last ended ("completed" | "skipped") — input for a
@@ -134,7 +135,7 @@ export class OnboardingStore {
     }
     this.isActive = false;
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, outcome);
+      safeLocalStorage.setItem(STORAGE_KEY, outcome);
     }
   }
 }

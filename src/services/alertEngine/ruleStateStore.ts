@@ -32,6 +32,7 @@
 import { browser } from "$app/environment";
 import type { BotAnchorSnapshot, RuleState } from "../../lib/rules/types";
 import { logger } from "../logger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 export const RULE_STATE_STORAGE_KEY = "cachy_rule_state_v1";
 
@@ -104,7 +105,7 @@ export function readRuleStates(): RuleStateMap {
   if (!browser) return {};
 
   try {
-    const raw = localStorage.getItem(RULE_STATE_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(RULE_STATE_STORAGE_KEY);
     if (raw === null) return {};
 
     const parsed: unknown = JSON.parse(raw);
@@ -136,8 +137,7 @@ export function readRuleState(ruleId: string): RuleState {
 
 function writeRuleStates(states: RuleStateMap): boolean {
   try {
-    localStorage.setItem(RULE_STATE_STORAGE_KEY, JSON.stringify(states));
-    return true;
+    return safeLocalStorage.setItem(RULE_STATE_STORAGE_KEY, JSON.stringify(states));
   } catch (e) {
     logger.error("alerts", "[RuleState] Persisting fire state failed", e);
     return false;

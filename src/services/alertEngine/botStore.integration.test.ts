@@ -27,7 +27,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+// `safeLocalStorage` is a no-op when `browser` is false (unit project
+// default). Mock it to true so these tests exercise the real wrapper path
+// (same pattern as `drawings.test.ts`).
+vi.mock("$app/environment", () => ({ browser: true, dev: false }));
 
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type { RuleDocument } from "../../lib/rules/types";

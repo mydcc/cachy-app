@@ -55,6 +55,7 @@ import { logger } from "../logger";
 import type { RuleDocument } from "../../lib/rules/types";
 import { ALERTS_STORAGE_KEY, RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readRuleOriginLedger, type RuleOriginLedger } from "./ruleOriginLedger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * The alert store as it was actually found, not merely the ids in it.
@@ -244,7 +245,7 @@ export function readAlertStoreSnapshot(): AlertStoreSnapshot {
   if (!browser) return empty;
 
   try {
-    const raw = localStorage.getItem(ALERTS_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(ALERTS_STORAGE_KEY);
     if (raw === null) return empty;
 
     const parsed: unknown = JSON.parse(raw);
@@ -280,7 +281,7 @@ export function reconcileStoredRules(): OrphanReconciliation {
   if (!browser) return nothing;
 
   try {
-    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
     if (raw === null) return nothing;
 
     const parsed: unknown = JSON.parse(raw);
@@ -296,7 +297,7 @@ export function reconcileStoredRules(): OrphanReconciliation {
     );
 
     if (result.suspended.length > 0) {
-      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(result.rules));
+      safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(result.rules));
     }
     return result;
   } catch (e) {

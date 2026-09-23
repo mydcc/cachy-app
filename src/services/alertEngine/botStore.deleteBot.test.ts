@@ -27,6 +27,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RuleDocument } from "../../lib/rules/types";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 
+// `safeLocalStorage` is a no-op when `browser` is false (unit project
+// default). Mock it to true so these tests exercise the real wrapper path
+// (same pattern as `drawings.test.ts`).
+vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+
 const { removeRuleMock } = vi.hoisted(() => ({ removeRuleMock: vi.fn() }));
 
 vi.mock("./armRule", async (importOriginal) => {

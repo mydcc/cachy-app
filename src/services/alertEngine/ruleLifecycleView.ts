@@ -38,6 +38,7 @@ import { logger } from "../logger";
 import { isBot } from "./botStore";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readRuleStates } from "./ruleStateStore";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * The stored rule set, read here rather than through `ruleLoopWiring`.
@@ -52,7 +53,7 @@ function readRules(): RuleDocument[] {
   if (!browser) return [];
 
   try {
-    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
     if (raw === null) return [];
 
     const parsed: unknown = JSON.parse(raw);

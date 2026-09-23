@@ -39,6 +39,7 @@ import {
 import { readShadowLedger, recordLegacyFiring } from "./shadowLedger";
 import { ruleEvaluationLoop } from "./ruleEvaluationLoop";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 vi.mock("$app/environment", () => ({
   browser: true,
@@ -299,7 +300,10 @@ describe("rule loop wiring", () => {
     it("reads no rules when the store itself throws, without poisoning the cache", () => {
       localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([{ id: "r1" }]));
       const cached = readStoredRules();
-      const getItem = vi.spyOn(localStorage, "getItem").mockImplementation(() => {
+      // Spied on the wrapper, not the global: production reads through
+      // `safeLocalStorage` (FEAT-0352), so the throw must originate there
+      // for this test to exercise the failure path.
+      const getItem = vi.spyOn(safeLocalStorage, "getItem").mockImplementation(() => {
         throw new Error("denied");
       });
 

@@ -24,6 +24,7 @@ import { Decimal } from "decimal.js";
 import { safeJsonParse } from "../utils/safeJson";
 import { z } from "zod";
 import type { CurrentTradeData } from "./types";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 // Re-using types might require importing AppState or redefining what we need
 // Ideally we import AppState, but let's define the shape here for clarity/independence or import if needed.
@@ -282,7 +283,7 @@ class TradeManager {
 
   private load() {
     try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const stored = safeLocalStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed = safeJsonParse(stored);
 
@@ -411,7 +412,7 @@ class TradeManager {
       if (toSave.lockedPositionSize instanceof Decimal) {
         toSave.lockedPositionSize = toSave.lockedPositionSize.toString();
       }
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
+      safeLocalStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("Failed to save trade state", e);

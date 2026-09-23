@@ -40,6 +40,7 @@ import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { clearBotAnchors } from "./ruleStateStore";
 import { ruleEvaluationLoop } from "./ruleEvaluationLoop";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * Raised when the rule store cannot be read as an array of rules.
@@ -65,7 +66,7 @@ export class RuleStoreUnreadableError extends Error {
  * would write the new bot over every rule the trader has.
  */
 export function readRuleStore(): RuleDocument[] {
-  const raw = localStorage.getItem(RULES_STORAGE_KEY);
+  const raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
   if (raw === null) return [];
   let parsed: unknown;
   try {
@@ -158,7 +159,7 @@ export function armRule(document: RuleDocument): RuleDocument[] {
     index === -1
       ? [...rules, document]
       : rules.map((r, i) => (i === index ? document : r));
-  localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
+  safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
   // BUG-0485: a (re-)armed rule is a new verdict waiting to happen. Whatever
   // made the previous revision inert — deleted drawing, uncomputable
   // indicator, refused document — may not hold for this one, so its record
@@ -184,7 +185,7 @@ export function removeRule(ruleId: string): RuleDocument[] {
   const rules = readRuleStore();
   const next = rules.filter((rule) => rule.id !== ruleId);
   if (next.length !== rules.length) {
-    localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
+    safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
     // The rule is gone: its anchors go with it, from both halves, so a
     // re-armed rule with a recycled id starts decidable.
     forgetAnchors(ruleId);
@@ -211,7 +212,7 @@ export function disarmRule(ruleId: string): boolean {
   if (!browser) return false;
 
   try {
-    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
     if (raw === null) return false;
 
     const parsed: unknown = JSON.parse(raw);
@@ -226,7 +227,7 @@ export function disarmRule(ruleId: string): boolean {
     });
     if (!changed) return false;
 
-    localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
+    safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
     // BUG-0485: a disarmed rule is not evaluated at all, so a stale "can
     // never fire" entry about it would be a verdict on nothing. Re-enabling
     // re-arms through `armRule`, which forgets again above.

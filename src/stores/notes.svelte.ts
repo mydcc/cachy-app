@@ -11,6 +11,7 @@ import { browser } from "$app/environment";
 import { settingsState } from "./settings.svelte";
 import { untrack } from "svelte";
 import { generateId } from "../utils/utils";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export interface NoteMessage {
   id: string;
@@ -31,11 +32,11 @@ class NotesManager {
 
   private load() {
     try {
-      let stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let stored = safeLocalStorage.getItem(LOCAL_STORAGE_KEY);
 
       // MIGRATION: If empty, try to load from OLD chat key (one-time migration)
       if (!stored) {
-        const oldChat = localStorage.getItem("cachy_chat_history");
+        const oldChat = safeLocalStorage.getItem("cachy_chat_history");
         if (oldChat) {
           stored = oldChat;
         }
@@ -58,7 +59,7 @@ class NotesManager {
   private save() {
     if (!browser) return;
     try {
-      localStorage.setItem(
+      safeLocalStorage.setItem(
         LOCAL_STORAGE_KEY,
         JSON.stringify({ messages: this.messages }),
       );
