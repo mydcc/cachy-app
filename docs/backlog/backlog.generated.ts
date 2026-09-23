@@ -8762,6 +8762,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0537-single-katex-marked-setup.md"
   },
   {
+    "id": "FEAT-0546",
+    "title": "Migrate bitget/contracts route to shared isStatusError",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "parent": "FEAT-0341",
+    "size": "XS",
+    "estimate": "1",
+    "file": "features/FEAT-0546-bitget-contracts-isstatuserror.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",
