@@ -8691,7 +8691,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0535",
     "title": "Extract shared flattenKeys helper for i18n scripts",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "done_version": "1.6.0-beta.364",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -8700,6 +8701,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "private"
     ],
     "area": "tooling",
+    "assignee": "opencode",
+    "branch": "feat/0535-flattenkeys-i18n-scripts",
     "data_class": "none",
     "adr": "none",
     "depends_on": [],

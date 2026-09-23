@@ -2,11 +2,14 @@
 id: FEAT-0535
 title: Extract shared flattenKeys helper for i18n scripts
 type: feature
-status: specced
+status: done
+done_version: 1.6.0-beta.364
 priority: P3
 milestone: none
 editions: [community, pro, private]
 area: tooling
+assignee: opencode
+branch: feat/0535-flattenkeys-i18n-scripts
 data_class: none
 adr: none
 depends_on: []
@@ -31,9 +34,9 @@ before and after (diff the generated `schema.d.ts` and the validator output).
 
 ## Acceptance criteria
 
-- [ ] `scripts/lib/i18nKeys.mjs` exports `flattenKeys`, both scripts import it, no local copy remains
-- [ ] `node scripts/generate-i18n-types.js` output is byte-identical before/after
-- [ ] `node scripts/validate-i18n.js` passes before/after
+- [x] `scripts/lib/i18nKeys.mjs` exports `flattenKeys`, both scripts import it, no local copy remains
+- [x] `node scripts/generate-i18n-types.js` output is byte-identical before/after
+- [x] `node scripts/validate-i18n.js` passes before/after
 
 ## Out of scope
 
