@@ -15,12 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// @vitest-environment jsdom
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuleEvaluationLoop } from "./ruleEvaluationLoop";
 import { RuleRefusedError } from "../../lib/rules/ruleSchema";
 import { logger } from "../logger";
 import type { RuleDocument, Verdict } from "../../lib/rules/types";
+import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
+import { readStoredRules } from "./ruleLoopWiring";
+
+vi.mock("$app/environment", () => ({ browser: true, dev: false }));
 
 vi.mock("../logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -212,6 +218,82 @@ describe("RuleEvaluationLoop", () => {
       ]);
 
       expect(firings).toEqual([]);
+    });
+  });
+
+  describe("reading the stored rule set — BUG-0484", () => {
+    function storedConstant(value: string): RuleDocument {
+      return {
+        schema_version: 2,
+        id: "stored",
+        name: "stored",
+        symbol: "BTCUSDT",
+        trigger_timeframe: "1m",
+        conditions: {
+          kind: "compare",
+          left: { kind: "price", field: "close" },
+          op: "gte",
+          right: { kind: "constant", value },
+          timeframe: "1m",
+        },
+        action: { consequence_level: "notify" },
+        enabled: true,
+        provenance: { source: "human", created_at_ms: 0 },
+      } as RuleDocument;
+    }
+
+    function thresholdOf(document: RuleDocument): string {
+      const conditions = document.conditions as { right: { value: string } };
+      return conditions.right.value;
+    }
+
+    /**
+     * The close path evaluates the rule set as currently stored: an edit
+     * between two closes is visible to the second close without a reload,
+     * whichever path wrote it. The store write below bypasses every writer
+     * on purpose — the cache is keyed on the bytes, not on who wrote them.
+     */
+    it("the close path sees an edit made between two closes", () => {
+      const fired: RuleDocument[] = [];
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: readStoredRules,
+        onFiring: (firing) => {
+          fired.push(firing.rule);
+        },
+      });
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([storedConstant("100")]));
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([storedConstant("200")]));
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 121_000 }]);
+
+      expect(fired.map(thresholdOf)).toEqual(["100", "200"]);
+    });
+
+    /**
+     * Intrabar rules keep being evaluated on every tick: the cached read
+     * must not swallow the per-tick path it feeds.
+     */
+    it("intrabar rules are still evaluated on ticks that close nothing", () => {
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readFormingCandles: () => [],
+        readRules: readStoredRules,
+        onFiring: () => {},
+      });
+      localStorage.setItem(
+        RULES_STORAGE_KEY,
+        JSON.stringify([{ ...storedConstant("100"), evaluation_mode: "intrabar" }]),
+      );
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      gateEvaluateIntrabar.mockClear();
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+
+      expect(gateEvaluateIntrabar).toHaveBeenCalledTimes(2);
     });
   });
 
