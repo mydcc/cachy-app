@@ -40,7 +40,6 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { ruleSchema } from "../../lib/rules/ruleSchema";
 import type { EvaluationCandle, RuleDocument } from "../../lib/rules/types";
-import { logger } from "../logger";
 import { RuleEvaluationLoop, type RuleFiring } from "./ruleEvaluationLoop";
 
 vi.mock("../logger", () => ({
