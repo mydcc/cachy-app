@@ -7070,7 +7070,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0539",
     "title": "Break the service import cycles",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "done_version": "1.6.0-beta.364",
+    "assignee": "opencode",
+    "branch": "feat/0539-break-import-cycles",
     "priority": "P2",
     "milestone": "none",
     "editions": [

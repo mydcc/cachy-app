@@ -17,7 +17,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { newsService, type NewsItem } from "./newsService";
+import { newsService } from "./newsService";
+import type { NewsItem } from "./newsTypes";
 import { setNewsSettingsProvider } from "./newsSettings";
 import { dbService } from "./dbService";
 import { appFetch } from "../lib/appAuth";
