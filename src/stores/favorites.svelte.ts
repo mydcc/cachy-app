@@ -10,6 +10,7 @@
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState, MAX_FAVORITE_SYMBOLS } from "./settings.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 /**
  * Legacy storage key. Read once for migration, then left in place -- deleting a
@@ -78,10 +79,10 @@ class FavoritesManager {
    */
   private migrateLegacyStore() {
     try {
-      if (localStorage.getItem(MIGRATION_FLAG_KEY)) return;
+      if (safeLocalStorage.getItem(MIGRATION_FLAG_KEY)) return;
 
-      const stored = localStorage.getItem(LEGACY_STORE_KEY);
-      localStorage.setItem(MIGRATION_FLAG_KEY, "1");
+      const stored = safeLocalStorage.getItem(LEGACY_STORE_KEY);
+      safeLocalStorage.setItem(MIGRATION_FLAG_KEY, "1");
       if (!stored) return;
 
       const legacy = JSON.parse(stored)

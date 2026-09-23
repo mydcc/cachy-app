@@ -45,6 +45,7 @@
 import { browser } from "$app/environment";
 
 import { logger } from "../logger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /** The `localStorage` key. Versioned like every other Class A document. */
 export const RULE_DRAWING_STORAGE_KEY = "cachy_rule_drawing_v1";
@@ -88,7 +89,7 @@ export function readDrawingAnchorLedger(): DrawingAnchorLedgerSnapshot {
     const missing: DrawingAnchorLedgerSnapshot = { present: false, ledger: EMPTY };
     if (!browser) return missing;
     try {
-        const raw = localStorage.getItem(RULE_DRAWING_STORAGE_KEY);
+        const raw = safeLocalStorage.getItem(RULE_DRAWING_STORAGE_KEY);
         // No key, no bindings: the honest empty, not a loss.
         if (raw === null) return { present: true, ledger: EMPTY };
         const parsed: unknown = JSON.parse(raw);
@@ -143,8 +144,7 @@ function persist(ledger: DrawingAnchorLedger): boolean {
     // to report.
     if (!browser) return true;
     try {
-        localStorage.setItem(RULE_DRAWING_STORAGE_KEY, JSON.stringify(ledger));
-        return true;
+        return safeLocalStorage.setItem(RULE_DRAWING_STORAGE_KEY, JSON.stringify(ledger));
     } catch (e) {
         logger.warn("alerts", "[FEAT-0029] Drawing anchor ledger could not be written", e);
         return false;

@@ -8,6 +8,7 @@
  */
 
 import { appFetch } from "../lib/appAuth";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 const STORAGE_KEY = "cachy_frame_support_cache";
 
@@ -48,7 +49,7 @@ class FrameSupportService {
 
     if (typeof window !== "undefined" && window.localStorage) {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = safeLocalStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (typeof parsed === "object" && parsed !== null) {
@@ -72,7 +73,7 @@ class FrameSupportService {
         for (const [k, v] of this.cache.entries()) {
           obj[k] = v;
         }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+        safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
       } catch {
         // Ignore storage errors
       }

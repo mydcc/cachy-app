@@ -40,6 +40,7 @@ import { StorageHelper } from "../utils/storageHelper";
 import { redactDeep, redactString } from "../utils/redact";
 import { registerAuditRecorder, type OrderAttempt } from "./orderGate";
 import { logger } from "./logger";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export type OrderAuditOutcome = "sent" | "refused" | "failed";
 
@@ -233,7 +234,7 @@ class OrderAuditService {
         this.loaded = true;
         if (typeof localStorage === "undefined") return;
         try {
-            const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY);
+            const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY);
             if (!stored) return;
             const parsed = safeJsonParse(stored) as {
                 nextId?: number;

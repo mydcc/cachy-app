@@ -31,6 +31,7 @@ import {
   type LegacyCredentialShape,
 } from "./accounts";
 import { sanitizeUserProviders, type ProviderConfig } from "./aiProviders";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * Fields whose plain-text value is Klasse-A and gets encrypted before it
@@ -89,7 +90,7 @@ export function readPersistedCiphertextState(): PersistedCiphertextState {
     encryptedProviderConfigs?: EncryptedBlob;
   } | null;
   try {
-    const raw = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
+    const raw = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
     parsed = raw ? JSON.parse(raw) : null;
   } catch {
     return { hasOrphanedCiphertext: true };
@@ -144,7 +145,7 @@ export class SecretsLoader {
 
     // 1. Check for legacy key in localStorage for migration, and measure
     // the loss guard from every persisted ciphertext store at once.
-    const legacyKey = localStorage.getItem("cachy_device_id");
+    const legacyKey = safeLocalStorage.getItem("cachy_device_id");
     const { canaryBlob, hasOrphanedCiphertext } = readPersistedCiphertextState();
 
     // 2. Get or Generate secure key (migration runs before the guard inside
@@ -167,7 +168,7 @@ export class SecretsLoader {
               "[Settings] Migrated device key from localStorage to secure storage.",
             );
           }
-          localStorage.removeItem("cachy_device_id");
+          safeLocalStorage.removeItem("cachy_device_id");
         }
 
         return key;

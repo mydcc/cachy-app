@@ -34,6 +34,7 @@ import { CONSTANTS } from "../lib/constants";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 /**
  * How the simulator should misbehave. A simulator that only succeeds trains
@@ -488,7 +489,7 @@ class PaperTradingManager {
 
     private load(): void {
         try {
-            const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY);
+            const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY);
             if (!stored) return;
             const parsed = PaperStateSchema.safeParse(safeJsonParse(stored));
             if (!parsed.success) return;

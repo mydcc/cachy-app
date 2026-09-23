@@ -18,6 +18,7 @@
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { getBackupPayload, restoreFromBackup, type BackupFile } from "./backupService";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export const OPFS_BACKUP_FILENAME = "cachy_auto_backup.json";
 const AUTO_BACKUP_DEBOUNCE_MS = 30000;
@@ -226,7 +227,7 @@ export async function checkOpfsSnapshotOnStartup(): Promise<void> {
     let hasLocalSettings = false;
 
     if (typeof localStorage !== "undefined") {
-      const rawJournal = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+      const rawJournal = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
       if (rawJournal) {
         try {
           const parsed = JSON.parse(rawJournal);
@@ -236,7 +237,7 @@ export async function checkOpfsSnapshotOnStartup(): Promise<void> {
         }
       }
 
-      const rawPresets = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY);
+      const rawPresets = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY);
       if (rawPresets) {
         try {
           const parsed = JSON.parse(rawPresets);
@@ -246,7 +247,7 @@ export async function checkOpfsSnapshotOnStartup(): Promise<void> {
         }
       }
 
-      if (localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)) {
+      if (safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)) {
         hasLocalSettings = true;
       }
     }

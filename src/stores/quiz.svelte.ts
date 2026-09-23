@@ -21,6 +21,7 @@ import { locale, _ } from "../locales/i18n";
 import { get } from "svelte/store";
 import { toastService } from "../services/toastService.svelte";
 import { effectsState } from "./effects.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export interface FlashCard {
   id: string;
@@ -50,14 +51,14 @@ class QuizStore {
 
   loadProgress() {
     try {
-      const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY);
+      const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
           this.knownQuestionIds = new Set(parsed);
         }
       }
-      const storedCat = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY);
+      const storedCat = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY);
       if (storedCat === "tech" || storedCat === "trading") {
         this.activeCategory = storedCat;
       }
@@ -69,11 +70,11 @@ class QuizStore {
   saveProgress() {
     if (!browser) return;
     try {
-      localStorage.setItem(
+      safeLocalStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_QUIZ_KEY,
         JSON.stringify(Array.from(this.knownQuestionIds))
       );
-      localStorage.setItem(
+      safeLocalStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY,
         this.activeCategory
       );
@@ -86,7 +87,7 @@ class QuizStore {
     this.activeCategory = category;
     if (browser) {
       try {
-        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY, category);
+        safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_CATEGORY_KEY, category);
       } catch (e) {
         console.error("Failed to save quiz category", e);
       }

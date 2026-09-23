@@ -10,6 +10,7 @@
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import type { IndicatorSettings } from "../types/indicators";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 const defaultSettings: IndicatorSettings = {
   historyLimit: 750,
@@ -353,7 +354,7 @@ class IndicatorManager {
   }
 
   private load() {
-    const stored = localStorage.getItem(STORE_KEY);
+    const stored = safeLocalStorage.getItem(STORE_KEY);
     if (!stored) return;
 
     try {
@@ -460,7 +461,7 @@ class IndicatorManager {
     if (!browser) return;
     try {
       const data = this.toJSON();
-      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      safeLocalStorage.setItem(STORE_KEY, JSON.stringify(data));
     } catch (e) {
       console.error("Save error", e);
     }

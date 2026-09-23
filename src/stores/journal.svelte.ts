@@ -19,6 +19,7 @@ import { settingsState } from "./settings.svelte";
 import { untrack } from "svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import { serializationService } from "../services/serializationService";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export class JournalManager {
   entries = $state<JournalEntry[]>([]);
@@ -101,7 +102,7 @@ export class JournalManager {
     if (!browser || typeof localStorage === "undefined") return;
     try {
       const d =
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
+        safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
       const parsedData = safeJsonParse(d);
       if (Array.isArray(parsedData)) {
         // Enforce limit to prevent TBT/Crash on huge journals
@@ -155,7 +156,7 @@ export class JournalManager {
     try {
       const data = $state.snapshot(this.entries);
       const json = JSON.stringify(data);
-      const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+      const current = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
 
       if (current !== json) {
         StorageHelper.safeSave(
@@ -187,7 +188,7 @@ export class JournalManager {
           this.pendingSaveRequested = false;
           const data = $state.snapshot(this.entries);
           const json = await serializationService.stringifyAsync(data);
-          const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+          const current = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
 
           // Dirty check: only save if data actually changed
           if (current !== json) {

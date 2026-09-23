@@ -47,6 +47,7 @@ import { rmsService } from "./rmsService";
 import { installOrderNotifications } from "./notificationService.svelte";
 import { paperTradingService } from "./paperTradingService";
 import { orderAuditService } from "./orderAuditService";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -133,7 +134,7 @@ export const app = {
   setupFirstStart: () => {
     if (!browser) return;
     const INIT_KEY = "cachy_init_v501";
-    if (!localStorage.getItem(INIT_KEY)) {
+    if (!safeLocalStorage.getItem(INIT_KEY)) {
       // Set favorites
       favoritesState.items = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"];
 
@@ -161,7 +162,7 @@ export const app = {
       settingsState.enableNewsAnalysis = true;
       settingsState.marketMode = "balanced"; // Default to smart balanced mode
 
-      localStorage.setItem(INIT_KEY, "true");
+      safeLocalStorage.setItem(INIT_KEY, "true");
 
       // Give some time for state to settle then calculate
       setTimeout(() => {
@@ -274,10 +275,10 @@ export const app = {
     );
     if (typeof name === "string" && name) {
       const presets = safeJsonParse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+        safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
       );
       presets[name] = app.getInputsAsObject();
-      localStorage.setItem(
+      safeLocalStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
         JSON.stringify(presets),
       );
@@ -288,7 +289,7 @@ export const app = {
 
   loadPreset: (name: string) => {
     const presets = safeJsonParse(
-      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+      safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
     );
     const p = presets[name];
     if (p) {
@@ -327,10 +328,10 @@ export const app = {
 
   deletePreset: async (name: string) => {
     const presets = safeJsonParse(
-      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+      safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
     );
     delete presets[name];
-    localStorage.setItem(
+    safeLocalStorage.setItem(
       CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
       JSON.stringify(presets),
     );
@@ -339,7 +340,7 @@ export const app = {
 
   populatePresetLoader: () => {
     const presets = safeJsonParse(
-      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+      safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
     );
     presetState.availablePresets = Object.keys(presets);
   },

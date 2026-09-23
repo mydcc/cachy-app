@@ -21,6 +21,11 @@ vi.mock("../logger", () => ({
   logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
+// `safeLocalStorage` is a no-op when `browser` is false (unit project
+// default). Mock it to true so persistence assertions exercise the real
+// wrapper path (same pattern as `drawings.test.ts`).
+vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+
 import {
   RULE_ORIGIN_STORAGE_KEY,
   RULE_ORIGIN_SCHEMA_VERSION,

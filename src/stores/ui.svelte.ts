@@ -25,6 +25,7 @@ import { toastService } from "../services/toastService.svelte";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { ModalWindow } from "../lib/windows/implementations/ModalWindow.svelte";
 import { MarkdownWindow } from "../lib/windows/implementations/MarkdownWindow.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 // Components are imported dynamically in toggle methods to avoid circular dependencies
 
 // Shape returned by the legacy subscribe()/update() snapshot — mirrors every
@@ -146,7 +147,7 @@ class UiManager {
   constructor() {
     if (browser) {
       this.currentTheme =
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark";
+        safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark";
     }
   }
 
@@ -277,7 +278,7 @@ class UiManager {
     html.style.backgroundImage = "none";
 
     try {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
 
       // Dynamic import to avoid circular dependency
       import("../services/trackingService")

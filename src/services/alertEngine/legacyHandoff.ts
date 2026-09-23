@@ -44,6 +44,7 @@ import { logger } from "../logger";
 import type { RuleDocument } from "../../lib/rules/types";
 import { ALERTS_STORAGE_KEY, RULES_STORAGE_KEY, readMigratedIds } from "./migrateAlertsToRules";
 import { readRuleOriginLedger } from "./ruleOriginLedger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /** Marks the handoff as done, so it never overrides the trader afterwards. */
 export const LEGACY_HANDOFF_KEY = "cachy_alerts_handoff_v1";
@@ -56,7 +57,7 @@ export interface LegacyHandoffReport {
 /** Ids of legacy alerts still flagged active, or `null` if unreadable. */
 function readActiveAlertIds(): Set<string> | null {
   try {
-    const raw = localStorage.getItem(ALERTS_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(ALERTS_STORAGE_KEY);
     if (raw === null) return new Set();
 
     const parsed: unknown = JSON.parse(raw);
@@ -90,13 +91,13 @@ export function runLegacyHandoff(): LegacyHandoffReport | null {
   if (!browser) return null;
 
   try {
-    if (localStorage.getItem(LEGACY_HANDOFF_KEY) !== null) return null;
+    if (safeLocalStorage.getItem(LEGACY_HANDOFF_KEY) !== null) return null;
 
     const migrated = readMigratedIds();
     const activeAlertIds = readActiveAlertIds();
     if (migrated === null || activeAlertIds === null) return null;
 
-    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
     if (raw === null) {
       markDone([]);
       return { rearmed: [] };
@@ -126,7 +127,7 @@ export function runLegacyHandoff(): LegacyHandoffReport | null {
     });
 
     if (rearmed.length > 0) {
-      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
+      safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
       logger.warn(
         "alerts",
         `[FEAT-0399] Re-armed ${rearmed.length} alarm(s) the cutover had parked on the legacy engine: ` +
@@ -144,7 +145,7 @@ export function runLegacyHandoff(): LegacyHandoffReport | null {
 
 function markDone(rearmed: readonly string[]): void {
   try {
-    localStorage.setItem(
+    safeLocalStorage.setItem(
       LEGACY_HANDOFF_KEY,
       JSON.stringify({ atMs: Date.now(), rearmed: [...rearmed] }),
     );

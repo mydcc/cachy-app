@@ -39,6 +39,7 @@ import {
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 /*
  * Permissive for the same reason the confirmation policy's schema is: a
@@ -117,7 +118,7 @@ class NotificationPolicyStore {
 
     private load(): void {
         try {
-            const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_NOTIFICATION_POLICY_KEY);
+            const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_NOTIFICATION_POLICY_KEY);
             if (!stored) return;
             const parsed = StoredPolicySchema.safeParse(safeJsonParse(stored));
             if (!parsed.success) return;

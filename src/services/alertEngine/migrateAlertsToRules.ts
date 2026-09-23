@@ -17,6 +17,7 @@
 
 import { browser } from "$app/environment";
 import { logger } from "../logger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 import {
   readRuleOriginLedger,
   withRecordedOrigins,
@@ -61,7 +62,7 @@ const loadRuleModule: RuleModuleLoader = async () => {
 };
 
 function readJsonArray(key: string): unknown[] {
-  const raw = localStorage.getItem(key);
+  const raw = safeLocalStorage.getItem(key);
   if (!raw) return [];
   const parsed: unknown = JSON.parse(raw);
   return Array.isArray(parsed) ? parsed : [];
@@ -146,7 +147,7 @@ export function readMigratedIds(): Set<string> | null {
   if (!browser) return null;
 
   try {
-    const raw = localStorage.getItem(MIGRATED_LEDGER_KEY);
+    const raw = safeLocalStorage.getItem(MIGRATED_LEDGER_KEY);
     if (raw === null) return new Set();
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
@@ -177,7 +178,7 @@ function recordMigratedIds(ids: Set<string>): void {
   if (merged.size === existing.size) return;
 
   try {
-    localStorage.setItem(MIGRATED_LEDGER_KEY, JSON.stringify([...merged].sort()));
+    safeLocalStorage.setItem(MIGRATED_LEDGER_KEY, JSON.stringify([...merged].sort()));
   } catch (e) {
     logger.error("alerts", "Failed to persist cachy_alerts_migrated_v1 during migration", e);
   }
@@ -383,7 +384,7 @@ export async function migrateAlertsToRuleDocuments(
 
     if (toConvert.length === 0 && toResync.length === 0) {
       if (rulesChanged) {
-        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
+        safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
       }
       persistOrigins();
       recordMigratedIds(migratedIds);
@@ -396,7 +397,7 @@ export async function migrateAlertsToRuleDocuments(
     } catch (e) {
       logger.error("alerts", "Failed to load wasm module for alert migration", e);
       if (rulesChanged) {
-        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
+        safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(syncedRules));
       }
       persistOrigins();
       recordMigratedIds(migratedIds);
@@ -464,7 +465,7 @@ export async function migrateAlertsToRuleDocuments(
     }
 
     if (migratedRules.length > 0 || rulesChanged) {
-      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...syncedRules, ...migratedRules]));
+      safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify([...syncedRules, ...migratedRules]));
     }
 
     // Rules first, ledger second, deliberately: if the ledger write is the

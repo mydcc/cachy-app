@@ -20,6 +20,7 @@ import { CONSTANTS } from "../lib/constants";
 import { CREDENTIAL_SCHEMA_VERSION } from "../stores/settings/accounts";
 import { SENSITIVE_KEYS } from "../stores/settings/secretsLoader";
 import { cryptoService } from "./cryptoService";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export const BACKUP_VERSION = 4; // Version 4: PBKDF2 600k Iterations + Strict Data Validation
 export const APP_NAME = "R-Calculator";
@@ -366,7 +367,7 @@ export function validateBackupSections(data: BackupData): {
  */
 function getDataFromLocalStorage(key: string): string | null {
   if (!browser && typeof localStorage === "undefined") return null;
-  return localStorage.getItem(key);
+  return safeLocalStorage.getItem(key);
 }
 
 /**
@@ -606,36 +607,36 @@ export async function restoreFromBackup(
 
     // --- Restore to localStorage (Fail-Closed: Only executed after all validations pass) ---
     if (data.settings) {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, data.settings);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, data.settings);
     }
     if (data.presets) {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY, data.presets);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY, data.presets);
     }
     if (data.journal) {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, data.journal);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, data.journal);
     }
     if (data.tradeState) {
-      localStorage.setItem(
+      safeLocalStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
         data.tradeState,
       );
     }
     if (data.theme) {
       const sanitizedTheme = data.theme.replace(/^"|"$/g, "").trim();
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, sanitizedTheme);
-      localStorage.setItem("theme", sanitizedTheme);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, sanitizedTheme);
+      safeLocalStorage.setItem("theme", sanitizedTheme);
     }
     if (data.quizState) {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY, data.quizState);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY, data.quizState);
     }
     if (data.riskLimits) {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_RISK_KEY, data.riskLimits);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_RISK_KEY, data.riskLimits);
     }
     if (data.paperTrading) {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, data.paperTrading);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, data.paperTrading);
     }
     if (data.orderAudit) {
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY, data.orderAudit);
+      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY, data.orderAudit);
     }
 
     return {

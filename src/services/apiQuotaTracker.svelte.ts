@@ -9,6 +9,7 @@
 
 import { browser } from "$app/environment";
 import { logger } from "./logger";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export interface QuotaEntry {
     provider: string; // Allow general strings for Bitunix/Bitget
@@ -38,7 +39,7 @@ class ApiQuotaTracker {
 
     private load() {
         try {
-            const raw = localStorage.getItem(QUOTA_STORAGE_KEY);
+            const raw = safeLocalStorage.getItem(QUOTA_STORAGE_KEY);
             if (raw) {
                 this.quotas = JSON.parse(raw);
             }
@@ -52,7 +53,7 @@ class ApiQuotaTracker {
         try {
             // $state.snapshot to get clean object
             const data = $state.snapshot(this.quotas);
-            localStorage.setItem(QUOTA_STORAGE_KEY, JSON.stringify(data));
+            safeLocalStorage.setItem(QUOTA_STORAGE_KEY, JSON.stringify(data));
         } catch (e) {
             logger.warn("market", `[apiQuotaTracker] Save failed`, e);
         }
@@ -154,7 +155,7 @@ class ApiQuotaTracker {
             }
         } else {
             this.quotas = {};
-            localStorage.removeItem(QUOTA_STORAGE_KEY);
+            safeLocalStorage.removeItem(QUOTA_STORAGE_KEY);
         }
     }
 }
