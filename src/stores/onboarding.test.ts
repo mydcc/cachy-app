@@ -20,6 +20,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { OnboardingStore } from "./onboarding.svelte";
 import { effectsState } from "./effects.svelte";
 
+// `safeLocalStorage` is a no-op when `browser` is false (unit project
+// default). Mock it to true so persistence assertions exercise the real
+// wrapper path (same pattern as `drawings.test.ts`).
+vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+
 describe("OnboardingStore", () => {
   let store: OnboardingStore;
 

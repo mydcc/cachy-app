@@ -35,6 +35,7 @@ import { clampVolume, DEFAULT_SOUND_VOLUME } from "../lib/notificationTones";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 const StoredSoundSchema = z.object({
     volume: z.number().optional(),
@@ -133,7 +134,7 @@ class NotificationSoundStore {
 
     private load(): void {
         try {
-            const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_NOTIFICATION_SOUND_KEY);
+            const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_NOTIFICATION_SOUND_KEY);
             if (!stored) return;
             const parsed = StoredSoundSchema.safeParse(safeJsonParse(stored));
             if (!parsed.success) return;

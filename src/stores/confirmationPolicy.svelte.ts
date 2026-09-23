@@ -43,6 +43,7 @@ import {
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 /*
  * Permissive on purpose: the shape is validated as "an object of booleans"
@@ -161,7 +162,7 @@ class ConfirmationPolicyStore {
 
     private load(): void {
         try {
-            const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_CONFIRMATION_POLICY_KEY);
+            const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_CONFIRMATION_POLICY_KEY);
             if (!stored) return;
             const parsed = StoredPolicySchema.safeParse(safeJsonParse(stored));
             if (!parsed.success) return;

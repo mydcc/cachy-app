@@ -28,6 +28,7 @@ import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import { getCapabilities } from "./capabilityDetection";
 import { toastService } from "./toastService.svelte";
 import { generateId } from "../utils/utils";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
@@ -175,7 +176,7 @@ async function notifyCapabilityStatus() {
     
     // Check if warning has already been shown on this device
     const storageKey = 'cachy_performance_warning_shown';
-    if (localStorage.getItem(storageKey)) return;
+    if (safeLocalStorage.getItem(storageKey)) return;
     
     // Ensure we have latest capabilities
     const caps = await getCapabilities();
@@ -191,7 +192,7 @@ async function notifyCapabilityStatus() {
         toastService.warning(msg, 8000);
         
         // Mark as shown
-        localStorage.setItem(storageKey, 'true');
+        safeLocalStorage.setItem(storageKey, 'true');
     } else {
         logger.log('technicals', "All high-performance features available.");
     }

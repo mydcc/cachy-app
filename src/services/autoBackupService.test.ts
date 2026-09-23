@@ -30,6 +30,11 @@ import {
 } from "./autoBackupService.svelte";
 import type { BackupFile } from "./backupService";
 
+// `safeLocalStorage` is a no-op when `browser` is false (unit project
+// default). Mock it to true so persistence assertions exercise the real
+// wrapper path (same pattern as `drawings.test.ts`).
+vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+
 // Helper mock for OPFS
 function createMockOpfs(initialFiles: Record<string, string> = {}) {
   const files: Record<string, string> = { ...initialFiles };
@@ -76,6 +81,14 @@ describe("autoBackupService", () => {
     localStorage.clear();
     sessionStorage.clear();
     vi.restoreAllMocks();
+    // `browser` is mocked to true (see top of file) but the unit project
+    // runs in node without a `window` global — stub the surface the
+    // service touches (`location.reload`, storage listeners).
+    vi.stubGlobal("window", {
+      location: { reload: vi.fn() },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
 
     mockOpfs = createMockOpfs();
 

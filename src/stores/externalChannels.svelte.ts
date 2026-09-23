@@ -49,6 +49,7 @@ import {
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 /*
  * Permissive, for the same reason the notification policy's schema is: a blob
@@ -161,7 +162,7 @@ class ExternalChannelsStore {
 
     private load(): void {
         try {
-            const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_EXTERNAL_CHANNELS_KEY);
+            const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_EXTERNAL_CHANNELS_KEY);
             if (!stored) return;
             const parsed = StoredSchema.safeParse(safeJsonParse(stored));
             if (!parsed.success) return;

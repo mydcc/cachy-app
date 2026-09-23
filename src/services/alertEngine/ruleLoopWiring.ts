@@ -53,6 +53,7 @@ import { drawingStore } from "../../stores/drawings.svelte";
 import { readDrawingAnchorLedger } from "./drawingAnchors";
 import { resolveDrawingThreshold } from "./drawingThreshold";
 import { readDrawingStoreSnapshot } from "./reconcileDrawingRules";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * The closed candles of one series, oldest first.
@@ -279,7 +280,7 @@ export function readStoredRules(): RuleDocument[] {
   // is left untouched so a transient failure does not poison later reads.
   let raw: string | null;
   try {
-    raw = localStorage.getItem(RULES_STORAGE_KEY);
+    raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
   } catch (e) {
     logger.error("alerts", "[Cutover] Reading stored rules failed", e);
     return [];

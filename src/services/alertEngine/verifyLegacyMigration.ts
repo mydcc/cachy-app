@@ -46,6 +46,7 @@
 import { browser } from "$app/environment";
 import { logger } from "../logger";
 import { ALERTS_STORAGE_KEY, readMigratedIds } from "./migrateAlertsToRules";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * - `clean` — every legacy alert has a ledger entry. This is the evidence
@@ -98,7 +99,7 @@ type LegacyRead =
 function readLegacyStore(): LegacyRead {
   let raw: string | null;
   try {
-    raw = localStorage.getItem(ALERTS_STORAGE_KEY);
+    raw = safeLocalStorage.getItem(ALERTS_STORAGE_KEY);
   } catch (e) {
     logger.warn("alerts", "[FEAT-0399] Legacy alert store could not be opened", e);
     return { kind: "unreadable" };

@@ -38,6 +38,7 @@
 
 import { browser } from "$app/environment";
 import { logger } from "../logger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 export const SHADOW_LEDGER_STORAGE_KEY = "cachy_shadow_firings_v1";
 
@@ -123,7 +124,7 @@ export function readShadowLedger(): ShadowLedger {
   if (!browser) return emptyShadowLedger();
 
   try {
-    const raw = localStorage.getItem(SHADOW_LEDGER_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(SHADOW_LEDGER_STORAGE_KEY);
     if (raw === null) return emptyShadowLedger();
 
     const parsed: unknown = JSON.parse(raw);
@@ -160,11 +161,10 @@ export function recordFiring(record: ShadowFiringRecord): boolean {
         ? records.slice(records.length - SHADOW_LEDGER_MAX_RECORDS)
         : records;
 
-    localStorage.setItem(
+    return safeLocalStorage.setItem(
       SHADOW_LEDGER_STORAGE_KEY,
       JSON.stringify({ schema_version: SHADOW_LEDGER_SCHEMA_VERSION, records: trimmed }),
     );
-    return true;
   } catch (e) {
     logger.warn("alerts", "[Shadow] Could not record a firing", e);
     return false;
@@ -195,8 +195,7 @@ export function clearShadowLedger(): boolean {
   if (!browser) return false;
 
   try {
-    localStorage.removeItem(SHADOW_LEDGER_STORAGE_KEY);
-    return true;
+    return safeLocalStorage.removeItem(SHADOW_LEDGER_STORAGE_KEY);
   } catch (e) {
     logger.warn("alerts", "[Shadow] Could not clear the ledger", e);
     return false;

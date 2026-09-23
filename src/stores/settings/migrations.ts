@@ -15,9 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { safeLocalStorage } from "../../utils/storageWrapper";
+
 /**
  * Versioned one-shot migrations SettingsManager.load() runs on every parsed
- * settings blob (FEAT-0197 PR 3). Pure functions -- no $state, no
+ * settings blob (FEAT-0197 PR 3). Pure functions -- no $state, no raw
  * localStorage access except the one migration-flag read/write the broker
  * migration owns, which mirrors what load() did inline before this split.
  */
@@ -30,7 +32,7 @@ const BROKER_MIGRATION_KEY = "cachy_v0.94_broker_migrated_v2";
  * to `bitunix` for any other unrecognised value.
  */
 export function resolveApiProvider(rawProvider: unknown): "bitunix" | "bitget" {
-  const migrationDone = localStorage.getItem(BROKER_MIGRATION_KEY);
+  const migrationDone = safeLocalStorage.getItem(BROKER_MIGRATION_KEY);
   let loadedProvider = rawProvider;
 
   if (!migrationDone) {
@@ -40,7 +42,7 @@ export function resolveApiProvider(rawProvider: unknown): "bitunix" | "bitget" {
       );
     }
     loadedProvider = "bitunix";
-    localStorage.setItem(BROKER_MIGRATION_KEY, "true");
+    safeLocalStorage.setItem(BROKER_MIGRATION_KEY, "true");
   }
 
   if (loadedProvider === "binance") {

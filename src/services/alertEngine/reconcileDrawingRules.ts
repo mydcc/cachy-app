@@ -51,6 +51,7 @@ import type { RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
 import { readDrawingAnchorLedger, type DrawingAnchorLedger } from "./drawingAnchors";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * The drawing store as it was found, not merely the ids in it.
@@ -79,7 +80,7 @@ export function readDrawingStoreSnapshot(): DrawingStoreSnapshot {
     if (!browser) return empty;
 
     try {
-        const raw = localStorage.getItem(DRAWINGS_STORAGE_KEY);
+        const raw = safeLocalStorage.getItem(DRAWINGS_STORAGE_KEY);
         if (raw === null) return empty;
 
         const parsed: unknown = JSON.parse(raw);
@@ -160,7 +161,7 @@ export function reconcileStoredDrawingRules(): DrawingReconciliation {
     if (!browser) return nothing;
 
     try {
-        const raw = localStorage.getItem(RULES_STORAGE_KEY);
+        const raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
         if (raw === null) return nothing;
 
         const parsed: unknown = JSON.parse(raw);
@@ -176,7 +177,7 @@ export function reconcileStoredDrawingRules(): DrawingReconciliation {
         );
 
         if (result.suspended.length > 0) {
-            localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(result.rules));
+            safeLocalStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(result.rules));
         }
         return result;
     } catch (e) {

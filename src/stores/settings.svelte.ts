@@ -28,6 +28,7 @@ import {
 import type { SwitchAuthorization } from "../lib/confirmationPolicy";
 import { normalizeQuality, type VisualQuality } from "../lib/three/quality";
 import type { AiAnalysisMode } from "../types/ai";
+import { safeLocalStorage } from "../utils/storageWrapper";
 import {
   AI_ALLOWED_ACTIONS_DEFAULT,
   sanitizeAllowedActions,
@@ -1821,7 +1822,7 @@ export class SettingsManager {
     let secretsPending = false;
 
     try {
-      const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
+      const d = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
       if (!d) {
         // No settings found, save defaults
         this.save();
@@ -2388,7 +2389,7 @@ export class SettingsManager {
         this.encryptionFailures = encryptionFailures;
       }
 
-      const current = localStorage.getItem(
+      const current = safeLocalStorage.getItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
       );
       const newData = JSON.stringify(data);

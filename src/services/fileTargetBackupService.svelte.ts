@@ -19,6 +19,7 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { dbService } from "./dbService";
 import { getBackupPayload, APP_NAME } from "./backupService";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 // FEAT-0212 Phase 2: periodic write-through to up to two user-chosen local
 // files via the File System Access API. Chromium-only; hidden in the UI
@@ -82,7 +83,7 @@ function configStorageKey(slot: FileTargetSlot): string {
 
 function loadConfig(slot: FileTargetSlot): FileTargetConfig | null {
   if (typeof localStorage === "undefined") return null;
-  const raw = localStorage.getItem(configStorageKey(slot));
+  const raw = safeLocalStorage.getItem(configStorageKey(slot));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
@@ -97,12 +98,12 @@ function loadConfig(slot: FileTargetSlot): FileTargetConfig | null {
 
 function saveConfig(slot: FileTargetSlot, config: FileTargetConfig): void {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(configStorageKey(slot), JSON.stringify(config));
+  safeLocalStorage.setItem(configStorageKey(slot), JSON.stringify(config));
 }
 
 function clearConfig(slot: FileTargetSlot): void {
   if (typeof localStorage === "undefined") return;
-  localStorage.removeItem(configStorageKey(slot));
+  safeLocalStorage.removeItem(configStorageKey(slot));
 }
 
 function clampInterval(minutes: number): number {

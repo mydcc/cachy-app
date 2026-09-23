@@ -58,6 +58,7 @@ import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
 import { app } from "../services/app";
 import { TechnicalsPresenter } from "../utils/technicalsPresenter";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 // Shape returned by gatherContext(), passed to the AI provider and exposed
 // to the UI via lastContext for the context-gathered indicators.
@@ -155,7 +156,7 @@ class AiManager {
 
   private load() {
     try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const stored = safeLocalStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.messages) {
@@ -172,7 +173,7 @@ class AiManager {
   private save() {
     if (!browser) return;
     try {
-      localStorage.setItem(
+      safeLocalStorage.setItem(
         LOCAL_STORAGE_KEY,
         JSON.stringify({
           messages: this.messages,
@@ -240,7 +241,7 @@ class AiManager {
       // 3. Prepare Messages (History + System + User)
       // Determine language for AI response: follow the user's app locale
       const appLocale = (typeof localStorage !== "undefined"
-        ? localStorage.getItem("locale")
+        ? safeLocalStorage.getItem("locale")
         : null) ?? "en";
 
       const promptParts = buildSystemPromptParts({

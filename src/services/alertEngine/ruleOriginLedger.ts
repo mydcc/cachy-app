@@ -16,6 +16,7 @@
  */
 
 import { logger } from "../logger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 /**
  * FEAT-0401 — provenance for rules that came from legacy alerts.
@@ -93,7 +94,7 @@ function parseEntry(value: unknown): RuleOriginEntry | undefined {
  */
 export function readRuleOriginLedger(): RuleOriginLedger {
   try {
-    const raw = localStorage.getItem(RULE_ORIGIN_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(RULE_ORIGIN_STORAGE_KEY);
     if (!raw) return emptyLedger();
 
     const parsed: unknown = JSON.parse(raw);
@@ -160,8 +161,7 @@ export function withRecordedOrigins(
  */
 export function writeRuleOriginLedger(ledger: RuleOriginLedger): boolean {
   try {
-    localStorage.setItem(RULE_ORIGIN_STORAGE_KEY, JSON.stringify(ledger));
-    return true;
+    return safeLocalStorage.setItem(RULE_ORIGIN_STORAGE_KEY, JSON.stringify(ledger));
   } catch (e) {
     logger.error("alerts", `Failed to persist ${RULE_ORIGIN_STORAGE_KEY}`, e);
     return false;

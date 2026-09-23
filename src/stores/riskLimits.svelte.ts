@@ -38,6 +38,7 @@ import { CONSTANTS } from "../lib/constants";
 import { safeJsonParse } from "../utils/safeJson";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 /** The raw, user-entered form of each limit. `null` = not configured. */
 export interface RiskLimitInputs {
@@ -278,7 +279,7 @@ class RiskManager {
 
     private load(): void {
         try {
-            const stored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_RISK_KEY);
+            const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_RISK_KEY);
             if (!stored) return;
             const parsed = RiskStateSchema.safeParse(safeJsonParse(stored));
             if (!parsed.success) return;

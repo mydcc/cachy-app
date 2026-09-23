@@ -18,6 +18,7 @@
 // src/services/onboardingService.ts
 import { trackCustomEvent } from "./trackingService";
 import { browser } from "$app/environment";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 const FIRST_INPUT_KEY = "cachy-onboarding-first-input";
 const FIRST_CALC_KEY = "cachy-onboarding-first-calc";
@@ -32,9 +33,9 @@ function checkAndTrack(
   if (!browser) return;
 
   try {
-    if (!localStorage.getItem(key)) {
+    if (!safeLocalStorage.getItem(key)) {
       trackCustomEvent(category, action, name);
-      localStorage.setItem(key, "true");
+      safeLocalStorage.setItem(key, "true");
     }
   } catch (e) {
     console.warn(`Could not access localStorage for onboarding tracking: ${e}`);

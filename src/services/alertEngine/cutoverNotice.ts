@@ -41,6 +41,7 @@ import { browser } from "$app/environment";
 import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readRuleOriginLedger } from "./ruleOriginLedger";
+import { safeLocalStorage } from "../../utils/storageWrapper";
 
 export const CUTOVER_NOTICE_STORAGE_KEY = "cachy_cutover_notice_v1";
 
@@ -55,7 +56,7 @@ export async function shouldShowCutoverNotice(): Promise<boolean> {
   if (!browser) return false;
 
   try {
-    if (localStorage.getItem(CUTOVER_NOTICE_STORAGE_KEY) !== null) return false;
+    if (safeLocalStorage.getItem(CUTOVER_NOTICE_STORAGE_KEY) !== null) return false;
 
     // FEAT-0399: the question used to be "is any alert currently covered by
     // the rule engine", because coverage decided which of two engines served
@@ -69,7 +70,7 @@ export async function shouldShowCutoverNotice(): Promise<boolean> {
     const migratedRuleIds = new Set(Object.keys(readRuleOriginLedger().entries));
     if (migratedRuleIds.size === 0) return false;
 
-    const raw = localStorage.getItem(RULES_STORAGE_KEY);
+    const raw = safeLocalStorage.getItem(RULES_STORAGE_KEY);
     if (raw === null) return false;
 
     const parsed: unknown = JSON.parse(raw);
@@ -95,7 +96,7 @@ export function acknowledgeCutoverNotice(): void {
   if (!browser) return;
 
   try {
-    localStorage.setItem(CUTOVER_NOTICE_STORAGE_KEY, new Date().toISOString());
+    safeLocalStorage.setItem(CUTOVER_NOTICE_STORAGE_KEY, new Date().toISOString());
   } catch (e) {
     // Worst case the notice appears once more. Not worth surfacing.
     logger.warn("alerts", "[Cutover] Could not record the notice acknowledgement", e);

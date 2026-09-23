@@ -11,6 +11,7 @@ import { appFetch } from "../lib/appAuth";
 import type { AiModelInfo } from "../types/ai";
 import { buildDirectModelsRequest } from "../lib/ai/directRequest";
 import type { AiApiFlavor } from "../stores/settings/aiProviders";
+import { safeLocalStorage } from "../utils/storageWrapper";
 
 export type { AiModelInfo };
 
@@ -58,7 +59,7 @@ function cacheKey(provider: string, scope: string): string {
 function readCache(provider: string, scope: string): CacheEntry | null {
   if (typeof localStorage === "undefined") return null;
   try {
-    const raw = localStorage.getItem(cacheKey(provider, scope));
+    const raw = safeLocalStorage.getItem(cacheKey(provider, scope));
     if (!raw) return null;
     return JSON.parse(raw) as CacheEntry;
   } catch {
@@ -70,7 +71,7 @@ function writeCache(provider: string, scope: string, models: AiModelInfo[]): voi
   if (typeof localStorage === "undefined") return;
   try {
     const entry: CacheEntry = { fetchedAt: Date.now(), models };
-    localStorage.setItem(cacheKey(provider, scope), JSON.stringify(entry));
+    safeLocalStorage.setItem(cacheKey(provider, scope), JSON.stringify(entry));
   } catch {
     // Quota exceeded or storage disabled — the model list simply won't cache.
   }
