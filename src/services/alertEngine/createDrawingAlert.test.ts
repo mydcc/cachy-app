@@ -27,7 +27,7 @@
  */
 
 import { Decimal } from "decimal.js";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChartDrawing } from "../../lib/chart/drawings/types";
 import { RULE_DRAWING_STORAGE_KEY, readDrawingAnchorLedger } from "./drawingAnchors";
@@ -76,6 +76,12 @@ function comparison(result: ReturnType<typeof buildDrawingAlert>) {
 
 beforeEach(() => {
     localStorage.clear();
+});
+
+// A throwing assertion mid-test must never leak its storage spy into the
+// next test: restore every spy after every test, not at each test's tail.
+afterEach(() => {
+    vi.restoreAllMocks();
 });
 
 describe("which way the alert watches", () => {
@@ -187,31 +193,28 @@ describe("a binding that cannot be persisted — BUG-0498", () => {
     }
 
     it("refuses instead of reporting the alert armed when the anchor write fails", () => {
-        const setItem = failWritesFor(RULE_DRAWING_STORAGE_KEY);
+        failWritesFor(RULE_DRAWING_STORAGE_KEY);
 
         const result = armDrawingAlert(request());
 
         expect(result).toEqual({ ok: false, reason: "drawing-anchor-not-persisted" });
-        setItem.mockRestore();
     });
 
     it("leaves no phantom constant alert behind a failed anchor write", () => {
-        const setItem = failWritesFor(RULE_DRAWING_STORAGE_KEY);
+        failWritesFor(RULE_DRAWING_STORAGE_KEY);
 
         armDrawingAlert(request());
 
         expect(storedRules()).toHaveLength(0);
         expect(readDrawingAnchorLedger().ledger).toEqual({});
-        setItem.mockRestore();
     });
 
     it("refuses when the rule store itself cannot be written", () => {
-        const setItem = failWritesFor(RULES_STORAGE_KEY);
+        failWritesFor(RULES_STORAGE_KEY);
 
         const result = armDrawingAlert(request());
 
         expect(result).toEqual({ ok: false, reason: "drawing-anchor-not-persisted" });
         expect(storedRules()).toHaveLength(0);
-        setItem.mockRestore();
     });
 });

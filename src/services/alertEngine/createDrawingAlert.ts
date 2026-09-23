@@ -144,6 +144,11 @@ export function armDrawingAlert(request: DrawingAlertRequest): DrawingAlertResul
     try {
         armRule(built.rule);
     } catch (e) {
+        // No rollback is attempted here, deliberately asymmetric with the
+        // anchor path below: a single-key `localStorage.setItem` either lands
+        // or throws before writing, so a throwing rule-store write leaves
+        // nothing behind to clean up. The trader gets the same honest refusal
+        // either way.
         logger.warn("alerts", "[FEAT-0029] Drawing alert rule could not be written", e);
         return { ok: false, reason: "drawing-anchor-not-persisted" };
     }
