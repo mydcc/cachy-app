@@ -34,7 +34,6 @@ import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService, TRADE_ERRORS } from "./tradeService";
 import { omsService } from "./omsService";
-import { accountState } from "../stores/account.svelte";
 import { exchangeSignedFetch } from "../utils/exchange/browserSigning";
 import { Decimal } from "decimal.js";
 import type { OMSPosition } from "./omsTypes";
