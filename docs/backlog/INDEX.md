@@ -4,7 +4,7 @@
 
 423 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 31 · ✅ done 367 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 30 · ✅ done 368 · ⛔ dropped 1
 
 ---
 
@@ -478,7 +478,7 @@ Counts by status: 💡 idea 24 · 📋 specced 31 · ✅ done 367 · ⛔ dropped
 | [FEAT-0535](features/FEAT-0535-flattenkeys-i18n-scripts.md) | Extract shared flattenKeys helper for i18n scripts | P3 | ✅ done | tooling |
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | exchange |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | ui |
-| [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | 📋 specced | exchange |
+| [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | exchange |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -901,7 +901,7 @@ Counts by status: 💡 idea 24 · 📋 specced 31 · ✅ done 367 · ⛔ dropped
 | [FEAT-0535](features/FEAT-0535-flattenkeys-i18n-scripts.md) | Extract shared flattenKeys helper for i18n scripts | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
