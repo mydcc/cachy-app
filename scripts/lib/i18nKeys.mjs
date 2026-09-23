@@ -25,7 +25,8 @@
 
 /**
  * Flatten a nested locale object into dot-separated key paths.
- * Arrays are treated as leaf values (pushed as a single key).
+ * Note: arrays recurse into indexed keys (a.0, a.1), same as the
+ * pre-extraction copies — this preserves the byte-identical guarantee.
  *
  * @param {object} obj - Nested locale object.
  * @param {string} [prefix=''] - Key prefix for recursion.
