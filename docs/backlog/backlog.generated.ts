@@ -7813,6 +7813,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md"
   },
   {
+    "id": "BUG-0534",
+    "title": ".svelte files are outside automated decimal enforcement",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0534-svelte-outside-decimal-enforcement.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
