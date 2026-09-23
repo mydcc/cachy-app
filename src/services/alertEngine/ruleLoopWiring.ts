@@ -198,7 +198,7 @@ const STALE_SERIES_TIMEFRAME_MULTIPLE = 3;
  * (`forgetSymbol`), never when one timeframe stops being watched. A rule
  * covered while its chart was on `1m` stays "observed" by a length check
  * alone even after the trader switches to `4h` and the `1m` feed goes silent
- * — armed, taken off the legacy engine, and evaluated by nothing, the mirror
+ * — armed but evaluated by nothing, the mirror
  * image of the gap this same predicate was built to close (round 3: a series
  * that only *starts* being observed mid-session). A silent gap either way is
  * indistinguishable from BUG-0382 to the trader.
@@ -337,9 +337,9 @@ export function readMarkCandles(symbol: string, timeframe: string): EvaluationCa
  * gets an evaluator, never a surprise notifier.
  *
  * `onClose` is the caller's chance to keep something else in step with which
- * series just produced a close — `alerts.svelte.ts` uses it to re-sync legacy
- * coverage the moment a rule's series starts being observed mid-session,
- * rather than only at the startup snapshot `initAlertEngine()` took.
+ * series just produced a close — `alerts.svelte.ts` uses it to stop the loop
+ * the moment the rule core stops being ready mid-session (FEAT-0406), rather
+ * than keep evaluating against an evaluator that is no longer there.
  */
 /**
  * What a trader sees when one of their alerts turns out to be inert.
@@ -367,12 +367,11 @@ export const settingsAwareUnevaluableSink: UnevaluableSink = (rule) => {
  *
  * Arming used to be a one-way door: the caller decided once, at startup, and
  * the loop kept evaluating for the rest of the session no matter what happened
- * to the evaluator underneath it. Coverage, the other half of the cutover, is
- * recomputed on every close and every minute. Handing the caller a disposer is
- * what lets the two halves be decided together on every tick instead of once
- * each, which is the whole point of the item: a covered alert is off the legacy
- * engine, so a loop that cannot be stopped can only be balanced by a coverage
- * decision that is never revisited.
+ * to the evaluator underneath it. Handing the caller a disposer lets the loop
+ * be stopped when the ground moves under it — a core that stops being ready
+ * mid-session, a second `initAlertEngine()` taking over. With one engine,
+ * stopping the loop means nothing evaluates until it is re-armed, which is
+ * why the disarm path logs at `error` level rather than going quiet.
  *
  * The disposer is idempotent and safe to call on a loop that was never armed —
  * `disarm()` only writes the unconfigured defaults back.
@@ -463,14 +462,14 @@ export function startRuleEvaluationLoop(
     // re-binds it (idempotent), and a disarmed loop evaluates nothing, so no
     // anchor can go unrecorded in between.
     ruleEvaluationGate.setBotAnchorPersistence(null);
-    // `error`, not `log`: every alert the loop was serving has to be back on
-    // the legacy engine by the time this runs, and a rule the panel created
-    // without a legacy alert behind it is now evaluated by nothing at all.
+    // `error`, not `log`: a disarmed loop evaluates nothing, and with the
+    // legacy engine gone there is nothing serving the alerts it held. A rule
+    // the panel still shows as armed is now evaluated by nothing at all.
     // That is the BUG-0382 shape, and it does not belong in a category the
     // trader has to have switched on to see.
     logger.error(
       "alerts",
-      "[Cutover] Rule evaluation loop disarmed — every alert is back on the legacy engine",
+      "[Cutover] Rule evaluation loop disarmed — its alerts are evaluated by nothing until it is re-armed",
     );
   };
 }

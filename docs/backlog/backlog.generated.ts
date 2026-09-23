@@ -7734,8 +7734,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0490",
     "title": "The alert system document still describes the two-engine cutover that FEAT-0399 removed",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
+    "assignee": "opencode",
     "milestone": "none",
     "editions": [
       "community",
