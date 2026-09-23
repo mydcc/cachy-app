@@ -2,7 +2,7 @@
 id: BUG-0527
 title: Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -56,11 +56,19 @@ that assumption is false.
 
 ## Fix
 
-Feed the OMS on Bitget (WS position channel and/or the `/api/positions`
-refresh, mirroring the Bitunix paths), or resolve close amounts from the
-fresh exchange read instead of the OMS. Do not special-case closes to
-bypass `ensurePositionFreshness` — the 200 ms staleness rule is what keeps
-a close from sizing off a dead number.
+Decision (triage): feed the OMS on Bitget — one truth, not two. Wire the WS
+position channel and/or the `/api/positions` refresh, mirroring the Bitunix
+paths. The fresh-read alternative is rejected: it would leave two sources of
+truth (OMS for Bitunix, fresh reads for Bitget closes) in the money path.
+
+The mirror must offer the same guarantee as the bulk path: track its keys
+like `mirroredOmsKeys` and evict tracked keys the exchange no longer lists
+after a flatten, so flattened positions do not linger as OMS ghosts a later
+single close would size off. A write-only mirror without eviction recreates
+the ghost problem one layer down.
+
+Do not special-case closes to bypass `ensurePositionFreshness` — the 200 ms
+staleness rule is what keeps a close from sizing off a dead number.
 
 What to leave alone: the close-all fallback's own mirror in
 `tradeService.closeAllPositions` already covers the bulk path; this item is

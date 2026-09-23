@@ -2,7 +2,7 @@
 id: BUG-0496
 title: Three separate lists answer whether a route is cut over, and nothing makes them agree
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]

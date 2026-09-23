@@ -2,7 +2,7 @@
 id: BUG-0485
 title: The broken-alert record is built, never read and never cleared
 type: bug
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
