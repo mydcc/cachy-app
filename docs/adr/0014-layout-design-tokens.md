@@ -1,5 +1,5 @@
 # ADR-0014: Layout design tokens are the single source for radius, spacing and type scale
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-02
 - **Deciders:** Pat (product owner)
 

@@ -35,6 +35,18 @@ One condition language, one evaluator, one set of tests. A backtest and a live a
 cannot disagree about what "RSI(14) below 30 on the 4h close" means, because there is
 only one implementation of it.
 
+### From alert to bot: promotion derives, never mutates
+
+The Automation tab does not upgrade an alert in place — it derives a **new**
+document with a new `id` and records the source's content hash in
+`provenance.derived_from_hash`. Raising `consequence_level` changes the
+content hash, and the hash is the strategy's identity: mutating it would
+rewrite what every past firing of that alert meant. The source alert stays
+armed and announcing unless the trader disables it — "test it as an alarm,
+then let it act while the alarm keeps watching". The full envelope,
+including why a bot's order goes through `OrderGate` instead of around it,
+is [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md).
+
 ## The data
 
 `RuleDocument` is **Class A** — it lives in `localStorage` and never leaves the
@@ -118,7 +130,13 @@ not alter `symbol` or threshold (see `FEAT-0388`'s acceptance criteria).
 | Bell → Super-Alert panel | The full builder: templates, combos, price, indicators, candlestick patterns |
 | Right-click on the chart | "Alert here", price pre-filled from the click |
 | Indicator settings | "Alert on this indicator", parameters carried over as they are configured |
+| Persistent chart drawing | An alert bound to the drawing's level — support, resistance, channels (FEAT-0029, FEAT-0480) |
 | Settings → Automation | Bots, one document each |
+
+A drawing-bound alert follows the drawing, not the price it was created at.
+If the drawing's anchor is lost (deleted or unresolvable series), the alert
+refuses loudly instead of firing at the abandoned level — a silent freeze at
+a stale price would be a decision made on a lie (BUG-0498).
 
 The panel is a **side panel, not a modal**: alarms are set while reading the chart,
 and a dialog that covers the chart forces a close-and-reopen cycle for every
@@ -160,6 +178,8 @@ refusal channel (BUG-0487) — never silently dropped, never submitted.
 ## Related
 
 - [`adr/0012-…`](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) — why a strategy is data
+- [`adr/0020-…`](adr/0020-automation-envelope-promotion-and-simulate-bots.md) — promotion, simulate bots, and the gate
+- [`adr/0018-…`](adr/0018-user-directed-egress-of-class-a-announcements.md) — why external channels are opt-in and unencrypted-at-rest by decision
 - [`adr/0001-local-first-boundary.md`](adr/0001-local-first-boundary.md) — why rules never leave the device
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — where the code lives
 - [`backlog/INDEX.md`](backlog/INDEX.md) — filter `area: alerts`

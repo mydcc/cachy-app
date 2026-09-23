@@ -860,8 +860,10 @@ claim but explicitly left open whether it's a real commitment.
 > [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
 >
 > **The decision still open:** whether to build the companion at all, and
-> if so, on what timeline relative to M4. Not urgent — nothing here blocks
-> M0–M3.
+> if so, on what timeline. Scheduled under M6 since the 1.6.0 docs pass
+> (M4 is delivered) — see
+> [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md). Not
+> urgent — nothing here blocks M0–M3.
 
 ## 22. ~~Institutional features~~ — resolved: self-hosted, not hosted
 

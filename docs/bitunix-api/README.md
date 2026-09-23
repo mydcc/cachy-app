@@ -52,6 +52,13 @@ digest = SHA256(nonce + timestamp + api-key + queryParams + body)
 sign   = SHA256(digest + secretKey)
 ```
 
+> **Cachy-Abweichung (seit 1.6.0, FEAT-0405):** Die Signatur wird
+> client-seitig im Browser per WebCrypto berechnet — der Secret verlässt
+> das Gerät nie, der Proxy leitet nur die fertige Signatur weiter. Das
+> Verfahren oben ist dadurch unverändert (Vendor-Referenz), nur der Ort hat
+> sich verlagert. Siehe
+> [`adr/0013-client-side-exchange-signing.md`](../adr/0013-client-side-exchange-signing.md).
+
 ### HTTP-Statuscodes
 - `200` – Erfolg (auch bei Business-Fehlern; siehe `errorCode` im Body)
 - `400` – Bad Request

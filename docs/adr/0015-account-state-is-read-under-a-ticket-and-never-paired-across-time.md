@@ -1,6 +1,6 @@
 # ADR-0015: Account state is read under a ticket and never paired across time
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-09-07
 - **Deciders:** Pat, with the fixes in #2750, #2751, #2752, #2757–#2760
 

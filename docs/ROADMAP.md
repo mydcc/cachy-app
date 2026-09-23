@@ -31,7 +31,7 @@ and the exit criteria; the number floats.
 When a group completes, record the version it actually landed in. Drift is
 information — a group that slipped six minors was bigger than it looked.
 
-Current: **1.6.0-beta.242** on `develop` (beta channel; see `package.json` as single source); the next planned cut is
+Current: **1.6.0-beta.364** on `develop` (beta channel; see `package.json` as single source); the next planned cut is
 the **1.6.0** stable release from `main`.
 
 ---
@@ -182,9 +182,11 @@ exchanges without opening the exchange's own UI.
 
 ---
 
-## Release 1.7 — alerting
+## Release 1.7 — alerting (delivered in 1.6.0)
 
-**Milestone [M4](MILESTONES.md#m4--alerting).**
+**Milestone [M4](MILESTONES.md#m4--alerting).** Shipped a release early: every
+item below is done (see `backlog/INDEX.md`), so the group is recorded here
+with its actual version rather than rescheduled.
 
 | Item | Prio | What |
 | --- | --- | --- |
@@ -204,8 +206,9 @@ exchanges without opening the exchange's own UI.
 | [FEAT-0395](backlog/features/FEAT-0395-alert-entry-points.md) | P2 | Alert from the chart and from indicator settings |
 | [FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) | P2 | Alerts bound to chart drawings |
 
-[FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) is last and still an
-`idea`: it needs persistent, addressable chart drawings first — most of the work and probably its own item.
+[FEAT-0029](backlog/features/FEAT-0029-drawing-alerts.md) is last because it
+needs persistent, addressable chart drawings first — most of the work, shipped
+as [FEAT-0480](backlog/features/FEAT-0480-persistent-chart-drawings.md).
 
 **Build [FEAT-0027](backlog/features/FEAT-0027-alert-engine.md)'s evaluation
 core in Rust → WASM from the start**, extending the existing `technicals-wasm/`

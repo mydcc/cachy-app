@@ -36,6 +36,13 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Auto-Balancing:** Percentage distribution automatically adjusts to always total 100%.
 - **Detailed Metrics:** Calculates profit, R/R (Risk/Reward), and net return per target and in total.
 
+### 🔔 Super-Alerts & Automation
+
+- **Super-Alert side panel:** price, indicator and candlestick-pattern alerts built on one rule language, evaluated on candle close by a local rule engine (Rust/WASM) — no server ever sees the definition. See [`docs/alert-system.md`](docs/alert-system.md).
+- **Alert entry points:** arm from the panel, from a right-click on the chart, from indicator settings, or bind an alert to a persistent chart drawing.
+- **Automation tab:** promote an armed alert to a bot without rewriting it; simulated bots trade the paper account through the same order gate as a manual click. Live sending stays off by design — see [`docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md`](docs/adr/0020-automation-envelope-promotion-and-simulate-bots.md).
+- **Notifications:** in-app, browser and sound built in; Email, Discord and Telegram are opt-in with your own credentials.
+
 ### 📓 Integrated Journal, Notes & Presets
 
 - **Trade Journal:** Save your trades locally, track status (Open, Won, Lost), and notes.
@@ -49,6 +56,9 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 - **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 - **API Integration:** Optional API keys for auto-fetching account balance and private data.
 - **Privacy:** Your journal, settings, API keys, presets and notes are stored only in your browser's `localStorage` and are never sent to a Cachy server. The one optional exception is Global Chat message content — off by default, requires an explicit token, and every core function works without it. See [ADR-0001](docs/adr/0001-local-first-boundary.md).
+- **Safe execution:** paper-trading mode on the live code path, hard risk limits and a one-action kill switch at the execution boundary.
+- **Multi-account:** several named accounts per venue, with the active one unmistakable on screen.
+- **Client-side signing:** exchange requests are signed in the browser (WebCrypto), so API secrets never transit to the server. See [ADR-0013](docs/adr/0013-client-side-exchange-signing.md).
 - **Backup & Restore:** Back up all your settings, presets, and journal entries to a JSON file and restore them anytime.
 - **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 - **Multilingual:** German and English support.

@@ -6,6 +6,20 @@ leave the device — see `docs/adr/0001-local-first-boundary.md`. The bundled
 server only proxies exchange and AI requests and mints anonymous,
 self-issued client tokens (see `docs/adr/0002-api-authentication-fails-closed.md`).
 
+Exchange API keys are encrypted at rest with a device key, and backup exports
+contain no plaintext credentials. Notification-channel credentials (Mailgun key,
+Discord webhook, Telegram bot token) are the deliberate exception: they are
+stored as-is in `localStorage` because alarms must fire while the app is
+locked, and the settings UI says so — see
+`docs/adr/0018-user-directed-egress-of-class-a-announcements.md`. Exchange
+requests are signed client-side in the browser (WebCrypto), so raw secrets
+never transit to the server — see
+`docs/adr/0013-client-side-exchange-signing.md`.
+
+Proxy routes validate outbound URLs (shared validation, encoded-host and
+DNS-rebinding defense, reserved-IP rejection), and security headers with a
+tight Content-Security-Policy apply globally, including to static assets.
+
 ## Supported Versions
 
 | Version | Supported |

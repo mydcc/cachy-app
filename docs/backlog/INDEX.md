@@ -152,7 +152,6 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | ✅ done | chart |
 | [BUG-0423](bugs/BUG-0423-coalesce-duplicate-account-fetches.md) | Coalesce duplicate account fetches from two mounted sidebars | P3 | ✅ done | trade-panel |
 | [FEAT-0391](features/FEAT-0391-alert-template-library.md) | A template library for alert rules | P3 | ✅ done | alerts |
-| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 
 ### M5
 
@@ -171,6 +170,7 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 36
 | --- | --- | --- | --- | --- |
 | [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | extensions |
 | [FEAT-0040](features/FEAT-0040-computation-extensions.md) | Run user-written indicators in an isolated worker | P2 | 💡 idea | extensions |
+| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 | [IDEA-0188](ideas/IDEA-0188-payment-rails-licensing.md) | Payment rails that issue entitlements — BTCPayServer, Stripe, or token-gated | P3 | 💡 idea | extensions |
 
 ### M7
@@ -901,7 +901,7 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 36
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
-| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M4 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
+| [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
 | [IDEA-0186](ideas/IDEA-0186-docs-as-public-surface.md) | Audit every public-facing document as a first-contact surface | P3 | 💡 idea | M5 | community, pro, private | none | none | — |
 | [IDEA-0188](ideas/IDEA-0188-payment-rails-licensing.md) | Payment rails that issue entitlements — BTCPayServer, Stripe, or token-gated | P3 | 💡 idea | M6 | pro, private | none | required | [FEAT-0187](features/FEAT-0187-edition-entitlement-switch.md), [FEAT-0032](features/FEAT-0032-plugin-contract.md) |

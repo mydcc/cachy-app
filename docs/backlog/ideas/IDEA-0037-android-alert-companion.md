@@ -4,7 +4,7 @@ title: A native Android companion that runs only the alert engine
 type: idea
 status: idea
 priority: P3
-milestone: M4
+milestone: M6
 editions: [community, pro, private]
 area: alerts
 data_class: A
@@ -136,6 +136,10 @@ TypeScript, which is a constraint on [`FEAT-0027`](../features/FEAT-0027-alert-e
 implementation, not a loss anywhere else in the app.
 
 ## What would have to be true first
+
+- M4 delivered in 1.6.0, so this is scheduled under M6 (moved from M4 in the
+  1.6.0 docs pass — the companion is a native shell around the shipped
+  engine, not part of in-browser alerting).
 
 - [`FEAT-0027`](../features/FEAT-0027-alert-engine.md) built with a portable,
   DOM-free evaluation core, as that item now specifies.

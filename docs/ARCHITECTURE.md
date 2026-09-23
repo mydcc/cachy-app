@@ -1,7 +1,7 @@
 # Architecture
 
 Where things are and what they are for. Written from the tree as it stands on
-2026-08-01; it replaces `module-overview.md`, which described the layout before
+2026-09-23; it replaces `module-overview.md`, which described the layout before
 the folder refactor and pointed at files that no longer exist.
 
 If this document and the code disagree, the code is right and this is a bug —
@@ -64,11 +64,13 @@ One store per topic, tests beside them. `*.svelte.ts` because they use runes.
 `trade`, `results`, `market` (plus `market/` helpers), `account`, `journal`,
 `settings` (plus `settings/` helpers), `preset`, `notes`, `favorites`,
 `analysis`, `indicator`, `news`, `ai`, `chat`, `modal`, `ui`, `effects`,
-`quiz`, `fireStore`, `alerts`, `confirmationPolicy`, `entitlement`,
+`quiz`, `fireStore`, `alerts`, `alertPanel`, `drawings`, `externalChannels`,
+`confirmationPolicy`, `entitlement`,
 `notifications`, `onboarding`, `paperTrading`, `riskLimits`, `tpsl`.
 
 `settings/secretsLoader.ts` is the sensitive one: it holds `SENSITIVE_KEYS`, the
-credentials encrypted with the user's master password.
+credentials encrypted with the device key (IndexedDB-backed, with a canary that
+detects a lost key instead of decrypting to garbage).
 
 ### `src/services/` — logic and I/O
 
@@ -85,6 +87,7 @@ The largest directory, ~50 modules with tests alongside. The groups that matter:
 | **Order placement** | `orderPlacementService.ts`, `exchangeCapabilities.ts` | Entry plus its protection as one unit, then verified separately — an attached stop that was dropped looks like a success until someone looks. Never auto-closes an unprotected entry — [FEAT-0021](backlog/features/FEAT-0021-order-types.md) |
 | **Calculation** | `calculatorService.ts`, `calculationStrategy.ts`, `tradeCalculator.svelte.ts` | Orchestrates `lib/calculator.ts` |
 | **Technicals** | `technicalsService.ts`, `wasmCalculator.ts`, `webGpuCalculator.ts`, `activeTechnicalsManager.svelte.ts` | Three engines behind one service: WASM, WebGPU, JS |
+| **Rule engine** | `src/services/alertEngine/` (`armRule.ts`, `botStore.ts`, `botOrders.ts`, firing sink), `src/lib/rules/` (schema, types) | `RuleDocument` evaluation on candle close plus the Automation envelope: alerts promote to `simulate` bots, bot orders submit through `orderPlacementService` into the same gate — [ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md), [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md) |
 | **Analysis** | `marketWatcher.ts`, `marketAnalyst.ts`, `patternDetection.ts`, `chartPatterns.ts`, `candlestickPatterns.ts`, `mdaService.ts`, `smc/` | |
 | **Data** | `storageService.ts`, `dbService.ts`, `backupService.ts`, `csvService.ts`, `serializationService.ts`, `dataRepairService.ts` | `localStorage` and IndexedDB |
 | **External** | `newsService.ts`, `cmcService.ts`, `rssParserService.ts`, `imgbbService.ts`, `discordService.ts` | |
@@ -94,8 +97,9 @@ The largest directory, ~50 modules with tests alongside. The groups that matter:
 ### `src/components/` — UI
 
 `inputs/` (trade parameters), `results/` (calculation output), `layout/`,
-`alerts/` (alert definitions), `settings/` (seven tabs: AI, Chart, Cloud,
-Connections, System, Trading, Visuals, plus indicator configuration), `shared/`.
+`alerts/` (alert definitions), `settings/` (eight tabs: AI, Automation, Chart,
+Cloud, Connections, System, Trading, Visuals, plus indicator configuration),
+`shared/`.
 
 ### `src/routes/`
 
@@ -119,6 +123,9 @@ Connections, System, Trading, Visuals, plus indicator configuration), `shared/`.
 `technicals.worker.ts` and `aggregator.worker.ts` keep indicator computation off
 the main thread. `technicals-wasm/` is the Rust/WASM indicator module, built by
 `scripts/build_wasm.sh`, which `npm run dev` and `npm run build` run first.
+`technicals-wasm/src/rule/` is the rule evaluator for `RuleDocument`s — one
+condition language for alerts, bots and (later) backtests, evaluated on candle
+close, never per tick.
 
 ### `src/types/`
 
@@ -154,9 +161,13 @@ The single most important thing to understand before changing anything.
 user-operated-instance distinction. [ADR-0003](adr/0003-edition-boundary.md)
 forbids core code from importing the server client at all.
 
-The one exception, and it is narrow: API keys travel through the proxy routes as
-the credential of a **user-initiated** exchange request. That is not persistence
-and it does not go to a Cachy data store.
+The one exception, and it is narrow: API keys are the credential of a
+**user-initiated** exchange request. Since
+[ADR-0013](adr/0013-client-side-exchange-signing.md) they never transit as raw
+secrets at all — the browser signs the request with WebCrypto and the proxy
+forwards the signature (Bitget's `ACCESS-PASSPHRASE` transport header is the
+single named exception). That is not persistence and it does not go to a Cachy
+data store.
 
 ---
 

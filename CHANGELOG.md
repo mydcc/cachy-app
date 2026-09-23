@@ -18,6 +18,9 @@ history remains available in git.
 - Alerts gain per-rule frequency, validity periods and notes, plus a sound
   channel and user-configured external channels; firings are announced,
   counted and retired by a real sink.
+- Automation tab: promote an armed alert to a bot without rewriting it, and
+  run simulated bots on the paper-trading path — same rule language, same
+  evaluator, same order gate.
 - Named exchange accounts: keep several accounts per venue and always see
   which one is active.
 - Manage open positions without leaving the trade panel: add to a position
@@ -28,6 +31,8 @@ history remains available in git.
   chart line for resting (unfilled) limit orders.
 - Draggable TP/SL lines on the chart and a TP/SL range slider with PnL, ROI
   and change modes.
+- Persistent chart drawings that alerts can bind to, so a support line
+  watches the market instead of decorating it.
 - Maker/taker fees are derived from real broker fills and can be edited per
   venue.
 - Order history can be filtered and paged by time range, and orders are
@@ -53,6 +58,10 @@ history remains available in git.
 - Order placement is hardened end to end: a verification gate before
   submission, native cancel and close endpoints, and TP/SL, time-in-force
   and a client order ID sent with Bitunix orders.
+- Exchange requests are signed client-side in the browser (WebCrypto), so
+  API secrets never transit to the server.
+- The legacy per-tick alert engine and its store are retired; every rule is
+  now evaluated on candle close by the rule evaluator.
 - Layout tokens, shared component classes and core utilities now drive
   theming, so a theme change lands in one place.
 - Startup and hot paths got faster: chart, Trade Flow and 3D backgrounds

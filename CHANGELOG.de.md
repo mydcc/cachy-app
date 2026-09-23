@@ -20,6 +20,9 @@ Commit-Historie bleibt in Git erhalten.
 - Alerts erhalten Frequenz, Gültigkeitsdauer und Notiz pro Regel, dazu einen
   Sound-Kanal und konfigurierbare externe Kanäle; Auslösungen werden von einem
   echten Sink angekündigt, gezählt und ausgemustert.
+- Automatisierungs-Tab: einen scharfen Alert ohne Neuschreiben zum Bot
+  hochstufen; simulierte Bots handeln das Paper-Konto — dieselbe
+  Regelsprache, derselbe Evaluator, dasselbe Order-Gate.
 - Benannte Exchange-Konten: mehrere Konten pro Börse, mit jederzeit sichtbarem
   aktivem Konto.
 - Offene Positionen verwalten, ohne das Trade-Panel zu verlassen: Position
@@ -30,6 +33,8 @@ Commit-Historie bleibt in Git erhalten.
   für ruhende (unausgeführte) Limit-Orders.
 - Verschiebbare TP/SL-Linien im Chart und ein TP/SL-Bereichsregler mit PnL-,
   ROI- und Change-Modus.
+- Persistente Chart-Zeichnungen, an die sich Alerts binden lassen — eine
+  Support-Linie beobachtet den Markt, statt ihn zu dekorieren.
 - Maker-/Taker-Gebühren werden aus echten Broker-Fills abgeleitet und sind pro
   Venue editierbar.
 - Order-Historie lässt sich nach Zeitraum filtern und blättern; Orders werden
@@ -57,6 +62,10 @@ Commit-Historie bleibt in Git erhalten.
 - Order-Platzierung ist durchgängig gehärtet: ein Verifikations-Gate vor dem
   Absenden, native Cancel- und Close-Endpunkte sowie TP/SL, Time-in-Force und
   eine Client-Order-ID bei Bitunix-Orders.
+- Exchange-Requests werden client-seitig im Browser signiert (WebCrypto);
+  API-Secrets erreichen den Server gar nicht erst.
+- Die alte Per-Tick-Alert-Engine samt Store ist ausgemustert; jede Regel wird
+  jetzt bei Kerzenschluss vom Regel-Evaluator ausgewertet.
 - Layout-Tokens, gemeinsame Komponentenklassen und Core-Utilities steuern jetzt
   das Theming, sodass eine Theme-Änderung an einer Stelle landet.
 - Start und Hot-Paths wurden schneller: Chart, Trade Flow und 3D-Hintergründe
