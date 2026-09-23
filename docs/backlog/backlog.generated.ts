@@ -8717,7 +8717,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0536",
     "title": "Extract shared isStatusError helper for API routes",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "done_version": "1.6.0-beta.364",
+    "assignee": "opencode",
+    "branch": "feat/0536-shared-isstatuserror",
     "priority": "P3",
     "milestone": "none",
     "editions": [
