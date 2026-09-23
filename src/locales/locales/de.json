@@ -399,7 +399,8 @@
         }
       },
       "brokenRule": {
-        "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann."
+        "toast": "Alarm „{name}“ ({symbol}) kann nie auslösen — er liest einen Indikator, den dieses Gerät nicht berechnen kann.",
+        "badge": "Kann nicht auslösen"
       },
       "templates": {
         "intro": "Ausgangspunkte, keine fertigen Strategien. Eine Vorlage öffnet sich im Kombi-Tab, wo du jeden Wert vor dem Scharfschalten ändern kannst, und sie benachrichtigt immer nur.",

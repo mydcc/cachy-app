@@ -250,6 +250,26 @@ export class RuleEvaluationLoop {
    * counted. Reporting once falls out of it.
    */
   private readonly unevaluable = new Map<string, UnevaluableRule>();
+  /**
+   * Rules the sink has already heard about, kept across episodes.
+   *
+   * BUG-0485 — the interruption budget is one per rule per session: a rule
+   * that goes inert, gets fixed and goes inert again must reappear in the
+   * panel's list without a second toast. This set is what remembers the
+   * interruption while the map above is free to be forgotten and re-built.
+   * Cleared only by `reset()`, alongside the map.
+   */
+  private readonly unevaluableNotified = new Set<string>();
+  /**
+   * Panel-side readers of the record above, called with a snapshot whenever
+   * the record changes.
+   *
+   * The loop stays free of any store import (ADR-0009, and the cycle
+   * `armRule.ts` documents): the store subscribes, the loop notifies. A
+   * subscriber iterating the snapshot while the loop evaluates must not see
+   * it grow underneath, which is why listeners receive a copy, never the map.
+   */
+  private readonly unevaluableListeners = new Set<(rules: UnevaluableRule[]) => void>();
   private readCandles: CandleReader = NO_CANDLES;
   private readMarkCandles: CandleReader = NO_CANDLES;
   private readFormingCandles: CandleReader = NO_CANDLES;
@@ -294,6 +314,45 @@ export class RuleEvaluationLoop {
    */
   unevaluableRules(): UnevaluableRule[] {
     return [...this.unevaluable.values()];
+  }
+
+  /**
+   * Follow the record above. The listener fires with a snapshot on every
+   * change — a report, a refresh, a forgetting, a rule evaluating again.
+   *
+   * Returns the unsubscribe. Listener failures are contained to that listener
+   * and logged, so one broken reader cannot cost the others their update.
+   */
+  subscribeUnevaluable(listener: (rules: UnevaluableRule[]) => void): () => void {
+    this.unevaluableListeners.add(listener);
+    return () => {
+      this.unevaluableListeners.delete(listener);
+    };
+  }
+
+  private emitUnevaluable(): void {
+    const snapshot = this.unevaluableRules();
+    for (const listener of this.unevaluableListeners) {
+      try {
+        listener(snapshot);
+      } catch (e) {
+        logger.error("alerts", "An unevaluable-rules listener failed", e);
+      }
+    }
+  }
+
+  /**
+   * Drop one rule's inert record, e.g. because the rule was edited, re-armed,
+   * removed or disarmed — every one of those invalidates "this rule can never
+   * fire", and a deleted rule must not stay listed.
+   *
+   * The interruption budget (`unevaluableNotified`) is deliberately untouched:
+   * forgetting the record must not buy the rule a second toast in the same
+   * session. If the rule goes inert again it reappears in the list silently.
+   */
+  forgetUnevaluableRule(ruleId: string): void {
+    if (!this.unevaluable.delete(ruleId)) return;
+    this.emitUnevaluable();
   }
 
   /**
@@ -540,6 +599,15 @@ export class RuleEvaluationLoop {
     const verdict = intrabar
       ? ruleEvaluationGate.evaluateIntrabar(rule, ctx, anchorMs)
       : ruleEvaluationGate.evaluate(rule, ctx, anchorMs);
+    // BUG-0485 — returning from the gate means the rule evaluated again: its
+    // threshold resolved, its context built, and the core produced a verdict
+    // attempt. Whatever made the rule inert no longer holds, so the record
+    // drops itself here rather than waiting for a writer to clear it. Placed
+    // after the call on purpose: a refusal throws out of the gate and never
+    // reaches this, so the catch's re-report still finds the previous record
+    // and stays silent through the steady-state guard instead of churning
+    // delete/re-add on every close.
+    if (this.unevaluable.delete(rule.id)) this.emitUnevaluable();
     if (verdict === undefined || verdict.verdict !== "fires") return undefined;
     return { rule, verdict, anchorMs };
   }
@@ -662,14 +730,17 @@ export class RuleEvaluationLoop {
   }
 
   /**
-   * Record a rule as inert, and tell the sink once.
+   * Record a rule as inert, and tell the sink once per rule per session.
    *
    * The record is the part that matters and is stored first, so a sink that
    * throws — a toast, a notification channel — cannot take the evaluation of
-   * every other rule down with it.
+   * every other rule down with it. Re-reporting refreshes the reason (the
+   * cause may have changed since the first report) but never re-notifies:
+   * the interruption budget lives in `unevaluableNotified`, not in the map,
+   * so forgetting and re-reporting cannot buy a second toast.
    */
   private reportUnevaluable(rule: RuleDocument, reason: string): void {
-    if (this.unevaluable.has(rule.id)) return;
+    const previous = this.unevaluable.get(rule.id);
 
     const record: UnevaluableRule = {
       ruleId: rule.id,
@@ -677,7 +748,22 @@ export class RuleEvaluationLoop {
       symbol: rule.symbol,
       reason,
     };
+    // The steady state — same rule, same cause, every close — changes
+    // nothing and tells nobody: emitting here would re-derive the panel on
+    // every candle close for a record it already shows.
+    if (
+      previous !== undefined &&
+      previous.name === record.name &&
+      previous.symbol === record.symbol &&
+      previous.reason === record.reason
+    ) {
+      return;
+    }
     this.unevaluable.set(rule.id, record);
+    this.emitUnevaluable();
+
+    if (previous !== undefined || this.unevaluableNotified.has(rule.id)) return;
+    this.unevaluableNotified.add(rule.id);
 
     try {
       this.onUnevaluable(record);
@@ -777,6 +863,7 @@ export class RuleEvaluationLoop {
   reset(): void {
     this.highestOpenMs.clear();
     this.unevaluable.clear();
+    this.unevaluableNotified.clear();
   }
 }
 

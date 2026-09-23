@@ -39,6 +39,7 @@ import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { clearBotAnchors } from "./ruleStateStore";
+import { ruleEvaluationLoop } from "./ruleEvaluationLoop";
 
 /**
  * Raised when the rule store cannot be read as an array of rules.
@@ -158,6 +159,12 @@ export function armRule(document: RuleDocument): RuleDocument[] {
       ? [...rules, document]
       : rules.map((r, i) => (i === index ? document : r));
   localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(next));
+  // BUG-0485: a (re-)armed rule is a new verdict waiting to happen. Whatever
+  // made the previous revision inert — deleted drawing, uncomputable
+  // indicator, refused document — may not hold for this one, so its record
+  // goes with the write. If it is still inert the next close re-reports it,
+  // silently: the once-per-session interruption is already spent.
+  ruleEvaluationLoop.forgetUnevaluableRule(document.id);
   return next;
 }
 
@@ -181,6 +188,9 @@ export function removeRule(ruleId: string): RuleDocument[] {
     // The rule is gone: its anchors go with it, from both halves, so a
     // re-armed rule with a recycled id starts decidable.
     forgetAnchors(ruleId);
+    // BUG-0485: and its inert record goes too — a deleted rule must not stay
+    // listed as "can never fire".
+    ruleEvaluationLoop.forgetUnevaluableRule(ruleId);
   }
   return next;
 }
@@ -217,6 +227,10 @@ export function disarmRule(ruleId: string): boolean {
     if (!changed) return false;
 
     localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(updated));
+    // BUG-0485: a disarmed rule is not evaluated at all, so a stale "can
+    // never fire" entry about it would be a verdict on nothing. Re-enabling
+    // re-arms through `armRule`, which forgets again above.
+    ruleEvaluationLoop.forgetUnevaluableRule(ruleId);
     return true;
   } catch (e) {
     logger.error("alerts", `Could not disarm rule ${ruleId}`, e);

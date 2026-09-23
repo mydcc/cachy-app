@@ -399,7 +399,8 @@
         }
       },
       "brokenRule": {
-        "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate."
+        "toast": "Alert “{name}” ({symbol}) can never fire — it reads an indicator this device cannot calculate.",
+        "badge": "Cannot fire"
       },
       "templates": {
         "intro": "Starting points, not finished strategies. A template opens in the Combo tab, where you can change every value before arming, and it only ever notifies.",

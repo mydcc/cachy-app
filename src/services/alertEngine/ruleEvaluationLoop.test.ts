@@ -998,4 +998,163 @@ describe("RuleEvaluationLoop", () => {
       expect(gateEvaluateIntrabar).not.toHaveBeenCalled();
     });
   });
+
+  /**
+   * BUG-0485 — the broken-alert record is the durable half of the mechanism:
+   * built by the loop, rendered by the panel, and cleared when the rule
+   * changes or evaluates again. These tests pin the loop's half: per-rule
+   * invalidation, self-expiry on a fresh verdict, and a sink that still fires
+   * at most once per rule per session.
+   */
+  describe("broken-alert record (BUG-0485)", () => {
+    const refusal = () =>
+      new RuleRefusedError([
+        {
+          code: "invalid_window_lookback",
+          field: "conditions.right.lookback",
+          detail: "a window of fewer than two closes is the operand itself",
+          i18n_key: "rules.refusal.invalidWindowLookback",
+        },
+      ]);
+
+    function closeTwice(loop: RuleEvaluationLoop) {
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+    }
+
+    it("drops one rule's entry when it is forgotten and keeps the others", () => {
+      gateEvaluate.mockImplementation(((document: RuleDocument) => {
+        if (document.id === "broken-a" || document.id === "broken-b") throw refusal();
+        return FIRES;
+      }) as never);
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "broken-a" }), rule({ id: "broken-b" })],
+        onFiring: vi.fn(),
+        onUnevaluable: vi.fn(),
+      });
+
+      closeTwice(loop);
+      expect(loop.unevaluableRules().map((r) => r.ruleId).sort()).toEqual([
+        "broken-a",
+        "broken-b",
+      ]);
+
+      loop.forgetUnevaluableRule("broken-a");
+
+      expect(loop.unevaluableRules().map((r) => r.ruleId)).toEqual(["broken-b"]);
+    });
+
+    it("drops the record on its own when the rule evaluates again", () => {
+      let refuse = true;
+      gateEvaluate.mockImplementation(((document: RuleDocument) => {
+        if (document.id === "flaky" && refuse) throw refusal();
+        return FIRES;
+      }) as never);
+      const onUnevaluable = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "flaky" })],
+        onFiring: vi.fn(),
+        onUnevaluable,
+      });
+
+      // First close: refused, recorded, told once.
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      expect(loop.unevaluableRules().map((r) => r.ruleId)).toEqual(["flaky"]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+
+      // The rule is fixed: the next close evaluates it, and the record drops
+      // itself without a second interruption.
+      refuse = false;
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 121_000 }]);
+
+      expect(loop.unevaluableRules()).toEqual([]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+    });
+
+    it("refreshes the reason on a re-report but still notifies only once per session", () => {
+      let reason = "reason-a";
+      const onUnevaluable = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "r" })],
+        onFiring: vi.fn(),
+        onUnevaluable,
+        resolveThreshold: () => ({ unevaluable: reason }),
+      });
+
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+
+      // Same episode, new detail: the panel learns it, the trader is not
+      // interrupted again.
+      reason = "reason-b";
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 121_000 }]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+      expect(loop.unevaluableRules()).toEqual([
+        expect.objectContaining({ ruleId: "r", reason: "reason-b" }),
+      ]);
+
+      // A new episode after the rule changed still lists it — without a
+      // second interruption in the same session.
+      loop.forgetUnevaluableRule("r");
+      expect(loop.unevaluableRules()).toEqual([]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 181_000 }]);
+      expect(loop.unevaluableRules().map((r) => r.ruleId)).toEqual(["r"]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+    });
+
+    it("tells subscribers whenever the record changes", () => {
+      const seen: string[][] = [];
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "r" })],
+        onFiring: vi.fn(),
+        onUnevaluable: vi.fn(),
+        resolveThreshold: () => ({ unevaluable: "gone" }),
+      });
+      const unsubscribe = loop.subscribeUnevaluable((rules) =>
+        seen.push(rules.map((r) => r.ruleId)),
+      );
+
+      closeTwice(loop);
+      loop.forgetUnevaluableRule("r");
+      unsubscribe();
+
+      expect(seen).toEqual([["r"], []]);
+    });
+
+    it("stays silent to subscribers while a refused rule stays refused", () => {
+      gateEvaluate.mockImplementation(((document: RuleDocument) => {
+        if (document.id === "refused") throw refusal();
+        return FIRES;
+      }) as never);
+      const seen: string[][] = [];
+      const onUnevaluable = vi.fn();
+      const loop = new RuleEvaluationLoop({
+        readCandles: () => [],
+        readRules: () => [rule({ id: "refused" })],
+        onFiring: vi.fn(),
+        onUnevaluable,
+      });
+      const unsubscribe = loop.subscribeUnevaluable((rules) =>
+        seen.push(rules.map((r) => r.ruleId)),
+      );
+
+      // First close reports; the second close re-reports the same cause,
+      // which must refresh nothing and emit nothing — not even the
+      // delete/re-add round-trip through the gate.
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 1_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 61_000 }]);
+      loop.observeCandles("BTCUSDT", "1m", [{ time: 121_000 }]);
+      unsubscribe();
+
+      expect(loop.unevaluableRules().map((r) => r.ruleId)).toEqual(["refused"]);
+      expect(onUnevaluable).toHaveBeenCalledTimes(1);
+      expect(seen).toEqual([["refused"]]);
+    });
+  });
 });

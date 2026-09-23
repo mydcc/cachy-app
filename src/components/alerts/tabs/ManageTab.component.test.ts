@@ -131,6 +131,7 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     alertState.orphanReport = null;
     alertState.legacyMigrationReport = null;
     alertState.drawingReport = null;
+    alertState.unevaluableReport = [];
   });
 
   afterEach(() => {
@@ -241,5 +242,27 @@ describe("FEAT-0389: ManageTab keeps the old modal's list behaviour", () => {
     expect(banner?.textContent).toContain(
       getNestedTranslation("dashboard.alerts.drawingWithheldHint", { values: { count: 1 } }),
     );
+  });
+
+  it("BUG-0485: marks a rule the engine found inert next to its row, and no other", () => {
+    seedRules([
+      rule({ id: "broken", symbol: "BTCUSDT" }),
+      rule({ id: "fine", symbol: "ETHUSDT" }),
+    ]);
+    alertState.unevaluableReport = [
+      { ruleId: "broken", name: "RSI oversold", symbol: "BTCUSDT", reason: "the drawing is gone" },
+    ];
+
+    const el = render();
+    const rows = Array.from(el.querySelectorAll(".alert-item"));
+    expect(rows).toHaveLength(2);
+
+    const brokenRow = rows.find((r) => r.textContent?.includes("BTCUSDT"));
+    expect(brokenRow?.querySelector(".broken-badge")?.textContent?.trim()).toBe(
+      getNestedTranslation("dashboard.alerts.brokenRule.badge"),
+    );
+
+    const fineRow = rows.find((r) => r.textContent?.includes("ETHUSDT"));
+    expect(fineRow?.querySelector(".broken-badge")).toBeNull();
   });
 });

@@ -373,6 +373,7 @@ export type TranslationKey =
   | "dashboard.alerts.panel.lifecycle.summaryUntil"
   | "dashboard.alerts.panel.lifecycle.summaryNoted"
   | "dashboard.alerts.brokenRule.toast"
+  | "dashboard.alerts.brokenRule.badge"
   | "dashboard.alerts.templates.intro"
   | "dashboard.alerts.templates.filterLabel"
   | "dashboard.alerts.templates.all"
