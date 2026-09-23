@@ -31,6 +31,7 @@ import { POST as balance } from "./balance/+server";
 import { POST as positions } from "./positions/+server";
 import { POST as account } from "./account/+server";
 import * as clientToken from "../../lib/server/clientToken";
+import { ROUTE_SIGNING_PLAN } from "../../utils/exchange/restSigningPlan";
 import { signedEnvelopeRequest } from "../../tests/helpers/signedEnvelopeRequest";
 import {
   buildLeverageMarginModeQueryParams,
@@ -91,6 +92,30 @@ describe("FEAT-0405 A6 — none of the twelve migrated routes takes a secret", (
 
   it.each(ALL_MIGRATED_ROUTES)("%s reads the envelope instead", (relative) => {
     expect(sourceOf(relative)).toContain("checkPresignedRequest");
+  });
+});
+
+describe("BUG-0496 — the plan table and the handler list cannot disagree", () => {
+  // Derived, never repeated: a plan key names a Cachy path, and each migrated
+  // route lives in `src/routes/api/<path>/+server.ts`. A thirteenth plan row
+  // without a handler here — or a handler without a plan row — fails below
+  // naming the route, instead of waiting for a reviewer to spot it.
+  const planRouteFiles = Object.keys(ROUTE_SIGNING_PLAN).map(
+    (route) => `${route.replace(/^\/api\//, "")}/+server.ts`,
+  );
+
+  it("every plan row has a guarded handler in ALL_MIGRATED_ROUTES", () => {
+    const missing = planRouteFiles.filter(
+      (file) => !(ALL_MIGRATED_ROUTES as readonly string[]).includes(file),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it("every guarded handler has a plan row", () => {
+    const extra = (ALL_MIGRATED_ROUTES as readonly string[]).filter(
+      (file) => !planRouteFiles.includes(file),
+    );
+    expect(extra).toEqual([]);
   });
 });
 
