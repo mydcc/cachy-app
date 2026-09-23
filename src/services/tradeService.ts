@@ -1205,7 +1205,7 @@ class TradeService {
         if (position && (now - (position.lastUpdated ?? 0) > MAX_POS_AGE_MS)) {
              logger.warn("market", `[Freshness] Position stale (${now - (position.lastUpdated ?? 0)}ms). Forcing refresh.`);
              try {
-                await this.fetchOpenPositionsFromApi();
+                await this.refreshPositionsForProvider();
                 positions = omsService.getPositions();
                 position = positions.find(
                     (p) => p.symbol === symbol && p.side === positionSide
@@ -1221,7 +1221,7 @@ class TradeService {
         if (!position) {
             logger.warn("market", `[Freshness] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
             try {
-                await this.fetchOpenPositionsFromApi();
+                await this.refreshPositionsForProvider();
                 positions = omsService.getPositions();
                 position = positions.find(
                     (p) => p.symbol === symbol && p.side === positionSide
@@ -1234,6 +1234,43 @@ class TradeService {
         }
 
         return position;
+    }
+
+    /**
+     * Provider-aware OMS refresh for the single-position paths (BUG-0527).
+     *
+     * `ensurePositionFreshness` resolves amounts exclusively through the OMS,
+     * but its fallback (`fetchOpenPositionsFromApi`) is Bitunix-only: on live
+     * Bitget nothing ever fed the OMS, so every single/flash close threw
+     * `POSITION_NOT_FOUND` without sending a request. Per the item's triage —
+     * one truth, not two — non-Bitunix venues refresh through the same
+     * provider-agnostic `/api/positions` read the positions panel uses
+     * (`readFreshPositions`, which mirrors into the OMS), rather than a fresh
+     * read that would leave two sources of truth in the money path.
+     *
+     * The refresh carries the bulk path's eviction guarantee: mirrored keys
+     * the exchange no longer lists are dropped, so a flattened position does
+     * not linger as an OMS ghost a later single close would size off. The
+     * 200 ms staleness rule above is untouched — this only decides *how* a
+     * refresh happens, never *whether* one is required.
+     *
+     * Paper mode is excluded on purpose: the simulator owns the book and
+     * feeds the OMS itself (`paperTradingService`) — a REST mirror would
+     * shadow it. Bitunix keeps its exact current path untouched: its OMS
+     * feed is live over WS with real positionIds, and the mirror carries
+     * none (see `mirrorPositionsToOms`).
+     */
+    private async refreshPositionsForProvider(): Promise<void> {
+        const provider = settingsState.apiProvider || "bitunix";
+        if (provider === "bitunix") {
+            await this.fetchOpenPositionsFromApi();
+            return;
+        }
+        if (paperAccountFeed()) return;
+        const fresh = await this.readFreshPositions(provider);
+        // Null means no credentials to prove anything with — nothing to
+        // mirror, and nothing proven gone, so nothing is evicted either.
+        if (fresh !== null) this.evictMirroredGhosts(fresh);
     }
 
     /**
@@ -1443,19 +1480,19 @@ class TradeService {
                      }
                 }
 
-                // Trigger background sync
-                (async () => {
-                    try {
-                        await RetryPolicy.execute(() => this.fetchOpenPositionsFromApi(), {
-                            maxAttempts: 5,
-                            initialDelayMs: 500,
-                            maxDelayMs: 5000,
-                            name: "FlashClose Recovery Sync"
-                        });
-                    } catch (err) {
-                        logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`, err);
-                    }
-                })();
+            // Trigger background sync
+            (async () => {
+                try {
+                    await RetryPolicy.execute(() => this.refreshPositionsForProvider(), {
+                        maxAttempts: 5,
+                        initialDelayMs: 500,
+                        maxDelayMs: 5000,
+                        name: "FlashClose Recovery Sync"
+                    });
+                } catch (err) {
+                    logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`, err);
+                }
+            })();
             }
 
             // [FIX] Notify User & Prevent Crash
