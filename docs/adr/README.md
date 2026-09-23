@@ -42,16 +42,19 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0004](0004-spacetimedb-data-scope.md) | What SpacetimeDB is allowed to hold, and who operates it | Accepted |
 | [0005](0005-extension-model.md) | Extensions are tiered by capability, and isolation comes first | Proposed |
 | [0006](0006-one-window-stacking-authority.md) | Every overlay goes through the window manager, and there is one stacking authority | Proposed |
-| [0007](0007-exchange-adapter-boundary.md) | Every exchange sits behind one client-side adapter; session and gateway layers stay put | Proposed |
-| [0008](0008-refuse-unsupported-verbs-before-they-travel.md) | A verb the venue cannot perform is refused before it travels; reads resolve empty, writes throw | Proposed |
+| [0007](0007-exchange-adapter-boundary.md) | Every exchange sits behind one client-side adapter; session and gateway layers stay put | Accepted |
+| [0008](0008-refuse-unsupported-verbs-before-they-travel.md) | A verb the venue cannot perform is refused before it travels; reads resolve empty, writes throw | Accepted |
 | [0009](0009-candle-depth-and-background-store-isolation.md) | A candle request delivers the depth it asks for, and background work stays out of the foreground's store | Proposed |
 | [0010](0010-estimates-inform-but-never-determine-what-is-sent.md) | An estimate may inform the trader, but never determines a value sent to an exchange | Proposed |
 | [0011](0011-ai-context-consent-and-local-boundary.md) | AI context consent and the local-first egress boundary | Accepted |
-| [0012](0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) | A strategy is checkable data, not code and not a model's opinion | Proposed |
+| [0012](0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md) | A strategy is checkable data, not code and not a model's opinion | Accepted |
 | [0013](0013-client-side-exchange-signing.md) | Client-side exchange request signing and zero-transit credential boundary | Accepted |
-| [0014](0014-layout-design-tokens.md) | Layout design tokens are the single source for radius, spacing and type scale | Proposed |
-| [0015](0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md) | Account state is read under a ticket and never paired across time | Proposed |
-| [0016](0016-a-claim-about-a-window-is-an-operand.md) | A claim about a window of candles is an operand, not a fifth condition shape | Proposed |
+| [0014](0014-layout-design-tokens.md) | Layout design tokens are the single source for radius, spacing and type scale | Accepted |
+| [0015](0015-account-state-is-read-under-a-ticket-and-never-paired-across-time.md) | Account state is read under a ticket and never paired across time | Accepted |
+| [0016](0016-a-claim-about-a-window-is-an-operand.md) | A claim about a window of candles is an operand, not a fifth condition shape | Accepted |
 | [0017](0017-required-ci-gates-fail-closed-after-bounded-retry.md) | A required CI gate fails closed after bounded retry | Accepted |
+| [0018](0018-user-directed-egress-of-class-a-announcements.md) | A trader may point an announcement at a service they own, and Cachy must say what that costs | Accepted |
+| [0019](0019-multi-provider-registry-and-credential-transit.md) | User-managed AI providers, wire-format flavors, and the credential-transit boundary | Accepted |
+| [0020](0020-automation-envelope-promotion-and-simulate-bots.md) | Promotion derives a bot, and simulate bots submit through the gate | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._

@@ -8772,7 +8772,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "idea",
     "status": "idea",
     "priority": "P3",
-    "milestone": "M4",
+    "milestone": "M6",
     "editions": [
       "community",
       "pro",

@@ -157,4 +157,8 @@ sent to a Cachy server. Credentials are encrypted at rest. See
 [ADR-0001](adr/0001-local-first-boundary.md) for the exact boundary.
 
 Because nothing is stored server-side, **backups are your responsibility**:
-Settings → System → Create Backup, optionally password-protected.
+Settings → System → Create Backup, optionally password-protected. Since
+1.6.0 the app additionally keeps automatic local snapshots (OPFS) and offers
+a recovery dialog on startup when it finds one — a cleared browser cache no
+longer has to mean lost data, but a manual backup file is still the only copy
+that survives a lost device.

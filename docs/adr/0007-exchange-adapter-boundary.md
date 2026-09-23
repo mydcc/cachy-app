@@ -1,6 +1,6 @@
 # ADR-0007: Put every exchange behind one client-side adapter, and leave the session and gateway layers where they are
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-17
 - **Deciders:** mydcc
 

@@ -5054,13 +5054,14 @@
         <path data-edge-from="ws-feeds" data-edge-to="aggregator" data-edge-label="live ticks" data-edge-key="4" data-edge-id="feed-agg" data-composition-points="371,271;474,271" d="M 371 271 L 474 271" class="a-emphasis" data-animate="edge" style="--step:4" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="rest-api" data-edge-to="aggregator" data-edge-label="candles" data-edge-key="5" data-edge-id="rest-agg" data-composition-points="371,499;422.5,499;422.5,271;474,271" d="M 371 499 L 422.5 499 L 422.5 271 L 474 271" class="a-default" data-animate="edge" style="--step:5" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="aggregator" data-edge-to="indicators" data-edge-label="candle arrays" data-edge-key="6" data-edge-id="agg-ind" data-composition-points="530,300;530,470" d="M 530 300 L 530 470" class="a-emphasis" data-animate="edge" style="--step:6" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="indicators" data-edge-to="calculator" data-edge-label="indicator values" data-edge-key="7" data-edge-id="ind-calc" data-composition-points="586,499;610,499;610,110;852,110;852,157;904,157" d="M 586 499 L 610 499 L 610 110 L 852 110 L 852 157 L 904 157" class="a-emphasis" data-animate="edge" style="--step:7" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="local-store" data-edge-to="rest-api" data-edge-label="API keys" data-edge-key="8" data-edge-id="keys-rest" data-composition-points="689,385;640,385;640,560;315,560;315,528" d="M 689 385 L 640 385 L 640 560 L 315 560 L 315 528" class="a-security" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
-        <path data-edge-from="journal" data-edge-to="local-store" data-edge-label="entries" data-edge-key="9" data-edge-id="journal-store" data-composition-points="689,157;640,157;640,326;745,326;745,356" d="M 689 157 L 640 157 L 640 326 L 745 326 L 745 356" class="a-default" data-animate="edge" style="--step:9" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="presets" data-edge-to="local-store" data-edge-label="presets" data-edge-key="10" data-edge-id="presets-store" data-composition-points="745,584;745,414" d="M 745 584 L 745 414" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="local-store" data-edge-to="trade-exec" data-edge-label="journal sync" data-edge-key="11" data-edge-id="store-exec" data-composition-points="801,385;904,385" d="M 801 385 L 904 385" class="a-default" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="calculator" data-edge-to="trade-exec" data-edge-label="size · TP/SL" data-edge-key="12" data-edge-id="calc-exec" data-composition-points="960,186;960,356" d="M 960 186 L 960 356" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
-        <path data-edge-from="trade-exec" data-edge-to="bitunix" data-edge-label="signed orders" data-edge-key="13" data-edge-id="exec-bitunix" data-composition-points="1016,385;1040,385;1040,100;100,100;100,128" d="M 1016 385 L 1040 385 L 1040 100 L 100 100 L 100 128" class="a-security" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="rule-engine" data-edge-to="local-store" data-edge-label="armed rules" data-edge-key="7" data-edge-id="rules-store" data-composition-points="586,613;620,613;670,613;670,385;689,385" d="M 586 613 L 620 613 L 670 613 L 670 385 L 689 385" class="a-default" data-animate="edge" style="--step:7" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="indicators" data-edge-to="calculator" data-edge-label="indicator values" data-edge-key="8" data-edge-id="ind-calc" data-composition-points="586,499;610,499;610,110;852,110;852,157;904,157" d="M 586 499 L 610 499 L 610 110 L 852 110 L 852 157 L 904 157" class="a-emphasis" data-animate="edge" style="--step:8" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="local-store" data-edge-to="rest-api" data-edge-label="signatures only" data-edge-key="9" data-edge-id="keys-rest" data-composition-points="689,385;640,385;640,560;315,560;315,528" d="M 689 385 L 640 385 L 640 560 L 315 560 L 315 528" class="a-security" data-animate="edge" style="--step:9" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
+        <path data-edge-from="journal" data-edge-to="local-store" data-edge-label="entries" data-edge-key="10" data-edge-id="journal-store" data-composition-points="689,157;640,157;640,326;745,326;745,356" d="M 689 157 L 640 157 L 640 326 L 745 326 L 745 356" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="presets" data-edge-to="local-store" data-edge-label="presets" data-edge-key="11" data-edge-id="presets-store" data-composition-points="745,584;745,414" d="M 745 584 L 745 414" class="a-default" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="local-store" data-edge-to="trade-exec" data-edge-label="journal sync" data-edge-key="12" data-edge-id="store-exec" data-composition-points="801,385;904,385" d="M 801 385 L 904 385" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="calculator" data-edge-to="trade-exec" data-edge-label="size · TP/SL" data-edge-key="13" data-edge-id="calc-exec" data-composition-points="960,186;960,356" d="M 960 186 L 960 356" class="a-default" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="trade-exec" data-edge-to="bitunix" data-edge-label="signed orders" data-edge-key="14" data-edge-id="exec-bitunix" data-composition-points="1016,385;1040,385;1040,100;100,100;100,128" d="M 1016 385 L 1040 385 L 1040 100 L 100 100 L 100 128" class="a-security" data-animate="edge" style="--step:12" stroke-width="1.4" marker-end="url(#arrowhead-security)"/>
 
         <!-- Nodes -->
         <g id="node-bitunix" data-node-id="bitunix" data-node-label="Bitunix" tabindex="0" role="button" aria-label="Focus Bitunix, REST + WebSocket, 01 / Public Sources" aria-pressed="false" data-node-kind="external" data-node-sublabel="REST + WebSocket" data-node-tag="CEX" data-node-context="01 / Public Sources">
@@ -5150,10 +5151,22 @@
         <text data-detail="fine" x="530" y="517" class="t-backend" font-size="7" text-anchor="middle">WASM</text>
         </g>
 
+        <g id="node-rule-engine" data-node-id="rule-engine" data-node-label="Rule Engine" tabindex="0" role="button" aria-label="Focus Rule Engine, rules · candle close, 03 / Process" aria-pressed="false" data-node-kind="backend" data-node-sublabel="rules · candle close" data-node-tag="WASM" data-node-context="03 / Process">
+          <title>Rule Engine · rules · candle close · 03 / Process · WASM</title>
+          <rect x="474" y="584" width="112" height="58" rx="6" class="c-mask"/>
+          <rect x="474" y="584" width="112" height="58" rx="6" class="c-backend" data-animate="node" style="--step:7" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(480 590) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" data-detail-anchor="" x="530" y="605" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Rule Engine</text>
+          <text data-detail="context" x="530" y="621" class="t-muted" font-size="7" text-anchor="middle">rules · candle close</text>
+        <text data-detail="fine" x="530" y="631" class="t-backend" font-size="7" text-anchor="middle">WASM</text>
+        </g>
+
         <g id="node-journal" data-node-id="journal" data-node-label="Journal" tabindex="0" role="button" aria-label="Focus Journal, trade journal, 04 / Local-First Store" aria-pressed="false" data-node-kind="database" data-node-sublabel="trade journal" data-node-tag="Class A" data-node-context="04 / Local-First Store">
           <title>Journal · trade journal · 04 / Local-First Store · Class A</title>
           <rect x="689" y="128" width="112" height="58" rx="6" class="c-mask"/>
-          <rect x="689" y="128" width="112" height="58" rx="6" class="c-database" data-animate="node" style="--step:9" stroke-width="1.5"/>
+          <rect x="689" y="128" width="112" height="58" rx="6" class="c-database" data-animate="node" style="--step:10" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(695 134) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
@@ -5179,7 +5192,7 @@
         <g id="node-presets" data-node-id="presets" data-node-label="Presets" tabindex="0" role="button" aria-label="Focus Presets, calc presets, 04 / Local-First Store" aria-pressed="false" data-node-kind="database" data-node-sublabel="calc presets" data-node-tag="Class A" data-node-context="04 / Local-First Store">
           <title>Presets · calc presets · 04 / Local-First Store · Class A</title>
           <rect x="689" y="584" width="112" height="58" rx="6" class="c-mask"/>
-          <rect x="689" y="584" width="112" height="58" rx="6" class="c-database" data-animate="node" style="--step:10" stroke-width="1.5"/>
+          <rect x="689" y="584" width="112" height="58" rx="6" class="c-database" data-animate="node" style="--step:11" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(695 590) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
@@ -5192,7 +5205,7 @@
         <g id="node-calculator" data-node-id="calculator" data-node-label="Calculator UI" tabindex="0" role="button" aria-label="Focus Calculator UI, position sizing · risk, 05 / Consume &amp; Execute" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="position sizing · risk" data-node-tag="Class A" data-node-context="05 / Consume &amp; Execute">
           <title>Calculator UI · position sizing · risk · 05 / Consume &amp; Execute · Class A</title>
           <rect x="904" y="128" width="112" height="58" rx="6" class="c-mask"/>
-          <rect x="904" y="128" width="112" height="58" rx="6" class="c-frontend" data-animate="node" style="--step:8" stroke-width="1.5"/>
+          <rect x="904" y="128" width="112" height="58" rx="6" class="c-frontend" data-animate="node" style="--step:9" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(910 134) scale(0.6875)">
             <rect x="2" y="3" width="12" height="10" rx="2"/>
             <path d="M2 6.5h12"/>
@@ -5264,37 +5277,42 @@
           <text x="468" y="385" class="t-backend" font-size="8" text-anchor="middle">candle arrays</text>
         <text data-detail="fine" x="468" y="396" class="t-dim" font-size="7" text-anchor="middle">in-memory</text>
         </g>
-        <g data-detail="context" data-edge-from="indicators" data-edge-to="calculator" data-edge-label="indicator values" data-edge-key="7" data-edge-id="ind-calc">
+        <g data-detail="context" data-edge-from="rule-engine" data-edge-to="local-store" data-edge-label="armed rules" data-edge-key="7" data-edge-id="rules-store">
+          <rect x="512.55" y="529" width="114.9" height="27" rx="4" class="c-mask"/>
+          <text x="570" y="540" class="t-muted" font-size="8" text-anchor="middle">armed rules</text>
+        <text data-detail="fine" x="570" y="551" class="t-dim" font-size="7" text-anchor="middle">Class A — device only</text>
+        </g>
+        <g data-detail="context" data-edge-from="indicators" data-edge-to="calculator" data-edge-label="indicator values" data-edge-key="8" data-edge-id="ind-calc">
           <rect x="564.8" y="349" width="90.4" height="27" rx="4" class="c-mask"/>
           <text x="610" y="360" class="t-backend" font-size="8" text-anchor="middle">indicator values</text>
         <text data-detail="fine" x="610" y="371" class="t-dim" font-size="7" text-anchor="middle">computed locally</text>
         </g>
-        <g data-detail="context" data-edge-from="local-store" data-edge-to="rest-api" data-edge-label="API keys" data-edge-key="8" data-edge-id="keys-rest">
-          <rect x="472.55" y="565" width="114.9" height="27" rx="4" class="c-mask"/>
-          <text x="530" y="576" class="t-security" font-size="8" text-anchor="middle">API keys</text>
-        <text data-detail="fine" x="530" y="587" class="t-dim" font-size="7" text-anchor="middle">Class A — device only</text>
+        <g data-detail="context" data-edge-from="local-store" data-edge-to="rest-api" data-edge-label="signatures only" data-edge-key="9" data-edge-id="keys-rest">
+          <rect x="302.55" y="549" width="114.9" height="27" rx="4" class="c-mask"/>
+          <text x="360" y="560" class="t-security" font-size="8" text-anchor="middle">signatures only</text>
+        <text data-detail="fine" x="360" y="571" class="t-dim" font-size="7" text-anchor="middle">Class A — device only</text>
         </g>
-        <g data-detail="context" data-edge-from="journal" data-edge-to="local-store" data-edge-label="entries" data-edge-key="9" data-edge-id="journal-store">
+        <g data-detail="context" data-edge-from="journal" data-edge-to="local-store" data-edge-label="entries" data-edge-key="10" data-edge-id="journal-store">
           <rect x="616.85" y="229" width="46.3" height="27" rx="4" class="c-mask"/>
           <text x="640" y="240" class="t-muted" font-size="8" text-anchor="middle">entries</text>
         <text data-detail="fine" x="640" y="251" class="t-dim" font-size="7" text-anchor="middle">Class A</text>
         </g>
-        <g data-detail="context" data-edge-from="presets" data-edge-to="local-store" data-edge-label="presets" data-edge-key="10" data-edge-id="presets-store">
+        <g data-detail="context" data-edge-from="presets" data-edge-to="local-store" data-edge-label="presets" data-edge-key="11" data-edge-id="presets-store">
           <rect x="687.55" y="488" width="114.9" height="27" rx="4" class="c-mask"/>
           <text x="745" y="499" class="t-muted" font-size="8" text-anchor="middle">presets</text>
         <text data-detail="fine" x="745" y="510" class="t-dim" font-size="7" text-anchor="middle">Class A — device only</text>
         </g>
-        <g data-detail="context" data-edge-from="local-store" data-edge-to="trade-exec" data-edge-label="journal sync" data-edge-key="11" data-edge-id="store-exec">
+        <g data-detail="context" data-edge-from="local-store" data-edge-to="trade-exec" data-edge-label="journal sync" data-edge-key="12" data-edge-id="store-exec">
           <rect x="816.6" y="374" width="70.8" height="27" rx="4" class="c-mask"/>
           <text x="852" y="385" class="t-muted" font-size="8" text-anchor="middle">journal sync</text>
         <text data-detail="fine" x="852" y="396" class="t-dim" font-size="7" text-anchor="middle">Class A</text>
         </g>
-        <g data-detail="context" data-edge-from="calculator" data-edge-to="trade-exec" data-edge-label="size · TP/SL" data-edge-key="12" data-edge-id="calc-exec">
+        <g data-detail="context" data-edge-from="calculator" data-edge-to="trade-exec" data-edge-label="size · TP/SL" data-edge-key="13" data-edge-id="calc-exec">
           <rect x="862.6" y="260" width="70.8" height="27" rx="4" class="c-mask"/>
           <text x="898" y="271" class="t-muted" font-size="8" text-anchor="middle">size · TP/SL</text>
         <text data-detail="fine" x="898" y="282" class="t-dim" font-size="7" text-anchor="middle">user intent</text>
         </g>
-        <g data-detail="context" data-edge-from="trade-exec" data-edge-to="bitunix" data-edge-label="signed orders" data-edge-key="13" data-edge-id="exec-bitunix">
+        <g data-detail="context" data-edge-from="trade-exec" data-edge-to="bitunix" data-edge-label="signed orders" data-edge-key="14" data-edge-id="exec-bitunix">
           <rect x="522.15" y="73" width="75.7" height="27" rx="4" class="c-mask"/>
           <text x="560" y="84" class="t-security" font-size="8" text-anchor="middle">signed orders</text>
         <text data-detail="fine" x="560" y="95" class="t-dim" font-size="7" text-anchor="middle">money-moving</text>
@@ -5514,6 +5532,7 @@
         <ul>
           <li>&bull; Live ticks stream over WebSocket from Bitunix and Bitget into the aggregator</li>
           <li>&bull; technicalsService computes indicators in a WASM worker, off the main thread</li>
+          <li>&bull; Rule engine evaluates RuleDocuments on candle close; simulate bots submit through the order gate</li>
           <li>&bull; cmcService adds CoinMarketCap metadata; SMC and chart patterns share this pipeline</li>
           <li>&bull; Public Class C data never carries user identity</li>
         </ul>
@@ -5528,7 +5547,7 @@
           <li>&bull; Class A data — journal, settings, API keys, presets — lives only in localStorage</li>
           <li>&bull; Calculator and trade-exec read journal and presets straight from localStorage (read paths not charted)</li>
           <li>&bull; Core code never imports SpacetimeDB or cloudService</li>
-          <li>&bull; API keys leave the device only inside signed exchange requests</li>
+          <li>&bull; API secrets never leave the device; the proxy forwards client-signed requests (ADR-0013)</li>
         </ul>
       </div>
 

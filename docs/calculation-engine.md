@@ -60,3 +60,14 @@ Illustrative figures, not asserted by tests (`engine_benchmark.test.ts` only bud
 GPU benefits increase with dataset size due to parallel processing.
 
 > Illustrative figures on modern hardware. Run `npx vitest run src/tests/performance/engine_benchmark.test.ts` to reproduce the TypeScript column only; GPU figures are illustrative and unasserted.
+
+## What this engine is not: the rule evaluator
+
+The engines above compute *indicator values* from candle arrays. Deciding
+whether a `RuleDocument` fires is a different job, done by the rule
+evaluator in `technicals-wasm/src/rule/`: it reads those values and
+evaluates each armed rule **once per close of its trigger timeframe** — not
+per tick, and without reparsing the rule store per tick (the per-tick legacy
+engine was retired in 1.6.0, FEAT-0399). Indicator math answers "what is
+RSI(14)"; the evaluator answers "did the rule fire". See
+[`alert-system.md`](alert-system.md).

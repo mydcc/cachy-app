@@ -1,6 +1,6 @@
 # ADR-0008: A verb the venue cannot perform is refused before it travels, and reads and writes fail differently
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-18
 - **Deciders:** mydcc
 

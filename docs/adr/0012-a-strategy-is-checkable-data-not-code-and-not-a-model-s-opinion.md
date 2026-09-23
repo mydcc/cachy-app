@@ -1,6 +1,6 @@
 # ADR-0012: A strategy is checkable data, not code and not a model's opinion
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-25
 **Deciders:** @mydcc
 

@@ -134,6 +134,15 @@
       "tag": "WASM"
     },
     {
+      "id": "rule-engine",
+      "type": "backend",
+      "label": "Rule Engine",
+      "sublabel": "rules · candle close",
+      "stage": 2,
+      "row": 4,
+      "tag": "WASM"
+    },
+    {
       "id": "journal",
       "type": "database",
       "label": "Journal",
@@ -296,6 +305,34 @@
       ]
     },
     {
+      "id": "rules-store",
+      "from": "rule-engine",
+      "to": "local-store",
+      "label": "armed rules",
+      "classification": "Class A — device only",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          620,
+          613
+        ],
+        [
+          670,
+          613
+        ],
+        [
+          670,
+          385
+        ]
+      ],
+      "labelAt": [
+        570,
+        540
+      ]
+    },
+    {
       "id": "ind-calc",
       "from": "indicators",
       "to": "calculator",
@@ -331,7 +368,7 @@
       "id": "keys-rest",
       "from": "local-store",
       "to": "rest-api",
-      "label": "API keys",
+      "label": "signatures only",
       "classification": "Class A — device only",
       "variant": "security",
       "fromSide": "left",
@@ -351,8 +388,8 @@
         ]
       ],
       "labelAt": [
-        530,
-        576
+        360,
+        560
       ]
     },
     {
@@ -464,6 +501,7 @@
       "items": [
         "Live ticks stream over WebSocket from Bitunix and Bitget into the aggregator",
         "technicalsService computes indicators in a WASM worker, off the main thread",
+        "Rule engine evaluates RuleDocuments on candle close; simulate bots submit through the order gate",
         "cmcService adds CoinMarketCap metadata; SMC and chart patterns share this pipeline",
         "Public Class C data never carries user identity"
       ]
@@ -475,7 +513,7 @@
         "Class A data — journal, settings, API keys, presets — lives only in localStorage",
         "Calculator and trade-exec read journal and presets straight from localStorage (read paths not charted)",
         "Core code never imports SpacetimeDB or cloudService",
-        "API keys leave the device only inside signed exchange requests"
+        "API secrets never leave the device; the proxy forwards client-signed requests (ADR-0013)"
       ]
     },
     {
