@@ -20,22 +20,7 @@ import { json } from "@sveltejs/kit";
 import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
-
-interface StatusError {
-  status: number;
-  message: string;
-}
-
-function isStatusError(error: unknown): error is StatusError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    "message" in error &&
-    typeof (error as { status: unknown }).status === "number" &&
-    typeof (error as { message: unknown }).message === "string"
-  );
-}
+import { isStatusError } from "../../../utils/server/httpErrors";
 
 // Public, no auth. Precision/limits/leverage-range/status per symbol change
 // rarely, so a longer TTL than tickers/klines is fine.
