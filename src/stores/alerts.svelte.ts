@@ -40,7 +40,8 @@ import { recordFiring } from "../services/alertEngine/shadowLedger";
 import { recordRuleFiring } from "../services/alertEngine/ruleStateStore";
 import { notificationService } from "../services/notificationService.svelte";
 import { alertNotificationKey } from "../lib/notificationPolicy";
-import type { FiringSink } from "../services/alertEngine/ruleEvaluationLoop";
+import type { FiringSink, UnevaluableRule } from "../services/alertEngine/ruleEvaluationLoop";
+import { ruleEvaluationLoop } from "../services/alertEngine/ruleEvaluationLoop";
 import type { RuleDocument } from "../lib/rules/types";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
@@ -110,6 +111,17 @@ class AlertsManager {
      * is: a finding nobody can see is not a finding.
      */
     legacyMigrationReport = $state<LegacyMigrationReport | null>(null);
+
+    /**
+     * BUG-0485 — the rules this session found inert, for the Manage tab.
+     *
+     * The reactive mirror of the loop's record, written only by the
+     * subscriber below and never read back by the engine: the loop's own map
+     * stays the source of truth. A rule that cannot fire belongs next to the
+     * rule, not in a separate report — which is why this is a list the rows
+     * read, not another banner.
+     */
+    unevaluableReport = $state<UnevaluableRule[]>([]);
 }
 
 export const alertState = new AlertsManager();
@@ -399,6 +411,9 @@ export type AlertEngineMode = "live" | "shadow";
  */
 let disarmRuleLoop: (() => void) | null = null;
 
+/** BUG-0485 — the mirror subscription below is registered once (see `initAlertEngine`). */
+let unevaluableSubscribed = false;
+
 /**
  * Stops the rule path — FEAT-0406.
  *
@@ -437,6 +452,18 @@ function disarmRuleEngine(): void {
  */
 export async function initAlertEngine(mode: AlertEngineMode = "live"): Promise<void> {
     if (!browser) return;
+
+    // BUG-0485: mirror the loop's inert record into the state above, so the
+    // Manage tab renders it next to the rule. Guarded to one subscription:
+    // every re-init would otherwise add another identical listener, and the
+    // loop — deliberately store-free — has no way to know the store came back.
+    if (!unevaluableSubscribed) {
+        unevaluableSubscribed = true;
+        ruleEvaluationLoop.subscribeUnevaluable((rules) => {
+            alertState.unevaluableReport = rules;
+        });
+        alertState.unevaluableReport = ruleEvaluationLoop.unevaluableRules();
+    }
 
     // FEAT-0388: one-shot, best-effort — migrateAlertsToRuleDocuments()
     // never throws, so a migration hiccup cannot block the engine below.

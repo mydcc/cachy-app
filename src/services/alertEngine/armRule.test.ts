@@ -22,6 +22,7 @@ vi.mock("$app/environment", () => ({ browser: true }));
 
 import { armRule, disarmRule, removeRule, RuleStoreUnreadableError } from "./armRule";
 import { deleteBot } from "./botStore";
+import { ruleEvaluationLoop } from "./ruleEvaluationLoop";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { readBotAnchors, saveBotAnchors } from "./ruleStateStore";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
@@ -192,5 +193,60 @@ describe("forget wiring (BUG-0486)", () => {
         expect(deleteBot("note-1")).toBe(false);
         expect(ruleEvaluationGate.forget).not.toHaveBeenCalled();
         expect(readBotAnchors("note-1")).toEqual({ ...SNAPSHOT });
+    });
+});
+
+/**
+ * BUG-0485 — the three writers are the invalidation half of the broken-alert
+ * record: a rule that is edited, re-armed, removed or disarmed must not stay
+ * listed as "can never fire". The loop owns the record; the writers tell it
+ * which entry died with the write.
+ */
+describe("broken-record invalidation (BUG-0485)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+        ruleEvaluationLoop.reset();
+    });
+
+    /** Parks one inert record for `doc` on the shared loop, the way a close would. */
+    function reportBroken(doc: RuleDocument) {
+        ruleEvaluationLoop.configure({
+            readCandles: () => [],
+            readRules: () => [doc],
+            resolveThreshold: () => ({ unevaluable: "the drawing is gone" }),
+        });
+        ruleEvaluationLoop.observeCandles("BTCUSDT", "1h", [{ time: 1_000 }]);
+        ruleEvaluationLoop.observeCandles("BTCUSDT", "1h", [{ time: 3_601_000 }]);
+        expect(ruleEvaluationLoop.unevaluableRules().map((r) => r.ruleId)).toEqual([doc.id]);
+    }
+
+    it("clears the entry when the rule is edited and re-armed", () => {
+        const doc = rule("a", "70000");
+        armRule(doc);
+        reportBroken(doc);
+
+        armRule(rule("a", "80000"));
+
+        expect(ruleEvaluationLoop.unevaluableRules()).toEqual([]);
+    });
+
+    it("clears the entry when the rule is removed, so a deleted rule does not stay listed", () => {
+        const doc = rule("a", "70000");
+        armRule(doc);
+        reportBroken(doc);
+
+        removeRule("a");
+
+        expect(ruleEvaluationLoop.unevaluableRules()).toEqual([]);
+    });
+
+    it("clears the entry when the rule is disarmed", () => {
+        const doc = rule("a", "70000");
+        armRule(doc);
+        reportBroken(doc);
+
+        expect(disarmRule("a")).toBe(true);
+
+        expect(ruleEvaluationLoop.unevaluableRules()).toEqual([]);
     });
 });

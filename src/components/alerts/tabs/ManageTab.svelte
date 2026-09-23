@@ -86,6 +86,14 @@
     let activeAlerts = $derived(rows.filter((r) => r.status !== "fired"));
     let historyAlerts = $derived(rows.filter((r) => r.status === "fired"));
 
+    /*
+      BUG-0485 -- the loop's inert record, keyed by rule id so each row can
+      ask about itself. Read from `alertState`, which the loop feeds through
+      its subscriber: the store's rule set lives in localStorage and cannot
+      carry this, and the loop stays store-free by design.
+    */
+    let brokenById = $derived(new Map(alertState.unevaluableReport.map((r) => [r.ruleId, r])));
+
     const OP_KEYS = {
         gte: "dashboard.alerts.reaches",
         gt: "dashboard.alerts.crossesUp",
@@ -222,11 +230,22 @@
 
 <div class="alert-list">
     {#each listTab === "active" ? activeAlerts : historyAlerts as row (row.id)}
+        {@const broken = brokenById.get(row.id)}
         <div class="alert-item" class:history-item={listTab === "history"}>
             <div class="alert-info">
                 <strong>{row.symbol}</strong>
                 <span>{formatCondition(row)}</span>
-                {#if row.status === "expired"}
+                <!--
+                  BUG-0485 -- a rule that cannot fire belongs next to the
+                  rule, not in a separate report. The badge text is
+                  localised; the title carries the developer-facing reason
+                  (indicator, drawing, timeframe) as the detail.
+                -->
+                {#if broken}
+                    <span class="broken-badge" title={broken.reason}>
+                        {$_("dashboard.alerts.brokenRule.badge")}
+                    </span>
+                {:else if row.status === "expired"}
                     <span class="expired-badge" title={$_("dashboard.alerts.expiredHint")}>
                         {$_("dashboard.alerts.expired")}
                     </span>
@@ -337,6 +356,18 @@
         color: var(--success-color);
         text-transform: uppercase;
         font-weight: var(--font-bold);
+    }
+    /* BUG-0485: reads as broken, not as lapsed — the danger colour is the
+       distinction from the expired badge above. */
+    .broken-badge {
+        margin-left: var(--space-2);
+        padding: 0 var(--space-2);
+        border-radius: var(--radius-sm);
+        background: var(--bg-tertiary, var(--bg-secondary));
+        color: var(--danger-color);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
     /* Reads as a lapse, not a success: an expired alert never fired. */
     .expired-badge {
