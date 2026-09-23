@@ -2,7 +2,8 @@
 id: FEAT-0352
 title: "Migrate all raw localStorage access to storageWrapper"
 type: feature
-status: in-progress
+status: done
+done_version: 1.6.0-beta.364
 assignee: opencode
 branch: feat/0352-storage-wrapper-migration
 priority: P1
@@ -24,7 +25,7 @@ Direct access to localStorage bypasses error handling; if the browser quota is r
 - [x] Replace `localStorage.setItem(key, value)` with `storageWrapper.setItem(key, value)`.
 - [x] Replace `localStorage.getItem(key)` with `storageWrapper.getItem(key)`.
 - [x] Remove any now-redundant local `try/catch` blocks handling quota limits inside the stores (let the wrapper handle it).
-- [ ] `npm run check` and `npm test` must pass cleanly.
+- [x] `npm run check` and `npm test` must pass cleanly.
 
 ## Out of scope
 - Refactoring IndexedDB usage.

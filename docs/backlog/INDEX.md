@@ -4,7 +4,7 @@
 
 422 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · 🟡 in-progress 1 · ✅ done 362 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · ✅ done 363 · ⛔ dropped 1
 
 ---
 
@@ -277,7 +277,7 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
-| [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 🟡 in-progress | ui |
+| [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | ✅ done | ui |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | security |
 | [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | execution |
 | [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | execution |
@@ -628,7 +628,7 @@ Counts by status: 💡 idea 24 · 📋 specced 33 · 🟢 ready 1 · 🟡 in-pro
 | [FEAT-0330](features/FEAT-0330-flash-close-wiring.md) | Wire flash close to the positions list | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) |
 | [FEAT-0333](features/FEAT-0333-account-storage-shape.md) | Store credentials as a list of named accounts, without changing behaviour | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0334](features/FEAT-0334-add-to-position.md) | Add to an open position and see what it does to the average entry | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
-| [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) | Expose the rule evaluator to JavaScript and evaluate on candle close | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) | Migrate stored price alerts to rule documents | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md) |
 | [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) | Trigger method, frequency, validity period and note per rule | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
