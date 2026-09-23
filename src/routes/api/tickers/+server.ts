@@ -21,22 +21,7 @@ import { cache } from "$lib/server/cache";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
 import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
-
-interface StatusError {
-  status: number;
-  message: string;
-}
-
-function isStatusError(error: unknown): error is StatusError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    "message" in error &&
-    typeof (error as { status: unknown }).status === "number" &&
-    typeof (error as { message: unknown }).message === "string"
-  );
-}
+import { isStatusError } from "../../../utils/server/httpErrors";
 
 export const GET: RequestHandler = async ({ url, fetch }) => {
   const symbols = url.searchParams.get("symbols");

@@ -4,7 +4,7 @@
 
 423 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 32 · ✅ done 366 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 31 · ✅ done 367 · ⛔ dropped 1
 
 ---
 
@@ -476,7 +476,7 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · ✅ done 366 · ⛔ dropped
 | [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | ✅ done | alerts |
 | [FEAT-0522](features/FEAT-0522-palette-disable-aria-live-ticking.md) | Palette: Disable aria-live on ticking market data | P3 | ✅ done | ui |
 | [FEAT-0535](features/FEAT-0535-flattenkeys-i18n-scripts.md) | Extract shared flattenKeys helper for i18n scripts | P3 | ✅ done | tooling |
-| [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | 📋 specced | exchange |
+| [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | exchange |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | ui |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | 📋 specced | exchange |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
@@ -899,7 +899,7 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · ✅ done 366 · ⛔ dropped
 | [FEAT-0477](features/FEAT-0477-intra-candle-alert-evaluation.md) | Offer intra-candle evaluation as an explicit per-alert opt-in | P3 | ✅ done | none | community, pro, private | A | ADR-0012 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) |
 | [FEAT-0522](features/FEAT-0522-palette-disable-aria-live-ticking.md) | Palette: Disable aria-live on ticking market data | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0535](features/FEAT-0535-flattenkeys-i18n-scripts.md) | Extract shared flattenKeys helper for i18n scripts | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
