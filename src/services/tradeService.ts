@@ -1480,19 +1480,19 @@ class TradeService {
                      }
                 }
 
-            // Trigger background sync
-            (async () => {
-                try {
-                    await RetryPolicy.execute(() => this.refreshPositionsForProvider(), {
-                        maxAttempts: 5,
-                        initialDelayMs: 500,
-                        maxDelayMs: 5000,
-                        name: "FlashClose Recovery Sync"
-                    });
-                } catch (err) {
-                    logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`, err);
-                }
-            })();
+                // Trigger background sync
+                (async () => {
+                    try {
+                        await RetryPolicy.execute(() => this.refreshPositionsForProvider(), {
+                            maxAttempts: 5,
+                            initialDelayMs: 500,
+                            maxDelayMs: 5000,
+                            name: "FlashClose Recovery Sync"
+                        });
+                    } catch (err) {
+                        logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`, err);
+                    }
+                })();
             }
 
             // [FIX] Notify User & Prevent Crash
