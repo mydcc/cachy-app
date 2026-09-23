@@ -2149,7 +2149,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0527",
     "title": "Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/0527-bitget-oms-feed",
     "priority": "P1",
     "milestone": "none",
     "editions": [
