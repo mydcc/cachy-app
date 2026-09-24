@@ -33,6 +33,7 @@
 <script lang="ts">
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
+  import { accountState } from "../../stores/account.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { resultsState } from "../../stores/results.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -172,6 +173,26 @@
   // the panel can see (BUG-0549).
   const marginFunded = $derived(!resultsState.isMarginExceeded);
 
+  // The same check against the live balance — required margin above the free
+  // USDT the gate will measure. This is the state AC3 names: the calculator
+  // flag above compares against the typed account size, which can differ
+  // from the wallet in either direction. Unknown — balance not loaded, or
+  // the calculator produced no margin figure — never disables: the panel is
+  // only a hint, the gate stays the authority and refuses what it measures.
+  // Paper hydrates this same store, so both modes read the balance they
+  // trade against.
+  const liveAvailable = $derived(
+    accountState.assets.find((a) => a.currency === "USDT")?.available,
+  );
+  const liveMarginFunded = $derived.by(() => {
+    if (
+      data?.requiredMargin instanceof Decimal &&
+      liveAvailable instanceof Decimal
+    )
+      return data.requiredMargin.lte(liveAvailable);
+    return true;
+  });
+
   // The calculator produces a size only when the inputs make one derivable.
   // AC 1: Trading-pair metadata is available in a store before submit action is enabled.
   // AC 3: Below minTradeVolume or above max order volume disables submit action.
@@ -183,7 +204,8 @@
       hasMeta &&
       tradingAvailable &&
       volumeValid &&
-      marginFunded,
+      marginFunded &&
+      liveMarginFunded,
   );
 
   // An unreadable trade direction is not a long: the control stays

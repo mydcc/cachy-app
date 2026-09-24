@@ -1473,6 +1473,8 @@ describe("orderGate — an open above the free balance is refused (BUG-0549)", (
         const verdict = orderGate.verify(intent);
         expect(verdict.approved).toBe(true);
         expect(verdict.refusal).toBeNull();
+        // The check ran and compared — an approve must not pass by skip.
+        expect(verdict.checked).toContain("availableMargin");
     });
 
     it("keeps skipping an open while the balance has not loaded (BUG-0511)", () => {
@@ -1484,5 +1486,9 @@ describe("orderGate — an open above the free balance is refused (BUG-0549)", (
         const verdict = orderGate.verify(intent);
         expect(verdict.approved).toBe(true);
         expect(verdict.refusal).toBeNull();
+        // Deliberate skip, not a silent omission: the absent-balance
+        // fail-open is tracked as a follow-up, so the audit must show the
+        // check did not run here.
+        expect(verdict.checked).not.toContain("availableMargin");
     });
 });

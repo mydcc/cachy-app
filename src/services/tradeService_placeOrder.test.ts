@@ -526,6 +526,10 @@ describe("BUG-0380 — qty is clamped to the symbol step before it travels", () 
 });
 
 describe("BUG-0549 — an open the account cannot fund never reaches the wire", () => {
+    beforeEach(() => {
+        accountState.assets = [];
+    });
+
     afterEach(() => {
         accountState.assets = [];
     });

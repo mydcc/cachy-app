@@ -22,15 +22,16 @@
  *
  * The warning lives next to the results, the refusal lives in the gate; the
  * panel itself was the one surface that had to say yes first. These cases
- * flip only the calculator's flag and assert the button follows it — the
- * refusal path itself is covered in orderGate.test.ts and
- * tradeService_placeOrder.test.ts.
+ * flip the calculator's flag and the live balance behind the gate's back
+ * and assert the button follows both — the refusal path itself is covered
+ * in orderGate.test.ts and tradeService_placeOrder.test.ts.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import { Decimal } from "decimal.js";
 import en from "../../locales/locales/en.json";
+import { accountState } from "../../stores/account.svelte";
 
 import type { TradingPairInfo } from "../../stores/market/types";
 
@@ -60,6 +61,7 @@ const mockTradeData = vi.hoisted(() => ({
     accountSize: null as Decimal | null,
     riskPercentage: null as Decimal | null,
     leverage: null as Decimal | null,
+    requiredMargin: null as Decimal | null,
     remoteAccountStateAt: Date.now(),
     remoteMarginMode: "ISOLATION",
 }));
@@ -86,6 +88,7 @@ vi.mock("../../stores/trade.svelte", () => ({
                 accountSize: mockTradeData.accountSize,
                 riskPercentage: mockTradeData.riskPercentage,
                 leverage: mockTradeData.leverage,
+                requiredMargin: mockTradeData.requiredMargin,
             };
         },
         get remoteAccountStateAt() {
@@ -191,6 +194,8 @@ beforeEach(() => {
     mockTradeData.accountSize = new Decimal("1000");
     mockTradeData.riskPercentage = new Decimal("1");
     mockTradeData.leverage = new Decimal("10");
+    // 0.02 × 50000 / 10 = 100 of required margin for the live-balance cases.
+    mockTradeData.requiredMargin = new Decimal("100");
     mockTradeData.remoteAccountStateAt = Date.now();
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -200,6 +205,7 @@ afterEach(() => {
     if (component) unmount(component);
     component = null;
     host.remove();
+    accountState.assets = [];
 });
 
 async function settle(rounds = 6) {
@@ -223,6 +229,10 @@ describe("BUG-0549 — the place control follows the margin-exceeded flag", () =
         await settle();
 
         expect(submitButton().disabled).toBe(true);
+        // Affordance, not enforcement: even a click that got through must
+        // not place — enforcement lives in the gate.
+        submitButton().click();
+        await settle();
         expect(placeEntryGroupMock).not.toHaveBeenCalled();
     });
 
@@ -231,6 +241,26 @@ describe("BUG-0549 — the place control follows the margin-exceeded flag", () =
         await settle();
 
         // AC: nothing about a funded open changed — same state, same control.
+        expect(submitButton().disabled).toBe(false);
+    });
+
+    it("disables submit when the live balance cannot fund the margin", async () => {
+        // Calculator flag off — only the live leg decides here.
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(submitButton().disabled).toBe(true);
+        submitButton().click();
+        await settle();
+        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+    });
+
+    it("keeps submit usable when the live balance covers the margin", async () => {
+        accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" });
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
         expect(submitButton().disabled).toBe(false);
     });
 });
