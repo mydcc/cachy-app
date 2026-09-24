@@ -1111,6 +1111,10 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
                 symbol: "BTCUSDT",
                 orderId: "o-9",
                 entryPrice: new Decimal(50000),
+                // What the real constructor always sends post-BUG-0550; the
+                // stop below the entry is long-correct, so the direction
+                // rule passes and the limit under test decides.
+                positionSide: "LONG",
                 stopLossPrice: new Decimal(49500),
                 modifyQuantity: new Decimal(1),
                 previousQuantity: new Decimal("0.2"),

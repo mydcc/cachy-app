@@ -29,7 +29,7 @@ import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tradeService } from "./tradeService";
 import { rmsService } from "./rmsService";
-import { orderGate, OrderRefusedError, type OrderIntent } from "./orderGate";
+import { orderGate, type OrderIntent } from "./orderGate";
 import { tradeState } from "../stores/trade.svelte";
 import { riskState } from "../stores/riskLimits.svelte";
 import type { NormalizedOrder } from "../types/exchange";
@@ -216,19 +216,17 @@ describe("modifyOrder — constructor mapping reaches the gate intact", () => {
         });
     });
 
-    it("treats a corrupt live amount as an increase, not a throw", async () => {
-        mockLive({ amount: "bogus" });
-        riskState.setLimit("maxPositionSizeUsdt", "10000");
+    it("refuses a corrupt live amount typed instead of throwing raw", async () => {
+        const wire = mockLive({ amount: "bogus" });
 
-        // A raw throw here would be the wrong taxonomy and no measurement;
-        // undefined feeds the fail-closed increase path instead.
+        // Union behavior with the modify-quantity guard: the corrupt reading
+        // refuses with a named field before the gate ever runs — still
+        // fail-closed (no transport), but earlier and louder than the
+        // increase-path measurement this case originally pinned.
         await expect(
             tradeService.modifyOrder({ orderId: "o-9" }),
-        ).rejects.toBeInstanceOf(OrderRefusedError);
-
-        const intent = lastIntent();
-        expect(intent.displayed.previousQuantity).toBeUndefined();
-        expect(intent.displayed.modifyQuantity).toBeUndefined();
+        ).rejects.toMatchObject({ refusal: { field: "modifyQuantity" } });
+        expect(wire).not.toHaveBeenCalled();
     });
 
     it("refuses an enlargement past the absolute cap end to end", async () => {
