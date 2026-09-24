@@ -52,3 +52,11 @@ hole. But the fail-open should become a deliberate, visible decision.
   `MAX_ACCOUNT_STATE_AGE_MS`); whichever option wins should settle that too.
 - Paper mode hydrates the same store, so the decision applies to both modes
   at once.
+
+## Decision
+
+P2, option 3 (audit-visible): the skip stays and is recorded — the gate
+pushes `availableMarginUnmeasured` to `checked`, the panel hints that the
+venue decides while the balance is unknown. Refusing (option 1) or
+refreshing at submit (option 2) stay possible later; neither is needed
+because the worst case is a venue reject, never a fund loss.

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-441 items. How to read and add them: [README.md](README.md).
+442 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 379 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 378 · ⛔ dropped 1
 ---
 
 ## By milestone
@@ -375,6 +375,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | 📋 specced | calculation |
 | [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | 📋 specced | execution |
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | 📋 specced | ui |
+| [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 📋 specced | execution |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -424,6 +425,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | alerts |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | ui |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | 💡 idea | execution |
+| [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -766,6 +768,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | 📋 specced | none | community, pro, private | C | none | — |
 | [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -860,6 +863,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
+| [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -957,4 +961,4 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 
 ---
 
-Next free number: **0568**
+Next free number: **0567**

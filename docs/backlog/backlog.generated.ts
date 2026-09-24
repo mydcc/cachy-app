@@ -5380,6 +5380,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0562-financial-details-hover-only.md"
   },
   {
+    "id": "BUG-0565",
+    "title": "Live balance pushes and paper hydration share one store without a mode guard",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0565-paper-live-balance-confusion.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -7494,6 +7512,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0549"
     ],
     "file": "ideas/IDEA-0563-open-with-unmeasured-balance.md"
+  },
+  {
+    "id": "IDEA-0566",
+    "title": "Prospective margin ceiling for quantity-increasing modifies",
+    "type": "idea",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0548",
+      "BUG-0549"
+    ],
+    "file": "ideas/IDEA-0566-modify-margin-ceiling.md"
   },
   {
     "id": "BUG-0007",
