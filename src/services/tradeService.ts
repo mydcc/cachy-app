@@ -2329,7 +2329,10 @@ class TradeService {
         // not throw raw past the gate: undefined feeds the fail-closed
         // increase path instead. (The live read itself races the gate by
         // construction — one synchronous round trip, no user action in
-        // between — so the window is minimal by design.)
+        // between — so the window is minimal by design. A partial fill
+        // landing inside it leaves a stale previousQuantity; a stale-high
+        // reading fails toward the increase path, so the residual is
+        // minimal by construction rather than by locking.)
         let liveAmount: Decimal | undefined;
         try {
             liveAmount = new Decimal(liveOrder.amount);

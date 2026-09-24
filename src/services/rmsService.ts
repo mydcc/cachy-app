@@ -567,6 +567,16 @@ class RiskManagementService {
     }
 
     /**
+     * The quantity the amended order will carry: what goes on the wire
+     * first, what the constructor displayed second. One helper for all
+     * three modify reads (increase check, loss, notional) so the same
+     * intent cannot measure a different quantity per check.
+     */
+    private modifyQtyOf(intent: OrderIntent): Decimal | null {
+        return toDecimal(intent.payload.qty) ?? toDecimal(intent.displayed.modifyQuantity);
+    }
+
+    /**
      * Whether a pending-order amendment makes the order larger than the
      * resting order it replaces (BUG-0548).
      *
@@ -579,16 +589,6 @@ class RiskManagementService {
      * amendment harmless — absent, null, NaN, infinite, zero or negative
      * cannot, so the limits decide, not the absence of evidence.
      */
-    /**
-     * The quantity the amended order will carry: what goes on the wire
-     * first, what the constructor displayed second. One helper for all
-     * three modify reads (increase check, loss, notional) so the same
-     * intent cannot measure a different quantity per check.
-     */
-    private modifyQtyOf(intent: OrderIntent): Decimal | null {
-        return toDecimal(intent.payload.qty) ?? toDecimal(intent.displayed.modifyQuantity);
-    }
-
     private isQuantityIncreasingModify(intent: OrderIntent): boolean {
         const newQty = this.modifyQtyOf(intent);
         if (newQty === null || !newQty.isFinite()) {
