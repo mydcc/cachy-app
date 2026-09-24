@@ -2,9 +2,9 @@
 
 # Backlog index
 
-439 items. How to read and add them: [README.md](README.md).
+440 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 30 · 🟢 ready 7 · ✅ done 378 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 378 · ⛔ dropped 1
 
 ---
 
@@ -503,6 +503,7 @@ Counts by status: 💡 idea 23 · 📋 specced 30 · 🟢 ready 7 · ✅ done 37
 | [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | trade-panel |
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | trade-panel |
 | [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | market-data |
+| [IDEA-0564](ideas/IDEA-0564-tpsl-seam-tests.md) | Seam-level TPSL tests for tick misalignment and position-less drops | P3 | 📋 specced | execution |
 
 ---
 
@@ -949,7 +950,8 @@ Counts by status: 💡 idea 23 · 📋 specced 30 · 🟢 ready 7 · ✅ done 37
 | [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | none | community, pro, private | A | none | — |
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | none | community, pro, private | A | none | — |
 | [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | none | community, pro, private | C | none | — |
+| [IDEA-0564](ideas/IDEA-0564-tpsl-seam-tests.md) | Seam-level TPSL tests for tick misalignment and position-less drops | P3 | 📋 specced | none | community, pro, private | none | none | — |
 
 ---
 
-Next free number: **0563**
+Next free number: **0565**
