@@ -971,6 +971,74 @@ describe("orderGate — the transport is unreachable without a pass", () => {
         paperMode: false,
     });
 
+    it.each(["place", "place-position"])(
+        "refuses an ungated TP/SL %s request",
+        (action) => {
+            expect(() => assertGatePass(ctx({ action, symbol: "BTCUSDT" }))).toThrow(
+                OrderRefusedError,
+            );
+        },
+    );
+
+    it.each(["place", "place-position"])(
+        "refuses a TP/SL action shadowed by a read-only type",
+        (action) => {
+            expect(() =>
+                assertGatePass(ctx({ type: "history", action, symbol: "BTCUSDT" })),
+            ).toThrow(OrderRefusedError);
+        },
+    );
+
+    it("refuses conflicting mutating action fields", () => {
+        expect(() =>
+            assertGatePass(
+                ctx({ action: "place", type: "cancel-all", symbol: "BTCUSDT" }),
+            ),
+        ).toThrow(OrderRefusedError);
+    });
+
+    it.each(["place", "place-position"])(
+        "refuses a URL-only TP/SL %s request without a pass",
+        (action) => {
+            expect(() =>
+                assertGatePass({
+                    ...ctx({ symbol: "BTCUSDT" }),
+                    endpoint: `/api/tpsl?action=${action}`,
+                }),
+            ).toThrow(OrderRefusedError);
+        },
+    );
+
+    it("consumes a pass presented with conflicting discriminators", async () => {
+        const intent = reduceIntent();
+        let captured: GatePass | null = null;
+        await orderGate.submit(intent, async (pass) => {
+            captured = pass;
+            return "held";
+        });
+        expect(captured).not.toBeNull();
+
+        const mismatched = {
+            ...ctx(intent.payload),
+            payload: { ...intent.payload, action: "place" },
+        };
+        let mismatchedError: unknown;
+        try {
+            assertGatePass(mismatched, captured!);
+        } catch (error) {
+            mismatchedError = error;
+        }
+        expect(mismatchedError).toMatchObject({ refusal: { field: "action" } });
+
+        let reusedError: unknown;
+        try {
+            assertGatePass(ctx(intent.payload), captured!);
+        } catch (error) {
+            reusedError = error;
+        }
+        expect(reusedError).toMatchObject({ refusal: { field: "gate" } });
+    });
+
     it("rejects a mutating request with no pass at all", () => {
         // This is the bypassing call site: it constructs a payload and heads
         // straight for the transport.
@@ -1133,6 +1201,16 @@ describe("orderGate — the transport is unreachable without a pass", () => {
     it("classifies every mutating action and no read-only one", () => {
         expect(mutatingActionOf({ type: "place-order" })).toBe("place-order");
         expect(mutatingActionOf({ action: "cancel" })).toBe("cancel");
+        expect(mutatingActionOf({ action: "place" })).toBe("place");
+        expect(mutatingActionOf({ action: "place-position" })).toBe("place-position");
+        expect(mutatingActionOf({ type: "history", action: "place" })).toBe("place");
+        expect(mutatingActionOf({ type: "history", action: "place-position" })).toBe(
+            "place-position",
+        );
+        expect(mutatingActionOf({}, "/api/tpsl?action=place")).toBe("place");
+        expect(mutatingActionOf({}, "/api/tpsl?action=place-position")).toBe(
+            "place-position",
+        );
         expect(mutatingActionOf({ type: "history" })).toBeNull();
         expect(mutatingActionOf({})).toBeNull();
     });
