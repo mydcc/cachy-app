@@ -58,6 +58,7 @@ import { Decimal } from "decimal.js";
  */
 import { capabilitiesOf, isKnownExchange } from "./exchangeCapabilities";
 import type { OrderEntryType, TimeInForce } from "./exchangeCapabilities";
+import { cachyAction } from "../utils/exchange/restSigningPlan";
 
 // ---------------------------------------------------------------------------
 // Gate pass
@@ -103,6 +104,8 @@ export const MUTATING_ORDER_ACTIONS = new Set([
     // /api/tpsl actions
     "cancel",
     "modify",
+    "place",
+    "place-position",
 ]);
 
 /**
@@ -110,10 +113,20 @@ export const MUTATING_ORDER_ACTIONS = new Set([
  * payload is read-only. `/api/orders` carries it as `type`; `/api/tpsl`
  * carries it as `action`.
  */
-export function mutatingActionOf(payload: Record<string, unknown>): string | null {
-    const candidate = payload.type ?? payload.action;
-    if (typeof candidate !== "string") return null;
-    return MUTATING_ORDER_ACTIONS.has(candidate) ? candidate : null;
+export function mutatingActionOf(
+    payload: Record<string, unknown>,
+    endpoint?: string,
+): string | null {
+    const candidates = [
+        endpoint ? cachyAction(endpoint) : undefined,
+        payload.action,
+        payload.type,
+    ];
+    for (const candidate of candidates) {
+        if (typeof candidate !== "string") continue;
+        if (MUTATING_ORDER_ACTIONS.has(candidate)) return candidate;
+    }
+    return null;
 }
 
 /**
@@ -711,7 +724,7 @@ class OrderGate {
      * button build byte-identical payloads and do.
      */
     private fingerprintOf(intent: OrderIntent): string {
-        const action = mutatingActionOf(intent.payload) ?? "";
+        const action = mutatingActionOf(intent.payload, intent.endpoint) ?? "";
         const symbol = typeof intent.payload.symbol === "string" ? intent.payload.symbol : "";
         return [
             intent.kind,
@@ -1052,7 +1065,7 @@ class OrderGate {
         checked.push("confirmation");
         const unconfirmed = this.confirmationRefusal(
             intent,
-            intent.confirmAs ?? mutatingActionOf(payload) ?? "",
+            intent.confirmAs ?? mutatingActionOf(payload, intent.endpoint) ?? "",
         );
         if (unconfirmed) return refuse(unconfirmed);
 
@@ -1771,7 +1784,7 @@ class OrderGate {
         if (!verdict.approved && verdict.refusal) {
             this.audit(intent, {
                 at: Date.now(),
-                action: mutatingActionOf(intent.payload) ?? "",
+                action: mutatingActionOf(intent.payload, intent.endpoint) ?? "",
                 outcome: "refused",
                 checked: verdict.checked,
                 refusal: verdict.refusal,
@@ -1787,7 +1800,7 @@ class OrderGate {
         transport: (pass: GatePass) => Promise<T>,
     ): Promise<T> {
         const at = Date.now();
-        const action = mutatingActionOf(intent.payload) ?? "";
+        const action = mutatingActionOf(intent.payload, intent.endpoint) ?? "";
         const verdict = this.verifyOrThrow(intent);
 
         const pass = {} as GatePass;
@@ -1948,21 +1961,40 @@ export interface TransportContext {
  * against what the gate approved is a genuinely second derivation of "which
  * account is this order going to".
  */
-export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
-    const action = mutatingActionOf(ctx.payload);
-    if (action === null) return; // read-only
+/**
+ * Discriminator coherence for the endpoint and payload action fields.
+ *
+ * A mismatch is a malformed transport context, not a read-only request, and
+ * must be refused even when no recognized action remains. Returned rather
+ * than thrown so `assertGatePass` can consume a presented pass before
+ * refusing, preserving the single-use guarantee.
+ */
+function discriminatorMismatch(ctx: TransportContext): OrderRefusal | null {
+    const endpointAction = cachyAction(ctx.endpoint);
+    const payloadActions = [ctx.payload.action, ctx.payload.type].filter(
+        (value): value is string => typeof value === "string",
+    );
+    if (new Set(payloadActions).size > 1) {
+        return mismatch("action", payloadActions[0], payloadActions[1]);
+    }
+    const payloadAction = payloadActions[0];
+    if (endpointAction && payloadAction && endpointAction !== payloadAction) {
+        return mismatch("action", endpointAction, payloadAction);
+    }
+    return null;
+}
 
-    if (!pass) {
-        throw new OrderRefusedError({
-            field: "gate",
-            reason: "missing",
-            messageKey: "orderGate.bypassed",
-            values: { action },
-        });
+export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
+    const discriminatorRefusal = discriminatorMismatch(ctx);
+    const action = mutatingActionOf(ctx.payload, ctx.endpoint);
+    if (action === null) {
+        if (discriminatorRefusal) throw new OrderRefusedError(discriminatorRefusal);
+        return; // read-only
     }
 
-    const record = issuedPasses.get(pass as unknown as object);
-    if (!record) {
+    const record = pass ? issuedPasses.get(pass as unknown as object) : undefined;
+    if (!pass || !record) {
+        if (discriminatorRefusal) throw new OrderRefusedError(discriminatorRefusal);
         throw new OrderRefusedError({
             field: "gate",
             reason: "missing",
@@ -1973,6 +2005,7 @@ export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
     // Single use: a pass is consumed whether or not the checks below hold, so
     // a rejected attempt cannot be retried with the same approval.
     issuedPasses.delete(pass as unknown as object);
+    if (discriminatorRefusal) throw new OrderRefusedError(discriminatorRefusal);
 
     if (record.endpoint !== ctx.endpoint) {
         throw new OrderRefusedError(mismatch("endpoint", record.endpoint, ctx.endpoint));

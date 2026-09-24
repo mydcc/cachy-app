@@ -4,7 +4,7 @@
 
 439 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 32 · 🟢 ready 7 · ✅ done 376 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 377 · ⛔ dropped 1
 
 ---
 
@@ -275,7 +275,7 @@ Counts by status: 💡 idea 23 · 📋 specced 32 · 🟢 ready 7 · ✅ done 37
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | security |
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | ✅ done | exchange |
 | [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | ✅ done | alerts |
-| [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | 📋 specced | execution |
+| [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | execution |
 | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | 📋 specced | execution |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | 📋 specced | execution |
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | security |
@@ -614,7 +614,7 @@ Counts by status: 💡 idea 23 · 📋 specced 32 · 🟢 ready 7 · ✅ done 37
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | none | community, pro, private | A | none | — |

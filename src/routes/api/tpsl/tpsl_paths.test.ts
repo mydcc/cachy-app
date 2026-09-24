@@ -116,6 +116,35 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
     expect(options.method).toBe("POST");
   });
 
+  it("place -> POST /api/v1/futures/tpsl/place_order", async () => {
+    const response = await callAction("place", {
+      symbol: "BTCUSDT",
+      positionId: "pos-1",
+      tpPrice: "70000",
+      tpQty: "0.5",
+    });
+
+    expect(response.status).toBe(200);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain("https://fapi.bitunix.com/api/v1/futures/tpsl/place_order");
+    expect(options.method).toBe("POST");
+  });
+
+  it("place-position -> POST /api/v1/futures/tpsl/position/place_order", async () => {
+    const response = await callAction("place-position", {
+      symbol: "BTCUSDT",
+      positionId: "pos-1",
+      tpPrice: "70000",
+    });
+
+    expect(response.status).toBe(200);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toContain(
+      "https://fapi.bitunix.com/api/v1/futures/tpsl/position/place_order",
+    );
+    expect(options.method).toBe("POST");
+  });
+
   it("a write forwards the signed bytes verbatim", async () => {
     // The body *is* what the client signed, so the route must not re-serialise
     // it — a second JSON.stringify would drop whitespace and the venue would
