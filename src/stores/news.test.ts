@@ -17,7 +17,7 @@
 
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { NewsItem } from "../services/newsService";
+import type { NewsItem } from "../services/newsTypes";
 
 const mockFetchNews = vi.fn();
 const mockAnalyzeSentiment = vi.fn();

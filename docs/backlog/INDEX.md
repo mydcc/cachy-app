@@ -4,7 +4,7 @@
 
 423 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 29 · ✅ done 369 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 28 · ✅ done 370 · ⛔ dropped 1
 
 ---
 
@@ -402,7 +402,7 @@ Counts by status: 💡 idea 24 · 📋 specced 29 · ✅ done 369 · ⛔ dropped
 | [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | exchange |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | alerts |
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | 📋 specced | indicators |
-| [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | 📋 specced | architecture |
+| [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | architecture |
 | [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | ✅ done | security |
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 📋 specced | alerts |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 📋 specced | alerts |
@@ -819,7 +819,7 @@ Counts by status: 💡 idea 24 · 📋 specced 29 · ✅ done 369 · ⛔ dropped
 | [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) |
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 📋 specced | none | community, pro, private | A | none | — |
