@@ -196,6 +196,17 @@ describe("FEAT-0334 — the gate's add path", () => {
         expect(verdict.checked).toContain("availableMargin");
     });
 
+    it("refuses an add on a non-finite balance like on an absent one", () => {
+        const intent = addIntent();
+        intent.displayed.availableMargin = new Decimal(NaN);
+
+        const verdict = orderGate.verify(intent);
+
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.field).toBe("availableMargin");
+        expect(verdict.refusal?.reason).toBe("missing");
+    });
+
     it("still skips the margin check on an open without a balance", () => {
         // An open keeps its risk-derived size check, so the absence is not
         // disqualifying there — only the add path, which has no other

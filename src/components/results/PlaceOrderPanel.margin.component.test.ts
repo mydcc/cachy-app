@@ -263,4 +263,29 @@ describe("BUG-0549 — the place control follows the margin-exceeded flag", () =
 
         expect(submitButton().disabled).toBe(false);
     });
+
+    it("names both numbers when only the live balance cannot fund the margin", async () => {
+        // The calculator flag stays green here (typed size covers it) while
+        // the control stays disabled — the note must explain the dead end
+        // with the figures the gate will measure.
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(submitButton().disabled).toBe(true);
+        expect(host.textContent).toContain("Needs 100 margin but only 50 is free");
+    });
+
+    it("hints that the venue decides while the balance has not loaded", async () => {
+        // No hydration: the gate records an availableMarginUnmeasured skip
+        // and approves, so the panel stays usable — but it says so instead
+        // of staying quiet (IDEA-0563, decided P2: warn, don't block).
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(submitButton().disabled).toBe(false);
+        expect(host.textContent).toContain(
+            "Balance not loaded — the venue decides whether this order is funded.",
+        );
+    });
 });

@@ -832,6 +832,8 @@ describe("orderGate — rendering a refusal", () => {
         "orderGate.stale":
             "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
         "orderGate.fields.accountState": "account state",
+        "orderGate.insufficientMargin":
+            "Order refused: the order needs {actual} margin but only {limit} is available. The order was not sent.",
     };
     const t = (key: string, options?: { values?: Record<string, string> }) => {
         const template = MESSAGES[key];
@@ -852,8 +854,7 @@ describe("orderGate — rendering a refusal", () => {
         expect(text).not.toContain("{");
     });
 
-    it("falls back to the raw field name when it has no translation", () => {
-        const refusal = {
+    it("falls back to the raw field name when it has no translation", () => {        const refusal = {
             field: "takeProfit[0]",
             reason: "mismatch",
             messageKey: "orderGate.mismatch",
@@ -862,6 +863,19 @@ describe("orderGate — rendering a refusal", () => {
         // svelte-i18n echoes an unknown key; the raw name beats showing the
         // trader a dotted key path.
         expect(translateRefusal(refusal, t)).not.toContain("orderGate.fields.");
+    });
+
+    it("renders the insufficient-margin refusal without raw placeholders", () => {
+        // 0.02 BTC × 50000 / 10 = 100 required against 5 available.
+        const intent = openIntent();
+        intent.displayed.availableMargin = new Decimal(5);
+        const refusal = orderGate.verify(intent).refusal!;
+        expect(refusal.messageKey).toBe("orderGate.insufficientMargin");
+
+        const text = translateRefusal(refusal, t);
+        expect(text).toContain("100");
+        expect(text).toContain("5");
+        expect(text).not.toContain("{");
     });
 });
 
@@ -1486,9 +1500,32 @@ describe("orderGate — an open above the free balance is refused (BUG-0549)", (
         const verdict = orderGate.verify(intent);
         expect(verdict.approved).toBe(true);
         expect(verdict.refusal).toBeNull();
-        // Deliberate skip, not a silent omission: the absent-balance
-        // fail-open is tracked as a follow-up, so the audit must show the
-        // check did not run here.
+        // Deliberate, recorded skip (IDEA-0563, decided P2: warn, don't
+        // block): the comparison did not run, but the audit shows the
+        // decision instead of an omission.
         expect(verdict.checked).not.toContain("availableMargin");
+        expect(verdict.checked).toContain("availableMarginUnmeasured");
+    });
+
+    it("treats a non-finite balance like an absent one", () => {
+        // NaN compares false against everything, so measuring against it
+        // would approve with the check marked as run. Unmeasurable instead.
+        const open = openIntent();
+        open.displayed.availableMargin = new Decimal(NaN);
+        const openVerdict = orderGate.verify(open);
+        expect(openVerdict.approved).toBe(true);
+        expect(openVerdict.checked).not.toContain("availableMargin");
+        expect(openVerdict.checked).toContain("availableMarginUnmeasured");
+    });
+
+    it("approves an open that exactly consumes the available balance", () => {
+        // The refusal fires above the balance, not at it: required == available
+        // leaves nothing, but nothing is overspent.
+        const intent = openIntent();
+        intent.displayed.availableMargin = new Decimal(100);
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(true);
+        expect(verdict.refusal).toBeNull();
+        expect(verdict.checked).toContain("availableMargin");
     });
 });
