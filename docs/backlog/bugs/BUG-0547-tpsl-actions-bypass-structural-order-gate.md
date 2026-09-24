@@ -2,8 +2,10 @@
 id: BUG-0547
 title: TP/SL creation actions bypass the structural order gate
 type: bug
-status: specced
+status: done
 priority: P1
+assignee: opencode
+branch: fix/bug-0547-gate-registry
 milestone: none
 editions: [community, pro, private]
 area: execution
@@ -32,11 +34,11 @@ Make the gate registry authoritative for every write action accepted by the orde
 
 ## Acceptance criteria
 
-- [ ] `mutatingActionOf()` returns `place` and `place-position` for `/api/tpsl` payloads.
-- [ ] Direct signed requests for either action fail without a valid gate pass and no network request occurs.
-- [ ] Valid `orderGate.submit()` calls still succeed.
-- [ ] Architecture tests compare route write actions, gate actions, and the scanner registry.
-- [ ] Regression tests cover both action names and the unchanged cancel/modify paths.
+- [x] `mutatingActionOf()` returns `place` and `place-position` for `/api/tpsl` payloads.
+- [x] Direct signed requests for either action fail without a valid gate pass and no network request occurs.
+- [x] Valid `orderGate.submit()` calls still succeed.
+- [x] Architecture tests compare route write actions, gate actions, and the scanner registry.
+- [x] Regression tests cover both action names and the unchanged cancel/modify paths.
 
 ## Out of scope
 

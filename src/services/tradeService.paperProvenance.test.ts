@@ -66,6 +66,7 @@ vi.mock("../utils/exchange/browserSigning", async (importOriginal) => {
 });
 
 import { tradeService } from "./tradeService";
+import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { marketState } from "../stores/market.svelte";
 import {
@@ -169,6 +170,23 @@ describe("BUG-0494 — paper provenance", () => {
         });
         expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
     });
+
+    it.each(["place", "place-position"])(
+        "refuses a direct signed TP/SL %s request before transport",
+        async (action) => {
+            vi.mocked(appFetch).mockClear();
+
+            await expect(
+                tradeService.signedRequest("/api/tpsl", {
+                    action,
+                    symbol: "BTCUSDT",
+                }),
+            ).rejects.toMatchObject({ refusal: { messageKey: "orderGate.bypassed" } });
+
+            expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
+            expect(appFetch).not.toHaveBeenCalled();
+        },
+    );
 
     it("leaves an unstamped transport call on its exact behaviour", async () => {
         // Absent means "not a bot order": without a pass this is still the

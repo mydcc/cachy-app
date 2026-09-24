@@ -38,6 +38,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { ROUTE_SIGNING_PLAN } from "../../utils/exchange/restSigningPlan";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SRC = path.join(REPO_ROOT, "src");
@@ -59,6 +60,8 @@ const MUTATING_ACTIONS = [
     "cancel-order",
     "cancel-all",
     "modify-order",
+    "place",
+    "place-position",
 ];
 
 interface Bypass {
@@ -93,6 +96,16 @@ function findBypasses(source: string, file: string): Bypass[] {
         found.push({ file, line: i + 1, excerpt: lines[i].trim() });
     }
     return found;
+}
+
+function routeWriteActions(): string[] {
+    const source = readFileSync(
+        path.join(REPO_ROOT, "src", "routes", "api", "tpsl", "+server.ts"),
+        "utf8",
+    );
+    const block = source.match(/const WRITE_PATHS: Record<string, string> = \{([\s\S]*?)\n\};/);
+    if (!block) throw new Error("TP/SL WRITE_PATHS block not found");
+    return [...block[1].matchAll(/^\s*"?([\w-]+)"?:\s*"/gm)].map((match) => match[1]);
 }
 
 /** Every shipped source file under src/ — tests and benchmarks excluded. */
@@ -188,6 +201,16 @@ describe("FEAT-0011 — the order transport is only reachable through the gate",
         const { MUTATING_ORDER_ACTIONS } = await import("../../services/orderGate");
         for (const action of MUTATING_ACTIONS) {
             expect(MUTATING_ORDER_ACTIONS.has(action)).toBe(true);
+        }
+        const tpslWriteActions = Object.keys(
+            ROUTE_SIGNING_PLAN["/api/tpsl"].signedByAction ?? {},
+        );
+        expect(new Set(routeWriteActions())).toEqual(new Set(tpslWriteActions));
+        for (const action of tpslWriteActions) {
+            expect(MUTATING_ORDER_ACTIONS.has(action)).toBe(true);
+            if (action !== "cancel" && action !== "modify") {
+                expect(MUTATING_ACTIONS).toContain(action);
+            }
         }
         // The gate additionally covers the /api/tpsl verbs ("cancel",
         // "modify"), which are too generic to grep for usefully — the runtime

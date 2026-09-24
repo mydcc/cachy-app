@@ -2206,8 +2206,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0547",
     "title": "TP/SL creation actions bypass the structural order gate",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
+    "assignee": "opencode",
+    "branch": "fix/bug-0547-gate-registry",
     "milestone": "none",
     "editions": [
       "community",
