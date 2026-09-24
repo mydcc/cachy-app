@@ -35,13 +35,14 @@
  */
 
 import { Decimal } from "decimal.js";
-import { validateTpSlPrice } from "../lib/calculators/tpsl";
+import { validateTpSlPrice, normalizePositionSide } from "../lib/calculators/tpsl";
 import { paperState, type PaperFill, type PaperOrder } from "../stores/paperTrading.svelte";
 
 export class PaperExchangeError extends Error {
     constructor(
         public code: string,
         message: string,
+        public values?: Record<string, string>,
     ) {
         super(message);
         this.name = "PaperExchangeError";
@@ -321,10 +322,21 @@ class PaperExchange {
         positionSide: "long" | "short",
         entryPrice: Decimal,
     ): void {
-        const side = positionSide === "long" ? "LONG" as const : "SHORT" as const;
-        for (const [prefix, kind] of [
-            ["tp", "TP"],
-            ["sl", "SL"],
+        // Fail closed on an unreadable side — see TpSlCreateModal. Paper
+        // state is local, so a spelling outside long/short means corruption,
+        // and a corrupted position gets no plan rather than a short-side one.
+        const side = normalizePositionSide(positionSide);
+        if (side === null) {
+            throw new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl", {
+                field: "side",
+                actual: String(positionSide),
+                entryPrice: entryPrice.toString(),
+                side: "—",
+            });
+        }
+        for (const [prefix, kind, field] of [
+            ["tp", "TP", "takeProfit"],
+            ["sl", "SL", "stopLoss"],
         ] as const) {
             const raw = payload[`${prefix}Price`];
             if (raw === undefined) continue;
@@ -333,9 +345,34 @@ class PaperExchange {
                 price === null ||
                 !validateTpSlPrice(kind, price, { entryPrice, side }).valid
             ) {
-                throw new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl");
+                throw new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl", {
+                    field,
+                    actual: price?.toString() ?? String(raw),
+                    entryPrice: entryPrice.toString(),
+                    side,
+                });
             }
         }
+    }
+
+    /*
+     * Reads a paper position's entry, refusing corrupt simulator state with
+     * a typed paper error instead of letting `new Decimal` throw raw past
+     * the caller.
+     */
+    private paperEntryPrice(position: { entryPrice: unknown }): Decimal {
+        const entry = toDecimal(position.entryPrice);
+        if (entry === null || !entry.isFinite()) {
+            throw new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl", {
+                field: "entryPrice",
+                actual: String(position.entryPrice),
+                entryPrice: String(position.entryPrice),
+                side: normalizePositionSide(
+                    (position as { side?: unknown }).side as string | null | undefined,
+                ) ?? "—",
+            });
+        }
+        return entry;
     }
 
     private placeTpSlPlan(
@@ -356,7 +393,7 @@ class PaperExchange {
         }
 
         const groupId = paperState.takeId("paper-tpsl");
-        const entry = new Decimal(position.entryPrice);
+        const entry = this.paperEntryPrice(position);
         this.assertTpSlLevels(params, position.side, entry);
         const created: PaperOrder[] = [];
 
@@ -464,7 +501,7 @@ class PaperExchange {
             this.assertTpSlLevels(
                 { [`${prefix}Price`]: raw },
                 position.side,
-                new Decimal(position.entryPrice),
+                this.paperEntryPrice(position),
             );
             const qty = toDecimal(params[`${prefix}Qty`]);
             orders[index] = {

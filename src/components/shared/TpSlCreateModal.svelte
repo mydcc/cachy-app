@@ -49,7 +49,7 @@ import { Decimal } from "decimal.js";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
-  import { validateTpSlPrice, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
+  import { validateTpSlPrice, normalizePositionSide, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
     position: OMSPosition;
@@ -95,10 +95,19 @@ import { Decimal } from "decimal.js";
 
   const tpSlContext = $derived.by<TpSlContext | null>(() => {
     if (position.entryPrice.lte(0) || !positionSize || positionSize.lte(0)) return null;
+    /*
+     * Fail closed on an unreadable side: an unknown spelling is not a short
+     * (the old `=== "long" ? LONG : SHORT` ternary), it is no context at
+     * all. The form then skips its pre-check and the gate refuses the
+     * submission as missing-side — the same path a corrupt entry price
+     * already takes.
+     */
+    const side = normalizePositionSide(position.side);
+    if (side === null) return null;
     return {
       entryPrice: position.entryPrice,
       leverage: position.leverage.gt(0) ? position.leverage : new Decimal(1),
-      side: position.side === "long" ? "LONG" : "SHORT",
+      side,
       positionSize,
     };
   });
@@ -125,21 +134,31 @@ import { Decimal } from "decimal.js";
   const tpDecimal = $derived(toDecimalOrZero(tpPrice));
   const slDecimal = $derived(toDecimalOrZero(slPrice));
 
-  function invalidTpSlMessage(field: "TP" | "SL") {
-    return get(_)("orderGate.invalidTpSl", { values: { field } });
+  function invalidTpSlMessage(field: "TP" | "SL", actual: string, ctx: TpSlContext) {
+    return get(_)("orderGate.invalidTpSl", {
+      values: {
+        field,
+        actual,
+        entryPrice: ctx.entryPrice.toString(),
+        side: ctx.side,
+      },
+    });
   }
 
-  function hasInvalidTpSl(takeProfit: string, stopLoss: string): boolean {
+  function hasInvalidTpSl(
+    takeProfit: string,
+    stopLoss: string,
+    setError: (message: string) => void,
+  ): boolean {
     if (!tpSlContext) return false;
+    const ctx = tpSlContext;
     const tick = tickSize.gt(0) ? tickSize : undefined;
-    if (takeProfit && !validateTpSlPrice("TP", toDecimalOrZero(takeProfit), tpSlContext, tick).valid) {
-      positionWideError = invalidTpSlMessage("TP");
-      partialError = invalidTpSlMessage("TP");
+    if (takeProfit && !validateTpSlPrice("TP", toDecimalOrZero(takeProfit), ctx, tick).valid) {
+      setError(invalidTpSlMessage("TP", takeProfit, ctx));
       return true;
     }
-    if (stopLoss && !validateTpSlPrice("SL", toDecimalOrZero(stopLoss), tpSlContext, tick).valid) {
-      positionWideError = invalidTpSlMessage("SL");
-      partialError = invalidTpSlMessage("SL");
+    if (stopLoss && !validateTpSlPrice("SL", toDecimalOrZero(stopLoss), ctx, tick).valid) {
+      setError(invalidTpSlMessage("SL", stopLoss, ctx));
       return true;
     }
     return false;
@@ -164,7 +183,7 @@ import { Decimal } from "decimal.js";
       positionWideError = $_("apiErrors.tpslNoLeg");
       return;
     }
-    if (hasInvalidTpSl(tpPrice, slPrice)) return;
+    if (hasInvalidTpSl(tpPrice, slPrice, (message) => (positionWideError = message))) return;
 
     positionWideLoading = true;
     positionWideError = "";
@@ -195,7 +214,7 @@ import { Decimal } from "decimal.js";
       partialError = $_("apiErrors.tpslNoLeg");
       return;
     }
-    if (hasInvalidTpSl(partialTpPrice, partialSlPrice)) return;
+    if (hasInvalidTpSl(partialTpPrice, partialSlPrice, (message) => (partialError = message))) return;
     if (!partialQty) {
       partialError = $_("modals.createTpSl.quantityRequired");
       return;

@@ -28,7 +28,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
-  import { validateTpSlPrice, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
+  import { validateTpSlPrice, normalizePositionSide, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
     order: TpSlOrder | null;
@@ -70,10 +70,13 @@
 
   const tpSlContext = $derived.by<TpSlContext | null>(() => {
     if (!position || position.entryPrice.lte(0) || position.size.lte(0)) return null;
+    // Fail closed on an unreadable side — see TpSlCreateModal.
+    const side = normalizePositionSide(position.side);
+    if (side === null) return null;
     return {
       entryPrice: position.entryPrice,
       leverage: position.leverage.gt(0) ? position.leverage : new Decimal(1),
-      side: position.side === "long" ? "LONG" : "SHORT",
+      side,
       positionSize: position.size,
     };
   });
@@ -144,7 +147,12 @@
       ).valid
     ) {
       error = get(_)("orderGate.invalidTpSl", {
-        values: { field: order.planType === "PROFIT" ? "TP" : "SL" },
+        values: {
+          field: order.planType === "PROFIT" ? "TP" : "SL",
+          actual: triggerPrice,
+          entryPrice: tpSlContext.entryPrice.toString(),
+          side: tpSlContext.side,
+        },
       });
       return;
     }

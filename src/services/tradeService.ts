@@ -2203,11 +2203,31 @@ class TradeService {
 
         const qty = params.qty !== undefined ? formatApiNum(params.qty) : liveOrder.amount;
         const price = params.price !== undefined ? formatApiNum(params.price) : (liveOrder.price || undefined);
-        const entryPrice = params.price !== undefined
-            ? new Decimal(params.price)
-            : liveOrder.price
-              ? new Decimal(liveOrder.price)
-              : undefined;
+        /*
+         * A corrupt price is not a missing one, but it is equally
+         * unverifiable: refuse typed (translated at the call site) instead of
+         * letting `new Decimal` throw raw past the gate. A falsy venue price
+         * stays "no entry given", as before.
+         */
+        let entryPrice: Decimal | undefined;
+        const rawEntry = params.price !== undefined ? params.price : liveOrder.price;
+        if (rawEntry) {
+            let parsed: Decimal | undefined;
+            try {
+                const candidate = new Decimal(rawEntry);
+                parsed = candidate.isFinite() ? candidate : undefined;
+            } catch {
+                parsed = undefined;
+            }
+            if (parsed === undefined) {
+                throw new OrderRefusedError(mismatch(
+                    "entryPrice",
+                    "a readable price",
+                    String(rawEntry),
+                ));
+            }
+            entryPrice = parsed;
+        }
 
         const payload: Record<string, unknown> = {
             type: "modify-order",

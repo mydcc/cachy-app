@@ -1626,6 +1626,13 @@ class OrderGate {
             if (validation.valid) continue;
             return {
                 field,
+                /*
+                 * `missingContext` cannot fire here — the entry-price check
+                 * above already refused a missing one — but the validator's
+                 * contract still carries it, so this mapping stays total
+                 * rather than trusting rule and validator to never drift
+                 * apart. Belt to those braces, deliberately.
+                 */
                 reason: validation.reason === "missingContext" ? "missing" : "unsupported",
                 messageKey: "orderGate.invalidTpSl",
                 values: {
