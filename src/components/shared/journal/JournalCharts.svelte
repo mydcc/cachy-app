@@ -22,6 +22,7 @@
     import DoughnutChart from "../charts/DoughnutChart.svelte";
     import { formatDynamicDecimal } from "../../../utils/utils";
     import { hexToRgba } from "../../../utils/colors";
+    import { readCssColor } from "../../../lib/themeColors";
     import { journalState } from "../../../stores/journal.svelte";
     import { calculator } from "../../../lib/calculator";
 
@@ -363,7 +364,7 @@
                             labels: {
                                 boxWidth: 10,
                                 padding: 10,
-                                color: "#94a3b8",
+                                color: readCssColor("--text-secondary", "#94a3b8"),
                                 font: { size: 10 },
                             },
                         },
@@ -451,7 +452,7 @@
         >
             <div class="text-center mb-4">
                 <span
-                    class="text-xs font-bold text-[#94a3b8] uppercase tracking-wider"
+                    class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider"
                     >{$_("journal.deepDive.charts.labels.tradingStats")}</span
                 >
             </div>
@@ -547,7 +548,7 @@
                         <span
                             style="color: {themeColors
                                 ? hexToRgba(themeColors.success, 1)
-                                : '#10b981'}"
+                                : readCssColor("--success-color", "#10b981")}"
                             >{$_("journal.labels.long")}: {qualData
                                 ?.detailedStats?.winRateLong
                                 ? formatDynamicDecimal(
@@ -559,7 +560,7 @@
                         <span
                             style="color: {themeColors
                                 ? hexToRgba(themeColors.success, 0.6)
-                                : '#10b981'}"
+                                : readCssColor("--success-color", "#10b981")}"
                             >{$_("journal.labels.short")}: {qualData
                                 ?.detailedStats?.winRateShort
                                 ? formatDynamicDecimal(

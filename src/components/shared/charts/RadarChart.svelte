@@ -30,6 +30,7 @@
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
+  import { readCssColor, parseColorToRgb } from "../../../lib/themeColors";
 
   // Register necessary components for Radar
   Chart.register(
@@ -64,7 +65,7 @@
       title: {
         display: !!title,
         text: title,
-        color: "#94a3b8",
+        color: readCssColor("--text-secondary", "#94a3b8"),
       },
       tooltip: {
         callbacks: {
@@ -85,7 +86,7 @@
           color: "rgba(148, 163, 184, 0.1)",
         },
         pointLabels: {
-          color: "#94a3b8",
+          color: readCssColor("--text-secondary", "#94a3b8"),
           font: {
             size: 11,
           },
@@ -101,6 +102,14 @@
   });
 
   // Construct chart data format
+  // Data hues resolve the active theme tokens (FEAT-0344) instead of
+  // hardcoding Chart.js blues, so the radar follows light/dark themes. The
+  // fill is the accent at 0.2 alpha — derived via parseColorToRgb so hex and
+  // rgb() resolutions both work (hexToRgba only accepts hex).
+  const chartAccent = readCssColor("--accent-color", "rgb(54, 162, 235)");
+  const chartAccentRgb = parseColorToRgb(chartAccent) ?? [54, 162, 235];
+  const chartAccentFill = `rgba(${chartAccentRgb[0]}, ${chartAccentRgb[1]}, ${chartAccentRgb[2]}, 0.2)`;
+  const chartPointFill = readCssColor("--bg-tertiary", "#1e293b");
   let chartData = $derived({
     labels: labels.length > 0 ? labels : data?.labels || [],
     datasets: [
@@ -108,12 +117,12 @@
         label: title,
         data: data?.data || [],
         fill: true,
-        backgroundColor: "rgba(54, 162, 235, 0.2)", // Default blue
-        borderColor: "rgb(54, 162, 235)",
-        pointBackgroundColor: "rgb(54, 162, 235)",
-        pointBorderColor: "#fff",
-        pointHoverBackgroundColor: "#fff",
-        pointHoverBorderColor: "rgb(54, 162, 235)",
+        backgroundColor: chartAccentFill,
+        borderColor: chartAccent,
+        pointBackgroundColor: chartAccent,
+        pointBorderColor: chartPointFill,
+        pointHoverBackgroundColor: chartPointFill,
+        pointHoverBorderColor: chartAccent,
       },
     ],
   });
