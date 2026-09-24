@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../../services/alertEngine/armRule", () => ({
   armRule: mocks.armRule,
   readRuleStore: mocks.readRuleStore,
+  RuleConflictError: class RuleConflictError extends Error {
+    readonly translationKey = "settings.automation.botChanged";
+  },
 }));
 
 vi.mock("../../../services/alertEngine/promoteAlert", () => ({
@@ -188,6 +191,60 @@ describe("AutomationTab order intent", () => {
     );
   });
 
+  it("does not open an editor for a reduce-only bot", () => {
+    const base = bot({ basis: "percent_of_entry", distance: "2" });
+    storedRules = [{
+      ...base,
+      action: {
+        ...base.action,
+        order: { ...base.action.order!, reduce_only: true },
+      },
+    }];
+    render();
+
+    expect(
+      [...host.querySelectorAll("button")].some(
+        (element) => element.textContent?.trim() === translation(en as Record<string, unknown>, "settings.automation.edit"),
+      ),
+    ).toBe(false);
+  });
+
+  it("does not recreate a bot deleted in another tab", () => {
+    storedRules = [bot({ basis: "percent_of_entry", distance: "2" })];
+    render();
+    button(translation(en as Record<string, unknown>, "settings.automation.edit")).click();
+    flushSync();
+    storedRules = [];
+    button(translation(en as Record<string, unknown>, "settings.automation.save")).click();
+    flushSync();
+
+    expect(mocks.armRule).not.toHaveBeenCalled();
+  });
+
+  it("anchors a size refusal to the size field", () => {
+    storedRules = [bot({ basis: "percent_of_entry", distance: "2" })];
+    mocks.validate.mockImplementationOnce(() => {
+      const error = Object.assign(new Error("refused"), {
+        name: "RuleRefusedError",
+        refusals: [{ field: "action.order.size", i18n_key: "rules.refusal.sizeMustBePositive" }],
+        translationKey: "rules.refusal.sizeMustBePositive",
+      });
+      throw error;
+    });
+    render();
+    button(translation(en as Record<string, unknown>, "settings.automation.edit")).click();
+    flushSync();
+    button(translation(en as Record<string, unknown>, "settings.automation.save")).click();
+    flushSync();
+
+    const size = host.querySelector("#bot-edit-size-bot-1") as HTMLInputElement;
+    const stop = host.querySelector("#bot-edit-stop-distance-bot-1") as HTMLInputElement;
+    expect(size.getAttribute("aria-invalid")).toBe("true");
+    expect(size.getAttribute("aria-describedby")).toBe("bot-edit-refusal-size");
+    expect(stop.getAttribute("aria-invalid")).toBe("false");
+    expect(host.querySelector("#bot-edit-refusal-size")).not.toBeNull();
+  });
+
   it("edits and revalidates a bot under the same id", () => {
     storedRules = [bot({ basis: "percent_of_entry", distance: "2" })];
     render();
@@ -209,6 +266,7 @@ describe("AutomationTab order intent", () => {
     );
     expect(mocks.armRule).toHaveBeenCalledWith(
       expect.objectContaining({ id: "bot-1", action: expect.objectContaining({ order: expect.objectContaining({ size: "2" }) }) }),
+      expect.objectContaining({ id: "bot-1", action: expect.objectContaining({ order: expect.objectContaining({ size: "1" }) }) }),
     );
     expect(host.textContent).toContain("with a stop 3% from the entry");
   });

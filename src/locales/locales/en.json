@@ -2700,6 +2700,7 @@
       "startsDisabled": "The new bot starts switched off.",
       "promoteFailed": "The bot could not be created.",
       "editFailed": "The bot could not be updated.",
+      "botChanged": "This bot changed or was deleted in another tab. Reload it before editing.",
       "account": "The simulated account",
       "orderRefusedPaperOff": "“{name}” fired, but placed nothing: paper trading is switched off.",
       "orderRefusedNoStop": "“{name}” fired, but placed nothing: a bot needs a stop before it can size a position.",

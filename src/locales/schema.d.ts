@@ -2350,6 +2350,7 @@ export type TranslationKey =
   | "settings.automation.startsDisabled"
   | "settings.automation.promoteFailed"
   | "settings.automation.editFailed"
+  | "settings.automation.botChanged"
   | "settings.automation.account"
   | "settings.automation.orderRefusedPaperOff"
   | "settings.automation.orderRefusedNoStop"

@@ -2700,6 +2700,7 @@
       "startsDisabled": "Der neue Bot startet ausgeschaltet.",
       "promoteFailed": "Der Bot konnte nicht erstellt werden.",
       "editFailed": "Der Bot konnte nicht aktualisiert werden.",
+      "botChanged": "Dieser Bot wurde in einem anderen Tab geändert oder gelöscht. Lade ihn vor dem Bearbeiten neu.",
       "account": "Das simulierte Konto",
       "orderRefusedPaperOff": "„{name}“ hat ausgelöst, aber nichts platziert: Paper-Trading ist ausgeschaltet.",
       "orderRefusedNoStop": "„{name}“ hat ausgelöst, aber nichts platziert: Ein Bot braucht einen Stop, um eine Position zu dimensionieren.",

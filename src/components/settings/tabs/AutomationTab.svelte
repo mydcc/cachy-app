@@ -47,7 +47,7 @@
     } from "../../../lib/rules/ruleSentence";
     import type { TranslationKey } from "../../../locales/schema";
     import type { OrderIntent, RuleDocument, SizeBasis } from "../../../lib/rules/types";
-    import { armRule, readRuleStore } from "../../../services/alertEngine/armRule";
+    import { armRule, readRuleStore, RuleConflictError } from "../../../services/alertEngine/armRule";
     import {
         deleteBot,
         isBot,
@@ -83,6 +83,7 @@
     let editSize = $state("1");
     let editStopDistance = $state("");
     let editRefusal = $state<{ key: string; field: string } | null>(null);
+    let editingBotSnapshot = $state<RuleDocument | null>(null);
 
     /**
      * Reads both halves of the store.
@@ -183,8 +184,9 @@
 
     function beginEdit(bot: RuleDocument) {
         const order = bot.action.order;
-        if (!order) return;
+        if (!order || order.reduce_only) return;
         editingBotId = bot.id;
+        editingBotSnapshot = bot;
         editRefusal = null;
         editSide = order.side;
         editSizeBasis = order.size_basis;
@@ -194,12 +196,18 @@
 
     function cancelEdit() {
         editingBotId = null;
+        editingBotSnapshot = null;
         editRefusal = null;
     }
 
     function saveBot() {
-        const bot = bots.find((candidate) => candidate.id === editingBotId);
-        if (!bot) return;
+        const snapshot = editingBotSnapshot;
+        if (!snapshot) return;
+        const bot = readRuleStore().find((candidate) => candidate.id === editingBotId);
+        if (!bot) {
+            editRefusal = { key: "settings.automation.botChanged", field: "" };
+            return;
+        }
         editRefusal = null;
         if (!editStopDistance.trim()) {
             editRefusal = { key: "settings.automation.stopRequired", field: "editStopDistance" };
@@ -216,10 +224,14 @@
                 ...bot,
                 action: { ...bot.action, order },
             });
-            armRule(updated);
+            armRule(updated, snapshot);
             cancelEdit();
             refresh();
         } catch (e) {
+            if (e instanceof RuleConflictError) {
+                editRefusal = { key: e.translationKey, field: "" };
+                return;
+            }
             if (isRuleRefusedError(e)) {
                 const first = e.refusals[0];
                 const field = first?.field === "action.order.size"
@@ -301,13 +313,15 @@
                                             (e.currentTarget as HTMLInputElement).checked,
                                         )}
                                 />
-                                <button
-                                    type="button"
-                                    class="text-xs text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-                                    onclick={() => beginEdit(bot)}
-                                >
-                                    {$_("settings.automation.edit")}
-                                </button>
+                                {#if !bot.action.order?.reduce_only}
+                                    <button
+                                        type="button"
+                                        class="text-xs text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+                                        onclick={() => beginEdit(bot)}
+                                    >
+                                        {$_("settings.automation.edit")}
+                                    </button>
+                                {/if}
                                 <button
                                     type="button"
                                     class="text-xs text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
@@ -373,7 +387,10 @@
                                             type="text"
                                             inputmode="decimal"
                                             bind:value={editSize}
+                                            aria-invalid={editRefusal?.field === "editSize" ? "true" : "false"}
+                                            aria-describedby={editRefusal?.field === "editSize" ? "bot-edit-refusal-size" : undefined}
                                             class="w-28 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
+                                            class:border-[var(--danger-color)]={editRefusal?.field === "editSize"}
                                         />
                                     </label>
 
@@ -396,7 +413,11 @@
 
                                 {#if editRefusal}
                                     <p
-                                        id="bot-edit-refusal-stop-distance"
+                                        id={editRefusal.field === "editSize"
+                                            ? "bot-edit-refusal-size"
+                                            : editRefusal.field === "editStopDistance"
+                                              ? "bot-edit-refusal-stop-distance"
+                                              : "bot-edit-refusal-general"}
                                         class="text-sm text-[var(--danger-color)]"
                                         role="alert"
                                     >
