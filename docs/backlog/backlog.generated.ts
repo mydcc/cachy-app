@@ -6363,7 +6363,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0345",
     "title": "Migrate indicator and charting variables to decimal.js",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "done_version": "1.6.0-beta.364",
+    "assignee": "opencode",
+    "branch": "feat/0345-indicator-decimal",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6372,8 +6375,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "private"
     ],
     "area": "calculation",
-    "data_class": "none",
     "adr": "none",
+    "data_class": "none",
     "depends_on": [],
     "parent": "FEAT-0341",
     "file": "features/FEAT-0345-indicator-decimal-migration.md"
