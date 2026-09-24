@@ -51,5 +51,7 @@ describe('patchBuildIndex', () => {
     expect(code).toContain('export { handler }');
     // Must handle `node build` (argv[1] is the directory), not just the file.
     expect(code).toContain('function isEntryPoint()');
+    // Must resolve symlinks via realpath for server environments (e.g. aaPanel).
+    expect(code).toContain('fs.realpathSync.native');
   });
 });
