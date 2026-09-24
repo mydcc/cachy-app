@@ -82,7 +82,7 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 | **Compute**   | **WebGPU**              | `src/services/webGpuCalculator.ts` with 17 WGSL compute shaders in `src/shaders/`, for work too heavy for the main thread.                          |
 | **Threading** | **Web Workers**         | Two workers in `src/workers/` (indicator computation and aggregation), keeping heavy work off the UI thread.                                        |
 | **Realtime DB**| **SpacetimeDB**        | `server/spacetimedb/` plus generated client bindings in `src/lib/spacetimedb/`. Backs the optional Global Chat only — see chapter 6.                |
-| **AI**        | **OpenAI · Gemini · Anthropic · OpenRouter · Ollama** | SDKs/proxies are present; the assistant and market analyst call them through the server proxy so the browser never contacts AI providers directly.                        |
+| **AI**        | **OpenAI · Gemini · Anthropic · OpenRouter · Ollama** | SDKs/proxies are present; the assistant and market analyst reach AI providers browser-direct by default — the server relay is an opt-in fallback for providers without CORS support (ADR-0019).                        |
 | **Charts**    | **lightweight-charts**  | Used alongside Chart.js for price charts; `three` powers the visual background effects.                                                             |
 | **Validation**| **Zod**                 | Strict schema validation on inbound exchange WebSocket payloads, so malformed market data is rejected rather than cast.                             |
 | **Testing**   | **Vitest · Playwright** | Vitest shares configuration with Vite; Playwright covers end-to-end flows.                                                                          |

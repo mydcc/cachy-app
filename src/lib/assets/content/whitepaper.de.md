@@ -65,7 +65,7 @@ In einer Ära von Datenlecks bezieht Cachy eine radikale Position: **Wir wollen 
 Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 
 - **Frontend**: Eine umfangreiche Single Page Application (SPA), angetrieben von SvelteKit. Sie handhabt 95% der Logik, einschließlich Datenverarbeitung, Chart-Rendering und Zustandsverwaltung.
-- **Backend (Serverless/Node)**: Eine leichtgewichtige API-Proxy-Schicht innerhalb von SvelteKit (\`src/routes/api/\`). Ihr Hauptzweck ist es, Anfragen für Börsen (Bitunix/Bitget) serverseitig zu signieren und KI-gestützte Diagnosen durchzuführen.
+- **Backend (Serverless/Node)**: Eine leichtgewichtige API-Proxy-Schicht innerhalb von SvelteKit (\`src/routes/api/\`). Ihr Hauptzweck ist es, vorsignierte Anfragen an Börsen (Bitunix/Bitget) weiterzuleiten — der Browser signiert via WebCrypto, der Proxy verifiziert die Envelope und leitet sie weiter (ADR-0013) — und als Opt-in-Relay für KI-Diagnosen zu dienen (Standard ist browser-direkt, ADR-0019).
 
 ### Technologie-Stack
 
@@ -82,7 +82,7 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **Compute**   | **WebGPU**              | \`src/services/webGpuCalculator.ts\` mit 17 WGSL-Compute-Shadern in \`src/shaders/\`, für Arbeit, die für den Main Thread zu schwer ist.                       |
 | **Threading** | **Web Workers**         | Zwei Worker in \`src/workers/\` (Indikatorberechnung und Aggregation), die schwere Arbeit vom UI-Thread fernhalten.                                           |
 | **Realtime-DB** | **SpacetimeDB**       | \`server/spacetimedb/\` samt generierter Client-Bindings in \`src/lib/spacetimedb/\`. Trägt ausschließlich den optionalen Global Chat — siehe Kapitel 6.       |
-| **KI**        | **OpenAI · Gemini · Anthropic · OpenRouter · Ollama** | SDKs/Proxys sind vorhanden; Assistent und Market Analyst rufen sie über den Server-Proxy auf, sodass der Browser die KI-Anbieter nie direkt kontaktiert.                     |
+| **KI**        | **OpenAI · Gemini · Anthropic · OpenRouter · Ollama** | SDKs/Proxys sind vorhanden; Assistent und Market Analyst sprechen die KI-Anbieter standardmäßig direkt vom Browser aus an — der Server-Relay ist nur ein Opt-in-Fallback für Anbieter ohne CORS-Freigabe (ADR-0019).                     |
 | **Charts**    | **lightweight-charts**  | Wird neben Chart.js für Preischarts verwendet; \`three\` treibt die visuellen Hintergrundeffekte.                                                             |
 | **Validierung** | **Zod**               | Strenge Schema-Validierung eingehender Börsen-WebSocket-Payloads, damit fehlerhafte Marktdaten verworfen statt gecastet werden.                              |
 | **Testing**   | **Vitest · Playwright** | Vitest teilt die Konfiguration mit Vite; Playwright deckt End-to-End-Abläufe ab.                                                                             |
