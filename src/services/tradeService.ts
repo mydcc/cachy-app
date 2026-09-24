@@ -2203,6 +2203,31 @@ class TradeService {
 
         const qty = params.qty !== undefined ? formatApiNum(params.qty) : liveOrder.amount;
         const price = params.price !== undefined ? formatApiNum(params.price) : (liveOrder.price || undefined);
+        /*
+         * A corrupt price is not a missing one, but it is equally
+         * unverifiable: refuse typed (translated at the call site) instead of
+         * letting `new Decimal` throw raw past the gate. A falsy venue price
+         * stays "no entry given", as before.
+         */
+        let entryPrice: Decimal | undefined;
+        const rawEntry = params.price !== undefined ? params.price : liveOrder.price;
+        if (rawEntry) {
+            let parsed: Decimal | undefined;
+            try {
+                const candidate = new Decimal(rawEntry);
+                parsed = candidate.isFinite() ? candidate : undefined;
+            } catch {
+                parsed = undefined;
+            }
+            if (parsed === undefined) {
+                throw new OrderRefusedError(mismatch(
+                    "entryPrice",
+                    "a readable price",
+                    String(rawEntry),
+                ));
+            }
+            entryPrice = parsed;
+        }
 
         const payload: Record<string, unknown> = {
             type: "modify-order",
@@ -2227,6 +2252,64 @@ class TradeService {
         // against the raw request is what catches a serialisation defect —
         // the exact failure mode that produced the float bug in the order
         // payload and the `response.json()`-corrupted order IDs.
+        /*
+         * Same fail-closed reading as entryPrice above, for the remaining
+         * raw constructions in this hunk: a stated but corrupt level or
+         * quantity refuses typed instead of throwing raw past the gate. An
+         * absent quantity stays undefined — the gate refuses a stated
+         * payload quantity without a displayed one as missing qty.inputs.
+         */
+        let stopLossPrice: Decimal | undefined;
+        if (params.slPrice !== undefined) {
+            try {
+                const parsed = new Decimal(params.slPrice);
+                stopLossPrice = parsed.isFinite() ? parsed : undefined;
+            } catch {
+                stopLossPrice = undefined;
+            }
+            if (stopLossPrice === undefined) {
+                throw new OrderRefusedError(mismatch(
+                    "stopLoss",
+                    "a readable price",
+                    String(params.slPrice),
+                ));
+            }
+        }
+        let takeProfits: Decimal[] | undefined;
+        if (params.tpPrice !== undefined) {
+            let parsed: Decimal | undefined;
+            try {
+                const candidate = new Decimal(params.tpPrice);
+                parsed = candidate.isFinite() ? candidate : undefined;
+            } catch {
+                parsed = undefined;
+            }
+            if (parsed === undefined) {
+                throw new OrderRefusedError(mismatch(
+                    "takeProfit",
+                    "a readable price",
+                    String(params.tpPrice),
+                ));
+            }
+            takeProfits = [parsed];
+        }
+        let modifyQuantity: Decimal | undefined;
+        const rawQty = params.qty !== undefined ? params.qty : liveOrder.amount;
+        if (rawQty !== undefined && rawQty !== null && rawQty !== "") {
+            try {
+                const parsed = new Decimal(rawQty);
+                modifyQuantity = parsed.isFinite() ? parsed : undefined;
+            } catch {
+                modifyQuantity = undefined;
+            }
+            if (modifyQuantity === undefined) {
+                throw new OrderRefusedError(mismatch(
+                    "modifyQuantity",
+                    "a readable quantity",
+                    String(rawQty),
+                ));
+            }
+        }
         return await this.gatedRequest({
             kind: "modify",
             endpoint: "/api/orders",
@@ -2234,13 +2317,14 @@ class TradeService {
             displayed: {
                 symbol: typeof symbol === "string" ? symbol : undefined,
                 orderId: params.orderId,
-                entryPrice: params.price !== undefined ? new Decimal(params.price) : undefined,
-                stopLossPrice: params.slPrice !== undefined ? new Decimal(params.slPrice) : undefined,
-                takeProfits: params.tpPrice !== undefined ? [new Decimal(params.tpPrice)] : undefined,
+                entryPrice,
+                positionSide: liveOrder.side,
+                stopLossPrice,
+                takeProfits,
                 // The quantity the caller asked for, or the live order read
                 // this request was merged with — the gate compares the
                 // payload back against it (BUG-0505).
-                modifyQuantity: params.qty !== undefined ? new Decimal(params.qty) : new Decimal(liveOrder.amount),
+                modifyQuantity,
             },
         });
     }
@@ -2395,6 +2479,8 @@ class TradeService {
         triggerPrice: string,
         qty?: string,
         stopType?: "LAST_PRICE" | "MARK_PRICE",
+        context?: { side: "long" | "short"; entryPrice: Decimal },
+        tickSize?: Decimal,
     }) {
         const wire: Record<string, unknown> = { orderId: params.orderId };
         if (params.planType === "PROFIT") {
@@ -2420,6 +2506,9 @@ class TradeService {
             displayed: {
                 symbol: params.symbol,
                 orderId: params.orderId,
+                positionSide: params.context?.side.toUpperCase(),
+                entryPrice: params.context?.entryPrice,
+                tickSize: params.tickSize,
                 // A PROFIT plan's trigger is a take-profit level, a LOSS
                 // plan's is a stop — same field on the wire, different
                 // meaning, and each has to land in the slot the gate checks.
@@ -2462,6 +2551,8 @@ class TradeService {
         positionId: string,
         takeProfit?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
         stopLoss?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
+        context?: { side: "long" | "short"; entryPrice: Decimal },
+        tickSize?: Decimal,
     }) {
         if (!params.takeProfit && !params.stopLoss) {
             throw new Error("apiErrors.tpslNoLeg");
@@ -2492,6 +2583,9 @@ class TradeService {
             displayed: {
                 symbol: params.symbol,
                 positionId: params.positionId,
+                positionSide: params.context?.side.toUpperCase(),
+                entryPrice: params.context?.entryPrice,
+                tickSize: params.tickSize,
                 takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
                 stopLossPrice: params.stopLoss?.price,
             },
@@ -2531,6 +2625,8 @@ class TradeService {
             orderType?: "LIMIT" | "MARKET",
             orderPrice?: Decimal,
         },
+        context?: { side: "long" | "short"; entryPrice: Decimal },
+        tickSize?: Decimal,
     }) {
         if (!params.takeProfit && !params.stopLoss) {
             throw new Error("apiErrors.tpslNoLeg");
@@ -2571,6 +2667,9 @@ class TradeService {
             displayed: {
                 symbol: params.symbol,
                 positionId: params.positionId,
+                positionSide: params.context?.side.toUpperCase(),
+                entryPrice: params.context?.entryPrice,
+                tickSize: params.tickSize,
                 takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
                 stopLossPrice: params.stopLoss?.price,
                 // Fixed-quantity legs, compared back against the wire the

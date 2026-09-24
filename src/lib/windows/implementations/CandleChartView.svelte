@@ -47,6 +47,7 @@
     import { accountState } from "../../../stores/account.svelte";
     import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
+    import { validateTpSlPrice, normalizePositionSide } from "../../../lib/calculators/tpsl";
     import { marketWatcher } from "../../../services/marketWatcher";
     import { activeExchange } from "../../../services/exchange";
     import { toastService } from "../../../services/toastService.svelte";
@@ -723,6 +724,45 @@
      * chart carries the same audit trail and risk checks as any other order
      * mutation.
      */
+    /*
+     * Pre-checks a dropped TP/SL line against the position before the gated
+     * mutation below. Returns true when the drop may proceed; otherwise shows
+     * the same refusal message the gate would produce and returns false.
+     * An unreadable position side is not a short — it refuses, like a wrong
+     * side does.
+     */
+    function dropPassesPrecheck(
+        kind: TpSlKind,
+        price: Decimal,
+        position: { entryPrice: Decimal; side: string } | undefined,
+        tickSize: Decimal | undefined,
+    ): boolean {
+        const side = position ? normalizePositionSide(position.side) : null;
+        const field = kind === "takeProfit" ? "TP" : "SL";
+        const valid =
+            position !== undefined &&
+            side !== null &&
+            validateTpSlPrice(
+                field,
+                price,
+                { entryPrice: position.entryPrice, side },
+                tickSize,
+            ).valid;
+        if (!valid) {
+            toastService.error(
+                get(_)("orderGate.invalidTpSl", {
+                    values: {
+                        field,
+                        actual: price.toString(),
+                        entryPrice: position?.entryPrice.toString() ?? "—",
+                        side: side ?? "—",
+                    },
+                }),
+            );
+        }
+        return valid;
+    }
+
     async function handleTpSlDrop(kind: TpSlKind, orderId: string, price: Decimal) {
         const planType = kind === "takeProfit" ? "PROFIT" : "LOSS";
         const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
@@ -740,6 +780,32 @@
         // id recovered from the dragged line is authoritative.
         const plans = tpSlState.plansFor(normalizedSymbol);
         const plan = kind === "takeProfit" ? plans.profit : plans.loss;
+        /*
+         * Hedge mode holds two legs on one symbol, so the symbol alone can
+         * resolve the wrong position — and the pre-check plus the gate would
+         * then validate the drop against the wrong entry and side. With a
+         * single candidate nothing changes; with several, only the position
+         * the trusted plan belongs to counts. No trusted plan, no position:
+         * the pre-check below refuses with the invalidTpSl toast.
+         */
+        const candidates = accountState.positions.filter((p) => p.symbol === normalizedSymbol);
+        let position = candidates.length === 1 ? candidates[0] : undefined;
+        if (
+            position === undefined &&
+            plan?.sourceOrderId === baseId &&
+            plan.positionId !== undefined &&
+            plan.positionId !== null
+        ) {
+            const wanted = String(plan.positionId);
+            position = candidates.find((p) => String(p.positionId) === wanted);
+        }
+        const meta = marketState?.symbolMeta?.[normalizedSymbol];
+        const tickSize =
+            meta?.quotePrecision !== undefined ? new Decimal(10).pow(-meta.quotePrecision) : undefined;
+        // The pre-check already refused a missing position with the invalidTpSl
+        // toast; the explicit `undefined` test below is for the type-checker,
+        // which cannot see through the helper.
+        if (!dropPassesPrecheck(kind, price, position, tickSize) || position === undefined) return;
         const venueOrderId =
             plan?.sourceOrderId === baseId ? plan.sourceOrderId : baseId;
         try {
@@ -748,6 +814,11 @@
                 symbol: normalizedSymbol,
                 planType,
                 triggerPrice: price.toString(),
+                context: {
+                    side: position.side,
+                    entryPrice: position.entryPrice,
+                },
+                tickSize,
             });
             toastService.success(get(_)("trade.tpSlUpdated"));
         } catch (e: unknown) {

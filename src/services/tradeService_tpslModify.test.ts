@@ -26,6 +26,7 @@
 
 import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Decimal } from "decimal.js";
 import { tradeService } from "./tradeService";
 
 vi.mock("./omsService", () => ({
@@ -81,6 +82,8 @@ beforeEach(() => {
     vi.clearAllMocks();
 });
 
+const CONTEXT = { side: "long" as const, entryPrice: new Decimal(60000) };
+
 describe("modifyTpSlOrder — wire shape", () => {
     it("sends tpPrice, not the old triggerPrice/planType shape", async () => {
         const spy = spyRequest();
@@ -89,6 +92,7 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "PROFIT",
+            context: CONTEXT,
             triggerPrice: "70000",
         });
 
@@ -105,6 +109,7 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "LOSS",
+            context: CONTEXT,
             triggerPrice: "55000",
         });
 
@@ -120,6 +125,7 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "PROFIT",
+            context: CONTEXT,
             triggerPrice: "70000",
         });
 
@@ -133,6 +139,7 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "PROFIT",
+            context: CONTEXT,
             triggerPrice: "70000",
         });
 
@@ -146,6 +153,7 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "LOSS",
+            context: CONTEXT,
             triggerPrice: "55000",
             stopType: "LAST_PRICE",
         });
@@ -160,6 +168,7 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "PROFIT",
+            context: CONTEXT,
             triggerPrice: "70000",
             qty: "0.5",
         });
@@ -174,10 +183,40 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "PROFIT",
+            context: CONTEXT,
             triggerPrice: "70000",
         });
 
         expect("tpQty" in sentParams(spy)).toBe(false);
+    });
+
+    it("refuses a TP on the wrong side of entry before transport", async () => {
+        const spy = spyRequest();
+
+        await expect(
+            tradeService.modifyTpSlOrder({
+                orderId: "1",
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "55000",
+                context: CONTEXT,
+            }),
+        ).rejects.toMatchObject({ refusal: { messageKey: "orderGate.invalidTpSl" } });
+        expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("refuses a context-free modify as unverifiable rather than assuming a side", async () => {
+        const spy = spyRequest();
+
+        await expect(
+            tradeService.modifyTpSlOrder({
+                orderId: "1",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "55000",
+            }),
+        ).rejects.toMatchObject({ refusal: { field: "side" } });
+        expect(spy).not.toHaveBeenCalled();
     });
 
     it("reaches the exchange rather than being refused by its own gate", async () => {
@@ -193,6 +232,7 @@ describe("modifyTpSlOrder — wire shape", () => {
             orderId: "1",
             symbol: "BTCUSDT",
             planType: "LOSS",
+            context: CONTEXT,
             triggerPrice: "55000",
         });
 

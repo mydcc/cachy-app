@@ -318,6 +318,8 @@ export interface TradingPort {
         triggerPrice: string;
         qty?: string;
         stopType?: "LAST_PRICE" | "MARK_PRICE";
+        context?: { side: "long" | "short"; entryPrice: Decimal };
+        tickSize?: Decimal;
     }): Promise<unknown>;
 
     /** Creates the one position-wide TP/SL plan a position may carry (FEAT-0070). */
@@ -326,6 +328,8 @@ export interface TradingPort {
         positionId: string;
         takeProfit?: { price: Decimal; stopType?: "LAST_PRICE" | "MARK_PRICE" };
         stopLoss?: { price: Decimal; stopType?: "LAST_PRICE" | "MARK_PRICE" };
+        context?: { side: "long" | "short"; entryPrice: Decimal };
+        tickSize?: Decimal;
     }): Promise<unknown>;
 
     /** Creates a partial TP/SL plan with an explicit quantity (FEAT-0070). */
@@ -346,6 +350,8 @@ export interface TradingPort {
             orderType?: "LIMIT" | "MARKET";
             orderPrice?: Decimal;
         };
+        context?: { side: "long" | "short"; entryPrice: Decimal };
+        tickSize?: Decimal;
     }): Promise<unknown>;
 }
 

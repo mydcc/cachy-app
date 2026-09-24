@@ -185,6 +185,23 @@ describe("FEAT-0021 — the happy path", () => {
         expect(placeOrder.mock.calls[0][0].side).toBe("SELL");
     });
 
+    it("refuses an unknown trade direction instead of defaulting it to long", async () => {
+        await expect(
+            orderPlacementService.placeEntryGroup(
+                plan({ tradeType: "sideways" as "long" }),
+            ),
+        ).rejects.toThrow('unknown trade direction: "sideways"');
+        expect(placeOrder).not.toHaveBeenCalled();
+    });
+
+    it("narrows only readable trade directions", async () => {
+        const { narrowTradeType } = await import("./orderPlacementService");
+        expect(narrowTradeType("long")).toBe("long");
+        expect(narrowTradeType("SHORT")).toBe("short");
+        expect(narrowTradeType("sideways")).toBeNull();
+        expect(narrowTradeType("")).toBeNull();
+    });
+
     it("sends a limit order with its time in force, and a market order without", async () => {
         await orderPlacementService.placeEntryGroup(
             plan({ entryType: "limit", timeInForce: "POST_ONLY" }),

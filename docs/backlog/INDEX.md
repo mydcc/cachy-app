@@ -2,9 +2,9 @@
 
 # Backlog index
 
-439 items. How to read and add them: [README.md](README.md).
+440 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 377 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 378 · ⛔ dropped 1
 
 ---
 
@@ -218,7 +218,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md) | The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected | P0 | ✅ done | execution |
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | execution |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | execution |
-| [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | 📋 specced | execution |
+| [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | execution |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -503,6 +503,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | trade-panel |
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | trade-panel |
 | [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | market-data |
+| [IDEA-0564](ideas/IDEA-0564-tpsl-seam-tests.md) | Seam-level TPSL tests for tick misalignment and position-less drops | P3 | 📋 specced | execution |
 
 ---
 
@@ -533,7 +534,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0502](bugs/BUG-0502-protection-check-matches-any-stop-on-the-symbol.md) | The post-placement protection check accepts any stop on the symbol, so a pre-existing plan reports a new position as protected | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -949,7 +950,8 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | none | community, pro, private | A | none | — |
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | none | community, pro, private | A | none | — |
 | [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | none | community, pro, private | C | none | — |
+| [IDEA-0564](ideas/IDEA-0564-tpsl-seam-tests.md) | Seam-level TPSL tests for tick misalignment and position-less drops | P3 | 📋 specced | none | community, pro, private | none | none | — |
 
 ---
 
-Next free number: **0563**
+Next free number: **0565**

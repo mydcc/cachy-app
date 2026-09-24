@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { Decimal } from "decimal.js";
+  import { get } from "svelte/store";
   import { activeExchange, type TpSlOrder } from "../../services/exchange";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
@@ -27,7 +28,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
-  import type { TpSlContext, FeeRates } from "../../lib/calculators/tpsl";
+  import { validateTpSlPrice, normalizePositionSide, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
     order: TpSlOrder | null;
@@ -69,10 +70,13 @@
 
   const tpSlContext = $derived.by<TpSlContext | null>(() => {
     if (!position || position.entryPrice.lte(0) || position.size.lte(0)) return null;
+    // Fail closed on an unreadable side — see TpSlCreateModal.
+    const side = normalizePositionSide(position.side);
+    if (side === null) return null;
     return {
       entryPrice: position.entryPrice,
       leverage: position.leverage.gt(0) ? position.leverage : new Decimal(1),
-      side: position.side === "long" ? "LONG" : "SHORT",
+      side,
       positionSize: position.size,
     };
   });
@@ -133,6 +137,25 @@
       error = $_("bitunixErrors.INVALID_TRIGGER") || "Trigger price is required";
       return;
     }
+    if (
+      tpSlContext &&
+      !validateTpSlPrice(
+        order.planType === "PROFIT" ? "TP" : "SL",
+        triggerDecimal,
+        tpSlContext,
+        tickSize.gt(0) ? tickSize : undefined,
+      ).valid
+    ) {
+      error = get(_)("orderGate.invalidTpSl", {
+        values: {
+          field: order.planType === "PROFIT" ? "TP" : "SL",
+          actual: triggerPrice,
+          entryPrice: tpSlContext.entryPrice.toString(),
+          side: tpSlContext.side,
+        },
+      });
+      return;
+    }
 
     loading = true;
     error = "";
@@ -146,6 +169,10 @@
         symbol: order.symbol,
         planType: order.planType,
         triggerPrice: String(triggerPrice),
+        context: position
+          ? { side: position.side, entryPrice: position.entryPrice }
+          : undefined,
+        tickSize,
         qty: amount ? String(amount) : undefined,
       });
       onsuccess?.();

@@ -48,6 +48,48 @@
 import { Decimal } from "decimal.js";
 
 export type PositionSide = "LONG" | "SHORT";
+export type TpSlPriceKind = "TP" | "SL";
+export type TpSlValidationReason = "missingContext" | "invalidPrice" | "wrongSide" | "tickSize";
+export type TpSlValidation =
+    | { valid: true }
+    | { valid: false; reason: TpSlValidationReason };
+
+export function normalizePositionSide(side: string | null | undefined): PositionSide | null {
+    const normalized = side?.trim().toUpperCase();
+    if (normalized === "LONG" || normalized === "BUY") return "LONG";
+    if (normalized === "SHORT" || normalized === "SELL") return "SHORT";
+    return null;
+}
+
+export function validateTpSlPrice(
+    kind: TpSlPriceKind,
+    price: Decimal,
+    context: Pick<TpSlContext, "entryPrice" | "side">,
+    tickSize?: Decimal,
+): TpSlValidation {
+    if (!context.entryPrice.isFinite() || context.entryPrice.lte(0)) {
+        return { valid: false, reason: "missingContext" };
+    }
+    if (!price.isFinite() || price.lte(0)) {
+        return { valid: false, reason: "invalidPrice" };
+    }
+    if (tickSize !== undefined && !tickSize.isFinite()) {
+        return { valid: false, reason: "tickSize" };
+    }
+    if (tickSize !== undefined && tickSize.gt(0) && !price.mod(tickSize).isZero()) {
+        return { valid: false, reason: "tickSize" };
+    }
+
+    const valid =
+        context.side === "LONG"
+            ? kind === "TP"
+                ? price.gt(context.entryPrice)
+                : price.lt(context.entryPrice)
+            : kind === "TP"
+              ? price.lt(context.entryPrice)
+              : price.gt(context.entryPrice);
+    return valid ? { valid: true } : { valid: false, reason: "wrongSide" };
+}
 
 /**
  * Everything the three modes need about the position being protected.

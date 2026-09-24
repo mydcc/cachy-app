@@ -2,8 +2,10 @@
 id: BUG-0550
 title: TP/SL trigger prices are not validated against position direction
 type: bug
-status: specced
+status: done
 priority: P0
+assignee: opencode
+branch: fix/bug-0550-tpsl-direction
 milestone: none
 editions: [community, pro, private]
 area: execution
@@ -32,12 +34,12 @@ Add one Decimal-based TP/SL semantic validator shared by calculator, create/edit
 
 ## Acceptance criteria
 
-- [ ] Long TP below entry and long SL above entry are refused.
-- [ ] Short TP above entry and short SL below entry are refused.
-- [ ] Equal-to-entry, zero, negative, and non-finite levels are refused.
-- [ ] Valid levels continue to pass in paper and live modes.
-- [ ] Chart drag, entry TP rows, post-entry create/edit, and the gate produce the same refusal.
-- [ ] Tests prove no TP/SL request is signed for an invalid direction.
+- [x] Long TP below entry and long SL above entry are refused.
+- [x] Short TP above entry and short SL below entry are refused.
+- [x] Equal-to-entry, zero, negative, and non-finite levels are refused.
+- [x] Valid levels continue to pass in paper and live modes.
+- [x] Chart drag, entry TP rows, post-entry create/edit, and the gate produce the same refusal.
+- [x] Tests prove no TP/SL request is signed for an invalid direction.
 
 ## Out of scope
 

@@ -493,6 +493,8 @@ describe("orderGate — modify quantities (BUG-0505)", () => {
                 ...ACCOUNT,
                 symbol: "BTCUSDT",
                 positionId: "pos-1",
+                positionSide: "LONG",
+                entryPrice: new Decimal(50000),
                 positionAmount: new Decimal("0.5"),
                 stopLossPrice: new Decimal(49500),
                 stopLossQty: new Decimal("0.3"),
@@ -506,6 +508,27 @@ describe("orderGate — modify quantities (BUG-0505)", () => {
             },
         };
     }
+
+    it("refuses a TP level on the wrong side of entry", () => {
+        const intent = tpslPlaceIntent();
+        const params = intent.payload.params as Record<string, unknown>;
+        params.tpPrice = "49000";
+        intent.displayed.takeProfits = [new Decimal(49000)];
+
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.messageKey).toBe("orderGate.invalidTpSl");
+    });
+
+    it("refuses a TP/SL request without side and entry context", () => {
+        const intent = tpslPlaceIntent();
+        delete intent.displayed.positionSide;
+        delete intent.displayed.entryPrice;
+
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.messageKey).toBe("orderGate.missing");
+    });
 
     it("refuses a modify whose payload quantity differs from the displayed quantity", () => {
         const intent = modifyOrderIntent();
@@ -585,6 +608,8 @@ describe("orderGate — modify quantities (BUG-0505)", () => {
                 ...ACCOUNT,
                 symbol: "BTCUSDT",
                 positionId: "pos-1",
+                positionSide: "LONG",
+                entryPrice: new Decimal(50000),
                 stopLossPrice: new Decimal(49500),
             },
             priceFields: { takeProfit: "params.tpPrice", stopLoss: "params.slPrice" },

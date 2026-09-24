@@ -16,6 +16,7 @@
  */
 
 import { OrderRefusedError, translateRefusal } from "../services/orderGate";
+import { PaperExchangeError } from "../services/paperExchange";
 import { ExchangeUnsupportedError } from "../services/exchange/errors";
 import type { TranslationKey } from "../locales/schema";
 
@@ -51,6 +52,13 @@ export function getDisplayMessage(e: unknown, t?: Translate): string {
         return translateRefusal(e.refusal, (key, options) =>
             t(key as TranslationKey, options),
         );
+    }
+    // A paper refusal that carries its interpolation values (currently the
+    // TP/SL validator) renders through the same catalogue as a gate refusal
+    // instead of surfacing the bare key. Paper errors without values keep the
+    // legacy path below.
+    if (t && e instanceof PaperExchangeError && e.values) {
+        return t(e.message as TranslationKey, { values: e.values });
     }
     // FEAT-0229: refused locally because the venue cannot do it. `.message`
     // is an English developer string naming the adapter method; the trader

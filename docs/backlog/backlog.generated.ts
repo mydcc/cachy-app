@@ -509,8 +509,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0550",
     "title": "TP/SL trigger prices are not validated against position direction",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P0",
+    "assignee": "opencode",
+    "branch": "fix/bug-0550-tpsl-direction",
     "milestone": "none",
     "editions": [
       "community",
@@ -9380,6 +9382,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "ideas/IDEA-0413-market-data-polling-volume.md"
+  },
+  {
+    "id": "IDEA-0564",
+    "title": "Seam-level TPSL tests for tick misalignment and position-less drops",
+    "type": "idea",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
   }
 ] as const;
 

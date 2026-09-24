@@ -129,6 +129,14 @@ vi.mock("../../stores/modal.svelte", () => ({ modalState: { show: showMock } }))
 const placeEntryGroupMock = vi.hoisted(() => vi.fn());
 vi.mock("../../services/orderPlacementService", () => ({
     orderPlacementService: { placeEntryGroup: placeEntryGroupMock },
+    // The panel narrows the free-string trade direction through the real
+    // helper; mirrored here so the mock does not turn every submit
+    // fail-closed.
+    narrowTradeType: (tradeType: string) => {
+        const normalized = tradeType.toLowerCase();
+        if (normalized === "long" || normalized === "short") return normalized;
+        return null;
+    },
 }));
 
 vi.mock("../../services/toastService.svelte", () => ({
@@ -270,5 +278,22 @@ describe("BUG-0507 — the panel refuses a second submit during confirmation", (
         // Cancel cleared the guard: the button is back and no placement ran.
         expect(submitButton().disabled).toBe(false);
         expect(placeEntryGroupMock).not.toHaveBeenCalled();
+    });
+});
+
+describe("unknown trade direction fails closed", () => {
+    it("disables submit and never places when the direction is unreadable", async () => {
+        mockTradeData.tradeType = "sideways";
+        try {
+            component = mount(PlaceOrderPanel, { target: host }) as never;
+            await settle();
+
+            expect(submitButton().disabled).toBe(true);
+            click(submitButton());
+            await settle();
+            expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        } finally {
+            mockTradeData.tradeType = "long";
+        }
     });
 });

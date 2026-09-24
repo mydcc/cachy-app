@@ -182,6 +182,24 @@ describe("FEAT-0254 — slider, target and trigger stay one value", () => {
 
         expect(onChange).not.toHaveBeenCalled();
     });
+
+    it("ignores a take-profit below a long entry", () => {
+        const onChange = vi.fn();
+        render({ price: new Decimal("100"), onChange });
+
+        typeInto(triggerField(), "90");
+
+        expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("ignores a stop above a long entry", () => {
+        const onChange = vi.fn();
+        render({ kind: "SL", price: new Decimal("100"), onChange });
+
+        typeInto(triggerField(), "110");
+
+        expect(onChange).not.toHaveBeenCalled();
+    });
 });
 
 describe("FEAT-0254 — calculation modes", () => {

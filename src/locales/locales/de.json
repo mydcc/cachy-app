@@ -297,7 +297,8 @@
       "tpSliderLabel": "Take-Profit-Ziel",
       "slSliderLabel": "Stop-Loss-Ziel",
       "grossBeforeFees": "Brutto",
-      "netAfterFees": "Nach Gebühren"
+      "netAfterFees": "Nach Gebühren",
+      "invalidPrice": "Kein gültiger Preis — vorheriger Wert behalten."
     },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",
@@ -4072,6 +4073,7 @@
     "symbolStatus": "Order abgelehnt: Der Symbol-Status ist {status} (erwartet: OPEN). Der Handel ist derzeit nicht verfügbar.",
     "apiUnsupported": "Order abgelehnt: API-Handel wird für dieses Symbol nicht unterstützt.",
     "bypassed": "Order abgelehnt: Eine Order vom Typ {action} hat versucht, die Börse ohne Prüfung zu erreichen. Das ist ein Fehler — bitte melden.",
+    "invalidTpSl": "Order abgelehnt: Der {field}-Preis {actual} ist für diese {side}-Position mit Einstiegskurs {entryPrice} ungültig. Die Order wurde nicht gesendet.",
     "botPaperOnly": "Order abgelehnt: Eine Bot-Order darf nur bei aktiviertem Paper-Trading platziert werden. Paper-Trading ist ausgeschaltet, daher wurde die Order nicht gesendet.",
     "fields": {
       "account": "das Konto",
