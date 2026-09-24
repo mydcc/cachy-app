@@ -2322,6 +2322,20 @@ class TradeService {
                 ));
             }
         }
+        //
+        // The size the resting order had before this amendment — the gate
+        // only knows an amendment enlarges exposure by comparing the new
+        // quantity against this one (BUG-0548). A corrupt live reading must
+        // not throw raw past the gate: undefined feeds the fail-closed
+        // increase path instead. (The live read itself races the gate by
+        // construction — one synchronous round trip, no user action in
+        // between — so the window is minimal by design.)
+        let liveAmount: Decimal | undefined;
+        try {
+            liveAmount = new Decimal(liveOrder.amount);
+        } catch {
+            liveAmount = undefined;
+        }
         return await this.gatedRequest({
             kind: "modify",
             endpoint: "/api/orders",
@@ -2340,7 +2354,7 @@ class TradeService {
                 // The size the resting order had before this amendment — the
                 // gate only knows an amendment enlarges exposure by comparing
                 // the new quantity against this one (BUG-0548).
-                previousQuantity: new Decimal(liveOrder.amount),
+                previousQuantity: liveAmount,
                 accountSize,
             },
         });

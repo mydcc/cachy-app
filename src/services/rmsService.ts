@@ -552,9 +552,9 @@ class RiskManagementService {
             );
         }
 
-        // A pending-order amendment carries no size/stop pair to measure; the
-        // kill switch already covers it, and the gate's own field checks cover
-        // the rest.
+        // Remaining kinds (a reduce only shrinks exposure) carry no size the
+        // open/add/modify limits above measure; the kill switch already
+        // covers them, and the gate's own field checks cover the rest.
         if (intent.kind !== "open") return null;
 
         return (
@@ -574,15 +574,35 @@ class RiskManagementService {
      * falling back to the live order's own size) and the old one is the
      * `previousQuantity` the constructor merged in. An amendment with no
      * quantity on either side has nothing to enlarge — price-only — and
-     * passes. A missing `previousQuantity` cannot prove the amendment is
-     * harmless, so it is measured as an increase: the limits decide, not
-     * the absence of evidence.
+     * passes; a stated but unmeasurable quantity is measured as an
+     * increase. Only a finite, positive `previousQuantity` proves the
+     * amendment harmless — absent, null, NaN, infinite, zero or negative
+     * cannot, so the limits decide, not the absence of evidence.
      */
+    /**
+     * The quantity the amended order will carry: what goes on the wire
+     * first, what the constructor displayed second. One helper for all
+     * three modify reads (increase check, loss, notional) so the same
+     * intent cannot measure a different quantity per check.
+     */
+    private modifyQtyOf(intent: OrderIntent): Decimal | null {
+        return toDecimal(intent.payload.qty) ?? toDecimal(intent.displayed.modifyQuantity);
+    }
+
     private isQuantityIncreasingModify(intent: OrderIntent): boolean {
-        const newQty = toDecimal(intent.payload.qty) ?? toDecimal(intent.displayed.modifyQuantity);
-        if (newQty === null) return false;
-        const previous = intent.displayed.previousQuantity;
-        if (previous === undefined) return true;
+        const newQty = this.modifyQtyOf(intent);
+        if (newQty === null || !newQty.isFinite()) {
+            // Price-only (no quantity stated anywhere) stays exempt; a
+            // stated but unmeasurable quantity is measured as an increase —
+            // fail closed rather than exempt on garbage.
+            return intent.payload.qty !== undefined || intent.displayed.modifyQuantity !== undefined;
+        }
+        // Only a finite, positive resting size proves the amendment shrinks
+        // or holds exposure. Anything else — absent, null, NaN, infinite,
+        // zero or negative — is measured as an increase: the limits decide,
+        // not the absence of evidence.
+        const previous: Decimal | null | undefined = intent.displayed.previousQuantity;
+        if (previous === undefined || previous === null || !previous.isFinite() || !previous.gt(0)) return true;
         return newQty.gt(previous);
     }
 
@@ -677,7 +697,7 @@ class RiskManagementService {
         if (maxAbsolute === null && maxPercent === null) return null;
 
         const notional = this.notionalOf(intent);
-        if (notional === null) return unmeasurable("maxPositionSize");
+        if (notional === null || !notional.isFinite()) return unmeasurable("maxPositionSize");
 
         if (maxAbsolute !== null && notional.gt(maxAbsolute)) {
             return limitRefusal("maxPositionSize", maxAbsolute, notional);
@@ -687,6 +707,7 @@ class RiskManagementService {
             const equity = intent.displayed.accountSize;
             if (equity === undefined) return unmeasurable("maxPositionSizePercent");
             const cap = equity.times(maxPercent).div(100);
+            if (!cap.isFinite()) return unmeasurable("maxPositionSizePercent");
             if (notional.gt(cap)) {
                 return limitRefusal("maxPositionSizePercent", cap, notional);
             }
@@ -730,30 +751,30 @@ class RiskManagementService {
                 resultingEntry,
                 restingStopPrice,
             );
-            if (loss === null) return unmeasurable("maxLossPerTrade");
+            if (loss === null || !loss.isFinite()) return unmeasurable("maxLossPerTrade");
             if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
             return null;
         }
 
         // An enlarged amendment is measured like an open (BUG-0548): the
         // quantity the order will carry, the price it rests at, and the stop
-        // it will be attached to — displayed values first, payload values
-        // second, because the constructor only displays what the caller
-        // changed and the payload merges the live order's own stop. No stop
+        // it will be attached to — payload values first, displayed values
+        // as fallback, because the wire executes the payload. The
+        // constructor displays exactly what it sends, so both agree there.
+        // No stop
         // anywhere means unprotected exposure: with a configured limit that
         // is unmeasurable, not approved (BUG-0510).
         if (intent.kind === "modify") {
-            const qty =
-                toDecimal(intent.payload.qty) ?? toDecimal(intent.displayed.modifyQuantity);
+            const qty = this.modifyQtyOf(intent);
             const entryPrice =
-                intent.displayed.entryPrice ?? toDecimal(intent.payload.price);
+                toDecimal(intent.payload.price) ?? intent.displayed.entryPrice;
             const stopLossPrice =
-                intent.displayed.stopLossPrice ?? toDecimal(intent.payload.slPrice);
-            if (qty === null || entryPrice === null || stopLossPrice === null) {
+                toDecimal(intent.payload.slPrice) ?? intent.displayed.stopLossPrice;
+            if (qty === null || entryPrice == null || stopLossPrice == null) {
                 return unmeasurable("maxLossPerTrade");
             }
             const loss = this.lossWithFees(intent, qty, entryPrice, stopLossPrice);
-            if (loss === null) return unmeasurable("maxLossPerTrade");
+            if (loss === null || !loss.isFinite()) return unmeasurable("maxLossPerTrade");
             if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
             return null;
         }
@@ -807,10 +828,16 @@ class RiskManagementService {
      * capped per-leg: capping each leg alone would let ten of them through.
      */
     private notionalOf(intent: OrderIntent): Decimal | null {
-        const qty = toDecimal(intent.payload.qty);
+        const qty =
+            intent.kind === "modify" ? this.modifyQtyOf(intent) : toDecimal(intent.payload.qty);
         if (qty === null) return null;
+        // A modify is capped on what the wire executes — payload first,
+        // displayed as fallback, like the loss branch above. Other kinds
+        // keep the displayed-first order.
         const price =
-            intent.displayed.entryPrice ?? toDecimal(intent.payload.price);
+            intent.kind === "modify"
+                ? (toDecimal(intent.payload.price) ?? intent.displayed.entryPrice ?? null)
+                : (intent.displayed.entryPrice ?? toDecimal(intent.payload.price));
         if (price === null) return null;
         if (intent.kind === "add") {
             const positionAmount = intent.displayed.positionAmount;
