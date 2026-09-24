@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { clickOutside } from "../../lib/actions/clickOutside";
+  import { _ } from "../../locales/i18n";
 
   interface Props {
     tags?: string[];
@@ -84,6 +85,7 @@
       #{tag}
       <button
         class="hover:text-[var(--danger-color)] cursor-pointer leading-none"
+        aria-label={`${$_("common.aria.removeTag")} ${tag}`}
         onclick={(e) => {
           e.stopPropagation();
           removeTag(tag);
