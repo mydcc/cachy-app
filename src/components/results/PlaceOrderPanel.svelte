@@ -271,7 +271,11 @@
         // BUG-0494 — a clicked order is manual provenance. Required on the
         // plan so no call site can omit it and silently take the live path.
         origin: "manual",
-        tradeType: data.tradeType,
+        // BUG-0550 — EntryPlan.tradeType is "long" | "short" while the
+        // calculator's tradeType stays a free string. Narrow here with the
+        // same rule entrySideOf applies downstream ("short" → SELL,
+        // anything else → BUY), so the submitted side cannot change.
+        tradeType: data.tradeType.toLowerCase() === "short" ? "short" : "long",
         entryType,
         qty: data.positionSize,
         entryPrice: data.entryPrice,
