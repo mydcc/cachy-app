@@ -2,7 +2,8 @@
 id: FEAT-0544
 title: Inspect and edit bot order intent including stop-loss
 type: feature
-status: ready
+status: done
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -48,15 +49,15 @@ edit form must not offer one.
 
 ## Acceptance criteria
 
-- [ ] Each bot row displays side, size basis, size and stop distance in both
+- [x] Each bot row displays side, size basis, size and stop distance in both
   locales; a bot without a stop reads as "no stop — will not submit"
-- [ ] The promote dropdown identifies each alert by condition summary, not
+- [x] The promote dropdown identifies each alert by condition summary, not
   just name and symbol
-- [ ] Editing a bot's stop distance and size re-validates via the core and
+- [x] Editing a bot's stop distance and size re-validates via the core and
   persists under the same rule id; the updated sentence reflects the change
-- [ ] `percent_risk` without a stop is refused with a field-anchored message,
+- [x] `percent_risk` without a stop is refused with a field-anchored message,
   unchanged core behaviour
-- [ ] New UI strings exist in both `src/locales/locales/de.json` and
+- [x] New UI strings exist in both `src/locales/locales/de.json` and
   `en.json`
 
 ## Out of scope

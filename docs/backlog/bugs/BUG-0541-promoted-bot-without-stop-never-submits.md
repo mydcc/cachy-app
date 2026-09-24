@@ -2,7 +2,8 @@
 id: BUG-0541
 title: Promoted bot without stop can never submit and fails silently as no-stop
 type: bug
-status: ready
+status: done
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -61,13 +62,13 @@ sends `takeProfits: []` deliberately.
 
 ## Acceptance criteria
 
-- [ ] A test promotes an alert without a stop and asserts the promotion is
+- [x] A test promotes an alert without a stop and asserts the promotion is
   refused (or the resulting bot is flagged non-submittable) before any firing
-- [ ] A test promotes an alert with a stop and asserts `submitBotOrder` no
+- [x] A test promotes an alert with a stop and asserts `submitBotOrder` no
   longer returns `no-stop` for it
-- [ ] The bot list visibly distinguishes bots without a stop from submittable
+- [x] The bot list visibly distinguishes bots without a stop from submittable
   ones in both locales (DE/EN strings exist)
-- [ ] `percent_risk` without a stop is still refused by the core, unchanged
+- [x] `percent_risk` without a stop is still refused by the core, unchanged
 
 ## Links
 

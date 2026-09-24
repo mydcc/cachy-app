@@ -37,15 +37,17 @@
 -->
 
 <script lang="ts">
+    import { onMount } from "svelte";
     import { _, locale } from "../../../locales/i18n";
-    import { isRuleRefusedError } from "../../../lib/rules/ruleSchema";
+    import { isRuleRefusedError, ruleSchema } from "../../../lib/rules/ruleSchema";
     import {
+        renderConditionSentence,
         renderRuleSentence,
         type SentenceTranslator,
     } from "../../../lib/rules/ruleSentence";
     import type { TranslationKey } from "../../../locales/schema";
     import type { OrderIntent, RuleDocument, SizeBasis } from "../../../lib/rules/types";
-    import { readRuleStore } from "../../../services/alertEngine/armRule";
+    import { armRule, readRuleStore } from "../../../services/alertEngine/armRule";
     import {
         deleteBot,
         isBot,
@@ -74,6 +76,13 @@
     let side = $state<"buy" | "sell">("buy");
     let sizeBasis = $state<SizeBasis>("percent_of_equity");
     let size = $state("1");
+    let stopDistance = $state("");
+    let editingBotId = $state<string | null>(null);
+    let editSide = $state<"buy" | "sell">("buy");
+    let editSizeBasis = $state<SizeBasis>("percent_of_equity");
+    let editSize = $state("1");
+    let editStopDistance = $state("");
+    let editRefusal = $state<{ key: string; field: string } | null>(null);
 
     /**
      * Reads both halves of the store.
@@ -90,9 +99,7 @@
         if (!alerts.some((a) => a.id === sourceId)) sourceId = alerts[0]?.id ?? "";
     }
 
-    $effect(() => {
-        refresh();
-    });
+    onMount(refresh);
 
     /**
      * The rule as one sentence, in the active locale.
@@ -113,6 +120,13 @@
         return renderRuleSentence(rule, translate);
     }
 
+    function conditionOf(rule: RuleDocument): string {
+        void $locale;
+        const translate: SentenceTranslator = (key, values) =>
+            $_(key as TranslationKey, { values: values || {} });
+        return renderConditionSentence(rule, translate);
+    }
+
     function toggleBot(bot: RuleDocument, enabled: boolean) {
         setBotEnabled(bot.id, enabled);
         refresh();
@@ -125,7 +139,16 @@
 
     function promote() {
         refusal = null;
-        const order: OrderIntent = { side, size_basis: sizeBasis, size };
+        if (!stopDistance.trim()) {
+            refusal = { key: "settings.automation.stopRequired", field: "promoteStopDistance" };
+            return;
+        }
+        const order: OrderIntent = {
+            side,
+            size_basis: sizeBasis,
+            size,
+            stop: { basis: "percent_of_entry", distance: stopDistance.trim() },
+        };
         try {
             promoteAlertToBot(sourceId, order);
             refresh();
@@ -155,6 +178,64 @@
             // not a fault.
             refusal = { key: "settings.automation.promoteFailed", field: "" };
             logger.error("alerts", "[Automation] Promoting an alert failed", e);
+        }
+    }
+
+    function beginEdit(bot: RuleDocument) {
+        const order = bot.action.order;
+        if (!order) return;
+        editingBotId = bot.id;
+        editRefusal = null;
+        editSide = order.side;
+        editSizeBasis = order.size_basis;
+        editSize = order.size;
+        editStopDistance = order.stop?.distance ?? "";
+    }
+
+    function cancelEdit() {
+        editingBotId = null;
+        editRefusal = null;
+    }
+
+    function saveBot() {
+        const bot = bots.find((candidate) => candidate.id === editingBotId);
+        if (!bot) return;
+        editRefusal = null;
+        if (!editStopDistance.trim()) {
+            editRefusal = { key: "settings.automation.stopRequired", field: "editStopDistance" };
+            return;
+        }
+        const order: OrderIntent = {
+            side: editSide,
+            size_basis: editSizeBasis,
+            size: editSize,
+            stop: { basis: "percent_of_entry", distance: editStopDistance.trim() },
+        };
+        try {
+            const updated = ruleSchema.validate({
+                ...bot,
+                action: { ...bot.action, order },
+            });
+            armRule(updated);
+            cancelEdit();
+            refresh();
+        } catch (e) {
+            if (isRuleRefusedError(e)) {
+                const first = e.refusals[0];
+                const field = first?.field === "action.order.size"
+                    ? "editSize"
+                    : first?.field.startsWith("action.order.stop")
+                      ? "editStopDistance"
+                      : "";
+                editRefusal = { key: first?.i18n_key ?? e.translationKey, field };
+                return;
+            }
+            const keyed = (e as { translationKey?: unknown }).translationKey;
+            editRefusal = {
+                key: typeof keyed === "string" ? keyed : "settings.automation.editFailed",
+                field: "",
+            };
+            logger.error("alerts", "[Automation] Saving a bot failed", e);
         }
     }
 
@@ -222,6 +303,13 @@
                                 />
                                 <button
                                     type="button"
+                                    class="text-xs text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+                                    onclick={() => beginEdit(bot)}
+                                >
+                                    {$_("settings.automation.edit")}
+                                </button>
+                                <button
+                                    type="button"
                                     class="text-xs text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
                                     onclick={() => removeBot(bot)}
                                 >
@@ -231,6 +319,111 @@
                         </div>
 
                         <p class="text-sm text-[var(--text-secondary)]">{sentenceOf(bot)}</p>
+
+                        {#if !bot.action.order?.stop}
+                            <p
+                                id={`bot-no-stop-${bot.id}`}
+                                class="text-xs text-[var(--danger-color)]"
+                                role="status"
+                            >
+                                {$_("settings.automation.noStop")}
+                            </p>
+                        {/if}
+
+                        {#if editingBotId === bot.id}
+                            <div class="flex flex-col gap-3 rounded border border-[var(--border-color)] p-3">
+                                <div class="flex flex-wrap gap-3">
+                                    <label class="flex flex-col gap-1 text-sm" for={`bot-edit-side-${bot.id}`}>
+                                        <span class="text-[var(--text-secondary)]">
+                                            {$_("settings.automation.side")}
+                                        </span>
+                                        <select
+                                            id={`bot-edit-side-${bot.id}`}
+                                            bind:value={editSide}
+                                            class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
+                                        >
+                                            <option value="buy">{$_("rules.sentence.orderSide.buy")}</option>
+                                            <option value="sell">{$_("rules.sentence.orderSide.sell")}</option>
+                                        </select>
+                                    </label>
+
+                                    <label class="flex flex-col gap-1 text-sm" for={`bot-edit-size-basis-${bot.id}`}>
+                                        <span class="text-[var(--text-secondary)]">
+                                            {$_("settings.automation.sizeBasis")}
+                                        </span>
+                                        <select
+                                            id={`bot-edit-size-basis-${bot.id}`}
+                                            bind:value={editSizeBasis}
+                                            class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
+                                        >
+                                            {#each sizeBases as basis (basis)}
+                                                <option value={basis}>
+                                                    {$_(`rules.sentence.basis.${basis}`)}
+                                                </option>
+                                            {/each}
+                                        </select>
+                                    </label>
+
+                                    <label class="flex flex-col gap-1 text-sm" for={`bot-edit-size-${bot.id}`}>
+                                        <span class="text-[var(--text-secondary)]">
+                                            {$_("settings.automation.size")}
+                                        </span>
+                                        <input
+                                            id={`bot-edit-size-${bot.id}`}
+                                            type="text"
+                                            inputmode="decimal"
+                                            bind:value={editSize}
+                                            class="w-28 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
+                                        />
+                                    </label>
+
+                                    <label class="flex flex-col gap-1 text-sm" for={`bot-edit-stop-distance-${bot.id}`}>
+                                        <span class="text-[var(--text-secondary)]">
+                                            {$_("settings.automation.stopDistance")}
+                                        </span>
+                                        <input
+                                            id={`bot-edit-stop-distance-${bot.id}`}
+                                            type="text"
+                                            inputmode="decimal"
+                                            bind:value={editStopDistance}
+                                            aria-invalid={editRefusal?.field === "editStopDistance" ? "true" : "false"}
+                                            aria-describedby={editRefusal?.field === "editStopDistance" ? "bot-edit-refusal-stop-distance" : undefined}
+                                            class="w-36 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
+                                            class:border-[var(--danger-color)]={editRefusal?.field === "editStopDistance"}
+                                        />
+                                    </label>
+                                </div>
+
+                                {#if editRefusal}
+                                    <p
+                                        id="bot-edit-refusal-stop-distance"
+                                        class="text-sm text-[var(--danger-color)]"
+                                        role="alert"
+                                    >
+                                        {$_(editRefusal.key as TranslationKey, {
+                                            values: { field: editRefusal.field },
+                                        })}
+                                    </p>
+                                {/if}
+
+                                <div class="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        class="bg-accent-paired rounded px-3 py-1.5 text-sm font-semibold"
+                                        onclick={saveBot}
+                                    >
+                                        {$_("settings.automation.save")}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="text-sm text-[var(--text-secondary)]"
+                                        onclick={cancelEdit}
+                                    >
+                                        {$_("settings.automation.cancel")}
+                                    </button>
+                                </div>
+                            </div>
+                        {/if}
 
                         {#if bot.provenance.derived_from_hash}
                             <p class="text-xs text-[var(--text-secondary)] font-mono">
@@ -270,7 +463,9 @@
                         class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
                     >
                         {#each alerts as alert (alert.id)}
-                            <option value={alert.id}>{alert.name} — {alert.symbol}</option>
+                            <option value={alert.id}>
+                                {alert.name} — {alert.symbol} — {conditionOf(alert)}
+                            </option>
                         {/each}
                     </select>
                 </label>
@@ -297,7 +492,7 @@
                             bind:value={sizeBasis}
                             class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
                         >
-                            {#each sizeBases as basis}
+                            {#each sizeBases as basis (basis)}
                                 <option value={basis}>
                                     {$_(`rules.sentence.basis.${basis}`)}
                                 </option>
@@ -316,10 +511,29 @@
                             class="w-28 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
                         />
                     </label>
+
+                    <label class="flex flex-col gap-1 text-sm" for="promote-stop-distance">
+                        <span class="text-[var(--text-secondary)]">
+                            {$_("settings.automation.stopDistance")}
+                        </span>
+                        <input
+                            id="promote-stop-distance"
+                            type="text"
+                            inputmode="decimal"
+                            bind:value={stopDistance}
+                            aria-invalid={refusal?.field === "promoteStopDistance" ? "true" : "false"}
+                            aria-describedby={refusal?.field === "promoteStopDistance" ? "promote-refusal-stop-distance" : undefined}
+                            class="w-36 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] px-2 py-1.5 text-[var(--text-primary)]"
+                        />
+                    </label>
                 </div>
 
                 {#if refusal}
-                    <p class="text-sm text-[var(--danger-color)]" role="alert">
+                    <p
+                        id={refusal.field === "promoteStopDistance" ? "promote-refusal-stop-distance" : undefined}
+                        class="text-sm text-[var(--danger-color)]"
+                        role="alert"
+                    >
                         {$_(refusal.key as TranslationKey, {
                             values: { field: refusal.field },
                         })}

@@ -2187,7 +2187,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0541",
     "title": "Promoted bot without stop can never submit and fails silently as no-stop",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "shipped": "unreleased",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3363,7 +3364,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0544",
     "title": "Inspect and edit bot order intent including stop-loss",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "shipped": "unreleased",
     "priority": "P1",
     "milestone": "none",
     "editions": [
