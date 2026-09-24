@@ -75,8 +75,9 @@
         let result: string[];
 
         // 1. Initial Set: Filter by Search OR Constants (USDT)
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
+        // Hoist toLowerCase() outside the loop
+        const q = searchQuery ? searchQuery.toLowerCase() : "";
+        if (q) {
             result = symbols.filter((s) => s.toLowerCase().includes(q));
         } else {
             result = [...symbols];
@@ -98,7 +99,7 @@
         }
 
         // 4. View Mode
-        if (!searchQuery) {
+        if (!q) {
             if (viewMode === "favorites") {
                 // optimized: using derived favSet
                 result = result.filter((s) => favSet.has(s));
@@ -111,27 +112,30 @@
         }
 
         // 5. Sorting
+        // Pre-parse the values for the filtered result set only, avoiding
+        // O(N log N) conversions in the sort comparator and avoiding
+        // pre-parsing all N symbols when only a few match the filters.
         const effectiveSort =
-            viewMode === "gainers" && !searchQuery ? "gainers" : sortMode;
+            viewMode === "gainers" && !q ? "gainers" : sortMode;
 
-        if (effectiveSort === "gainers") {
-            result.sort((a, b) => {
-                const changeA = Number(snapshot[a]?.priceChangePercent || 0);
-                const changeB = Number(snapshot[b]?.priceChangePercent || 0);
-                return changeB - changeA;
-            });
-        } else if (effectiveSort === "losers") {
-            result.sort((a, b) => {
-                const changeA = Number(snapshot[a]?.priceChangePercent || 0);
-                const changeB = Number(snapshot[b]?.priceChangePercent || 0);
-                return changeA - changeB;
-            });
-        } else if (effectiveSort === "volume") {
-            result.sort((a, b) => {
-                const volA = Number(snapshot[a]?.quoteVolume || 0);
-                const volB = Number(snapshot[b]?.quoteVolume || 0);
-                return volB - volA;
-            });
+        if (effectiveSort !== "alpha") {
+            // Only prepare sort values for the symbols that survived filtering
+            const sortValues: Record<string, { change: number; vol: number }> = {};
+            for (const s of result) {
+                const snap = snapshot[s];
+                sortValues[s] = {
+                    change: snap ? Number(snap.priceChangePercent) : 0,
+                    vol: snap ? Number(snap.quoteVolume) : 0
+                };
+            }
+
+            if (effectiveSort === "gainers") {
+                result.sort((a, b) => sortValues[b].change - sortValues[a].change);
+            } else if (effectiveSort === "losers") {
+                result.sort((a, b) => sortValues[a].change - sortValues[b].change);
+            } else if (effectiveSort === "volume") {
+                result.sort((a, b) => sortValues[b].vol - sortValues[a].vol);
+            }
         } else {
             result.sort();
         }

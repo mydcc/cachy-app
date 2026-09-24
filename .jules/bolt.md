@@ -21,3 +21,7 @@ Checking `pending[pending.length - 1].time === k.time` and replacing the last el
 ## Vitest Environment Overhead
 
 Configuring `environment: "happy-dom"` globally causes happy-dom window/DOM context instantiation overhead for all tests, including pure logic/math unit tests. Annotating pure-logic test files with `// @vitest-environment node` and using lazy polyfills for IndexedDB in `vitest.setup.ts` reduced Vitest environment setup duration from 102.65s to 89.80s across the test suite.
+
+## $(date +%Y-%m-%d) - Svelte 5 derived filtering and sorting optimization
+**Learning:** When sorting a `$derived` array in Svelte 5 based on parsed strings (like `priceChangePercent` or `quoteVolume` from `snapshot`), extracting the `Number()` conversions into a separate pre-calculated block for *all* elements can be slower because it forces parsing for items that are filtered out. Instead, perform the filtering first, and *then* build a small lookup dictionary (Schwartzian transform) containing the `Number()`-parsed values only for the elements that survived the filter. This prevents $O(N \log N)$ repeated `Number()` parsing inside the `.sort()` comparator, while maintaining $O(N)$ string-to-number parse efficiency. Also remember to hoist `toLowerCase()` outside of loop bodies.
+**Action:** Applied this transform in `src/lib/windows/implementations/SymbolPickerView.svelte`, which yielded a 4.8x performance gain in the benchmark for 1000 pairs.
