@@ -2,7 +2,7 @@
 id: BUG-0541
 title: Promoted bot without stop can never submit and fails silently as no-stop
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]

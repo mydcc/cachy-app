@@ -2,9 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
-assignee: opencode
-branch: feat/0342-decompose-god-modules
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -40,7 +38,7 @@ For the services, split responsibilities by domain (e.g., splitting `apiService`
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
 
-## Status note (2026-09-23, slice 1 — still in-progress)
+## Status note (2026-09-24, slice 1 merged; follow-up remains specced)
 
 `VisualsTab.svelte` is already 77 lines (decomposed before this item started).
 Slice 1 extracts the safe mechanical seams, all suites green:
@@ -60,4 +58,5 @@ Remainder (NOT in this PR — needs its own slice): splitting the stateful
 services/stores. Both share private mutable state across domains; that
 surgery is high-risk exchange/settings code and does not fit a drive-by
 refactor. Proposed follow-up: one item per class split, each with Human
-review before merge.
+review before merge. The stale `in-progress` claim was released on 2026-09-24
+because no active session or worktree remains.

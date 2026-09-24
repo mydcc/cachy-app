@@ -2,7 +2,7 @@
 id: FEAT-0542
 title: View and edit an armed alert from Manage
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]

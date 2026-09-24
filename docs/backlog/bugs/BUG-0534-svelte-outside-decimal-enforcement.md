@@ -2,7 +2,7 @@
 id: BUG-0534
 title: .svelte files are outside automated decimal enforcement
 type: bug
-status: specced
+status: ready
 priority: P3
 milestone: none
 editions: [community, pro, private]

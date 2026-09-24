@@ -3,9 +3,7 @@ id: FEAT-0344
 title: "Replace hardcoded hex colors with CSS design tokens"
 type: feature
 status: done
-done_version: 1.6.0-beta.364
-assignee: opencode
-branch: feat/0344-hardcoded-colors
+shipped: unreleased
 priority: P2
 milestone: none
 editions: [community, pro, private]

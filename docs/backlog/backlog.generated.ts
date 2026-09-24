@@ -2169,7 +2169,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0541",
     "title": "Promoted bot without stop can never submit and fails silently as no-stop",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2360,7 +2360,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0023",
     "title": "Manage open positions without leaving Cachy",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "M3",
     "editions": [
@@ -2921,7 +2921,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Add to an open position and see what it does to the average entry",
     "type": "feature",
     "status": "done",
-    "assignee": "claude",
     "shipped": "1.6.0-beta.223",
     "priority": "P1",
     "milestone": "M3",
@@ -2948,9 +2947,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Migrate all raw localStorage access to storageWrapper",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0352-storage-wrapper-migration",
+    "shipped": "unreleased",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3150,7 +3147,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0544",
     "title": "Inspect and edit bot order intent including stop-loss",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -5096,8 +5093,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Notify on fills, margin thresholds and connection loss",
     "type": "feature",
     "status": "done",
-    "shipped": "unreleased",
-    "assignee": "claude",
+    "shipped": "1.6.0-beta.202",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -6286,7 +6282,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0341",
     "title": "Epic: Q3 Codebase Modernization & Tech Debt",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6304,9 +6300,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0342",
     "title": "Decompose remaining god modules (VisualsTab, tradeService)",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "feat/0342-decompose-god-modules",
+    "status": "specced",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6326,8 +6320,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks",
     "type": "feature",
     "status": "done",
-    "assignee": "opencode",
-    "branch": "fix/audit-followups",
+    "shipped": "1.6.0-beta.244",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6347,9 +6340,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Replace hardcoded hex colors with CSS design tokens",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0344-hardcoded-colors",
+    "shipped": "unreleased",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6369,9 +6360,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Migrate indicator and charting variables to decimal.js",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0345-indicator-decimal",
+    "shipped": "unreleased",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6580,7 +6569,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0378",
     "title": "Name the active account on the surfaces FEAT-0026 did not reach",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -7059,9 +7048,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Unify the duplicated SMC mitigation checks",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0538-unify-mitigation",
+    "shipped": "unreleased",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7082,9 +7069,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Break the service import cycles",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0539-break-import-cycles",
+    "shipped": "unreleased",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7106,9 +7091,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Extract a shared key-validation helper for exchange signing",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0540-shared-key-validation",
+    "shipped": "unreleased",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7128,7 +7111,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0542",
     "title": "View and edit an armed alert from Manage",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7146,7 +7129,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0543",
     "title": "Show full rule configuration on each Manage row",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7164,7 +7147,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0545",
     "title": "Duck companion settings with master toggle in Visuals",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7990,7 +7973,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0534",
     "title": ".svelte files are outside automated decimal enforcement",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -8711,7 +8694,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Extract shared flattenKeys helper for i18n scripts",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
+    "shipped": "unreleased",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -8720,8 +8703,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "private"
     ],
     "area": "tooling",
-    "assignee": "opencode",
-    "branch": "feat/0535-flattenkeys-i18n-scripts",
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
@@ -8735,9 +8716,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Extract shared isStatusError helper for API routes",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0536-shared-isstatuserror",
+    "shipped": "unreleased",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -8759,9 +8738,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Unify the double KaTeX marked setup into one place",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0537-single-katex-setup",
+    "shipped": "unreleased",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -8783,9 +8760,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "title": "Migrate bitget/contracts route to shared isStatusError",
     "type": "feature",
     "status": "done",
-    "done_version": "1.6.0-beta.364",
-    "assignee": "opencode",
-    "branch": "feat/0546-bitget-contracts-isstatuserror",
+    "shipped": "unreleased",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -9025,7 +9000,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "IDEA-0318",
     "title": "Post-measurement WASM performance tuning",
     "type": "idea",
-    "status": "idea",
+    "status": "done",
+    "shipped": "1.6.0-beta.197",
     "priority": "P3",
     "milestone": "none",
     "editions": [

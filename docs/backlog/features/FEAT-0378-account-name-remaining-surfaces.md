@@ -2,7 +2,7 @@
 id: FEAT-0378
 title: Name the active account on the surfaces FEAT-0026 did not reach
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: M3
 editions: [community, pro, private]

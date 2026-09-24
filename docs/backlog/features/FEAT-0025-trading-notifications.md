@@ -3,8 +3,7 @@ id: FEAT-0025
 title: Notify on fills, margin thresholds and connection loss
 type: feature
 status: done
-shipped: unreleased
-assignee: claude
+shipped: 1.6.0-beta.202
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -19,7 +18,7 @@ start_date: 2026-08-01
 ---
 
 
-Branch: `feat/feat-0025-trading-notifications`
+Implementation was merged in `23c820d9` and shipped in `1.6.0-beta.202`.
 
 # FEAT-0025 — Notify on fills, margin thresholds and connection loss
 

@@ -39,13 +39,22 @@ value at which the next (worse) tier begins.
 
 - [x] Position tiers are fetched per active symbol and cached
       (`marketState.positionTiers`).
-- [x] `PositionTooltip.svelte` shows the current tier's maintenance-margin
+- [ ] The current position UI shows the current tier's maintenance-margin
       rate next to `marginRate`/`liquidationPrice`.
-- [x] `PositionTooltip.svelte` shows the notional value at which the next
+- [ ] The current position UI shows the notional value at which the next
       tier begins, when one exists.
 - [ ] The tier lookup (notional value → bracket) is verified against a live
       position with a known `liqPrice`, not just against the documented
       response shape.
+
+## Status note (2026-08-19)
+
+The first implementation was merged in `91dd0557` and shipped in
+`v1.3.0-beta.1`, including the `PositionTooltip.svelte` display. PR #2093 then
+removed that tooltip in favour of inline position details, so the cache remains
+but the current UI criterion is no longer proven. This item stays `specced` until
+the display is ported to the current position surface and live verification is
+recorded.
 
 ## Out of scope
 

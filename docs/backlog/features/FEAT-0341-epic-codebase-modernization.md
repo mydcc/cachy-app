@@ -2,7 +2,7 @@
 id: FEAT-0341
 title: "Epic: Q3 Codebase Modernization & Tech Debt"
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -29,13 +29,13 @@ The following items are part of this Epic:
 
 ## Acceptance criteria
 - [ ] FEAT-0342 is done
-- [ ] FEAT-0343 is done
-- [ ] FEAT-0344 is done
-- [ ] FEAT-0345 is done
-- [ ] FEAT-0346 is done
-- [ ] BUG-0347 is done
-- [ ] FEAT-0352 is done
-- [ ] FEAT-0353 is done
+- [x] FEAT-0343 is done
+- [x] FEAT-0344 is done
+- [x] FEAT-0345 is done
+- [x] FEAT-0346 is done
+- [x] BUG-0347 is done
+- [x] FEAT-0352 is done
+- [x] FEAT-0353 is done
 
 ## Out of scope
 - Complete refactoring of the entire application.

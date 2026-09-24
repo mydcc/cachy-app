@@ -3,8 +3,7 @@ id: FEAT-0343
 title: "Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks"
 type: feature
 status: done
-assignee: opencode
-branch: fix/audit-followups
+shipped: 1.6.0-beta.244
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -29,10 +28,10 @@ parent: FEAT-0341
 Replace all usages of `createEventDispatcher` with callback properties passed via `$props()` (e.g., `onclick`, `onchange`).
 
 ## Acceptance criteria
-- [ ] `createEventDispatcher` is completely removed from all `.svelte` and `.ts` files in the `src` directory.
-- [ ] The identified components successfully trigger events via callback props.
-- [ ] `npm run check` passes with no warnings related to event dispatching.
-- [ ] Component tests pass.
+- [x] `createEventDispatcher` is completely removed from all `.svelte` and `.ts` files in the `src` directory.
+- [x] The identified components successfully trigger events via callback props.
+- [x] `npm run check` passes with no warnings related to event dispatching.
+- [x] Component tests pass.
 
 ## Out of scope
 - Refactoring other legacy syntax (like `<slot>` or `export let`), unless they are in the exact same files and trivial to fix.

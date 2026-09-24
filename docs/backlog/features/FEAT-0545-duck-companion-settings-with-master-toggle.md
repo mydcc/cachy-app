@@ -2,7 +2,7 @@
 id: FEAT-0545
 title: Duck companion settings with master toggle in Visuals
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
