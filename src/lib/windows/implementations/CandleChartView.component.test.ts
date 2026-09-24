@@ -675,7 +675,10 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         await settle();
 
         expect(modifyTpSlOrder).not.toHaveBeenCalled();
-        expect(toastService.error).toHaveBeenCalled();
+        // The refusal names the executed values, not just the key: the drop
+        // price it rejected and the entry it compared against.
+        expect(toastService.error).toHaveBeenCalledWith(expect.stringContaining("105"));
+        expect(toastService.error).toHaveBeenCalledWith(expect.stringContaining("100"));
         expect(tpSlState.invalidate).not.toHaveBeenCalled();
     });
 });

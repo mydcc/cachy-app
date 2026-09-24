@@ -195,41 +195,61 @@
    */
   let priceDraft = $state<string | null>(null);
   let targetDraft = $state<string | null>(null);
+  /** Set when a typed draft was dropped, so the field says so instead of going quiet. */
+  let draftError = $state(false);
 
   const priceDisplay = $derived(priceDraft ?? price.toString());
   const targetDisplay = $derived(
     targetDraft ?? sliderValue.toDecimalPlaces(mode === "PNL" ? 2 : 2).toString(),
   );
 
-  function emitPrice(next: Decimal) {
+  function emitPrice(next: Decimal): boolean {
     if (validateTpSlPrice(kind, next, ctx, tickSize.gt(0) ? tickSize : undefined).valid) {
       onChange(next);
+      return true;
     }
+    return false;
   }
 
   function commitPrice() {
     const draft = priceDraft;
     priceDraft = null;
-    if (draft === null || draft.trim() === "") return;
+    if (draft === null || draft.trim() === "") {
+      draftError = false;
+      return;
+    }
     try {
       const parsed = new Decimal(draft);
-      if (!parsed.isFinite() || parsed.lte(0)) return;
-      emitPrice(roundToTick(parsed, tickSize));
+      if (!parsed.isFinite() || parsed.lte(0)) {
+        draftError = true;
+        return;
+      }
+      // A parseable number on the wrong side of the entry is dropped by
+      // emitPrice — flag it rather than swallowing it.
+      draftError = !emitPrice(roundToTick(parsed, tickSize));
     } catch {
-      // Not a number — drop it and fall back to the committed value.
+      // Not a number — keep the committed value and say so.
+      draftError = true;
     }
   }
 
   function commitTarget() {
     const draft = targetDraft;
     targetDraft = null;
-    if (draft === null || draft.trim() === "") return;
+    if (draft === null || draft.trim() === "") {
+      draftError = false;
+      return;
+    }
     try {
       const parsed = new Decimal(draft);
-      if (!parsed.isFinite()) return;
-      emitPrice(priceForSliderValue(parsed));
+      if (!parsed.isFinite()) {
+        draftError = true;
+        return;
+      }
+      draftError = !emitPrice(priceForSliderValue(parsed));
     } catch {
-      // Not a number — drop it and fall back to the committed value.
+      // Not a number — keep the committed value and say so.
+      draftError = true;
     }
   }
 
@@ -289,7 +309,10 @@
         inputmode="decimal"
         {disabled}
         value={targetDisplay}
-        oninput={(e) => (targetDraft = e.currentTarget.value)}
+        oninput={(e) => {
+          targetDraft = e.currentTarget.value;
+          draftError = false;
+        }}
         onblur={commitTarget}
         onkeydown={(e) => onFieldKey(e, commitTarget)}
         class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded
@@ -334,13 +357,19 @@
       inputmode="decimal"
       {disabled}
       value={priceDisplay}
-      oninput={(e) => (priceDraft = e.currentTarget.value)}
+      oninput={(e) => {
+        priceDraft = e.currentTarget.value;
+        draftError = false;
+      }}
       onblur={commitPrice}
       onkeydown={(e) => onFieldKey(e, commitPrice)}
       class="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded
              p-1.5 text-xs font-mono text-[var(--text-primary)] disabled:opacity-50"
     />
   </div>
+  {#if draftError}
+    <p class="text-[10px] text-[var(--danger-color)]">{$_("dashboard.tpslManager.invalidPrice")}</p>
+  {/if}
 
   <!--
     Cross-mode readout: the same trigger stated the other two ways, so

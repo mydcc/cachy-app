@@ -286,6 +286,7 @@ export type TranslationKey =
   | "dashboard.tpslManager.slSliderLabel"
   | "dashboard.tpslManager.grossBeforeFees"
   | "dashboard.tpslManager.netAfterFees"
+  | "dashboard.tpslManager.invalidPrice"
   | "dashboard.viewMode"
   | "dashboard.detailed"
   | "dashboard.focus"

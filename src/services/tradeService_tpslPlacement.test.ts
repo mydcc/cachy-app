@@ -27,6 +27,7 @@
 import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradeService } from "./tradeService";
+import { OrderRefusedError } from "./orderGate";
 import { Decimal } from "decimal.js";
 
 vi.mock("./omsService", () => ({
@@ -308,5 +309,61 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
         });
 
         expect(sentParams(spy).tpQty).toBe("0.123456");
+    });
+});
+
+describe("BUG-0550 — the direction rule holds at the service seam", () => {
+    it("refuses a short-side stop below the entry before sending", async () => {
+        const spy = spyRequest();
+
+        const refusal = await tradeService
+            .placePositionTpSl({
+                symbol: "BTCUSDT",
+                positionId: "pos-1",
+                context: { side: "short", entryPrice: new Decimal(60000) },
+                stopLoss: { price: new Decimal(59000) },
+            })
+            .then(
+                () => {
+                    throw new Error("should have refused");
+                },
+                (e: unknown) => (e as { refusal?: unknown }).refusal,
+            );
+
+        expect(spy).not.toHaveBeenCalled();
+        expect(refusal).toMatchObject({
+            field: "stopLoss",
+            messageKey: "orderGate.invalidTpSl",
+            values: { actual: "59000", entryPrice: "60000", side: "SHORT" },
+        });
+    });
+
+    it("refuses a long-side target below the entry before sending", async () => {
+        const spy = spyRequest();
+
+        await expect(
+            tradeService.placePositionTpSl({
+                symbol: "BTCUSDT",
+                positionId: "pos-1",
+                context: { side: "long", entryPrice: new Decimal(60000) },
+                takeProfit: { price: new Decimal(59000) },
+            }),
+        ).rejects.toThrow(OrderRefusedError);
+
+        expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("refuses a context-free plan as unverifiable rather than assuming a side", async () => {
+        const spy = spyRequest();
+
+        await expect(
+            tradeService.placePositionTpSl({
+                symbol: "BTCUSDT",
+                positionId: "pos-1",
+                stopLoss: { price: new Decimal(59000) },
+            }),
+        ).rejects.toThrow(OrderRefusedError);
+
+        expect(spy).not.toHaveBeenCalled();
     });
 });

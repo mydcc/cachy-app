@@ -205,6 +205,20 @@ describe("modifyTpSlOrder — wire shape", () => {
         expect(spy).not.toHaveBeenCalled();
     });
 
+    it("refuses a context-free modify as unverifiable rather than assuming a side", async () => {
+        const spy = spyRequest();
+
+        await expect(
+            tradeService.modifyTpSlOrder({
+                orderId: "1",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "55000",
+            }),
+        ).rejects.toMatchObject({ refusal: { field: "side" } });
+        expect(spy).not.toHaveBeenCalled();
+    });
+
     it("reaches the exchange rather than being refused by its own gate", async () => {
         // `priceFields` tells the FEAT-0011 gate where on the wire to find
         // the price it displayed to the trader (orderGate.ts checkPrices).

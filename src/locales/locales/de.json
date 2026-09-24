@@ -297,7 +297,8 @@
       "tpSliderLabel": "Take-Profit-Ziel",
       "slSliderLabel": "Stop-Loss-Ziel",
       "grossBeforeFees": "Brutto",
-      "netAfterFees": "Nach Gebühren"
+      "netAfterFees": "Nach Gebühren",
+      "invalidPrice": "Kein gültiger Preis — vorheriger Wert behalten."
     },
     "viewMode": "Ansichtsmodus",
     "detailed": "Detailliert",

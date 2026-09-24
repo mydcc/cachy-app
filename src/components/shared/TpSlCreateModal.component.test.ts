@@ -375,3 +375,24 @@ describe("FEAT-0070 — a position with no id cannot be given a plan", () => {
         expect(host.textContent).toContain(lookup("modals.createTpSl.missingPositionId"));
     });
 });
+
+describe("BUG-0550 — a wrong-side price never reaches the transport", () => {
+    it("keeps a long stop above entry local and says why", async () => {
+        render({ ...POSITION, entryPrice: new Decimal(100) });
+
+        // The slider section renders against the live entry: a stop above it
+        // is the wrong protection direction. Committing it must neither call
+        // the transport nor go quiet — the field explains itself instead.
+        const input = field("tpsl-trigger-SL");
+        setValue(input, "105");
+        input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+        settle();
+
+        expect(host.textContent).toContain(lookup("dashboard.tpslManager.invalidPrice"));
+
+        buttonSaying(lookup("modals.createTpSl.submit")).click();
+        await settleAsync();
+
+        expect(placePositionTpSl).not.toHaveBeenCalled();
+    });
+});

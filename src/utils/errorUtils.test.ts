@@ -19,6 +19,7 @@
 import { describe, it, expect } from "vitest";
 import { getBitunixErrorKey, getErrorMessage, getDisplayMessage, mapApiErrorToLabel } from "./errorUtils";
 import { BitunixApiError } from "../services/tradeService";
+import { PaperExchangeError } from "../services/paperExchange";
 
 describe("errorUtils", () => {
   describe("getBitunixErrorKey", () => {
@@ -85,6 +86,26 @@ describe("errorUtils", () => {
     it("handles non-Error inputs", () => {
       expect(getDisplayMessage("Network down")).toBe("Network down");
       expect(getDisplayMessage({ rawMessage: "oops" })).toBe("oops");
+    });
+
+    it("renders a paper refusal through the catalogue with its values", () => {
+      const err = new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl", {
+        field: "stopLoss",
+        actual: "51000",
+        entryPrice: "50000",
+        side: "LONG",
+      });
+      const t = (key: string, options?: { values?: Record<string, unknown> }) =>
+        `${key} ${JSON.stringify(options?.values ?? {})}`;
+      expect(getDisplayMessage(err, t as never)).toBe(
+        'orderGate.invalidTpSl {"field":"stopLoss","actual":"51000","entryPrice":"50000","side":"LONG"}',
+      );
+    });
+
+    it("leaves a paper error without values on the legacy path", () => {
+      const err = new PaperExchangeError("PAPER_NO_POSITION", "tradeErrors.positionNotFound");
+      const t = (key: string) => key;
+      expect(getDisplayMessage(err, t as never)).toBe("tradeErrors.positionNotFound");
     });
   });
 

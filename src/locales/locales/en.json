@@ -297,7 +297,8 @@
       "tpSliderLabel": "Take-profit target",
       "slSliderLabel": "Stop-loss target",
       "grossBeforeFees": "Gross",
-      "netAfterFees": "After fees"
+      "netAfterFees": "After fees",
+      "invalidPrice": "Not a valid price — kept the previous value."
     },
     "viewMode": "View Mode",
     "detailed": "Detailed",

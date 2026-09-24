@@ -830,7 +830,12 @@ describe("paperExchange — TP/SL plans are reported", () => {
                 action: "modify",
                 params: { orderId: row.id, slPrice: "51000" },
             }),
-        ).rejects.toMatchObject({ code: "PAPER_TPSL_INVALID" });
+            // The refusal carries the executed values for the message, not
+            // just the code — the paper seam renders through the catalogue.
+        ).rejects.toMatchObject({
+            code: "PAPER_TPSL_INVALID",
+            values: { field: "stopLoss", actual: "51000", side: "LONG" },
+        });
     });
 
     it("refuses a short take-profit above entry", async () => {
