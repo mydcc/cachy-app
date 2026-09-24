@@ -36,7 +36,7 @@ Make the open intent fail closed when the required margin exceeds the available 
 - [x] The refusal identifies the required margin and available balance.
 - [x] The Place Order control is disabled for the same state.
 - [x] A funded open remains unaffected.
-- [x] Paper mode uses the paper account balance consistently.
+- [x] Paper mode uses the paper account balance consistently in the isolated paper path (a live push without a mode guard can overwrite it — tracked as BUG-0565).
 - [x] Tests prove that no signed request is sent for an over-margin open.
 
 ## Out of scope

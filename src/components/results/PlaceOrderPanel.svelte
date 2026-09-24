@@ -193,14 +193,20 @@
     if (
       data?.requiredMargin instanceof Decimal &&
       liveAvailable instanceof Decimal
-    )
+    ) {
+      // A non-finite reading measures nothing — same rule as the gate:
+      // don't disable, the unmeasured hint below says why.
+      if (!liveAvailable.isFinite()) return true;
       return data.requiredMargin.lte(liveAvailable);
+    }
     return true;
   });
   // No live reading to compare against: the gate records an
   // `availableMarginUnmeasured` skip and the venue decides (IDEA-0563).
   const balanceUnmeasured = $derived(
-    data?.requiredMargin instanceof Decimal && liveAvailable === undefined,
+    data?.requiredMargin instanceof Decimal &&
+      (liveAvailable === undefined ||
+        (liveAvailable instanceof Decimal && !liveAvailable.isFinite())),
   );
   // Live-only shortfall: the typed balance covers the margin but the wallet
   // does not — the state where the calculator flag stays green while the

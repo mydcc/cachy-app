@@ -854,7 +854,8 @@ describe("orderGate — rendering a refusal", () => {
         expect(text).not.toContain("{");
     });
 
-    it("falls back to the raw field name when it has no translation", () => {        const refusal = {
+    it("falls back to the raw field name when it has no translation", () => {
+        const refusal = {
             field: "takeProfit[0]",
             reason: "mismatch",
             messageKey: "orderGate.mismatch",

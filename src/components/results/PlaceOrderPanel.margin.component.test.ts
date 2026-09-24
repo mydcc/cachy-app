@@ -288,4 +288,19 @@ describe("BUG-0549 — the place control follows the margin-exceeded flag", () =
             "Balance not loaded — the venue decides whether this order is funded.",
         );
     });
+
+    it("treats a non-finite balance like an unloaded one, not a shortfall", async () => {
+        // NaN compares false against everything: the gate records a skip
+        // and approves, so the panel must hint rather than disable.
+        accountState.assets = [
+            { currency: "USDT", available: new Decimal(NaN) },
+        ] as never;
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(submitButton().disabled).toBe(false);
+        expect(host.textContent).toContain(
+            "Balance not loaded — the venue decides whether this order is funded.",
+        );
+    });
 });
