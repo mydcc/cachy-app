@@ -404,7 +404,10 @@
 
     // Keep the effect palette in step with the theme. The shared palette cache
     // is dropped first so the materials re-read the CSS variables. The coin
-    // (gold), the matrix rain (green) and the duck stay intentionally literal.
+    // and matrix canvas textures are re-baked below — a texture map freezes
+    // its pixels at creation, so re-tinting the material is not enough. The
+    // stale GPU uploads are disposed. Only the duck stays intentionally
+    // literal.
     $effect(() => {
         void uiState.currentTheme;
         invalidateThemePalette();
@@ -418,6 +421,12 @@
         shards.forEach((shard) =>
             (shard.material as THREE.MeshBasicMaterial).color.set(palette.accent),
         );
+        coinMaterial.map?.dispose();
+        coinMaterial.map = createCoinTexture();
+        coinMaterial.needsUpdate = true;
+        matrixMaterial.map?.dispose();
+        matrixMaterial.map = createMatrixTexture();
+        matrixMaterial.needsUpdate = true;
     });
 
     $effect(() => {

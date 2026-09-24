@@ -548,7 +548,7 @@
                         <span
                             style="color: {themeColors
                                 ? hexToRgba(themeColors.success, 1)
-                                : readCssColor('--success-color', '#10b981')}"
+                                : readCssColor("--success-color", "#10b981")}"
                             >{$_("journal.labels.long")}: {qualData
                                 ?.detailedStats?.winRateLong
                                 ? formatDynamicDecimal(
@@ -560,7 +560,7 @@
                         <span
                             style="color: {themeColors
                                 ? hexToRgba(themeColors.success, 0.6)
-                                : readCssColor('--success-color', '#10b981')}"
+                                : readCssColor("--success-color", "#10b981")}"
                             >{$_("journal.labels.short")}: {qualData
                                 ?.detailedStats?.winRateShort
                                 ? formatDynamicDecimal(

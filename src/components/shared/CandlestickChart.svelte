@@ -382,7 +382,7 @@
       const xAxis = chart.scales.x;
       const yAxis = chart.scales.y;
 
-      const accentColor = resolveColor("--color-accent", "#FACC15");
+      const accentColor = resolveColor("--accent-color", "#FACC15");
       // Manually making transparency if variable not available
       const accentRgbMatch = accentColor.match(/\d+, \d+, \d+/);
       const accentRgb = accentRgbMatch ? accentRgbMatch[0] : "250, 204, 21";

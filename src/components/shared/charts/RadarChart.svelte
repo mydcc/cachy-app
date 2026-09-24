@@ -30,7 +30,7 @@
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
-  import { readCssColor } from "../../../lib/themeColors";
+  import { readCssColor, parseColorToRgb } from "../../../lib/themeColors";
 
   // Register necessary components for Radar
   Chart.register(
@@ -103,8 +103,12 @@
 
   // Construct chart data format
   // Data hues resolve the active theme tokens (FEAT-0344) instead of
-  // hardcoding Chart.js blues, so the radar follows light/dark themes.
+  // hardcoding Chart.js blues, so the radar follows light/dark themes. The
+  // fill is the accent at 0.2 alpha — derived via parseColorToRgb so hex and
+  // rgb() resolutions both work (hexToRgba only accepts hex).
   const chartAccent = readCssColor("--accent-color", "rgb(54, 162, 235)");
+  const chartAccentRgb = parseColorToRgb(chartAccent) ?? [54, 162, 235];
+  const chartAccentFill = `rgba(${chartAccentRgb[0]}, ${chartAccentRgb[1]}, ${chartAccentRgb[2]}, 0.2)`;
   const chartPointFill = readCssColor("--bg-primary", "#fff");
   let chartData = $derived({
     labels: labels.length > 0 ? labels : data?.labels || [],
@@ -113,7 +117,7 @@
         label: title,
         data: data?.data || [],
         fill: true,
-        backgroundColor: "rgba(54, 162, 235, 0.2)", // Default blue
+        backgroundColor: chartAccentFill,
         borderColor: chartAccent,
         pointBackgroundColor: chartAccent,
         pointBorderColor: chartPointFill,
