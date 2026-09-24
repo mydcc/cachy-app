@@ -109,7 +109,7 @@
   const chartAccent = readCssColor("--accent-color", "rgb(54, 162, 235)");
   const chartAccentRgb = parseColorToRgb(chartAccent) ?? [54, 162, 235];
   const chartAccentFill = `rgba(${chartAccentRgb[0]}, ${chartAccentRgb[1]}, ${chartAccentRgb[2]}, 0.2)`;
-  const chartPointFill = readCssColor("--bg-primary", "#fff");
+  const chartPointFill = readCssColor("--bg-tertiary", "#1e293b");
   let chartData = $derived({
     labels: labels.length > 0 ? labels : data?.labels || [],
     datasets: [

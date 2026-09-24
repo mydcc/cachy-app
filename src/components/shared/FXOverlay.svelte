@@ -215,7 +215,7 @@
     }
 
     const matrixMaterial = new THREE.PointsMaterial({
-        color: 0x00ff00,
+        color: new THREE.Color(1, 1, 1),
         size: 0.5,
         map: createMatrixTexture(),
         transparent: true,
