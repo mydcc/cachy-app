@@ -509,8 +509,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0550",
     "title": "TP/SL trigger prices are not validated against position direction",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P0",
+    "assignee": "opencode",
+    "branch": "fix/bug-0550-tpsl-direction",
     "milestone": "none",
     "editions": [
       "community",

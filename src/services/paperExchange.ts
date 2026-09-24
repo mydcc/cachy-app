@@ -35,6 +35,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { validateTpSlPrice } from "../lib/calculators/tpsl";
 import { paperState, type PaperFill, type PaperOrder } from "../stores/paperTrading.svelte";
 
 export class PaperExchangeError extends Error {
@@ -315,6 +316,28 @@ class PaperExchange {
      * position that is added to stays covered; a partial plan covers the
      * quantity it names.
      */
+    private assertTpSlLevels(
+        payload: Record<string, unknown>,
+        positionSide: "long" | "short",
+        entryPrice: Decimal,
+    ): void {
+        const side = positionSide === "long" ? "LONG" as const : "SHORT" as const;
+        for (const [prefix, kind] of [
+            ["tp", "TP"],
+            ["sl", "SL"],
+        ] as const) {
+            const raw = payload[`${prefix}Price`];
+            if (raw === undefined) continue;
+            const price = toDecimal(raw);
+            if (
+                price === null ||
+                !validateTpSlPrice(kind, price, { entryPrice, side }).valid
+            ) {
+                throw new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl");
+            }
+        }
+    }
+
     private placeTpSlPlan(
         params: Record<string, unknown>,
         positionWide: boolean,
@@ -334,6 +357,7 @@ class PaperExchange {
 
         const groupId = paperState.takeId("paper-tpsl");
         const entry = new Decimal(position.entryPrice);
+        this.assertTpSlLevels(params, position.side, entry);
         const created: PaperOrder[] = [];
 
         for (const [prefix, planType] of [
@@ -420,8 +444,12 @@ class PaperExchange {
             ["tp", "TP"],
             ["sl", "SL"],
         ] as const) {
-            const trigger = toDecimal(params[`${prefix}Price`]);
-            if (trigger === null || trigger.lte(0)) continue;
+            const raw = params[`${prefix}Price`];
+            if (raw === undefined) continue;
+            const trigger = toDecimal(raw);
+            if (trigger === null || trigger.lte(0)) {
+                throw new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl");
+            }
             const index = orders.findIndex(
                 (o) => o.planGroupId === groupId && o.planType === planType,
             );
@@ -429,6 +457,14 @@ class PaperExchange {
 
             const position = paperState.positions.find(
                 (p) => p.positionId === orders[index].positionId,
+            );
+            if (!position) {
+                throw new PaperExchangeError("PAPER_NO_POSITION", "tradeErrors.positionNotFound");
+            }
+            this.assertTpSlLevels(
+                { [`${prefix}Price`]: raw },
+                position.side,
+                new Decimal(position.entryPrice),
             );
             const qty = toDecimal(params[`${prefix}Qty`]);
             orders[index] = {
@@ -468,6 +504,20 @@ class PaperExchange {
         if (requested === null || requested.lte(0)) {
             throw new PaperExchangeError("PAPER_BAD_QTY", "apiErrors.invalidAmount");
         }
+        if (
+            orderType !== "MARKET" &&
+            (payload.tpPrice !== undefined || payload.slPrice !== undefined)
+        ) {
+            const entry = toDecimal(payload.price);
+            if (entry === null) {
+                throw new PaperExchangeError("PAPER_TPSL_INVALID", "orderGate.invalidTpSl");
+            }
+            this.assertTpSlLevels(
+                payload,
+                side === "BUY" ? "long" : "short",
+                entry,
+            );
+        }
 
         const orderId = paperState.takeId("paper-order");
         const clientOrderId =
@@ -501,6 +551,9 @@ class PaperExchange {
         const price = requirePrice(symbol);
         const qty = this.fillQuantity(requested);
         const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
+        if (!closes && (payload.tpPrice !== undefined || payload.slPrice !== undefined)) {
+            this.assertTpSlLevels(payload, side === "BUY" ? "long" : "short", price);
+        }
 
         const fill = closes
             ? this.applyClose(symbol, side, qty, price)

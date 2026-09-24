@@ -28,6 +28,7 @@ import {
     netPnlFromPrice,
     netRoiPercentFromPrice,
     roundToTick,
+    validateTpSlPrice,
     type TpSlContext,
     type FeeRates,
 } from "./tpsl";
@@ -41,6 +42,63 @@ const LONG: TpSlContext = {
 };
 
 const SHORT: TpSlContext = { ...LONG, side: "SHORT" };
+
+describe("TP/SL semantic validation", () => {
+    it("accepts only favourable levels for a long", () => {
+        expect(validateTpSlPrice("TP", new Decimal(110), LONG)).toEqual({ valid: true });
+        expect(validateTpSlPrice("SL", new Decimal(90), LONG)).toEqual({ valid: true });
+        expect(validateTpSlPrice("TP", new Decimal(90), LONG)).toEqual({
+            valid: false,
+            reason: "wrongSide",
+        });
+        expect(validateTpSlPrice("SL", new Decimal(110), LONG)).toEqual({
+            valid: false,
+            reason: "wrongSide",
+        });
+    });
+
+    it("mirrors the rules for a short", () => {
+        expect(validateTpSlPrice("TP", new Decimal(90), SHORT)).toEqual({ valid: true });
+        expect(validateTpSlPrice("SL", new Decimal(110), SHORT)).toEqual({ valid: true });
+        expect(validateTpSlPrice("TP", new Decimal(110), SHORT)).toEqual({
+            valid: false,
+            reason: "wrongSide",
+        });
+        expect(validateTpSlPrice("SL", new Decimal(90), SHORT)).toEqual({
+            valid: false,
+            reason: "wrongSide",
+        });
+    });
+
+    it("rejects equal, non-positive, and non-finite levels", () => {
+        expect(validateTpSlPrice("TP", new Decimal(100), LONG)).toEqual({
+            valid: false,
+            reason: "wrongSide",
+        });
+        expect(validateTpSlPrice("TP", new Decimal(0), LONG)).toEqual({
+            valid: false,
+            reason: "invalidPrice",
+        });
+        expect(validateTpSlPrice("SL", new Decimal(-1), LONG)).toEqual({
+            valid: false,
+            reason: "invalidPrice",
+        });
+        expect(validateTpSlPrice("TP", new Decimal(110).div(0), LONG)).toEqual({
+            valid: false,
+            reason: "invalidPrice",
+        });
+    });
+
+    it("rejects levels that are not tick-aligned when a tick is known", () => {
+        expect(validateTpSlPrice("TP", new Decimal("110.01"), LONG, new Decimal("0.1"))).toEqual({
+            valid: false,
+            reason: "tickSize",
+        });
+        expect(validateTpSlPrice("TP", new Decimal("110.0"), LONG, new Decimal("0.1"))).toEqual({
+            valid: true,
+        });
+    });
+});
 
 describe("Change mode", () => {
     it("puts a long's take-profit above entry", () => {

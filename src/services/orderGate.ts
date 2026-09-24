@@ -48,6 +48,11 @@
  */
 
 import { Decimal } from "decimal.js";
+import {
+    normalizePositionSide,
+    validateTpSlPrice,
+    type TpSlPriceKind,
+} from "../lib/calculators/tpsl";
 /*
  * FEAT-0017. Safe to import here despite this module's no-dependencies rule:
  * `exchangeCapabilities` gathers per-venue declarations that are frozen data
@@ -246,6 +251,13 @@ export interface DisplayedState {
     paperMode?: boolean;
     symbol?: string;
     side?: string;
+    /**
+     * Direction of the exposure a TP/SL level relates to (BUG-0550). Read by
+     * the direction check instead of `side`, because `/api/tpsl` and
+     * `modify-order` payloads carry no `side` field — setting `side` on them
+     * would trip the payload-side parity check above.
+     */
+    positionSide?: string;
     entryPrice?: Decimal;
     stopLossPrice?: Decimal;
     takeProfits?: Decimal[];
@@ -330,6 +342,7 @@ export interface DisplayedState {
      * "no rounding allowed" — the recomputed size must match exactly.
      */
     stepSize?: Decimal;
+    tickSize?: Decimal;
     /**
      * `Date.now()` of the last exchange-confirmed leverage/margin-mode read.
      * Undefined or older than MAX_ACCOUNT_STATE_AGE_MS refuses an `open`.
@@ -1022,6 +1035,13 @@ class OrderGate {
         const priceRefusal = this.checkPrices(intent, checked);
         if (priceRefusal) return refuse(priceRefusal);
 
+        // --- TP/SL trigger direction (BUG-0550) -------------------------------
+        // After size/price parity so existing refusal precedence (e.g. a zero
+        // stop distance refusing as `qty`) stays intact; fail-closed when the
+        // side or entry context is missing while a level is attached.
+        const tpSlDirectionRefusal = this.checkTpSlDirection(intent, checked);
+        if (tpSlDirectionRefusal) return refuse(tpSlDirectionRefusal);
+
         // --- leverage / margin mode -------------------------------------------
         // Only meaningful when opening exposure. A reduce-only close inherits
         // the position's own leverage; re-checking it there would refuse valid
@@ -1566,6 +1586,46 @@ class OrderGate {
         return !caps.tpSlStandalone;
     }
 
+    private checkTpSlDirection(intent: OrderIntent, checked: string[]): OrderRefusal | null {
+        const { payload, displayed } = intent;
+        const levels: Array<[TpSlPriceKind, string, unknown]> = [
+            ["TP", "takeProfit", resolvePath(payload, "tpPrice") ?? resolvePath(payload, "params.tpPrice")],
+            ["SL", "stopLoss", resolvePath(payload, "slPrice") ?? resolvePath(payload, "params.slPrice")],
+        ];
+        const presentLevels = levels.filter(([, , raw]) => raw !== undefined);
+        if (presentLevels.length === 0) return null;
+
+        checked.push("tpSlDirection");
+        const side = normalizePositionSide(displayed.positionSide ?? displayed.side);
+        if (side === null) return missing("side");
+        if (displayed.entryPrice === undefined || !displayed.entryPrice.isFinite() || displayed.entryPrice.lte(0)) {
+            return missing("entryPrice");
+        }
+
+        for (const [kind, field, raw] of presentLevels) {
+            const price = toDecimal(raw);
+            const validation = price === null
+                ? ({ valid: false, reason: "invalidPrice" } as const)
+                : validateTpSlPrice(kind, price, {
+                      entryPrice: displayed.entryPrice,
+                      side,
+                  }, displayed.tickSize);
+            if (validation.valid) continue;
+            return {
+                field,
+                reason: validation.reason === "missingContext" ? "missing" : "unsupported",
+                messageKey: "orderGate.invalidTpSl",
+                values: {
+                    field,
+                    actual: price?.toString() ?? String(raw),
+                    entryPrice: displayed.entryPrice.toString(),
+                    side,
+                },
+            };
+        }
+        return null;
+    }
+
     private checkPrices(intent: OrderIntent, checked: string[]): OrderRefusal | null {
         const { payload, displayed } = intent;
         const fields = { ...DEFAULT_PRICE_FIELDS, ...intent.priceFields };
@@ -1587,8 +1647,13 @@ class OrderGate {
             checked.push("protectionDeferred");
         }
 
+        // A TP/SL plan has no order price on the wire: its `entryPrice` is
+        // position context for the direction check (BUG-0550), not the
+        // price this request sends, so it must not be compared against a
+        // field that structurally never exists in a `/api/tpsl` payload.
+        const entryPrice = intent.endpoint === "/api/tpsl" ? undefined : displayed.entryPrice;
         const pairs: Array<[string, Decimal | undefined, unknown]> = [
-            ["price", displayed.entryPrice, resolvePath(payload, fields.price)],
+            ["price", entryPrice, resolvePath(payload, fields.price)],
             [
                 "stopLoss",
                 carriesProtection ? displayedStop : undefined,

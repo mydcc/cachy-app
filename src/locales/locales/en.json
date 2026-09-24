@@ -4114,6 +4114,7 @@
     "symbolStatus": "Order refused: symbol status is {status} (expected OPEN). Trading is currently unavailable.",
     "apiUnsupported": "Order refused: API trading is not supported for this symbol.",
     "bypassed": "Order refused: an order of type {action} tried to reach the exchange without passing verification. This is a bug — please report it.",
+    "invalidTpSl": "Order refused: the {field} price {actual} is not valid for this {side} position with entry price {entryPrice}. The order was not sent.",
     "botPaperOnly": "Order refused: a bot order may only be placed while paper trading is on. Paper trading is switched off, so the order was not sent.",
     "fields": {
       "account": "the account",

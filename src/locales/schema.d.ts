@@ -3389,6 +3389,7 @@ export type TranslationKey =
   | "orderGate.symbolStatus"
   | "orderGate.apiUnsupported"
   | "orderGate.bypassed"
+  | "orderGate.invalidTpSl"
   | "orderGate.botPaperOnly"
   | "orderGate.fields.account"
   | "orderGate.fields.accountState"

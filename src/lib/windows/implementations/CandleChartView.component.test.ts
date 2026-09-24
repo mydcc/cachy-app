@@ -654,6 +654,30 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
 
         expect(modifyTpSlOrder).not.toHaveBeenCalled();
     });
+
+    it("refuses a wrong-side drop before it reaches the exchange (BUG-0550)", async () => {
+        seedPositionAndPlans();
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector(".chart-container") as HTMLElement;
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        // Long position with entry at 100: a stop above entry is the wrong
+        // protection direction and must be rejected locally.
+        dragSlLineTo(container, 90, 105);
+        await settle();
+
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        expect(toastService.error).toHaveBeenCalled();
+        expect(tpSlState.invalidate).not.toHaveBeenCalled();
+    });
 });
 
 /*

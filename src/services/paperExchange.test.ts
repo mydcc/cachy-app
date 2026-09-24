@@ -822,18 +822,46 @@ describe("paperExchange — TP/SL plans are reported", () => {
         expect(moved.tpPrice).toBe("52000");
     });
 
-    it("re-derives the trigger direction when a stop is moved past the entry", async () => {
+    it("refuses to move a stop to the wrong side of the entry", async () => {
         await openWithPlans();
         const [row] = await pending();
-        await paperExchange.handle("/api/tpsl", {
-            action: "modify",
-            params: { orderId: row.id, slPrice: "51000" },
-        });
+        await expect(
+            paperExchange.handle("/api/tpsl", {
+                action: "modify",
+                params: { orderId: row.id, slPrice: "51000" },
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_TPSL_INVALID" });
+    });
 
-        // Above the entry now, so it must wait for a rise, not a fall — a
-        // stale direction would leave it waiting for a move that never comes.
-        const stop = paperState.orders.find((o) => o.planType === "SL")!;
-        expect(stop.triggerDirection).toBe("above");
+    it("refuses a short take-profit above entry", async () => {
+        await paperExchange.handle("/api/orders", {
+            type: "place-order",
+            symbol: "BTCUSDT",
+            side: "SELL",
+            orderType: "MARKET",
+            qty: "1",
+        });
+        const positionId = paperState.positions[0].positionId;
+        await expect(
+            paperExchange.handle("/api/tpsl", {
+                action: "place-position",
+                params: { symbol: "BTCUSDT", positionId, tpPrice: "51000" },
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_TPSL_INVALID" });
+    });
+
+    it("refuses invalid levels attached to an entry before opening it", async () => {
+        await expect(
+            paperExchange.handle("/api/orders", {
+                type: "place-order",
+                symbol: "BTCUSDT",
+                side: "BUY",
+                orderType: "MARKET",
+                qty: "1",
+                tpPrice: "49000",
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_TPSL_INVALID" });
+        expect(paperState.positions).toHaveLength(0);
     });
 });
 

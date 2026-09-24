@@ -49,6 +49,7 @@
     netPnlFromPrice,
     netRoiPercentFromPrice,
     roundToTick,
+    validateTpSlPrice,
     type TpSlContext,
     type FeeRates,
   } from "../../lib/calculators/tpsl";
@@ -200,6 +201,12 @@
     targetDraft ?? sliderValue.toDecimalPlaces(mode === "PNL" ? 2 : 2).toString(),
   );
 
+  function emitPrice(next: Decimal) {
+    if (validateTpSlPrice(kind, next, ctx, tickSize.gt(0) ? tickSize : undefined).valid) {
+      onChange(next);
+    }
+  }
+
   function commitPrice() {
     const draft = priceDraft;
     priceDraft = null;
@@ -207,7 +214,7 @@
     try {
       const parsed = new Decimal(draft);
       if (!parsed.isFinite() || parsed.lte(0)) return;
-      onChange(roundToTick(parsed, tickSize));
+      emitPrice(roundToTick(parsed, tickSize));
     } catch {
       // Not a number — drop it and fall back to the committed value.
     }
@@ -220,7 +227,7 @@
     try {
       const parsed = new Decimal(draft);
       if (!parsed.isFinite()) return;
-      onChange(priceForSliderValue(parsed));
+      emitPrice(priceForSliderValue(parsed));
     } catch {
       // Not a number — drop it and fall back to the committed value.
     }
@@ -309,7 +316,7 @@
     {disabled}
     tone={kind === "TP" ? "success" : "danger"}
     formatValue={(v) => `${v.toDecimalPlaces(2)} ${modeUnit}`}
-    onChange={(v) => onChange(priceForSliderValue(v))}
+    onChange={(v) => emitPrice(priceForSliderValue(v))}
   />
 
   <!-- Resulting trigger price — the value actually submitted -->

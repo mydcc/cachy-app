@@ -273,6 +273,12 @@ describe("FEAT-0013 — limits allow what they should", () => {
         const intent = openIntent();
         intent.displayed.side = "SELL";
         intent.payload.side = "SELL";
+        // BUG-0550: a SELL's protective levels sit on the other side of the
+        // entry, so the flip has to carry them along.
+        intent.payload.slPrice = "50500";
+        intent.payload.tpPrice = "49000";
+        intent.displayed.stopLossPrice = new Decimal(50500);
+        intent.displayed.takeProfits = [new Decimal(49000)];
         const refusal = orderGate.verify(intent).refusal;
         expect(refusal?.field).toBe("maxOpenPositions");
         expect(refusal?.values.actual).toBe("2");
@@ -290,6 +296,12 @@ describe("FEAT-0013 — limits allow what they should", () => {
         const intent = openIntent();
         intent.displayed.side = "SELL";
         intent.payload.side = "SELL";
+        // BUG-0550: keep the SELL's levels direction-valid so the exemption
+        // is what the assertion measures, not the new TP/SL check.
+        intent.payload.slPrice = "50500";
+        intent.payload.tpPrice = "49000";
+        intent.displayed.stopLossPrice = new Decimal(50500);
+        intent.displayed.takeProfits = [new Decimal(49000)];
         expect(orderGate.verify(intent).approved).toBe(true);
     });
 

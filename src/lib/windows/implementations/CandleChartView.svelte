@@ -47,6 +47,7 @@
     import { accountState } from "../../../stores/account.svelte";
     import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
+    import { validateTpSlPrice } from "../../../lib/calculators/tpsl";
     import { marketWatcher } from "../../../services/marketWatcher";
     import { activeExchange } from "../../../services/exchange";
     import { toastService } from "../../../services/toastService.svelte";
@@ -726,6 +727,29 @@
     async function handleTpSlDrop(kind: TpSlKind, orderId: string, price: Decimal) {
         const planType = kind === "takeProfit" ? "PROFIT" : "LOSS";
         const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
+        const position = accountState.positions.find((p) => p.symbol === normalizedSymbol);
+        const meta = marketState?.symbolMeta?.[normalizedSymbol];
+        const tickSize =
+            meta?.quotePrecision !== undefined ? new Decimal(10).pow(-meta.quotePrecision) : undefined;
+        const valid =
+            position !== undefined &&
+            validateTpSlPrice(
+                kind === "takeProfit" ? "TP" : "SL",
+                price,
+                {
+                    entryPrice: position.entryPrice,
+                    side: position.side === "long" ? "LONG" : "SHORT",
+                },
+                tickSize,
+            ).valid;
+        if (!valid) {
+            toastService.error(
+                get(_)("orderGate.invalidTpSl", {
+                    values: { field: kind === "takeProfit" ? "TP" : "SL" },
+                }),
+            );
+            return;
+        }
         const leg = kind === "takeProfit" ? "tp" : "sl";
         // BUG-0386 / BUG-0384: `orderId` is the synthetic per-leg id
         // (`<baseId>-tp` / `<baseId>-sl`, BUG-0292) that only exists locally.
@@ -748,6 +772,11 @@
                 symbol: normalizedSymbol,
                 planType,
                 triggerPrice: price.toString(),
+                context: {
+                    side: position.side,
+                    entryPrice: position.entryPrice,
+                },
+                tickSize,
             });
             toastService.success(get(_)("trade.tpSlUpdated"));
         } catch (e: unknown) {

@@ -101,7 +101,7 @@ export interface EntryPlan {
      */
     origin: OrderOrigin;
     /** "long" or "short", as the calculator states it. */
-    tradeType: string;
+    tradeType: "long" | "short";
     entryType: OrderEntryType;
     qty: Decimal;
     entryPrice: Decimal;
@@ -520,6 +520,7 @@ class OrderPlacementService {
                 symbol: plan.symbol,
                 positionId,
                 stopLoss: { price: plan.stopLossPrice },
+                context: { side: plan.tradeType, entryPrice: plan.entryPrice },
             });
         } catch (error) {
             // The retry window ends in the loud UNPROTECTED result either way;

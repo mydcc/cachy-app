@@ -2203,6 +2203,11 @@ class TradeService {
 
         const qty = params.qty !== undefined ? formatApiNum(params.qty) : liveOrder.amount;
         const price = params.price !== undefined ? formatApiNum(params.price) : (liveOrder.price || undefined);
+        const entryPrice = params.price !== undefined
+            ? new Decimal(params.price)
+            : liveOrder.price
+              ? new Decimal(liveOrder.price)
+              : undefined;
 
         const payload: Record<string, unknown> = {
             type: "modify-order",
@@ -2234,7 +2239,8 @@ class TradeService {
             displayed: {
                 symbol: typeof symbol === "string" ? symbol : undefined,
                 orderId: params.orderId,
-                entryPrice: params.price !== undefined ? new Decimal(params.price) : undefined,
+                entryPrice,
+                positionSide: liveOrder.side,
                 stopLossPrice: params.slPrice !== undefined ? new Decimal(params.slPrice) : undefined,
                 takeProfits: params.tpPrice !== undefined ? [new Decimal(params.tpPrice)] : undefined,
                 // The quantity the caller asked for, or the live order read
@@ -2395,6 +2401,8 @@ class TradeService {
         triggerPrice: string,
         qty?: string,
         stopType?: "LAST_PRICE" | "MARK_PRICE",
+        context?: { side: "long" | "short"; entryPrice: Decimal },
+        tickSize?: Decimal,
     }) {
         const wire: Record<string, unknown> = { orderId: params.orderId };
         if (params.planType === "PROFIT") {
@@ -2420,6 +2428,9 @@ class TradeService {
             displayed: {
                 symbol: params.symbol,
                 orderId: params.orderId,
+                positionSide: params.context?.side.toUpperCase(),
+                entryPrice: params.context?.entryPrice,
+                tickSize: params.tickSize,
                 // A PROFIT plan's trigger is a take-profit level, a LOSS
                 // plan's is a stop — same field on the wire, different
                 // meaning, and each has to land in the slot the gate checks.
@@ -2462,6 +2473,8 @@ class TradeService {
         positionId: string,
         takeProfit?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
         stopLoss?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
+        context?: { side: "long" | "short"; entryPrice: Decimal },
+        tickSize?: Decimal,
     }) {
         if (!params.takeProfit && !params.stopLoss) {
             throw new Error("apiErrors.tpslNoLeg");
@@ -2492,6 +2505,9 @@ class TradeService {
             displayed: {
                 symbol: params.symbol,
                 positionId: params.positionId,
+                positionSide: params.context?.side.toUpperCase(),
+                entryPrice: params.context?.entryPrice,
+                tickSize: params.tickSize,
                 takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
                 stopLossPrice: params.stopLoss?.price,
             },
@@ -2531,6 +2547,8 @@ class TradeService {
             orderType?: "LIMIT" | "MARKET",
             orderPrice?: Decimal,
         },
+        context?: { side: "long" | "short"; entryPrice: Decimal },
+        tickSize?: Decimal,
     }) {
         if (!params.takeProfit && !params.stopLoss) {
             throw new Error("apiErrors.tpslNoLeg");
@@ -2571,6 +2589,9 @@ class TradeService {
             displayed: {
                 symbol: params.symbol,
                 positionId: params.positionId,
+                positionSide: params.context?.side.toUpperCase(),
+                entryPrice: params.context?.entryPrice,
+                tickSize: params.tickSize,
                 takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
                 stopLossPrice: params.stopLoss?.price,
                 // Fixed-quantity legs, compared back against the wire the

@@ -36,6 +36,7 @@
 
 <script lang="ts">
   import { untrack } from "svelte";
+  import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
   import { activeExchange, type TpSlOrder } from "../../services/exchange";
   import type { OMSPosition } from "../../services/omsTypes";
@@ -48,7 +49,7 @@ import { Decimal } from "decimal.js";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
-  import type { TpSlContext, FeeRates } from "../../lib/calculators/tpsl";
+  import { validateTpSlPrice, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
     position: OMSPosition;
@@ -124,6 +125,26 @@ import { Decimal } from "decimal.js";
   const tpDecimal = $derived(toDecimalOrZero(tpPrice));
   const slDecimal = $derived(toDecimalOrZero(slPrice));
 
+  function invalidTpSlMessage(field: "TP" | "SL") {
+    return get(_)("orderGate.invalidTpSl", { values: { field } });
+  }
+
+  function hasInvalidTpSl(takeProfit: string, stopLoss: string): boolean {
+    if (!tpSlContext) return false;
+    const tick = tickSize.gt(0) ? tickSize : undefined;
+    if (takeProfit && !validateTpSlPrice("TP", toDecimalOrZero(takeProfit), tpSlContext, tick).valid) {
+      positionWideError = invalidTpSlMessage("TP");
+      partialError = invalidTpSlMessage("TP");
+      return true;
+    }
+    if (stopLoss && !validateTpSlPrice("SL", toDecimalOrZero(stopLoss), tpSlContext, tick).valid) {
+      positionWideError = invalidTpSlMessage("SL");
+      partialError = invalidTpSlMessage("SL");
+      return true;
+    }
+    return false;
+  }
+
   function openEdit(order: TpSlOrder | undefined) {
     if (order) editingLeg = order;
   }
@@ -143,6 +164,7 @@ import { Decimal } from "decimal.js";
       positionWideError = $_("apiErrors.tpslNoLeg");
       return;
     }
+    if (hasInvalidTpSl(tpPrice, slPrice)) return;
 
     positionWideLoading = true;
     positionWideError = "";
@@ -150,6 +172,8 @@ import { Decimal } from "decimal.js";
       await activeExchange().trading.placePositionTpSl({
         symbol: position.symbol,
         positionId: position.positionId,
+        context: { side: position.side, entryPrice: position.entryPrice },
+        tickSize,
         takeProfit: tpPrice ? { price: new Decimal(tpPrice), stopType } : undefined,
         stopLoss: slPrice ? { price: new Decimal(slPrice), stopType } : undefined,
       });
@@ -171,6 +195,7 @@ import { Decimal } from "decimal.js";
       partialError = $_("apiErrors.tpslNoLeg");
       return;
     }
+    if (hasInvalidTpSl(partialTpPrice, partialSlPrice)) return;
     if (!partialQty) {
       partialError = $_("modals.createTpSl.quantityRequired");
       return;
@@ -203,6 +228,8 @@ import { Decimal } from "decimal.js";
       await activeExchange().trading.placeTpSlOrder({
         symbol: position.symbol,
         positionId: position.positionId,
+        context: { side: position.side, entryPrice: position.entryPrice },
+        tickSize,
         takeProfit: partialTpPrice ? { price: new Decimal(partialTpPrice), qty, stopType } : undefined,
         stopLoss: partialSlPrice ? { price: new Decimal(partialSlPrice), qty, stopType } : undefined,
       });

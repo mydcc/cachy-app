@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { Decimal } from "decimal.js";
+  import { get } from "svelte/store";
   import { activeExchange, type TpSlOrder } from "../../services/exchange";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { _ } from "../../locales/i18n";
@@ -27,7 +28,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
-  import type { TpSlContext, FeeRates } from "../../lib/calculators/tpsl";
+  import { validateTpSlPrice, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
     order: TpSlOrder | null;
@@ -133,6 +134,20 @@
       error = $_("bitunixErrors.INVALID_TRIGGER") || "Trigger price is required";
       return;
     }
+    if (
+      tpSlContext &&
+      !validateTpSlPrice(
+        order.planType === "PROFIT" ? "TP" : "SL",
+        triggerDecimal,
+        tpSlContext,
+        tickSize.gt(0) ? tickSize : undefined,
+      ).valid
+    ) {
+      error = get(_)("orderGate.invalidTpSl", {
+        values: { field: order.planType === "PROFIT" ? "TP" : "SL" },
+      });
+      return;
+    }
 
     loading = true;
     error = "";
@@ -146,6 +161,10 @@
         symbol: order.symbol,
         planType: order.planType,
         triggerPrice: String(triggerPrice),
+        context: position
+          ? { side: position.side, entryPrice: position.entryPrice }
+          : undefined,
+        tickSize,
         qty: amount ? String(amount) : undefined,
       });
       onsuccess?.();

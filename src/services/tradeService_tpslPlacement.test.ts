@@ -69,6 +69,7 @@ vi.mock("./toastService.svelte", () => ({
 
 /** The order-gate pass every state-mutating call carries; see FEAT-0011. */
 const GATE_PASS = expect.anything();
+const CONTEXT = { side: "long" as const, entryPrice: new Decimal(60000) };
 
 function spyRequest() {
     return vi
@@ -93,6 +94,7 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         await tradeService.placePositionTpSl({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000) },
         });
 
@@ -109,6 +111,7 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         await tradeService.placePositionTpSl({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000) },
             stopLoss: { price: new Decimal(55000) },
         });
@@ -125,6 +128,7 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         await tradeService.placePositionTpSl({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             stopLoss: { price: new Decimal(55000) },
         });
 
@@ -132,6 +136,20 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         expect(params.slPrice).toBe("55000");
         expect("tpPrice" in params).toBe(false);
         expect("tpStopType" in params).toBe(false);
+    });
+
+    it("refuses a TP on the wrong side of entry before transport", async () => {
+        const spy = spyRequest();
+
+        await expect(
+            tradeService.placePositionTpSl({
+                symbol: "BTCUSDT",
+                positionId: "pos-1",
+                context: CONTEXT,
+                takeProfit: { price: new Decimal(55000) },
+            }),
+        ).rejects.toMatchObject({ refusal: { messageKey: "orderGate.invalidTpSl" } });
+        expect(spy).not.toHaveBeenCalled();
     });
 
     it("defaults the trigger type to the mark price", async () => {
@@ -142,6 +160,7 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         await tradeService.placePositionTpSl({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000) },
         });
 
@@ -154,6 +173,7 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
         await tradeService.placePositionTpSl({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000), stopType: "LAST_PRICE" },
         });
 
@@ -172,15 +192,17 @@ describe("FEAT-0070 — position-wide TP/SL", () => {
 
     it("serialises prices as plain decimal strings, never exponential", async () => {
         // "1e-7" is rejected by the exchange; formatApiNum exists for this.
+        // As a long's stop it also sits on the correct side of the entry.
         const spy = spyRequest();
 
         await tradeService.placePositionTpSl({
             symbol: "BTCUSDT",
             positionId: "pos-1",
-            takeProfit: { price: new Decimal("0.0000001") },
+            context: CONTEXT,
+            stopLoss: { price: new Decimal("0.0000001") },
         });
 
-        expect(sentParams(spy).tpPrice).toBe("0.0000001");
+        expect(sentParams(spy).slPrice).toBe("0.0000001");
     });
 });
 
@@ -191,6 +213,7 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
         await tradeService.placeTpSlOrder({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000), qty: new Decimal("0.5") },
         });
 
@@ -203,6 +226,7 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
         await tradeService.placeTpSlOrder({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000), qty: new Decimal("0.5") },
             stopLoss: { price: new Decimal(55000), qty: new Decimal("1") },
         });
@@ -220,6 +244,7 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
         await tradeService.placeTpSlOrder({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000), qty: new Decimal("0.5") },
         });
 
@@ -232,6 +257,7 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
         await tradeService.placeTpSlOrder({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: {
                 price: new Decimal(70000),
                 qty: new Decimal("0.5"),
@@ -251,6 +277,7 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
         await tradeService.placeTpSlOrder({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             stopLoss: { price: new Decimal(55000), qty: new Decimal("1") },
         });
 
@@ -276,6 +303,7 @@ describe("FEAT-0070 — partial TP/SL with an explicit quantity", () => {
         await tradeService.placeTpSlOrder({
             symbol: "BTCUSDT",
             positionId: "pos-1",
+            context: CONTEXT,
             takeProfit: { price: new Decimal(70000), qty: new Decimal("0.123456") },
         });
 
