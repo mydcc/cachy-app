@@ -49,6 +49,7 @@
   } from "../../services/exchangeCapabilities";
   import {
     orderPlacementService,
+    narrowTradeType,
     type PlacementResult,
   } from "../../services/orderPlacementService";
   import { activeExchange } from "../../services/exchange";
@@ -177,6 +178,13 @@
       volumeValid,
   );
 
+  // An unreadable trade direction is not a long: the control stays
+  // disabled, the summary falls back to notReady, and submit returns
+  // early — three independent walls before entrySideOf's contract throw.
+  const tradeDirectionKnown = $derived(
+    data !== null && narrowTradeType(data.tradeType) !== null,
+  );
+
   $effect(() => {
     if (data?.symbol && exchange === "bitunix" && !meta) {
       activeExchange().account.fetchTradingPairInfo(data.symbol);
@@ -221,7 +229,7 @@
   }
 
   async function submit() {
-    if (!ready || !data || submitting) return;
+    if (!ready || !data || submitting || !tradeDirectionKnown) return;
 
     // BUG-0507: the guard belongs where it is checked. Set before the
     // confirmation dialog — the await below lasts as long as the trader
@@ -272,10 +280,11 @@
         // plan so no call site can omit it and silently take the live path.
         origin: "manual",
         // BUG-0550 — EntryPlan.tradeType is "long" | "short" while the
-        // calculator's tradeType stays a free string. Narrow here with the
-        // same rule entrySideOf applies downstream ("short" → SELL,
-        // anything else → BUY), so the submitted side cannot change.
-        tradeType: data.tradeType.toLowerCase() === "short" ? "short" : "long",
+        // calculator's tradeType stays a free string. An unreadable spelling
+        // is not a long: tradeDirectionKnown already disabled the control
+        // and guarded submit, so this fallback below is unreachable — it
+        // exists only because the union demands a direction.
+        tradeType: narrowTradeType(data.tradeType) ?? "long",
         entryType,
         qty: data.positionSize,
         entryPrice: data.entryPrice,
@@ -388,7 +397,7 @@
   </div>
 
   <!-- What will be sent, from the calculator -->
-  {#if data && data.positionSize instanceof Decimal && data.positionSize.gt(0)}
+  {#if data && data.positionSize instanceof Decimal && data.positionSize.gt(0) && tradeDirectionKnown}
     <dl class="summary">
       <div><dt>{$_("orderEntry.summary.size")}</dt><dd>{formatDynamicDecimal(data.positionSize, meta?.basePrecision ?? 4)}</dd></div>
       {#if marginCost}
@@ -425,7 +434,7 @@
   <button
     class="submit-btn"
     class:paper-mode-btn={paperState.enabled}
-    disabled={!ready || submitting}
+    disabled={!ready || !tradeDirectionKnown || submitting}
     onclick={submit}
   >
     {#if submitting}

@@ -681,6 +681,59 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         expect(toastService.error).toHaveBeenCalledWith(expect.stringContaining("100"));
         expect(tpSlState.invalidate).not.toHaveBeenCalled();
     });
+
+    it("validates a drop against the dragged leg's own position in hedge mode", async () => {
+        // Two legs, one symbol: long entered at 100, short at 200. A stop at
+        // 210 is wrong for the long leg and right for the short one, so the
+        // drop only proceeds when resolved against the short position.
+        const leg = (positionId: string, side: "long" | "short", entry: number) => ({
+            positionId,
+            symbol: "BTCUSDT",
+            side,
+            size: new Decimal(1),
+            entryPrice: new Decimal(entry),
+            leverage: new Decimal(10),
+            unrealizedPnl: new Decimal(0),
+            margin: new Decimal(10),
+            marginMode: "ISOLATED",
+            liquidationPrice: new Decimal(80),
+            markPrice: new Decimal(entry),
+            breakEvenPrice: new Decimal(entry),
+            marginRate: new Decimal(0),
+            realizedPnl: new Decimal(0),
+        });
+        // Render time: the draggable SL line belongs to the short leg's plan.
+        // seedPositionAndPlans spies plansFor; the lines below re-point it.
+        seedPositionAndPlans();
+        accountState.positions = [leg("p-long", "long", 100), leg("p-short", "short", 200)] as never;
+        vi.mocked(tpSlState.plansFor).mockReturnValue({
+            loss: { orderId: "8801-sl", symbol: "BTCUSDT", planType: "LOSS", triggerPrice: "190", status: "NEW", sourceOrderId: "8801", positionId: "p-short" } as never,
+        });
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector(".chart-container") as HTMLElement;
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        dragSlLineTo(container, 190, 210);
+        await settle();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "8801",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "210",
+                context: expect.objectContaining({ side: "short" }),
+            }),
+        );
+    });
 });
 
 /*

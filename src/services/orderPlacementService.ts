@@ -153,9 +153,30 @@ function planIdOf(order: TpSlOrder): string | null {
         : null;
 }
 
+/**
+ * Narrows the calculator's free-string trade direction to the EntryPlan
+ * union. Null when unreadable — callers fail closed on null rather than
+ * defaulting it to long.
+ */
+export function narrowTradeType(tradeType: string): "long" | "short" | null {
+    const normalized = tradeType.toLowerCase();
+    if (normalized === "long" || normalized === "short") return normalized;
+    return null;
+}
+
 /** This entry's venue side, from the calculator's trade direction. */
 function entrySideOf(tradeType: string): "BUY" | "SELL" {
-    return tradeType.toLowerCase() === "short" ? "SELL" : "BUY";
+    /*
+     * Unknown spellings are not longs. The EntryPlan union already excludes
+     * them, so this throws only on values that violated the type — a loud
+     * contract breach instead of a silent direction. (Callers narrow first;
+     * see the tradeType narrowing at the PlaceOrderPanel call site.)
+     */
+    const narrowed = narrowTradeType(tradeType);
+    if (narrowed === null) {
+        throw new Error(`unknown trade direction: "${tradeType}"`);
+    }
+    return narrowed === "short" ? "SELL" : "BUY";
 }
 
 function triggerPriceMatches(order: TpSlOrder, expected: Decimal): boolean {
