@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import type { NewsItem } from "./newsService";
+import type { NewsItem } from "./newsTypes";
 import { logger } from "./logger";
 import { appFetch } from "../lib/appAuth";
 

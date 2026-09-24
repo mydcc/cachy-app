@@ -7,11 +7,11 @@
  * (at your option) any later version.
  */
 
-import {
-  newsService,
-  type NewsItem,
-  type SentimentAnalysis,
-} from "../services/newsService";
+import { newsService } from "../services/newsService";
+import type {
+  NewsItem,
+  SentimentAnalysis,
+} from "../services/newsTypes";
 import { logger } from "../services/logger";
 import { settingsState } from "./settings.svelte";
 

@@ -20,26 +20,11 @@ import { safeJsonParse } from "../utils/safeJson";
 import { CryptoPanicResponseSchema, NewsApiResponseSchema } from "../types/newsSchemas";
 import { appFetch } from "../lib/appAuth";
 import { readNewsSettings } from "./newsSettings";
+import type { NewsItem, SentimentAnalysis } from "./newsTypes";
 
 const isBrowser = typeof window !== "undefined";
 
 // --- Interfaces & Constants ---
-export interface NewsItem {
-  title: string;
-  url: string;
-  source: string;
-  published_at: string;
-  description?: string;
-  currencies?: { code: string; title: string }[];
-  id?: string; // Hash für Deduplizierung
-}
-
-export interface SentimentAnalysis {
-  score: number; // -1 to 1
-  regime: "BULLISH" | "BEARISH" | "NEUTRAL" | "UNCERTAIN";
-  summary: string;
-  keyFactors: string[];
-}
 
 const NewsItemSchema = z.object({
   title: z.string().min(1),
