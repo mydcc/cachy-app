@@ -115,8 +115,9 @@ describe('mitigation characterization (FEAT-0538)', () => {
         const zones = [ob(100, 90, TrendBias.BULLISH, 0)];
         const candles = [
             candle(1, 105, 108, 104, 107),
-            // low dips to 95 but the candle never reaches the bottom: high 85 < 90.
-            candle(2, 96, 85, 95, 94),
+            // low 85 <= top 100 (FVG would mitigate) but high 88 < bottom 90:
+            // one-sided, so the OB stays unmitigated.
+            candle(2, 87, 88, 85, 86),
             candle(3, 105, 108, 104, 107),
         ];
         (service as unknown as { checkMitigationOB: (c: SMCCandle[], z: OrderBlock[]) => void })
