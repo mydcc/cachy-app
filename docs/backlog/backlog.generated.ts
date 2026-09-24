@@ -2228,7 +2228,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0548",
     "title": "Pending-order quantity amendments bypass configured risk limits",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [

@@ -328,6 +328,15 @@ export interface DisplayedState {
      */
     modifyQuantity?: Decimal;
     /**
+     * For `modify` intents: the resting order's quantity *before* this
+     * amendment — the live order `modifyOrder` read and merged in
+     * (BUG-0548). `modifyQuantity` alone cannot say whether an amendment
+     * enlarges the exposure the trader approved when the order was placed;
+     * only the old size compared against the new one can. Absent is
+     * measured as an increase (fail closed) rather than waved through.
+     */
+    previousQuantity?: Decimal;
+    /**
      * For `modify` intents: the per-leg take-profit quantity, read off the
      * nested TP/SL payload shape via `qtyFields` — BUG-0505.
      */

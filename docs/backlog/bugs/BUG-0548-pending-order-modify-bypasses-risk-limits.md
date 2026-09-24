@@ -2,7 +2,7 @@
 id: BUG-0548
 title: Pending-order quantity amendments bypass configured risk limits
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -32,12 +32,12 @@ Evaluate prospective exposure and resulting stop risk for quantity-increasing mo
 
 ## Acceptance criteria
 
-- [ ] A quantity-increasing modify is refused when the resulting position exceeds `maxPositionSizeUsdt`.
-- [ ] The account-percentage position cap is enforced for a pending modification.
-- [ ] `maxLossPerTradeUsdt` is evaluated against the resulting position and stop.
-- [ ] The daily-loss limit remains enforceable for a later fill.
-- [ ] Refusal happens before any signed network request.
-- [ ] Price-only and TP/SL-only modifications remain usable, with regression tests.
+- [x] A quantity-increasing modify is refused when the resulting position exceeds `maxPositionSizeUsdt`.
+- [x] The account-percentage position cap is enforced for a pending modification.
+- [x] `maxLossPerTradeUsdt` is evaluated against the resulting position and stop.
+- [x] The daily-loss limit remains enforceable for a later fill.
+- [x] Refusal happens before any signed network request.
+- [x] Price-only and TP/SL-only modifications remain usable, with regression tests.
 
 ## Out of scope
 

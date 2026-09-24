@@ -534,6 +534,24 @@ class RiskManagementService {
             );
         }
 
+        // An amendment that enlarges the resting order makes the exposure
+        // larger than the trader approved when it was placed, so the same
+        // limits an `open` faces apply to the amended order (BUG-0548).
+        // `previousQuantity` vs `modifyQuantity` decides; a price-only or
+        // shrinking amendment changes nothing about exposure and stays
+        // exempt, as do TP/SL-only amendments — those are returned before
+        // any limit runs. `checkOpenPositions` stays out: the order
+        // consumed its slot when it was first placed. `checkLeverage` stays
+        // out: a modify payload carries no leverage.
+        if (intent.kind === "modify") {
+            if (!this.isQuantityIncreasingModify(intent)) return null;
+            return (
+                this.checkDailyLoss() ??
+                this.checkPositionSize(intent) ??
+                this.checkLossPerTrade(intent)
+            );
+        }
+
         // A pending-order amendment carries no size/stop pair to measure; the
         // kill switch already covers it, and the gate's own field checks cover
         // the rest.
@@ -546,6 +564,26 @@ class RiskManagementService {
             this.checkPositionSize(intent) ??
             this.checkLossPerTrade(intent)
         );
+    }
+
+    /**
+     * Whether a pending-order amendment makes the order larger than the
+     * resting order it replaces (BUG-0548).
+     *
+     * The new quantity is the payload's (the constructor always sends one,
+     * falling back to the live order's own size) and the old one is the
+     * `previousQuantity` the constructor merged in. An amendment with no
+     * quantity on either side has nothing to enlarge — price-only — and
+     * passes. A missing `previousQuantity` cannot prove the amendment is
+     * harmless, so it is measured as an increase: the limits decide, not
+     * the absence of evidence.
+     */
+    private isQuantityIncreasingModify(intent: OrderIntent): boolean {
+        const newQty = toDecimal(intent.payload.qty) ?? toDecimal(intent.displayed.modifyQuantity);
+        if (newQty === null) return false;
+        const previous = intent.displayed.previousQuantity;
+        if (previous === undefined) return true;
+        return newQty.gt(previous);
     }
 
     private checkDailyLoss(now = Date.now()): OrderRefusal | null {
@@ -692,6 +730,29 @@ class RiskManagementService {
                 resultingEntry,
                 restingStopPrice,
             );
+            if (loss === null) return unmeasurable("maxLossPerTrade");
+            if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
+            return null;
+        }
+
+        // An enlarged amendment is measured like an open (BUG-0548): the
+        // quantity the order will carry, the price it rests at, and the stop
+        // it will be attached to — displayed values first, payload values
+        // second, because the constructor only displays what the caller
+        // changed and the payload merges the live order's own stop. No stop
+        // anywhere means unprotected exposure: with a configured limit that
+        // is unmeasurable, not approved (BUG-0510).
+        if (intent.kind === "modify") {
+            const qty =
+                toDecimal(intent.payload.qty) ?? toDecimal(intent.displayed.modifyQuantity);
+            const entryPrice =
+                intent.displayed.entryPrice ?? toDecimal(intent.payload.price);
+            const stopLossPrice =
+                intent.displayed.stopLossPrice ?? toDecimal(intent.payload.slPrice);
+            if (qty === null || entryPrice === null || stopLossPrice === null) {
+                return unmeasurable("maxLossPerTrade");
+            }
+            const loss = this.lossWithFees(intent, qty, entryPrice, stopLossPrice);
             if (loss === null) return unmeasurable("maxLossPerTrade");
             if (loss.gt(max)) return limitRefusal("maxLossPerTrade", max, loss);
             return null;
