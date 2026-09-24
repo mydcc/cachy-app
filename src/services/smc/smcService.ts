@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { type Pivot, type OrderBlock, type FairValueGap, type SMCResult, TrendBias } from './types';
+import { type Pivot, type OrderBlock, type FairValueGap, type SMCResult, type MitigationZone, TrendBias } from './types';
 
 export interface SMCCandle {
     time: number;
@@ -326,23 +326,38 @@ export class SMCService {
         }
     }
 
-    private checkMitigation(candles: SMCCandle[], fvgs: FairValueGap[]) {
-        if (fvgs.length === 0) return;
+    /**
+     * Generic sweep-line mitigation check (FEAT-0538).
+     *
+     * A zone becomes active once `zone.startIndex + activationOffset <= k` and
+     * is marked mitigated the first time a candle overlaps it. The bullish and
+     * bearish overlap predicates differ per zone kind (one-sided for fair
+     * value gaps, two-sided for order blocks) and are injected by the thin
+     * wrappers below — the sweep mechanics live here exactly once.
+     */
+    private checkZoneMitigation(
+        candles: SMCCandle[],
+        zones: MitigationZone[],
+        activationOffset: number,
+        overlapsBullish: (low: number, high: number, zone: MitigationZone) => boolean,
+        overlapsBearish: (low: number, high: number, zone: MitigationZone) => boolean,
+    ) {
+        if (zones.length === 0) return;
 
-        let fvgIndex = 0;
-        const activeBullish: FairValueGap[] = [];
-        const activeBearish: FairValueGap[] = [];
+        let zoneIndex = 0;
+        const activeBullish: MitigationZone[] = [];
+        const activeBearish: MitigationZone[] = [];
         const len = candles.length;
 
         for (let k = 0; k < len; k++) {
-            while (fvgIndex < fvgs.length && fvgs[fvgIndex].startIndex + 3 <= k) {
-                const f = fvgs[fvgIndex];
-                if (f.bias === TrendBias.BULLISH) activeBullish.push(f);
-                else activeBearish.push(f);
-                fvgIndex++;
+            while (zoneIndex < zones.length && zones[zoneIndex].startIndex + activationOffset <= k) {
+                const z = zones[zoneIndex];
+                if (z.bias === TrendBias.BULLISH) activeBullish.push(z);
+                else activeBearish.push(z);
+                zoneIndex++;
             }
 
-            if (activeBullish.length === 0 && activeBearish.length === 0 && fvgIndex === fvgs.length) {
+            if (activeBullish.length === 0 && activeBearish.length === 0 && zoneIndex === zones.length) {
                 break;
             }
 
@@ -352,9 +367,9 @@ export class SMCService {
 
             let i = 0;
             while (i < activeBullish.length) {
-                const fvg = activeBullish[i];
-                if (low <= fvg.top) { // Price dips into the gap
-                    fvg.mitigated = true;
+                const zone = activeBullish[i];
+                if (overlapsBullish(low, high, zone)) {
+                    zone.mitigated = true;
                     const last = activeBullish.pop()!;
                     if (i < activeBullish.length) activeBullish[i] = last;
                 } else {
@@ -364,9 +379,9 @@ export class SMCService {
 
             let j = 0;
             while (j < activeBearish.length) {
-                const fvg = activeBearish[j];
-                if (high >= fvg.bottom) { // Price rises into the gap
-                    fvg.mitigated = true;
+                const zone = activeBearish[j];
+                if (overlapsBearish(low, high, zone)) {
+                    zone.mitigated = true;
                     const last = activeBearish.pop()!;
                     if (j < activeBearish.length) activeBearish[j] = last;
                 } else {
@@ -376,54 +391,24 @@ export class SMCService {
         }
     }
 
+    private checkMitigation(candles: SMCCandle[], fvgs: FairValueGap[]) {
+        this.checkZoneMitigation(
+            candles,
+            fvgs,
+            3,
+            (low, _high, fvg) => low <= fvg.top, // Price dips into the gap
+            (_low, high, fvg) => high >= fvg.bottom, // Price rises into the gap
+        );
+    }
+
     private checkMitigationOB(candles: SMCCandle[], obs: OrderBlock[]) {
-        if (obs.length === 0) return;
-
-        let obIndex = 0;
-        const activeBullish: OrderBlock[] = [];
-        const activeBearish: OrderBlock[] = [];
-        const len = candles.length;
-
-        for (let k = 0; k < len; k++) {
-            while (obIndex < obs.length && obs[obIndex].startIndex + 1 <= k) {
-                const ob = obs[obIndex];
-                if (ob.bias === TrendBias.BULLISH) activeBullish.push(ob);
-                else activeBearish.push(ob);
-                obIndex++;
-            }
-
-            if (activeBullish.length === 0 && activeBearish.length === 0 && obIndex === obs.length) {
-                break;
-            }
-
-            const c = candles[k];
-            const low = c.low;
-            const high = c.high;
-
-            let i = 0;
-            while (i < activeBullish.length) {
-                const ob = activeBullish[i];
-                if (low <= ob.top && high >= ob.bottom) { // Overlap
-                     ob.mitigated = true;
-                     const last = activeBullish.pop()!;
-                     if (i < activeBullish.length) activeBullish[i] = last;
-                } else {
-                    i++;
-                }
-            }
-
-            let j = 0;
-            while (j < activeBearish.length) {
-                const ob = activeBearish[j];
-                if (high >= ob.bottom && low <= ob.top) {
-                    ob.mitigated = true;
-                    const last = activeBearish.pop()!;
-                    if (j < activeBearish.length) activeBearish[j] = last;
-                } else {
-                    j++;
-                }
-            }
-        }
+        this.checkZoneMitigation(
+            candles,
+            obs,
+            1,
+            (low, high, ob) => low <= ob.top && high >= ob.bottom, // Overlap
+            (low, high, ob) => high >= ob.bottom && low <= ob.top,
+        );
     }
 }
 
