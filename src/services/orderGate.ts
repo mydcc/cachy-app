@@ -347,9 +347,9 @@ export interface DisplayedState {
      */
     stopLossQty?: Decimal;
     /**
-     * Free margin the account had when the add was previewed — FEAT-0334.
+     * Free margin the account had when the order was previewed — FEAT-0334.
      *
-     * Compared against `addQuantity × price / leverage`. Absent on an `open`
+     * Compared against `qty × price / leverage`. Absent on an `open`
      * means the check is skipped rather than guessed: the open keeps its
      * risk-derived size check. Absent on an `add` refuses (BUG-0511): margin
      * is the only ceiling an add has, so skipping leaves the order with no
@@ -1436,6 +1436,15 @@ class OrderGate {
      * is the one intent whose only ceiling is available margin; skipping the
      * check leaves it with no ceiling at all, while an open keeps its
      * risk-derived size check.
+     *
+     * Two mechanics this relies on, stated so they survive refactoring: a
+     * null `qty` or non-positive `price` skips because `verify` refuses
+     * those intents before this check ever runs — the skip is not a second
+     * opinion. With no usable leverage the required margin falls back to
+     * the full notional, which can only refuse more, never less. The balance
+     * itself carries no freshness timestamp (leverage has
+     * MAX_ACCOUNT_STATE_AGE_MS, the balance does not); staleness can only
+     * refuse, never overspend, and the venue stays the final authority.
      */
     private checkMargin(intent: OrderIntent, checked: string[]): OrderRefusal | null {
         const { payload, displayed } = intent;

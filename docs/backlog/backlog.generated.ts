@@ -7476,6 +7476,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0545-duck-companion-settings-with-master-toggle.md"
   },
   {
+    "id": "IDEA-0563",
+    "title": "Decide what an open with unmeasured balance should do",
+    "type": "idea",
+    "status": "idea",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0549"
+    ],
+    "file": "ideas/IDEA-0563-open-with-unmeasured-balance.md"
+  },
+  {
     "id": "BUG-0007",
     "title": "Several UI strings are hardcoded instead of translated",
     "type": "bug",
