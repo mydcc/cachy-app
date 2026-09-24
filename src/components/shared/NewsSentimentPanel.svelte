@@ -15,7 +15,7 @@
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { _ } from "../../locales/i18n";
   import { slide } from "svelte/transition";
-  import type { NewsItem } from "../../services/newsService";
+  import type { NewsItem } from "../../services/newsTypes";
   import { frameSupportService } from "../../services/frameSupportService";
 
   interface Props {
