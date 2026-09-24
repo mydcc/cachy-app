@@ -1646,6 +1646,14 @@ class TradeService {
                 symbol: params.symbol,
                 side: params.side,
                 ...params.displayed,
+                // The free USDT balance the trader is spending from — live
+                // wallet or the paper account's simulated balance, which
+                // hydrates the same store (BUG-0549). Present, the gate
+                // measures the open's required margin against it; absent, it
+                // skips the measurement as before (BUG-0511).
+                availableMargin: accountState.assets.find(
+                    (a) => a.currency === "USDT",
+                )?.available,
                 stepSize,
                 minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
                 maxLimitOrderVolume: meta?.maxLimitOrderVolume ? new Decimal(meta.maxLimitOrderVolume) : undefined,

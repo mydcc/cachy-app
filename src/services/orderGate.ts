@@ -1074,11 +1074,15 @@ class OrderGate {
             if (accountRefusal) return refuse(accountRefusal);
         }
 
-        // --- available margin (FEAT-0334) --------------------------------------
-        // Only for an add. An `open` is sized from account size and risk, so
-        // its margin cost is already bounded by inputs the gate re-derives;
-        // an add's size is the trader's own number and nothing else limits it.
-        if (kind === "add") {
+        // --- available margin (FEAT-0334, BUG-0549) ---------------------------
+        // An add's size is the trader's own number and nothing else limits it,
+        // so the balance is its only ceiling. An open is sized from account
+        // size and risk, but the calculator can still show a required margin
+        // above what the account holds — the panel stops offering the order
+        // then, and this refuses it here if it is asked for anyway. A balance
+        // that has not loaded still skips an open (that refusal belongs to the
+        // add, BUG-0511): an open keeps its risk-derived size check either way.
+        if (kind === "open" || kind === "add") {
             const marginRefusal = this.checkMargin(intent, checked);
             if (marginRefusal) return refuse(marginRefusal);
         }
@@ -1410,12 +1414,14 @@ class OrderGate {
     }
 
     /**
-     * Whether the account can fund the add — FEAT-0334.
+     * Whether the account can fund the add or open — FEAT-0334, BUG-0549.
      *
-     * `addQuantity × price / leverage` against the free margin the UI showed.
-     * This is the one ceiling an add has: a reduce is bounded by the position
+     * `qty × price / leverage` against the free margin the UI showed.
+     * For an add this is the one ceiling: a reduce is bounded by the position
      * and an open by its risk inputs, but an add is bounded only by what the
-     * account can pay for.
+     * account can pay for. An open keeps its risk-derived size check too, but
+     * the calculator can display a required margin the account cannot fund —
+     * that order is refused here rather than left to the venue.
      *
      * Deliberately gross of fees and of any maintenance buffer. The venue is
      * the authority on what it will fund, and a threshold that guessed at the

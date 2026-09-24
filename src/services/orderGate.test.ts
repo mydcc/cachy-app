@@ -1452,3 +1452,37 @@ describe("orderGate — provenance (BUG-0494)", () => {
         expect(orderGate.verify(openIntent()).approved).toBe(true);
     });
 });
+
+describe("orderGate — an open above the free balance is refused (BUG-0549)", () => {
+    // 0.02 BTC × 50000 / 10 = 100 USDT of required margin.
+    it("refuses an open whose required margin exceeds the available balance", () => {
+        const intent = openIntent();
+        intent.displayed.availableMargin = new Decimal(5);
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.field).toBe("availableMargin");
+        expect(verdict.refusal?.messageKey).toBe("orderGate.insufficientMargin");
+        // AC: the refusal names both numbers — balance held and margin needed.
+        expect(verdict.refusal?.values).toMatchObject({ limit: "5", actual: "100" });
+        expect(verdict.checked).toContain("availableMargin");
+    });
+
+    it("approves the same open when the balance covers the margin", () => {
+        const intent = openIntent();
+        intent.displayed.availableMargin = new Decimal(200);
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(true);
+        expect(verdict.refusal).toBeNull();
+    });
+
+    it("keeps skipping an open while the balance has not loaded (BUG-0511)", () => {
+        // The loaded-balance refusal above is what BUG-0549 adds; an absent
+        // reading still leaves the risk-derived size check as the open's
+        // ceiling, so the baseline intent stays approved.
+        const intent = openIntent();
+        expect(intent.displayed.availableMargin).toBeUndefined();
+        const verdict = orderGate.verify(intent);
+        expect(verdict.approved).toBe(true);
+        expect(verdict.refusal).toBeNull();
+    });
+});

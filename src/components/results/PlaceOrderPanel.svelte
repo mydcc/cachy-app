@@ -34,6 +34,7 @@
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { tradeState } from "../../stores/trade.svelte";
+  import { resultsState } from "../../stores/results.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { paperState } from "../../stores/paperTrading.svelte";
   import { modalState } from "../../stores/modal.svelte";
@@ -165,6 +166,12 @@
 
   const volumeValid = $derived(!isBelowMinVolume && !isAboveMaxVolume);
 
+  // The calculator's margin-exceeded flag (required margin above the
+  // displayed account balance). The warning is already shown next to the
+  // results; offering the order anyway would ask the gate to refuse what
+  // the panel can see (BUG-0549).
+  const marginFunded = $derived(!resultsState.isMarginExceeded);
+
   // The calculator produces a size only when the inputs make one derivable.
   // AC 1: Trading-pair metadata is available in a store before submit action is enabled.
   // AC 3: Below minTradeVolume or above max order volume disables submit action.
@@ -175,7 +182,8 @@
       data.positionSize.gt(0) &&
       hasMeta &&
       tradingAvailable &&
-      volumeValid,
+      volumeValid &&
+      marginFunded,
   );
 
   // An unreadable trade direction is not a long: the control stays
