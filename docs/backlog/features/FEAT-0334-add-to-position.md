@@ -3,7 +3,6 @@ id: FEAT-0334
 title: Add to an open position and see what it does to the average entry
 type: feature
 status: done
-assignee: claude
 shipped: 1.6.0-beta.223
 priority: P1
 milestone: M3
@@ -75,21 +74,21 @@ shipped as [`FEAT-0256`](FEAT-0256-partial-close-position.md).
 
 ## Acceptance criteria
 
-- [ ] An open position can be increased from the position panel, by percentage
+- [x] An open position can be increased from the position panel, by percentage
       or absolute size
-- [ ] The quantity is rounded to the instrument's step size before it reaches
+- [x] The quantity is rounded to the instrument's step size before it reaches
       the service, so the gate and the venue agree it is fillable
-- [ ] The resulting size and average entry are previewed before sending, in
+- [x] The resulting size and average entry are previewed before sending, in
       `decimal.js`, with a test covering long and short
-- [ ] The previewed average is replaced by the venue's reported figure once the
+- [x] The previewed average is replaced by the venue's reported figure once the
       position update arrives, and is never persisted
-- [ ] The order passes the FEAT-0011 gate on the opening path, with a test that
+- [x] The order passes the FEAT-0011 gate on the opening path, with a test that
       an add exceeding available margin is refused
-- [ ] The action inherits the `place-order` confirmation rather than defining a
+- [x] The action inherits the `place-order` confirmation rather than defining a
       new one
-- [ ] The control is absent where the exchange cannot support it, per
+- [x] The control is absent where the exchange cannot support it, per
       [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)
-- [ ] German and English strings
+- [x] German and English strings
 
 ## Out of scope
 

@@ -2,7 +2,7 @@
 id: FEAT-0543
 title: Show full rule configuration on each Manage row
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]

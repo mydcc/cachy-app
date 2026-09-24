@@ -3,9 +3,7 @@ id: FEAT-0540
 title: Extract a shared key-validation helper for exchange signing
 type: feature
 status: done
-done_version: 1.6.0-beta.364
-assignee: opencode
-branch: feat/0540-shared-key-validation
+shipped: unreleased
 priority: P2
 milestone: none
 editions: [community, pro, private]

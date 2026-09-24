@@ -4,7 +4,7 @@
 
 423 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ done 373 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 374 · ⛔ dropped 1
 
 ---
 
@@ -80,7 +80,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0404](bugs/BUG-0404-chart-indicator-toggles-independence.md) | Chart indicator toggles incomplete and coupled to Technicals switches | P1 | ✅ done | chart |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | ✅ done | trade-panel |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | trade-panel |
-| [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | trade-panel |
+| [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 🟢 ready | trade-panel |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | ✅ done | trade-panel |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | ✅ done | trade-panel |
 | [FEAT-0057](features/FEAT-0057-market-activity-panel-redesign.md) | Show the full Bitunix position/order dataset in the Market Activity panel | P1 | ✅ done | trade-panel |
@@ -106,7 +106,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | ui |
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
 | [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | trade-panel |
-| [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | trade-panel |
+| [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 🟢 ready | trade-panel |
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | chart |
 | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | chart |
 | [FEAT-0398](features/FEAT-0398-engine-debug-panel-telemetry.md) | Engine Debug Panel with real telemetry | P3 | ✅ done | engine |
@@ -273,7 +273,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | security |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | security |
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | ✅ done | exchange |
-| [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | 📋 specced | alerts |
+| [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | 🟢 ready | alerts |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -281,7 +281,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | security |
 | [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | execution |
 | [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | execution |
-| [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | 📋 specced | alerts |
+| [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | 🟢 ready | alerts |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -382,8 +382,8 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) | Design Token Foundation | P2 | ✅ done | ui |
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | ui |
 | [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | ui |
-| [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | ui |
-| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 🟡 in-progress | ui |
+| [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 🟢 ready | ui |
+| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | ui |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | ui |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | ✅ done | ui |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | ✅ done | calculation |
@@ -404,9 +404,9 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | ✅ done | indicators |
 | [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | architecture |
 | [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | ✅ done | security |
-| [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 📋 specced | alerts |
-| [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 📋 specced | alerts |
-| [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 📋 specced | ui |
+| [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | alerts |
+| [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | alerts |
+| [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | ui |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | ui |
@@ -446,7 +446,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | security |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | execution |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
-| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 📋 specced | ui |
+| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -482,7 +482,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
-| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | calculation |
+| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | ✅ done | calculation |
 | [IDEA-0326](ideas/IDEA-0326-feedback-system.md) | User feedback system | P3 | 💡 idea | feedback |
 | [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | trade-panel |
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | trade-panel |
@@ -596,7 +596,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0518](bugs/BUG-0518-memoized-device-key-lets-the-first-caller-disarm-the-guard.md) | The device key is memoized but its loss guard is computed per caller, so whichever caller runs first decides whether the guard applies at all | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0519](bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md) | A failed encryption is silent in production and leaves the superseded ciphertext in place, so the app keeps signing with the credential the user replaced | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -604,7 +604,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md) | One conformance test suite every exchange adapter must pass | P1 | ✅ done | M2 | community, pro, private | none | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0020](features/FEAT-0020-account-settings-panel.md) | Show and change exchange account settings from Cachy | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0021](features/FEAT-0021-order-types.md) | Support market, limit, trigger and fixed-risk orders with TP/SL attached | P1 | ✅ done | M3 | community, pro, private | none | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md), [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
-| [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0021](features/FEAT-0021-order-types.md) |
+| [FEAT-0023](features/FEAT-0023-position-management.md) | Manage open positions without leaving Cachy | P1 | 🟢 ready | M3 | community, pro, private | none | none | [FEAT-0021](features/FEAT-0021-order-types.md) |
 | [FEAT-0024](features/FEAT-0024-confirmation-policy.md) | Let the user decide which actions need confirming | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0026](features/FEAT-0026-multi-account.md) | Support several exchange accounts with an unmistakable active one | P1 | ✅ done | M3 | community, pro, private | A | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md), [FEAT-0333](features/FEAT-0333-account-storage-shape.md) |
 | [FEAT-0027](features/FEAT-0027-alert-engine.md) | A local alert engine with price alerts | P1 | ✅ done | M4 | community, pro, private | A | none | — |
@@ -638,7 +638,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
 | [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
 | [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -783,8 +783,8 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) | Design Token Foundation | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
 | [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) |
-| [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -797,7 +797,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0369](features/FEAT-0369-lazy-load-3d-background-components.md) | Lazy-load 3D Three.js and TradeFlow background components in BackgroundRenderer | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0370](features/FEAT-0370-parallelize-sync-bitunix-positions.md) | Parallelize REST API requests in Bitunix positions synchronization | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0374](features/FEAT-0374-remove-newrelic-from-csp.md) | Remove unused NewRelic endpoints from connect-src in both CSP definitions | P2 | ✅ done | none | community, pro, private | C | none | — |
-| [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
+| [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 🟢 ready | M3 | community, pro, private | none | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) | Replace the alert modal with a Super-Alert side panel | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0390](features/FEAT-0390-price-alert-conditions.md) | Price alert conditions beyond a single target | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
 | [FEAT-0392](features/FEAT-0392-notification-sound-channel.md) | A sound channel for notifications | P2 | ✅ done | M4 | community, pro, private | A | none | — |
@@ -821,9 +821,9 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0540](features/FEAT-0540-shared-key-validation-helper.md) | Extract a shared key-validation helper for exchange signing | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 📋 specced | none | community, pro, private | A | none | — |
-| [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 📋 specced | none | community, pro, private | A | none | — |
-| [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0010](bugs/BUG-0010-modal-extraclasses-ignored.md) | modalState.show() accepts extraClasses and never applies it | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -864,7 +864,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
-| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -912,7 +912,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟡 in-progress 1 · ✅ d
 | [IDEA-0199](ideas/IDEA-0199-bitunix-ui-analysis.md) | Bitunix UI-Analyse & Umfangs-Beschreibung | P3 | ✅ done | M3 | community, pro, private | none | none | [IDEA-0191](ideas/IDEA-0191-trade-panel-reference-audit.md) |
 | [IDEA-0255](ideas/IDEA-0255-order-quantity-percent-slider.md) | Add a 0/25/50/75/100% quantity slider to the order-entry form | P3 | 💡 idea | M3 | community, pro, private | none | none | — |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | M8 | pro, private | C | ADR-0012 | [FEAT-0303](features/FEAT-0303-strategy-rule-schema.md) |
-| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | 💡 idea | none | community, pro, private | none | none | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) |
+| [IDEA-0318](ideas/IDEA-0318-post-measurement-wasm-performance.md) | Post-measurement WASM performance tuning | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0317](bugs/BUG-0317-wasm-parity-test-benchmark.md) |
 | [IDEA-0326](ideas/IDEA-0326-feedback-system.md) | User feedback system | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [IDEA-0407](ideas/IDEA-0407-contract-unit-preference.md) | Contract unit preference for order size input | P3 | 💡 idea | none | community, pro, private | A | none | — |
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | none | community, pro, private | A | none | — |

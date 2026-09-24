@@ -3,9 +3,7 @@ id: FEAT-0537
 title: Unify the double KaTeX marked setup into one place
 type: feature
 status: done
-done_version: 1.6.0-beta.364
-assignee: opencode
-branch: feat/0537-single-katex-setup
+shipped: unreleased
 priority: P3
 milestone: none
 editions: [community, pro, private]

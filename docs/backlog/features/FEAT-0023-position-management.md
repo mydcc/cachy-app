@@ -2,7 +2,7 @@
 id: FEAT-0023
 title: Manage open positions without leaving Cachy
 type: feature
-status: specced
+status: ready
 priority: P1
 milestone: M3
 editions: [community, pro, private]
@@ -38,7 +38,7 @@ unverified exchange endpoint.
 | Modify position TP/SL after entry | [`FEAT-0254`](FEAT-0254-tpsl-input-range-slider-ux.md) | Done — slider and modes shipped |
 | Partial close, by percentage or size | [`FEAT-0256`](FEAT-0256-partial-close-position.md) | Done |
 | Flash close | [`FEAT-0330`](FEAT-0330-flash-close-wiring.md) | Done — FEAT-0024 shipped |
-| Add to a position, average entry recomputed | [`FEAT-0334`](FEAT-0334-add-to-position.md) | Specced |
+| Add to a position, average entry recomputed | [`FEAT-0334`](FEAT-0334-add-to-position.md) | Done — shipped in 1.6.0-beta.223 |
 | Trailing stop and trailing TP/SL | [`FEAT-0335`](FEAT-0335-trailing-stop.md) | Blocked on a verified endpoint — see below |
 
 **Flash close** shipped as [`FEAT-0330`](FEAT-0330-flash-close-wiring.md) once
@@ -77,7 +77,7 @@ This epic is done when each child item is done. It has no code of its own.
 - [x] [`FEAT-0256`](FEAT-0256-partial-close-position.md) — partial close, which is
       also the reduce this epic once listed alongside add
 - [x] Flash close wired, behind [`FEAT-0024`](FEAT-0024-confirmation-policy.md) — [`FEAT-0330`](FEAT-0330-flash-close-wiring.md)
-- [ ] [`FEAT-0334`](FEAT-0334-add-to-position.md) — add to a position, average
+- [x] [`FEAT-0334`](FEAT-0334-add-to-position.md) — add to a position, average
       entry recomputed
 - [ ] [`FEAT-0335`](FEAT-0335-trailing-stop.md) — trailing stop, which cannot
       start until a trailing endpoint is verified against the live API. **This

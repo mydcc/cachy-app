@@ -3,9 +3,7 @@ id: FEAT-0546
 title: Migrate bitget/contracts route to shared isStatusError
 type: feature
 status: done
-done_version: 1.6.0-beta.364
-assignee: opencode
-branch: feat/0546-bitget-contracts-isstatuserror
+shipped: unreleased
 priority: P3
 milestone: none
 editions: [community, pro, private]

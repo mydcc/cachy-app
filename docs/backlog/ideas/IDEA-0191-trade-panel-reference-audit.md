@@ -56,6 +56,11 @@ reading them earlier produces a list that goes stale against the M2/M3 specs.
   the item that already consumed part of this reference set
 - [`MILESTONES.md`](../../MILESTONES.md) — M3
 
-## What shipped
+## Implementation record
 
-Shipped in merge main into develop for release 1.6.1.
+The implementation was merged on 2026-09-01 in `6b2a0bc8` and shipped in
+`1.6.0-beta.197`. It lowered the WASM routing threshold, added the per-settings
+instance cache and incremental `shift()` path, replaced Bollinger variance with
+Welford's online calculation, and stored SuperTrend's window length in state.
+Later routing work may supersede the original threshold decision, but the
+performance proposals in this idea are no longer open.

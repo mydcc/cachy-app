@@ -3,9 +3,7 @@ id: FEAT-0352
 title: "Migrate all raw localStorage access to storageWrapper"
 type: feature
 status: done
-done_version: 1.6.0-beta.364
-assignee: opencode
-branch: feat/0352-storage-wrapper-migration
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]

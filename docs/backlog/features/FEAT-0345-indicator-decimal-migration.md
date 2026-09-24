@@ -3,9 +3,7 @@ id: FEAT-0345
 title: "Migrate indicator and charting variables to decimal.js"
 type: feature
 status: done
-done_version: 1.6.0-beta.364
-assignee: opencode
-branch: feat/0345-indicator-decimal
+shipped: unreleased
 priority: P2
 milestone: none
 editions: [community, pro, private]

@@ -2,7 +2,8 @@
 id: IDEA-0318
 title: Post-measurement WASM performance tuning
 type: idea
-status: idea
+status: done
+shipped: 1.6.0-beta.197
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -31,4 +32,6 @@ real benchmark numbers:
   SuperTrend re-parses `len` from the state key each call (store it next to
   multiplier).
 
-Not thought through yet — deliberately `idea`. Groom after benchmarks exist.
+This item was deliberately kept as an idea until benchmark numbers existed.
+Those measurements landed in the implementation below; the original F-7/F-9/Welford
+proposals are no longer open.

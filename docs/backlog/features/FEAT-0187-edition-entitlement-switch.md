@@ -63,6 +63,14 @@ The cheat code does not have to die on day one: it can become a dev-only
 override (env-gated, absent from production bundles) so development and
 initiated-user workflows keep working during the transition.
 
+## Implementation history
+
+The entitlement-store extraction in [`FEAT-0197`](FEAT-0197-split-settings-store.md)
+was merged on 2026-08-15 (`5548a4dd`) and shipped in `1.6.0-beta.20`. It is a
+foundation for this item only: the signed Ed25519 token, offline verifier,
+production cheat-code removal, and existing-install migration required here are
+still open.
+
 ## Acceptance criteria
 
 - [ ] An entitlement names a set of modules; no code path reads a bare

@@ -84,6 +84,14 @@ an unsolvable problem.
   flagged by CodeQL here since they aren't obviously "sensitive" to a
   static analyzer; worth a human judgment call on scope.
 
+## Implementation history
+
+The narrower exchange-key path was completed by [`BUG-0280`](../bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md)
+on 2026-08-23 (`9056d6a6`, shipped in `1.6.0-beta.120`) and the stale-credential
+failure path by [`BUG-0519`](../bugs/BUG-0519-failed-encryption-silently-keeps-the-superseded-credential.md)
+on 2026-09-20 (`8d9eb954`, shipped in `1.6.0-beta.363`). Those fixes do not
+settle this item's session-PIN and all-secret scope, so it remains an `idea`.
+
 ## Links
 
 - [BUG-0280](../bugs/BUG-0280-exchange-keys-bypass-device-key-encryption.md)

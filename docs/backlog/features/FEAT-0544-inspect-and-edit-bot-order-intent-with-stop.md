@@ -2,7 +2,7 @@
 id: FEAT-0544
 title: Inspect and edit bot order intent including stop-loss
 type: feature
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
