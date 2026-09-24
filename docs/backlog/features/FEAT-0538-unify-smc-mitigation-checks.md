@@ -2,7 +2,10 @@
 id: FEAT-0538
 title: Unify the duplicated SMC mitigation checks
 type: feature
-status: specced
+status: done
+done_version: 1.6.0-beta.364
+assignee: opencode
+branch: feat/0538-unify-mitigation
 priority: P2
 milestone: none
 editions: [community, pro, private]
