@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import type { NewsItem } from "./newsService";
+import type { NewsItem } from "./newsTypes";
 
 export interface DiscordNewsConfig {
     botToken?: string;
