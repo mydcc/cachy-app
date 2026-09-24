@@ -30,6 +30,7 @@
   import annotationPlugin from "chartjs-plugin-annotation";
   import Tooltip from "../Tooltip.svelte";
   import { throttle } from "lodash-es";
+  import { readCssColor } from "../../../lib/themeColors";
 
   Chart.register(
     LinearScale,
@@ -115,7 +116,7 @@
       title: {
         display: !!title,
         text: title,
-        color: "#94a3b8",
+        color: readCssColor("--text-secondary", "#94a3b8"),
       },
       tooltip: {
         callbacks: {
@@ -154,13 +155,13 @@
         title: {
           display: !!xLabel,
           text: xLabel,
-          color: "#64748b",
+          color: readCssColor("--text-tertiary", "#64748b"),
         },
         grid: {
           color: "rgba(148, 163, 184, 0.1)",
         },
         ticks: {
-          color: "#94a3b8",
+          color: readCssColor("--text-secondary", "#94a3b8"),
         },
         beginAtZero: true,
       },
@@ -168,13 +169,13 @@
         title: {
           display: !!yLabel,
           text: yLabel,
-          color: "#64748b",
+          color: readCssColor("--text-tertiary", "#64748b"),
         },
         grid: {
           color: "rgba(148, 163, 184, 0.1)",
         },
         ticks: {
-          color: "#94a3b8",
+          color: readCssColor("--text-secondary", "#94a3b8"),
         },
         beginAtZero: true,
       },

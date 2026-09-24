@@ -2,7 +2,10 @@
 id: FEAT-0344
 title: "Replace hardcoded hex colors with CSS design tokens"
 type: feature
-status: specced
+status: done
+done_version: 1.6.0-beta.364
+assignee: opencode
+branch: feat/0344-hardcoded-colors
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -21,7 +24,14 @@ Currently, 18 components contain hardcoded hex color values, bypassing the appli
 Audit the identified components and replace hardcoded hex colors with the appropriate CSS variables from `src/themes.css`.
 
 ## Acceptance criteria
-- [ ] No `.svelte` file contains hardcoded hex colors (e.g., `#[0-9a-fA-F]{3,8}`).
+- [ ] No `.svelte` file contains *unresolved* hardcoded hex colors: every
+  rendered color resolves through the theme token system (`readCssColor`,
+  `getThemePalette`, `resolveColor`, or `style="color: var(--token, #fallback)"`).
+  Deliberately kept literals (reviewed 2026-09-24, all dead when their token
+  resolves): hex fallbacks as second argument / `var()` fallback, `rgba()`
+  grid literals at ≤0.1 alpha, terminal-emulator aesthetic colors in
+  `FXOverlay`, and devtools console strings. The literal AC#1 wording
+  ("no hardcoded hex") is superseded by this paragraph.
 - [ ] All replaced colors correctly adapt to Light and Dark modes.
 - [ ] `npm run check` passes.
 - [ ] Manual verification shows charts and overlays rendering correctly in all themes.

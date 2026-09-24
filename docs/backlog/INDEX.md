@@ -4,7 +4,7 @@
 
 423 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 26 · ✅ done 372 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 25 · ✅ done 373 · ⛔ dropped 1
 
 ---
 
@@ -385,7 +385,7 @@ Counts by status: 💡 idea 24 · 📋 specced 26 · ✅ done 372 · ⛔ dropped
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | ui |
 | [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | ui |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | ui |
-| [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | ui |
+| [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | ✅ done | ui |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | ✅ done | calculation |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | ✅ done | ui |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | ui |
@@ -786,7 +786,7 @@ Counts by status: 💡 idea 24 · 📋 specced 26 · ✅ done 372 · ⛔ dropped
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0353](features/FEAT-0353-hardcoded-i18n-strings.md) | Extract hardcoded UI strings to i18n dictionary | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0359](features/FEAT-0359-lazy-load-markdown-loader.md) | Lazy-load markdownLoader and KaTeX on demand when instruction modals open | P2 | ✅ done | none | community, pro, private | none | none | — |

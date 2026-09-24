@@ -155,6 +155,9 @@
     }
 
     // --- 3. CRYPTO COIN ---
+    // Coin hues resolve the theme warning token (FEAT-0344) instead of
+    // hardcoded gold, so the celebration FX follows light/dark themes. The
+    // two-tone edge is derived by darkening, never by a second literal.
     function createCoinTexture() {
         if (!browser) return new THREE.Texture();
         const canvas = document.createElement("canvas");
@@ -162,14 +165,16 @@
         canvas.height = 128;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-            ctx.fillStyle = "#FFD700";
+            const coin = getThemePalette().warning;
+            const edge = `#${new THREE.Color(coin).offsetHSL(0, 0, -0.18).getHexString()}`;
+            ctx.fillStyle = coin;
             ctx.fillRect(0, 0, 128, 128);
-            ctx.strokeStyle = "#B8860B";
+            ctx.strokeStyle = edge;
             ctx.lineWidth = 10;
             ctx.beginPath();
             ctx.arc(64, 64, 55, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.fillStyle = "#B8860B";
+            ctx.fillStyle = edge;
             ctx.font = "bold 80px sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -200,7 +205,7 @@
         canvas.height = 64;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-            ctx.fillStyle = "#00ff00";
+            ctx.fillStyle = getThemePalette().success;
             ctx.font = "bold 48px monospace";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -210,7 +215,7 @@
     }
 
     const matrixMaterial = new THREE.PointsMaterial({
-        color: 0x00ff00,
+        color: new THREE.Color(1, 1, 1),
         size: 0.5,
         map: createMatrixTexture(),
         transparent: true,
@@ -399,7 +404,10 @@
 
     // Keep the effect palette in step with the theme. The shared palette cache
     // is dropped first so the materials re-read the CSS variables. The coin
-    // (gold), the matrix rain (green) and the duck stay intentionally literal.
+    // and matrix canvas textures are re-baked below — a texture map freezes
+    // its pixels at creation, so re-tinting the material is not enough. The
+    // stale GPU uploads are disposed. Only the duck stays intentionally
+    // literal.
     $effect(() => {
         void uiState.currentTheme;
         invalidateThemePalette();
@@ -413,6 +421,12 @@
         shards.forEach((shard) =>
             (shard.material as THREE.MeshBasicMaterial).color.set(palette.accent),
         );
+        coinMaterial.map?.dispose();
+        coinMaterial.map = createCoinTexture();
+        coinMaterial.needsUpdate = true;
+        matrixMaterial.map?.dispose();
+        matrixMaterial.map = createMatrixTexture();
+        matrixMaterial.needsUpdate = true;
     });
 
     $effect(() => {

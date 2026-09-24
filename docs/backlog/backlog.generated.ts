@@ -6344,7 +6344,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0344",
     "title": "Replace hardcoded hex colors with CSS design tokens",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "done_version": "1.6.0-beta.364",
+    "assignee": "opencode",
+    "branch": "feat/0344-hardcoded-colors",
     "priority": "P2",
     "milestone": "none",
     "editions": [

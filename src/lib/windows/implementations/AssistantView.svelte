@@ -647,7 +647,7 @@
     }
 
     .message-content.is-bubble.role-user {
-        background: linear-gradient(135deg, var(--accent-color), #4f46e5);
+        background: linear-gradient(135deg, var(--accent-color), var(--indigo-600));
         color: white;
         border-bottom-right-radius: 4px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -943,7 +943,7 @@
         width: 40%;
     }
     .warning-text {
-        color: #fbbf24 !important;
+        color: var(--warning-color) !important;
         text-align: center;
     }
 </style>
