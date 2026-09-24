@@ -506,6 +506,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0524-hedge-plans-need-position-scoping.md"
   },
   {
+    "id": "BUG-0550",
+    "title": "TP/SL trigger prices are not validated against position direction",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0550-tpsl-direction-not-validated.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -2182,6 +2200,204 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0541-promoted-bot-without-stop-never-submits.md"
+  },
+  {
+    "id": "BUG-0547",
+    "title": "TP/SL creation actions bypass the structural order gate",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md"
+  },
+  {
+    "id": "BUG-0548",
+    "title": "Pending-order quantity amendments bypass configured risk limits",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md"
+  },
+  {
+    "id": "BUG-0549",
+    "title": "An entry with insufficient displayed margin remains orderable",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0549-open-margin-exceeded-remains-orderable.md"
+  },
+  {
+    "id": "BUG-0551",
+    "title": "Account or mode changes during signing can dispatch to the old live context",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0551-signing-session-race-old-live-context.md"
+  },
+  {
+    "id": "BUG-0553",
+    "title": "Hedge-mode UI projections collapse same-symbol positions",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0553-hedge-ui-projections-collapse-sides.md"
+  },
+  {
+    "id": "BUG-0554",
+    "title": "Reducing isolated margin submits without showing the liquidation consequence",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0554-margin-reduction-without-liquidation-preview.md"
+  },
+  {
+    "id": "BUG-0555",
+    "title": "Final live-order confirmation omits TP portions and can imply a zero stop",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0555-final-confirmation-omits-tp-plan.md"
+  },
+  {
+    "id": "BUG-0556",
+    "title": "Refreshing a symbol silently changes the stop strategy to automatic ATR",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0556-symbol-refresh-changes-atr-mode.md"
+  },
+  {
+    "id": "BUG-0557",
+    "title": "Clearing max-open-positions converts an absent limit into zero",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "settings",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0557-empty-max-open-positions-becomes-zero.md"
+  },
+  {
+    "id": "BUG-0558",
+    "title": "Cached market quotes are presented as live and can seed the calculator",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "market-data",
+    "data_class": "C",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0558-cached-market-quotes-seed-calculator.md"
+  },
+  {
+    "id": "BUG-0560",
+    "title": "Credential cards show green without private-account verification",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0560-credential-card-without-private-verification.md"
   },
   {
     "id": "FEAT-0014",
@@ -5064,6 +5280,78 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md"
+  },
+  {
+    "id": "BUG-0552",
+    "title": "Paper configuration accepts ranges that break fill quantity and price invariants",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0552-paper-config-break-fill-invariants.md"
+  },
+  {
+    "id": "BUG-0559",
+    "title": "Estimated funding cost ignores long and short direction",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "C",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0559-funding-cost-ignores-side.md"
+  },
+  {
+    "id": "BUG-0561",
+    "title": "Invalid add and close quantity drafts silently revert and submit the old amount",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0561-invalid-quantity-draft-reverts.md"
+  },
+  {
+    "id": "BUG-0562",
+    "title": "Critical account and pending-order financial details are hover-only",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0562-financial-details-hover-only.md"
   },
   {
     "id": "FEAT-0019",
