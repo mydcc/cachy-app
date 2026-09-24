@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("$app/environment", () => ({ browser: true }));
 
-import { armRule, disarmRule, removeRule, RuleStoreUnreadableError } from "./armRule";
+import { armRule, disarmRule, removeRule, RuleConflictError, RuleStoreUnreadableError } from "./armRule";
 import { deleteBot } from "./botStore";
 import { ruleEvaluationLoop } from "./ruleEvaluationLoop";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
@@ -72,6 +72,24 @@ describe("armRule", () => {
         const rules = stored();
         expect(rules).toHaveLength(1);
         expect((rules[0].conditions as { right: { value: string } }).right.value).toBe("80000");
+    });
+
+    it("refuses an expected write when the stored document changed", () => {
+        const initial = rule("a", "70000");
+        armRule(initial);
+        armRule(rule("a", "75000"));
+
+        expect(() => armRule(rule("a", "80000"), initial)).toThrow(RuleConflictError);
+        expect((stored()[0].conditions as { right: { value: string } }).right.value).toBe("75000");
+    });
+
+    it("refuses an expected write when the stored document was deleted", () => {
+        const initial = rule("a", "70000");
+        armRule(initial);
+        removeRule("a");
+
+        expect(() => armRule(rule("a", "80000"), initial)).toThrow(RuleConflictError);
+        expect(stored()).toEqual([]);
     });
 
     it("keeps a rule's position when it is replaced", () => {

@@ -50,6 +50,14 @@ import { safeLocalStorage } from "../../utils/storageWrapper";
  * trader has. A refused arm the trader can see beats a successful arm that
  * quietly disarms everything else.
  */
+export class RuleConflictError extends Error {
+  public readonly translationKey = "settings.automation.botChanged";
+  constructor() {
+    super("the stored rule changed before the update was written");
+    this.name = "RuleConflictError";
+  }
+}
+
 export class RuleStoreUnreadableError extends Error {
   public readonly translationKey = "dashboard.alerts.panel.storeUnreadable";
   constructor(cause?: unknown) {
@@ -146,9 +154,15 @@ function forgetAnchors(ruleId: string): void {
  * that rule's evaluation anchors (see `strategyOf`); bare toggles and
  * lifecycle-only edits keep them.
  */
-export function armRule(document: RuleDocument): RuleDocument[] {
+export function armRule(document: RuleDocument, expected?: RuleDocument): RuleDocument[] {
   const rules = readRuleStore();
   const index = rules.findIndex((r) => r.id === document.id);
+  if (expected) {
+    const current = index === -1 ? undefined : rules[index];
+    if (!current || JSON.stringify(sortKeys(current)) !== JSON.stringify(sortKeys(expected))) {
+      throw new RuleConflictError();
+    }
+  }
   if (index !== -1 && strategyOf(rules[index]) !== strategyOf(document)) {
     // A real content change: the old strategy's anchors must not suppress
     // the new strategy's first signal. A bare enable-toggle keeps them —
