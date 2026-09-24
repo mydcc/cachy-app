@@ -4381,7 +4381,9 @@
     },
     "notes": {
       "noAttachedProtection": "Diese Börse kann keinen Stop an den Einstieg anhängen. Der Stop wird als zweite Anfrage platziert, die Position ist also kurz ungeschützt — du wirst benachrichtigt, falls er nicht ankommt.",
-      "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner."
+      "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner.",
+      "balanceUnmeasured": "Kontostand nicht geladen — die Börse entscheidet, ob diese Order gedeckt ist.",
+      "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen."
     },
     "confirm": {
       "titleLive": "Diese Order platzieren?",

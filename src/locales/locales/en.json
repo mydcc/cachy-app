@@ -4381,7 +4381,9 @@
     },
     "notes": {
       "noAttachedProtection": "This exchange cannot attach a stop to the entry. The stop is placed as a second request, so the position is briefly unprotected — you will be told if it does not arrive.",
-      "firstTargetOnly": "This exchange accepts one take-profit per order, so only your first target is attached. The rest stay in the calculator."
+      "firstTargetOnly": "This exchange accepts one take-profit per order, so only your first target is attached. The rest stay in the calculator.",
+      "balanceUnmeasured": "Balance not loaded — the venue decides whether this order is funded.",
+      "liveMarginShortfall": "Needs {actual} margin but only {limit} is free — the gate will refuse this order."
     },
     "confirm": {
       "titleLive": "Place this order?",

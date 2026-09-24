@@ -1435,7 +1435,8 @@ class OrderGate {
      * add with no balance to measure against is refused, not skipped. An add
      * is the one intent whose only ceiling is available margin; skipping the
      * check leaves it with no ceiling at all, while an open keeps its
-     * risk-derived size check.
+     * risk-derived size check. The open's skip is still recorded as
+     * `availableMarginUnmeasured` (IDEA-0563, decided P2: warn, don't block).
      *
      * Two mechanics this relies on, stated so they survive refactoring: a
      * null `qty` or non-positive `price` skips because `verify` refuses
@@ -1443,14 +1444,24 @@ class OrderGate {
      * opinion. With no usable leverage the required margin falls back to
      * the full notional, which can only refuse more, never less. The balance
      * itself carries no freshness timestamp (leverage has
-     * MAX_ACCOUNT_STATE_AGE_MS, the balance does not); staleness can only
-     * refuse, never overspend, and the venue stays the final authority.
+     * MAX_ACCOUNT_STATE_AGE_MS, the balance does not): a stale-high reading
+     * approves and the venue rejects, a stale-low reading refuses early.
+     * Staleness cannot create funds — the venue stays the final authority —
+     * but "can only refuse" would be the wrong shorthand, so this says what
+     * actually happens. Sequential opens are each measured against the same
+     * balance with no reservation between verify and send; two opens that
+     * each fit can together exceed it, and only the venue sees the total.
+     * There is deliberately no locking here — the venue's matching engine
+     * owns that race, not this gate.
      */
     private checkMargin(intent: OrderIntent, checked: string[]): OrderRefusal | null {
         const { payload, displayed } = intent;
 
         const available = displayed.availableMargin;
-        if (available === undefined) {
+        // A non-finite reading measures nothing — treat it like an absent
+        // one rather than comparing against NaN (every comparison is false,
+        // so NaN would approve with the check marked as run).
+        if (available === undefined || !available.isFinite()) {
             if (intent.kind === "add") {
                 checked.push("availableMargin");
                 return {
@@ -1460,6 +1471,14 @@ class OrderGate {
                     values: { field: "availableMargin" },
                 };
             }
+            /*
+             * P2-visible skip (IDEA-0563, decided: warn, don't block). The
+             * open keeps its risk-derived size check, but the skip itself is
+             * recorded: `availableMarginUnmeasured` marks a deliberate
+             * decision, not an omission, and the panel hints that the venue
+             * decides while the balance is unknown.
+             */
+            checked.push("availableMarginUnmeasured");
             return null;
         }
 

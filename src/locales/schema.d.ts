@@ -3604,6 +3604,8 @@ export type TranslationKey =
   | "orderEntry.unsupported.timeInForce"
   | "orderEntry.notes.noAttachedProtection"
   | "orderEntry.notes.firstTargetOnly"
+  | "orderEntry.notes.balanceUnmeasured"
+  | "orderEntry.notes.liveMarginShortfall"
   | "orderEntry.confirm.titleLive"
   | "orderEntry.confirm.titlePaper"
   | "orderEntry.confirm.message"
