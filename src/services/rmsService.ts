@@ -238,6 +238,16 @@ function unmeasurable(field: string): OrderRefusal {
     };
 }
 
+/** A configured risk limit cannot be read safely, so exposure stays blocked. */
+function invalidRiskState(field: string): OrderRefusal {
+    return {
+        field,
+        reason: "riskLimit",
+        messageKey: "orderGate.riskLimitInvalidState",
+        values: { field },
+    };
+}
+
 /**
  * Whether the entry states a realised amount.
  *
@@ -641,6 +651,7 @@ class RiskManagementService {
     }
 
     private checkOpenPositions(intent: OrderIntent): OrderRefusal | null {
+        if (riskState.hasInvalidMaxOpenPositions) return invalidRiskState("maxOpenPositions");
         const max = riskState.maxOpenPositions;
         if (max === null) return null;
 

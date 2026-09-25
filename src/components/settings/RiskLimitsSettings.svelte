@@ -28,8 +28,8 @@
   import { Decimal } from "decimal.js";
   import { riskState, type RiskLimitInputs } from "../../stores/riskLimits.svelte";
   import { rmsService, utcDayStart } from "../../services/rmsService";
-    import { modalState } from "../../stores/modal.svelte";
-    import SettingsGrid from "./shared/SettingsGrid.svelte";
+  import { modalState } from "../../stores/modal.svelte";
+  import SettingsGrid from "./shared/SettingsGrid.svelte";
   import { journalState } from "../../stores/journal.svelte";
   import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
 
@@ -90,20 +90,40 @@
     },
   ];
 
-  let rejected = $state<string | null>(null);
+  type RejectedKey = DecimalLimitKey | "maxOpenPositions";
+  let rejected = $state<Partial<Record<RejectedKey, boolean>>>({});
+
+  // Each field owns its own rejection: a rejected field keeps its error until
+  // that field is edited again (and then only clears on success), so fixing
+  // one limit never wipes the error message of another.
+  function applyLimit(key: RejectedKey, value: string | null) {
+    const ok =
+      key === "maxOpenPositions"
+        ? riskState.setLimit("maxOpenPositions", value)
+        : riskState.setLimit(key, value);
+    if (ok) {
+      const { [key]: _cleared, ...rest } = rejected;
+      rejected = rest;
+    } else {
+      rejected = { ...rejected, [key]: true };
+    }
+  }
 
   function onLimitInput(key: DecimalLimitKey, event: Event) {
     const value = (event.currentTarget as HTMLInputElement).value;
     // setLimit refuses anything that is not a non-negative number rather than
     // storing it — a typo must not silently switch a limit off.
-    rejected = riskState.setLimit(key, value === "" ? null : value) ? null : key;
+    applyLimit(key, value === "" ? null : value);
   }
 
+  // BUG-0557: the field distinguishes three states — empty (no limit),
+  // a positive integer or explicit zero (a real ceiling), and anything
+  // else, which is rejected inline without touching the stored limit.
+  // Parsing is delegated to setLimit: the store is the single place that
+  // decides what a count is, so the form cannot accept what the gate rejects.
   function onMaxPositionsInput(event: Event) {
-    const value = (event.currentTarget as HTMLInputElement).value;
-    rejected = riskState.setLimit("maxOpenPositions", value === "" ? null : Number(value))
-      ? null
-      : "maxOpenPositions";
+    const trimmed = (event.currentTarget as HTMLInputElement).value.trim();
+    applyLimit("maxOpenPositions", trimmed === "" ? null : trimmed);
   }
 
   function engage() {
@@ -127,7 +147,10 @@
       $_("settings.risk.resetMessage"),
       "confirm",
     );
-    if (confirmed === true) riskState.resetLimits();
+    if (confirmed === true) {
+      riskState.resetLimits();
+      rejected = {};
+    }
   }
 
   /*
@@ -262,7 +285,11 @@
               type="text"
               inputmode="decimal"
               class="input-field w-full min-w-0"
-              class:border-danger={rejected === field.key}
+              class:border-danger={rejected[field.key] === true}
+              aria-invalid={rejected[field.key] === true}
+              aria-describedby={rejected[field.key] === true
+                ? `risk-${field.key}-error`
+                : undefined}
               placeholder={$_("settings.risk.notConfigured")}
               value={riskState.limits[field.key] ?? ""}
               oninput={(e) => onLimitInput(field.key, e)}
@@ -272,6 +299,15 @@
             >
           </div>
           <p class="text-[10px] text-[var(--text-secondary)]">{field.hint}</p>
+          {#if rejected[field.key] === true}
+            <p
+              id={`risk-${field.key}-error`}
+              role="alert"
+              class="text-[10px] font-semibold text-[var(--danger-color)]"
+            >
+              {$_("settings.risk.invalidValue")}
+            </p>
+          {/if}
         </div>
       {/each}
 
@@ -282,13 +318,20 @@
         <div class="flex items-center gap-2">
           <input
             id="risk-maxOpenPositions"
-            type="number"
-            min="0"
-            step="1"
+            type="text"
+            inputmode="numeric"
             class="input-field w-full min-w-0"
-            class:border-danger={rejected === "maxOpenPositions"}
+            class:border-danger={rejected.maxOpenPositions === true ||
+              riskState.hasInvalidMaxOpenPositions}
+            aria-invalid={rejected.maxOpenPositions === true ||
+              riskState.hasInvalidMaxOpenPositions}
+            aria-describedby={rejected.maxOpenPositions === true
+              ? "risk-maxOpenPositions-error"
+              : riskState.hasInvalidMaxOpenPositions
+                ? "risk-maxOpenPositions-stored-error"
+                : undefined}
             placeholder={$_("settings.risk.notConfigured")}
-            value={riskState.limits.maxOpenPositions ?? ""}
+            value={riskState.maxOpenPositionsInputValue}
             oninput={onMaxPositionsInput}
           />
           <span class="text-[11px] text-[var(--text-secondary)] w-10 shrink-0"></span>
@@ -296,14 +339,26 @@
         <p class="text-[10px] text-[var(--text-secondary)]">
           {$_("settings.risk.maxOpenPositionsHint")}
         </p>
+        {#if riskState.hasInvalidMaxOpenPositions}
+          <p
+            id="risk-maxOpenPositions-stored-error"
+            role="alert"
+            class="text-[10px] font-semibold text-[var(--danger-color)]"
+          >
+            {$_("settings.risk.invalidStoredMaxOpenPositions")}
+          </p>
+        {/if}
+        {#if rejected.maxOpenPositions}
+          <p
+            id="risk-maxOpenPositions-error"
+            role="alert"
+            class="text-[10px] font-semibold text-[var(--danger-color)]"
+          >
+            {$_("settings.risk.invalidMaxOpenPositions")}
+          </p>
+        {/if}
       </div>
     </SettingsGrid>
-
-    {#if rejected}
-      <p class="text-[11px] mt-3 font-semibold text-[var(--danger-color)]">
-        {$_("settings.risk.invalidValue")}
-      </p>
-    {/if}
 
     <button
       class="mt-4 px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"

@@ -2,7 +2,9 @@
 id: BUG-0557
 title: Clearing max-open-positions converts an absent limit into zero
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/0557-max-open-positions
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -32,11 +34,11 @@ Parse empty as null/unconfigured, require a positive integer for a configured ce
 
 ## Acceptance criteria
 
-- [ ] Clearing the field stores no limit and leaves position-count gating unconfigured.
-- [ ] Positive integers round-trip unchanged.
-- [ ] Fractions, negatives, and non-numeric input are rejected inline without changing the prior limit.
-- [ ] Explicit zero has separately specified semantics and a regression test.
-- [ ] Persistence and reload preserve unconfigured and explicit-zero states distinctly.
+- [x] Clearing the field stores no limit and leaves position-count gating unconfigured.
+- [x] Positive integers round-trip unchanged.
+- [x] Fractions, negatives, and non-numeric input are rejected inline without changing the prior limit.
+- [x] Explicit zero has separately specified semantics and a regression test.
+- [x] Persistence and reload preserve unconfigured and explicit-zero states distinctly.
 
 ## Out of scope
 

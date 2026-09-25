@@ -85,6 +85,47 @@ const numericLimit = z
     .nullable()
     .catch(null);
 
+interface ParsedMaxOpenPositions {
+    value: number | null;
+    isInvalid: boolean;
+}
+
+/** Shared by persisted-state loading and user input so both paths agree. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseMaxOpenPositions(value: unknown): ParsedMaxOpenPositions {
+    if (value === null) return { value: null, isInvalid: false };
+    if (typeof value === "string" && value.trim() === "") {
+        return { value: null, isInvalid: false };
+    }
+
+    let count: number;
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!/^\d+$/.test(trimmed)) return { value: null, isInvalid: true };
+        count = Number(trimmed); // audit: safe — maxOpenPositions is a position count, not a price, amount, or balance
+    } else if (typeof value === "number") {
+        count = value;
+    } else {
+        return { value: null, isInvalid: true };
+    }
+
+    if (!Number.isSafeInteger(count) || count < 0) {
+        return { value: null, isInvalid: true };
+    }
+    return { value: count === 0 ? 0 : count, isInvalid: false };
+}
+
+/** Preserve an invalid value across JSON storage without degrading it to null. */
+function persistableInvalidMaxOpenPositions(value: unknown): unknown {
+    if (value === null) return null;
+    const serialized = JSON.stringify(value);
+    if (serialized !== undefined && serialized !== "null") return value;
+    return String(value);
+}
+
 const RiskStateSchema = z.object({
     limits: z
         .object({
@@ -93,14 +134,6 @@ const RiskStateSchema = z.object({
             maxLeverage: numericLimit,
             maxLossPerTradeUsdt: numericLimit,
             maxDailyLossUsdt: numericLimit,
-            maxOpenPositions: z
-                .union([z.number(), z.string()])
-                .transform((v) => {
-                    const n = Math.floor(Number(v)); // audit: safe — maxOpenPositions is a count (integer), not a price, amount, or balance
-                    return Number.isFinite(n) && n >= 0 ? n : null;
-                })
-                .nullable()
-                .catch(null),
         })
         .partial()
         .catch({}),
@@ -118,6 +151,9 @@ const RiskStateSchema = z.object({
 
 class RiskManager {
     private _limits = $state<RiskLimitInputs>({ ...INITIAL_RISK_LIMITS });
+    private _maxOpenPositionsInvalid = $state(false);
+    /** Kept verbatim so unrelated setting changes do not erase repairable corruption. */
+    private _invalidMaxOpenPositionsRaw: unknown = null;
     private _killSwitchEngagedAt = $state<number | null>(null);
     private _lastHistorySyncAt = $state<number | null>(null);
     /** Set when a persist attempt failed, so the UI can stop lying about it. */
@@ -196,18 +232,28 @@ class RiskManager {
      * Sets one limit. An empty string or null clears it back to
      * "not configured"; a value that is not a non-negative number is
      * rejected rather than stored, so a typo cannot silently disable a limit.
+     *
+     * BUG-0557: maxOpenPositions is parsed here and nowhere else. A string
+     * must be plain digits after trim — "1e3", "+3", "2.5" and "abc" are
+     * rejected, because coercing them would store a ceiling the trader never
+     * chose. Explicit zero stays storable: it is the documented
+     * block-everything limit, distinct from an unconfigured (null) one.
      */
-    public setLimit<K extends keyof RiskLimitInputs>(
+    public setLimit(key: "maxOpenPositions", value: number | string | null): boolean;
+    public setLimit<K extends Exclude<keyof RiskLimitInputs, "maxOpenPositions">>(
         key: K,
         value: RiskLimitInputs[K],
+    ): boolean;
+    public setLimit(
+        key: keyof RiskLimitInputs,
+        value: number | string | null,
     ): boolean {
         if (key === "maxOpenPositions") {
-            const next =
-                value === null || value === ""
-                    ? null
-                    : Math.floor(Number(value)); // audit: safe — maxOpenPositions is a count (integer), not a price, amount, or balance
-            if (next !== null && (!Number.isFinite(next) || next < 0)) return false;
-            this._limits = { ...this._limits, maxOpenPositions: next };
+            const parsed = parseMaxOpenPositions(value);
+            if (parsed.isInvalid) return false;
+            this._limits = { ...this._limits, maxOpenPositions: parsed.value };
+            this._maxOpenPositionsInvalid = false;
+            this._invalidMaxOpenPositionsRaw = null;
             this.persist();
             return true;
         }
@@ -229,6 +275,8 @@ class RiskManager {
     /** Clears every limit. Does not touch the kill switch or the sync stamp. */
     public resetLimits(): void {
         this._limits = { ...INITIAL_RISK_LIMITS };
+        this._maxOpenPositionsInvalid = false;
+        this._invalidMaxOpenPositionsRaw = null;
         this.persist();
     }
 
@@ -252,6 +300,19 @@ class RiskManager {
         return this._limits.maxOpenPositions ?? null;
     }
 
+    /** Raw editable text for the field, including an unreadable stored value. */
+    get maxOpenPositionsInputValue(): string {
+        if (this._maxOpenPositionsInvalid) return String(this._invalidMaxOpenPositionsRaw);
+        return this._limits.maxOpenPositions === null
+            ? ""
+            : String(this._limits.maxOpenPositions);
+    }
+
+    /** True when storage contains a value that cannot be safely interpreted. */
+    get hasInvalidMaxOpenPositions(): boolean {
+        return this._maxOpenPositionsInvalid;
+    }
+
     // -- persistence --------------------------------------------------------
 
     /**
@@ -265,7 +326,14 @@ class RiskManager {
             const ok = StorageHelper.safeSave(
                 CONSTANTS.LOCAL_STORAGE_RISK_KEY,
                 JSON.stringify({
-                    limits: this._limits,
+                    limits: this._maxOpenPositionsInvalid
+                        ? {
+                            ...this._limits,
+                            maxOpenPositions: persistableInvalidMaxOpenPositions(
+                                this._invalidMaxOpenPositionsRaw,
+                            ),
+                        }
+                        : this._limits,
                     killSwitchEngagedAt: this._killSwitchEngagedAt,
                     lastHistorySyncAt: this._lastHistorySyncAt,
                 }),
@@ -281,22 +349,39 @@ class RiskManager {
         try {
             const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_RISK_KEY);
             if (!stored) return;
-            const parsed = RiskStateSchema.safeParse(safeJsonParse(stored));
+            const raw = safeJsonParse(stored);
+            const parsed = RiskStateSchema.safeParse(raw);
             if (!parsed.success) return;
-            this._limits = { ...INITIAL_RISK_LIMITS, ...parsed.data.limits };
+
+            const rawLimits = isRecord(raw) && isRecord(raw.limits) ? raw.limits : {};
+            const hasMaxOpenPositions = Object.hasOwn(rawLimits, "maxOpenPositions");
+            const maxOpenPositions = hasMaxOpenPositions
+                ? parseMaxOpenPositions(rawLimits.maxOpenPositions)
+                : { value: null, isInvalid: false };
+            this._limits = {
+                ...INITIAL_RISK_LIMITS,
+                ...parsed.data.limits,
+                maxOpenPositions: maxOpenPositions.value,
+            };
+            this._maxOpenPositionsInvalid = maxOpenPositions.isInvalid;
+            this._invalidMaxOpenPositionsRaw = hasMaxOpenPositions
+                ? rawLimits.maxOpenPositions
+                : null;
             this._killSwitchEngagedAt = parsed.data.killSwitchEngagedAt;
             this._lastHistorySyncAt = parsed.data.lastHistorySyncAt ?? null;
         } catch {
-            // A corrupt blob leaves the defaults in place. Note that this
-            // means the kill switch reads as disengaged — the alternative,
-            // failing closed on unparseable data, would lock a user out of
-            // closing positions with no way back.
+            // A wholly corrupt blob leaves the defaults in place. A corrupt
+            // maxOpenPositions value is handled above: new positions fail
+            // closed, while closes and cancels stay available and a valid
+            // setting edit repairs the state.
         }
     }
 
     /** Test seam: reloads from storage as a fresh session would. */
     public reloadFromStorage(): void {
         this._limits = { ...INITIAL_RISK_LIMITS };
+        this._maxOpenPositionsInvalid = false;
+        this._invalidMaxOpenPositionsRaw = null;
         this._killSwitchEngagedAt = null;
         this._lastHistorySyncAt = null;
         this._persistFailed = false;

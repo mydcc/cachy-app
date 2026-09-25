@@ -1318,3 +1318,177 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
         expect(orderGate.verify(intent).refusal?.field).toBe("maxLossPerTrade");
     });
 });
+
+// BUG-0557: clearing max-open-positions must remove the ceiling, not store
+// zero. Empty means absent (gate unconfigured); an explicit zero keeps its
+// documented block-everything semantics and must survive a reload distinctly
+// from absent.
+describe("BUG-0557 — cleared max-open-positions is no limit, not zero", () => {
+    it("clearing a configured ceiling re-approves new entries at the gate", () => {
+        riskState.setLimit("maxOpenPositions", 1);
+        positions.list = [{ symbol: "ETHUSDT" }, { symbol: "SOLUSDT" }];
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+
+        expect(riskState.setLimit("maxOpenPositions", null)).toBe(true);
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("round-trips positive integers unchanged across a reload", () => {
+        expect(riskState.setLimit("maxOpenPositions", 3)).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(3);
+    });
+
+    it("rejects fractions inline without changing the prior limit", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", 2.5)).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("rejects negatives and non-numeric input without changing the prior limit", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", -1)).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", Number.NaN)).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("keeps explicit zero as a block-everything limit, distinct from absent", () => {
+        expect(riskState.setLimit("maxOpenPositions", 0)).toBe(true);
+        expect(riskState.maxOpenPositions).toBe(0);
+        positions.list = [{ symbol: "ETHUSDT" }];
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(0);
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+
+        riskState.setLimit("maxOpenPositions", null);
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(null);
+    });
+
+    it("rejects every string that is not plain digits after trim", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", "1e3")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "+3")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "2.5")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "abc")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "0x10")).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("rejects non-safe integers without changing the prior limit", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", Number.POSITIVE_INFINITY)).toBe(
+            false,
+        );
+        expect(riskState.setLimit("maxOpenPositions", 1e21)).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "9007199254740993")).toBe(
+            false,
+        );
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("normalizes negative zero to plain zero", () => {
+        expect(riskState.setLimit("maxOpenPositions", -0)).toBe(true);
+        // toBe is Object.is, so this fails if -0 leaks into the store.
+        expect(riskState.maxOpenPositions).toBe(0);
+    });
+
+    it("treats an absent max-open-positions field as intentionally unconfigured", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: {} }),
+        );
+        riskState.reloadFromStorage();
+
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("treats a whitespace-only blob as unconfigured, never as zero", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "   " } }),
+        );
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("refuses new entries on a corrupt ceiling but still allows closes and cancels", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
+        );
+        riskState.reloadFromStorage();
+
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+        const refusal = orderGate.verify(openIntent()).refusal;
+        expect(refusal?.field).toBe("maxOpenPositions");
+        expect(refusal?.reason).toBe("riskLimit");
+        expect(refusal?.messageKey).toBe("orderGate.riskLimitInvalidState");
+        expect(orderGate.verify(closeIntent()).approved).toBe(true);
+        expect(orderGate.verify(cancelIntent()).approved).toBe(true);
+    });
+
+    it("keeps a corrupt ceiling repairable until an explicit valid or clear action", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
+        );
+        riskState.reloadFromStorage();
+
+        expect(riskState.setLimit("maxLeverage", "20")).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+
+        expect(riskState.setLimit("maxOpenPositions", 3)).toBe(true);
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(false);
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(3);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("keeps non-finite numeric corruption invalid across an unrelated persist", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            '{"limits":{"maxOpenPositions":1e400}}',
+        );
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+
+        expect(riskState.setLimit("maxLeverage", "20")).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+    });
+
+    it("clearing a corrupt ceiling repairs it as intentionally unconfigured", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
+        );
+        riskState.reloadFromStorage();
+
+        expect(riskState.setLimit("maxOpenPositions", null)).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("loads a legacy empty-string blob as unconfigured, never as zero", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "" } }),
+        );
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+});
