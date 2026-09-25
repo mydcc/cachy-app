@@ -34,7 +34,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import en from "../../locales/locales/en.json";
-import de from "../../locales/locales/de.json";
 
 /** Resolves a dotted key against a locale bundle, as `$_` would. */
 function lookup(bundle: unknown, key: string): string {
