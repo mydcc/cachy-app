@@ -44,7 +44,8 @@ function isEntryPoint() {
   const resolved = path.resolve(arg);
   const stat = fs.statSync(resolved, { throwIfNoEntry: false });
   const entry = stat && stat.isDirectory() ? path.join(resolved, 'index.js') : resolved;
-  return import.meta.url === pathToFileURL(entry).href;
+  const realEntry = fs.existsSync(entry) ? fs.realpathSync.native(entry) : entry;
+  return import.meta.url === pathToFileURL(realEntry).href;
 }
 
 // Boot the Express wrapper (compression + security headers) only when executed;
