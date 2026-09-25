@@ -5311,7 +5311,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0552",
     "title": "Paper configuration accepts ranges that break fill quantity and price invariants",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0552-paper-fill-invariants",
     "priority": "P2",
     "milestone": "none",
     "editions": [

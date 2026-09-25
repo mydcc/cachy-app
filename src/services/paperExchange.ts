@@ -57,6 +57,15 @@ export type LeverageFeed = (symbol: string) => Decimal | null;
 
 const BPS = new Decimal(10000);
 
+/**
+ * Floor for a simulated fill price (BUG-0552). Slippage is subtracted from
+ * the reference on the SELL side, so a stale config at or above 100 %
+ * would otherwise produce a zero or negative price — a value the live
+ * path could never produce and downstream PnL maths cannot digest.
+ * One satoshi: the smallest tick the crypto venues price in.
+ */
+const MIN_FILL_PRICE = new Decimal("0.00000001");
+
 let priceFeed: PriceFeed = () => null;
 let leverageFeed: LeverageFeed = () => null;
 let bookListener: (() => void) | null = null;
@@ -587,6 +596,22 @@ class PaperExchange {
 
         const price = requirePrice(symbol);
         const qty = this.fillQuantity(requested);
+        // BUG-0552: a zero fill (partialFillRatio 0) opens no position,
+        // charges no fee and records no fill — recordFill already skips
+        // qty <= 0, and applyOpen below would otherwise book a zero-size
+        // position. Report it as a partial fill of zero, not as a rejection:
+        // the order was valid, the market simply filled nothing.
+        if (qty.lte(0)) {
+            return ok({
+                orderId,
+                clientOrderId,
+                price: this.fillPrice(price, side).toString(),
+                qty: "0",
+                fee: "0",
+                requestedQty: requested.toString(),
+                partial: true,
+            });
+        }
         const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
         if (!closes && (payload.tpPrice !== undefined || payload.slPrice !== undefined)) {
             this.assertTpSlLevels(payload, side === "BUY" ? "long" : "short", price);
@@ -730,14 +755,21 @@ class PaperExchange {
     /** Slippage always works against the trader, on both sides of the book. */
     private fillPrice(reference: Decimal, side: "BUY" | "SELL"): Decimal {
         const slip = reference.times(paperState.numeric("slippageBps")).div(BPS);
-        return side === "BUY" ? reference.plus(slip) : reference.minus(slip);
+        const raw = side === "BUY" ? reference.plus(slip) : reference.minus(slip);
+        // BUG-0552: a stale slippage at or above 100 % drives the SELL side
+        // to zero or below. Clamp so no caller ever sees a non-positive price.
+        return raw.lte(0) ? MIN_FILL_PRICE : raw;
     }
 
     private fillQuantity(requested: Decimal): Decimal {
         if (paperState.config.failureMode !== "partial") return requested;
-        const ratio = paperState.numeric("partialFillRatio");
-        const filled = requested.times(ratio);
-        return filled.gt(0) ? filled : requested;
+        // BUG-0552: clamp the ratio into [0, 1] so a stale pre-fix config
+        // above one cannot overfill, and clamp the result so it never
+        // exceeds what was requested. Ratio zero is a defined no-fill:
+        // it returns zero rather than falling back to the full request.
+        const raw = paperState.numeric("partialFillRatio");
+        const ratio = Decimal.min(Decimal.max(raw, new Decimal(0)), new Decimal(1));
+        return Decimal.min(requested.times(ratio), requested);
     }
 
     private takerFee(notional: Decimal): Decimal {
