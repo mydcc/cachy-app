@@ -99,9 +99,25 @@
     rejected = riskState.setLimit(key, value === "" ? null : value) ? null : key;
   }
 
+  // BUG-0557: the field distinguishes three states — empty (no limit),
+  // a positive integer or explicit zero (a real ceiling), and anything
+  // else, which is rejected inline without touching the stored limit.
+  // Number("...") alone cannot do this: Number("") and Number(" ") are
+  // both 0, which would turn "no limit" into "block everything".
   function onMaxPositionsInput(event: Event) {
     const value = (event.currentTarget as HTMLInputElement).value;
-    rejected = riskState.setLimit("maxOpenPositions", value === "" ? null : Number(value))
+    const trimmed = value.trim();
+    if (trimmed === "") {
+      rejected = riskState.setLimit("maxOpenPositions", null)
+        ? null
+        : "maxOpenPositions";
+      return;
+    }
+    if (!/^\d+$/.test(trimmed)) {
+      rejected = "maxOpenPositions";
+      return;
+    }
+    rejected = riskState.setLimit("maxOpenPositions", Number.parseInt(trimmed, 10))
       ? null
       : "maxOpenPositions";
   }

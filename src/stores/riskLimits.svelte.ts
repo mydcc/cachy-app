@@ -96,6 +96,10 @@ const RiskStateSchema = z.object({
             maxOpenPositions: z
                 .union([z.number(), z.string()])
                 .transform((v) => {
+                    // BUG-0557: an empty (or whitespace-only) string is an
+                    // absent limit, never zero — Number("") is 0, so the
+                    // emptiness check must come before any numeric coercion.
+                    if (typeof v === "string" && v.trim() === "") return null;
                     const n = Math.floor(Number(v)); // audit: safe — maxOpenPositions is a count (integer), not a price, amount, or balance
                     return Number.isFinite(n) && n >= 0 ? n : null;
                 })
@@ -196,18 +200,25 @@ class RiskManager {
      * Sets one limit. An empty string or null clears it back to
      * "not configured"; a value that is not a non-negative number is
      * rejected rather than stored, so a typo cannot silently disable a limit.
+     *
+     * BUG-0557: maxOpenPositions additionally rejects fractions — flooring
+     * 2.5 to 2 would silently store a ceiling the trader never chose.
+     * Explicit zero stays storable: it is the documented block-everything
+     * limit, distinct from an unconfigured (null) one.
      */
     public setLimit<K extends keyof RiskLimitInputs>(
         key: K,
         value: RiskLimitInputs[K],
     ): boolean {
         if (key === "maxOpenPositions") {
-            const next =
-                value === null || value === ""
-                    ? null
-                    : Math.floor(Number(value)); // audit: safe — maxOpenPositions is a count (integer), not a price, amount, or balance
-            if (next !== null && (!Number.isFinite(next) || next < 0)) return false;
-            this._limits = { ...this._limits, maxOpenPositions: next };
+            if (value === null || (typeof value === "string" && value.trim() === "")) {
+                this._limits = { ...this._limits, maxOpenPositions: null };
+                this.persist();
+                return true;
+            }
+            const n = typeof value === "number" ? value : Number(value);
+            if (!Number.isInteger(n) || n < 0) return false;
+            this._limits = { ...this._limits, maxOpenPositions: n };
             this.persist();
             return true;
         }
