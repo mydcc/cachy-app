@@ -31,9 +31,7 @@
  */
 
 import { Decimal } from "decimal.js";
-import { CONSTANTS } from "./constants";
-
-export type FundingSide = typeof CONSTANTS.TRADE_TYPE_LONG | typeof CONSTANTS.TRADE_TYPE_SHORT;
+import { isTradeDirection, normalizeTradeDirection } from "./tradeDirection";
 
 /**
  * Signed 24h funding cash flow from the trader's perspective: positive is
@@ -52,12 +50,16 @@ export function signedFundingCashFlow24h(
   notional: Decimal,
   avgRate: Decimal,
   fundingIntervalHours: number,
-  tradeType: FundingSide,
+  tradeType: string,
 ): Decimal | null {
+  const normalizedTradeType = normalizeTradeDirection(tradeType);
+  if (!isTradeDirection(normalizedTradeType)) {
+    return null;
+  }
   if (!Number.isFinite(fundingIntervalHours) || fundingIntervalHours <= 0) {
     return null;
   }
   const settlementsPerDay = new Decimal(24).dividedBy(fundingIntervalHours);
   const unsigned = notional.times(avgRate).times(settlementsPerDay);
-  return tradeType === CONSTANTS.TRADE_TYPE_SHORT ? unsigned.negated() : unsigned;
+  return normalizedTradeType === "short" ? unsigned.negated() : unsigned;
 }

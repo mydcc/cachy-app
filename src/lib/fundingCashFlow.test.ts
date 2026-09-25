@@ -42,6 +42,15 @@ describe("BUG-0559 — funding cash flow carries the position side", () => {
     expect(signedFundingCashFlow24h(NOTIONAL, POSITIVE_RATE, 8, "short")?.toString()).toBe("-3");
   });
 
+  it("normalizes uppercase and mixed-case short directions", () => {
+    expect(signedFundingCashFlow24h(NOTIONAL, POSITIVE_RATE, 8, "SHORT")?.toString()).toBe("-3");
+    expect(signedFundingCashFlow24h(NOTIONAL, POSITIVE_RATE, 8, "ShOrT")?.toString()).toBe("-3");
+  });
+
+  it("returns null for an unknown direction instead of defaulting to long", () => {
+    expect(signedFundingCashFlow24h(NOTIONAL, POSITIVE_RATE, 8, "unknown")).toBeNull();
+  });
+
   it("pays a long the negative rate as income", () => {
     expect(signedFundingCashFlow24h(NOTIONAL, NEGATIVE_RATE, 8, "long")?.toString()).toBe("-3");
   });

@@ -282,15 +282,18 @@ describe("BUG-0559 — the funding estimate carries the trade direction", () => 
         delete marketState.data["BTCUSDT"];
     });
 
-    it("calls a long's funding estimate a cost", () => {
+    it("calls a long's funding estimate a cost with the danger class", () => {
         render();
 
         expect(host.textContent).toContain(getNestedTranslation(COST_LABEL));
         expect(host.textContent).not.toContain(getNestedTranslation(INCOME_LABEL));
         expect(host.textContent).toContain("+15 USDT");
+        const estimate = host.querySelector('[data-testid="funding-estimate-24h"]');
+        expect(estimate?.classList.contains("text-[var(--danger-color)]")).toBe(true);
+        expect(estimate?.classList.contains("text-[var(--success-color)]")).toBe(false);
     });
 
-    it("calls a short's funding estimate income and negates the amount", () => {
+    it("calls a short's funding estimate income with the success class", () => {
         tradeStateMock.tradeType = "short";
         render();
 
@@ -298,6 +301,25 @@ describe("BUG-0559 — the funding estimate carries the trade direction", () => 
         expect(host.textContent).not.toContain(getNestedTranslation(COST_LABEL));
         expect(host.textContent).toContain("-15 USDT");
         expect(host.textContent).not.toContain("+15 USDT");
+        const estimate = host.querySelector('[data-testid="funding-estimate-24h"]');
+        expect(estimate?.classList.contains("text-[var(--success-color)]")).toBe(true);
+        expect(estimate?.classList.contains("text-[var(--danger-color)]")).toBe(false);
+    });
+
+    it("normalizes mixed-case short directions", () => {
+        tradeStateMock.tradeType = "ShOrT";
+        render();
+
+        expect(host.textContent).toContain("-15 USDT");
+    });
+
+    it("hides the estimate for an unknown direction", () => {
+        tradeStateMock.tradeType = "unknown";
+        render();
+
+        expect(host.querySelector('[data-testid="funding-estimate-24h"]')).toBeNull();
+        expect(host.textContent).not.toContain(getNestedTranslation(COST_LABEL));
+        expect(host.textContent).not.toContain(getNestedTranslation(INCOME_LABEL));
     });
 
     it("hides the estimate when the funding interval is unusable", () => {
