@@ -30,6 +30,8 @@
   import { marketState } from "../../stores/market.svelte";
   import { resultsState } from "../../stores/results.svelte";
   import { fundingRateService } from "../../services/fundingRateService.svelte";
+  import { signedFundingCashFlow24h } from "../../lib/fundingCashFlow";
+  import { CONSTANTS } from "../../lib/constants";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { SymbolPickerWindow } from "../../lib/windows/implementations/SymbolPickerWindow.svelte";
   import { app } from "../../services/app";
@@ -155,11 +157,17 @@
 
       const notional = posSizeDecimal.times(entryDecimal);
       const fundingInterval = marketState.data[norm]?.fundingInterval ?? 8;
-      const settlementsPerDay = new Decimal(24).dividedBy(fundingInterval);
-      
-      // Cost = Notional * avg7d_rate * (24 / interval)
-      const cost24h = notional.times(history.avg7d).times(settlementsPerDay);
-      return cost24h;
+      // BUG-0559: a positive rate means longs pay shorts, so the unsigned
+      // estimate reads as a cost for a long and as income for a short.
+      // Anything that is not explicitly a short keeps the long perspective
+      // (the pre-fix display), never the other way round.
+      const side =
+        tradeState.tradeType === CONSTANTS.TRADE_TYPE_SHORT
+          ? CONSTANTS.TRADE_TYPE_SHORT
+          : CONSTANTS.TRADE_TYPE_LONG;
+
+      // Signed cash flow: positive = the trader pays, negative = receives.
+      return signedFundingCashFlow24h(notional, history.avg7d, fundingInterval, side);
     } catch {
       return null;
     }
@@ -674,7 +682,7 @@
       {#if estimatedHoldingCost24h !== null}
         <span class="flex items-center gap-1">
           <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
-            <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+            <span class="text-[var(--text-secondary)]">{estimatedHoldingCost24h.gte(0) ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
           </Tooltip>
           <span
             class="font-medium"
@@ -692,7 +700,7 @@
     >
       <span class="flex items-center gap-1">
         <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
-          <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
+          <span class="text-[var(--text-secondary)]">{estimatedHoldingCost24h.gte(0) ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
         </Tooltip>
         <span
           class="font-medium"
