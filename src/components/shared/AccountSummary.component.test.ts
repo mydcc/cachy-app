@@ -35,16 +35,27 @@ function lookup(key: string): string {
 
 vi.mock("../../locales/i18n", async () => {
     const { readable: r } = await import("svelte/store");
-    return { _: r((key: string) => lookup(key) ?? key), locale: r("en"), setLocale: vi.fn() };
+    const translate = (key: string, options?: { values?: Record<string, string | number> }) => {
+        const text = lookup(key) ?? key;
+        if (!options?.values) return text;
+        return Object.entries(options.values).reduce(
+            (acc, [name, value]) => acc.split(`{${name}}`).join(String(value)),
+            text
+        );
+    };
+    return { _: r(translate), locale: r("en"), setLocale: vi.fn() };
 });
 
-vi.mock("../../utils/utils", () => ({
-    formatDynamicDecimal: (value: unknown) => Number(value).toFixed(2),
-}));
-
-vi.mock("./AccountTooltip.svelte", async () => ({
-    default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
-}));
+// The real formatter trims a whole number to "1000"; these tests pin the
+// two-decimal display the account read-out promises, so keep the override
+// but leave every other util importable for the real AccountTooltip.
+vi.mock("../../utils/utils", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../utils/utils")>();
+    return {
+        ...actual,
+        formatDynamicDecimal: (value: unknown) => Number(value).toFixed(2),
+    };
+});
 
 import AccountSummary from "./AccountSummary.svelte";
 
@@ -125,5 +136,225 @@ describe("BUG-0512 — the total wears the badge when any leg is not fresh", () 
         render({ pnl: 12.5 });
 
         expect(host.querySelector('[data-track-id="stale-price-badge"]')).toBeNull();
+    });
+});
+
+describe("BUG-0562 — account details are a disclosure, not a hover", () => {
+    function trigger(): HTMLButtonElement {
+        const el = host.querySelector<HTMLButtonElement>("button[aria-expanded]");
+        expect(el).not.toBeNull();
+        return el as HTMLButtonElement;
+    }
+
+    function panel(): HTMLElement | null {
+        return host.querySelector('[id^="account-details-panel-"]');
+    }
+
+    function wrapper(): HTMLElement {
+        const el = trigger().parentElement;
+        expect(el).not.toBeNull();
+        return el as HTMLElement;
+    }
+
+    function key(el: HTMLElement, keyName: string) {
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: keyName, bubbles: true }));
+        flushSync();
+    }
+
+    function activate(el: HTMLElement) {
+        el.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 0 }));
+        flushSync();
+    }
+
+    function blur(el: HTMLElement, relatedTarget: EventTarget | null = null) {
+        el.dispatchEvent(new FocusEvent("blur", { relatedTarget }));
+        flushSync();
+    }
+
+    it("uses a native button named from its visible content", () => {
+        render({ available: 1000, currency: "USDT" });
+
+        expect(trigger().tagName).toBe("BUTTON");
+        expect(trigger().type).toBe("button");
+        expect(trigger().getAttribute("aria-label")).toBeNull();
+        expect(trigger().hasAttribute("tabindex")).toBe(false);
+        const name = trigger().textContent ?? "";
+        expect(name).toContain(lookup("dashboard.account.balance"));
+        expect(name).toContain("1000.00 USDT");
+    });
+
+    it("opens and closes with Enter", () => {
+        render({ available: 1000 });
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+        expect(panel()).not.toBeNull();
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+        expect(panel()).toBeNull();
+    });
+
+    it("opens and closes with Space", () => {
+        render({ available: 1000 });
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("toggles a hover-opened panel closed on the following pointer click", () => {
+        render({ available: 1000 });
+        wrapper().dispatchEvent(new MouseEvent("mouseenter"));
+        flushSync();
+        trigger().dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+        flushSync();
+
+        expect(panel()).toBeNull();
+    });
+
+    it("wires aria-controls to the panel id only while open", () => {
+        render({ available: 1000 });
+
+        expect(trigger().getAttribute("aria-controls")).toBeNull();
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-controls")).toMatch(/^account-details-panel-/);
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-controls")).toBeNull();
+    });
+
+    it("renders the equity and margin details (AC4)", () => {
+        render({ available: 1000, margin: 250, currency: "USDT" });
+
+        activate(trigger());
+        const details = panel();
+        expect(details).not.toBeNull();
+        const text = details?.textContent ?? "";
+        expect(text).toContain(lookup("dashboard.account.totalEquity"));
+        expect(text).toContain("1250.00");
+        expect(text).toContain(lookup("dashboard.account.marginLevel"));
+        expect(text).toContain("20.0");
+    });
+
+    it("opens on focus alone and closes on blur", () => {
+        render({ available: 1000 });
+
+        trigger().focus();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        trigger().blur();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("closes when the tap moves outside the disclosure (AC3)", () => {
+        const outside = document.createElement("button");
+        document.body.appendChild(outside);
+        render({ available: 1000 });
+
+        trigger().focus();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        blur(trigger(), outside);
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+
+        outside.remove();
+    });
+
+    it("closes on an outside pointerdown or tap", () => {
+        const outside = document.createElement("button");
+        document.body.appendChild(outside);
+        render({ available: 1000 });
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+
+        outside.remove();
+    });
+
+    it("stays open while the pointer rests inside the panel", () => {
+        render({ available: 1000 });
+
+        trigger().focus();
+        flushSync();
+        const details = panel();
+        expect(details).not.toBeNull();
+
+        details?.dispatchEvent(new MouseEvent("mouseenter"));
+        flushSync();
+        blur(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        details?.dispatchEvent(new MouseEvent("mouseleave"));
+        flushSync();
+        blur(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("stays open on mouseleave while the trigger holds focus (finding 7)", () => {
+        render({ available: 1000 });
+
+        trigger().focus();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        wrapper().dispatchEvent(new MouseEvent("mouseleave"));
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        trigger().blur();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("clears stale pointer-over-panel state when Escape unmounts it", () => {
+        render({ available: 1000 });
+        trigger().focus();
+        flushSync();
+        panel()?.dispatchEvent(new MouseEvent("mouseenter"));
+        flushSync();
+
+        key(trigger(), "Escape");
+        expect(panel()).toBeNull();
+
+        activate(trigger());
+        expect(panel()).not.toBeNull();
+        blur(trigger());
+        expect(panel()).toBeNull();
+    });
+
+    it("closes on Escape and keeps focus on the trigger", () => {
+        render({ available: 1000 });
+
+        // A keyboard user is focused on the disclosure when pressing Escape.
+        trigger().focus();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        key(trigger(), "Escape");
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+        expect(document.activeElement).toBe(trigger());
+    });
+
+    it("closes on Escape from the document listener when focus is elsewhere (finding 8)", () => {
+        render({ available: 1000 });
+
+        wrapper().dispatchEvent(new MouseEvent("mouseenter"));
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
     });
 });

@@ -159,6 +159,7 @@ export type TranslationKey =
   | "dashboard.favorites"
   | "dashboard.marketActivity"
   | "dashboard.positions"
+  | "dashboard.openOrders.viewDetails"
   | "dashboard.orders"
   | "dashboard.history"
   | "dashboard.balance"

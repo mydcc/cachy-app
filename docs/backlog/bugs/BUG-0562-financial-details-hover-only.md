@@ -2,7 +2,9 @@
 id: BUG-0562
 title: Critical account and pending-order financial details are hover-only
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/0562-financial-disclosure
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -32,11 +34,11 @@ Use an explicit focusable disclosure button for account and pending-order detail
 
 ## Acceptance criteria
 
-- [ ] Enter and Space open and close each disclosure.
-- [ ] Focus alone exposes the account and order details.
-- [ ] A touch tap opens deterministic content and tapping outside closes it.
-- [ ] Equity/margin level and order leverage/mode/TP/SL are in the accessibility tree.
-- [ ] Escape closes the disclosure and restores focus.
+- [x] Enter and Space open and close each disclosure.
+- [x] Focus alone exposes the account and order details.
+- [x] A touch tap opens deterministic content and tapping outside closes it.
+- [x] Equity/margin level and order leverage/mode/TP/SL are in the accessibility tree.
+- [x] Escape closes the disclosure and restores focus.
 
 ## Out of scope
 

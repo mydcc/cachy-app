@@ -160,6 +160,9 @@
     "favorites": "Favoriten",
     "marketActivity": "Marktaktivität",
     "positions": "Positionen",
+    "openOrders": {
+      "viewDetails": "{symbol} – Orderdetails anzeigen, {time}"
+    },
     "orders": "Orders",
     "history": "Historie",
     "balance": "Verfügbar",

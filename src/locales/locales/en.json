@@ -160,6 +160,9 @@
     "favorites": "Favorites",
     "marketActivity": "Market Activity",
     "positions": "Positions",
+    "openOrders": {
+      "viewDetails": "View order details for {symbol}, {time}"
+    },
     "orders": "Orders",
     "history": "History",
     "balance": "Available",
@@ -198,7 +201,7 @@
         "buy": "Buy",
         "sell": "Sell"
       },
-      "viewDetails": "View Details",
+      "viewDetails": "View details",
       "details": {
         "leverage": "Leverage",
         "margin": "Margin",
