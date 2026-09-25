@@ -160,6 +160,9 @@
     "favorites": "Favoriten",
     "marketActivity": "Marktaktivität",
     "positions": "Positionen",
+    "openOrders": {
+      "viewDetails": "{symbol} – Orderdetails anzeigen"
+    },
     "orders": "Orders",
     "history": "Historie",
     "balance": "Verfügbar",
@@ -767,7 +770,6 @@
     },
     "account": {
       "balance": "Verfügbar",
-      "viewDetails": "Kontodetails anzeigen",
       "confirmCancelOrder": "Diesen Auftrag stornieren?",
       "margin": "Margin",
       "pnl": "Gesamt PnL",

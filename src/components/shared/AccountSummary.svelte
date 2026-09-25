@@ -82,13 +82,37 @@
   // screens, where there is no hover to fall back to.
   let detailsOpen = $state(false);
   let triggerEl: HTMLElement | null = $state(null);
+  const ACCOUNT_DETAILS_PANEL_ID = "account-details-panel";
+  let panelEl: HTMLElement | null = $state(null);
+  let pointerOverPanel = $state(false);
 
   function openDetails() {
     detailsOpen = true;
   }
 
-  function closeDetails() {
+  // Escape dismisses the disclosure and hands focus back to its trigger.
+  // Focus is restored BEFORE closing: a focus() that actually moves focus
+  // re-fires onfocus → openDetails(), so the close has to run last for the
+  // panel to end up closed. When the trigger already holds focus the
+  // focus() call is skipped (it would not move focus anyway).
+  function handleEscape() {
+    if (document.activeElement !== triggerEl) triggerEl?.focus();
     detailsOpen = false;
+  }
+
+  function handleTriggerBlur(event: FocusEvent) {
+    // The pointer resting inside the panel keeps the disclosure open even
+    // though focus left the trigger (e.g. a mousedown inside the panel).
+    const related =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (pointerOverPanel || panelEl?.contains(related)) return;
+    detailsOpen = false;
+  }
+
+  function handleWrapperMouseLeave() {
+    // Keyboard focus outranks the pointer: a pointer pass must not
+    // collapse a disclosure whose trigger still holds focus (finding 7).
+    if (document.activeElement !== triggerEl) detailsOpen = false;
   }
 
   function handleDetailsKeyDown(event: KeyboardEvent) {
@@ -96,12 +120,21 @@
       event.preventDefault();
       detailsOpen = !detailsOpen;
     } else if (event.key === "Escape") {
-      detailsOpen = false;
-      // Restore focus only when it was lost — refocusing an already
-      // focused trigger would re-fire onfocus and reopen the panel.
-      if (document.activeElement !== triggerEl) triggerEl?.focus();
+      handleEscape();
     }
   }
+
+  // Document-level Escape (APG): dismisses a hover-opened panel while
+  // focus sits elsewhere — the trigger's own handler cannot see that.
+  // Registered only while open and always removed again (finding 8).
+  $effect(() => {
+    if (!detailsOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleEscape();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  });
 </script>
 
 <div
@@ -112,48 +145,68 @@
       <span>{error}</span>
     </div>
   {/if}
+  <!-- Trigger + panel live in their own relative wrapper: the panel must
+       be a sibling of the role="button" trigger, never its child — a
+       button marks children presentational, which would drop the equity
+       details out of the accessibility tree (finding 3). The wrapper is
+       presentational: its pointer handlers are enhancements, the same
+       open/close paths are reachable through focus and keyboard. -->
   <div
-    bind:this={triggerEl}
-    class="flex justify-between items-center cursor-help relative focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
-    role="button"
-    tabindex="0"
-    aria-expanded={detailsOpen}
-    aria-label={$_("dashboard.account.viewDetails")}
+    class="relative"
+    role="presentation"
     onmouseenter={openDetails}
-    onmouseleave={closeDetails}
-    onfocus={openDetails}
-    onblur={closeDetails}
-    onkeydown={handleDetailsKeyDown}
+    onmouseleave={handleWrapperMouseLeave}
   >
-    <div class="flex items-center gap-1">
-      <span
-        class="text-xs text-[var(--text-secondary)] border-b border-dashed border-[var(--text-secondary)]"
-        >{$_("dashboard.account.balance")}</span
+    <div
+      bind:this={triggerEl}
+      class="flex justify-between items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
+      role="button"
+      tabindex="0"
+      aria-expanded={detailsOpen}
+      aria-controls={detailsOpen ? ACCOUNT_DETAILS_PANEL_ID : undefined}
+      onfocus={openDetails}
+      onblur={handleTriggerBlur}
+      onkeydown={handleDetailsKeyDown}
+    >
+      <div class="flex items-center gap-1">
+        <span
+          class="text-xs text-[var(--text-secondary)] border-b border-dashed border-[var(--text-secondary)]"
+          >{$_("dashboard.account.balance")}</span
+        >
+      </div>
+      <span class="text-sm font-bold text-[var(--text-primary)]"
+        >{formatDynamicDecimal(available, 2)} {currency}</span
       >
     </div>
-    <span class="text-sm font-bold text-[var(--text-primary)]"
-      >{formatDynamicDecimal(available, 2)} {currency}</span
-    >
 
     {#if detailsOpen}
-      <div class="absolute z-[100] left-0 top-full pt-2">
+      <!-- role="group" marks the panel as a non-interactive content set;
+           its pointer handlers only inform the blur logic above. -->
+      <div
+        id={ACCOUNT_DETAILS_PANEL_ID}
+        bind:this={panelEl}
+        role="group"
+        class="absolute z-[100] left-0 top-full pt-2"
+        onmouseenter={() => (pointerOverPanel = true)}
+        onmouseleave={() => (pointerOverPanel = false)}
+      >
         <AccountTooltip
-        account={{
-          available,
-          margin,
-          marginCoin: currency,
-          frozen,
-          transfer,
-          bonus,
-          positionMode,
-          crossUnrealizedPNL,
-          isolationUnrealizedPNL,
-          isolationFrozen,
-          crossFrozen,
-          expMoney,
-          totalUnrealizedPnL: pnl,
-        }}
-      />
+          account={{
+            available,
+            margin,
+            marginCoin: currency,
+            frozen,
+            transfer,
+            bonus,
+            positionMode,
+            crossUnrealizedPNL,
+            isolationUnrealizedPNL,
+            isolationFrozen,
+            crossFrozen,
+            expMoney,
+            totalUnrealizedPnL: pnl,
+          }}
+        />
       </div>
     {/if}
   </div>
