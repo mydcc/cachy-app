@@ -4,7 +4,7 @@
 
 444 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 7 · ✅ done 389 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 7 · ✅ done 390 · ⛔ dropped 1
 
 ---
 
@@ -280,7 +280,7 @@ Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 7 · ✅ done 38
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | ✅ done | execution |
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | security |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | ✅ done | trade-panel |
-| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | 📋 specced | execution |
+| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | ✅ done | execution |
 | [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | execution |
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | calculation |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | settings |
@@ -624,7 +624,7 @@ Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 7 · ✅ done 38
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | none | community, pro, private | A | none | — |

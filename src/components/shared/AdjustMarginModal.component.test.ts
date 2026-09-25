@@ -207,3 +207,126 @@ describe("FEAT-0346 — AdjustMarginModal signs the margin request", () => {
         expect(onsuccess).not.toHaveBeenCalled();
     });
 });
+
+describe("BUG-0554 — AdjustMarginModal projects the liquidation consequence", () => {
+    const LONG_LIQ: OMSPosition = {
+        ...ISOLATED,
+        amount: new Decimal(1),
+        entryPrice: new Decimal(100),
+        margin: new Decimal(10),
+        leverage: new Decimal(10),
+        liquidationPrice: new Decimal(90),
+    };
+    const SHORT_LIQ: OMSPosition = {
+        ...LONG_LIQ,
+        side: "short",
+        liquidationPrice: new Decimal(110),
+    };
+
+    function ackCheckbox(): HTMLInputElement | null {
+        return host.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    }
+
+    it("long add shows the projected liquidation farther from entry with no gate", async () => {
+        render(LONG_LIQ);
+        await settle();
+
+        typeAmount("10");
+        await settle();
+
+        expect(host.textContent).toContain(lookup("modals.adjustMargin.projectedLiquidation"));
+        // notional 100, newMargin 20 → lev 5 → 100 * (1 - 1/5) = 80.
+        expect(host.textContent).toContain("80");
+        expect(host.textContent).toContain(lookup("modals.adjustMargin.movesAway"));
+        expect(ackCheckbox()).toBeNull();
+
+        const submit = buttonByText(lookup("modals.adjustMargin.submitAdd"));
+        expect(submit?.disabled).toBe(false);
+    });
+
+    it("long reduce shows the projected liquidation closer and blocks submit until acknowledged", async () => {
+        const onsuccess = vi.fn();
+        render(LONG_LIQ, { onsuccess });
+        await settle();
+
+        buttonByText(lookup("modals.adjustMargin.reduce"))?.click();
+        typeAmount("5");
+        await settle();
+
+        // notional 100, newMargin 5 → lev 20 → 100 * (1 - 1/20) = 95.
+        expect(host.textContent).toContain("95");
+        expect(host.textContent).toContain(lookup("modals.adjustMargin.movesCloser"));
+
+        // The acknowledgement names explicit values, never the old value as
+        // the consequence.
+        const label = lookup("modals.adjustMargin.confirmReduce");
+        expect(label).toContain("{currentMargin}");
+        expect(label).toContain("{newMargin}");
+        expect(host.textContent).toContain("10");
+        expect(host.textContent).toContain("95");
+
+        const submit = buttonByText(lookup("modals.adjustMargin.submitReduce"));
+        expect(submit?.disabled).toBe(true);
+        submit?.click();
+        await settle();
+        expect(adjustSpy).not.toHaveBeenCalled();
+
+        ackCheckbox()?.click();
+        await settle();
+        expect(buttonByText(lookup("modals.adjustMargin.submitReduce"))?.disabled).toBe(false);
+
+        buttonByText(lookup("modals.adjustMargin.submitReduce"))?.click();
+        await settle();
+        expect(adjustSpy).toHaveBeenCalledTimes(1);
+        expect(adjustSpy.mock.calls[0][0].amount.eq(-5)).toBe(true);
+        expect(onsuccess).toHaveBeenCalledTimes(1);
+    });
+
+    it("short add shows the projected liquidation farther from entry with no gate", async () => {
+        render(SHORT_LIQ);
+        await settle();
+
+        typeAmount("10");
+        await settle();
+
+        // notional 100, newMargin 20 → lev 5 → 100 * (1 + 1/5) = 120.
+        expect(host.textContent).toContain("120");
+        expect(host.textContent).toContain(lookup("modals.adjustMargin.movesAway"));
+        expect(ackCheckbox()).toBeNull();
+        expect(buttonByText(lookup("modals.adjustMargin.submitAdd"))?.disabled).toBe(false);
+    });
+
+    it("short reduce shows the projected liquidation closer and blocks submit until acknowledged", async () => {
+        render(SHORT_LIQ);
+        await settle();
+
+        buttonByText(lookup("modals.adjustMargin.reduce"))?.click();
+        typeAmount("5");
+        await settle();
+
+        // notional 100, newMargin 5 → lev 20 → 100 * (1 + 1/20) = 105.
+        expect(host.textContent).toContain("105");
+        expect(host.textContent).toContain(lookup("modals.adjustMargin.movesCloser"));
+
+        const submit = buttonByText(lookup("modals.adjustMargin.submitReduce"));
+        expect(submit?.disabled).toBe(true);
+
+        ackCheckbox()?.click();
+        await settle();
+        expect(buttonByText(lookup("modals.adjustMargin.submitReduce"))?.disabled).toBe(false);
+    });
+
+    it("states unmeasurable when the liquidation price is missing but still allows submit", async () => {
+        render(ISOLATED);
+        await settle();
+
+        typeAmount("50");
+        await settle();
+
+        expect(host.textContent).toContain(lookup("modals.adjustMargin.unmeasurable"));
+        expect(host.textContent).not.toContain(
+            lookup("modals.adjustMargin.projectedLiquidation"),
+        );
+        expect(buttonByText(lookup("modals.adjustMargin.submitAdd"))?.disabled).toBe(false);
+    });
+});
