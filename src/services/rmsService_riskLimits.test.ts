@@ -1396,6 +1396,18 @@ describe("BUG-0557 — cleared max-open-positions is no limit, not zero", () => 
         expect(riskState.maxOpenPositions).toBe(0);
     });
 
+    it("treats an absent max-open-positions field as intentionally unconfigured", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: {} }),
+        );
+        riskState.reloadFromStorage();
+
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
     it("treats a whitespace-only blob as unconfigured, never as zero", () => {
         localStorage.setItem(
             CONSTANTS.LOCAL_STORAGE_RISK_KEY,
@@ -1406,12 +1418,66 @@ describe("BUG-0557 — cleared max-open-positions is no limit, not zero", () => 
         expect(orderGate.verify(openIntent()).approved).toBe(true);
     });
 
-    it("fails open on a corrupt ceiling instead of blocking every entry", () => {
+    it("refuses new entries on a corrupt ceiling but still allows closes and cancels", () => {
         localStorage.setItem(
             CONSTANTS.LOCAL_STORAGE_RISK_KEY,
             JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
         );
         riskState.reloadFromStorage();
+
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+        const refusal = orderGate.verify(openIntent()).refusal;
+        expect(refusal?.field).toBe("maxOpenPositions");
+        expect(refusal?.reason).toBe("riskLimit");
+        expect(refusal?.messageKey).toBe("orderGate.riskLimitInvalidState");
+        expect(orderGate.verify(closeIntent()).approved).toBe(true);
+        expect(orderGate.verify(cancelIntent()).approved).toBe(true);
+    });
+
+    it("keeps a corrupt ceiling repairable until an explicit valid or clear action", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
+        );
+        riskState.reloadFromStorage();
+
+        expect(riskState.setLimit("maxLeverage", "20")).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+
+        expect(riskState.setLimit("maxOpenPositions", 3)).toBe(true);
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(false);
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(3);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("keeps non-finite numeric corruption invalid across an unrelated persist", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            '{"limits":{"maxOpenPositions":1e400}}',
+        );
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+
+        expect(riskState.setLimit("maxLeverage", "20")).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+    });
+
+    it("clearing a corrupt ceiling repairs it as intentionally unconfigured", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
+        );
+        riskState.reloadFromStorage();
+
+        expect(riskState.setLimit("maxOpenPositions", null)).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(false);
         expect(riskState.maxOpenPositions).toBe(null);
         expect(orderGate.verify(openIntent()).approved).toBe(true);
     });

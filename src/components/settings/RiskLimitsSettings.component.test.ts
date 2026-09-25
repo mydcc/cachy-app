@@ -34,6 +34,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import en from "../../locales/locales/en.json";
+import de from "../../locales/locales/de.json";
+import { CONSTANTS } from "../../lib/constants";
 
 /** Resolves a dotted key against a locale bundle, as `$_` would. */
 function lookup(bundle: unknown, key: string): string {
@@ -98,6 +100,7 @@ vi.mock("../../services/rmsService", async () => {
 
 import RiskLimitsSettings from "./RiskLimitsSettings.svelte";
 import { riskState } from "../../stores/riskLimits.svelte";
+import { modalState } from "../../stores/modal.svelte";
 
 let host: HTMLDivElement;
 let component: Record<string, unknown> | null = null;
@@ -115,8 +118,20 @@ function typeInto(el: HTMLInputElement, value: string): void {
     flushSync();
 }
 
-function errorVisible(): boolean {
-    return (host.textContent ?? "").includes(lookup(en, "settings.risk.invalidValue"));
+function errorVisible(bundle: "en" | "de" = "en", key?: string): boolean {
+    const translations = bundle === "de" ? de : en;
+    const text = host.textContent ?? "";
+    if (key) return text.includes(lookup(translations, key));
+    return text.includes(lookup(translations, "settings.risk.invalidValue")) ||
+        text.includes(lookup(translations, "settings.risk.invalidMaxOpenPositions"));
+}
+
+function button(label: string): HTMLButtonElement {
+    const match = Array.from(host.querySelectorAll("button")).find(
+        (candidate) => candidate.textContent?.trim() === label,
+    );
+    if (!match) throw new Error(`Button not found: ${label}`);
+    return match;
 }
 
 function maxPositions(): HTMLInputElement {
@@ -214,6 +229,73 @@ describe("BUG-0557 — RiskLimitsSettings keeps no-limit and zero apart", () => 
         expect(errorVisible()).toBe(true);
         expect(maxPositions().classList.contains("border-danger")).toBe(true);
         expect(maxPositions().value).toBe("2.5");
+    });
+
+    it("keeps separate field errors simultaneously visible", () => {
+        typeInto(input("risk-maxLeverage"), "-1");
+        typeInto(maxPositions(), "2.5");
+
+        expect(input("risk-maxLeverage").classList.contains("border-danger")).toBe(true);
+        expect(maxPositions().classList.contains("border-danger")).toBe(true);
+        expect(errorVisible("en", "settings.risk.invalidValue")).toBe(true);
+        expect(errorVisible("en", "settings.risk.invalidMaxOpenPositions")).toBe(true);
+    });
+
+    it("clears every field error after a confirmed reset", async () => {
+        typeInto(input("risk-maxLeverage"), "-1");
+        typeInto(maxPositions(), "2.5");
+        expect(errorVisible()).toBe(true);
+
+        vi.mocked(modalState.show).mockResolvedValueOnce(true);
+        button(lookup(en, "settings.risk.resetLimits")).click();
+        await vi.waitFor(() => {
+            expect(errorVisible()).toBe(false);
+        });
+
+        expect(input("risk-maxLeverage").classList.contains("border-danger")).toBe(false);
+        expect(maxPositions().classList.contains("border-danger")).toBe(false);
+    });
+
+    it("renders the integer-specific max-position error in German", () => {
+        locale.current = "de";
+        unmount(component!);
+        component = mount(RiskLimitsSettings, { target: host }) as Record<string, unknown>;
+        flushSync();
+
+        typeInto(maxPositions(), "2.5");
+
+        expect(errorVisible("de", "settings.risk.invalidMaxOpenPositions")).toBe(true);
+        expect(lookup(de, "settings.risk.invalidMaxOpenPositions")).toBe(
+            "Dieser Wert wurde nicht gespeichert. Das Limit für gleichzeitig offene Positionen muss eine ganze, nicht negative Zahl sein.",
+        );
+    });
+
+    it("uses exact whole non-negative integer copy in both locales", () => {
+        expect(lookup(en, "settings.risk.invalidMaxOpenPositions")).toBe(
+            "That value was not stored. Max concurrent open positions must be a whole non-negative integer.",
+        );
+        expect(lookup(de, "settings.risk.invalidMaxOpenPositions")).toBe(
+            "Dieser Wert wurde nicht gespeichert. Das Limit für gleichzeitig offene Positionen muss eine ganze, nicht negative Zahl sein.",
+        );
+    });
+
+    it("surfaces an unreadable stored ceiling as a repairable invalid state", () => {
+        unmount(component!);
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
+        );
+        riskState.reloadFromStorage();
+        component = mount(RiskLimitsSettings, { target: host }) as Record<string, unknown>;
+        flushSync();
+
+        expect(riskState.hasInvalidMaxOpenPositions).toBe(true);
+        expect(errorVisible("en", "settings.risk.invalidStoredMaxOpenPositions")).toBe(true);
+        expect(maxPositions().value).toBe("2.5");
+        expect(maxPositions().getAttribute("aria-invalid")).toBe("true");
+        expect(maxPositions().getAttribute("aria-describedby")).toBe(
+            "risk-maxOpenPositions-stored-error",
+        );
     });
 
     it("clears the error once the same field holds a valid value", () => {
