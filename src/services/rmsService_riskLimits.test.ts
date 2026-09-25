@@ -1361,10 +1361,59 @@ describe("BUG-0557 — cleared max-open-positions is no limit, not zero", () => 
 
         riskState.reloadFromStorage();
         expect(riskState.maxOpenPositions).toBe(0);
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
 
         riskState.setLimit("maxOpenPositions", null);
         riskState.reloadFromStorage();
         expect(riskState.maxOpenPositions).toBe(null);
+    });
+
+    it("rejects every string that is not plain digits after trim", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", "1e3")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "+3")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "2.5")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "abc")).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "0x10")).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("rejects non-safe integers without changing the prior limit", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", Number.POSITIVE_INFINITY)).toBe(
+            false,
+        );
+        expect(riskState.setLimit("maxOpenPositions", 1e21)).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", "9007199254740993")).toBe(
+            false,
+        );
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("normalizes negative zero to plain zero", () => {
+        expect(riskState.setLimit("maxOpenPositions", -0)).toBe(true);
+        // toBe is Object.is, so this fails if -0 leaks into the store.
+        expect(riskState.maxOpenPositions).toBe(0);
+    });
+
+    it("treats a whitespace-only blob as unconfigured, never as zero", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "   " } }),
+        );
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("fails open on a corrupt ceiling instead of blocking every entry", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "2.5" } }),
+        );
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
     });
 
     it("loads a legacy empty-string blob as unconfigured, never as zero", () => {
