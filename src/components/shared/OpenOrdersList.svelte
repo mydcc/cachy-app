@@ -31,7 +31,7 @@
   let { orders = [], loading = false, error = "", oncancel }: Props = $props();
 
   function handleMouseEnter(event: MouseEvent, order: NormalizedOrder) {
-    const coords = getTooltipPosition(event);
+    const coords = getTooltipPosition(event.clientX, event.clientY);
     uiState.showTooltip("order", order, coords.x, coords.y);
   }
 
@@ -39,17 +39,43 @@
     uiState.hideTooltip();
   }
 
-  function getTooltipPosition(event: MouseEvent) {
+  // BUG-0562: the order-details tooltip is a disclosure, not a hover —
+  // same contract as OrderHistoryList: Enter/Space open, focus alone
+  // exposes, Escape closes. A tap is a focus, so touch is covered too.
+  function handleKeyDown(event: KeyboardEvent, order: NormalizedOrder) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      // No mouse coordinates on keyboard: anchor at the viewport center,
+      // exactly like the history list does.
+      const x = window.innerWidth / 2 - 160;
+      const y = window.innerHeight / 2 - 200;
+      uiState.showTooltip("order", order, x, y);
+    } else if (event.key === "Escape") {
+      uiState.hideTooltip();
+    }
+  }
+
+  function handleFocus(event: FocusEvent, order: NormalizedOrder) {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const coords = getTooltipPosition(rect.right, rect.top);
+    uiState.showTooltip("order", order, coords.x, coords.y);
+  }
+
+  function handleBlur() {
+    uiState.hideTooltip();
+  }
+
+  function getTooltipPosition(clientX: number, clientY: number) {
     const tooltipWidth = 320;
     const tooltipHeight = 400;
     const padding = 10;
-    let x = event.clientX + padding;
-    let y = event.clientY + padding;
+    let x = clientX + padding;
+    let y = clientY + padding;
 
     if (x + tooltipWidth > window.innerWidth)
-      x = event.clientX - tooltipWidth - padding;
+      x = clientX - tooltipWidth - padding;
     if (y + tooltipHeight > window.innerHeight)
-      y = event.clientY - tooltipHeight - padding;
+      y = clientY - tooltipHeight - padding;
 
     return { x: Math.max(padding, x), y: Math.max(padding, y) };
   }
@@ -121,12 +147,17 @@
           class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors relative group"
         >
           <div class="grid grid-cols-3 gap-1">
-            <!-- Col 1: Identity & Time (Tooltip Trigger) -->
+            <!-- Col 1: Identity & Time (Details Disclosure) -->
             <div
-              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative"
+              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
               onmouseenter={(e) => handleMouseEnter(e, order)}
               onmouseleave={handleMouseLeave}
-              role="tooltip"
+              onfocus={(e) => handleFocus(e, order)}
+              onblur={handleBlur}
+              onkeydown={(e) => handleKeyDown(e, order)}
+              tabindex="0"
+              role="button"
+              aria-label={$_("dashboard.orderHistory.viewDetails")}
             >
               <span
                 class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"

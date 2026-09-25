@@ -5349,7 +5349,9 @@
       "id": "BUG-0562",
       "title": "Critical account and pending-order financial details are hover-only",
       "type": "bug",
-      "status": "specced",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/0562-financial-disclosure",
       "priority": "P2",
       "milestone": "none",
       "editions": [

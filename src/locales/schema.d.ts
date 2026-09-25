@@ -669,6 +669,7 @@ export type TranslationKey =
   | "dashboard.summaryResults.breakEvenPriceLabel"
   | "dashboard.summaryResults.breakEvenPriceTooltip"
   | "dashboard.account.balance"
+  | "dashboard.account.viewDetails"
   | "dashboard.account.confirmCancelOrder"
   | "dashboard.account.margin"
   | "dashboard.account.pnl"

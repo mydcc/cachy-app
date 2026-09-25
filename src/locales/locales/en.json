@@ -767,6 +767,7 @@
     },
     "account": {
       "balance": "Available",
+      "viewDetails": "View account details",
       "confirmCancelOrder": "Cancel this order?",
       "margin": "Margin",
       "pnl": "Total PnL",
