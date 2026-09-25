@@ -104,7 +104,7 @@ function usableRows(rows: DashboardRow[]): DashboardRow[] {
 export function marketHeat(rows: DashboardRow[]): number | null {
     const usable = usableRows(rows);
     if (usable.length === 0) return null;
-    const sum = usable.reduce((acc, r) => acc + parseFloat(r.analysis!.rsi1h), 0);
+    const sum = usable.reduce((acc, r) => acc + parseFloat(r.analysis!.rsi1h), 0); // audit: safe — RSI is a dimensionless 0–100 oscillator averaged for a display-only heat reading, not a price/amount/balance
     return sum / usable.length;
 }
 
