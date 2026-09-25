@@ -111,6 +111,40 @@ export interface TradeStateSnapshot {
 
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 
+export interface SymbolRefreshInput {
+  symbol: string;
+  provider?: "bitunix" | "bitget" | string;
+  /** Fresh entry price to adopt; when omitted (or an empty string) the current one is kept. */
+  entryPrice?: string | null;
+}
+
+export interface SymbolRefreshReport {
+  ok: boolean;
+  symbol: string;
+  /**
+   * Stop-strategy fields this refresh deliberately left untouched — the
+   * BUG-0556 contract. A refresh loads market context; it never changes
+   * the risk model. Changing the stop strategy is an explicit user choice
+   * (`toggleAtrInputs`, `setAtrMode`, the bound controls, a preset load).
+   */
+  preserved: Array<
+    "useAtrSl" | "atrMode" | "stopLossPrice" | "atrValue" | "atrMultiplier"
+  >;
+  /** Fields this refresh cleared — always empty: refreshes never clear.
+   * Kept as an audit trail (and reserved for future compatibility checks)
+   * so callers can distinguish "kept" from "cleared" without code changes. */
+  cleared: string[];
+  reason?: string;
+}
+
+const STOP_STRATEGY_FIELDS: SymbolRefreshReport["preserved"] = [
+  "useAtrSl",
+  "atrMode",
+  "stopLossPrice",
+  "atrValue",
+  "atrMultiplier",
+];
+
 // State is string-only, but persisted state written by earlier versions may
 // still hold native numbers. Normalize them here instead of rejecting them —
 // a rejected parse resets the whole trade state and destroys the user's notes,
@@ -445,6 +479,48 @@ class TradeManager {
     }
     this.symbol = normalized;
     return true;
+  }
+
+  /**
+   * Apply a market-data refresh for a symbol without touching the stop
+   * strategy (BUG-0556).
+   *
+   * Quote refreshes, favorite picks and dashboard selections all funnel
+   * through here so every surface behaves the same: the symbol (normalized)
+   * and — when supplied — a fresh entry price are adopted, while `useAtrSl`,
+   * `atrMode` and the manual/ATR stop values stay exactly as the user left
+   * them. An invalid symbol changes nothing and reports `ok: false`; the
+   * caller surfaces its own fetch error.
+   */
+  applySymbolRefresh(input: SymbolRefreshInput): SymbolRefreshReport {
+    const provider = input.provider ?? "bitunix";
+    const normalized = input.symbol
+      ? normalizeSymbol(input.symbol, provider)
+      : "";
+    if (!normalized) {
+      return {
+        ok: false,
+        symbol: input.symbol,
+        preserved: [...STOP_STRATEGY_FIELDS],
+        cleared: [],
+        reason: "invalid-symbol",
+      };
+    }
+    this.symbol = normalized;
+    if (
+      input.entryPrice !== undefined &&
+      input.entryPrice !== null &&
+      input.entryPrice !== ""
+    ) {
+      this.entryPrice = input.entryPrice;
+    }
+    this.notifyListeners();
+    return {
+      ok: true,
+      symbol: normalized,
+      preserved: [...STOP_STRATEGY_FIELDS],
+      cleared: [],
+    };
   }
 
   /**
