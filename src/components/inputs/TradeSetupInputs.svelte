@@ -262,7 +262,10 @@
     // BUG-0556: a price refresh loads market context only — it must not
     // change the stop strategy. The user's useAtrSl/atrMode and manual stop
     // values survive; only the symbol context is (re-)applied.
-    tradeState.applySymbolRefresh({ symbol });
+    tradeState.applySymbolRefresh({
+      symbol,
+      provider: settingsState.apiProvider || "bitunix",
+    });
     // Use unified fetch
     app.fetchAllAnalysisData(symbol, false);
   }

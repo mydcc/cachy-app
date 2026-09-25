@@ -102,6 +102,19 @@ describe("BUG-0556: applySymbolRefresh preserves the stop strategy", () => {
         expect(tradeState.entryPrice).toBe("67000");
     });
 
+    it("keeps the existing entry price when an empty string is supplied", () => {
+        tradeState.entryPrice = "67000";
+
+        const report = tradeState.applySymbolRefresh({
+            symbol: "ETHUSDT",
+            entryPrice: "",
+        });
+
+        expect(report.ok).toBe(true);
+        expect(tradeState.symbol).toBe("ETHUSDT");
+        expect(tradeState.entryPrice).toBe("67000");
+    });
+
     it("changes nothing and reports failure for an invalid symbol", () => {
         tradeState.useAtrSl = false;
         tradeState.atrMode = "manual";

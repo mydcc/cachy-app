@@ -114,7 +114,7 @@ const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 export interface SymbolRefreshInput {
   symbol: string;
   provider?: "bitunix" | "bitget" | string;
-  /** Fresh entry price to adopt; when omitted the current one is kept. */
+  /** Fresh entry price to adopt; when omitted (or an empty string) the current one is kept. */
   entryPrice?: string | null;
 }
 
@@ -130,7 +130,9 @@ export interface SymbolRefreshReport {
   preserved: Array<
     "useAtrSl" | "atrMode" | "stopLossPrice" | "atrValue" | "atrMultiplier"
   >;
-  /** Fields this refresh cleared — always empty: refreshes never clear. */
+  /** Fields this refresh cleared — always empty: refreshes never clear.
+   * Kept as an audit trail (and reserved for future compatibility checks)
+   * so callers can distinguish "kept" from "cleared" without code changes. */
   cleared: string[];
   reason?: string;
 }
@@ -505,7 +507,11 @@ class TradeManager {
       };
     }
     this.symbol = normalized;
-    if (input.entryPrice !== undefined && input.entryPrice !== null) {
+    if (
+      input.entryPrice !== undefined &&
+      input.entryPrice !== null &&
+      input.entryPrice !== ""
+    ) {
       this.entryPrice = input.entryPrice;
     }
     this.notifyListeners();
