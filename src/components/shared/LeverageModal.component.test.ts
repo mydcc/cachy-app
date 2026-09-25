@@ -74,12 +74,14 @@ describe("LeverageModal", () => {
             maxLeverage: 50,
             localOnly: false,
             busy: false,
-            position: {
-                entryPrice: new Decimal("100"),
-                liquidationPrice: new Decimal("91"),
-                leverage: new Decimal("10"),
-                side: "long",
-            },
+            positions: [
+                {
+                    entryPrice: new Decimal("100"),
+                    liquidationPrice: new Decimal("91"),
+                    leverage: new Decimal("10"),
+                    side: "long",
+                },
+            ],
             marginMode: "ISOLATION",
             onclose: vi.fn(),
             onconfirm: confirmSpy,
@@ -93,6 +95,42 @@ describe("LeverageModal", () => {
         expect(confirmSpy).toBeDefined();
     });
 
+    it("projects one row per hedge side instead of the first match (BUG-0553)", () => {
+        renderModal({
+            current: "10",
+            minLeverage: 1,
+            maxLeverage: 50,
+            localOnly: false,
+            busy: false,
+            positions: [
+                {
+                    entryPrice: new Decimal("100"),
+                    liquidationPrice: new Decimal("91"),
+                    leverage: new Decimal("10"),
+                    side: "long",
+                },
+                {
+                    entryPrice: new Decimal("100"),
+                    liquidationPrice: new Decimal("109"),
+                    leverage: new Decimal("10"),
+                    side: "short",
+                },
+            ],
+            marginMode: "ISOLATION",
+            onclose: vi.fn(),
+            onconfirm: vi.fn(),
+        });
+
+        const box = host.querySelector('[data-track-id="leverage-liquidation"]');
+        expect(box).not.toBeNull();
+        // Both sides render their own row with their own liquidation price.
+        expect(box?.textContent).toContain("Long");
+        expect(box?.textContent).toContain("Short");
+        expect(box?.textContent).toContain("91");
+        expect(box?.textContent).toContain("109");
+        expect(host.querySelector('[data-track-id="leverage-liquidation-cross"]')).toBeNull();
+    });
+
     it("shows the cross-margin reason instead of a projection (BUG-0504)", () => {
         renderModal({
             current: "10",
@@ -100,12 +138,14 @@ describe("LeverageModal", () => {
             maxLeverage: 50,
             localOnly: false,
             busy: false,
-            position: {
-                entryPrice: new Decimal("100"),
-                liquidationPrice: new Decimal("91"),
-                leverage: new Decimal("10"),
-                side: "long",
-            },
+            positions: [
+                {
+                    entryPrice: new Decimal("100"),
+                    liquidationPrice: new Decimal("91"),
+                    leverage: new Decimal("10"),
+                    side: "long",
+                },
+            ],
             marginMode: "CROSS",
             onclose: vi.fn(),
             onconfirm: vi.fn(),

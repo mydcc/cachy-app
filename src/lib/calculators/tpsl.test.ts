@@ -29,6 +29,7 @@ import {
     netRoiPercentFromPrice,
     roundToTick,
     validateTpSlPrice,
+    resolveTpSlPosition,
     type TpSlContext,
     type FeeRates,
 } from "./tpsl";
@@ -302,5 +303,49 @@ describe("roundToTick", () => {
 
     it("passes the price through when tick size is unknown", () => {
         expect(roundToTick(new Decimal("100.037"), new Decimal(0)).toString()).toBe("100.037");
+    });
+});
+
+describe("resolveTpSlPosition (BUG-0553)", () => {
+    const LONG_POS = { symbol: "BTCUSDT", positionId: "p-long", side: "long" };
+    const SHORT_POS = { symbol: "BTCUSDT", positionId: "p-short", side: "short" };
+    const OTHER = { symbol: "ETHUSDT", positionId: "p-eth", side: "long" };
+
+    it("matches a scoped plan to its own position id", () => {
+        expect(
+            resolveTpSlPosition([LONG_POS, SHORT_POS], {
+                symbol: "BTCUSDT",
+                positionId: "p-short",
+            }),
+        ).toBe(SHORT_POS);
+    });
+
+    it("matches nothing when the scoped position is gone", () => {
+        expect(
+            resolveTpSlPosition([LONG_POS], { symbol: "BTCUSDT", positionId: "p-short" }),
+        ).toBeUndefined();
+    });
+
+    it("lets a legacy plan borrow context only when one side is open", () => {
+        expect(resolveTpSlPosition([LONG_POS], { symbol: "BTCUSDT" })).toBe(LONG_POS);
+    });
+
+    it("refuses context for a legacy plan when both hedge sides are open", () => {
+        expect(
+            resolveTpSlPosition([LONG_POS, SHORT_POS], { symbol: "BTCUSDT" }),
+        ).toBeUndefined();
+    });
+
+    it("ignores other symbols entirely", () => {
+        expect(
+            resolveTpSlPosition([OTHER], { symbol: "BTCUSDT", positionId: "p-eth" }),
+        ).toBeUndefined();
+        expect(resolveTpSlPosition([OTHER], { symbol: "BTCUSDT" })).toBeUndefined();
+    });
+
+    it("matches a venue-prefixed plan symbol to its bare position", () => {
+        expect(
+            resolveTpSlPosition([LONG_POS], { symbol: "BTC.P" }, "bitunix"),
+        ).toBe(LONG_POS);
     });
 });

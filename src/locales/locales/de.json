@@ -4340,7 +4340,7 @@
       "paperMode": "Paper-Trading ist aktiv — Cachy ändert nichts an der Börse",
       "confirmLeverageTitle": "Hebel bei offener Position ändern?",
       "confirmLeverageMessage": "{symbol} hat eine offene Position. Der Wechsel von {from}x auf {to}x verschiebt den Liquidationspreis sofort.",
-      "confirmLeverageLiquidation": "Liquidation (Schätzung): {from} → {to}. Der tatsächliche Wert der Börse kann abweichen — Gebühren, Funding und gestaffelte Maintenance-Margin sind nicht berücksichtigt.",
+      "confirmLeverageLiquidationSide": "{side}-Liquidation (Schätzung): {from} → {to}. Der tatsächliche Wert der Börse kann abweichen — Gebühren, Funding und gestaffelte Maintenance-Margin sind nicht berücksichtigt.",
       "leverageChanged": "Hebel auf {value}x gesetzt",
       "marginModeChanged": "Margin-Modus geändert",
       "positionModeChanged": "Positionsmodus geändert",

@@ -4340,7 +4340,7 @@
       "paperMode": "Paper trading is on — Cachy changes nothing on the exchange",
       "confirmLeverageTitle": "Change leverage on an open position?",
       "confirmLeverageMessage": "{symbol} has an open position. Moving leverage from {from}x to {to}x moves its liquidation price immediately.",
-      "confirmLeverageLiquidation": "Liquidation (estimate): {from} → {to}. The exchange's own figure may differ — fees, funding and tiered maintenance margin are not included.",
+      "confirmLeverageLiquidationSide": "{side} liquidation (estimate): {from} → {to}. The exchange's own figure may differ — fees, funding and tiered maintenance margin are not included.",
       "leverageChanged": "Leverage set to {value}x",
       "marginModeChanged": "Margin mode changed",
       "positionModeChanged": "Position mode changed",

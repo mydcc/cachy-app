@@ -57,18 +57,21 @@
     /** Disables confirm while a request is in flight. */
     busy: boolean;
     /**
-     * The open position on this symbol, when there is one. These are the
-     * store's own `Decimal`s (`stores/account.svelte.ts`), not strings — the
-     * prices never travel through a string here, so nothing can round on the
-     * way in.
+     * Every open position on this symbol — one entry per hedge side. The
+     * modal projects one liquidation row per isolated side instead of
+     * describing only the first match (BUG-0553). These are the store's own
+     * `Decimal`s (`stores/account.svelte.ts`), not strings — the prices never
+     * travel through a string here, so nothing can round on the way in.
      */
-    position?: {
+    positions?: Array<{
       entryPrice: Decimal;
       liquidationPrice: Decimal;
       leverage: Decimal;
       /** Read from the position — never inferred from prices (BUG-0504). */
       side: "long" | "short";
-    };
+      /** Per-position mode; a known cross refuses its own row (BUG-0504). */
+      marginMode?: string;
+    }>;
     /** Margin mode: ISOLATION (show projection) or CROSS (show warning). */
     marginMode?: string;
     onclose: () => void;
@@ -81,7 +84,7 @@
     maxLeverage,
     localOnly,
     busy,
-    position,
+    positions,
     marginMode,
     onclose,
     onconfirm,
@@ -130,19 +133,48 @@
     return [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(minLeverage + span * f));
   });
 
-  const projection = $derived.by(() => {
-    const p = position;
+  /*
+   * One projection per same-symbol position (BUG-0553): in a hedge account
+   * the long and the short liquidate at different prices, and showing only
+   * the first match would describe the wrong side. A side whose projection
+   * refuses (known cross margin, missing inputs) contributes no row rather
+   * than a confident wrong number.
+   */
+  const projections = $derived.by(() => {
     const next = parsed;
-    if (!p) return null;
-    if (next === null || !inRange) return null;
-
-    return projectLiquidation(p.entryPrice, p.liquidationPrice, p.leverage, next, p.side, marginMode);
+    if (next === null || !inRange) return [];
+    return (positions ?? []).map((p) => ({
+      side: p.side,
+      projection: projectLiquidation(
+        p.entryPrice,
+        p.liquidationPrice,
+        p.leverage,
+        next,
+        p.side,
+        p.marginMode ?? marginMode,
+      ),
+    }));
   });
+
+  /** Isolated sides with a computable projection — one row each. */
+  const isolatedProjections = $derived(
+    projections.filter(
+      (
+        row,
+      ): row is {
+        side: "long" | "short";
+        projection: { from: Decimal; to: Decimal; tighter: boolean };
+      } =>
+        row.projection !== null &&
+        (marginMode === undefined ||
+          marginMode.toLowerCase().startsWith("isolat")),
+    ),
+  );
 
   /** Explicitly cross-margin: no projection exists, so the row says why. */
   const crossMarginNoProjection = $derived(
-    projection === null &&
-      position !== undefined &&
+    isolatedProjections.length === 0 &&
+      (positions ?? []).length > 0 &&
       marginMode !== undefined &&
       normalizeMarginMode(marginMode) === "cross",
   );
@@ -223,30 +255,37 @@
       </div>
     </div>
 
-    {#if projection && (marginMode === undefined || marginMode.toLowerCase().startsWith("isolat"))}
+    {#if isolatedProjections.length > 0}
       <!--
         The consequence, live, while the slider moves. Labelled an estimate
-        because that is what it is. Only shown for Isolated-Margin, where the
-        model (single position's entry/liq/leverage triple) is exact.
+        because that is what it is. One row per isolated side — in a hedge
+        account the sides liquidate at different prices (BUG-0553). Only
+        shown for Isolated-Margin, where the model (single position's
+        entry/liq/leverage triple) is exact.
       -->
       <div class="flex flex-col gap-0.5" data-track-id="leverage-liquidation">
-        <div class="flex justify-between text-xs">
-          <span class="text-[var(--text-secondary)]"
-            >{$_("exchange.accountSettings.liquidationEstimate")}</span
-          >
-          <span class="font-mono">
-            <span class="text-[var(--text-tertiary)]"
-              >{formatDynamicDecimal(projection.from)}</span
+        {#each isolatedProjections as row}
+          <div class="flex justify-between text-xs">
+            <span class="text-[var(--text-secondary)]"
+              >{row.side === "long"
+                ? $_("journal.labels.long")
+                : $_("journal.labels.short")}
+              · {$_("exchange.accountSettings.liquidationEstimate")}</span
             >
-            <span class="text-[var(--text-tertiary)]">→</span>
-            <span
-              class={projection.tighter
-                ? "text-[var(--warning-color)]"
-                : "text-[var(--text-primary)]"}
-              >{formatDynamicDecimal(projection.to)}</span
-            >
-          </span>
-        </div>
+            <span class="font-mono">
+              <span class="text-[var(--text-tertiary)]"
+                >{formatDynamicDecimal(row.projection.from)}</span
+              >
+              <span class="text-[var(--text-tertiary)]">→</span>
+              <span
+                class={row.projection.tighter
+                  ? "text-[var(--warning-color)]"
+                  : "text-[var(--text-primary)]"}
+                >{formatDynamicDecimal(row.projection.to)}</span
+              >
+            </span>
+          </div>
+        {/each}
         <p class="text-[10px] text-[var(--text-tertiary)]">
           {$_("exchange.accountSettings.liquidationEstimateNote")}
         </p>
