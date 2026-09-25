@@ -3622,7 +3622,14 @@
       "submitAdd": "Margin erhöhen",
       "submitReduce": "Margin reduzieren",
       "crossOnly": "Nur isolierte Positionen haben eine eigene Margin. Diese läuft auf Cross-Margin.",
-      "hint": "Mehr Margin schiebt den Liquidationspreis weiter weg, weniger Margin näher heran."
+      "hint": "Mehr Margin schiebt den Liquidationspreis weiter weg, weniger Margin näher heran.",
+      "projectedLiquidation": "Erwartete Liquidation",
+      "movesCloser": "Rückt näher an den Einstieg — höheres Risiko.",
+      "movesAway": "Entfernt sich vom Einstieg — geringeres Risiko.",
+      "unmeasurable": "Der neue Liquidationspreis lässt sich aus den verfügbaren Börsendaten nicht berechnen — die Börse hat das letzte Wort.",
+      "confirmReduce": "Ich verstehe: Margin {currentMargin} → {newMargin}, Liquidation {from} → {to}.",
+      "closingText": "Das zieht die komplette isolierte Margin ab — es bleibt kein Puffer und die Börse kann die Position sofort schließen.",
+      "confirmClosing": "Ich verstehe: Margin {currentMargin} → {newMargin}, die Position behält keine isolierte Margin."
     }
   },
   "ui": {

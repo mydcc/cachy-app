@@ -2301,7 +2301,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0554",
     "title": "Reducing isolated margin submits without showing the liquidation consequence",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0554-margin-liquidation-preview",
     "priority": "P1",
     "milestone": "none",
     "editions": [

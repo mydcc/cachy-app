@@ -3629,7 +3629,14 @@
       "submitAdd": "Add margin",
       "submitReduce": "Reduce margin",
       "crossOnly": "Only isolated positions have their own margin. This one is on cross margin.",
-      "hint": "Adding margin moves the liquidation price away from the mark; reducing moves it closer."
+      "hint": "Adding margin moves the liquidation price away from the mark; reducing moves it closer.",
+      "projectedLiquidation": "Projected liquidation",
+      "movesCloser": "Moves closer to entry — higher risk.",
+      "movesAway": "Moves away from entry — lower risk.",
+      "unmeasurable": "The new liquidation price cannot be computed from the available venue data — the exchange has the last word.",
+      "confirmReduce": "I understand: margin {currentMargin} → {newMargin}, liquidation {from} → {to}.",
+      "closingText": "This withdraws the full isolated margin — no buffer remains and the venue may close the position immediately.",
+      "confirmClosing": "I understand: margin {currentMargin} → {newMargin}, the position keeps no isolated margin."
     }
   },
   "ui": {
