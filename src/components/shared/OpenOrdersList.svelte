@@ -20,6 +20,11 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
   import type { NormalizedOrder } from "../../types/exchange";
+  import {
+    clampTooltipPosition,
+    isInsideOrderTooltip,
+    ORDER_TOOLTIP_ID,
+  } from "../../utils/tooltipPosition";
 
   interface Props {
     orders?: NormalizedOrder[];
@@ -30,55 +35,115 @@
 
   let { orders = [], loading = false, error = "", oncancel }: Props = $props();
 
+  let openTrigger: HTMLElement | null = $state(null);
+
+  // The tooltip data is a Svelte proxy, so identity never matches the
+  // row's order — compare by id (BUG-0562, finding 1).
+  function isOrderOpen(order: NormalizedOrder): boolean {
+    return (
+      uiState.tooltip.visible &&
+      uiState.tooltip.type === "order" &&
+      (uiState.tooltip.data as { id?: string } | null)?.id === order.id
+    );
+  }
+
   function handleMouseEnter(event: MouseEvent, order: NormalizedOrder) {
-    const coords = getTooltipPosition(event.clientX, event.clientY);
+    const coords = clampTooltipPosition(
+      event.clientX,
+      event.clientY,
+      window.innerWidth,
+      window.innerHeight
+    );
     uiState.showTooltip("order", order, coords.x, coords.y);
   }
 
-  function handleMouseLeave() {
-    uiState.hideTooltip();
+  function handleMouseLeave(event: MouseEvent, order: NormalizedOrder) {
+    // Focus and pointer can diverge: while the trigger holds keyboard
+    // focus, a pointer pass must not collapse the disclosure (AC2).
+    const active = document.activeElement;
+    if (
+      active === (event.currentTarget as HTMLElement | null) ||
+      isInsideOrderTooltip(active)
+    ) {
+      return;
+    }
+    if (isOrderOpen(order)) uiState.hideTooltip();
   }
 
   // BUG-0562: the order-details tooltip is a disclosure, not a hover —
-  // same contract as OrderHistoryList: Enter/Space open, focus alone
-  // exposes, Escape closes. A tap is a focus, so touch is covered too.
+  // same contract as OrderHistoryList: Enter/Space toggle open and close,
+  // focus alone exposes, Escape closes (see the document-level listener
+  // below, which also restores focus). A tap is a focus, so touch is
+  // covered too.
   function handleKeyDown(event: KeyboardEvent, order: NormalizedOrder) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      // No mouse coordinates on keyboard: anchor at the viewport center,
-      // exactly like the history list does.
-      const x = window.innerWidth / 2 - 160;
-      const y = window.innerHeight / 2 - 200;
-      uiState.showTooltip("order", order, x, y);
-    } else if (event.key === "Escape") {
-      uiState.hideTooltip();
+      if (isOrderOpen(order)) {
+        uiState.hideTooltip();
+        return;
+      }
+      openTrigger = event.currentTarget as HTMLElement;
+      // No mouse coordinates on keyboard: anchor at the viewport center —
+      // through the same clamp as the mouse path, so the tooltip can
+      // never start off-screen (e.g. landscape phones).
+      const coords = clampTooltipPosition(
+        window.innerWidth / 2,
+        window.innerHeight / 2,
+        window.innerWidth,
+        window.innerHeight
+      );
+      uiState.showTooltip("order", order, coords.x, coords.y);
     }
   }
 
   function handleFocus(event: FocusEvent, order: NormalizedOrder) {
+    openTrigger = event.currentTarget as HTMLElement;
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const coords = getTooltipPosition(rect.right, rect.top);
+    const coords = clampTooltipPosition(
+      rect.right,
+      rect.top,
+      window.innerWidth,
+      window.innerHeight
+    );
     uiState.showTooltip("order", order, coords.x, coords.y);
   }
 
-  function handleBlur() {
-    uiState.hideTooltip();
+  function handleBlur(event: FocusEvent, order: NormalizedOrder) {
+    // Focus moving into the portal'd tooltip (its accordion is focusable)
+    // must not unmount it before the click lands (finding 2).
+    const related =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (
+      isInsideOrderTooltip(related) ||
+      isInsideOrderTooltip(document.activeElement)
+    ) {
+      return;
+    }
+    if (isOrderOpen(order)) uiState.hideTooltip();
   }
 
-  function getTooltipPosition(clientX: number, clientY: number) {
-    const tooltipWidth = 320;
-    const tooltipHeight = 400;
-    const padding = 10;
-    let x = clientX + padding;
-    let y = clientY + padding;
-
-    if (x + tooltipWidth > window.innerWidth)
-      x = clientX - tooltipWidth - padding;
-    if (y + tooltipHeight > window.innerHeight)
-      y = clientY - tooltipHeight - padding;
-
-    return { x: Math.max(padding, x), y: Math.max(padding, y) };
-  }
+  // Escape dismisses the disclosure even when focus sits inside the
+  // tooltip or elsewhere (APG). Registered only while an order tooltip
+  // is open, and always removed again (finding 8).
+  $effect(() => {
+    if (!uiState.tooltip.visible || uiState.tooltip.type !== "order") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // Refocusing the trigger re-fires onfocus, which reopens — so focus
+      // is restored FIRST and the tooltip is hidden LAST.
+      const active = document.activeElement;
+      if (
+        openTrigger?.isConnected &&
+        active !== openTrigger &&
+        !openTrigger.contains(active)
+      ) {
+        openTrigger.focus();
+      }
+      uiState.hideTooltip();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  });
 
   function formatDate(timestamp: number) {
     if (!timestamp) return "-";
@@ -149,15 +214,19 @@
           <div class="grid grid-cols-3 gap-1">
             <!-- Col 1: Identity & Time (Details Disclosure) -->
             <div
-              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
+              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-pointer relative focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
               onmouseenter={(e) => handleMouseEnter(e, order)}
-              onmouseleave={handleMouseLeave}
+              onmouseleave={(e) => handleMouseLeave(e, order)}
               onfocus={(e) => handleFocus(e, order)}
-              onblur={handleBlur}
+              onblur={(e) => handleBlur(e, order)}
               onkeydown={(e) => handleKeyDown(e, order)}
               tabindex="0"
               role="button"
-              aria-label={$_("dashboard.orderHistory.viewDetails")}
+              aria-expanded={isOrderOpen(order)}
+              aria-controls={isOrderOpen(order) ? ORDER_TOOLTIP_ID : undefined}
+              aria-label={$_("dashboard.openOrders.viewDetails", {
+                values: { symbol: order.symbol },
+              })}
             >
               <span
                 class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"

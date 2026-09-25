@@ -160,6 +160,9 @@
     "favorites": "Favorites",
     "marketActivity": "Market Activity",
     "positions": "Positions",
+    "openOrders": {
+      "viewDetails": "View order details for {symbol}"
+    },
     "orders": "Orders",
     "history": "History",
     "balance": "Available",
@@ -198,7 +201,7 @@
         "buy": "Buy",
         "sell": "Sell"
       },
-      "viewDetails": "View Details",
+      "viewDetails": "View details",
       "details": {
         "leverage": "Leverage",
         "margin": "Margin",
@@ -766,7 +769,6 @@
     },
     "account": {
       "balance": "Available",
-      "viewDetails": "View account details",
       "confirmCancelOrder": "Cancel this order?",
       "margin": "Margin",
       "pnl": "Total PnL",
