@@ -293,21 +293,97 @@
     submitting = true;
     try {
       const isPaper = paperState.enabled;
+      // BUG-0555 — one normalized fact set feeds BOTH the confirmation
+      // text below and the EntryPlan further down, so the trader confirms
+      // exactly what is sent. Derived here, before the modal call — never
+      // re-read from inputs afterwards.
+      //
+      // Absence rules (same as the service's): a stop counts as present
+      // only when it is a positive Decimal — empty AND zero both render
+      // the explicit no-stop-loss key, never a numeric zero. A TP leg
+      // counts only when its price is a positive Decimal; zero legs render
+      // the explicit no-take-profit state, not silence. The plan carries
+      // prices only (EntryPlan.takeProfits is Decimal[] — portions are
+      // not part of the payload), so the payload stays prices-only while
+      // the confirmation shows each leg with its configured portion from
+      // the same normalized targets.
+      const legs = (data.targets ?? []).filter(
+        (t) => t.price instanceof Decimal && t.price.gt(0),
+      );
+      const takeProfits = legs.map((t) => t.price);
+      // Portion of the position closed at this leg, as configured in the
+      // calculator targets (50 → "50%"). A missing/unreadable portion
+      // renders explicitly, never as a silent zero.
+      const formatLegPercent = (value: unknown): string =>
+        value instanceof Decimal && value.isFinite()
+          ? `${value.toString()}%`
+          : "—";
+      const quotePrecision = meta?.quotePrecision ?? 2;
+      const stopLossPrice = data.stopLossPrice;
+      const stopPresent =
+        stopLossPrice instanceof Decimal && stopLossPrice.gt(0);
+      const leverage = data.leverage;
+      const leveragePresent =
+        leverage instanceof Decimal && leverage.gt(0);
+      const marginMode = tradeState.remoteMarginMode;
+      const facts = {
+        symbol: data.symbol,
+        tradeType: data.tradeType,
+        qty: data.positionSize,
+        entryPrice: data.entryPrice,
+        stopLossPrice,
+        leverage,
+        marginMode,
+        takeProfits,
+        side: $_(
+          (data.tradeType === "short"
+            ? "orderEntry.side.short"
+            : "orderEntry.side.long") as TranslationKey,
+        ),
+        entryTypeLabel: typeLabel(entryType),
+        takeProfitText:
+          legs.length > 0
+            ? legs
+                .map((t, i) =>
+                  $_("orderEntry.confirm.takeProfitLeg", {
+                    values: {
+                      index: String(i + 1),
+                      price: formatDynamicDecimal(t.price, quotePrecision),
+                      percent: formatLegPercent(t.percent),
+                    },
+                  }),
+                )
+                .join(", ")
+            : $_("orderEntry.confirm.noTakeProfit"),
+        stopText: stopPresent
+          ? formatDynamicDecimal(stopLossPrice, quotePrecision)
+          : $_("orderEntry.confirm.noStopLoss"),
+        leverageText: leveragePresent
+          ? marginMode
+            ? $_("orderEntry.confirm.leverageLine", {
+                values: {
+                  leverage: leverage.toString(),
+                  marginMode,
+                },
+              })
+            : $_("orderEntry.confirm.leverageLineNoMode", {
+                values: { leverage: leverage.toString() },
+              })
+          : $_("orderEntry.confirm.leverageUnknown"),
+      };
       const confirmed = await modalState.show(
         isPaper
           ? $_("orderEntry.confirm.titlePaper")
           : $_("orderEntry.confirm.titleLive"),
         $_("orderEntry.confirm.message", {
           values: {
-            side: $_(
-              (data.tradeType === "short"
-                ? "orderEntry.side.short"
-                : "orderEntry.side.long") as TranslationKey,
-            ),
-            qty: data.positionSize.toString(),
-            symbol: data.symbol,
-            type: typeLabel(entryType),
-            stop: data.stopLossPrice.toString(),
+            side: facts.side,
+            qty: facts.qty.toString(),
+            symbol: facts.symbol,
+            type: facts.entryTypeLabel,
+            takeProfit: facts.takeProfitText,
+            stop: facts.stopText,
+            leverage: facts.leverageText,
           },
         }),
         "confirm",
@@ -329,7 +405,7 @@
 
       result = await orderPlacementService.placeEntryGroup({
         exchange,
-        symbol: data.symbol,
+        symbol: facts.symbol,
         // BUG-0494 — a clicked order is manual provenance. Required on the
         // plan so no call site can omit it and silently take the live path.
         origin: "manual",
@@ -338,18 +414,16 @@
         // is not a long: tradeDirectionKnown already disabled the control
         // and guarded submit, so this fallback below is unreachable — it
         // exists only because the union demands a direction.
-        tradeType: narrowTradeType(data.tradeType) ?? "long",
+        tradeType: narrowTradeType(facts.tradeType) ?? "long",
         entryType,
-        qty: data.positionSize,
-        entryPrice: data.entryPrice,
-        stopLossPrice: data.stopLossPrice,
-        takeProfits: (data.targets ?? [])
-          .map((t) => t.price)
-          .filter((p) => p instanceof Decimal && p.gt(0)),
+        qty: facts.qty,
+        entryPrice: facts.entryPrice,
+        stopLossPrice: facts.stopLossPrice,
+        takeProfits: facts.takeProfits,
         accountSize: data.accountSize,
         riskPercentage: data.riskPercentage,
-        leverage: data.leverage,
-        marginMode: tradeState.remoteMarginMode,
+        leverage: facts.leverage,
+        marginMode: facts.marginMode,
         accountStateAt: tradeState.remoteAccountStateAt,
         timeInForce: entryType === "limit" ? effectiveTimeInForce : undefined,
       });

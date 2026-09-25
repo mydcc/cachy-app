@@ -4388,7 +4388,13 @@
     "confirm": {
       "titleLive": "Diese Order platzieren?",
       "titlePaper": "Diese Paper-Order platzieren?",
-      "message": "{side} {qty} {symbol} als {type}-Order, mit Stop bei {stop}. Fortfahren?"
+      "message": "{side} {qty} {symbol} als {type}-Order.<br>Take-Profit: {takeProfit}<br>Stop: {stop}<br>Hebel: {leverage}<br>Fortfahren?",
+      "takeProfitLeg": "TP{index} bei {price} ({percent})",
+      "noTakeProfit": "kein Take-Profit",
+      "noStopLoss": "Kein Stop-Loss",
+      "leverageLine": "{leverage}x ({marginMode})",
+      "leverageLineNoMode": "{leverage}x",
+      "leverageUnknown": "unbekannt"
     },
     "protection": {
       "attached": "am Einstieg angehängt",
