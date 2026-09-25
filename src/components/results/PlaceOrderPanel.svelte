@@ -304,11 +304,20 @@
       // counts only when its price is a positive Decimal; zero legs render
       // the explicit no-take-profit state, not silence. The plan carries
       // prices only (EntryPlan.takeProfits is Decimal[] — portions are
-      // not part of the payload), so the confirmation shows the same
-      // prices plus their count.
-      const takeProfits = (data.targets ?? [])
-        .map((t) => t.price)
-        .filter((p) => p instanceof Decimal && p.gt(0));
+      // not part of the payload), so the payload stays prices-only while
+      // the confirmation shows each leg with its configured portion from
+      // the same normalized targets.
+      const legs = (data.targets ?? []).filter(
+        (t) => t.price instanceof Decimal && t.price.gt(0),
+      );
+      const takeProfits = legs.map((t) => t.price);
+      // Portion of the position closed at this leg, as configured in the
+      // calculator targets (50 → "50%"). A missing/unreadable portion
+      // renders explicitly, never as a silent zero.
+      const formatLegPercent = (value: unknown): string =>
+        value instanceof Decimal && value.isFinite()
+          ? `${value.toString()}%`
+          : "—";
       const quotePrecision = meta?.quotePrecision ?? 2;
       const stopLossPrice = data.stopLossPrice;
       const stopPresent =
@@ -333,13 +342,14 @@
         ),
         entryTypeLabel: typeLabel(entryType),
         takeProfitText:
-          takeProfits.length > 0
-            ? takeProfits
-                .map((p, i) =>
+          legs.length > 0
+            ? legs
+                .map((t, i) =>
                   $_("orderEntry.confirm.takeProfitLeg", {
                     values: {
                       index: String(i + 1),
-                      price: formatDynamicDecimal(p, quotePrecision),
+                      price: formatDynamicDecimal(t.price, quotePrecision),
+                      percent: formatLegPercent(t.percent),
                     },
                   }),
                 )

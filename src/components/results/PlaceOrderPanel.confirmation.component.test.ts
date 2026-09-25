@@ -259,6 +259,34 @@ describe("BUG-0555 — confirmation renders the normalized plan", () => {
         expect(message).toContain("10x (ISOLATION)");
     });
 
+    it("shows each TP leg with its configured portion", async () => {
+        mockTradeData.targets = [
+            { price: new Decimal("52000"), percent: new Decimal("25"), isLocked: false },
+            { price: new Decimal("53000"), percent: new Decimal("75"), isLocked: false },
+        ];
+        const { message, plan } = await submitAndConfirm();
+
+        // The payload stays prices-only; the portions are display facts from
+        // the same normalized targets.
+        expect(plan.takeProfits.map((p) => p.toString())).toEqual(["52000", "53000"]);
+        expect(message).toContain("25%");
+        expect(message).toContain("75%");
+    });
+
+    it("renders a missing portion explicitly instead of a silent zero", async () => {
+        mockTradeData.targets = [
+            {
+                price: new Decimal("52000"),
+                percent: null as unknown as Decimal,
+                isLocked: false,
+            },
+        ];
+        const { message } = await submitAndConfirm();
+
+        expect(message).toContain("52000");
+        expect(message).toContain("—");
+    });
+
     it("renders an explicit no-stop-loss state for a zero stop, never a bare zero", async () => {
         mockTradeData.stopLossPrice = new Decimal("0");
         const { message } = await submitAndConfirm();

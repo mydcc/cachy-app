@@ -4389,7 +4389,7 @@
       "titleLive": "Place this order?",
       "titlePaper": "Place this paper order?",
       "message": "{side} {qty} {symbol} as a {type} order.<br>Take profit: {takeProfit}<br>Stop: {stop}<br>Leverage: {leverage}<br>Continue?",
-      "takeProfitLeg": "TP{index} at {price}",
+      "takeProfitLeg": "TP{index} at {price} ({percent})",
       "noTakeProfit": "no take profit",
       "noStopLoss": "No stop loss",
       "leverageLine": "{leverage}x ({marginMode})",
