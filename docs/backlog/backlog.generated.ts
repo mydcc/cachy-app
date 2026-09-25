@@ -2354,7 +2354,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0557",
     "title": "Clearing max-open-positions converts an absent limit into zero",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/0557-max-open-positions",
     "priority": "P1",
     "milestone": "none",
     "editions": [

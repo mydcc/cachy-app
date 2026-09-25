@@ -1318,3 +1318,62 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
         expect(orderGate.verify(intent).refusal?.field).toBe("maxLossPerTrade");
     });
 });
+
+// BUG-0557: clearing max-open-positions must remove the ceiling, not store
+// zero. Empty means absent (gate unconfigured); an explicit zero keeps its
+// documented block-everything semantics and must survive a reload distinctly
+// from absent.
+describe("BUG-0557 — cleared max-open-positions is no limit, not zero", () => {
+    it("clearing a configured ceiling re-approves new entries at the gate", () => {
+        riskState.setLimit("maxOpenPositions", 1);
+        positions.list = [{ symbol: "ETHUSDT" }, { symbol: "SOLUSDT" }];
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+
+        expect(riskState.setLimit("maxOpenPositions", null)).toBe(true);
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("round-trips positive integers unchanged across a reload", () => {
+        expect(riskState.setLimit("maxOpenPositions", 3)).toBe(true);
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(3);
+    });
+
+    it("rejects fractions inline without changing the prior limit", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", 2.5)).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("rejects negatives and non-numeric input without changing the prior limit", () => {
+        riskState.setLimit("maxOpenPositions", 2);
+        expect(riskState.setLimit("maxOpenPositions", -1)).toBe(false);
+        expect(riskState.setLimit("maxOpenPositions", Number.NaN)).toBe(false);
+        expect(riskState.maxOpenPositions).toBe(2);
+    });
+
+    it("keeps explicit zero as a block-everything limit, distinct from absent", () => {
+        expect(riskState.setLimit("maxOpenPositions", 0)).toBe(true);
+        expect(riskState.maxOpenPositions).toBe(0);
+        positions.list = [{ symbol: "ETHUSDT" }];
+        expect(orderGate.verify(openIntent()).refusal?.field).toBe("maxOpenPositions");
+
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(0);
+
+        riskState.setLimit("maxOpenPositions", null);
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(null);
+    });
+
+    it("loads a legacy empty-string blob as unconfigured, never as zero", () => {
+        localStorage.setItem(
+            CONSTANTS.LOCAL_STORAGE_RISK_KEY,
+            JSON.stringify({ limits: { maxOpenPositions: "" } }),
+        );
+        riskState.reloadFromStorage();
+        expect(riskState.maxOpenPositions).toBe(null);
+        expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+});
