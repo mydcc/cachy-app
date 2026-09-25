@@ -372,6 +372,13 @@ class PaperTradingManager {
         try {
             const d = new Decimal(String(value));
             if (!d.isFinite() || d.isNaN() || d.lt(0)) return false;
+            // BUG-0552: the generic non-negative check above is not enough.
+            // A ratio above one would fill more than requested, and slippage
+            // at or above 100 % (10000 bps) always produces a non-positive
+            // SELL fill price. Fee fields keep the generic check only — fee
+            // ranges belong to FEAT-0328.
+            if (key === "partialFillRatio" && d.gt(1)) return false;
+            if (key === "slippageBps" && d.gte(10000)) return false;
         } catch {
             return false;
         }
