@@ -18,13 +18,9 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
-  import { uiState } from "../../stores/ui.svelte";
   import type { NormalizedOrder } from "../../types/exchange";
-  import {
-    clampTooltipPosition,
-    isInsideOrderTooltip,
-    ORDER_TOOLTIP_ID,
-  } from "../../utils/tooltipPosition";
+  import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
+  import { clampPopoverPosition } from "../../utils/tooltipPosition";
 
   interface Props {
     orders?: NormalizedOrder[];
@@ -35,114 +31,179 @@
 
   let { orders = [], loading = false, error = "", oncancel }: Props = $props();
 
-  let openTrigger: HTMLElement | null = $state(null);
+  const instanceId = $props.id();
+  const POPOVER_ID = `order-details-popover-${instanceId}`;
+  const POINTER_EXIT_DELAY = 150;
+  let openOrderId = $state<string | null>(null);
+  let openTrigger = $state<HTMLButtonElement | null>(null);
+  let popoverEl = $state<HTMLElement | null>(null);
+  let pointerFocusPending = false;
+  let suppressNextClick = false;
+  let popoverX = $state(0);
+  let popoverY = $state(0);
+  let pointerCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // The tooltip data is a Svelte proxy, so identity never matches the
-  // row's order — compare by id (BUG-0562, finding 1).
-  function isOrderOpen(order: NormalizedOrder): boolean {
-    return (
-      uiState.tooltip.visible &&
-      uiState.tooltip.type === "order" &&
-      (uiState.tooltip.data as { id?: string } | null)?.id === order.id
-    );
+  function getOrderId(order: NormalizedOrder): string {
+    return String(order.id || order.orderId);
   }
 
-  function handleMouseEnter(event: MouseEvent, order: NormalizedOrder) {
-    const coords = clampTooltipPosition(
-      event.clientX,
-      event.clientY,
+  function getTriggerId(order: NormalizedOrder): string {
+    return `order-details-trigger-${encodeURIComponent(getOrderId(order))}`;
+  }
+
+  function isOrderOpen(order: NormalizedOrder): boolean {
+    return openOrderId === getOrderId(order);
+  }
+
+  function isInsidePopover(node: Node | null): boolean {
+    return popoverEl !== null && node !== null && popoverEl.contains(node);
+  }
+
+  function clearPointerClose() {
+    if (pointerCloseTimer === null) return;
+    clearTimeout(pointerCloseTimer);
+    pointerCloseTimer = null;
+  }
+
+  function openOrderDetails(
+    trigger: HTMLButtonElement,
+    order: NormalizedOrder,
+    clientX: number,
+    clientY: number
+  ) {
+    clearPointerClose();
+    const position = clampPopoverPosition(
+      clientX,
+      clientY,
       window.innerWidth,
       window.innerHeight
     );
-    uiState.showTooltip("order", order, coords.x, coords.y);
+    openOrderId = getOrderId(order);
+    openTrigger = trigger;
+    popoverX = position.x;
+    popoverY = position.y;
   }
 
-  function handleMouseLeave(event: MouseEvent, order: NormalizedOrder) {
-    // Focus and pointer can diverge: while the trigger holds keyboard
-    // focus, a pointer pass must not collapse the disclosure (AC2).
-    const active = document.activeElement;
-    if (
-      active === (event.currentTarget as HTMLElement | null) ||
-      isInsideOrderTooltip(active)
-    ) {
+  function openAtTrigger(
+    trigger: HTMLButtonElement,
+    order: NormalizedOrder
+  ) {
+    const rect = trigger.getBoundingClientRect();
+    openOrderDetails(trigger, order, rect.right, rect.bottom);
+  }
+
+  function closeOrderDetails(restoreFocus: boolean) {
+    const trigger = openTrigger;
+    clearPointerClose();
+    // Focus is restored before the state closes: focusing an open trigger
+    // re-fires handleFocus, which early-returns while this order is open.
+    if (restoreFocus && trigger?.isConnected) {
+      trigger.focus({ preventScroll: true });
+    }
+    openOrderId = null;
+    openTrigger = null;
+  }
+
+  function handlePointerEnter(event: MouseEvent, order: NormalizedOrder) {
+    openOrderDetails(
+      event.currentTarget as HTMLButtonElement,
+      order,
+      event.clientX,
+      event.clientY
+    );
+  }
+
+  function handlePointerDown() {
+    pointerFocusPending = true;
+  }
+
+  function handleClick(event: MouseEvent, order: NormalizedOrder) {
+    const trigger = event.currentTarget as HTMLButtonElement;
+    pointerFocusPending = false;
+    if (suppressNextClick) {
+      suppressNextClick = false;
       return;
     }
-    if (isOrderOpen(order)) uiState.hideTooltip();
-  }
-
-  // BUG-0562: the order-details tooltip is a disclosure, not a hover —
-  // same contract as OrderHistoryList: Enter/Space toggle open and close,
-  // focus alone exposes, Escape closes (see the document-level listener
-  // below, which also restores focus). A tap is a focus, so touch is
-  // covered too.
-  function handleKeyDown(event: KeyboardEvent, order: NormalizedOrder) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      if (isOrderOpen(order)) {
-        uiState.hideTooltip();
-        return;
-      }
-      openTrigger = event.currentTarget as HTMLElement;
-      // No mouse coordinates on keyboard: anchor at the viewport center —
-      // through the same clamp as the mouse path, so the tooltip can
-      // never start off-screen (e.g. landscape phones).
-      const coords = clampTooltipPosition(
-        window.innerWidth / 2,
-        window.innerHeight / 2,
-        window.innerWidth,
-        window.innerHeight
-      );
-      uiState.showTooltip("order", order, coords.x, coords.y);
+    if (isOrderOpen(order)) {
+      // Native Enter/Space activation arrives as a click; the trigger owns
+      // the toggle so keyboard, pointer and touch share one code path.
+      closeOrderDetails(false);
+      return;
     }
+    const rect = trigger.getBoundingClientRect();
+    openOrderDetails(
+      trigger,
+      order,
+      event.clientX || rect.right,
+      event.clientY || rect.bottom
+    );
   }
 
   function handleFocus(event: FocusEvent, order: NormalizedOrder) {
-    openTrigger = event.currentTarget as HTMLElement;
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const coords = clampTooltipPosition(
-      rect.right,
-      rect.top,
-      window.innerWidth,
-      window.innerHeight
-    );
-    uiState.showTooltip("order", order, coords.x, coords.y);
-  }
-
-  function handleBlur(event: FocusEvent, order: NormalizedOrder) {
-    // Focus moving into the portal'd tooltip (its accordion is focusable)
-    // must not unmount it before the click lands (finding 2).
-    const related =
-      event.relatedTarget instanceof Node ? event.relatedTarget : null;
-    if (
-      isInsideOrderTooltip(related) ||
-      isInsideOrderTooltip(document.activeElement)
-    ) {
+    const trigger = event.currentTarget as HTMLButtonElement;
+    if (pointerFocusPending) {
+      pointerFocusPending = false;
+      suppressNextClick = true;
+    }
+    if (isOrderOpen(order)) {
+      openTrigger = trigger;
       return;
     }
-    if (isOrderOpen(order)) uiState.hideTooltip();
+    openAtTrigger(trigger, order);
   }
 
-  // Escape dismisses the disclosure even when focus sits inside the
-  // tooltip or elsewhere (APG). Registered only while an order tooltip
-  // is open, and always removed again (finding 8).
-  $effect(() => {
-    if (!uiState.tooltip.visible || uiState.tooltip.type !== "order") return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      // Refocusing the trigger re-fires onfocus, which reopens — so focus
-      // is restored FIRST and the tooltip is hidden LAST.
+  function handleTriggerBlur(event: FocusEvent) {
+    const related =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (isInsidePopover(related)) return;
+    if (openOrderId !== null) closeOrderDetails(false);
+  }
+
+  function handleDialogFocusOut(event: FocusEvent) {
+    const related =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (openTrigger?.contains(related) || isInsidePopover(related)) return;
+    closeOrderDetails(false);
+  }
+
+  function schedulePointerClose() {
+    clearPointerClose();
+    pointerCloseTimer = setTimeout(() => {
+      pointerCloseTimer = null;
       const active = document.activeElement;
-      if (
-        openTrigger?.isConnected &&
-        active !== openTrigger &&
-        !openTrigger.contains(active)
-      ) {
-        openTrigger.focus();
-      }
-      uiState.hideTooltip();
+      if (active === openTrigger || isInsidePopover(active)) return;
+      closeOrderDetails(false);
+    }, POINTER_EXIT_DELAY);
+  }
+
+  $effect(() => {
+    if (openOrderId === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeOrderDetails(true);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof Node ? event.target : null;
+      if (openTrigger?.contains(target) || isInsidePopover(target)) return;
+      closeOrderDetails(false);
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  });
+
+  $effect(() => {
+    return () => clearPointerClose();
+  });
+
+  $effect(() => {
+    const id = openOrderId;
+    if (id === null) return;
+    if (!orders.some((order) => getOrderId(order) === id)) {
+      closeOrderDetails(false);
+    }
   });
 
   function formatDate(timestamp: number) {
@@ -207,34 +268,55 @@
     </div>
   {:else}
     <div class="flex flex-col gap-2">
-      {#each orders as order}
+      {#each orders as order (getOrderId(order))}
         <div
           class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors relative group"
         >
           <div class="grid grid-cols-3 gap-1">
             <!-- Col 1: Identity & Time (Details Disclosure) -->
-            <div
-              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-pointer relative focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
-              onmouseenter={(e) => handleMouseEnter(e, order)}
-              onmouseleave={(e) => handleMouseLeave(e, order)}
-              onfocus={(e) => handleFocus(e, order)}
-              onblur={(e) => handleBlur(e, order)}
-              onkeydown={(e) => handleKeyDown(e, order)}
-              tabindex="0"
-              role="button"
-              aria-expanded={isOrderOpen(order)}
-              aria-controls={isOrderOpen(order) ? ORDER_TOOLTIP_ID : undefined}
-              aria-label={$_("dashboard.openOrders.viewDetails", {
-                values: { symbol: order.symbol },
-              })}
-            >
-              <span
-                class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"
-                >{order.symbol}</span
+            <div class="relative flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1">
+              <button
+                type="button"
+                id={getTriggerId(order)}
+                class="flex flex-col justify-center cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] text-left"
+                onpointerenter={(e) => handlePointerEnter(e, order)}
+                onpointerleave={schedulePointerClose}
+                onclick={(e) => handleClick(e, order)}
+                onfocus={(e) => handleFocus(e, order)}
+                onpointerdown={handlePointerDown}
+                onblur={handleTriggerBlur}
+                aria-expanded={isOrderOpen(order)}
+                aria-haspopup="dialog"
+                aria-controls={isOrderOpen(order) ? POPOVER_ID : undefined}
+                aria-label={$_("dashboard.openOrders.viewDetails", {
+                  values: { symbol: order.symbol, time: formatDate(order.time) },
+                })}
               >
-              <span class="text-[10px] text-[var(--text-secondary)] mt-1"
-                >{formatDate(order.time)}</span
-              >
+                <span
+                  class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"
+                  >{order.symbol}</span
+                >
+                <span class="text-[10px] text-[var(--text-secondary)] mt-1"
+                  >{formatDate(order.time)}</span
+                >
+              </button>
+
+              {#if isOrderOpen(order)}
+                <div
+                  id={POPOVER_ID}
+                  role="dialog"
+                  aria-labelledby={getTriggerId(order)}
+                  tabindex="-1"
+                  bind:this={popoverEl}
+                  class="fixed z-[10000] pointer-events-auto max-w-[calc(100vw-20px)] max-h-[calc(100vh-20px)] overflow-y-auto overscroll-contain"
+                  style="top: {popoverY}px; left: {popoverX}px;"
+                  onpointerenter={clearPointerClose}
+                  onpointerleave={schedulePointerClose}
+                  onfocusout={handleDialogFocusOut}
+                >
+                  <OrderDetailsTooltip order={order} />
+                </div>
+              {/if}
             </div>
 
             <!-- Col 2: Execution Details -->
@@ -312,4 +394,4 @@
   {/if}
 </div>
 
-<!-- Global Tooltip handled in +layout.svelte -->
+<!-- Order details render as the row-local dialog above. -->

@@ -17,11 +17,9 @@
  */
 
 /*
- * BUG-0562 — pending-order financial details (leverage, margin mode,
- * position mode, TP/SL in the order tooltip) are a disclosure, not a
- * hover: Enter/Space toggle open and close, focus alone exposes, Escape
- * closes and restores focus, and every anchor path is clamped to the
- * viewport.
+ * BUG-0562 — pending-order financial details are an accessible popover:
+ * native disclosure controls, ordered keyboard focus, managed dismissal,
+ * viewport clamping, and pointer/touch behavior.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -49,8 +47,6 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import OpenOrdersList from "./OpenOrdersList.svelte";
-import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
-import { uiState } from "../../stores/ui.svelte";
 
 const ORDER: NormalizedOrder = {
     id: "o-1",
@@ -80,188 +76,288 @@ const ORDER: NormalizedOrder = {
     avgPrice: "50000",
 };
 
+const SECOND_ORDER: NormalizedOrder = {
+    ...ORDER,
+    id: "o-2",
+    orderId: "o-2",
+    symbol: "ETHUSDT",
+};
+
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
 beforeEach(() => {
     host = document.createElement("div");
     document.body.appendChild(host);
-    uiState.hideTooltip();
 });
 
 afterEach(() => {
     if (component) unmount(component as never);
     component = null;
     host.remove();
-    uiState.hideTooltip();
+    vi.useRealTimers();
 });
 
-function render() {
+function render(orders: NormalizedOrder[] = [ORDER]) {
     component = mount(OpenOrdersList, {
         target: host,
-        props: { orders: [ORDER] },
+        props: { orders },
     }) as never;
     flushSync();
 }
 
-function trigger(): HTMLElement {
-    const el = host.querySelector('[role="button"]');
-    expect(el).not.toBeNull();
-    return el as HTMLElement;
+function triggers(): HTMLButtonElement[] {
+    return Array.from(host.querySelectorAll<HTMLButtonElement>("button[aria-expanded]"))
+        .filter((button) => button.getAttribute("aria-label") !== null);
 }
 
-function key(el: HTMLElement, keyName: string) {
-    el.dispatchEvent(new KeyboardEvent("keydown", { key: keyName, bubbles: true }));
+function trigger(index = 0): HTMLButtonElement {
+    const buttons = triggers();
+    expect(buttons.length).toBeGreaterThan(index);
+    return buttons[index];
+}
+
+function dialog(): HTMLElement | null {
+    return host.querySelector('[role="dialog"]');
+}
+
+function moreButton(): HTMLButtonElement | null {
+    return dialog()?.querySelector<HTMLButtonElement>("button[aria-controls]") ?? null;
+}
+
+function activate(el: HTMLElement) {
+    // Native Enter/Space activation of a button arrives as a click with
+    // detail 0; pointer-generated clicks carry a positive detail.
+    el.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 0 }));
     flushSync();
 }
 
-describe("BUG-0562 — order details are a disclosure, not a hover", () => {
-    it("names each row after the order it discloses (finding 4b)", () => {
+function rect(
+    el: HTMLElement,
+    values: Partial<Pick<DOMRect, "top" | "right" | "bottom" | "left">>
+) {
+    el.getBoundingClientRect = () =>
+        ({
+            ...values,
+            width: (values.right ?? 0) - (values.left ?? 0),
+            height: (values.bottom ?? 0) - (values.top ?? 0),
+            x: values.left ?? 0,
+            y: values.top ?? 0,
+            toJSON: () => ({}),
+        }) as DOMRect;
+}
+
+describe("BUG-0562 — order details use accessible disclosure semantics", () => {
+    it("uses a native trigger and places the dialog immediately after it", () => {
         render();
 
-        const expected = lookup("dashboard.openOrders.viewDetails").replace("{symbol}", ORDER.symbol);
-        expect(trigger().getAttribute("aria-label")).toBe(expected);
-        expect(trigger().getAttribute("tabindex")).toBe("0");
+        const triggerEl = trigger();
+        expect(triggerEl.tagName).toBe("BUTTON");
+        expect(triggerEl.type).toBe("button");
+        expect(triggerEl.getAttribute("aria-expanded")).toBe("false");
+        expect(host.querySelector('[role="tooltip"]')).toBeNull();
+
+        activate(triggerEl);
+
+        const popover = dialog();
+        expect(popover).not.toBeNull();
+        expect(triggerEl.getAttribute("aria-expanded")).toBe("true");
+        expect(triggerEl.getAttribute("aria-controls")).toBe(popover?.id);
+        expect(popover?.getAttribute("aria-labelledby")).toBe(triggerEl.id);
+        expect(popover?.previousElementSibling).toBe(triggerEl);
     });
 
-    it("advertises expanded state and controls the tooltip container (findings 6/9)", () => {
+    it("toggles the disclosure with Enter and Space", () => {
         render();
 
-        expect(trigger().getAttribute("aria-expanded")).toBe("false");
-        expect(trigger().getAttribute("aria-controls")).toBeNull();
+        activate(trigger());
+        expect(dialog()).not.toBeNull();
 
-        key(trigger(), "Enter");
-        expect(trigger().getAttribute("aria-expanded")).toBe("true");
-        expect(trigger().getAttribute("aria-controls")).toBe("order-details-tooltip");
+        activate(trigger());
+        expect(dialog()).toBeNull();
 
-        key(trigger(), "Enter");
-        expect(trigger().getAttribute("aria-expanded")).toBe("false");
-        expect(trigger().getAttribute("aria-controls")).toBeNull();
+        activate(trigger());
+        expect(dialog()).not.toBeNull();
+
+        activate(trigger());
+        expect(dialog()).toBeNull();
     });
 
-    it("toggles the order tooltip with Enter (finding 1)", () => {
+    it("keeps a touch tap open even when focus precedes the click", () => {
         render();
+        const triggerEl = trigger();
 
-        key(trigger(), "Enter");
-        expect(uiState.tooltip.visible).toBe(true);
-        // Props cross the component boundary as a Svelte proxy, so identity
-        // does not survive — the payload must still equal the row's order.
-        expect(uiState.tooltip.data).toStrictEqual(ORDER);
-        expect(uiState.tooltip.data).toHaveProperty("orderId", ORDER.orderId);
+        triggerEl.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        triggerEl.focus();
+        triggerEl.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+        flushSync();
+        expect(dialog()).not.toBeNull();
 
-        key(trigger(), "Enter");
-        expect(uiState.tooltip.visible).toBe(false);
+        triggerEl.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+        flushSync();
+        expect(dialog()).toBeNull();
     });
 
-    it("toggles the order tooltip with Space", () => {
+    it("toggles on activation for keyboard, pointer, and touch clicks", () => {
         render();
+        const triggerEl = trigger();
 
-        key(trigger(), " ");
-        expect(uiState.tooltip.visible).toBe(true);
-        expect(uiState.tooltip.data).toStrictEqual(ORDER);
+        triggerEl.dispatchEvent(new PointerEvent("pointerenter", { clientX: 20, clientY: 20 }));
+        flushSync();
+        triggerEl.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+        flushSync();
+        expect(dialog()).toBeNull();
 
-        key(trigger(), " ");
-        expect(uiState.tooltip.visible).toBe(false);
+        activate(triggerEl);
+        expect(dialog()).not.toBeNull();
+        activate(triggerEl);
+        expect(dialog()).toBeNull();
     });
 
-    it("exposes the order details on focus alone and hides them on blur", () => {
+    it("exposes details on focus and keeps focus moving into the dialog", () => {
         render();
+        const triggerEl = trigger();
 
-        trigger().focus();
+        triggerEl.focus();
         flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
 
-        trigger().blur();
+        expect(dialog()).not.toBeNull();
+        expect(document.activeElement).toBe(triggerEl);
+
+        const more = moreButton();
+        expect(more).not.toBeNull();
+        more?.focus();
         flushSync();
-        expect(uiState.tooltip.visible).toBe(false);
+
+        expect(dialog()).not.toBeNull();
+        expect(document.activeElement).toBe(more);
     });
 
-    it("keeps the tooltip open while focus moves into it (finding 2)", () => {
+    it("uses a native More button with expanded state and an ordered details region", () => {
         render();
+        activate(trigger());
 
-        trigger().focus();
+        const more = moreButton();
+        expect(more?.tagName).toBe("BUTTON");
+        expect(more?.type).toBe("button");
+        expect(more?.getAttribute("aria-expanded")).toBe("false");
+        const controlsId = more?.getAttribute("aria-controls");
+        expect(controlsId).toContain("order-more-details");
+
+        more?.click();
         flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
 
-        const tip = document.createElement("div");
-        tip.id = "order-details-tooltip";
-        document.body.appendChild(tip);
-
-        trigger().dispatchEvent(new FocusEvent("blur", { relatedTarget: tip }));
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
-
-        trigger().dispatchEvent(new FocusEvent("blur", { relatedTarget: null }));
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(false);
-
-        tip.remove();
+        expect(more?.getAttribute("aria-expanded")).toBe("true");
+        const region = dialog()?.querySelector(`#${controlsId}`);
+        expect(region).not.toBeNull();
+        expect(region?.textContent).toContain(lookup("dashboard.orderHistory.details.orderId"));
     });
 
-    it("stays open on mouseleave while the trigger holds focus (finding 7)", () => {
+    it("renders the order financial details in the dialog", () => {
         render();
+        activate(trigger());
 
-        trigger().focus();
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
-
-        trigger().dispatchEvent(new MouseEvent("mouseleave"));
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
-
-        trigger().blur();
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(false);
-    });
-
-    it("closes with Escape and restores focus to the trigger", () => {
-        render();
-
-        trigger().focus();
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
-
-        key(trigger(), "Escape");
-        expect(uiState.tooltip.visible).toBe(false);
-        expect(document.activeElement).toBe(trigger());
-    });
-
-    it("closes on Escape from the document listener when focus is elsewhere (finding 8)", () => {
-        render();
-
-        trigger().dispatchEvent(new MouseEvent("mouseenter"));
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
-
-        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-        flushSync();
-        expect(uiState.tooltip.visible).toBe(false);
-    });
-
-    it("renders the order's financial details in the tooltip (AC4)", () => {
-        const tipHost = document.createElement("div");
-        tipHost.id = "order-details-tooltip";
-        document.body.appendChild(tipHost);
-
-        const tip = mount(OrderDetailsTooltip, {
-            target: tipHost,
-            props: { order: ORDER },
-        });
-        flushSync();
-
-        const text = tipHost.textContent ?? "";
+        const text = dialog()?.textContent ?? "";
         expect(text).toContain(lookup("dashboard.orderHistory.details.leverage"));
         expect(text).toContain("5x");
         expect(text).toContain("cross");
         expect(text).toContain(lookup("common.tp"));
         expect(text).toContain("51000");
+    });
 
-        unmount(tip);
-        tipHost.remove();
+    it("constrains the dialog to the viewport and scrolls its overflow", () => {
+        render();
+        activate(trigger());
+
+        expect(dialog()?.className).toContain("max-h-[calc(100vh-20px)]");
+        expect(dialog()?.className).toContain("max-w-[calc(100vw-20px)]");
+        expect(dialog()?.className).toContain("overflow-y-auto");
+        expect(dialog()?.className).toContain("overscroll-contain");
     });
 });
 
-describe("BUG-0562 — tooltip position is clamped to the viewport (findings 5/13)", () => {
+describe("BUG-0562 — order disclosure dismissal and pointer behavior", () => {
+    it("closes on an outside pointerdown or tap", () => {
+        const outside = document.createElement("button");
+        document.body.appendChild(outside);
+        render();
+
+        activate(trigger());
+        expect(dialog()).not.toBeNull();
+
+        outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        flushSync();
+        expect(dialog()).toBeNull();
+
+        outside.remove();
+    });
+
+    it("allows the pointer to cross from the trigger into the dialog", () => {
+        vi.useFakeTimers();
+        render();
+
+        const triggerEl = trigger();
+        triggerEl.dispatchEvent(new PointerEvent("pointerenter", { clientX: 120, clientY: 120 }));
+        flushSync();
+
+        const popover = dialog();
+        expect(popover).not.toBeNull();
+
+        triggerEl.dispatchEvent(new PointerEvent("pointerleave", { relatedTarget: popover }));
+        popover?.dispatchEvent(new PointerEvent("pointerenter"));
+        vi.advanceTimersByTime(250);
+        flushSync();
+
+        expect(dialog()).not.toBeNull();
+    });
+
+    it("closes after the pointer leaves the trigger and dialog", () => {
+        vi.useFakeTimers();
+        render();
+
+        const triggerEl = trigger();
+        triggerEl.dispatchEvent(new PointerEvent("pointerenter", { clientX: 120, clientY: 120 }));
+        flushSync();
+
+        triggerEl.dispatchEvent(new PointerEvent("pointerleave"));
+        vi.advanceTimersByTime(250);
+        flushSync();
+
+        expect(dialog()).toBeNull();
+    });
+
+    it("restores the current trigger when a mouse-opened disclosure receives Escape", () => {
+        render([ORDER, SECOND_ORDER]);
+
+        const second = trigger(1);
+        second.dispatchEvent(new PointerEvent("pointerenter", { clientX: 120, clientY: 120 }));
+        flushSync();
+        expect(dialog()).not.toBeNull();
+
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        flushSync();
+
+        expect(dialog()).toBeNull();
+        expect(document.activeElement).toBe(second);
+    });
+
+    it("restores the trigger when Escape is pressed from inside the dialog", () => {
+        render();
+        const triggerEl = trigger();
+        triggerEl.focus();
+        flushSync();
+        moreButton()?.focus();
+        flushSync();
+
+        moreButton()?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        flushSync();
+
+        expect(dialog()).toBeNull();
+        expect(document.activeElement).toBe(triggerEl);
+    });
+});
+
+describe("BUG-0562 — order popover coordinates stay inside the viewport", () => {
     const originalWidth = window.innerWidth;
     const originalHeight = window.innerHeight;
 
@@ -274,38 +370,41 @@ describe("BUG-0562 — tooltip position is clamped to the viewport (findings 5/1
         setViewport(originalWidth, originalHeight);
     });
 
-    it("keeps the keyboard center anchor inside a short landscape viewport", () => {
+    it("places a keyboard-anchored popover within a short landscape viewport", () => {
         setViewport(844, 390);
         render();
+        rect(trigger(), { top: 300, right: 800, bottom: 360, left: 700 });
 
-        key(trigger(), "Enter");
-        expect(uiState.tooltip.visible).toBe(true);
-        expect(uiState.tooltip.x).toBeGreaterThanOrEqual(10);
-        expect(uiState.tooltip.y).toBeGreaterThanOrEqual(10);
+        activate(trigger());
+
+        const style = dialog()?.getAttribute("style") ?? "";
+        expect(style).toContain("left: 470px");
+        expect(style).toContain("top: 10px");
     });
 
-    it("clamps a focus anchor near the viewport edge", () => {
+    it("clamps a focus anchor near the bottom-right edge", () => {
         setViewport(1024, 300);
         render();
+        rect(trigger(), { top: 260, right: 900, bottom: 290, left: 700 });
 
-        const el = trigger();
-        el.getBoundingClientRect = () =>
-            ({
-                right: 900,
-                top: 260,
-                left: 700,
-                bottom: 290,
-                width: 200,
-                height: 30,
-                x: 700,
-                y: 260,
-                toJSON: () => ({}),
-            }) as DOMRect;
-
-        el.focus();
+        trigger().focus();
         flushSync();
-        expect(uiState.tooltip.visible).toBe(true);
-        expect(uiState.tooltip.x).toBeGreaterThanOrEqual(10);
-        expect(uiState.tooltip.y).toBeGreaterThanOrEqual(10);
+
+        const style = dialog()?.getAttribute("style") ?? "";
+        expect(style).toContain("left: 570px");
+        expect(style).toContain("top: 10px");
+    });
+
+    it("keeps the origin inside a viewport smaller than the preferred popover", () => {
+        setViewport(300, 200);
+        render();
+        rect(trigger(), { top: 190, right: 290, bottom: 200, left: 200 });
+
+        trigger().focus();
+        flushSync();
+
+        const style = dialog()?.getAttribute("style") ?? "";
+        expect(style).toContain("left: 10px");
+        expect(style).toContain("top: 10px");
     });
 });

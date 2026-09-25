@@ -140,14 +140,14 @@ describe("BUG-0512 — the total wears the badge when any leg is not fresh", () 
 });
 
 describe("BUG-0562 — account details are a disclosure, not a hover", () => {
-    function trigger(): HTMLElement {
-        const el = host.querySelector('[role="button"]');
+    function trigger(): HTMLButtonElement {
+        const el = host.querySelector<HTMLButtonElement>("button[aria-expanded]");
         expect(el).not.toBeNull();
-        return el as HTMLElement;
+        return el as HTMLButtonElement;
     }
 
     function panel(): HTMLElement | null {
-        return host.querySelector("#account-details-panel");
+        return host.querySelector('[id^="account-details-panel-"]');
     }
 
     function wrapper(): HTMLElement {
@@ -161,16 +161,23 @@ describe("BUG-0562 — account details are a disclosure, not a hover", () => {
         flushSync();
     }
 
+    function activate(el: HTMLElement) {
+        el.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 0 }));
+        flushSync();
+    }
+
     function blur(el: HTMLElement, relatedTarget: EventTarget | null = null) {
         el.dispatchEvent(new FocusEvent("blur", { relatedTarget }));
         flushSync();
     }
 
-    it("names the row from its visible content instead of an aria-label", () => {
+    it("uses a native button named from its visible content", () => {
         render({ available: 1000, currency: "USDT" });
 
+        expect(trigger().tagName).toBe("BUTTON");
+        expect(trigger().type).toBe("button");
         expect(trigger().getAttribute("aria-label")).toBeNull();
-        expect(trigger().getAttribute("tabindex")).toBe("0");
+        expect(trigger().hasAttribute("tabindex")).toBe(false);
         const name = trigger().textContent ?? "";
         expect(name).toContain(lookup("dashboard.account.balance"));
         expect(name).toContain("1000.00 USDT");
@@ -179,11 +186,11 @@ describe("BUG-0562 — account details are a disclosure, not a hover", () => {
     it("opens and closes with Enter", () => {
         render({ available: 1000 });
 
-        key(trigger(), "Enter");
+        activate(trigger());
         expect(trigger().getAttribute("aria-expanded")).toBe("true");
         expect(panel()).not.toBeNull();
 
-        key(trigger(), "Enter");
+        activate(trigger());
         expect(trigger().getAttribute("aria-expanded")).toBe("false");
         expect(panel()).toBeNull();
     });
@@ -191,11 +198,21 @@ describe("BUG-0562 — account details are a disclosure, not a hover", () => {
     it("opens and closes with Space", () => {
         render({ available: 1000 });
 
-        key(trigger(), " ");
+        activate(trigger());
         expect(trigger().getAttribute("aria-expanded")).toBe("true");
 
-        key(trigger(), " ");
+        activate(trigger());
         expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("toggles a hover-opened panel closed on the following pointer click", () => {
+        render({ available: 1000 });
+        wrapper().dispatchEvent(new MouseEvent("mouseenter"));
+        flushSync();
+        trigger().dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+        flushSync();
+
+        expect(panel()).toBeNull();
     });
 
     it("wires aria-controls to the panel id only while open", () => {
@@ -203,17 +220,17 @@ describe("BUG-0562 — account details are a disclosure, not a hover", () => {
 
         expect(trigger().getAttribute("aria-controls")).toBeNull();
 
-        key(trigger(), "Enter");
-        expect(trigger().getAttribute("aria-controls")).toBe("account-details-panel");
+        activate(trigger());
+        expect(trigger().getAttribute("aria-controls")).toMatch(/^account-details-panel-/);
 
-        key(trigger(), "Enter");
+        activate(trigger());
         expect(trigger().getAttribute("aria-controls")).toBeNull();
     });
 
     it("renders the equity and margin details (AC4)", () => {
         render({ available: 1000, margin: 250, currency: "USDT" });
 
-        key(trigger(), "Enter");
+        activate(trigger());
         const details = panel();
         expect(details).not.toBeNull();
         const text = details?.textContent ?? "";
@@ -245,6 +262,21 @@ describe("BUG-0562 — account details are a disclosure, not a hover", () => {
         expect(trigger().getAttribute("aria-expanded")).toBe("true");
 
         blur(trigger(), outside);
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+
+        outside.remove();
+    });
+
+    it("closes on an outside pointerdown or tap", () => {
+        const outside = document.createElement("button");
+        document.body.appendChild(outside);
+        render({ available: 1000 });
+
+        activate(trigger());
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        flushSync();
         expect(trigger().getAttribute("aria-expanded")).toBe("false");
 
         outside.remove();
@@ -283,6 +315,22 @@ describe("BUG-0562 — account details are a disclosure, not a hover", () => {
         trigger().blur();
         flushSync();
         expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("clears stale pointer-over-panel state when Escape unmounts it", () => {
+        render({ available: 1000 });
+        trigger().focus();
+        flushSync();
+        panel()?.dispatchEvent(new MouseEvent("mouseenter"));
+        flushSync();
+
+        key(trigger(), "Escape");
+        expect(panel()).toBeNull();
+
+        activate(trigger());
+        expect(panel()).not.toBeNull();
+        blur(trigger());
+        expect(panel()).toBeNull();
     });
 
     it("closes on Escape and keeps focus on the trigger", () => {

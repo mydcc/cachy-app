@@ -34,7 +34,6 @@ import { afterNavigate } from "$app/navigation";
   import { trackPageView } from "../services/trackingService";
   import { initZoomPlugin } from "../lib/chartSetup";
   import { registerResetCoordinator } from "../utils/appReset";
-  import { ORDER_TOOLTIP_ID } from "../utils/tooltipPosition";
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
@@ -621,17 +620,15 @@ import { afterNavigate } from "$app/navigation";
 {/if}
 
 {#if uiState.tooltip.visible}
-  <!-- role="tooltip" is shared by every portal consumer (order details,
-       position tooltips) — kept as-is; the order disclosure only needs a
-       stable id so its trigger can reference it via aria-controls
-       (finding 9). -->
+  <!-- Legacy hover-only consumers still share this portal. BUG-0562's
+       pending-order disclosure renders its own ordered dialog next to the
+       trigger instead of joining this tooltip container. -->
   <div
     class="fixed z-[10000] pointer-events-auto"
     style="top: {uiState.tooltip.y}px; left: {uiState.tooltip.x}px;"
     onmouseenter={() => {}}
     onmouseleave={() => uiState.hideTooltip()}
     role="tooltip"
-    id={uiState.tooltip.type === "order" ? ORDER_TOOLTIP_ID : undefined}
   >
     {#if uiState.tooltip.type === "order" && OrderDetailsTooltipComponent}
       <OrderDetailsTooltipComponent order={uiState.tooltip.data} />

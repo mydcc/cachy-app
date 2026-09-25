@@ -161,7 +161,7 @@
     "marketActivity": "Market Activity",
     "positions": "Positions",
     "openOrders": {
-      "viewDetails": "View order details for {symbol}"
+      "viewDetails": "View order details for {symbol}, {time}"
     },
     "orders": "Orders",
     "history": "History",
