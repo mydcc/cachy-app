@@ -726,7 +726,7 @@
       "multiplierExample": "1.2",
       "holdingCost24hCost": "Est. 24h Funding Cost",
       "holdingCost24hIncome": "Est. 24h Funding Income",
-      "holdingCost24hTooltip": "Estimated funding fee for 24h holding duration based on the 7-day average funding rate.",
+      "holdingCost24hTooltip": "Estimated funding payment over 24h holding (7-day average rate); a cost or income depending on position side.",
       "tagsPlaceholder": "Add tags... (e.g. #trend)",
       "tagsLabel": "Tags"
     },

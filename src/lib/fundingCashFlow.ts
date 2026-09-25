@@ -43,14 +43,21 @@ export type FundingSide = typeof CONSTANTS.TRADE_TYPE_LONG | typeof CONSTANTS.TR
  * @param avgRate average funding rate per settlement (signed Decimal)
  * @param fundingIntervalHours hours between settlements (e.g. 8, 4, 1)
  * @param tradeType planned direction ("long" | "short")
+ * @returns `null` when the interval is unusable (0, negative or not a finite
+ *   number). Dividing by such an interval yields an infinite display value
+ *   ("+Infinity USDT") rather than throwing, so the caller must treat `null`
+ *   as "no estimate" and hide the row.
  */
 export function signedFundingCashFlow24h(
-    notional: Decimal,
-    avgRate: Decimal,
-    fundingIntervalHours: number,
-    tradeType: FundingSide,
-): Decimal {
-    const settlementsPerDay = new Decimal(24).dividedBy(fundingIntervalHours);
-    const unsigned = notional.times(avgRate).times(settlementsPerDay);
-    return tradeType === CONSTANTS.TRADE_TYPE_SHORT ? unsigned.negated() : unsigned;
+  notional: Decimal,
+  avgRate: Decimal,
+  fundingIntervalHours: number,
+  tradeType: FundingSide,
+): Decimal | null {
+  if (!Number.isFinite(fundingIntervalHours) || fundingIntervalHours <= 0) {
+    return null;
+  }
+  const settlementsPerDay = new Decimal(24).dividedBy(fundingIntervalHours);
+  const unsigned = notional.times(avgRate).times(settlementsPerDay);
+  return tradeType === CONSTANTS.TRADE_TYPE_SHORT ? unsigned.negated() : unsigned;
 }

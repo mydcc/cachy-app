@@ -167,11 +167,21 @@
           : CONSTANTS.TRADE_TYPE_LONG;
 
       // Signed cash flow: positive = the trader pays, negative = receives.
+      // A null return (unusable funding interval) lands in the same
+      // "no estimate" path as every other bail-out above, so the row stays
+      // hidden instead of rendering an infinite value.
       return signedFundingCashFlow24h(notional, history.avg7d, fundingInterval, side);
     } catch {
       return null;
     }
   });
+
+  // BUG-0559: ONE predicate drives the Cost/Income label, the sign prefix
+  // and the semantic color. gte(0) for the label with gt(0)/lt(0) for the
+  // colors used to leave an exact zero reading "Cost" without any color.
+  let isHoldingCost24h = $derived(
+    estimatedHoldingCost24h !== null && estimatedHoldingCost24h.gte(0),
+  );
 
   // On symbol change, fetch funding history on demand if not cached
   $effect(() => {
@@ -687,14 +697,14 @@
       {#if estimatedHoldingCost24h !== null}
         <span class="flex items-center gap-1">
           <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
-            <span class="text-[var(--text-secondary)]">{estimatedHoldingCost24h.gte(0) ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
+            <span class="text-[var(--text-secondary)]">{isHoldingCost24h ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
           </Tooltip>
           <span
             class="font-medium"
-            class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
-            class:text-[var(--success-color)]={estimatedHoldingCost24h.lt(0)}
+            class:text-[var(--danger-color)]={isHoldingCost24h}
+            class:text-[var(--success-color)]={!isHoldingCost24h}
           >
-            {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
+            {isHoldingCost24h ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
           </span>
         </span>
       {/if}
@@ -705,14 +715,14 @@
     >
       <span class="flex items-center gap-1">
         <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
-          <span class="text-[var(--text-secondary)]">{estimatedHoldingCost24h.gte(0) ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
+          <span class="text-[var(--text-secondary)]">{isHoldingCost24h ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
         </Tooltip>
         <span
           class="font-medium"
-          class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
-          class:text-[var(--success-color)]={estimatedHoldingCost24h.lt(0)}
+          class:text-[var(--danger-color)]={isHoldingCost24h}
+          class:text-[var(--success-color)]={!isHoldingCost24h}
         >
-          {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
+          {isHoldingCost24h ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
         </span>
       </span>
     </div>
