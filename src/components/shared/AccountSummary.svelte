@@ -74,6 +74,34 @@
     totalPositionSize = 0,
     error = ""
   }: Props = $props();
+
+  // BUG-0562: equity and margin details are a disclosure, not a hover.
+  // One state flag driven by mouse, focus and keyboard alike, so touch
+  // (tap = focus) and keyboard reach the same content as the mouse.
+  // The panel renders inline below the balance row — including on narrow
+  // screens, where there is no hover to fall back to.
+  let detailsOpen = $state(false);
+  let triggerEl: HTMLElement | null = $state(null);
+
+  function openDetails() {
+    detailsOpen = true;
+  }
+
+  function closeDetails() {
+    detailsOpen = false;
+  }
+
+  function handleDetailsKeyDown(event: KeyboardEvent) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      detailsOpen = !detailsOpen;
+    } else if (event.key === "Escape") {
+      detailsOpen = false;
+      // Restore focus only when it was lost — refocusing an already
+      // focused trigger would re-fire onfocus and reopen the panel.
+      if (document.activeElement !== triggerEl) triggerEl?.focus();
+    }
+  }
 </script>
 
 <div
@@ -85,8 +113,17 @@
     </div>
   {/if}
   <div
-    class="flex justify-between items-center group cursor-help relative"
-    role="tooltip"
+    bind:this={triggerEl}
+    class="flex justify-between items-center cursor-help relative focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
+    role="button"
+    tabindex="0"
+    aria-expanded={detailsOpen}
+    aria-label={$_("dashboard.account.viewDetails")}
+    onmouseenter={openDetails}
+    onmouseleave={closeDetails}
+    onfocus={openDetails}
+    onblur={closeDetails}
+    onkeydown={handleDetailsKeyDown}
   >
     <div class="flex items-center gap-1">
       <span
@@ -98,8 +135,9 @@
       >{formatDynamicDecimal(available, 2)} {currency}</span
     >
 
-    <div class="absolute z-[100] left-0 top-full pt-2 hidden group-hover:block">
-      <AccountTooltip
+    {#if detailsOpen}
+      <div class="absolute z-[100] left-0 top-full pt-2">
+        <AccountTooltip
         account={{
           available,
           margin,
@@ -116,7 +154,8 @@
           totalUnrealizedPnL: pnl,
         }}
       />
-    </div>
+      </div>
+    {/if}
   </div>
 
   <div class="flex justify-between items-center">

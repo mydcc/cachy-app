@@ -766,6 +766,7 @@
     },
     "account": {
       "balance": "Verfügbar",
+      "viewDetails": "Kontodetails anzeigen",
       "confirmCancelOrder": "Diesen Auftrag stornieren?",
       "margin": "Margin",
       "pnl": "Gesamt PnL",

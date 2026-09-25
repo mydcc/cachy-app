@@ -127,3 +127,68 @@ describe("BUG-0512 — the total wears the badge when any leg is not fresh", () 
         expect(host.querySelector('[data-track-id="stale-price-badge"]')).toBeNull();
     });
 });
+
+describe("BUG-0562 — account details are a disclosure, not a hover", () => {
+    function trigger(): HTMLElement {
+        const el = host.querySelector('[role="button"]');
+        expect(el).not.toBeNull();
+        return el as HTMLElement;
+    }
+
+    function key(el: HTMLElement, keyName: string) {
+        el.dispatchEvent(new KeyboardEvent("keydown", { key: keyName, bubbles: true }));
+        flushSync();
+    }
+
+    it("exposes the disclosure under an accessible name", () => {
+        render({ available: 1000 });
+
+        expect(trigger().getAttribute("aria-label")).toBe(lookup("dashboard.account.viewDetails"));
+    });
+
+    it("opens and closes with Enter", () => {
+        render({ available: 1000 });
+
+        key(trigger(), "Enter");
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+        expect(host.querySelector('[data-testid="empty-stub"]')).not.toBeNull();
+
+        key(trigger(), "Enter");
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("opens and closes with Space", () => {
+        render({ available: 1000 });
+
+        key(trigger(), " ");
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        key(trigger(), " ");
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("opens on focus alone and closes on blur", () => {
+        render({ available: 1000 });
+
+        trigger().focus();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        trigger().blur();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("closes on Escape and keeps focus on the trigger", () => {
+        render({ available: 1000 });
+
+        // A keyboard user is focused on the disclosure when pressing Escape.
+        trigger().focus();
+        flushSync();
+        expect(trigger().getAttribute("aria-expanded")).toBe("true");
+
+        key(trigger(), "Escape");
+        expect(trigger().getAttribute("aria-expanded")).toBe("false");
+        expect(document.activeElement).toBe(trigger());
+    });
+});
