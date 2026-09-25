@@ -92,34 +92,35 @@
 
   let rejected = $state<string | null>(null);
 
+  // Each field owns its own rejection: a rejected field keeps its error until
+  // that field is edited again (and then only clears on success), so fixing
+  // one limit never wipes the error message of another.
+  function applyLimit(
+    key: DecimalLimitKey | "maxOpenPositions",
+    value: string | null,
+  ) {
+    const ok =
+      key === "maxOpenPositions"
+        ? riskState.setLimit("maxOpenPositions", value)
+        : riskState.setLimit(key, value);
+    rejected = ok ? (rejected === key ? null : rejected) : key;
+  }
+
   function onLimitInput(key: DecimalLimitKey, event: Event) {
     const value = (event.currentTarget as HTMLInputElement).value;
     // setLimit refuses anything that is not a non-negative number rather than
     // storing it — a typo must not silently switch a limit off.
-    rejected = riskState.setLimit(key, value === "" ? null : value) ? null : key;
+    applyLimit(key, value === "" ? null : value);
   }
 
   // BUG-0557: the field distinguishes three states — empty (no limit),
   // a positive integer or explicit zero (a real ceiling), and anything
   // else, which is rejected inline without touching the stored limit.
-  // Number("...") alone cannot do this: Number("") and Number(" ") are
-  // both 0, which would turn "no limit" into "block everything".
+  // Parsing is delegated to setLimit: the store is the single place that
+  // decides what a count is, so the form cannot accept what the gate rejects.
   function onMaxPositionsInput(event: Event) {
-    const value = (event.currentTarget as HTMLInputElement).value;
-    const trimmed = value.trim();
-    if (trimmed === "") {
-      rejected = riskState.setLimit("maxOpenPositions", null)
-        ? null
-        : "maxOpenPositions";
-      return;
-    }
-    if (!/^\d+$/.test(trimmed)) {
-      rejected = "maxOpenPositions";
-      return;
-    }
-    rejected = riskState.setLimit("maxOpenPositions", Number.parseInt(trimmed, 10))
-      ? null
-      : "maxOpenPositions";
+    const trimmed = (event.currentTarget as HTMLInputElement).value.trim();
+    applyLimit("maxOpenPositions", trimmed === "" ? null : trimmed);
   }
 
   function engage() {
@@ -298,9 +299,8 @@
         <div class="flex items-center gap-2">
           <input
             id="risk-maxOpenPositions"
-            type="number"
-            min="0"
-            step="1"
+            type="text"
+            inputmode="numeric"
             class="input-field w-full min-w-0"
             class:border-danger={rejected === "maxOpenPositions"}
             placeholder={$_("settings.risk.notConfigured")}

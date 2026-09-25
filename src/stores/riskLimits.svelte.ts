@@ -100,8 +100,19 @@ const RiskStateSchema = z.object({
                     // absent limit, never zero — Number("") is 0, so the
                     // emptiness check must come before any numeric coercion.
                     if (typeof v === "string" && v.trim() === "") return null;
-                    const n = Math.floor(Number(v)); // audit: safe — maxOpenPositions is a count (integer), not a price, amount, or balance
-                    return Number.isFinite(n) && n >= 0 ? n : null;
+                    // One parser decides what counts as a count: plain digits
+                    // only, so this load path refuses "2.5" instead of flooring
+                    // it to a ceiling nobody chose. Fail-open on anything else:
+                    // corrupt data collapses to null (unconfigured), never to a
+                    // block-everything ceiling — see the load() catch comment.
+                    if (typeof v === "string") {
+                        const trimmed = v.trim();
+                        if (!/^\d+$/.test(trimmed)) return null;
+                        const n = Number(trimmed); // audit: safe — maxOpenPositions is a position count, not a price, amount, or balance
+                        return Number.isSafeInteger(n) && n >= 0 ? n : null;
+                    }
+                    if (!Number.isSafeInteger(v) || v < 0) return null;
+                    return v === 0 ? 0 : v; // -0 normalizes to 0
                 })
                 .nullable()
                 .catch(null),
@@ -201,23 +212,38 @@ class RiskManager {
      * "not configured"; a value that is not a non-negative number is
      * rejected rather than stored, so a typo cannot silently disable a limit.
      *
-     * BUG-0557: maxOpenPositions additionally rejects fractions — flooring
-     * 2.5 to 2 would silently store a ceiling the trader never chose.
-     * Explicit zero stays storable: it is the documented block-everything
-     * limit, distinct from an unconfigured (null) one.
+     * BUG-0557: maxOpenPositions is parsed here and nowhere else. A string
+     * must be plain digits after trim — "1e3", "+3", "2.5" and "abc" are
+     * rejected, because coercing them would store a ceiling the trader never
+     * chose. Explicit zero stays storable: it is the documented
+     * block-everything limit, distinct from an unconfigured (null) one.
      */
-    public setLimit<K extends keyof RiskLimitInputs>(
+    public setLimit(key: "maxOpenPositions", value: number | string | null): boolean;
+    public setLimit<K extends Exclude<keyof RiskLimitInputs, "maxOpenPositions">>(
         key: K,
         value: RiskLimitInputs[K],
+    ): boolean;
+    public setLimit(
+        key: keyof RiskLimitInputs,
+        value: number | string | null,
     ): boolean {
         if (key === "maxOpenPositions") {
+            // Empty (or whitespace-only) is "not configured", never zero —
+            // Number("") is 0, which would turn "no limit" into "block everything".
             if (value === null || (typeof value === "string" && value.trim() === "")) {
                 this._limits = { ...this._limits, maxOpenPositions: null };
                 this.persist();
                 return true;
             }
-            const n = typeof value === "number" ? value : Number(value);
-            if (!Number.isInteger(n) || n < 0) return false;
+            let n: number;
+            if (typeof value === "string") {
+                const trimmed = value.trim();
+                if (!/^\d+$/.test(trimmed)) return false;
+                n = Number(trimmed); // audit: safe — maxOpenPositions is a position count, not a price, amount, or balance
+            } else {
+                n = value === 0 ? 0 : value; // -0 normalizes to 0 so the stored value matches the semantics
+            }
+            if (!Number.isSafeInteger(n) || n < 0) return false;
             this._limits = { ...this._limits, maxOpenPositions: n };
             this.persist();
             return true;
