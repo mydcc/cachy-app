@@ -347,9 +347,9 @@ export interface DisplayedState {
      */
     stopLossQty?: Decimal;
     /**
-     * Free margin the account had when the add was previewed — FEAT-0334.
+     * Free margin the account had when the order was previewed — FEAT-0334.
      *
-     * Compared against `addQuantity × price / leverage`. Absent on an `open`
+     * Compared against `qty × price / leverage`. Absent on an `open`
      * means the check is skipped rather than guessed: the open keeps its
      * risk-derived size check. Absent on an `add` refuses (BUG-0511): margin
      * is the only ceiling an add has, so skipping leaves the order with no
@@ -1074,11 +1074,15 @@ class OrderGate {
             if (accountRefusal) return refuse(accountRefusal);
         }
 
-        // --- available margin (FEAT-0334) --------------------------------------
-        // Only for an add. An `open` is sized from account size and risk, so
-        // its margin cost is already bounded by inputs the gate re-derives;
-        // an add's size is the trader's own number and nothing else limits it.
-        if (kind === "add") {
+        // --- available margin (FEAT-0334, BUG-0549) ---------------------------
+        // An add's size is the trader's own number and nothing else limits it,
+        // so the balance is its only ceiling. An open is sized from account
+        // size and risk, but the calculator can still show a required margin
+        // above what the account holds — the panel stops offering the order
+        // then, and this refuses it here if it is asked for anyway. A balance
+        // that has not loaded still skips an open (that refusal belongs to the
+        // add, BUG-0511): an open keeps its risk-derived size check either way.
+        if (kind === "open" || kind === "add") {
             const marginRefusal = this.checkMargin(intent, checked);
             if (marginRefusal) return refuse(marginRefusal);
         }
@@ -1410,12 +1414,14 @@ class OrderGate {
     }
 
     /**
-     * Whether the account can fund the add — FEAT-0334.
+     * Whether the account can fund the add or open — FEAT-0334, BUG-0549.
      *
-     * `addQuantity × price / leverage` against the free margin the UI showed.
-     * This is the one ceiling an add has: a reduce is bounded by the position
+     * `qty × price / leverage` against the free margin the UI showed.
+     * For an add this is the one ceiling: a reduce is bounded by the position
      * and an open by its risk inputs, but an add is bounded only by what the
-     * account can pay for.
+     * account can pay for. An open keeps its risk-derived size check too, but
+     * the calculator can display a required margin the account cannot fund —
+     * that order is refused here rather than left to the venue.
      *
      * Deliberately gross of fees and of any maintenance buffer. The venue is
      * the authority on what it will fund, and a threshold that guessed at the
@@ -1429,13 +1435,33 @@ class OrderGate {
      * add with no balance to measure against is refused, not skipped. An add
      * is the one intent whose only ceiling is available margin; skipping the
      * check leaves it with no ceiling at all, while an open keeps its
-     * risk-derived size check.
+     * risk-derived size check. The open's skip is still recorded as
+     * `availableMarginUnmeasured` (IDEA-0563, decided P2: warn, don't block).
+     *
+     * Two mechanics this relies on, stated so they survive refactoring: a
+     * null `qty` or non-positive `price` skips because `verify` refuses
+     * those intents before this check ever runs — the skip is not a second
+     * opinion. With no usable leverage the required margin falls back to
+     * the full notional, which can only refuse more, never less. The balance
+     * itself carries no freshness timestamp (leverage has
+     * MAX_ACCOUNT_STATE_AGE_MS, the balance does not): a stale-high reading
+     * approves and the venue rejects, a stale-low reading refuses early.
+     * Staleness cannot create funds — the venue stays the final authority —
+     * but "can only refuse" would be the wrong shorthand, so this says what
+     * actually happens. Sequential opens are each measured against the same
+     * balance with no reservation between verify and send; two opens that
+     * each fit can together exceed it, and only the venue sees the total.
+     * There is deliberately no locking here — the venue's matching engine
+     * owns that race, not this gate.
      */
     private checkMargin(intent: OrderIntent, checked: string[]): OrderRefusal | null {
         const { payload, displayed } = intent;
 
         const available = displayed.availableMargin;
-        if (available === undefined) {
+        // A non-finite reading measures nothing — treat it like an absent
+        // one rather than comparing against NaN (every comparison is false,
+        // so NaN would approve with the check marked as run).
+        if (available === undefined || !available.isFinite()) {
             if (intent.kind === "add") {
                 checked.push("availableMargin");
                 return {
@@ -1445,6 +1471,14 @@ class OrderGate {
                     values: { field: "availableMargin" },
                 };
             }
+            /*
+             * P2-visible skip (IDEA-0563, decided: warn, don't block). The
+             * open keeps its risk-derived size check, but the skip itself is
+             * recorded: `availableMarginUnmeasured` marks a deliberate
+             * decision, not an omission, and the panel hints that the venue
+             * decides while the balance is unknown.
+             */
+            checked.push("availableMarginUnmeasured");
             return null;
         }
 

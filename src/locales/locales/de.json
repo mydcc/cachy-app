@@ -4067,7 +4067,7 @@
     "duplicateInFlight": "Order abgelehnt: Eine identische {action}-Order für {symbol} wird bereits gesendet. Das Duplikat wurde nicht gesendet.",
     "minTradeVolume": "Order abgelehnt: Die Positionsgröße {actual} liegt unter dem Mindesthandelsvolumen von {limit}. Die Order wurde nicht gesendet.",
     "maxOrderVolume": "Order abgelehnt: Die Positionsgröße {actual} überschreitet das maximale Ordervolumen von {limit}. Die Order wurde nicht gesendet.",
-    "insufficientMargin": "Order abgelehnt: Der Nachkauf benötigt {actual} Margin, verfügbar sind nur {limit}. Die Order wurde nicht gesendet.",
+    "insufficientMargin": "Order abgelehnt: Die Order benötigt {actual} Margin, verfügbar sind nur {limit}. Die Order wurde nicht gesendet.",
     "availableMarginUnmeasured": "Order abgelehnt: Die Kontobilanz wurde noch nicht geladen, daher kann {field} nicht geprüft werden. Warte auf den Bilanz-Sync und versuche es erneut. Die Order wurde nicht gesendet.",
     "stepSize": "Order abgelehnt: Die Größe {actual} ist kein ganzzahliges Vielfaches der Schrittweite {step} dieses Instruments und wäre an der Börse nicht ausführbar. Die Order wurde nicht gesendet.",
     "symbolStatus": "Order abgelehnt: Der Symbol-Status ist {status} (erwartet: OPEN). Der Handel ist derzeit nicht verfügbar.",
@@ -4381,7 +4381,9 @@
     },
     "notes": {
       "noAttachedProtection": "Diese Börse kann keinen Stop an den Einstieg anhängen. Der Stop wird als zweite Anfrage platziert, die Position ist also kurz ungeschützt — du wirst benachrichtigt, falls er nicht ankommt.",
-      "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner."
+      "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner.",
+      "balanceUnmeasured": "Kontostand nicht geladen — die Börse entscheidet, ob diese Order gedeckt ist.",
+      "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen."
     },
     "confirm": {
       "titleLive": "Diese Order platzieren?",

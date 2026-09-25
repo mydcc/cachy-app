@@ -33,7 +33,9 @@
 <script lang="ts">
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
+  import { accountState } from "../../stores/account.svelte";
   import { tradeState } from "../../stores/trade.svelte";
+  import { resultsState } from "../../stores/results.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { paperState } from "../../stores/paperTrading.svelte";
   import { modalState } from "../../stores/modal.svelte";
@@ -165,6 +167,56 @@
 
   const volumeValid = $derived(!isBelowMinVolume && !isAboveMaxVolume);
 
+  // The calculator's margin-exceeded flag (required margin above the
+  // displayed account balance). The warning is already shown next to the
+  // results; offering the order anyway would ask the gate to refuse what
+  // the panel can see (BUG-0549).
+  const marginFunded = $derived(!resultsState.isMarginExceeded);
+
+  // The same check against the live balance — required margin above the free
+  // USDT the gate will measure. This is the state AC3 names: the calculator
+  // flag above compares against the typed account size, which can differ
+  // from the wallet in either direction. Unknown — balance not loaded, or
+  // the calculator produced no margin figure — never disables: the panel is
+  // only a hint, the gate stays the authority and refuses what it measures.
+  // Paper hydrates this same store, so both modes read the balance they
+  // trade against.
+  //
+  // Best-effort hint, intentionally unpaired: this pairs the trade store
+  // with the account store across time boundaries, so it may disagree with
+  // the gate's recomputation for a moment. It must never become
+  // enforcement — only the gate's own measurement refuses.
+  const liveAvailable = $derived(
+    accountState.assets.find((a) => a.currency === "USDT")?.available,
+  );
+  const liveMarginFunded = $derived.by(() => {
+    if (
+      data?.requiredMargin instanceof Decimal &&
+      liveAvailable instanceof Decimal
+    ) {
+      // A non-finite reading measures nothing — same rule as the gate:
+      // don't disable, the unmeasured hint below says why.
+      if (!liveAvailable.isFinite()) return true;
+      return data.requiredMargin.lte(liveAvailable);
+    }
+    return true;
+  });
+  // No live reading to compare against: the gate records an
+  // `availableMarginUnmeasured` skip and the venue decides (IDEA-0563).
+  const balanceUnmeasured = $derived(
+    data?.requiredMargin instanceof Decimal &&
+      (liveAvailable === undefined ||
+        (liveAvailable instanceof Decimal && !liveAvailable.isFinite())),
+  );
+  // Live-only shortfall: the typed balance covers the margin but the wallet
+  // does not — the state where the calculator flag stays green while the
+  // control stays disabled.
+  const liveMarginShortfall = $derived(
+    data?.requiredMargin instanceof Decimal &&
+      liveAvailable instanceof Decimal &&
+      data.requiredMargin.gt(liveAvailable),
+  );
+
   // The calculator produces a size only when the inputs make one derivable.
   // AC 1: Trading-pair metadata is available in a store before submit action is enabled.
   // AC 3: Below minTradeVolume or above max order volume disables submit action.
@@ -175,7 +227,9 @@
       data.positionSize.gt(0) &&
       hasMeta &&
       tradingAvailable &&
-      volumeValid,
+      volumeValid &&
+      marginFunded &&
+      liveMarginFunded,
   );
 
   // An unreadable trade direction is not a long: the control stays
@@ -422,6 +476,17 @@
           <span class="detail">{$_("dashboard.symbolInfo.apiNotSupported")}</span>
         {/if}
       </div>
+    {:else if balanceUnmeasured}
+      <p class="note">{$_("orderEntry.notes.balanceUnmeasured")}</p>
+    {:else if liveMarginShortfall && data?.requiredMargin instanceof Decimal && liveAvailable instanceof Decimal}
+      <p class="note warn">
+        {$_("orderEntry.notes.liveMarginShortfall", {
+          values: {
+            actual: data.requiredMargin.toString(),
+            limit: liveAvailable.toString(),
+          },
+        })}
+      </p>
     {:else if isBelowMinVolume}
       <p class="note warn">{$_("orderEntry.errors.belowMinTradeVolume", { values: { min: meta?.minTradeVolume ?? "" } })}</p>
     {:else if isAboveMaxVolume}

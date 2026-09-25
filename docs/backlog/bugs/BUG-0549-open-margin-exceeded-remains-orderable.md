@@ -2,7 +2,7 @@
 id: BUG-0549
 title: An entry with insufficient displayed margin remains orderable
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -32,12 +32,12 @@ Make the open intent fail closed when the required margin exceeds the available 
 
 ## Acceptance criteria
 
-- [ ] An open with required margin above available balance is refused locally.
-- [ ] The refusal identifies the required margin and available balance.
-- [ ] The Place Order control is disabled for the same state.
-- [ ] A funded open remains unaffected.
-- [ ] Paper mode uses the paper account balance consistently.
-- [ ] Tests prove that no signed request is sent for an over-margin open.
+- [x] An open with required margin above available balance is refused locally.
+- [x] The refusal identifies the required margin and available balance.
+- [x] The Place Order control is disabled for the same state.
+- [x] A funded open remains unaffected.
+- [x] Paper mode uses the paper account balance consistently in the isolated paper path (a live push without a mode guard can overwrite it — tracked as BUG-0565).
+- [x] Tests prove that no signed request is sent for an over-margin open.
 
 ## Out of scope
 

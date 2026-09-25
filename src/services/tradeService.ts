@@ -1646,6 +1646,21 @@ class TradeService {
                 symbol: params.symbol,
                 side: params.side,
                 ...params.displayed,
+                // The free USDT balance the trader is spending from — live
+                // wallet or the paper account's simulated balance, which
+                // hydrates the same store (BUG-0549). Settlement is currently
+                // USDT-M only, so USDT free is the whole spendable balance
+                // until multi-collateral arrives. Present, the gate measures
+                // the open's required margin against it; absent or non-finite,
+                // it skips the measurement as before (BUG-0511, recorded as
+                // `availableMarginUnmeasured`). The reading carries no
+                // freshness timestamp (leverage has MAX_ACCOUNT_STATE_AGE_MS,
+                // the balance does not): a stale-high reading approves and
+                // the venue rejects, a stale-low reading refuses early.
+                // Neither creates funds — the venue stays final.
+                availableMargin: accountState.assets.find(
+                    (a) => a.currency === "USDT",
+                )?.available,
                 stepSize,
                 minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
                 maxLimitOrderVolume: meta?.maxLimitOrderVolume ? new Decimal(meta.maxLimitOrderVolume) : undefined,
@@ -1724,7 +1739,7 @@ class TradeService {
                     ? position.markPrice
                     : position.entryPrice;
 
-        // The settlement asset's free balance. This only carries the reading —
+        // The settlement asset's free balance (USDT-M only). This only carries the reading —
         // the refusal decision lives in `checkMargin` (orderGate.ts), which
         // refuses the add when the balance has not loaded, since margin is
         // its only ceiling (BUG-0511). Paper accounts hydrate the same

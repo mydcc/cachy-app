@@ -42,6 +42,7 @@ vi.mock("./toastService.svelte", () => ({
 }));
 
 import { tradeService } from "./tradeService";
+import { accountState } from "../stores/account.svelte";
 import { marketState } from "../stores/market.svelte";
 import {
     registerKillSwitch,
@@ -521,5 +522,53 @@ describe("BUG-0380 — qty is clamped to the symbol step before it travels", () 
         // basePrecision 4 → step 0.0001; 0.02005 is half a step out.
         await tradeService.placeOrder({ ...baseParams(), qty: new Decimal("0.02005") });
         expect(sent[0].qty).toBe("0.02");
+    });
+});
+
+describe("BUG-0549 — an open the account cannot fund never reaches the wire", () => {
+    beforeEach(() => {
+        accountState.assets = [];
+    });
+
+    afterEach(() => {
+        accountState.assets = [];
+    });
+
+    it("refuses locally and sends no signed request when the balance is short", async () => {
+        // required margin = 0.02 BTC × 50000 / 10 = 100 USDT.
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+
+        await expect(tradeService.placeOrder(baseParams())).rejects.toMatchObject({
+            name: "OrderRefusedError",
+            refusal: {
+                field: "availableMargin",
+                messageKey: "orderGate.insufficientMargin",
+                values: { limit: "50", actual: "100" },
+            },
+        });
+        expect(sent).toHaveLength(0);
+    });
+
+    it("places the same order once the balance covers the margin", async () => {
+        accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" });
+        await tradeService.placeOrder(baseParams());
+        expect(sent).toHaveLength(1);
+    });
+
+    it("measures a paper open against the paper account's own balance", async () => {
+        // Paper diverts inside signedRequest, i.e. after the gate — so the
+        // refusal has to come from the same store the paper balance hydrates
+        // (AC5), and nothing may have reached the transport by then.
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+
+        await expect(
+            tradeService.placeOrder({
+                ...baseParams(),
+                displayed: { ...displayed(), paperMode: true },
+            }),
+        ).rejects.toMatchObject({
+            refusal: { field: "availableMargin", messageKey: "orderGate.insufficientMargin" },
+        });
+        expect(sent).toHaveLength(0);
     });
 });
