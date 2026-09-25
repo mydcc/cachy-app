@@ -36,6 +36,11 @@
 
   let { order }: Props = $props();
 
+  // Unique per mounted instance: the row-local dialog and the legacy global
+  // portal can both be on screen, and duplicate ids break aria-controls.
+  const instanceId = $props.id();
+  const ORDER_MORE_DETAILS_ID = `order-more-details-${instanceId}`;
+  const ORDER_MORE_BUTTON_ID = `order-more-button-${instanceId}`;
   let isDetailsOpen = $state(false);
 
   function toggleDetails() {
@@ -66,7 +71,7 @@
 </script>
 
 <div
-  class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-xl rounded-lg p-3 text-xs text-[var(--text-primary)] w-[320px] max-w-[90vw] pointer-events-auto"
+  class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-xl rounded-lg p-3 text-xs text-[var(--text-primary)] w-[320px] max-w-[calc(100vw-20px)] pointer-events-auto"
 >
   <div
     class="flex justify-between items-center mb-2 border-b border-[var(--border-color)] pb-1"
@@ -153,12 +158,13 @@
     {/if}
 
     <!-- Accordion Toggle -->
-    <div
-      class="col-span-2 mt-1 border-t border-[var(--border-color)] pt-1 cursor-pointer select-none flex items-center justify-between text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+    <button
+      type="button"
+      id={ORDER_MORE_BUTTON_ID}
+      class="col-span-2 mt-1 border-t border-[var(--border-color)] pt-1 cursor-pointer select-none flex items-center justify-between text-[var(--text-secondary)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
+      aria-expanded={isDetailsOpen}
+      aria-controls={ORDER_MORE_DETAILS_ID}
       onclick={toggleDetails}
-      onkeydown={(e) => e.key === "Enter" && toggleDetails()}
-      role="button"
-      tabindex="0"
     >
       <span class="text-[10px] font-bold">{$_("dashboard.orderHistory.details.more")}</span>
       <span
@@ -167,11 +173,14 @@
       >
         {@html icons.chevronDown}
       </span>
-    </div>
+    </button>
 
     <!-- Accordion Content -->
     {#if isDetailsOpen}
       <div
+        id={ORDER_MORE_DETAILS_ID}
+        role="region"
+        aria-labelledby={ORDER_MORE_BUTTON_ID}
         class="col-span-2 flex flex-col gap-1 text-[10px] text-[var(--text-tertiary)] bg-[var(--bg-primary)] p-2 rounded mt-1"
       >
         <div class="flex justify-between">

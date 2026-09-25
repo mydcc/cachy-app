@@ -82,12 +82,20 @@
   // screens, where there is no hover to fall back to.
   let detailsOpen = $state(false);
   let triggerEl: HTMLElement | null = $state(null);
-  const ACCOUNT_DETAILS_PANEL_ID = "account-details-panel";
+  const instanceId = $props.id();
+  const ACCOUNT_DETAILS_PANEL_ID = `account-details-panel-${instanceId}`;
   let panelEl: HTMLElement | null = $state(null);
   let pointerOverPanel = $state(false);
+  let pointerFocusPending = false;
+  let suppressNextClick = false;
 
   function openDetails() {
     detailsOpen = true;
+  }
+
+  function closeDetails() {
+    pointerOverPanel = false;
+    detailsOpen = false;
   }
 
   // Escape dismisses the disclosure and hands focus back to its trigger.
@@ -97,7 +105,7 @@
   // focus() call is skipped (it would not move focus anyway).
   function handleEscape() {
     if (document.activeElement !== triggerEl) triggerEl?.focus();
-    detailsOpen = false;
+    closeDetails();
   }
 
   function handleTriggerBlur(event: FocusEvent) {
@@ -106,34 +114,58 @@
     const related =
       event.relatedTarget instanceof Node ? event.relatedTarget : null;
     if (pointerOverPanel || panelEl?.contains(related)) return;
-    detailsOpen = false;
+    closeDetails();
   }
 
   function handleWrapperMouseLeave() {
     // Keyboard focus outranks the pointer: a pointer pass must not
     // collapse a disclosure whose trigger still holds focus (finding 7).
-    if (document.activeElement !== triggerEl) detailsOpen = false;
+    if (document.activeElement !== triggerEl) closeDetails();
   }
 
-  function handleDetailsKeyDown(event: KeyboardEvent) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      detailsOpen = !detailsOpen;
-    } else if (event.key === "Escape") {
-      handleEscape();
+  function handlePointerDown() {
+    pointerFocusPending = true;
+  }
+
+  function handleTriggerFocus() {
+    if (pointerFocusPending) {
+      pointerFocusPending = false;
+      suppressNextClick = true;
     }
+    openDetails();
   }
 
-  // Document-level Escape (APG): dismisses a hover-opened panel while
-  // focus sits elsewhere — the trigger's own handler cannot see that.
-  // Registered only while open and always removed again (finding 8).
+  function handleTriggerClick() {
+    // Native Enter/Space activation arrives as a click; the trigger owns
+    // the toggle so keyboard, pointer and touch share one code path.
+    pointerFocusPending = false;
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      return;
+    }
+    if (detailsOpen) closeDetails();
+    else openDetails();
+  }
+
+  // Document-level dismissal handles both a mouse-opened panel and the
+  // first outside pointerdown/tap. Listeners exist only while open and are
+  // always removed again.
   $effect(() => {
     if (!detailsOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") handleEscape();
     };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof Node ? event.target : null;
+      if (triggerEl?.contains(target) || panelEl?.contains(target)) return;
+      closeDetails();
+    };
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
   });
 </script>
 
@@ -145,39 +177,37 @@
       <span>{error}</span>
     </div>
   {/if}
-  <!-- Trigger + panel live in their own relative wrapper: the panel must
-       be a sibling of the role="button" trigger, never its child — a
-       button marks children presentational, which would drop the equity
-       details out of the accessibility tree (finding 3). The wrapper is
-       presentational: its pointer handlers are enhancements, the same
-       open/close paths are reachable through focus and keyboard. -->
+  <!-- Trigger + panel live in their own relative wrapper: the panel is a
+       sibling of the native button, so button semantics never flatten the
+       equity details out of the accessibility tree. The wrapper's pointer
+       handlers are enhancements; focus and keyboard use the same state. -->
   <div
     class="relative"
     role="presentation"
     onmouseenter={openDetails}
     onmouseleave={handleWrapperMouseLeave}
   >
-    <div
+    <button
+      type="button"
       bind:this={triggerEl}
-      class="flex justify-between items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
-      role="button"
-      tabindex="0"
+      class="flex w-full justify-between items-center text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
       aria-expanded={detailsOpen}
       aria-controls={detailsOpen ? ACCOUNT_DETAILS_PANEL_ID : undefined}
-      onfocus={openDetails}
+      onclick={handleTriggerClick}
+      onfocus={handleTriggerFocus}
+      onpointerdown={handlePointerDown}
       onblur={handleTriggerBlur}
-      onkeydown={handleDetailsKeyDown}
     >
-      <div class="flex items-center gap-1">
+      <span class="flex items-center gap-1">
         <span
           class="text-xs text-[var(--text-secondary)] border-b border-dashed border-[var(--text-secondary)]"
           >{$_("dashboard.account.balance")}</span
         >
-      </div>
+      </span>
       <span class="text-sm font-bold text-[var(--text-primary)]"
         >{formatDynamicDecimal(available, 2)} {currency}</span
       >
-    </div>
+    </button>
 
     {#if detailsOpen}
       <!-- role="group" marks the panel as a non-interactive content set;

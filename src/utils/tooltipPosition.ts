@@ -16,52 +16,48 @@
 */
 
 /**
- * Shared positioning helpers for the global order-details tooltip portal
- * rendered in +layout.svelte. OpenOrdersList (and any other disclosure
- * trigger) needs identical viewport-clamp math so a tooltip opened from a
- * keyboard focus or a viewport edge lands inside the viewport exactly like
- * a mouse hover does — a negative or off-screen coordinate made the
- * disclosure unreachable on small screens (BUG-0562).
+ * Shared positioning helpers for the pending-order details popover. Every
+ * anchor path (pointer, focus, keyboard) uses the same clamp so the dialog
+ * lands inside the viewport on small screens (BUG-0562).
  */
-
-/** Stable id of the tooltip portal container while an order tooltip shows. */
-export const ORDER_TOOLTIP_ID = "order-details-tooltip";
 
 const TOOLTIP_WIDTH = 320;
 const TOOLTIP_HEIGHT = 400;
 const EDGE_PADDING = 10;
 
 /**
- * Clamp a desired tooltip top-left position so the tooltip stays inside
+ * Clamp a desired popover top-left position so the dialog stays inside
  * the viewport. The tooltip is offset to the bottom-right of the anchor
  * by default and flipped to the top-left side when it would overflow.
  */
-export function clampTooltipPosition(
+export function clampPopoverPosition(
   clientX: number,
   clientY: number,
   viewportWidth: number,
   viewportHeight: number
 ): { x: number; y: number } {
+  const width = Math.min(
+    TOOLTIP_WIDTH,
+    Math.max(0, viewportWidth - EDGE_PADDING * 2)
+  );
+  const height = Math.min(
+    TOOLTIP_HEIGHT,
+    Math.max(0, viewportHeight - EDGE_PADDING * 2)
+  );
+  const maxX = Math.max(EDGE_PADDING, viewportWidth - width - EDGE_PADDING);
+  const maxY = Math.max(EDGE_PADDING, viewportHeight - height - EDGE_PADDING);
   let x = clientX + EDGE_PADDING;
   let y = clientY + EDGE_PADDING;
 
-  if (x + TOOLTIP_WIDTH > viewportWidth)
-    x = clientX - TOOLTIP_WIDTH - EDGE_PADDING;
-  if (y + TOOLTIP_HEIGHT > viewportHeight)
-    y = clientY - TOOLTIP_HEIGHT - EDGE_PADDING;
+  if (x + width > viewportWidth - EDGE_PADDING) {
+    x = clientX - width - EDGE_PADDING;
+  }
+  if (y + height > viewportHeight - EDGE_PADDING) {
+    y = clientY - height - EDGE_PADDING;
+  }
 
   return {
-    x: Math.max(EDGE_PADDING, x),
-    y: Math.max(EDGE_PADDING, y),
+    x: Math.min(Math.max(EDGE_PADDING, x), maxX),
+    y: Math.min(Math.max(EDGE_PADDING, y), maxY),
   };
-}
-
-/**
- * True when the node lives inside the mounted order-details tooltip.
- * Used to keep a disclosure open while the pointer or focus is inside
- * the tooltip itself (moving there must not count as "left the trigger").
- */
-export function isInsideOrderTooltip(node: Node | null): boolean {
-  const container = document.getElementById(ORDER_TOOLTIP_ID);
-  return container !== null && node !== null && container.contains(node);
 }
