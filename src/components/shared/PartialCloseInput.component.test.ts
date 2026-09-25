@@ -72,6 +72,7 @@ function render(props: {
     ctx?: PartialCloseContext;
     quantity: Decimal;
     onChange: (q: Decimal) => void;
+    onValidityChange?: (valid: boolean) => void;
 }) {
     component = mount(PartialCloseInput, {
         target: host,
@@ -79,6 +80,7 @@ function render(props: {
             ctx: props.ctx ?? LONG,
             quantity: props.quantity,
             onChange: props.onChange,
+            onValidityChange: props.onValidityChange,
         },
     }) as never;
     flushSync();
@@ -146,25 +148,97 @@ describe("FEAT-0256 — slider and quantity are one value", () => {
         expect((onChange.mock.calls.at(-1)![0] as Decimal).toString()).toBe("2");
     });
 
-    it("ignores a non-numeric quantity instead of emitting NaN", () => {
+    it("keeps a non-numeric draft on screen with its reason (BUG-0561)", () => {
         const onChange = vi.fn();
         render({ quantity: new Decimal(1), onChange });
 
         typeInto(qtyField(), "abc");
 
         expect(onChange).not.toHaveBeenCalled();
+        expect(qtyField().value).toBe("abc");
+        expect(host.textContent).toContain(lookup("positionsList.invalidQuantity"));
     });
 
-    it("ignores a non-positive quantity", () => {
+    it("keeps a non-positive draft on screen with its reason (BUG-0561)", () => {
         const onChange = vi.fn();
         render({ quantity: new Decimal(1), onChange });
 
         typeInto(qtyField(), "-1");
 
         expect(onChange).not.toHaveBeenCalled();
+        expect(qtyField().value).toBe("-1");
+        expect(host.textContent).toContain(lookup("positionsList.quantityMustBePositive"));
     });
 });
 
+function pressEscape(field: HTMLInputElement) {
+    field.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flushSync();
+}
+
+describe("BUG-0561 — invalid drafts stay visible, block validity, revert explicitly", () => {
+    it.each([
+        ["-1", "positionsList.quantityMustBePositive"],
+        ["0", "positionsList.quantityMustBePositive"],
+        ["abc", "positionsList.invalidQuantity"],
+        ["Infinity", "positionsList.invalidQuantity"],
+    ])("keeps %s visible with an inline reason instead of reverting", (text, key) => {
+        const onChange = vi.fn();
+        const onValidityChange = vi.fn();
+        render({ quantity: new Decimal(1), onChange, onValidityChange });
+
+        typeInto(qtyField(), text);
+
+        expect(onChange).not.toHaveBeenCalled();
+        expect(qtyField().value).toBe(text);
+        expect(host.textContent).toContain(lookup(key));
+        expect(onValidityChange).toHaveBeenLastCalledWith(false);
+    });
+
+    it("reports validity again once the draft is corrected", () => {
+        const onChange = vi.fn();
+        const onValidityChange = vi.fn();
+        render({ quantity: new Decimal(1), onChange, onValidityChange });
+
+        typeInto(qtyField(), "-1");
+        expect(onValidityChange).toHaveBeenLastCalledWith(false);
+
+        typeInto(qtyField(), "0.5");
+
+        expect((onChange.mock.calls.at(-1)![0] as Decimal).toString()).toBe("0.5");
+        expect(onValidityChange).toHaveBeenLastCalledWith(true);
+        expect(host.textContent).not.toContain(lookup("positionsList.quantityMustBePositive"));
+    });
+
+    it("restores the committed value on explicit revert (Escape)", () => {
+        const onChange = vi.fn();
+        const onValidityChange = vi.fn();
+        render({ quantity: new Decimal(1), onChange, onValidityChange });
+
+        typeInto(qtyField(), "abc");
+        expect(qtyField().value).toBe("abc");
+
+        pressEscape(qtyField());
+
+        expect(qtyField().value).toBe("1");
+        expect(onChange).not.toHaveBeenCalled();
+        expect(onValidityChange).toHaveBeenLastCalledWith(true);
+        expect(host.textContent).not.toContain(lookup("positionsList.invalidQuantity"));
+    });
+
+    it("treats an emptied field as a silent revert, not an error", () => {
+        const onChange = vi.fn();
+        const onValidityChange = vi.fn();
+        render({ quantity: new Decimal(1), onChange, onValidityChange });
+
+        typeInto(qtyField(), "");
+
+        expect(qtyField().value).toBe("1");
+        expect(onChange).not.toHaveBeenCalled();
+        expect(onValidityChange).toHaveBeenLastCalledWith(true);
+        expect(host.textContent).not.toContain(lookup("positionsList.invalidQuantity"));
+    });
+});
 describe("FEAT-0256 — 100 % is a full close, not a rounded share", () => {
     it("emits the exact position amount at the top of the slider", () => {
         const onChange = vi.fn();

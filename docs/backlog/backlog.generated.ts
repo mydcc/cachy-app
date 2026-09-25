@@ -5358,7 +5358,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0561",
     "title": "Invalid add and close quantity drafts silently revert and submit the old amount",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0561-place-order-invalid-quantity",
     "priority": "P2",
     "milestone": "none",
     "editions": [

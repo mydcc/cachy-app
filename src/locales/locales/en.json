@@ -2737,6 +2737,8 @@
     "remainingAfter": "Remaining",
     "realizesPnl": "Realizes",
     "minimumTradeVolume": "Minimum: {min}",
+    "invalidQuantity": "Enter a valid quantity greater than zero.",
+    "quantityMustBePositive": "Quantity must be greater than zero.",
     "fullCloseBadge": "Closes the whole position",
     "roi": "ROI",
     "margin": "Margin",
