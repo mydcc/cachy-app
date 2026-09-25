@@ -78,8 +78,28 @@ a different item with its own honest name and its own warning copy.
 ## Open questions
 
 - **Which venues actually support it, and with which parameter shape?**
-  Unanswerable until the crawl is redone. The answer decides whether this is one
-  item or one per exchange.
+  Partly answered 2026-09-25 (web verification, no venue account used) —
+  see Verification status below. The answer is one item per exchange if
+  Bitunix ever gets an endpoint; until then Bitget-only is the only
+  buildable half.
+
+## Verification status (2026-09-25)
+
+- **Bitget: verified from public docs.** `POST /api/v2/mix/order/place-tpsl-order`
+  with `planType: moving_plan` (trailing stop, `rangeRate` callback range,
+  market execution, `size` required) and `POST /api/v2/mix/order/place-plan-order`
+  with `track_plan`, plus `orders-plan-pending` / `orders-plan-history`
+  (`track_plan`) and `modify-tpsl-order` coverage. Exchange-held, as required.
+- **Bitunix: not verifiable.** Public docs list only LIMIT/MARKET order types
+  with no trail parameters; no plan-order placement pages exist (guessed doc
+  URL 404s; sidebar has no plan section). Trailing exists in App/Web UI and
+  venue responses carry order type `5` (`TRAILING_STOP_MARKET`, already mapped
+  in `OpenOrdersList`/`OrderDetailsTooltip`/`OrderHistoryList`), but no
+  placement route is documented. The `/api/v1/futures/plan/` family is real
+  (`get_history_plan_orders` is used by the journal sync) yet place/cancel/
+  pending remain uncrawled — see the TODO in `INTEGRATION_STATUS.md`.
+- Decision 2026-09-25: document only; the item stays blocked until Bitunix
+  publishes a placement endpoint or a Bitget-only build is commissioned.
 
 ## Links
 
