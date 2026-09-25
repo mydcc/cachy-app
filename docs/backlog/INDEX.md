@@ -281,7 +281,7 @@ Counts by status: 💡 idea 24 · 📋 specced 31 · 🟢 ready 7 · ✅ done 38
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | security |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | 📋 specced | trade-panel |
 | [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | 📋 specced | execution |
-| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | 📋 specced | execution |
+| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | execution |
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | 📋 specced | calculation |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | 📋 specced | settings |
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | market-data |
@@ -625,7 +625,7 @@ Counts by status: 💡 idea 24 · 📋 specced 31 · 🟢 ready 7 · ✅ done 38
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | none | community, pro, private | C | none | — |
