@@ -4,7 +4,7 @@
 
 444 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 28 · 🟢 ready 7 · ✅ done 384 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 27 · 🟢 ready 7 · ✅ done 385 · ⛔ dropped 1
 
 ---
 
@@ -373,7 +373,7 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · 🟢 ready 7 · ✅ done 38
 | [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | ✅ done | security |
 | [BUG-0523](bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md) | Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day | P2 | ✅ done | execution |
 | [BUG-0552](bugs/BUG-0552-paper-config-break-fill-invariants.md) | Paper configuration accepts ranges that break fill quantity and price invariants | P2 | ✅ done | execution |
-| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | 📋 specced | calculation |
+| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | ✅ done | calculation |
 | [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | 📋 specced | execution |
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | 📋 specced | ui |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 📋 specced | execution |
@@ -766,7 +766,7 @@ Counts by status: 💡 idea 24 · 📋 specced 28 · 🟢 ready 7 · ✅ done 38
 | [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0523](bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md) | Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0552](bugs/BUG-0552-paper-config-break-fill-invariants.md) | Paper configuration accepts ranges that break fill quantity and price invariants | P2 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | 📋 specced | none | community, pro, private | C | none | — |
+| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | ✅ done | none | community, pro, private | C | none | — |
 | [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 📋 specced | none | community, pro, private | A | none | — |

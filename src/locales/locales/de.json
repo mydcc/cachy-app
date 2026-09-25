@@ -724,8 +724,9 @@
       "atrValuePlaceholder": "ATR Wert",
       "multiplierPlaceholder": "Multiplikator",
       "multiplierExample": "1,2",
-      "holdingCost24h": "Geschätzte 24h Haltekosten",
-      "holdingCost24hTooltip": "Geschätzte Funding-Gebühr für 24h Haltedauer basierend auf dem 7-Tage-Durchschnitt der Funding Rate.",
+      "holdingCost24hCost": "Geschätzte 24h Funding-Kosten",
+      "holdingCost24hIncome": "Geschätzte 24h Funding-Ertrag",
+      "holdingCost24hTooltip": "Geschätzte Funding-Zahlung für 24h Haltedauer (7-Tage-Durchschnitt der Funding Rate); je nach Seite Kosten oder Ertrag.",
       "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)",
       "tagsLabel": "Tags"
     },
@@ -3645,6 +3646,7 @@
       "sizeBelowMinimum": "Größe {size} liegt unter dem Instrumenten-Minimum von {minimum}.",
       "sizeAboveMaximum": "Größe {size} überschreitet das Instrumenten-Maximum von {maximum}.",
       "leverageAboveMaximum": "Hebel {leverage}x überschreitet das Instrumenten-Maximum von {maximum}x.",
+      "unknownTradeType": "Die Handelsrichtung ist unlesbar. Wähle Long oder Short, bevor du rechnest.",
       "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
     },
     "logic": {

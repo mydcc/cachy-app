@@ -26,6 +26,19 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
+import { Decimal } from "decimal.js";
+import en from "../../locales/locales/en.json";
+
+const dictionary = en as Record<string, unknown>;
+
+function getNestedTranslation(path: string): string {
+    let current: unknown = dictionary;
+    for (const part of path.split(".")) {
+        if (!current || typeof current !== "object") return path;
+        current = (current as Record<string, unknown>)[part];
+    }
+    return typeof current === "string" ? current : path;
+}
 
 const tradeStateMock = vi.hoisted(() => {
     const state: Record<string, unknown> = {
@@ -98,10 +111,19 @@ vi.mock("../../lib/windows/implementations/SymbolPickerWindow.svelte", () => ({
 
 vi.mock("../../locales/i18n", async () => {
     const { readable: r } = await import("svelte/store");
-    return { _: r((key: string) => key), locale: r("en"), setLocale: vi.fn() };
+    // Resolves through the real en.json, so a label assertion checks the
+    // copy that actually ships instead of the raw key.
+    return {
+        _: r((key: string) => getNestedTranslation(key)),
+        locale: r("en"),
+        setLocale: vi.fn(),
+    };
 });
 
 import TradeSetupInputs from "./TradeSetupInputs.svelte";
+import { fundingRateService } from "../../services/fundingRateService.svelte";
+import { marketState } from "../../stores/market.svelte";
+import { resultsState } from "../../stores/results.svelte";
 
 const BASE_PROPS = {
     symbol: "BTCUSDT",
@@ -211,5 +233,100 @@ describe("FEAT-0346 — TradeSetupInputs feeds only complete numbers to the stor
         suggestion?.click();
 
         expect(onselectsymbolsuggestion).toHaveBeenCalledWith("ETHUSDT");
+    });
+});
+
+describe("BUG-0559 — the funding estimate carries the trade direction", () => {
+    const COST_LABEL = "dashboard.tradeSetupInputs.holdingCost24hCost";
+    const INCOME_LABEL = "dashboard.tradeSetupInputs.holdingCost24hIncome";
+
+    // entry 50000 x position size 1 = 50000 notional, x 0.0001 average rate
+    // x 3 settlements per 8h interval = 15 USDT.
+    function seedFundingEstimate() {
+        tradeStateMock.tradeType = "long";
+        resultsState.positionSize = "1";
+        fundingRateService.historyState = {
+            BTCUSDT: {
+                items: [],
+                avg7d: new Decimal("0.0001"),
+                minRate: new Decimal("0.0001"),
+                maxRate: new Decimal("0.0001"),
+                fetchedAt: 0,
+                isLoading: false,
+                error: null,
+            },
+        };
+    }
+
+    function seedFundingInterval(fundingInterval: number) {
+        marketState.data["BTCUSDT"] = {
+            symbol: "BTCUSDT",
+            lastPrice: null,
+            indexPrice: null,
+            markPrice: null,
+            fundingRate: null,
+            nextFundingTime: null,
+            fundingInterval,
+            klines: {},
+        };
+    }
+
+    beforeEach(() => {
+        seedFundingEstimate();
+    });
+
+    afterEach(() => {
+        delete tradeStateMock.tradeType;
+        resultsState.positionSize = "";
+        fundingRateService.historyState = {};
+        delete marketState.data["BTCUSDT"];
+    });
+
+    it("calls a long's funding estimate a cost with the danger class", () => {
+        render();
+
+        expect(host.textContent).toContain(getNestedTranslation(COST_LABEL));
+        expect(host.textContent).not.toContain(getNestedTranslation(INCOME_LABEL));
+        expect(host.textContent).toContain("+15 USDT");
+        const estimate = host.querySelector('[data-testid="funding-estimate-24h"]');
+        expect(estimate?.classList.contains("text-[var(--danger-color)]")).toBe(true);
+        expect(estimate?.classList.contains("text-[var(--success-color)]")).toBe(false);
+    });
+
+    it("calls a short's funding estimate income with the success class", () => {
+        tradeStateMock.tradeType = "short";
+        render();
+
+        expect(host.textContent).toContain(getNestedTranslation(INCOME_LABEL));
+        expect(host.textContent).not.toContain(getNestedTranslation(COST_LABEL));
+        expect(host.textContent).toContain("-15 USDT");
+        expect(host.textContent).not.toContain("+15 USDT");
+        const estimate = host.querySelector('[data-testid="funding-estimate-24h"]');
+        expect(estimate?.classList.contains("text-[var(--success-color)]")).toBe(true);
+        expect(estimate?.classList.contains("text-[var(--danger-color)]")).toBe(false);
+    });
+
+    it("normalizes mixed-case short directions", () => {
+        tradeStateMock.tradeType = "ShOrT";
+        render();
+
+        expect(host.textContent).toContain("-15 USDT");
+    });
+
+    it("hides the estimate for an unknown direction", () => {
+        tradeStateMock.tradeType = "unknown";
+        render();
+
+        expect(host.querySelector('[data-testid="funding-estimate-24h"]')).toBeNull();
+        expect(host.textContent).not.toContain(getNestedTranslation(COST_LABEL));
+        expect(host.textContent).not.toContain(getNestedTranslation(INCOME_LABEL));
+    });
+
+    it("hides the estimate when the funding interval is unusable", () => {
+        seedFundingInterval(0);
+        render();
+
+        expect(host.textContent).not.toContain(getNestedTranslation(COST_LABEL));
+        expect(host.textContent).not.toContain(getNestedTranslation(INCOME_LABEL));
     });
 });

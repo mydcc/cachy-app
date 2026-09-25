@@ -5337,7 +5337,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0559",
     "title": "Estimated funding cost ignores long and short direction",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/0559-funding-side",
     "priority": "P2",
     "milestone": "none",
     "editions": [

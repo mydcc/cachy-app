@@ -724,8 +724,9 @@
       "atrValuePlaceholder": "ATR Value",
       "multiplierPlaceholder": "Multiplier",
       "multiplierExample": "1.2",
-      "holdingCost24h": "Est. 24h Holding Cost",
-      "holdingCost24hTooltip": "Estimated funding fee for 24h holding duration based on the 7-day average funding rate.",
+      "holdingCost24hCost": "Est. 24h Funding Cost",
+      "holdingCost24hIncome": "Est. 24h Funding Income",
+      "holdingCost24hTooltip": "Estimated funding payment over 24h holding (7-day average rate); a cost or income depending on position side.",
       "tagsPlaceholder": "Add tags... (e.g. #trend)",
       "tagsLabel": "Tags"
     },
@@ -3687,6 +3688,7 @@
       "sizeBelowMinimum": "Size {size} is below the instrument minimum of {minimum}.",
       "sizeAboveMaximum": "Size {size} exceeds the instrument maximum of {maximum}.",
       "leverageAboveMaximum": "Leverage {leverage}x exceeds the instrument maximum of {maximum}x.",
+      "unknownTradeType": "Trade direction is unreadable. Choose long or short before calculating.",
       "generic": "An error occurred during calculation."
     },
     "logic": {
