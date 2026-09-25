@@ -28,7 +28,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
-  import { validateTpSlPrice, normalizePositionSide, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
+  import { validateTpSlPrice, normalizePositionSide, resolveTpSlPosition, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
 
   interface Props {
     order: TpSlOrder | null;
@@ -64,8 +64,14 @@
    * something else: a control that looks right and is computing from
    * defaults is worse than no control.
    */
+  /*
+   * BUG-0553: scoped by positionId; a legacy plan without one borrows
+   * context only when exactly one same-symbol position is open. Anything
+   * ambiguous resolves to no position, and `tpSlContext` below degrades to
+   * the plain trigger-price field — the fail-closed behavior above.
+   */
   const position = $derived(
-    order ? accountState.positions.find((p) => p.symbol === order.symbol) : undefined,
+    order ? resolveTpSlPosition(accountState.positions, order) : undefined,
   );
 
   const tpSlContext = $derived.by<TpSlContext | null>(() => {
