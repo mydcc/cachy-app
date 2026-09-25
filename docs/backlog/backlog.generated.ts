@@ -2228,7 +2228,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0548",
     "title": "Pending-order quantity amendments bypass configured risk limits",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2403,6 +2403,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0560-credential-card-without-private-verification.md"
+  },
+  {
+    "id": "BUG-0567",
+    "title": "Shrinking modify with widened stop escapes the loss-per-trade ceiling",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0548"
+    ],
+    "file": "bugs/BUG-0567-shrink-stop-loss-ceiling.md"
   },
   {
     "id": "FEAT-0014",

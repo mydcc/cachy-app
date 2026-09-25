@@ -2,9 +2,9 @@
 
 # Backlog index
 
-440 items. How to read and add them: [README.md](README.md).
+441 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 378 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 379 · ⛔ dropped 1
 
 ---
 
@@ -276,7 +276,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | ✅ done | exchange |
 | [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | ✅ done | alerts |
 | [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | execution |
-| [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | 📋 specced | execution |
+| [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | ✅ done | execution |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | 📋 specced | execution |
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | security |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | 📋 specced | trade-panel |
@@ -286,6 +286,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | 📋 specced | settings |
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | market-data |
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 📋 specced | security |
+| [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -616,7 +617,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0527](bugs/BUG-0527-bitget-single-close-always-throws-position-not-found.md) | Single close and flash close on Bitget always throw POSITION_NOT_FOUND because nothing feeds the OMS there | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0541](bugs/BUG-0541-promoted-bot-without-stop-never-submits.md) | Promoted bot without stop can never submit and fails silently as no-stop | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | 📋 specced | none | community, pro, private | A | none | — |
@@ -626,6 +627,7 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | none | community, pro, private | C | none | — |
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -954,4 +956,4 @@ Counts by status: 💡 idea 23 · 📋 specced 31 · 🟢 ready 7 · ✅ done 37
 
 ---
 
-Next free number: **0565**
+Next free number: **0568**

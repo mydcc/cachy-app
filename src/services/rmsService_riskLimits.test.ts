@@ -233,11 +233,19 @@ describe("FEAT-0013 — each limit refuses, and names itself", () => {
 
     it("max loss per day", () => {
         riskState.setLimit("maxDailyLossUsdt", "100");
-        journal.entries = [closedTrade("-120", Date.now())];
-        const refusal = orderGate.verify(openIntent()).refusal;
-        expect(refusal?.field).toBe("maxDailyLoss");
-        expect(refusal?.values.actual).toBe("120");
-        expect(refusal?.values.limit).toBe("100");
+        // Frozen clock: stamping the trade and assessing the day with two
+        // real Date.now() calls flaked across a UTC-midnight rollover.
+        const noon = Date.UTC(2026, 7, 16, 12, 0, 0);
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(noon);
+        try {
+            journal.entries = [closedTrade("-120", noon - 1000)];
+            const refusal = orderGate.verify(openIntent()).refusal;
+            expect(refusal?.field).toBe("maxDailyLoss");
+            expect(refusal?.values.actual).toBe("120");
+            expect(refusal?.values.limit).toBe("100");
+        } finally {
+            nowSpy.mockRestore();
+        }
     });
 
     it("max concurrent open positions", () => {
@@ -257,6 +265,23 @@ describe("FEAT-0013 — limits allow what they should", () => {
         // Fee-inclusive stop risk is 10.5558; exactly at the limit passes.
         riskState.setLimit("maxLossPerTradeUsdt", "10.5558");
         expect(orderGate.verify(openIntent()).approved).toBe(true);
+    });
+
+    it("refuses a loss exactly at the daily limit", () => {
+        // Deliberate asymmetry, documented: position and per-trade limits
+        // use strict gt (exactly at the limit passes, see above), the daily
+        // limit refuses on lt-negation (exactly at the limit refuses).
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        const noon = Date.UTC(2026, 7, 16, 12, 0, 0);
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(noon);
+        try {
+            journal.entries = [closedTrade("-100", noon - 1000)];
+            const refusal = orderGate.verify(openIntent()).refusal;
+            expect(refusal?.field).toBe("maxDailyLoss");
+            expect(refusal?.values.actual).toBe("100");
+        } finally {
+            nowSpy.mockRestore();
+        }
     });
 
     it("does not count adding to a position already held", () => {
@@ -1059,5 +1084,237 @@ describe("FEAT-0013 — corrupt persisted state", () => {
         riskState.reloadFromStorage();
         expect(riskState.limit("maxLeverage")).toBeNull();
         expect(riskState.limit("maxDailyLossUsdt")?.toString()).toBe("300");
+    });
+});
+
+// BUG-0548 — an amendment that enlarges a resting order decides a larger
+// exposure than the trader approved when it was placed, so it faces the
+// same limits an open does: measured at the gate, refused before any
+// signed request. Price-only, shrinking and TP/SL-only amendments change
+// nothing about size and stay usable with every limit configured.
+describe("BUG-0548 — quantity-increasing amendments face the open's limits", () => {
+    /** 1 BTC at 50 000 = 50 000 USDT notional, enlarged from 0.2; a 500 stop. */
+    function enlargingModifyIntent(): OrderIntent {
+        return {
+            kind: "modify",
+            endpoint: "/api/orders",
+            payload: {
+                type: "modify-order",
+                orderId: "o-9",
+                symbol: "BTCUSDT",
+                qty: "1",
+                price: "50000",
+                slPrice: "49500",
+            },
+            displayed: {
+                ...ACCOUNT,
+                symbol: "BTCUSDT",
+                orderId: "o-9",
+                entryPrice: new Decimal(50000),
+                // What the real constructor always sends post-BUG-0550; the
+                // stop below the entry is long-correct, so the direction
+                // rule passes and the limit under test decides.
+                positionSide: "LONG",
+                stopLossPrice: new Decimal(49500),
+                modifyQuantity: new Decimal(1),
+                previousQuantity: new Decimal("0.2"),
+                accountSize: new Decimal(1000),
+                stepSize: new Decimal("0.0001"),
+            },
+        };
+    }
+
+    /** Every limit the amendment could hide behind, all configured tightly. */
+    function everyLimitTight() {
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        riskState.setLimit("maxPositionSizePercent", "1");
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        riskState.setLimit("maxDailyLossUsdt", "100");
+    }
+
+    it("refuses an amendment that takes the order past the absolute cap", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        const refusal = orderGate.verify(enlargingModifyIntent()).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.values.limit).toBe("10000");
+        expect(refusal?.values.actual).toBe("50000");
+    });
+
+    it("enforces the percentage cap on the amended size", () => {
+        // 1 % of 1 000 = 10 < 50 000.
+        riskState.setLimit("maxPositionSizePercent", "1");
+        const refusal = orderGate.verify(enlargingModifyIntent()).refusal;
+        expect(refusal?.field).toBe("maxPositionSizePercent");
+        expect(refusal?.values.limit).toBe("10");
+        expect(refusal?.values.actual).toBe("50000");
+    });
+
+    it("refuses the amendment the percentage cap cannot measure", () => {
+        riskState.setLimit("maxPositionSizePercent", "1");
+        const intent = enlargingModifyIntent();
+        delete intent.displayed.accountSize;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxPositionSizePercent");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("measures the amended order against the loss-per-trade limit", () => {
+        // Stop 500 away on 1 BTC: 500 move plus round-trip fees on 50 000
+        // notional, comfortably past 400 and comfortably under 600.
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        expect(orderGate.verify(enlargingModifyIntent()).refusal?.field).toBe(
+            "maxLossPerTrade",
+        );
+
+        riskState.setLimit("maxLossPerTradeUsdt", "600");
+        expect(orderGate.verify(enlargingModifyIntent()).approved).toBe(true);
+    });
+
+    it("blocks on the day's loss limit", () => {
+        riskState.setLimit("maxDailyLossUsdt", "100");
+        // Frozen clock, same UTC-midnight reason as "max loss per day".
+        const noon = Date.UTC(2026, 7, 16, 12, 0, 0);
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(noon);
+        try {
+            journal.entries = [closedTrade("-150", noon - 1000)];
+            expect(orderGate.verify(enlargingModifyIntent()).refusal?.field).toBe(
+                "maxDailyLoss",
+            );
+        } finally {
+            nowSpy.mockRestore();
+        }
+    });
+
+    it("refuses an amendment with no stop to measure when the limit is set", () => {
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const intent = enlargingModifyIntent();
+        delete intent.displayed.stopLossPrice;
+        delete intent.payload.slPrice;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("measures an amendment without previousQuantity as an increase", () => {
+        // Fail closed: absent evidence that the amendment is harmless, the
+        // limits decide rather than the absence of evidence.
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        const intent = pendingOrderModifyIntent();
+        intent.displayed.modifyQuantity = new Decimal(1);
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+    });
+
+    it("leaves a price-only amendment alone", () => {
+        everyLimitTight();
+        const intent = enlargingModifyIntent();
+        intent.payload.qty = "0.2";
+        intent.displayed.modifyQuantity = new Decimal("0.2");
+        intent.payload.price = "50100";
+        intent.displayed.entryPrice = new Decimal(50100);
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("leaves a shrinking amendment alone", () => {
+        everyLimitTight();
+        const intent = enlargingModifyIntent();
+        intent.payload.qty = "0.1";
+        intent.displayed.modifyQuantity = new Decimal("0.1");
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("leaves a TP/SL-only amendment alone", () => {
+        everyLimitTight();
+        expect(orderGate.verify(tpSlModifyIntent()).approved).toBe(true);
+    });
+
+    it("refuses before the transport runs", async () => {
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        const transport = vi.fn();
+
+        await expect(orderGate.submit(enlargingModifyIntent(), transport)).rejects.toBeInstanceOf(
+            OrderRefusedError,
+        );
+        expect(transport).not.toHaveBeenCalled();
+    });
+
+    it("measures a previousQuantity it cannot trust as an increase", () => {
+        // Only a finite, positive resting size proves the amendment
+        // harmless — absent is covered above; null, NaN, infinite, zero
+        // and negative take the same fail-closed path.
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        for (const previous of [
+            null,
+            new Decimal(NaN),
+            new Decimal(Infinity),
+            new Decimal(0),
+            new Decimal("-1"),
+        ]) {
+            const intent = enlargingModifyIntent();
+            intent.displayed.previousQuantity = previous as unknown as Decimal;
+            expect(orderGate.verify(intent).refusal?.field).toBe("maxPositionSize");
+        }
+    });
+
+    it("measures a stated but unparseable quantity as an increase", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        const intent = enlargingModifyIntent();
+        intent.payload.qty = "bogus";
+        delete intent.displayed.modifyQuantity;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("refuses a displayed/payload stop divergence before measuring it", () => {
+        // Two walls, in order: checkPrices refuses the disagreement itself
+        // — a crafted tight-displayed/wide-payload intent never reaches the
+        // loss math — and the loss branch measures the payload the wire
+        // executes, so the measurement stays on the executed values even
+        // where no displayed value exists to agree with.
+        riskState.setLimit("maxLossPerTradeUsdt", "600");
+        const intent = enlargingModifyIntent();
+        intent.payload.slPrice = "40000";
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("stopLoss");
+        expect(refusal?.reason).toBe("mismatch");
+    });
+
+    it("treats a non-finite measured loss as unmeasurable", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "100000");
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const intent = enlargingModifyIntent();
+        delete intent.payload.slPrice;
+        intent.displayed.stopLossPrice = new Decimal(NaN);
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
+        expect(refusal?.reason).toBe("missing");
+    });
+
+    it("leaves an equal-quantity amendment alone (gt is strict)", () => {
+        // Documents the boundary: exactly holding size is not an increase.
+        everyLimitTight();
+        const intent = enlargingModifyIntent();
+        intent.payload.qty = "0.2";
+        intent.displayed.modifyQuantity = new Decimal("0.2");
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("refuses a zero quantity at the structural layer", () => {
+        const intent = enlargingModifyIntent();
+        intent.payload.qty = "0";
+        intent.displayed.modifyQuantity = new Decimal(0);
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("qty");
+    });
+
+    it("measures a bitget amendment with bitget rates", () => {
+        // Venue-parametrised: the loss math must not be bitunix-only. The
+        // 500 move alone already clears the 400 limit whatever the venue
+        // rate resolves to.
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const intent = enlargingModifyIntent();
+        intent.displayed.provider = "bitget";
+        expect(orderGate.verify(intent).refusal?.field).toBe("maxLossPerTrade");
     });
 });

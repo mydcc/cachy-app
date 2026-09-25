@@ -2247,6 +2247,18 @@ class TradeService {
         if (params.tpOrderPrice !== undefined) payload.tpOrderPrice = formatApiNum(params.tpOrderPrice);
         if (params.slOrderPrice !== undefined) payload.slOrderPrice = formatApiNum(params.slOrderPrice);
 
+        // Account equity for the percentage position-size cap — the same
+        // tradeState the order panel reads (BUG-0548). Unparseable means the
+        // cap is unmeasurable and an enlarging amendment refuses rather than
+        // passing unmeasured (BUG-0508).
+        let accountSize: Decimal | undefined;
+        try {
+            const parsed = new Decimal(tradeState.accountSize);
+            accountSize = parsed.isFinite() && parsed.gt(0) ? parsed : undefined;
+        } catch {
+            accountSize = undefined;
+        }
+
         // The displayed side of a modify is what the caller asked for, before
         // formatApiNum() touched it. Comparing the formatted payload back
         // against the raw request is what catches a serialisation defect —
@@ -2310,6 +2322,23 @@ class TradeService {
                 ));
             }
         }
+        //
+        // The size the resting order had before this amendment — the gate
+        // only knows an amendment enlarges exposure by comparing the new
+        // quantity against this one (BUG-0548). A corrupt live reading must
+        // not throw raw past the gate: undefined feeds the fail-closed
+        // increase path instead. (The live read itself races the gate by
+        // construction — one synchronous round trip, no user action in
+        // between — so the window is minimal by design. A partial fill
+        // landing inside it leaves a stale previousQuantity; a stale-high
+        // reading fails toward the increase path, so the residual is
+        // minimal by construction rather than by locking.)
+        let liveAmount: Decimal | undefined;
+        try {
+            liveAmount = new Decimal(liveOrder.amount);
+        } catch {
+            liveAmount = undefined;
+        }
         return await this.gatedRequest({
             kind: "modify",
             endpoint: "/api/orders",
@@ -2325,6 +2354,11 @@ class TradeService {
                 // this request was merged with — the gate compares the
                 // payload back against it (BUG-0505).
                 modifyQuantity,
+                // The size the resting order had before this amendment — the
+                // gate only knows an amendment enlarges exposure by comparing
+                // the new quantity against this one (BUG-0548).
+                previousQuantity: liveAmount,
+                accountSize,
             },
         });
     }
