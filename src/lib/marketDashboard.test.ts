@@ -26,6 +26,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { Decimal } from "decimal.js";
 import {
     buildRows,
     marketHeat,
@@ -34,9 +35,29 @@ import {
     signalFor,
     trendCellClass,
     analysisScope,
+    resolveRowQuote,
     TOP_FAVOURITES_COUNT,
+    type RowQuoteDeps,
 } from "./marketDashboard";
 import type { SymbolAnalysis } from "../stores/analysis.svelte";
+import {
+    MAX_MARK_PRICE_AGE_MS,
+    resolveMarketQuote,
+} from "../services/priceResolution";
+
+/** Production wiring for the freshness port (test files may import services). */
+const deps: RowQuoteDeps = {
+    maxAgeMs: MAX_MARK_PRICE_AGE_MS,
+    resolveStoreQuote: (input, now) =>
+        resolveMarketQuote(
+            {
+                lastPrice: input.lastPrice ?? null,
+                lastPriceUpdatedAt: input.lastPriceUpdatedAt,
+                lastPriceSource: input.lastPriceSource,
+            },
+            now,
+        ),
+};
 
 function analysis(over: Partial<SymbolAnalysis> & { symbol: string }): SymbolAnalysis {
     return {
@@ -243,5 +264,82 @@ describe("trendCellClass", () => {
 
     it("keeps bullish and bearish distinct", () => {
         expect(trendCellClass("bullish")).not.toBe(trendCellClass("bearish"));
+    });
+});
+
+describe("resolveRowQuote (BUG-0558)", () => {
+    const NOW = 1_700_000_000_000;
+
+    function entry(over: Record<string, unknown> = {}) {
+        return {
+            lastPrice: new Decimal("60000"),
+            lastPriceUpdatedAt: NOW,
+            lastPriceSource: "ws" as const,
+            ...over,
+        };
+    }
+
+    it("prefers a fresh store quote over the analysis snapshot", () => {
+        const resolved = resolveRowQuote(
+            entry(),
+            analysis({ symbol: "BTCUSDT", price: "59999", updatedAt: NOW }),
+            NOW,
+            deps,
+        );
+
+        expect(resolved.price).toBe("60000");
+        expect(resolved.source).toBe("ws");
+        expect(resolved.stale).toBe(false);
+    });
+
+    it("keeps a stale store quote labelled instead of falling back to the snapshot", () => {
+        const resolved = resolveRowQuote(
+            entry({ lastPriceUpdatedAt: NOW - MAX_MARK_PRICE_AGE_MS - 1 }),
+            analysis({ symbol: "BTCUSDT", price: "59999", updatedAt: NOW }),
+            NOW,
+            deps,
+        );
+
+        expect(resolved.price).toBe("60000");
+        expect(resolved.source).toBe("ws");
+        expect(resolved.stale).toBe(true);
+    });
+
+    it("falls back to the snapshot with its own age when the store has no price", () => {
+        const resolved = resolveRowQuote(
+            undefined,
+            analysis({ symbol: "BTCUSDT", price: "59999", updatedAt: NOW - 5_000 }),
+            NOW,
+            deps,
+        );
+
+        expect(resolved.price).toBe("59999");
+        expect(resolved.source).toBe("snapshot");
+        expect(resolved.stale).toBe(false);
+    });
+
+    it("marks an old snapshot stale under the same maximum age", () => {
+        const resolved = resolveRowQuote(
+            undefined,
+            analysis({
+                symbol: "BTCUSDT",
+                price: "59999",
+                updatedAt: NOW - MAX_MARK_PRICE_AGE_MS - 1,
+            }),
+            NOW,
+            deps,
+        );
+
+        expect(resolved.price).toBe("59999");
+        expect(resolved.source).toBe("snapshot");
+        expect(resolved.stale).toBe(true);
+    });
+
+    it("resolves neither as honestly unpriced, never as zero", () => {
+        const resolved = resolveRowQuote(undefined, undefined, NOW, deps);
+
+        expect(resolved.price).toBeNull();
+        expect(resolved.source).toBe("none");
+        expect(resolved.stale).toBe(false);
     });
 });

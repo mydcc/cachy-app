@@ -97,7 +97,7 @@ describe('BitunixWS Fast Path Fallback', () => {
         // are the sole source of truth for fundingRate (see fundingRateService.ts).
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
             indexPrice: new Decimal('50001'),
-        });
+        }, "ws");
     });
 
     it('should parse mark price from the price channel (BUG-0055)', () => {
@@ -112,7 +112,7 @@ describe('BitunixWS Fast Path Fallback', () => {
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', {
             indexPrice: new Decimal('50001'),
             markPrice: new Decimal('50002'),
-        });
+        }, "ws");
     });
 
     it('should execute trade listeners exactly once for each trade', () => {
@@ -147,7 +147,7 @@ describe('BitunixWS Fast Path Fallback', () => {
 
         expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({
             lastPrice: '100' // From mock
-        }));
+        }), "ws");
     });
 
     it('should handle topic alias for channel', () => {
@@ -161,7 +161,7 @@ describe('BitunixWS Fast Path Fallback', () => {
 
         expect(marketState.updateSymbol).toHaveBeenCalledWith('SOLUSDT', expect.objectContaining({
             lastPrice: '100' // From mock
-        }));
+        }), "ws");
     });
 
     it('should FALLBACK to standard validation if Fast Path throws (using Ticker channel)', () => {
@@ -190,7 +190,7 @@ describe('BitunixWS Fast Path Fallback', () => {
         // 5. marketState was updated
 
         expect(normalizeMock).toHaveBeenCalledTimes(2);
-        expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT', expect.any(Object));
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('ETHUSDT', expect.any(Object), "ws");
     });
 
     it('should handle missing fields in Fast Path gracefully without crashing', () => {

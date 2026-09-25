@@ -18,8 +18,9 @@
 import { Decimal } from "decimal.js";
 import type { RawPriceUpdate, RawTickerUpdate, RawDepthUpdate, RawKlineWsMessage } from "./types";
 import type { MarketUpdatePayload } from "./types";
+import type { QuoteSource } from "../../services/priceResolution";
 
-export function updatePrice(marketManager: import("../market.svelte").MarketManager, symbol: string, data: RawPriceUpdate) {
+export function updatePrice(marketManager: import("../market.svelte").MarketManager, symbol: string, data: RawPriceUpdate, source: QuoteSource = "ws") {
   try {
     const update: MarketUpdatePayload = {
       nextFundingTime: data.nextFundingTime,
@@ -30,13 +31,13 @@ export function updatePrice(marketManager: import("../market.svelte").MarketMana
     if (data.markPrice !== undefined) update.markPrice = data.markPrice;
     if (data.fundingRate !== undefined) update.fundingRate = data.fundingRate;
 
-    marketManager.updateSymbol(symbol, update);
+    marketManager.updateSymbol(symbol, update, source);
   } catch {
       // ...
   }
 }
 
-export function updateTicker(marketManager: import("../market.svelte").MarketManager, symbol: string, data: RawTickerUpdate) {
+export function updateTicker(marketManager: import("../market.svelte").MarketManager, symbol: string, data: RawTickerUpdate, source: QuoteSource = "ws") {
   try {
     const update: MarketUpdatePayload = {};
 
@@ -66,7 +67,7 @@ export function updateTicker(marketManager: import("../market.svelte").MarketMan
       update.priceChangePercent = new Decimal(data.change as Decimal.Value).times(100);
     }
 
-    marketManager.updateSymbol(symbol, update);
+    marketManager.updateSymbol(symbol, update, source);
   } catch {
      // ...
   }

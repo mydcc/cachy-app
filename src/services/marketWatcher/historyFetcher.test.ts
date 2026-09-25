@@ -192,6 +192,9 @@ describe("BUG-0512 — the gap-bridge carries the venue mark price", () => {
         expect(updateSymbol).toHaveBeenCalledWith(
             "BTCUSDT",
             expect.objectContaining({ lastPrice: last, markPrice: mark }),
+            // BUG-0558: the bridge labels its quotes so tiles can tell a
+            // gap-fill from a live WS tick.
+            "rest",
         );
     });
 
@@ -215,6 +218,7 @@ describe("BUG-0512 — the gap-bridge carries the venue mark price", () => {
         expect(updateSymbol).toHaveBeenCalledWith(
             "BTCUSDT",
             expect.objectContaining({ lastPrice: last, markPrice: undefined }),
+            "rest",
         );
     });
 });

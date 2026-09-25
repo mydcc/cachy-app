@@ -50,6 +50,17 @@ import { Decimal } from "decimal.js";
  */
 export const MAX_MARK_PRICE_AGE_MS = 10_000;
 
+/**
+ * Where a market quote was last observed (BUG-0558). WS ticks are the
+ * primary source; REST only fills gaps (the historyFetcher bridge poll).
+ * `"snapshot"` is never stored — analysis snapshots carry their own
+ * `updatedAt` and are resolved at the display layer.
+ */
+export type QuoteSource = "ws" | "rest";
+
+/** Display-level source: the stored source, or an analysis snapshot. */
+export type MarketQuoteSource = QuoteSource | "snapshot";
+
 export interface PriceInputs {
   /** Store mark price (WS primary, REST bridge). */
   markPrice: Decimal | null | undefined;
@@ -124,4 +135,51 @@ export function totalPricedUnrealizedPnl(
     (sum, leg) => (leg.unpriced ? sum : sum.plus(leg.unrealizedPnl)),
     new Decimal(0),
   );
+}
+
+export interface MarketQuoteInputs {
+  /** Store last price (WS primary, REST gap-bridge). */
+  lastPrice: Decimal | null | undefined;
+  /** Stamped in applyUpdate whenever a real last-price value arrives. */
+  lastPriceUpdatedAt: number | undefined;
+  /** Source of the last stamped value; undefined when never stamped. */
+  lastPriceSource: QuoteSource | undefined;
+}
+
+export interface ResolvedMarketQuote {
+  /** Last-known value when one exists — stale quotes stay visible, labelled. */
+  price: Decimal | undefined;
+  /** True when the quote is not provably fresh. The caller badges from this. */
+  stale: boolean;
+  source: QuoteSource | undefined;
+  /** Milliseconds since the stamp, or null when there is no stamp. */
+  ageMs: number | null;
+}
+
+/**
+ * BUG-0558 — which market quote may be shown as live, and which may seed
+ * the calculator.
+ *
+ * Same age semantics as `resolvePricedMark` (BUG-0512), one tier simpler:
+ * market tiles have no substitute quantity, so anything not provably fresh
+ * keeps its last-known value with `stale: true`, and the caller — never this
+ * function — decides whether a stale value may become an entry price. No
+ * price at all resolves unpriced, so the tile renders "—" instead of $0.
+ */
+export function resolveMarketQuote(
+  inputs: MarketQuoteInputs,
+  now: number = Date.now(),
+): ResolvedMarketQuote {
+  const { lastPrice, lastPriceUpdatedAt, lastPriceSource } = inputs;
+  if (!isPrice(lastPrice)) {
+    return { price: undefined, stale: false, source: undefined, ageMs: null };
+  }
+  if (lastPriceUpdatedAt === undefined) {
+    return { price: lastPrice, stale: true, source: lastPriceSource, ageMs: null };
+  }
+  const ageMs = now - lastPriceUpdatedAt;
+  if (ageMs <= MAX_MARK_PRICE_AGE_MS) {
+    return { price: lastPrice, stale: false, source: lastPriceSource, ageMs };
+  }
+  return { price: lastPrice, stale: true, source: lastPriceSource, ageMs };
 }

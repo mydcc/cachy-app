@@ -40,8 +40,15 @@
         topOpportunity,
         signalFor,
         trendCellClass,
+        resolveRowQuote,
         type DashboardRow,
+        type ResolvedRowQuote,
+        type RowQuoteDeps,
     } from "../../lib/marketDashboard";
+    import {
+        MAX_MARK_PRICE_AGE_MS,
+        resolveMarketQuote,
+    } from "../../services/priceResolution";
 
     // Icons
     const ICONS = {
@@ -52,6 +59,36 @@
     };
 
     type Row = DashboardRow;
+
+    /*
+     * BUG-0558: lib declares the freshness port, the component supplies the
+     * service implementation (components may import both layers).
+     */
+    const rowQuoteDeps: RowQuoteDeps = {
+        maxAgeMs: MAX_MARK_PRICE_AGE_MS,
+        resolveStoreQuote: (input, now) =>
+            resolveMarketQuote(
+                {
+                    lastPrice: input.lastPrice ?? null,
+                    lastPriceUpdatedAt: input.lastPriceUpdatedAt,
+                    lastPriceSource: input.lastPriceSource,
+                },
+                now,
+            ),
+    };
+
+    /*
+     * BUG-0558: re-resolve badge ages every 5 s (like the favourite tiles),
+     * otherwise a quote going stale while the modal is open stays green.
+     * The price itself only moves on real ticks.
+     */
+    let nowTick = $state(Date.now());
+    $effect(() => {
+        const id = setInterval(() => {
+            nowTick = Date.now();
+        }, 5000);
+        return () => clearInterval(id);
+    });
 
     // All row/aggregate rules live in lib/marketDashboard.ts so they can be
     // tested directly -- they decide whether a user sees a trading signal or
@@ -144,25 +181,42 @@
     function selectRow(row: Row): void {
         if (!row.symbol) return;
         const upper = row.symbol.toUpperCase();
-        const price = marketState.data[row.symbol]?.lastPrice;
-        tradeState.update((s) => {
-            const next = {
-                ...s,
-                symbol: upper,
-                useAtrSl: true,
-                atrMode: "auto" as "auto" | "manual",
-            };
-            if (price) {
-                next.entryPrice = new Decimal(price).toString();
-            }
-            return next;
-        });
-        app.fetchAllAnalysisData(upper);
-        toastService.success(
-            $_("app.marketDashboard.symbolLoaded", {
-                values: { symbol: upper },
-            }),
+        /*
+         * BUG-0558: same refusal as the favourite tiles — a stale row quote
+         * adopts the symbol but never silently becomes the entry price.
+         * BUG-0556: routing through applySymbolRefresh also preserves the
+         * stop strategy instead of forcing ATR.
+         */
+        const quote = resolveRowQuote(
+            marketState.data[row.symbol],
+            row.analysis,
+            nowTick,
+            rowQuoteDeps,
         );
+        if (quote.price && !quote.stale) {
+            tradeState.applySymbolRefresh({
+                symbol: upper,
+                provider: settingsState.apiProvider,
+                entryPrice: quote.price,
+            });
+            app.fetchAllAnalysisData(upper);
+            toastService.success(
+                $_("app.marketDashboard.symbolLoaded", {
+                    values: { symbol: upper },
+                }),
+            );
+        } else {
+            tradeState.applySymbolRefresh({
+                symbol: upper,
+                provider: settingsState.apiProvider,
+            });
+            app.fetchAllAnalysisData(upper);
+            toastService.warning(
+                $_("app.marketDashboard.staleQuoteRefused", {
+                    values: { symbol: upper },
+                }),
+            );
+        }
         if (isMobileDevice() && row.analysed) {
             uiState.toggleMarketDashboardModal(false);
         }
@@ -231,17 +285,27 @@
         };
     });
 
+    /*
+     * BUG-0558: every row quote resolves through one freshness rule —
+     * live store quote first (labelled stale when its channel went quiet),
+     * analysis snapshot second, honestly unpriced third. The template
+     * badges from `quoteOf` instead of trusting either value as live, and
+     * `selectRow` refuses a stale value as a silent calculator seed.
+     */
+    function quoteOf(row: Row): ResolvedRowQuote {
+        return resolveRowQuote(
+            marketState.data[row.symbol],
+            row.analysis,
+            nowTick,
+            rowQuoteDeps,
+        );
+    }
+
+    /** Rows whose quote is not provably fresh — disclosed in the strip. */
+    let staleRows = $derived(rows.filter((r) => quoteOf(r).stale));
+
     function getLivePrice(row: Row): string | null {
-        // Live ticker first, analysis snapshot second, nothing third.
-        //
-        // Returning null rather than "0" matters: a price of $0.000000 next to
-        // a 0.00% change reads as a real quote for a worthless asset, which is
-        // how every unanalysed row looked before.
-        const live = marketState.data[row.symbol];
-        if (live && live.lastPrice) {
-            return new Decimal(live.lastPrice).toString();
-        }
-        return row.analysis?.price ?? null;
+        return quoteOf(row).price;
     }
 
     function getLiveChange(row: Row): number | null {
@@ -316,6 +380,15 @@
                         },
                     })}
                 </span>
+                {#if staleRows.length > 0}
+                    <span
+                        class="text-[var(--warning-color)] font-semibold truncate text-[10px] sm:text-[11px]"
+                    >
+                        · {$_("app.marketDashboard.staleRows", {
+                            values: { count: staleRows.length },
+                        })}
+                    </span>
+                {/if}
             </div>
 
             <!-- Market Internals: three cards from sm up; below sm ONE
@@ -577,9 +650,44 @@
                 <div
                     class="overflow-y-auto custom-scrollbar flex-1 divide-y divide-[var(--border-color)]"
                 >
+                    {#snippet quoteBadge(quote: ResolvedRowQuote, block: boolean)}
+                        {#if quote.stale || quote.source === "snapshot"}
+                            <span
+                                class="{block
+                                    ? 'block '
+                                    : ''}text-[10px] font-semibold {quote.source ===
+                                'snapshot'
+                                    ? 'text-[var(--text-secondary)]'
+                                    : 'text-[var(--warning-color)]'}"
+                            >
+                                {quote.source === "snapshot"
+                                    ? $_("app.marketDashboard.snapshotQuote")
+                                    : $_("app.marketDashboard.staleQuote", {
+                                            values: {
+                                                source: quote.source === "rest"
+                                                    ? "REST"
+                                                    : quote.source === "ws"
+                                                      ? "WS"
+                                                      : "?",
+                                                age:
+                                                    quote.ageMs === null
+                                                        ? "?"
+                                                        : Math.max(
+                                                                0,
+                                                                Math.round(
+                                                                    quote.ageMs /
+                                                                        1000,
+                                                                ),
+                                                            ),
+                                            },
+                                        })}
+                            </span>
+                        {/if}
+                    {/snippet}
                     {#each rows as row (row.symbol)}
                         {@const liveChange = getLiveChange(row)}
                         {@const livePrice = getLivePrice(row)}
+                        {@const quote = quoteOf(row)}
                         {@const rsiNum = row.analysis ? parseFloat(row.analysis.rsi1h) : null}
                         {@const trends = row.analysis?.trends}
                         {@const signal = signalOf(row.analysis)}
@@ -651,6 +759,7 @@
                                 {:else}
                                     <span class="font-mono">${formatPrice(livePrice)}</span>
                                 {/if}
+                                {@render quoteBadge(quote, false)}
                                 {#if liveChange !== null}
                                     <span
                                         class="text-xs {liveChange >= 0
@@ -796,6 +905,7 @@
                                     {:else}
                                         <span class="font-mono font-semibold text-xs text-[var(--text-primary)]">${formatPrice(livePrice)}</span>
                                     {/if}
+                                    {@render quoteBadge(quote, true)}
                                     {#if liveChange !== null}
                                         <span
                                             class="block text-[10px] font-semibold {liveChange >= 0
