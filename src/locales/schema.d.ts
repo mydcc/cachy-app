@@ -2384,6 +2384,8 @@ export type TranslationKey =
   | "positionsList.remainingAfter"
   | "positionsList.realizesPnl"
   | "positionsList.minimumTradeVolume"
+  | "positionsList.invalidQuantity"
+  | "positionsList.quantityMustBePositive"
   | "positionsList.fullCloseBadge"
   | "positionsList.roi"
   | "positionsList.margin"

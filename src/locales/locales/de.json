@@ -4198,6 +4198,8 @@
     "remainingAfter": "Verbleibt",
     "realizesPnl": "Realisiert",
     "minimumTradeVolume": "Minimum: {min}",
+    "invalidQuantity": "Bitte eine gültige Menge größer als null eingeben.",
+    "quantityMustBePositive": "Die Menge muss größer als null sein.",
     "fullCloseBadge": "Schließt die gesamte Position",
     "roi": "ROI",
     "margin": "Margin",

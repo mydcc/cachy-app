@@ -52,6 +52,13 @@
   let quantity = $state<Decimal | null>(null);
   let loading = $state(false);
   let error = $state("");
+  /*
+   * True while the quantity field holds an invalid draft (BUG-0561). The
+   * committed quantity is untouched by such a draft, but submitting it would
+   * send a different amount than the one on screen — so submission is
+   * blocked until the draft is corrected or explicitly reverted.
+   */
+  let quantityInvalid = $state(false);
 
   /*
    * Defaults to the whole position, so the shortest path through this dialog
@@ -144,6 +151,9 @@
 
   async function handleClose() {
     if (!position || !quantity || quantity.lte(0)) return;
+    // Belt and braces: the button is disabled while a draft is invalid, but
+    // a blur-commit races a click — the handler must refuse too (BUG-0561).
+    if (quantityInvalid) return;
     if (quantity.gt(position.amount)) return;
 
     loading = true;
@@ -199,6 +209,7 @@
         {quantity}
         disabled={loading}
         onChange={(next) => (quantity = next)}
+        onValidityChange={(valid) => (quantityInvalid = !valid)}
       />
     {/if}
 
@@ -219,7 +230,7 @@
       <button
         type="button"
         onclick={handleClose}
-        disabled={loading || !ctx || !quantity || quantity.lte(0) || oversize}
+        disabled={loading || !ctx || !quantity || quantity.lte(0) || oversize || quantityInvalid}
         class="px-3 py-1.5 text-xs rounded font-bold bg-danger-paired
                disabled:opacity-50 disabled:cursor-not-allowed"
       >
