@@ -724,7 +724,8 @@
       "atrValuePlaceholder": "ATR Value",
       "multiplierPlaceholder": "Multiplier",
       "multiplierExample": "1.2",
-      "holdingCost24h": "Est. 24h Holding Cost",
+      "holdingCost24hCost": "Est. 24h Funding Cost",
+      "holdingCost24hIncome": "Est. 24h Funding Income",
       "holdingCost24hTooltip": "Estimated funding fee for 24h holding duration based on the 7-day average funding rate.",
       "tagsPlaceholder": "Add tags... (e.g. #trend)",
       "tagsLabel": "Tags"

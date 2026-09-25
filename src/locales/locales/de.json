@@ -724,7 +724,8 @@
       "atrValuePlaceholder": "ATR Wert",
       "multiplierPlaceholder": "Multiplikator",
       "multiplierExample": "1,2",
-      "holdingCost24h": "Geschätzte 24h Haltekosten",
+      "holdingCost24hCost": "Gesch. 24h Funding-Kosten",
+      "holdingCost24hIncome": "Gesch. 24h Funding-Ertrag",
       "holdingCost24hTooltip": "Geschätzte Funding-Gebühr für 24h Haltedauer basierend auf dem 7-Tage-Durchschnitt der Funding Rate.",
       "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)",
       "tagsLabel": "Tags"
