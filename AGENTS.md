@@ -1,8 +1,8 @@
 # AGENTS.md
 
-Cachy — Local-First Web App for Crypto Traders (Position Size Calculator, Risk Management, Trade Journal, Real-Time Market Data via Bitunix/Bitget). Code flows into a trading engine managing real money: Precision and verification always come before speed.
+Cachy — Local-First Web App for Crypto Traders (Position Size Calculator, Risk Management, Trade Journal, Real-Time Market Data via Bitunix/Bitget). Code flows into a trading engine managing real money: precision and verification always come before speed.
 
-This file is the single source of truth for all coding agents (Jules, Codex, Cursor, OpenCode, etc.). Tool-specific files reference it and add only startup sequences (e.g. OpenCode reads `OPENCODE.md`).
+This file is the single source of truth for all coding agents.
 
 ## Setup
 
@@ -25,51 +25,25 @@ runs both projects. Example: `src/components/shared/TpSlList.refusal.component.t
 
 **Playwright E2E:** Robust selectors (`getByRole`, `getByText`), `expect(locator).toBeVisible()` instead of fixed timeouts.
 
-**Verification Standard: Fast & Targeted.** `npm test` runs the full suite (300+ test files) and `npm run check` compiles all 160+ Svelte components. Running these full suites locally saturates CPU cores and freezes interactive work. **Full-suite regression testing and project-wide type checking are delegated to GitHub Actions CI.**
-
-Locally, developers and agents follow these rules:
-- **No test loops mid-task:** Do not run tests or checks after every small intermediate edit. Focus on clean implementation first.
-- **Fast targeted tests before commit/push:** Before committing or pushing code changes, run **only** the tests that cover your changes:
-  - **One test file:** `npx vitest run src/services/tradeService.test.ts` (~1–3s)
-  - **A folder/pattern:** `npx vitest run src/services/tradeService`
-  - **Changed files only (git-based):** `npm run test:changed`
-  - **Pure-logic `unit` project only:** `npm run test:unit`
-- **WebGPU shaders or `webGpuCalculator.ts`:** run `npm run test:gpu` (~10s). It holds every GPU indicator to the JS path in headless Chromium, which provides a software WebGPU adapter, so no GPU is needed. No CI workflow runs Playwright, so this suite is a local and pre-release gate: a green CI run says nothing about it.
-- **Non-code changes:** If only documentation, markdown, shell scripts, or root configs are touched, tests and `npm run check` are completely unnecessary and are skipped.
-- **Local resource protection:** Local Vitest worker count defaults to max 2 workers (`vite.config.ts`), and test scripts run through `scripts/run-lowpri.sh` (`taskset` CPU affinity clamping to at most half cores, idle I/O priority via `ionice -c 3`, and `nice -n 19`).
-
 The dev/build process uses the WASM module in `technicals-wasm/` (`scripts/build_wasm.sh`). Without Rust the script keeps the committed `static/wasm/` artifacts and the build still succeeds — in cloud sandbox environments (e.g., Jules Environment Setup), including this script in the setup step still rebuilds the module when a toolchain is present.
 
-## Architecture
+## Testing instructions
 
-**Local-First Data Classes** (see `docs/adr/0001-local-first-boundary.md`):
-- **Class A (never leaves device):** Journal, Settings, API Keys/Secrets, Presets, private notes, trade drafts. `localStorage` only. Never send to a server — not even telemetry, crash reports, or debug logs. (Exception: API Keys as credential of user-initiated exchange requests via proxy.)
-- **Class B (may reside server-side):** Currently only Global Chat (SpacetimeDB, `server/spacetimedb/`). Only under all four conditions: opt-in and default off, authenticated (no anonymous access), minimal (no Class A data, not even as metadata), non-essential (Calculator, Journal, Risk Management work completely without server).
-- **Class C (public market data & derived analytics):** Prices, klines, news, sentiment. Can reside anywhere but **never next to a user identity.** What symbols someone watches is user data. See `docs/adr/0004-spacetimedb-data-scope.md`.
-- Every new Class B feature requires its own ADR. Moving a field from Class A to B is a `BREAKING CHANGE:`.
-- **Core runs without server** (`docs/adr/0003-edition-boundary.md`): Core code — Calculator, Risk Engine, Journal, Presets, Notes, Settings, Exchange integrations, Indicators and their UI — **never** imports from `src/lib/spacetimedb/` or `src/services/cloudService.ts`. Not behind a flag, not in a try/catch. Server features are modules behind an interface.
+**Verification: targeted, not banned.** Implement first, then verify — no test loops mid-task. Test the behavior you changed with the cheapest run that covers it, always through `scripts/run-lowpri.sh` (CPU affinity clamping to at most half cores via `taskset`, idle I/O via `ionice -c 3`, `nice -n 19`; local Vitest worker count defaults to max 2 in `vite.config.ts`):
 
-**Directory Structure:**
-- `src/services/` — API/WebSocket services (Bitunix/Bitget), calculation logic. Tests alongside (`*.test.ts`).
-- `src/stores/` — Svelte 5 rune stores (`*.svelte.ts`), tests alongside.
-- `src/components/` — UI components (alerts, inputs, layout, results, settings, shared).
-- `src/lib/` — Calculator core (`calculator.ts`), utilities, types.
-- `src/routes/` — app shell (`+page.svelte`/`+layout.svelte`) plus `[[lang]]/(seo)/` pages (academy, changelog, guide, privacy, whitepaper). New UI strings always in **both** `src/locales/locales/{de,en}.json`.
-- `server/` — SpacetimeDB module; has its own `server/CLAUDE.md` with separate rules.
-- `technicals-wasm/` — WASM module for indicator calculations.
+- **One test file:** `bash scripts/run-lowpri.sh vitest run --project=unit src/services/tradeService.test.ts` (~1–3s)
+- **One component test:** `bash scripts/run-lowpri.sh vitest run src/components/<path>/<name>.component.test.ts`
+- **A folder/pattern:** `bash scripts/run-lowpri.sh vitest run --project=unit src/services/tradeService`
+- **Changed files only (git-based):** `npm run test:changed`
+- **Pure-logic `unit` project only:** `npm run test:unit`
+- **WebGPU shaders or `webGpuCalculator.ts`:** `npm run test:gpu` (~10s). It holds every GPU indicator to the JS path in headless Chromium, which provides a software WebGPU adapter, so no GPU is needed. No CI workflow runs Playwright, so this suite is a local and pre-release gate: a green CI run says nothing about it.
 
-**Planning & Documentation:** `docs/README.md` is the map — why Cachy exists (`docs/VISION.md`), where code lives (`docs/ARCHITECTURE.md`), what ships when (`docs/MILESTONES.md` → `docs/ROADMAP.md`), what is worked on (`docs/backlog/INDEX.md`), what cannot change (`docs/adr/`), what needs human decision (`docs/TODO.md`).
-- **Link, never duplicate.** One fact lives in exactly one file.
-- New task → backlog entry from `docs/backlog/templates/` (`npm run backlog:check` validates). When a PR touches any `docs/backlog/` file, regenerate the index (`node scripts/backlog-index.mjs`) and commit it **in that PR** — CI fails on a stale index.
-- New decision that constrains future work → ADR (`docs/adr/template.md`), not a paragraph somewhere.
+Rules:
 
-## Verification Proportionality & Multi-Agent Resource Policy
-
-Verification is proportional to blast radius — never run unconstrained full-repo checks locally:
-
-- **Non-code edits** (Docs, Markdown, shell scripts, configs): No tests required.
-- **Code edits** (services, stores, components, math): Run targeted tests for the touched files before commit/push (see "Verification Standard: Fast & Targeted" in Setup above; `npm run test:changed` covers touched files).
-- **Full test suite & svelte-check:** Handled by GitHub Actions CI upon pull request. Run locally only when explicitly requested by the user.
+- Full suite (`npm test`, 300+ files) and project-wide `npm run check` (all Svelte components) are delegated to GitHub Actions CI. Run them locally only when explicitly requested by the user. At most 2 parallel Vitest processes, each via `run-lowpri.sh`.
+- **Non-code changes** (documentation, markdown, shell scripts, root configs): no tests, no `npm run check`.
+- **Money/exchange/risk paths** (position size, risk calculations, signature/crypto logic, `decimal.js` precision, Local-First boundary): always test + human review + green CI before merge.
+- Reuse existing test suites; add new tests only for genuinely new behavior.
 
 Before every push — sync first, then run targeted tests, then push:
 
@@ -79,13 +53,35 @@ bash scripts/sync-develop.sh   # fetch + rebase onto origin/develop; exit 1 = co
 git push --force-with-lease    # after a successful rebase
 ```
 
-## Non-Negotiable Rules
+Before marking a task completed: targeted tests for changed code must pass; CI checks the Full Suite. Push review fixes to the same PR, never open a new PR without instruction.
+
+## Repository structure
+
+- `src/services/` — API/WebSocket services (Bitunix/Bitget), calculation logic. Tests alongside (`*.test.ts`).
+- `src/stores/` — Svelte 5 rune stores (`*.svelte.ts`), tests alongside.
+- `src/components/` — UI components (alerts, inputs, layout, results, settings, shared).
+- `src/lib/` — Calculator core (`calculator.ts`), utilities, types.
+- `src/routes/` — app shell (`+page.svelte`/`+layout.svelte`) plus `[[lang]]/(seo)/` pages (academy, changelog, guide, privacy, whitepaper). New UI strings always in **both** `src/locales/locales/{de,en}.json`.
+- `server/` — SpacetimeDB module; has its own `server/CLAUDE.md` with separate rules.
+- `technicals-wasm/` — WASM module for indicator calculations.
+
+## Architecture boundaries
 
 **Local-First Data Classes** (see `docs/adr/0001-local-first-boundary.md`):
-- Class A (Journal, Settings, API Keys, Presets, private notes) **never** leaves the device — `localStorage` only. Never send to a server, not even as telemetry/debug logs.
-- Class B (currently only Global Chat via SpacetimeDB) is opt-in only, authenticated, minimal, non-essential.
-- Class C (public market data) can reside anywhere, but never next to a user identity.
-- Core code (Calculator, Risk Engine, Journal, Presets, Exchange integrations) **never** imports from `src/lib/spacetimedb/` or `src/services/cloudService.ts`.
+- **Class A (never leaves device):** Journal, Settings, API Keys/Secrets, Presets, private notes, trade drafts. `localStorage` only. Never send to a server — not even telemetry, crash reports, or debug logs. (Exception: API Keys as credential of user-initiated exchange requests via proxy.)
+- **Class B (may reside server-side):** Currently only Global Chat (SpacetimeDB, `server/spacetimedb/`). Only under all four conditions: opt-in and default off, authenticated (no anonymous access), minimal (no Class A data, not even as metadata), non-essential (Calculator, Journal, Risk Management work completely without server).
+- **Class C (public market data & derived analytics):** Prices, klines, news, sentiment. Can reside anywhere but **never next to a user identity.** What symbols someone watches is user data. See `docs/adr/0004-spacetimedb-data-scope.md`.
+- Every new Class B feature requires its own ADR. Moving a field from Class A to B is a `BREAKING CHANGE:`.
+- **Core runs without server** (`docs/adr/0003-edition-boundary.md`): Core code — Calculator, Risk Engine, Journal, Presets, Notes, Settings, Exchange integrations, Indicators and their UI — **never** imports from `src/lib/spacetimedb/` or `src/services/cloudService.ts`. Not behind a flag, not in a try/catch. Server features are modules behind an interface.
+
+**Planning & Documentation:** `docs/README.md` is the map — why Cachy exists (`docs/VISION.md`), where code lives (`docs/ARCHITECTURE.md`), what ships when (`docs/MILESTONES.md` → `docs/ROADMAP.md`), what is worked on (`docs/backlog/INDEX.md`), what cannot change (`docs/adr/`), what needs human decision (`docs/TODO.md`).
+- **Link, never duplicate.** One fact lives in exactly one file.
+- New task → backlog entry from `docs/backlog/templates/` (`npm run backlog:check` validates). When a PR touches any `docs/backlog/` file, regenerate the index (`node scripts/backlog-index.mjs`) and commit it **in that PR** — CI fails on a stale index.
+- New decision that constrains future work → ADR (`docs/adr/template.md`), not a paragraph somewhere.
+
+Architecture overview: `docs/architecture/cachy-architecture.dataflow.html` (source of truth is the JSON next to it; regenerate with `npm run arch`). Read it first when touching services, exchange integrations, or anything that changes data flows or the Local-First boundary — and update the diagram in the same PR when your change moves data between device, cloud, or exchanges.
+
+## Coding standards
 
 **Svelte 5 Runes Only** — Legacy syntax is strictly forbidden:
 - `export let x` → `let { x } = $props()`
@@ -105,11 +101,9 @@ git push --force-with-lease    # after a successful rebase
 - `Permissions-Policy` MUST delegate permissions needed for 3D Metaverse (`space.cachy.app`) and embedded views (camera, microphone, xr-spatial-tracking, display-capture, fullscreen, autoplay, accelerometer, gyroscope, clipboard-write, encrypted-media, picture-in-picture, web-share, geolocation). Never restrict them to empty `()` (e.g. `camera=()`, `geolocation=()`).
 - `Content-Security-Policy` `frame-src` MUST allow `'self'`, `https://space.cachy.app`, `https://s.cachy.app`, `https:`, `blob:`, `data:`.
 
-## Verification Before Marking Completed
+Do not delete code of unclear purpose. Leave copyright headers and metadata untouched. Remove `console.log` debug statements only upon explicit instruction.
 
-Before marking a task completed: ensure any targeted tests for touched code pass (see "Verification Standard: Fast & Targeted" in Setup above). Do not run full project-wide checks (`npm test`, `npm run check`) locally; CI verifies every PR automatically.
-
-## Tools & MCP — Mandatory for All Agents
+## Tools & MCP
 
 Two MCP servers are configured for this project. **Both are required, not optional.** Every agent must use them before falling back to generic file-reading or grep.
 
@@ -131,18 +125,17 @@ Use for code analysis, action routing, and semantic understanding.
 - **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
 - **After editing files:** `order { "action": "register_edit", "args": { "paths": ["<edited-file>"] } }` so the index stays current (skip when PostToolUse hooks already reindex automatically).
 
-Tool-specific config files (e.g. `OPENCODE.md`) contain startup sequences for their respective runtimes.
-
-
 ## Philosophy: Act, Don't Ask
 
 Default: act. Reversible and cheap? Do it, then report. Research, analysis, drafts, refactors inside the given scope, testing an API — execute first.
 Ask first only for what reaches an audience (publish, send, post, share), cannot be undone (delete, force-push, schema migration, breaking changes), or is expensive (infrastructure changes, project-wide refactors).
-A question is a question — "Why is this failing?" is not "make it stop failing." Answer first; act when told to go.
 Done means done: deliver everything asked; if one part is genuinely blocked, finish the rest and name the specific blocker in one sentence.
+When unsure: follow existing code patterns; ask if it affects money paths, public API, or migrations; prefer reversible decisions.
 
 ## Commits & Branches
 
+- **Branch naming:** `feature/…`, `fix/…`, `refactor/…`, `docs/…` — one branch per task.
+- **PR size:** Aim for small PRs; if large, split into reviewable stages.
 - **Language:** Commits, Pull Request descriptions, and PR comments MUST ALWAYS be written in English. German is strictly forbidden in PR comments and commits.
 - [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `refactor`, `BREAKING CHANGE:` in footer).
 - **Commit message discipline (Linux-kernel style):** `subsystem: imperative summary, max ~72 chars, what + why` (e.g. `fix(positions): recompute PnL from live mark price`). One logical change per commit, one entry per PR — land PRs via squash-merge so the history stays readable without later filtering.
@@ -154,7 +147,6 @@ Done means done: deliver everything asked; if one part is genuinely blocked, fin
 - **Pull Request Linking:** Every Pull Request MUST include `Fixes #<github_issue_number>` (e.g. `Fixes #1770`) at the start of its description so GitHub automatically links the PR with the issue and advances the Kanban card.
 - **Backlog flip rides in the fix PR (no bots):** If the linked issue is a backlog mirror (`backlog-id:` label), the same PR MUST flip the item to `status: done` and commit the regenerated index (`node scripts/backlog-index.mjs` — plain Node, no install). CI fails the PR if either half is missing.
 - **Writing *about* a closing reference.** GitHub parses closing keywords in **commit messages** as well as Pull Request descriptions, and backticks, quotation marks or surrounding prose do not exempt them. The full keyword set is `close`/`closes`/`closed`, `fix`/`fixes`/`fixed`, `resolve`/`resolves`/`resolved` — **past tense counts too**. Only the position directly before the reference matters, so either break the keyword (`Fixes #<!-- -->1770`) or keep it out of that position.
-- Do not delete code of unclear purpose. Leave copyright headers and metadata untouched. Remove `console.log` debug statements only upon explicit instruction.
 
 ## Code Review Standard for All Agents
 
@@ -168,14 +160,12 @@ Every agent doing code review follows the same checklist:
 6. **Sensitive areas flag** — If `area: execution`, `area: security`, `area: exchange`, or `priority: P0`, flag **gently** as "👤 Human review recommended before merge" (no alarms, no uppercase shouting).
 7. **Chat-first, comment after fixes** — Present findings with severity labels in chat first and wait for per-finding confirmation (never self-fix on silence). Post one PR comment only after the confirmed fixes are pushed (or stay commentless on a clean diff). Mark it `Code Review for <sha>` so it's recognized on re-runs.
 
-Reviewers are any agent with access to the PR and codebase; this is not Jules-specific.
-
 ## Agent-to-Agent Communication & Tone in PR Comments
 
 When agents (Jules, Antigravity/Gemini, Claude Code, Codex, Cursor, etc.) review each other's PRs or reply to comments:
 
 - **Language:** All PR comments MUST be written in **English**.
-- **Tone:** Relaxed, friendly, and collegial ("Peer-to-Peer Agent Collaboration"). No authoritative, preachy, or alarmist language. At the end of a review, agents are encouraged to leave a friendly one-liner or greet/thank fellow agents (e.g. `@jules thanks for restoring the test assertions!`, `Looks neat, good job!`).
+- **Tone:** Relaxed, friendly, and collegial ("Peer-to-Peer Agent Collaboration"). No authoritative, preachy, or alarmist language.
 - **Human Review Flag (Gentle Note, No Alarms):** If a PR touches sensitive areas (`area: execution`, `area: security`, `area: exchange`, or `priority: P0`), flag this **without red dots (no 🔴 / ⚠️)** and **without shouting/uppercase titles** (`NEEDS HUMAN REVIEW BEFORE MERGE` or German equivalents are strictly forbidden). Use a friendly, unobtrusive note with neutral/friendly emojis (e.g. `👤` or `👀`), such as:
   - `👤 Note: Human review recommended before merge`
   - `👀 Quick human check suggested`
@@ -193,7 +183,7 @@ An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-gr
 
 ## Git Cleanliness and Parallel Agent Workspaces
 
-Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own session Git worktree (or Antigravity subagent with `Workspace: "share"`) — never directly in the shared checkout. One worktree per agent session is enough; a worktree per task is not required and actively harmful (a pile-up of stale worktree directories makes every checkout harder to reason about, and testing in the wrong worktree causes false results):
+Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own session Git worktree — never directly in the shared checkout. One worktree per agent session is enough; a worktree per task is not required and actively harmful (a pile-up of stale worktree directories makes every checkout harder to reason about, and testing in the wrong worktree causes false results):
 
 **Required sequence once per session:**
 ```bash
@@ -250,9 +240,9 @@ A Jules session starts from a frozen sandbox clone that can be far behind `devel
 - **No sandbox artifacts in branches** (`todo.txt`, `.jules/` notes only when the task itself requires them).
 - **Before pushing:** compare the PR's changed-file list against the task's intended files. If the list is larger, the sandbox is stale — abort the task instead of pushing.
 
-Further documentation: `docs/README.md` (map), `docs/adr/` (binding decisions), `docs/backlog/INDEX.md` (open tasks).
+## References
 
-Architecture overview: `docs/architecture/cachy-architecture.dataflow.html` (source of truth is the JSON next to it; regenerate with `npm run arch`). Read it first when touching services, exchange integrations, or anything that changes data flows or the Local-First boundary — and update the diagram in the same PR when your change moves data between device, cloud, or exchanges.
+Further documentation: `docs/README.md` (map), `docs/adr/` (binding decisions), `docs/backlog/INDEX.md` (open tasks).
 
 <!-- gortex:communities:start -->
 ## Community Skills
@@ -272,7 +262,6 @@ Architecture overview: `docs/architecture/cachy-architecture.dataflow.html` (sou
 | Rules 3 Dirs | 297 symbols | `analyze(operation:"communities", id:"community-330")` |
 | Rule 2 Dirs | 284 symbols | `analyze(operation:"communities", id:"community-813")` |
 | Services 1 Dirs Calculate | 274 symbols | `analyze(operation:"communities", id:"community-644")` |
-| Utils 15 Dirs | 267 symbols | `analyze(operation:"communities", id:"community-45")` |
 | Services 5 Dirs Encrypt | 263 symbols | `analyze(operation:"communities", id:"community-707")` |
 | Services 6 Dirs Bitunixwebsocketservice | 257 symbols | `analyze(operation:"communities", id:"community-488")` |
 | Chart 3 Dirs | 237 symbols | `analyze(operation:"communities", id:"community-310")` |
