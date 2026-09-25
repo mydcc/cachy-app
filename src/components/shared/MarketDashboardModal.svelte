@@ -43,7 +43,12 @@
         resolveRowQuote,
         type DashboardRow,
         type ResolvedRowQuote,
+        type RowQuoteDeps,
     } from "../../lib/marketDashboard";
+    import {
+        MAX_MARK_PRICE_AGE_MS,
+        resolveMarketQuote,
+    } from "../../services/priceResolution";
 
     // Icons
     const ICONS = {
@@ -54,6 +59,36 @@
     };
 
     type Row = DashboardRow;
+
+    /*
+     * BUG-0558: lib declares the freshness port, the component supplies the
+     * service implementation (components may import both layers).
+     */
+    const rowQuoteDeps: RowQuoteDeps = {
+        maxAgeMs: MAX_MARK_PRICE_AGE_MS,
+        resolveStoreQuote: (input, now) =>
+            resolveMarketQuote(
+                {
+                    lastPrice: input.lastPrice ?? null,
+                    lastPriceUpdatedAt: input.lastPriceUpdatedAt,
+                    lastPriceSource: input.lastPriceSource,
+                },
+                now,
+            ),
+    };
+
+    /*
+     * BUG-0558: re-resolve badge ages every 5 s (like the favourite tiles),
+     * otherwise a quote going stale while the modal is open stays green.
+     * The price itself only moves on real ticks.
+     */
+    let nowTick = $state(Date.now());
+    $effect(() => {
+        const id = setInterval(() => {
+            nowTick = Date.now();
+        }, 5000);
+        return () => clearInterval(id);
+    });
 
     // All row/aggregate rules live in lib/marketDashboard.ts so they can be
     // tested directly -- they decide whether a user sees a trading signal or
@@ -155,7 +190,8 @@
         const quote = resolveRowQuote(
             marketState.data[row.symbol],
             row.analysis,
-            Date.now(),
+            nowTick,
+            rowQuoteDeps,
         );
         if (quote.price && !quote.stale) {
             tradeState.applySymbolRefresh({
@@ -257,7 +293,12 @@
      * `selectRow` refuses a stale value as a silent calculator seed.
      */
     function quoteOf(row: Row): ResolvedRowQuote {
-        return resolveRowQuote(marketState.data[row.symbol], row.analysis);
+        return resolveRowQuote(
+            marketState.data[row.symbol],
+            row.analysis,
+            nowTick,
+            rowQuoteDeps,
+        );
     }
 
     /** Rows whose quote is not provably fresh — disclosed in the strip. */
@@ -609,6 +650,40 @@
                 <div
                     class="overflow-y-auto custom-scrollbar flex-1 divide-y divide-[var(--border-color)]"
                 >
+                    {#snippet quoteBadge(quote: ResolvedRowQuote, block: boolean)}
+                        {#if quote.stale || quote.source === "snapshot"}
+                            <span
+                                class="{block
+                                    ? 'block '
+                                    : ''}text-[10px] font-semibold {quote.source ===
+                                'snapshot'
+                                    ? 'text-[var(--text-secondary)]'
+                                    : 'text-[var(--warning-color)]'}"
+                            >
+                                {quote.source === "snapshot"
+                                    ? $_("app.marketDashboard.snapshotQuote")
+                                    : $_("app.marketDashboard.staleQuote", {
+                                            values: {
+                                                source: quote.source === "rest"
+                                                    ? "REST"
+                                                    : quote.source === "ws"
+                                                      ? "WS"
+                                                      : "?",
+                                                age:
+                                                    quote.ageMs === null
+                                                        ? "?"
+                                                        : Math.max(
+                                                                0,
+                                                                Math.round(
+                                                                    quote.ageMs /
+                                                                        1000,
+                                                                ),
+                                                            ),
+                                            },
+                                        })}
+                            </span>
+                        {/if}
+                    {/snippet}
                     {#each rows as row (row.symbol)}
                         {@const liveChange = getLiveChange(row)}
                         {@const livePrice = getLivePrice(row)}
@@ -684,36 +759,7 @@
                                 {:else}
                                     <span class="font-mono">${formatPrice(livePrice)}</span>
                                 {/if}
-                                {#if quote.stale || quote.source === "snapshot"}
-                                    <span
-                                        class="text-[10px] font-semibold {quote.source ===
-                                        'snapshot'
-                                            ? 'text-[var(--text-secondary)]'
-                                            : 'text-[var(--warning-color)]'}"
-                                    >
-                                        {quote.source === "snapshot"
-                                            ? $_("app.marketDashboard.snapshotQuote")
-                                            : $_("app.marketDashboard.staleQuote", {
-                                                    values: {
-                                                        source: quote.source === "rest"
-                                                            ? "REST"
-                                                            : quote.source === "ws"
-                                                              ? "WS"
-                                                              : "?",
-                                                        age:
-                                                            quote.ageMs === null
-                                                                ? "?"
-                                                                : Math.max(
-                                                                        0,
-                                                                        Math.round(
-                                                                            quote.ageMs /
-                                                                                1000,
-                                                                        ),
-                                                                    ),
-                                                    },
-                                                })}
-                                    </span>
-                                {/if}
+                                {@render quoteBadge(quote, false)}
                                 {#if liveChange !== null}
                                     <span
                                         class="text-xs {liveChange >= 0
@@ -859,36 +905,7 @@
                                     {:else}
                                         <span class="font-mono font-semibold text-xs text-[var(--text-primary)]">${formatPrice(livePrice)}</span>
                                     {/if}
-                                    {#if quote.stale || quote.source === "snapshot"}
-                                        <span
-                                            class="block text-[10px] font-semibold {quote.source ===
-                                            'snapshot'
-                                                ? 'text-[var(--text-secondary)]'
-                                                : 'text-[var(--warning-color)]'}"
-                                        >
-                                            {quote.source === "snapshot"
-                                                ? $_("app.marketDashboard.snapshotQuote")
-                                                : $_("app.marketDashboard.staleQuote", {
-                                                        values: {
-                                                            source: quote.source === "rest"
-                                                                ? "REST"
-                                                                : quote.source === "ws"
-                                                                  ? "WS"
-                                                                  : "?",
-                                                            age:
-                                                                quote.ageMs === null
-                                                                    ? "?"
-                                                                    : Math.max(
-                                                                            0,
-                                                                            Math.round(
-                                                                                quote.ageMs /
-                                                                                    1000,
-                                                                            ),
-                                                                        ),
-                                                        },
-                                                    })}
-                                        </span>
-                                    {/if}
+                                    {@render quoteBadge(quote, true)}
                                     {#if liveChange !== null}
                                         <span
                                             class="block text-[10px] font-semibold {liveChange >= 0

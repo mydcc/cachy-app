@@ -28,11 +28,7 @@
 
 import type { SymbolAnalysis, TrendState } from "../stores/analysis.svelte";
 import type { TranslationKey } from "../locales/schema";
-import {
-    MAX_MARK_PRICE_AGE_MS,
-    resolveMarketQuote,
-    type MarketQuoteSource,
-} from "../services/priceResolution";
+import type { Decimal } from "decimal.js";
 import type { MarketData } from "../stores/market/types";
 
 /** Favourites analysed when `analyzeAllFavorites` is off. Mirrors marketAnalyst. */
@@ -194,11 +190,41 @@ export interface ResolvedRowQuote {
     /** Display-ready price, or null when honestly unpriced (never $0). */
     price: string | null;
     /** "none" when neither store nor snapshot has a price to show. */
-    source: MarketQuoteSource | "none" | undefined;
+    source: StoreQuoteSource | "snapshot" | "none" | undefined;
     /** True when the value is not provably fresh — badge it, and never let
      *  it silently become a calculator entry price. */
     stale: boolean;
     ageMs: number | null;
+}
+
+/** Where a store quote was last observed (BUG-0558). Mirrors the service. */
+export type StoreQuoteSource = "ws" | "rest";
+
+export interface StoreQuoteInput {
+    lastPrice?: Decimal | null;
+    lastPriceUpdatedAt?: number;
+    lastPriceSource?: StoreQuoteSource;
+}
+
+export interface StoreQuoteResult {
+    price?: Decimal;
+    stale: boolean;
+    source?: StoreQuoteSource;
+    ageMs: number | null;
+}
+
+/**
+ * Port for the quote-freshness rule. lib is a domain layer and must not
+ * import services — the component caller (which may import both layers)
+ * supplies the implementation, e.g. `resolveMarketQuote` from
+ * services/priceResolution with `MAX_MARK_PRICE_AGE_MS`.
+ */
+export interface RowQuoteDeps {
+    maxAgeMs: number;
+    resolveStoreQuote: (
+        input: StoreQuoteInput,
+        now?: number,
+    ) => StoreQuoteResult;
 }
 
 /**
@@ -217,9 +243,10 @@ export function resolveRowQuote(
         | undefined,
     analysis: SymbolAnalysis | undefined,
     now: number = Date.now(),
+    deps: RowQuoteDeps,
 ): ResolvedRowQuote {
     if (entry) {
-        const live = resolveMarketQuote(
+        const live = deps.resolveStoreQuote(
             {
                 lastPrice: entry.lastPrice,
                 lastPriceUpdatedAt: entry.lastPriceUpdatedAt,
@@ -237,11 +264,11 @@ export function resolveRowQuote(
         }
     }
     if (analysis) {
-        const ageMs = now - analysis.updatedAt;
+        const ageMs = Math.max(0, now - analysis.updatedAt);
         return {
             price: analysis.price,
             source: "snapshot",
-            stale: ageMs > MAX_MARK_PRICE_AGE_MS,
+            stale: ageMs > deps.maxAgeMs,
             ageMs,
         };
     }

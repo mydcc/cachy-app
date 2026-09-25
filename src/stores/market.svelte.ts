@@ -248,7 +248,15 @@ export class MarketManager {
       }
     }
     this.pendingUpdates.set(symbol, merged);
-    if (source !== undefined) this.pendingSources.set(symbol, source);
+    // BUG-0558: only price-bearing writes relabel the source — a sourceless
+    // tick buffered after a price must not flip the stamp's provenance.
+    if (
+      source !== undefined &&
+      partial.lastPrice !== undefined &&
+      partial.lastPrice !== null
+    ) {
+      this.pendingSources.set(symbol, source);
+    }
 
     // Safety: Prevent memory leak if flush interval stalls
     // Dynamic limit based on cache size (5x cache size to allow for burst)

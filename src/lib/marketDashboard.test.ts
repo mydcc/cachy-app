@@ -37,9 +37,27 @@ import {
     analysisScope,
     resolveRowQuote,
     TOP_FAVOURITES_COUNT,
+    type RowQuoteDeps,
 } from "./marketDashboard";
 import type { SymbolAnalysis } from "../stores/analysis.svelte";
-import { MAX_MARK_PRICE_AGE_MS } from "../services/priceResolution";
+import {
+    MAX_MARK_PRICE_AGE_MS,
+    resolveMarketQuote,
+} from "../services/priceResolution";
+
+/** Production wiring for the freshness port (test files may import services). */
+const deps: RowQuoteDeps = {
+    maxAgeMs: MAX_MARK_PRICE_AGE_MS,
+    resolveStoreQuote: (input, now) =>
+        resolveMarketQuote(
+            {
+                lastPrice: input.lastPrice ?? null,
+                lastPriceUpdatedAt: input.lastPriceUpdatedAt,
+                lastPriceSource: input.lastPriceSource,
+            },
+            now,
+        ),
+};
 
 function analysis(over: Partial<SymbolAnalysis> & { symbol: string }): SymbolAnalysis {
     return {
@@ -266,6 +284,7 @@ describe("resolveRowQuote (BUG-0558)", () => {
             entry(),
             analysis({ symbol: "BTCUSDT", price: "59999", updatedAt: NOW }),
             NOW,
+            deps,
         );
 
         expect(resolved.price).toBe("60000");
@@ -278,6 +297,7 @@ describe("resolveRowQuote (BUG-0558)", () => {
             entry({ lastPriceUpdatedAt: NOW - MAX_MARK_PRICE_AGE_MS - 1 }),
             analysis({ symbol: "BTCUSDT", price: "59999", updatedAt: NOW }),
             NOW,
+            deps,
         );
 
         expect(resolved.price).toBe("60000");
@@ -290,6 +310,7 @@ describe("resolveRowQuote (BUG-0558)", () => {
             undefined,
             analysis({ symbol: "BTCUSDT", price: "59999", updatedAt: NOW - 5_000 }),
             NOW,
+            deps,
         );
 
         expect(resolved.price).toBe("59999");
@@ -306,6 +327,7 @@ describe("resolveRowQuote (BUG-0558)", () => {
                 updatedAt: NOW - MAX_MARK_PRICE_AGE_MS - 1,
             }),
             NOW,
+            deps,
         );
 
         expect(resolved.price).toBe("59999");
@@ -314,7 +336,7 @@ describe("resolveRowQuote (BUG-0558)", () => {
     });
 
     it("resolves neither as honestly unpriced, never as zero", () => {
-        const resolved = resolveRowQuote(undefined, undefined, NOW);
+        const resolved = resolveRowQuote(undefined, undefined, NOW, deps);
 
         expect(resolved.price).toBeNull();
         expect(resolved.source).toBe("none");

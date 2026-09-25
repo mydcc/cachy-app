@@ -1230,7 +1230,7 @@
       "regionLabel": "Marktübersicht für {symbol}"
     },
     "staleQuote": "Veralteter Kurs · {source} · {age}s",
-    "staleQuoteRefused": "{symbol} nicht in den Rechner übernommen: Der Kurs ist veraltet. Erneut wählen, sobald der Feed wieder läuft."
+    "staleQuoteRefused": "{symbol} ohne Preis übernommen: Der Kurs ist veraltet. Der Rechner behält den bisherigen Einstiegspreis."
   },
   "seo": {
     "title": "Cachy - Positionsgröße & Risikomanagement",

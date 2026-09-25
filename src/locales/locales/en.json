@@ -1230,7 +1230,7 @@
       "regionLabel": "Market Overview for {symbol}"
     },
     "staleQuote": "Stale quote · {source} · {age}s",
-    "staleQuoteRefused": "{symbol} not loaded into the calculator: the quote is stale. Pick it again once the feed resumes."
+    "staleQuoteRefused": "{symbol} loaded without a price: the quote is stale. The calculator kept its previous entry price."
   },
   "seo": {
     "title": "Cachy - Position Size & Risk Management",

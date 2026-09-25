@@ -172,7 +172,7 @@ export function resolveMarketQuote(
 ): ResolvedMarketQuote {
   const { lastPrice, lastPriceUpdatedAt, lastPriceSource } = inputs;
   if (!isPrice(lastPrice)) {
-    return { price: undefined, stale: false, source: lastPriceSource, ageMs: null };
+    return { price: undefined, stale: false, source: undefined, ageMs: null };
   }
   if (lastPriceUpdatedAt === undefined) {
     return { price: lastPrice, stale: true, source: lastPriceSource, ageMs: null };

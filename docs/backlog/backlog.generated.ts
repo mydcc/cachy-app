@@ -2381,6 +2381,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "bug",
     "status": "done",
     "assignee": "opencode",
+    "branch": "fix/bug-0558-market-quote-freshness",
     "priority": "P1",
     "milestone": "none",
     "editions": [

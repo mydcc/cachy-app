@@ -274,5 +274,7 @@ describe("resolveMarketQuote (BUG-0558)", () => {
 
     expect(resolved.price).toBeUndefined();
     expect(resolved.stale).toBe(false);
+    expect(resolved.source).toBeUndefined();
+    expect(resolved.ageMs).toBeNull();
   });
 });
