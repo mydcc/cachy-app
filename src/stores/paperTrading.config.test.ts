@@ -203,4 +203,17 @@ describe("BUG-0552 — simulator calculation boundary", () => {
         expect(result.partial).toBe(true);
         expect(paperState.positions[0].amount).toBe("0.5");
     });
+
+    it("a zero fill still rejects invalid TP/SL levels instead of succeeding", async () => {
+        paperState.setConfig("failureMode", "partial");
+        paperState.setConfig("partialFillRatio", "0");
+
+        // TP below entry for a long is invalid — the zero-fill shortcut must
+        // not turn that into a reported success.
+        await expect(place("1", { tpPrice: "49000" })).rejects.toMatchObject({
+            code: "PAPER_TPSL_INVALID",
+        });
+        expect(paperState.positions).toHaveLength(0);
+        expect(paperState.fills).toHaveLength(0);
+    });
 });

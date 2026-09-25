@@ -596,6 +596,14 @@ class PaperExchange {
 
         const price = requirePrice(symbol);
         const qty = this.fillQuantity(requested);
+        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
+        // BUG-0552 review: TP/SL levels are validated before the zero-fill
+        // shortcut below, so an order carrying invalid TP/SL is rejected even
+        // when the market would have filled nothing. Only a fully valid order
+        // reports a zero fill ("valid order, empty market").
+        if (!closes && (payload.tpPrice !== undefined || payload.slPrice !== undefined)) {
+            this.assertTpSlLevels(payload, side === "BUY" ? "long" : "short", price);
+        }
         // BUG-0552: a zero fill (partialFillRatio 0) opens no position,
         // charges no fee and records no fill — recordFill already skips
         // qty <= 0, and applyOpen below would otherwise book a zero-size
@@ -611,10 +619,6 @@ class PaperExchange {
                 requestedQty: requested.toString(),
                 partial: true,
             });
-        }
-        const closes = payload.tradeSide === "CLOSE" || payload.reduceOnly === true;
-        if (!closes && (payload.tpPrice !== undefined || payload.slPrice !== undefined)) {
-            this.assertTpSlLevels(payload, side === "BUY" ? "long" : "short", price);
         }
 
         const fill = closes
