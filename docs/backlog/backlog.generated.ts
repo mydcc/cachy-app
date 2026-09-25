@@ -2379,7 +2379,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0558",
     "title": "Cached market quotes are presented as live and can seed the calculator",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
     "priority": "P1",
     "milestone": "none",
     "editions": [

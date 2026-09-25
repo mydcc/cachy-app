@@ -4,7 +4,7 @@
 
 444 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 24 · 🟢 ready 7 · ✅ done 388 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 7 · ✅ done 389 · ⛔ dropped 1
 
 ---
 
@@ -284,7 +284,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟢 ready 7 · ✅ done 38
 | [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | execution |
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | calculation |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | settings |
-| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | market-data |
+| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | market-data |
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 📋 specced | security |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -628,7 +628,7 @@ Counts by status: 💡 idea 24 · 📋 specced 24 · 🟢 ready 7 · ✅ done 38
 | [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | none | community, pro, private | C | none | — |
+| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | none | community, pro, private | C | none | — |
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |

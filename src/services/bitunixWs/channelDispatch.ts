@@ -114,7 +114,7 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
     marketState.updateSymbol(symbol, {
       indexPrice: ip ? new Decimal(ip) : undefined,
       markPrice: mp ? new Decimal(mp) : undefined,
-    });
+    }, "ws");
     return;
   }
   if (parsed.type === "fast_ticker") {
@@ -127,7 +127,7 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
         lowPrice: normalized.low,
         volume: normalized.volume,
         quoteVolume: normalized.quoteVolume,
-      });
+      }, "ws");
     }
     return;
   }
@@ -165,7 +165,7 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
         marketState.updateSymbol(symbol, {
           indexPrice: d.ip ? String(d.ip) : undefined,
           markPrice: d.mp ? String(d.mp) : undefined,
-        });
+        }, "ws");
       }
     } else if (validatedChannel === "ticker") {
       const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";
@@ -179,7 +179,7 @@ export function dispatchMessage(parsed: ParseOutcome, context: DispatchContext) 
           lowPrice: normalized.low,
           volume: normalized.volume,
           quoteVolume: normalized.quoteVolume,
-        });
+        }, "ws");
       }
     } else if (validatedChannel === "depth_book5") {
       const rawSymbol = ((validatedMessage as Record<string, unknown>).symbol as string) || "";

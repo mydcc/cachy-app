@@ -28,6 +28,12 @@
 
 import type { SymbolAnalysis, TrendState } from "../stores/analysis.svelte";
 import type { TranslationKey } from "../locales/schema";
+import {
+    MAX_MARK_PRICE_AGE_MS,
+    resolveMarketQuote,
+    type MarketQuoteSource,
+} from "../services/priceResolution";
+import type { MarketData } from "../stores/market/types";
 
 /** Favourites analysed when `analyzeAllFavorites` is off. Mirrors marketAnalyst. */
 export const TOP_FAVOURITES_COUNT = 4;
@@ -182,4 +188,62 @@ export function trendCellClass(state: TrendState | undefined): string {
     if (state === "bearish") return "bg-[var(--danger-color)]";
     if (state === "neutral") return "bg-[var(--text-secondary)]/40";
     return "border border-dashed border-[var(--text-secondary)]/50";
+}
+
+export interface ResolvedRowQuote {
+    /** Display-ready price, or null when honestly unpriced (never $0). */
+    price: string | null;
+    /** "none" when neither store nor snapshot has a price to show. */
+    source: MarketQuoteSource | "none" | undefined;
+    /** True when the value is not provably fresh — badge it, and never let
+     *  it silently become a calculator entry price. */
+    stale: boolean;
+    ageMs: number | null;
+}
+
+/**
+ * BUG-0558 — one freshness rule for every dashboard row.
+ *
+ * A live store quote wins when one exists (fresh or stale-but-labelled);
+ * otherwise the analysis snapshot fills in with its own `updatedAt` as the
+ * age and `"snapshot"` as the source, under the same maximum age. Neither
+ * means honestly unpriced. The modal renders source and staleness per row
+ * from this, and `selectRow` refuses a stale value as a silent calculator
+ * seed.
+ */
+export function resolveRowQuote(
+    entry:
+        | Pick<MarketData, "lastPrice" | "lastPriceUpdatedAt" | "lastPriceSource">
+        | undefined,
+    analysis: SymbolAnalysis | undefined,
+    now: number = Date.now(),
+): ResolvedRowQuote {
+    if (entry) {
+        const live = resolveMarketQuote(
+            {
+                lastPrice: entry.lastPrice,
+                lastPriceUpdatedAt: entry.lastPriceUpdatedAt,
+                lastPriceSource: entry.lastPriceSource,
+            },
+            now,
+        );
+        if (live.price !== undefined) {
+            return {
+                price: live.price.toString(),
+                source: live.source,
+                stale: live.stale,
+                ageMs: live.ageMs,
+            };
+        }
+    }
+    if (analysis) {
+        const ageMs = now - analysis.updatedAt;
+        return {
+            price: analysis.price,
+            source: "snapshot",
+            stale: ageMs > MAX_MARK_PRICE_AGE_MS,
+            ageMs,
+        };
+    }
+    return { price: null, source: "none", stale: false, ageMs: null };
 }

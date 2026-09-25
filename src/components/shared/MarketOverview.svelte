@@ -43,6 +43,8 @@
   import { getCoinglassUrl, getCoinankUrl } from "../../utils/heatmapUtils";
   import { Decimal } from "decimal.js";
   import { app } from "../../services/app";
+  import { toastService } from "../../services/toastService.svelte";
+  import { resolveMarketQuote } from "../../services/priceResolution";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
   import { ChartWindow } from "../../lib/windows/implementations/ChartWindow.svelte";
@@ -104,6 +106,38 @@
       tickerData?.lastPrice ??
       null) as Decimal | null;
   });
+
+  /*
+   * BUG-0558: a per-symbol channel can go quiet while the tile keeps its
+   * cached price. The quote below carries its age and source so the tile
+   * says so instead of presenting it as live. `nowTick` re-resolves the
+   * age label every 5 s; the price itself only moves on real ticks.
+   */
+  let nowTick = $state(Date.now());
+  $effect(() => {
+    const id = setInterval(() => {
+      nowTick = Date.now();
+    }, 5000);
+    return () => clearInterval(id);
+  });
+
+  let quoteEntry = $derived(wsData ?? tickerData);
+  let quote = $derived(
+    resolveMarketQuote(
+      {
+        lastPrice: quoteEntry?.lastPrice,
+        lastPriceUpdatedAt: quoteEntry?.lastPriceUpdatedAt,
+        lastPriceSource: quoteEntry?.lastPriceSource,
+      },
+      nowTick,
+    ),
+  );
+  let quoteSourceLabel = $derived(
+    quote.source === "ws" ? "WS" : quote.source === "rest" ? "REST" : null,
+  );
+  let quoteAgeS = $derived(
+    quote.ageMs === null ? null : Math.max(0, Math.round(quote.ageMs / 1000)),
+  );
 
   // Performance Optimization: Memoize string conversion to prevent downstream re-calcs
   let currentPriceStr = $derived(currentPrice ? currentPrice.toString() : "0.0000");
@@ -321,20 +355,39 @@
   }
 
   function loadToCalculator() {
-    if (isFavoriteTile && symbol) {
-      tradeState.update((s) => {
-        const newState = {
-          ...s,
-          symbol: symbol.toUpperCase(),
-          useAtrSl: true,
-          atrMode: "auto" as "auto" | "manual",
-        };
-        if (currentPrice) {
-          newState.entryPrice = new Decimal(currentPrice).toString();
-        }
-        return newState;
+    if (!isFavoriteTile || !symbol) return;
+    const upper = symbol.toUpperCase();
+    /*
+     * BUG-0558: a stale tile quote must never silently become the entry
+     * price. The symbol is still adopted — that is what the tap means —
+     * through the BUG-0556 refresh path (which also preserves the stop
+     * strategy), but a stale price is refused with an explicit warning
+     * instead of a success toast.
+     */
+    const fresh = resolveMarketQuote(
+      {
+        lastPrice: quoteEntry?.lastPrice,
+        lastPriceUpdatedAt: quoteEntry?.lastPriceUpdatedAt,
+        lastPriceSource: quoteEntry?.lastPriceSource,
+      },
+      Date.now(),
+    );
+    if (fresh.price && !fresh.stale) {
+      tradeState.applySymbolRefresh({
+        symbol: upper,
+        provider,
+        entryPrice: fresh.price.toString(),
       });
-      app.fetchAllAnalysisData(symbol.toUpperCase());
+      app.fetchAllAnalysisData(upper);
+      toastService.success(
+        $_("app.marketDashboard.symbolLoaded", { values: { symbol: upper } }),
+      );
+    } else {
+      tradeState.applySymbolRefresh({ symbol: upper, provider });
+      app.fetchAllAnalysisData(upper);
+      toastService.warning(
+        $_("marketOverview.staleQuoteRefused", { values: { symbol: upper } }),
+      );
     }
   }
 
@@ -611,6 +664,16 @@
           </span>
         {/if}
       </div>
+      {#if quote.stale}
+        <div
+          class="text-[10px] font-semibold text-[var(--warning-color)]"
+          role="status"
+        >
+          {$_("marketOverview.staleQuote", {
+            values: { source: quoteSourceLabel ?? "?", age: quoteAgeS ?? "?" },
+          })}
+        </div>
+      {/if}
 
       {#if settingsState.showMarketActivity && depthData}
         <DepthBar bids={depthData.bids} asks={depthData.asks} />

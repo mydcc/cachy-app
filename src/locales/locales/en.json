@@ -96,7 +96,11 @@
       "trendUnknown": "Not measurable - too little history for the EMA 200",
       "notAnalysedHint": "Not analysed. Enable \"Analyze All Favorites\" in Settings.",
       "symbolLoaded": "{symbol} loaded into calculator",
-      "selectRow": "Load symbol into calculator"
+      "selectRow": "Load symbol into calculator",
+      "staleQuote": "Stale · {source} · {age}s",
+      "snapshotQuote": "Snapshot",
+      "staleRows": "{count} stale",
+      "staleQuoteRefused": "{symbol} loaded without a price: the quote is stale. The calculator kept its previous entry price."
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
@@ -1224,7 +1228,9 @@
     "aria": {
       "loadToCalculator": "Load {symbol} to calculator",
       "regionLabel": "Market Overview for {symbol}"
-    }
+    },
+    "staleQuote": "Stale quote · {source} · {age}s",
+    "staleQuoteRefused": "{symbol} not loaded into the calculator: the quote is stale. Pick it again once the feed resumes."
   },
   "seo": {
     "title": "Cachy - Position Size & Risk Management",

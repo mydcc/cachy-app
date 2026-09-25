@@ -96,7 +96,11 @@
       "trendUnknown": "Nicht messbar — zu wenig Historie für die EMA 200",
       "notAnalysedHint": "Wird nicht analysiert. In den Einstellungen „Alle Favoriten analysieren“ aktivieren.",
       "symbolLoaded": "{symbol} in den Rechner geladen",
-      "selectRow": "Symbol in den Rechner laden"
+      "selectRow": "Symbol in den Rechner laden",
+      "staleQuote": "Veraltet · {source} · {age}s",
+      "snapshotQuote": "Snapshot",
+      "staleRows": "{count} veraltet",
+      "staleQuoteRefused": "{symbol} ohne Preis übernommen: Der Kurs ist veraltet. Der Rechner behält den bisherigen Einstiegspreis."
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
@@ -1224,7 +1228,9 @@
     "aria": {
       "loadToCalculator": "{symbol} in Rechner laden",
       "regionLabel": "Marktübersicht für {symbol}"
-    }
+    },
+    "staleQuote": "Veralteter Kurs · {source} · {age}s",
+    "staleQuoteRefused": "{symbol} nicht in den Rechner übernommen: Der Kurs ist veraltet. Erneut wählen, sobald der Feed wieder läuft."
   },
   "seo": {
     "title": "Cachy - Positionsgröße & Risikomanagement",

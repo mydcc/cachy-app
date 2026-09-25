@@ -27,9 +27,11 @@ import { describe, it, expect } from "vitest";
 import { Decimal } from "decimal.js";
 import {
   resolvePricedMark,
+  resolveMarketQuote,
   totalPricedUnrealizedPnl,
   MAX_MARK_PRICE_AGE_MS,
   type PriceInputs,
+  type MarketQuoteInputs,
 } from "./priceResolution";
 
 const NOW = 1_700_000_000_000;
@@ -197,5 +199,80 @@ describe("totalPricedUnrealizedPnl", () => {
     ]);
 
     expect(total.isZero()).toBe(true);
+  });
+});
+
+describe("resolveMarketQuote (BUG-0558)", () => {
+  function quote(overrides: Partial<MarketQuoteInputs> = {}) {
+    return {
+      lastPrice: undefined,
+      lastPriceUpdatedAt: undefined,
+      lastPriceSource: undefined,
+      ...overrides,
+    };
+  }
+
+  it("resolves a fresh WS quote as live with its source", () => {
+    const resolved = resolveMarketQuote(
+      quote({
+        lastPrice: new Decimal("60000"),
+        lastPriceUpdatedAt: NOW,
+        lastPriceSource: "ws",
+      }),
+      NOW,
+    );
+
+    expect(resolved.price?.toString()).toBe("60000");
+    expect(resolved.stale).toBe(false);
+    expect(resolved.source).toBe("ws");
+    expect(resolved.ageMs).toBe(0);
+  });
+
+  it("resolves a fresh REST quote as live with its source", () => {
+    const resolved = resolveMarketQuote(
+      quote({
+        lastPrice: new Decimal("60000"),
+        lastPriceUpdatedAt: NOW - 5_000,
+        lastPriceSource: "rest",
+      }),
+      NOW,
+    );
+
+    expect(resolved.stale).toBe(false);
+    expect(resolved.source).toBe("rest");
+  });
+
+  it("labels a quote past the named maximum age stale but keeps the value", () => {
+    const resolved = resolveMarketQuote(
+      quote({
+        lastPrice: new Decimal("60000"),
+        lastPriceUpdatedAt: NOW - MAX_MARK_PRICE_AGE_MS - 1,
+        lastPriceSource: "ws",
+      }),
+      NOW,
+    );
+
+    expect(resolved.price?.toString()).toBe("60000");
+    expect(resolved.stale).toBe(true);
+    expect(resolved.ageMs).toBeGreaterThan(MAX_MARK_PRICE_AGE_MS);
+  });
+
+  it("labels a stamped-but-sourceless price stale without inventing a source", () => {
+    const resolved = resolveMarketQuote(
+      quote({ lastPrice: new Decimal("60000") }),
+      NOW,
+    );
+
+    expect(resolved.price?.toString()).toBe("60000");
+    expect(resolved.stale).toBe(true);
+    expect(resolved.source).toBeUndefined();
+    expect(resolved.ageMs).toBeNull();
+  });
+
+  it("resolves no price at all as unpriced, never as zero", () => {
+    const resolved = resolveMarketQuote(quote(), NOW);
+
+    expect(resolved.price).toBeUndefined();
+    expect(resolved.stale).toBe(false);
   });
 });
