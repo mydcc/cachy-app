@@ -3574,7 +3574,6 @@ export type TranslationKey =
   | "exchange.accountSettings.paperMode"
   | "exchange.accountSettings.confirmLeverageTitle"
   | "exchange.accountSettings.confirmLeverageMessage"
-  | "exchange.accountSettings.confirmLeverageLiquidation"
   | "exchange.accountSettings.confirmLeverageLiquidationSide"
   | "exchange.accountSettings.leverageChanged"
   | "exchange.accountSettings.marginModeChanged"

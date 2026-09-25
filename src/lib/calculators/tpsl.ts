@@ -46,6 +46,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { normalizeSymbol } from "../../utils/symbolUtils";
 
 export type PositionSide = "LONG" | "SHORT";
 export type TpSlPriceKind = "TP" | "SL";
@@ -317,12 +318,21 @@ export function netRoiPercentFromPrice(
  * borrow context when exactly one same-symbol position is open — with a
  * long and a short side open, either choice would describe the wrong side,
  * and guessing is worse than no context.
+ *
+ * Symbol comparison is venue-normalized (BUG-0501) when the caller passes a
+ * venue — a venue-prefixed plan symbol still finds its bare position — and
+ * falls back to a raw comparison without one.
  */
 export function resolveTpSlPosition<
     P extends { symbol: string; positionId?: string },
     O extends { symbol: string; positionId?: string },
->(positions: readonly P[], order: O): P | undefined {
-    const same = positions.filter((p) => p.symbol === order.symbol);
+>(positions: readonly P[], order: O, venue?: string): P | undefined {
+    const same = positions.filter((p) =>
+        venue
+            ? normalizeSymbol(p.symbol, venue) ===
+              normalizeSymbol(order.symbol, venue)
+            : p.symbol === order.symbol,
+    );
     if (order.positionId) {
         return same.find((p) => p.positionId === order.positionId);
     }

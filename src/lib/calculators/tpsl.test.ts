@@ -342,4 +342,10 @@ describe("resolveTpSlPosition (BUG-0553)", () => {
         ).toBeUndefined();
         expect(resolveTpSlPosition([OTHER], { symbol: "BTCUSDT" })).toBeUndefined();
     });
+
+    it("matches a venue-prefixed plan symbol to its bare position", () => {
+        expect(
+            resolveTpSlPosition([LONG_POS], { symbol: "BTC.P" }, "bitunix"),
+        ).toBe(LONG_POS);
+    });
 });

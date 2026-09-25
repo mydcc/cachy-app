@@ -71,7 +71,13 @@
    * the plain trigger-price field — the fail-closed behavior above.
    */
   const position = $derived(
-    order ? resolveTpSlPosition(accountState.positions, order) : undefined,
+    order
+      ? resolveTpSlPosition(
+          accountState.positions,
+          order,
+          settingsState.apiProvider || "bitunix",
+        )
+      : undefined,
   );
 
   const tpSlContext = $derived.by<TpSlContext | null>(() => {
