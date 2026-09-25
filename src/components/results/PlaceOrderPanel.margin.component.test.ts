@@ -133,6 +133,13 @@ vi.mock("../../stores/modal.svelte", () => ({ modalState: { show: showMock } }))
 const placeEntryGroupMock = vi.hoisted(() => vi.fn());
 vi.mock("../../services/orderPlacementService", () => ({
     orderPlacementService: { placeEntryGroup: placeEntryGroupMock },
+    // Mirrors the real helper (see the doubleSubmit spec): the panel
+    // narrows the free-string trade direction through it.
+    narrowTradeType: (tradeType: string) => {
+        const normalized = tradeType.toLowerCase();
+        if (normalized === "long" || normalized === "short") return normalized;
+        return null;
+    },
 }));
 
 vi.mock("../../services/toastService.svelte", () => ({
