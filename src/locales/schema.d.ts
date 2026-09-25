@@ -3102,6 +3102,7 @@ export type TranslationKey =
   | "calculator.errors.sizeBelowMinimum"
   | "calculator.errors.sizeAboveMaximum"
   | "calculator.errors.leverageAboveMaximum"
+  | "calculator.errors.unknownTradeType"
   | "calculator.errors.generic"
   | "calculator.logic.tpGoal"
   | "calculator.logic.sumSold"

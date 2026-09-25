@@ -3686,6 +3686,7 @@
       "sizeBelowMinimum": "Size {size} is below the instrument minimum of {minimum}.",
       "sizeAboveMaximum": "Size {size} exceeds the instrument maximum of {maximum}.",
       "leverageAboveMaximum": "Leverage {leverage}x exceeds the instrument maximum of {maximum}x.",
+      "unknownTradeType": "Trade direction is unreadable. Choose long or short before calculating.",
       "generic": "An error occurred during calculation."
     },
     "logic": {

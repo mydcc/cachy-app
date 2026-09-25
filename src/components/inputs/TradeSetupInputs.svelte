@@ -31,7 +31,6 @@
   import { resultsState } from "../../stores/results.svelte";
   import { fundingRateService } from "../../services/fundingRateService.svelte";
   import { signedFundingCashFlow24h } from "../../lib/fundingCashFlow";
-  import { CONSTANTS } from "../../lib/constants";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { SymbolPickerWindow } from "../../lib/windows/implementations/SymbolPickerWindow.svelte";
   import { app } from "../../services/app";
@@ -157,20 +156,16 @@
 
       const notional = posSizeDecimal.times(entryDecimal);
       const fundingInterval = marketState.data[norm]?.fundingInterval ?? 8;
-      // BUG-0559: a positive rate means longs pay shorts, so the unsigned
+      // BUG-0559: a positive rate means longs pay shorts, so the signed
       // estimate reads as a cost for a long and as income for a short.
-      // Anything that is not explicitly a short keeps the long perspective
-      // (the pre-fix display), never the other way round.
-      const side =
-        tradeState.tradeType === CONSTANTS.TRADE_TYPE_SHORT
-          ? CONSTANTS.TRADE_TYPE_SHORT
-          : CONSTANTS.TRADE_TYPE_LONG;
-
-      // Signed cash flow: positive = the trader pays, negative = receives.
-      // A null return (unusable funding interval) lands in the same
-      // "no estimate" path as every other bail-out above, so the row stays
-      // hidden instead of rendering an infinite value.
-      return signedFundingCashFlow24h(notional, history.avg7d, fundingInterval, side);
+      // The pure helper normalizes the persisted/preset value and returns
+      // null for an unknown direction instead of silently treating it as long.
+      return signedFundingCashFlow24h(
+        notional,
+        history.avg7d,
+        fundingInterval,
+        tradeState.tradeType,
+      );
     } catch {
       return null;
     }
@@ -695,6 +690,7 @@
             <span class="text-[var(--text-secondary)]">{isHoldingCost24h ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
           </Tooltip>
           <span
+            data-testid="funding-estimate-24h"
             class="font-medium"
             class:text-[var(--danger-color)]={isHoldingCost24h}
             class:text-[var(--success-color)]={!isHoldingCost24h}
@@ -713,6 +709,7 @@
           <span class="text-[var(--text-secondary)]">{isHoldingCost24h ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
         </Tooltip>
         <span
+          data-testid="funding-estimate-24h"
           class="font-medium"
           class:text-[var(--danger-color)]={isHoldingCost24h}
           class:text-[var(--success-color)]={!isHoldingCost24h}

@@ -191,3 +191,13 @@ describe("BUG-0501 — venue-aware metadata", () => {
         expect(showError()).toHaveBeenCalledTimes(1);
     });
 });
+
+describe("BUG-0559 — an unreadable direction fails closed", () => {
+    it("emits no size when the persisted direction is not long or short", () => {
+        seedTrade({ tradeType: "sideways" });
+        app.calculateAndDisplay();
+
+        expect(resultsState.positionSize).toBe("-");
+        expect(showError()).toHaveBeenCalledTimes(1);
+    });
+});

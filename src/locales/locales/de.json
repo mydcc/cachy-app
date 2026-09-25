@@ -3644,6 +3644,7 @@
       "sizeBelowMinimum": "Größe {size} liegt unter dem Instrumenten-Minimum von {minimum}.",
       "sizeAboveMaximum": "Größe {size} überschreitet das Instrumenten-Maximum von {maximum}.",
       "leverageAboveMaximum": "Hebel {leverage}x überschreitet das Instrumenten-Maximum von {maximum}x.",
+      "unknownTradeType": "Die Handelsrichtung ist unlesbar. Wähle Long oder Short, bevor du rechnest.",
       "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
     },
     "logic": {

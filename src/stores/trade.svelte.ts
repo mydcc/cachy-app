@@ -25,6 +25,7 @@ import { safeJsonParse } from "../utils/safeJson";
 import { z } from "zod";
 import type { CurrentTradeData } from "./types";
 import { safeLocalStorage } from "../utils/storageWrapper";
+import { normalizeTradeDirection } from "../lib/tradeDirection";
 
 // Re-using types might require importing AppState or redefining what we need
 // Ideally we import AppState, but let's define the shape here for clarity/independence or import if needed.
@@ -138,7 +139,7 @@ const requiredStringSchema = legacyNumericString;
 
 // Define Zod Schema for TradeState
 const TradeStateSchema = z.object({
-  tradeType: z.string(),
+  tradeType: z.string().transform(normalizeTradeDirection),
   accountSize: requiredStringSchema,
   riskPercentage: requiredStringSchema,
   entryPrice: stringSchema,
