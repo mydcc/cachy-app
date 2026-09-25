@@ -107,12 +107,15 @@
    *
    * `null` from the helper — or any missing/non-positive input here — is an
    * explicit unmeasurable state, never the old liquidation value presented
-   * as the consequence. A full withdrawal (newMargin <= 0) leaves no
-   * isolated position to project.
+   * as the consequence. A full withdrawal (reduce with newMargin <= 0)
+   * removes the entire isolated buffer, so it is a distinct `closing` state
+   * with its own acknowledgement gate rather than an unmeasurable one:
+   * there is no liquidation price left to project.
    */
   type Projection =
     | { state: "idle" }
     | { state: "unmeasurable" }
+    | { state: "closing"; newMargin: Decimal }
     | {
         state: "ok";
         to: Decimal;
@@ -137,8 +140,15 @@
       const notional = size.times(entry);
       const newMargin =
         direction === "add" ? margin.plus(amount) : margin.minus(amount);
-      if (!newMargin.isFinite() || newMargin.lte(0))
-        return { state: "unmeasurable" };
+      if (!newMargin.isFinite()) return { state: "unmeasurable" };
+      if (newMargin.lte(0)) {
+        // Review: a full withdrawal is not "unmeasurable" — the consequence
+        // is certain (no isolated buffer left) and must be acknowledged.
+        // Only a reduce can reach this; an add on a positive margin never
+        // produces a non-positive new margin.
+        if (direction !== "reduce") return { state: "unmeasurable" };
+        return { state: "closing", newMargin };
+      }
 
       const stated = position.leverage;
       const currentLeverage =
@@ -173,13 +183,14 @@
 
   /*
    * A reduce that moves liquidation closer (tighter) cannot submit until the
-   * trader acknowledges the explicit consequence. An add moves liquidation
-   * away, so it needs no gate — but the projection is still shown.
+   * trader acknowledges the explicit consequence — and neither can a full
+   * withdrawal, which removes the isolated buffer entirely. An add moves
+   * liquidation away, so it needs no gate — but the projection is still shown.
    */
   const requiresConfirmation = $derived(
     direction === "reduce" &&
-      projection.state === "ok" &&
-      projection.tighter,
+      ((projection.state === "ok" && projection.tighter) ||
+        projection.state === "closing"),
   );
   const needsAck = $derived(requiresConfirmation && !acknowledged);
 
@@ -337,6 +348,28 @@
             >
           </label>
         {/if}
+      {:else if projection.state === "closing"}
+        <p class="text-[11px] text-[var(--danger-color)]">
+          {$_("modals.adjustMargin.closingText")}
+        </p>
+        <label
+          class="flex items-start gap-2 text-[11px] text-[var(--text-secondary)] cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            bind:checked={acknowledged}
+            disabled={loading}
+            class="mt-0.5"
+          />
+          <span
+            >{$_("modals.adjustMargin.confirmClosing", {
+              values: {
+                currentMargin: formatDynamicDecimal(position?.margin),
+                newMargin: formatDynamicDecimal(projection.newMargin),
+              },
+            })}</span
+          >
+        </label>
       {:else if projection.state === "unmeasurable"}
         <p class="text-[11px] text-[var(--warning-color)]">
           {$_("modals.adjustMargin.unmeasurable")}

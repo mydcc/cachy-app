@@ -329,4 +329,38 @@ describe("BUG-0554 — AdjustMarginModal projects the liquidation consequence", 
         );
         expect(buttonByText(lookup("modals.adjustMargin.submitAdd"))?.disabled).toBe(false);
     });
+
+    it("full withdrawal shows the closing state and blocks submit until acknowledged", async () => {
+        const onsuccess = vi.fn();
+        render(LONG_LIQ, { onsuccess });
+        await settle();
+
+        buttonByText(lookup("modals.adjustMargin.reduce"))?.click();
+        typeAmount("10");
+        await settle();
+
+        // The whole isolated buffer (margin 10) is withdrawn: no liquidation
+        // price is projected, and the closing consequence needs its own ack.
+        expect(host.textContent).toContain(lookup("modals.adjustMargin.closingText"));
+        expect(host.textContent).not.toContain(
+            lookup("modals.adjustMargin.projectedLiquidation"),
+        );
+        expect(host.textContent).toContain("keeps no isolated margin");
+
+        const submit = buttonByText(lookup("modals.adjustMargin.submitReduce"));
+        expect(submit?.disabled).toBe(true);
+        submit?.click();
+        await settle();
+        expect(adjustSpy).not.toHaveBeenCalled();
+
+        ackCheckbox()?.click();
+        await settle();
+        expect(buttonByText(lookup("modals.adjustMargin.submitReduce"))?.disabled).toBe(false);
+
+        buttonByText(lookup("modals.adjustMargin.submitReduce"))?.click();
+        await settle();
+        expect(adjustSpy).toHaveBeenCalledTimes(1);
+        expect(adjustSpy.mock.calls[0][0].amount.eq(-10)).toBe(true);
+        expect(onsuccess).toHaveBeenCalledTimes(1);
+    });
 });

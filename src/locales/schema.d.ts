@@ -3059,6 +3059,8 @@ export type TranslationKey =
   | "modals.adjustMargin.movesAway"
   | "modals.adjustMargin.unmeasurable"
   | "modals.adjustMargin.confirmReduce"
+  | "modals.adjustMargin.closingText"
+  | "modals.adjustMargin.confirmClosing"
   | "ui.loading"
   | "ui.action"
   | "ui.background"
