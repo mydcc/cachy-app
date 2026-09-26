@@ -40,6 +40,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperTradingService } from "./paperTradingService";
 import { accountEpoch, type RotationReason } from "./accountEpoch.svelte";
+import { accountVerification } from "../stores/accountVerification.svelte";
 
 /**
  * Clear the state that belongs to the account being left.
@@ -66,6 +67,12 @@ import { accountEpoch, type RotationReason } from "./accountEpoch.svelte";
  */
 export function resetAccountSession(reason: RotationReason): void {
     accountEpoch.rotate(reason);
+
+    // BUG-0560: a verification verdict is about one account's credentials, and
+    // the account on screen just changed. A switch away and back must not find
+    // the old account's green dot waiting for it, so the verdicts go with the
+    // session rather than outliving it.
+    accountVerification.invalidateAll();
 
     accountState.reset();
     omsService.reset();

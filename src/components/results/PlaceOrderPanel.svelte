@@ -32,8 +32,14 @@
 
 <script lang="ts">
   import { Decimal } from "decimal.js";
+  import { untrack } from "svelte";
   import { _ } from "../../locales/i18n";
   import { accountState } from "../../stores/account.svelte";
+  import {
+    accountVerification,
+    ensureCurrent,
+    subjectFor,
+  } from "../../stores/accountVerification.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { resultsState } from "../../stores/results.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -217,6 +223,47 @@
       data.requiredMargin.gt(liveAvailable),
   );
 
+  /*
+   * BUG-0560: the panel used to be ready whenever the calculator had a size and
+   * the wallet could cover it, so live order entry was offered on credentials
+   * nobody had ever presented to the exchange. Now it needs a verdict from a
+   * read that came back — and, per the panel's own contract, it says why.
+   *
+   * Two deliberate exclusions, because the gate remains the authority:
+   * paper mode consults nothing (the simulated book needs no credentials, and
+   * AC5 requires that it not start asking), and a *rejected* credential is not
+   * this panel's business either — the gate refuses an order the venue will not
+   * accept, with a far more specific message than "unverified" could be. What
+   * the panel adds is the case the gate cannot see: an account whose state is
+   * simply unknown, where the old panel said nothing at all.
+   */
+  const verificationSubject = $derived(
+    subjectFor(exchange === "bitget" ? "bitget" : "bitunix"),
+  );
+  const accountVerificationStatus = $derived(
+    accountVerification.statusFor(verificationSubject),
+  );
+  // Only the unknowns block here. `unconfigured` is already the absence of a
+  // credential, which the balance-derived conditions above cannot satisfy, and
+  // a refused credential gets the venue's own refusal from the gate.
+  const accountUnverified = $derived(
+    !paperState.enabled &&
+      (accountVerificationStatus === "verifying" ||
+        accountVerificationStatus === "stale"),
+  );
+
+  // Make sure a verdict exists whenever the panel is on screen, so the state
+  // above resolves to something instead of staying unknown until the trader
+  // presses a disabled button. Cheap when a verdict is current; one signed
+  // read when it is missing, expired or about edited credentials.
+  $effect(() => {
+    if (paperState.enabled) return;
+    void verificationSubject?.id;
+    void verificationSubject?.keys.key;
+    void accountVerificationStatus;
+    untrack(() => void ensureCurrent(exchange === "bitget" ? "bitget" : "bitunix"));
+  });
+
   // The calculator produces a size only when the inputs make one derivable.
   // AC 1: Trading-pair metadata is available in a store before submit action is enabled.
   // AC 3: Below minTradeVolume or above max order volume disables submit action.
@@ -229,7 +276,8 @@
       tradingAvailable &&
       volumeValid &&
       marginFunded &&
-      liveMarginFunded,
+      liveMarginFunded &&
+      !accountUnverified,
   );
 
   // An unreadable trade direction is not a long: the control stays
@@ -550,6 +598,10 @@
           <span class="detail">{$_("dashboard.symbolInfo.apiNotSupported")}</span>
         {/if}
       </div>
+    {:else if accountUnverified}
+      <p class="note warn" role="status">
+        {$_("orderEntry.errors.accountUnverified")}
+      </p>
     {:else if balanceUnmeasured}
       <p class="note">{$_("orderEntry.notes.balanceUnmeasured")}</p>
     {:else if liveMarginShortfall && data?.requiredMargin instanceof Decimal && liveAvailable instanceof Decimal}
