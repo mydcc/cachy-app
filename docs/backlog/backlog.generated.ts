@@ -2264,7 +2264,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0551",
     "title": "Account or mode changes during signing can dispatch to the old live context",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2401,7 +2401,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0560",
     "title": "Credential cards show green without private-account verification",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2419,7 +2419,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0567",
     "title": "Shrinking modify with widened stop escapes the loss-per-trade ceiling",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -5402,7 +5402,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0565",
     "title": "Live balance pushes and paper hydration share one store without a mode guard",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
     "editions": [

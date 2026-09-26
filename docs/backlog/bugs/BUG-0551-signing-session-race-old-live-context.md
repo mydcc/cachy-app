@@ -2,7 +2,7 @@
 id: BUG-0551
 title: Account or mode changes during signing can dispatch to the old live context
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,7 @@ data_class: A
 adr: none
 depends_on: []
 ---
+
 
 # BUG-0551 — Account or mode changes during signing can dispatch to the old live context
 

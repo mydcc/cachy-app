@@ -2,7 +2,7 @@
 id: BUG-0560
 title: Credential cards show green without private-account verification
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,7 @@ data_class: A
 adr: none
 depends_on: []
 ---
+
 
 # BUG-0560 — Credential cards show green without private-account verification
 
