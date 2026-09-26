@@ -2419,7 +2419,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0567",
     "title": "Shrinking modify with widened stop escapes the loss-per-trade ceiling",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
     "priority": "P1",
     "milestone": "none",
     "editions": [
