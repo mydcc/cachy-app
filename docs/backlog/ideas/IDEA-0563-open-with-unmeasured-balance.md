@@ -2,7 +2,7 @@
 id: IDEA-0563
 title: Decide what an open with unmeasured balance should do
 type: idea
-status: idea
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

@@ -2,7 +2,7 @@
 id: BUG-0565
 title: Live balance pushes and paper hydration share one store without a mode guard
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
