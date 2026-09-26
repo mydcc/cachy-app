@@ -182,15 +182,17 @@ describe("FEAT-0012 — one seam", () => {
         // intent and onto the gate-pass context so the transport can compare
         // them, one relaxes a credential guard (FEAT-0327) in front of a
         // read that goes through the seam and therefore needs no credentials,
-        // and one refuses a bot-stamped order while paper is off (BUG-0494).
+        // one refuses a bot-stamped order while paper is off (BUG-0494), and
+        // one re-reads the mode immediately before a write is dispatched
+        // (BUG-0551) so a mode switched mid-signing cannot reach the venue.
         // None of them changes what the request is: the provenance refusal
-        // stops a paper-only order from reaching the live branch, it never
-        // routes anything.
-        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(6);
+        // stops a paper-only order from reaching the live branch, the
+        // dispatch re-check can only refuse, neither ever routes anything.
+        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(7);
         expect(
             source.match(/if \(!paperState\.enabled && \(!keys\?\.key/g) ?? [],
         ).toHaveLength(1);
-        expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(2);
+        expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(3);
     });
 
     it("reaches the transport with an identical payload in both modes", async () => {

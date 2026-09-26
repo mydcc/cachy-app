@@ -336,6 +336,13 @@ export async function exchangeSignedFetch(
      * `RequestInit` — not to `typeof fetch`. The app's authenticated fetch
      * takes only a string, so the wider type rejected every real caller while
      * this one describes nothing the function needs.
+     *
+     * A `fetchFn` that needs an invariant checked before every attempt may
+     * carry it by accepting `appFetch`'s third `beforeAttempt` argument — see
+     * `dispatchUnderSession` in `tradeService.ts` (BUG-0551). The narrower type
+     * above accepts such a function unchanged, so the hook is a convention this
+     * comment carries, not one the compiler enforces: wrapping `appFetch` in a
+     * two-argument lambda would type-check and drop the guard.
      */
     fetchFn?: (input: string, init?: RequestInit) => Promise<Response>;
     headers?: Record<string, string>;
