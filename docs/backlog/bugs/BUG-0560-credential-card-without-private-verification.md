@@ -93,9 +93,18 @@ second, parallel mechanism.
   amber, `rejected` is red, and every state carries an accessible name. Only
   `verifying` pulses: a pulse promises that waiting will answer the question,
   which is true of a read in flight and false of an expired verdict.
-- `PlaceOrderPanel` disables live entry while the state is unknown or stale and
-  says why. `PlaceOrderPanel` is mounted unconditionally by the app shell, so
-  its `ensureCurrent()` effect is the app-lifecycle trigger — no polling timer.
+- `PlaceOrderPanel` disables live entry unless the account is `verified`, and
+  says why. That includes `unconfigured`, which a first cut waved through on the
+  argument that "no credential" cannot coexist with a live balance — it can,
+  because `accountState` keeps its balance hydrated after the key fields are
+  cleared and the sidebar is what hydrates it. An account nobody has read is
+  exactly the "unknown" AC4 names. The two situations get different sentences:
+  a trader with no key is told to add one, not that a check is running.
+  `rejected` stays open on purpose — the gate has the venue's own refusal, which
+  names the actual problem better than this panel could. Paper mode is exempt
+  throughout (AC5). `PlaceOrderPanel` is mounted unconditionally by the app
+  shell, so its `ensureCurrent()` effect is the app-lifecycle trigger — no
+  polling timer.
 - `resetAccountSession` invalidates every verdict, so switching accounts and
   back does not find the previous account's green dot waiting.
 
@@ -108,7 +117,7 @@ reason where the panel could only say "unverified".
 - [x] Bogus nonempty credentials never produce a verified green state.
 - [x] Verification is account-specific and key edits return the state to stale/unverified.
 - [x] Public WebSocket connected plus private account failed displays both states accurately.
-- [x] Live order entry is disabled or clearly blocked while private account state is unknown or stale.
+- [x] Live order entry is disabled or clearly blocked while private account state is unknown or stale. Includes `unconfigured`: an account with no verdict and an account with no credential are both unknown.
 - [x] Paper mode does not require exchange credentials.
 - [x] Tests cover unconfigured, verifying, verified, rejected, stale, and edit transitions.
 
