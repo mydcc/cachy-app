@@ -1091,8 +1091,8 @@ describe("FEAT-0013 — corrupt persisted state", () => {
 // exposure than the trader approved when it was placed, so it faces the
 // same limits an open does: measured at the gate, refused before any
 // signed request. Price-only and TP/SL-only amendments stay usable with
-// every limit configured; shrinking amendments stay exempt from the size
-// caps but face the loss-per-trade ceiling (BUG-0567).
+// every limit configured; a shrinking amendment faces the loss-per-trade
+// ceiling (BUG-0567) and the size caps (BUG-0568).
 describe("BUG-0548 — quantity-increasing amendments face the open's limits", () => {
     /** 1 BTC at 50 000 = 50 000 USDT notional, enlarged from 0.2; a 500 stop. */
     function enlargingModifyIntent(): OrderIntent {
@@ -1129,6 +1129,16 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
     function everyLimitTight() {
         riskState.setLimit("maxPositionSizeUsdt", "10000");
         riskState.setLimit("maxPositionSizePercent", "1");
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        riskState.setLimit("maxDailyLossUsdt", "100");
+    }
+
+    /**
+     * Every limit except the size caps. Used by the tests whose subject *is*
+     * a size cap, where `everyLimitTight`'s 1% of a 1000 account (10 USDT)
+     * would refuse any real amendment and hide what is under test.
+     */
+    function everyNonSizeLimitTight() {
         riskState.setLimit("maxLossPerTradeUsdt", "400");
         riskState.setLimit("maxDailyLossUsdt", "100");
     }
@@ -1209,9 +1219,15 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
     it("leaves an equal-quantity price change alone inside the ceiling", () => {
         // Named "price-only" before BUG-0567: the amendment states its
         // quantity (0.2, equal to resting), so it runs through measurement
-        // rather than the price-only exemption — and passes inside the
-        // ceiling (0.2 × 600 = 120 plus fees, under 400).
-        everyLimitTight();
+        // rather than the price-only exemption.
+        //
+        // The cap is 20 000, not the 10 000 of `everyLimitTight`, because
+        // 0.2 × 50 100 is 10 020. This test used to sit under a 10 000 cap
+        // and pass — but nothing measured this path's notional until BUG-0568,
+        // so the ceiling it claimed to be inside was never checked against the
+        // notional it carried.
+        everyNonSizeLimitTight();
+        riskState.setLimit("maxPositionSizeUsdt", "20000");
         const intent = enlargingModifyIntent();
         intent.payload.qty = "0.2";
         intent.displayed.modifyQuantity = new Decimal("0.2");
@@ -1220,8 +1236,13 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
         expect(orderGate.verify(intent).approved).toBe(true);
     });
 
-    it("leaves a shrinking amendment alone", () => {
-        everyLimitTight();
+    it("leaves a shrinking amendment alone when the cap contains it", () => {
+        // 0.1 × 50 000 = 5 000 notional, inside a 20 000 cap. No percentage
+        // cap is configured: 1% of the fixture's 1000 account is 10, which no
+        // real account sets, and while this path measured nothing no test
+        // found out that the exemption was the only reason it passed.
+        everyNonSizeLimitTight();
+        riskState.setLimit("maxPositionSizeUsdt", "20000");
         const intent = enlargingModifyIntent();
         intent.payload.qty = "0.1";
         intent.displayed.modifyQuantity = new Decimal("0.1");
@@ -1297,10 +1318,14 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
     });
 
     it("leaves an equal-quantity amendment alone inside the ceiling (gt is strict)", () => {
-        // Documents the boundary: exactly holding size is not an increase,
-        // and the unchanged stop keeps the loss (0.2 × 500 = 100 plus fees)
-        // inside the ceiling.
-        everyLimitTight();
+        // Documents the boundary: exactly holding size is not an increase.
+        // 0.2 × 50 000 is exactly 10 000 against a 10 000 cap, and the cap
+        // compares strictly — so this boundary is genuinely exercised now,
+        // which it was not while the path measured nothing at all. The
+        // unchanged stop keeps the loss (0.2 × 500 = 100 plus fees) inside
+        // the ceiling.
+        everyNonSizeLimitTight();
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
         const intent = enlargingModifyIntent();
         intent.payload.qty = "0.2";
         intent.displayed.modifyQuantity = new Decimal("0.2");
@@ -1308,8 +1333,9 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
     });
 
     it("refuses an equal-quantity amendment that widens the stop past the ceiling", () => {
-        // Same size as resting, so no size cap fires — but the widened stop
-        // (0.2 × 5000 = 1000 plus fees) clears the loss ceiling (BUG-0567).
+        // Same size as resting, and only the loss ceiling is configured here,
+        // so the widened stop is what decides: 0.2 × 5000 = 1000 plus fees
+        // clears 400 (BUG-0567).
         riskState.setLimit("maxLossPerTradeUsdt", "400");
         const intent = enlargingModifyIntent();
         intent.payload.qty = "0.2";
@@ -1342,7 +1368,7 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
 
 // BUG-0567 — a shrinking amendment must still face the loss-per-trade
 // ceiling: widening the stop on the way down can push the resulting loss
-// past maxLossPerTradeUsdt. Shrinks stay exempt from the size caps;
+// past maxLossPerTradeUsdt. Shrinks also face the size caps (BUG-0568);
 // price-only and TP/SL-only amendments keep their full exemption.
 describe("BUG-0567 — shrinking amendments face the loss-per-trade ceiling", () => {
     /** 1 → 0.9 with the stop widened 500 → 5000: a 4500 loss plus fees. */
@@ -1394,11 +1420,26 @@ describe("BUG-0567 — shrinking amendments face the loss-per-trade ceiling", ()
         expect(orderGate.verify(intent).approved).toBe(true);
     });
 
-    it("leaves shrinking amendments exempt from the size caps", () => {
-        // 0.9 × 50 000 = 45 000 notional clears a 10 000 cap — the size
-        // exemption holds; only the loss ceiling measures a shrink.
+    it("measures a shrinking amendment against the size caps", () => {
+        // 0.9 × 50 000 = 45 000 notional is past a 10 000 cap. This asserted
+        // the opposite until BUG-0568: the cap was quantity-shaped, so a shrink
+        // measured nothing even when the price made the amended order nine
+        // times the exposure the trader approved. Price is the other half of
+        // notional, and it was unbounded here. No percentage cap is set: the
+        // absolute one answers first, so configuring it would only be dead
+        // weight.
         riskState.setLimit("maxPositionSizeUsdt", "10000");
-        riskState.setLimit("maxPositionSizePercent", "1");
+        const refusal = orderGate.verify(shrinkingModifyIntent()).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.reason).toBe("riskLimit");
+    });
+
+    it("approves a shrink that stays inside the size caps", () => {
+        // The ordinary case, unchanged by BUG-0568: a shrink at a sane price
+        // makes the notional smaller, so the cap is not what refuses it. Only
+        // the size cap is configured, to keep the loss ceiling out of the
+        // question this test asks.
+        riskState.setLimit("maxPositionSizeUsdt", "100000");
         expect(orderGate.verify(shrinkingModifyIntent()).approved).toBe(true);
     });
 
@@ -1440,6 +1481,136 @@ describe("BUG-0567 — shrinking amendments face the loss-per-trade ceiling", ()
         const refusal = orderGate.verify(intent).refusal;
         expect(refusal?.field).toBe("maxLossPerTrade");
         expect(refusal?.reason).toBe("riskLimit");
+    });
+});
+
+// BUG-0568 — a quantity shrink is not a small amendment. 1.0 BTC at 50 000
+// amended down to 0.9 at 500 000 is a shrink by quantity and carries 9x the
+// notional. The shrink path measured only `checkLossPerTrade`, which returns
+// null before it looks at anything when no loss limit is configured — so with
+// no loss limit the amendment passed with neither a size nor a loss
+// measurement. Price is the other half of notional and was unbounded here.
+describe("BUG-0568 — a shrinking amendment is measured against the size caps", () => {
+    /**
+     * 1 → 0.9 with the price pumped 50 000 → 500 000. Carries the same wide
+     * stop as the BUG-0567 fixture; no test in this block configures a loss
+     * ceiling, so the stop is inert here and the size caps decide alone.
+     */
+    function pumpedShrinkIntent(): OrderIntent {
+        return {
+            kind: "modify",
+            endpoint: "/api/orders",
+            payload: {
+                type: "modify-order",
+                orderId: "o-8",
+                symbol: "BTCUSDT",
+                qty: "0.9",
+                price: "500000",
+                slPrice: "45000",
+            },
+            displayed: {
+                ...ACCOUNT,
+                symbol: "BTCUSDT",
+                orderId: "o-8",
+                entryPrice: new Decimal(500000),
+                positionSide: "LONG",
+                stopLossPrice: new Decimal(45000),
+                modifyQuantity: new Decimal("0.9"),
+                previousQuantity: new Decimal(1),
+                accountSize: new Decimal(1000),
+                stepSize: new Decimal("0.0001"),
+            },
+        };
+    }
+
+    it("refuses a quantity shrink whose pumped price carries a 9x notional", () => {
+        // 0.9 × 500 000 = 450 000 against a 50 000 cap. No loss limit is
+        // configured on purpose: that is the configuration in which the
+        // shrink path measured nothing at all.
+        riskState.setLimit("maxPositionSizeUsdt", "50000");
+        const refusal = orderGate.verify(pumpedShrinkIntent()).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+        expect(refusal?.reason).toBe("riskLimit");
+    });
+
+    it("refuses the same shrink through the percentage cap", () => {
+        // 10% of a 1000 account is 100, and 450 000 is past it. The absolute
+        // cap is unset, so the percentage is the only thing that can refuse.
+        riskState.setLimit("maxPositionSizePercent", "10");
+        expect(orderGate.verify(pumpedShrinkIntent()).refusal?.field).toBe(
+            "maxPositionSizePercent",
+        );
+    });
+
+    it("approves the same shrink once the price is sane", () => {
+        // The cap only measures the amendment; it does not refuse shrinks as
+        // such. At 50 000 the same 1 → 0.9 amendment is 45 000 notional, under
+        // a 50 000 cap, and stays approved.
+        riskState.setLimit("maxPositionSizeUsdt", "50000");
+        const intent = pumpedShrinkIntent();
+        intent.payload.price = "50000";
+        intent.displayed.entryPrice = new Decimal(50000);
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("refuses a same-size amendment whose price alone carries the notional", () => {
+        // The purest form of the attack, and the one a quantity-only reading
+        // of "shrink" misses: the quantity does not change at all, only the
+        // price, so `isQuantityIncreasingModify` answers no and the amendment
+        // is measured exactly as a shrink is. 0.9 × 500 000 = 450 000 against
+        // a 50 000 cap. Before BUG-0568 this passed with nothing measured.
+        riskState.setLimit("maxPositionSizeUsdt", "50000");
+        const intent = pumpedShrinkIntent();
+        intent.displayed.previousQuantity = new Decimal("0.9");
+        expect(orderGate.verify(intent).refusal?.field).toBe("maxPositionSize");
+    });
+
+    it("reports the size cap first when a shrink breaches both ceilings", () => {
+        // The order is the gate's: a concrete breach outranks an unmeasurable
+        // one, as on every other measured path. Pinned so a future reorder is
+        // a decision rather than a drift — and it is a real change: this
+        // amendment used to report maxLossPerTrade. 0.9 × 50 000 = 45 000 past
+        // a 1 000 cap, and the wide stop's 0.9 × 5 000 = 4 500 past a ceiling
+        // of 1, so both refuse and only the order of the two is under test.
+        riskState.setLimit("maxPositionSizeUsdt", "1000");
+        riskState.setLimit("maxLossPerTradeUsdt", "1");
+        const intent = pumpedShrinkIntent();
+        intent.payload.price = "50000";
+        intent.displayed.entryPrice = new Decimal(50000);
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxPositionSize");
+    });
+
+    it("measures a short shrink against the size caps, side-neutrally", () => {
+        // `notionalOf` is quantity × price with no sign, which is right for
+        // both sides; the existing short case only exercises the loss ceiling,
+        // so the size measurement is pinned here.
+        riskState.setLimit("maxPositionSizeUsdt", "1000");
+        const intent = pumpedShrinkIntent();
+        intent.displayed.side = "SELL";
+        intent.displayed.positionSide = "SHORT";
+        intent.payload.side = "SELL";
+        // Short-correct, like the BUG-0567 short case: the stop sits above
+        // the entry. No loss ceiling is configured, so its distance is inert.
+        intent.payload.slPrice = "550000";
+        intent.displayed.stopLossPrice = new Decimal(550000);
+        expect(orderGate.verify(intent).refusal?.field).toBe("maxPositionSize");
+    });
+
+    it("leaves a price-only amendment fully exempt at a pumped price", () => {
+        // No quantity anywhere means no new exposure, whatever the price says.
+        // Note the reachability: `tradeService.modifyOrder` falls back to the
+        // resting size when no quantity is given, so an amendment from the app
+        // arrives here as an *equal-quantity* intent and is measured. The full
+        // exemption only covers a hand-built intent with no quantity at all.
+        riskState.setLimit("maxPositionSizeUsdt", "1");
+        riskState.setLimit("maxLossPerTradeUsdt", "1");
+        riskState.setLimit("maxDailyLossUsdt", "1");
+        const intent = pumpedShrinkIntent();
+        delete intent.payload.qty;
+        delete intent.displayed.modifyQuantity;
+        delete intent.displayed.previousQuantity;
+        expect(orderGate.verify(intent).approved).toBe(true);
     });
 });
 

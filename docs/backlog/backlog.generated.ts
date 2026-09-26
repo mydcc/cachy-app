@@ -5426,8 +5426,11 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0568",
     "title": "Quantity shrink with pumped price escapes the size caps without a loss limit",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0568",
     "priority": "P2",
+    "shipped": "unreleased",
     "milestone": "none",
     "editions": [
       "community",
