@@ -2,7 +2,7 @@
 id: BUG-0567
 title: Shrinking modify with widened stop escapes the loss-per-trade ceiling
 type: bug
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,7 @@ data_class: A
 adr: none
 depends_on: [BUG-0548]
 ---
+
 
 # BUG-0567 — Shrinking modify with widened stop escapes the loss-per-trade ceiling
 
