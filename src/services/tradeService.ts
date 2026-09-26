@@ -55,7 +55,7 @@ import { unwrapApiEnvelope, formatApiNum, parseDecimal } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
-import { accountEpoch } from "./accountEpoch.svelte";
+import { accountEpoch, type AccountSession } from "./accountEpoch.svelte";
 import { accountReadOrder, leverageReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
@@ -66,11 +66,13 @@ import {
     translateRefusal,
     OrderRefusedError,
     mismatch,
+    mutatingActionOf,
     BOT_PAPER_ONLY_MESSAGE_KEY,
     type GatePass,
     type DisplayedState,
     type OrderIntent,
     type OrderOrigin,
+    type TransportContext,
 } from "./orderGate";
 import { exchangeSignedFetch, SIGNING_ERRORS } from "../utils/exchange/browserSigning";
 import {
@@ -128,6 +130,147 @@ const READ_BACK_ATTEMPTS = 3;
  * per endpoint and every other account read is event-driven.
  */
 const READ_BACK_DELAYS_MS = [700, 2000];
+
+/**
+ * BUG-0551 — the last thing that happens before a write leaves the device.
+ *
+ * Everything the transport decides is decided synchronously: the provider,
+ * the account whose keys sign the request, the paper/live branch. The one
+ * thing that is not is signing itself — `exchangeSignedFetch` awaits the
+ * WebCrypto digests before it dispatches — and a trader who switches account,
+ * venue or mode inside that window used to get the write anyway. The
+ * live-to-paper case is the one that costs real money: the UI shows a
+ * simulated order while the live branch, chosen before the switch, dispatches
+ * it.
+ *
+ * `assertGatePass` above cannot see it. That check answers "does the account
+ * the transport resolved still match what the gate approved", and it reads
+ * both sides in the same synchronous block — a switch that happens one await
+ * later is invisible to it.
+ *
+ * So the context is read once, kept, and compared again here, at the only
+ * place left that is genuinely later than the decision. Two layers, because
+ * they fail differently: the session token catches a rotation whose fields
+ * came back unchanged (switch away and back while signing), and the field
+ * comparison catches a context write that never rotated one.
+ *
+ * Read-only requests are deliberately untouched. A read that crosses the
+ * boundary is stale, not dangerous — it cannot dispatch a write, and its late
+ * answer is already dropped at the store write by the epoch guards in
+ * `accountReadOrder` (BUG-0412, BUG-0419). Refusing it here would turn every
+ * account switch into an error in the polling paths for no safety gain.
+ */
+function dispatchUnderSession(
+    session: AccountSession,
+    expected: LiveContext,
+): (input: string, init?: RequestInit) => Promise<Response> {
+    return async (input, init) => {
+        assertSessionIntact(session, expected);
+        return appFetch(input, init);
+    };
+}
+
+/** The part of a transport context that a switch can move. */
+type LiveContext = Pick<
+    TransportContext,
+    "provider" | "accountFingerprint" | "accountId" | "paperMode"
+>;
+
+/**
+ * The context a request is about to be sent under, read now.
+ *
+ * The same derivation as at approval time, deliberately: `activeAccountFor`
+ * is venue-scoped, so reporting `activeAccountId` raw would name an account
+ * the signature does not belong to.
+ */
+function readLiveContext(): LiveContext {
+    const provider = settingsState.apiProvider;
+    const account = activeAccountFor(
+        settingsState.accounts,
+        settingsState.activeAccountId,
+        provider,
+    );
+    return {
+        provider,
+        accountId: account?.id,
+        accountFingerprint: accountFingerprint(account?.keys.key),
+        paperMode: paperState.enabled,
+    };
+}
+
+/**
+ * The refusal for a context that moved under the signing await.
+ *
+ * Named after what actually changed rather than "invalid request": a mode
+ * flip, a venue switch and an account switch are three different mistakes,
+ * and the trader reading the toast is the one who has to know which one
+ * happened. The session case has no field to name — the rotation is the fact
+ * — so it reports the rotation itself.
+ */
+function sessionChangedRefusal(
+    expected: LiveContext,
+    current: LiveContext,
+    session: AccountSession,
+): OrderRefusedError {
+    const changed = (
+        field: string,
+        from: string | undefined,
+        to: string | undefined,
+    ): OrderRefusedError =>
+        new OrderRefusedError({
+            field,
+            reason: "mismatch",
+            messageKey: "orderGate.sessionChanged",
+            values: { field, expected: from ?? "—", actual: to ?? "—" },
+        });
+
+    if (current.provider !== expected.provider) {
+        return changed("exchange", expected.provider, current.provider);
+    }
+    if (current.paperMode !== expected.paperMode) {
+        return changed(
+            "mode",
+            expected.paperMode ? "paper" : "live",
+            current.paperMode ? "paper" : "live",
+        );
+    }
+    if (current.accountId !== expected.accountId) {
+        return changed("account", expected.accountId, current.accountId);
+    }
+    if (current.accountFingerprint !== expected.accountFingerprint) {
+        return changed("account", expected.accountFingerprint, current.accountFingerprint);
+    }
+    // The session rotated while every field it describes reads the same: the
+    // trader went to another account and came back, or the credentials were
+    // re-entered. The request would technically be safe, but nothing about it
+    // was verified against the context on screen now, so it is refused and the
+    // rotation is what the audit records.
+    return changed("session", String(session.seq), String(accountEpoch.current().seq));
+}
+
+/**
+ * Whether the write may still go out, and throws the named refusal if not.
+ *
+ * Split from `dispatchUnderSession` so the rule is readable on its own: the
+ * fetch wrapper is the seam, this is what it enforces.
+ */
+function assertSessionIntact(session: AccountSession, expected: LiveContext): void {
+    const current = readLiveContext();
+    // Both layers, in this order. The session token catches a rotation whose
+    // fields came back unchanged; the field comparison then catches a context
+    // write that never rotated one — `settingsState` setters do not.
+    if (accountEpoch.isCurrent(session) && sameLiveContext(current, expected)) return;
+    throw sessionChangedRefusal(expected, current, session);
+}
+
+function sameLiveContext(a: LiveContext, b: LiveContext): boolean {
+    return (
+        a.provider === b.provider &&
+        a.accountId === b.accountId &&
+        a.accountFingerprint === b.accountFingerprint &&
+        a.paperMode === b.paperMode
+    );
+}
 
 class TradeService {
     // Hardening: Promise Coalescing to prevent Thundering Herd
@@ -205,17 +348,20 @@ class TradeService {
         // Re-read of the account the request will actually be signed with,
         // compared against the account the gate approved. Settings can change
         // between the click and the send; this is where that is caught.
-        assertGatePass(
-            {
-                endpoint,
-                payload,
-                provider,
-                accountFingerprint: accountFingerprint(keys?.key),
-                accountId: account?.id,
-                paperMode: paperState.enabled,
-            },
-            pass
-        );
+        //
+        // BUG-0551: built once and kept, because the signing await below is
+        // the one gap between this read and the network — `dispatchUnderSession`
+        // compares against this very object after signing, so the two checks
+        // cannot drift apart.
+        const transportContext: TransportContext = {
+            endpoint,
+            payload,
+            provider,
+            accountFingerprint: accountFingerprint(keys?.key),
+            accountId: account?.id,
+            paperMode: paperState.enabled,
+        };
+        assertGatePass(transportContext, pass);
 
         // FEAT-0012: THE seam. Live and paper differ here and nowhere else —
         // construction, the gate, the risk limits, OMS tracking, the journal
@@ -326,7 +472,16 @@ class TradeService {
                   // secret, so without this line a Bitget account would sign a
                   // Bitunix envelope with Bitget keys and Bitunix could not tell.
                   venue: provider,
-                  fetchFn: appFetch,
+                  // BUG-0551: the signing await inside `exchangeSignedFetch` is
+                  // the last place a context switch can slip through, so the
+                  // dispatch itself is where the re-check lives. A read keeps
+                  // its exact behaviour — `mutatingActionOf` says the payload
+                  // carries no write, and a stale read is dropped at the store,
+                  // not here.
+                  fetchFn:
+                      mutatingActionOf(payload, endpoint) === null
+                          ? appFetch
+                          : dispatchUnderSession(accountEpoch.current(), transportContext),
                   // Still named here: the route reads the provider to resolve
                   // its venue, and the envelope only carries credentials.
                   headers: { "X-Provider": provider },
@@ -510,6 +665,12 @@ class TradeService {
             throw new Error("apiErrors.missingCredentials");
         }
 
+        // BUG-0551: this lane signs and dispatches on its own, so it carries
+        // its own re-check. The paper guard above has the same gap it was
+        // written to close — the switch that happens while the signature is
+        // being computed is not the one it can see.
+        const context = readLiveContext();
+
         // Parsed here as well as in the route, and for the same reason the route
         // parses: `marginCoin` carries a default and `amount` a transform, so the
         // two sides only build the same bytes if they build from the same parsed
@@ -530,7 +691,7 @@ class TradeService {
             // Named rather than inferred: the route resolves its venue from the
             // body, and the envelope itself carries only credentials.
             venue: provider,
-            fetchFn: appFetch,
+            fetchFn: dispatchUnderSession(accountEpoch.current(), context),
             headers: { "X-Provider": provider },
             payload: parsed.data,
         });
