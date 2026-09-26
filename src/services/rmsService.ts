@@ -30,6 +30,7 @@
 import { omsService } from "./omsService";
 import { tradeState } from "../stores/trade.svelte";
 import { accountState } from "../stores/account.svelte";
+import { paperState } from "../stores/paperTrading.svelte";
 import { journalState } from "../stores/journal.svelte";
 import { riskState } from "../stores/riskLimits.svelte";
 import { settingsState } from "../stores/settings.svelte";
@@ -324,7 +325,7 @@ class RiskManagementService {
             // Required Margin = Notional / Leverage
             const requiredMargin = amountUsdt.div(leverage);
 
-            const usdtAsset = accountState.assets.find(a => a.currency === "USDT");
+            const usdtAsset = accountState.readUsdtBalance(paperState.enabled ? "paper" : "live");
             const available = usdtAsset ? usdtAsset.available : new Decimal(0);
 
             // If we don't have asset data loaded yet (available is 0), we might skip or block.
