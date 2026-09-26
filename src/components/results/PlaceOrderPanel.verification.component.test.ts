@@ -255,6 +255,34 @@ describe("BUG-0560 — live entry waits for a private-account verdict", () => {
         expect(submitButton().disabled).toBe(false);
     });
 
+    it("disables submit when no verdict has ever been reached", async () => {
+        // `unconfigured` covers "no credential at all" and "a complete key
+        // nobody has read yet", and both are unknown. This used to wave the
+        // first through on the argument that a missing credential cannot
+        // coexist with a live balance — it can, because `accountState` keeps
+        // its balance hydrated after the key fields are cleared.
+        verificationMock.status = "unconfigured";
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(submitButton().disabled).toBe(true);
+    });
+
+    it("tells a trader with no credentials to add some, not that a check is running", async () => {
+        verificationMock.status = "unconfigured";
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        // Two different situations, two different sentences: "a check is
+        // running" would be a lie when there is nothing to check.
+        expect(host.textContent).toContain(
+            lookup("orderEntry.errors.accountCredentialsMissing"),
+        );
+        expect(host.textContent).not.toContain(
+            lookup("orderEntry.errors.accountUnverified"),
+        );
+    });
+
     it("disables submit while the private account is still being checked", async () => {
         verificationMock.status = "verifying";
         component = mount(PlaceOrderPanel, { target: host }) as never;

@@ -243,13 +243,30 @@
   const accountVerificationStatus = $derived(
     accountVerification.statusFor(verificationSubject),
   );
-  // Only the unknowns block here. `unconfigured` is already the absence of a
-  // credential, which the balance-derived conditions above cannot satisfy, and
-  // a refused credential gets the venue's own refusal from the gate.
+  // Everything that is not a verdict blocks. That is `unconfigured` too, which
+  // this used to wave through on the argument that "no credential" cannot
+  // coexist with a live balance — it can. `accountState` keeps its balance
+  // hydrated after the key fields are cleared, and the sidebar is what
+  // hydrates it, so the panel would have gone live on a funded account with no
+  // credential behind it. The gate refuses such an order at submit, so this is
+  // defence in depth rather than the last line — but AC4 says "unknown or
+  // stale", and an account nobody has read is exactly that.
+  //
+  // `rejected` is the one state left open, on purpose: the gate has something
+  // better to say about it than this panel could — the venue's own refusal,
+  // which names the actual problem.
   const accountUnverified = $derived(
     !paperState.enabled &&
-      (accountVerificationStatus === "verifying" ||
-        accountVerificationStatus === "stale"),
+      accountVerificationStatus !== "verified" &&
+      accountVerificationStatus !== "rejected",
+  );
+
+  // Whether the reason is "there is nothing to verify yet" rather than "we are
+  // checking, or checked and the answer is out of date". Different sentence:
+  // a trader with no key needs to be told to add one, not that a check is
+  // running.
+  const accountCredentialsMissing = $derived(
+    accountVerificationStatus === "unconfigured",
   );
 
   // Make sure a verdict exists whenever the panel is on screen, so the state
@@ -608,7 +625,11 @@
       </div>
     {:else if accountUnverified}
       <p class="note warn" role="status">
-        {$_("orderEntry.errors.accountUnverified")}
+        {#if accountCredentialsMissing}
+          {$_("orderEntry.errors.accountCredentialsMissing")}
+        {:else}
+          {$_("orderEntry.errors.accountUnverified")}
+        {/if}
       </p>
     {:else if balanceUnmeasured}
       <p class="note">{$_("orderEntry.notes.balanceUnmeasured")}</p>

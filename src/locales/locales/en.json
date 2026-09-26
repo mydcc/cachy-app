@@ -4450,7 +4450,8 @@
       "metadataLoading": "Loading trading pair details...",
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max}).",
-      "accountUnverified": "Credentials unverified — the private account is still being checked."
+      "accountUnverified": "Credentials unverified — the private account is still being checked.",
+      "accountCredentialsMissing": "No API credentials configured — paper trading needs no account."
     },
     "timeInForceNone": "—",
     "exchangeOrderTp": "Exchange Order TP",

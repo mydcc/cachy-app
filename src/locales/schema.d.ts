@@ -3661,6 +3661,7 @@ export type TranslationKey =
   | "orderEntry.errors.belowMinTradeVolume"
   | "orderEntry.errors.exceedsMaxOrderVolume"
   | "orderEntry.errors.accountUnverified"
+  | "orderEntry.errors.accountCredentialsMissing"
   | "orderEntry.timeInForceNone"
   | "orderEntry.exchangeOrderTp"
   | "orderEntry.partialTarget"

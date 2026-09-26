@@ -46,6 +46,24 @@ const settings = vi.hoisted(() => ({
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
 
 const paperStateMock = vi.hoisted(() => ({ enabled: false }));
+// BUG-0560: live entry waits for a private-account verdict, and an account
+// nobody has read counts as unknown — these cases are about volume limits, TP
+// legs and margin, so the account is put in the verified state here rather than
+// re-tested per file. `PlaceOrderPanel.verification.component.test.ts` owns that
+// gate.
+vi.mock("../../stores/accountVerification.svelte", () => ({
+    accountVerification: {
+        statusFor: () => "verified",
+        startClock: () => () => undefined,
+    },
+    subjectFor: () => ({
+        id: "acct-1",
+        exchange: "bitunix",
+        keys: { key: "k", secret: "s" },
+    }),
+    ensureCurrent: vi.fn(async () => undefined),
+}));
+
 vi.mock("../../stores/paperTrading.svelte", () => ({ paperState: paperStateMock }));
 
 const resultsMock = vi.hoisted(() => ({ isMarginExceeded: false }));
