@@ -66,24 +66,35 @@ Shipped in 1.6.0-beta.364.
 
 The dispatch is guarded rather than the whole transport: `signedRequest` keeps
 the context it resolved into one object, hands the same object to
-`assertGatePass` and to `dispatchUnderSession`, and the guard runs inside the
-`fetchFn` wrapper — the last synchronous step before the first byte. Two layers,
-because they fail differently: the `accountEpoch` session token catches a
-rotation whose fields came back unchanged, and re-reading provider, account id,
-key fingerprint and paper/live mode catches a `settingsState` write that never
-rotated one. The refusal names the field that moved (`exchange`, `mode`,
-`account`, `session`) under a new `orderGate.sessionChanged` message, and the
-gate's existing `OrderRefusedError` handling records it in the audit trail.
+`assertGatePass` and to `dispatchUnderSession`, and the guard runs as
+`appFetch`'s per-attempt hook — the last synchronous step before a byte leaves
+the device. Two layers, because they fail differently: the `accountEpoch`
+session token catches a rotation whose fields came back unchanged, and
+re-reading provider, account id, key fingerprint and paper/live mode catches a
+`settingsState` write that never rotated one. The refusal names the field that
+moved (`exchange`, `mode`, `account`) under a new `orderGate.sessionChanged`
+message, and the un-nameable rotation gets its own `orderGate.sessionRotated`
+rather than a field and an internal counter. The gate's existing
+`OrderRefusedError` handling records both in the audit trail.
 
-Two deliberate boundaries:
+Two boundaries, both deliberate:
 
-- **Reads keep their exact behaviour.** `mutatingActionOf` decides; a stale
-  read is dropped at the store write by the epoch guards in
-  `accountReadOrder` (BUG-0412, BUG-0419), so refusing it here would only turn
-  every account switch into an error in the polling paths.
+- **Reads keep their exact behaviour.** `mutatingActionOf` decides. The
+  leverage, position-mode and account reads take a read-order ticket and drop a
+  late answer at the store write (`accountReadOrder`, BUG-0412/BUG-0419); the
+  two position-list reads do not, and BUG-0419 owns that gap. Refusing reads
+  here would turn every account switch into an error in the polling paths for
+  no safety gain.
 - **`/api/account-settings` got the same guard.** It signs and dispatches on
   its own, never through `signedRequest`, and carried the identical gap — its
   paper guard at the top of the lane cannot see a switch that happens while
   the signature is being computed. Switching a live account to ONE_WAY while
   the UI shows paper is the same deception as an order.
+
+Review finding folded in: signing is not the last await in the dispatch path.
+`appFetch` waits for the token restore, may issue a token, and on a
+client-token 401 issues another and tries again — and that retry is the attempt
+that reaches the venue, through a window wider than the signing await. The
+check therefore rides a `beforeAttempt` hook that runs before *every* attempt
+rather than wrapping the call once.
 
