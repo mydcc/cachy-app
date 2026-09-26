@@ -165,8 +165,8 @@
 
     if (prevPriceState && s !== prevPriceState) {
       // Use efficient number parsing for comparison instead of Decimal overhead for UI effects
-      const currNum = parseFloat(s);
-      const prevNum = parseFloat(prevPriceState);
+      const currNum = parseFloat(s);  // audit: safe — price-change percentage for display, not an order value
+      const prevNum = parseFloat(prevPriceState);  // audit: safe — price-change percentage for display, not an order value
 
       const trend = currNum > prevNum ? "up" : "down";
       const newIndexes = new Set<number>();

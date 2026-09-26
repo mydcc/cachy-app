@@ -8394,8 +8394,11 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0534",
     "title": ".svelte files are outside automated decimal enforcement",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0534",
     "priority": "P3",
+    "shipped": "unreleased",
     "milestone": "none",
     "editions": [
       "community",

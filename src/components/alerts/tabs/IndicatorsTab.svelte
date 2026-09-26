@@ -221,7 +221,7 @@
         // A factor stays a string all the way to the document: these values
         // reach a comparison against a price, and parsing one into an f64 here
         // would be the rounding this project keeps decimal.js to avoid.
-        params = { ...params, [name]: kind === "period" ? Number(raw) : raw };
+        params = { ...params, [name]: kind === "period" ? Number(raw) : raw };  // audit: safe — alert period in minutes, not a financial value
     }
 
     const key = (raw: string): TranslationKey => raw as TranslationKey;

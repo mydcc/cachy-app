@@ -899,7 +899,7 @@
   // Filter History
   let filteredHistoryOrders = $derived(
     settingsState.hideUnfilledOrders
-      ? historyOrders.filter((o) => Number(o.filled || 0) > 0)
+      ? historyOrders.filter((o) => Number(o.filled || 0) > 0)  // audit: safe — zero test to decide whether a history row has fills; the amount is rendered as Decimal
       : historyOrders,
   );
 

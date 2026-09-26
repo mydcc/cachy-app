@@ -4,7 +4,7 @@
 
 447 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 7 · ✅ done 396 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 6 · ✅ done 397 · ⛔ dropped 1
 
 ---
 
@@ -467,7 +467,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 7 · ✅ done 39
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | security |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | execution |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
-| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | ui |
+| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | ui |
 | [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | ui |
 | [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
@@ -909,7 +909,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 7 · ✅ done 39
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
-| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |

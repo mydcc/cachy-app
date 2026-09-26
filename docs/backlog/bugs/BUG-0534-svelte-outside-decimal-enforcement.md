@@ -2,8 +2,11 @@
 id: BUG-0534
 title: .svelte files are outside automated decimal enforcement
 type: bug
-status: ready
+status: done
+assignee: opencode
+branch: fix/bug-0534
 priority: P3
+shipped: unreleased
 milestone: none
 editions: [community, pro, private]
 area: ui
@@ -72,12 +75,58 @@ the net, it does not re-tune it.
 
 ## Acceptance criteria
 
-- [ ] The audit script flags a native-number conversion inside a `.svelte`
+- [x] The audit script flags a native-number conversion inside a `.svelte`
   script block (fixture or selftest proves it fails without the fix)
-- [ ] The CI decimal job covers `.svelte` files on a PR that touches one
-- [ ] Each of the four known sites is converted to `Decimal` or carries an
+- [x] The CI decimal job covers `.svelte` files on a PR that touches one
+- [x] Each of the four known sites is converted to `Decimal` or carries an
   `audit: safe` reason the script accepts
-- [ ] `npm run backlog:check` passes with the regenerated index
+- [x] `npm run backlog:check` passes with the regenerated index
+
+## What shipped
+
+`scripts/audit-decimal.mjs` now walks `.svelte` next to `.ts`, and
+`src/tests/architecture/audit_decimal_svelte.test.ts` runs the real script
+against a fixture tree (`scripts/__fixtures__/audit-decimal/`) — six cases, one
+directory each, so no assertion can be satisfied by a sibling. Against the
+pre-fix script four of the seven tests fail, including both `.svelte` detection
+cases.
+
+**The selection rule is the finding, not the file extension.** A `.ts` file is
+audited when it imports `decimal.js`. Extending that rule to `.svelte` would
+have kept the blind spot exactly where it bites: **12 of the 22 `.svelte` files
+with a native conversion do not import `decimal.js` at all** — including
+`OpenOrdersList.svelte`, `OrderDetailsTooltip.svelte` and `TpSlList.svelte`.
+A component that converts a price with `parseFloat` instead of using Decimal
+does not import Decimal, so the import gate would skip precisely the file the
+check exists to catch. Components are therefore audited unconditionally, and
+the import gate stays exactly where it means what it says.
+
+**The marker needed three forms, not one.** A conversion in a component sits in
+one of three places and only one of them accepts a line comment: a `<script>`
+block takes `//`, a template expression needs an HTML comment *after* the
+expression, and an attribute expression — where most of these lines live —
+accepts only a block comment inside its braces, because an HTML comment is
+invalid inside a tag's attribute list. Before this, exempting a conversion in
+markup would have broken the component instead of documenting it. The fixtures
+pin all three positions.
+
+**Triage: 67 lines across 22 components, every one verified, none converted.**
+The item predicted the four known sites were marking candidates; the widened
+scan found 67, and each was read rather than assumed. All are display, visual or
+input-chrome paths: epoch-ms timestamps, page size, a row id, a notification
+volume, a reconnect interval, background-animation parameters, chart series
+data (the chart library's own number API), market-picker filtering and sorting,
+price-change percentages for display, and a handful of sign/existence tests that
+pick a colour class while the value itself is rendered as Decimal. The four sites
+the closed audit PR #3589 named are among them. **No financial conversion was
+found in a component**, so nothing was converted to `Decimal`; the honest answer
+for all 67 is a reason.
+
+**What the sweep did *not* claim.** A `Number(...)` comparison on a financial
+field is not automatically a violation — a `> 0` test that decides whether to
+draw a row cannot move money. That is why the marker requires a reason: each of
+the 67 is a claim a reviewer can check, and the reason says what the number is
+actually for.
 
 ## Out of scope
 
