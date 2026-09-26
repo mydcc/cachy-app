@@ -56,10 +56,12 @@ vi.mock("../../stores/results.svelte", () => ({ resultsState: resultsMock }));
 const verificationMock = vi.hoisted(() => ({
     status: "verified" as string,
     ensureCurrent: vi.fn(async () => undefined),
+    startClock: vi.fn(() => () => undefined),
 }));
 vi.mock("../../stores/accountVerification.svelte", () => ({
     accountVerification: {
         statusFor: () => verificationMock.status,
+        startClock: verificationMock.startClock,
     },
     subjectFor: () => ({ id: "acct-1", exchange: "bitunix", keys: { key: "k", secret: "s" } }),
     ensureCurrent: verificationMock.ensureCurrent,
@@ -284,9 +286,29 @@ describe("BUG-0560 — live entry waits for a private-account verdict", () => {
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
-        submitButton().click();
+        // A disabled button never dispatches `click` at all, so clicking it
+        // proves nothing about this panel — the attribute is the browser's
+        // promise, not the panel's guard. The guard is the `ready` check inside
+        // `submit`, so the attribute is stripped to reach it: this is the case
+        // where something *else* disabled the control and the panel still has to
+        // refuse.
+        const button = submitButton();
+        expect(button.disabled).toBe(true);
+        button.disabled = false;
+        button.click();
         await settle();
         expect(placeEntryGroupMock).not.toHaveBeenCalled();
+    });
+
+    it("holds the store's clock, so an expired verdict can go stale on its own", async () => {
+        // Without a live clock the derived freshness comparison has no reactive
+        // input, and a green dot would outlive its window for as long as the tab
+        // stayed open. This panel is mounted unconditionally, which is what makes
+        // it the one place that can own the tick.
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(verificationMock.startClock).toHaveBeenCalled();
     });
 
     it("asks for a verdict while the panel is on screen", async () => {

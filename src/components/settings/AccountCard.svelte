@@ -147,7 +147,8 @@
             {/if}
             <span
                 class="status-dot {isVerified ? 'connected' : ''}"
-                class:pending={status === "verifying" || status === "stale"}
+                class:verifying={status === "verifying"}
+                class:stale={status === "stale"}
                 class:rejected={status === "rejected"}
                 title={statusTitle}
                 role="img"
@@ -255,14 +256,19 @@
         box-shadow: 0 0 8px var(--success-color);
     }
     /* BUG-0560: a read in flight and a verdict that has expired are two
-       different unknowns, and both are unproven — amber, not green. The
-       animation marks the first without moving anything for a screen reader,
-       which gets the same words from `aria-label`. */
-    .status-dot.pending {
+       different unknowns, and both are unproven — amber, not green. They are
+       not the same unknown, though, so they do not look the same: the pulse
+       says "a read is happening, waiting will answer this", and a steady amber
+       says "nothing is happening, and nothing here is proven". Animating an
+       expired verdict would promise a resolution that no read is on its way to
+       deliver. The animation moves nothing for a screen reader, which gets the
+       same words from `aria-label` either way. */
+    .status-dot.verifying,
+    .status-dot.stale {
         background: var(--warning-color);
         opacity: 1;
     }
-    .status-dot.pending {
+    .status-dot.verifying {
         animation: status-pulse 1.6s ease-in-out infinite;
     }
     .status-dot.rejected {
@@ -279,7 +285,7 @@
         }
     }
     @media (prefers-reduced-motion: reduce) {
-        .status-dot.pending {
+        .status-dot.verifying {
             animation: none;
         }
     }

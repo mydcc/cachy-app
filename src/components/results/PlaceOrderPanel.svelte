@@ -264,6 +264,14 @@
     untrack(() => void ensureCurrent(exchange === "bitget" ? "bitget" : "bitunix"));
   });
 
+  // Owns the store's clock. This panel is mounted unconditionally by the app
+  // shell, which makes it the one place that can hold the tick for as long as
+  // the app is open; without a live clock the derived freshness comparison has
+  // no reactive input, so an expired verdict would keep reading `verified` for
+  // as long as the tab stayed open. The tick moves one number — no request, no
+  // venue, no verdict — and the effect above re-runs when the window closes.
+  $effect(() => accountVerification.startClock());
+
   // The calculator produces a size only when the inputs make one derivable.
   // AC 1: Trading-pair metadata is available in a store before submit action is enabled.
   // AC 3: Below minTradeVolume or above max order volume disables submit action.

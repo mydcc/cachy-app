@@ -28,7 +28,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import en from "../../locales/locales/en.json";
-import { accountVerification, type VerificationSubject } from "../../stores/accountVerification.svelte";
+import {
+    accountVerification,
+    credentialFingerprint,
+    VERIFICATION_FRESH_MS,
+    type VerificationOutcome,
+    type VerificationSubject,
+} from "../../stores/accountVerification.svelte";
 import type { ExchangeAccount } from "../../stores/settings/accounts";
 
 /**
@@ -76,6 +82,23 @@ function subjectFor(a: ExchangeAccount): VerificationSubject {
     return { id: a.id, exchange: a.exchange, keys: a.keys };
 }
 
+/**
+ * The outcome of a read that already settled on these credentials.
+ *
+ * Goes through `readIssued` so the sequence number is one the store could
+ * actually hand out; the claim is released because these cases are about the
+ * dot, not about a read being in flight.
+ */
+function settled(a: ExchangeAccount): VerificationOutcome {
+    const subject = subjectFor(a);
+    const { seq, release } = accountVerification.readIssued(
+        subject,
+        credentialFingerprint(subject.keys),
+    );
+    release();
+    return { fingerprint: credentialFingerprint(subject.keys), seq };
+}
+
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
@@ -121,7 +144,7 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
 
     it("is green only after a successful read", async () => {
         const a = account();
-        accountVerification.recordSuccess(subjectFor(a));
+        accountVerification.recordSuccess(subjectFor(a), settled(a));
         await render({ account: a });
 
         expect(dot().classList.contains("connected")).toBe(true);
@@ -129,7 +152,7 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
 
     it("shows a rejected credential as rejected, not as pending", async () => {
         const a = account();
-        accountVerification.recordFailure(subjectFor(a), "rejected", "10001");
+        accountVerification.recordFailure(subjectFor(a), "rejected", { ...settled(a), errorCode: "10001" });
         await render({ account: a });
 
         expect(dot().classList.contains("rejected")).toBe(true);
@@ -139,7 +162,7 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
 
     it("words an unreachable venue differently from a refused key", async () => {
         const a = account();
-        accountVerification.recordFailure(subjectFor(a), "unreachable");
+        accountVerification.recordFailure(subjectFor(a), "unreachable", settled(a));
         await render({ account: a });
 
         const label = dot().getAttribute("aria-label") ?? "";
@@ -147,18 +170,42 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
         expect(label).not.toContain("Exchange rejected");
     });
 
-    it("is pending while a read is in flight", async () => {
+    it("pulses while a read is in flight", async () => {
         const a = account();
-        accountVerification.markVerifying(subjectFor(a));
+        accountVerification.readIssued(subjectFor(a), credentialFingerprint(a.keys));
         await render({ account: a });
 
-        expect(dot().classList.contains("pending")).toBe(true);
+        expect(dot().classList.contains("verifying")).toBe(true);
         expect(dot().classList.contains("connected")).toBe(false);
     });
 
-    it("returns to pending when a credential is edited under a verified verdict", async () => {
+    it("does not pulse an expired verdict, because no read is coming", async () => {
+        // A pulse says "a read is happening, waiting will answer this". An
+        // expired verdict is the opposite: nothing is happening, and animating
+        // it would promise a resolution no request is on its way to deliver.
+        const a = account();
+        accountVerification.recordSuccess(subjectFor(a), settled(a));
+        await render({ account: a });
+        expect(dot().classList.contains("connected")).toBe(true);
+
+        vi.useFakeTimers();
+        try {
+            const stopClock = accountVerification.startClock(1_000);
+            vi.advanceTimersByTime(VERIFICATION_FRESH_MS + 1_000);
+            flushSync();
+            stopClock();
+        } finally {
+            vi.useRealTimers();
+        }
+
+        expect(dot().classList.contains("stale")).toBe(true);
+        expect(dot().classList.contains("verifying")).toBe(false);
+        expect(dot().classList.contains("connected")).toBe(false);
+    });
+
+    it("returns to unproven when a credential is edited under a verified verdict", async () => {
         const verified = account();
-        accountVerification.recordSuccess(subjectFor(verified));
+        accountVerification.recordSuccess(subjectFor(verified), settled(verified));
         await render({ account: verified });
         expect(dot().classList.contains("connected")).toBe(true);
 
@@ -168,10 +215,11 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
         await render({ account: account({ keys: { ...KEYS, secret: "rotated-secret-9" } }) });
 
         expect(dot().classList.contains("connected")).toBe(false);
+        expect(dot().classList.contains("stale")).toBe(true);
     });
 
     it("does not show one account the verdict of another", async () => {
-        accountVerification.recordSuccess(subjectFor(account({ id: "acct-1" })));
+        accountVerification.recordSuccess(subjectFor(account({ id: "acct-1" })), settled(account({ id: "acct-1" })));
         await render({ account: account({ id: "acct-2" }) });
 
         expect(dot().classList.contains("connected")).toBe(false);
@@ -179,7 +227,7 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
 
     it("gives every state an accessible name", async () => {
         const a = account();
-        accountVerification.recordFailure(subjectFor(a), "rejected", "10001");
+        accountVerification.recordFailure(subjectFor(a), "rejected", { ...settled(a), errorCode: "10001" });
         await render({ account: a });
 
         const label = dot().getAttribute("aria-label") ?? "";
