@@ -170,6 +170,26 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
         expect(label).not.toContain("Exchange rejected");
     });
 
+    it("does not colour an unreachable venue like a refused key", async () => {
+        // The words and the colour have to agree. A dropped connection is not an
+        // accusation, and a red dot beside "could not be reached" says exactly
+        // that — which is what the label fix alone left behind.
+        const refused = account({ id: "acct-1" });
+        accountVerification.recordFailure(subjectFor(refused), "rejected", {
+            ...settled(refused),
+            errorCode: "10001",
+        });
+        await render({ account: refused });
+        expect(dot().classList.contains("rejected")).toBe(true);
+        expect(dot().classList.contains("unreachable")).toBe(false);
+
+        const dropped = account({ id: "acct-2" });
+        accountVerification.recordFailure(subjectFor(dropped), "unreachable", settled(dropped));
+        await render({ account: dropped });
+        expect(dot().classList.contains("unreachable")).toBe(true);
+        expect(dot().classList.contains("rejected")).toBe(false);
+    });
+
     it("pulses while a read is in flight", async () => {
         const a = account();
         accountVerification.readIssued(subjectFor(a), credentialFingerprint(a.keys));

@@ -69,6 +69,7 @@ import { buildAccountQueryParams } from "../utils/exchange/venueQueries";
 import { accountEpoch } from "../services/accountEpoch.svelte";
 import { settingsState, type ApiKeys } from "./settings.svelte";
 import { paperAccountFeed } from "../services/paperAccountFeed";
+import { logger } from "../services/logger";
 import { correctedNow } from "../utils/exchange/clockDrift";
 import {
     activeAccountFor,
@@ -160,16 +161,15 @@ export interface AccountVerificationRecord {
      * trader's mistake.
      */
     failure?: AccountVerificationFailure;
-    /** The venue's error code, when it named one. */
-    errorCode?: string | number;
     /**
-     * Why the request itself failed, for a log line.
+     * The venue's error code, when it named one.
      *
-     * Never render this and never show it to the trader: it is a transport
-     * detail (a `TypeError` message, a signing failure), not a venue code, and
-     * it is the one field here that can name something internal.
+     * The *venue's* code and nothing else. A thrown `TypeError` from the
+     * transport is not one, so it goes to the log at the catch site instead of
+     * into state that a message would render — a field here that nothing reads
+     * is a field waiting to be rendered by someone who does not know that.
      */
-    transportDetail?: string;
+    errorCode?: string | number;
 }
 
 /** What a read reports when it settles. */
@@ -256,15 +256,20 @@ class AccountVerificationStore {
     records = $state<Record<string, AccountVerificationRecord>>({});
 
     /**
-     * How many reads for this account are on their way.
+     * The reads for this account that are still on their way, by sequence
+     * number.
      *
-     * The sidebar sets this while its own `/api/account` read is in flight, so
+     * The sidebar sets one while its own `/api/account` read is in flight, so
      * `verifyAccount` knows a verdict is coming and does not spend a second
-     * request on the same answer. A count, not a flag: the sidebar and the
-     * fallback read can overlap legitimately, and with a flag the first of them
-     * to finish would clear the claim while the other is still outstanding.
+     * request on the same answer. The sidebar's read and the fallback read can
+     * overlap legitimately, so this is a list and not a flag: with a flag, the
+     * first of them to finish would clear the claim while the other was still
+     * outstanding. And it is keyed by sequence rather than counted, because
+     * `invalidateAll` empties it on a session rotation — a release arriving
+     * afterwards belongs to a read that is no longer part of this store's
+     * world, and a counter would take the *new* read's claim down with it.
      */
-    private claims = $state<Record<string, number>>({});
+    private claims = $state<Record<string, number[]>>({});
 
     /**
      * The store's notion of now, advanced by `startClock`.
@@ -361,7 +366,7 @@ class AccountVerificationStore {
     readIssued(subject: VerificationSubject, fingerprint: string): { seq: number; release: () => void } {
         const key = recordKey(subject);
         const seq = ++this.seq;
-        this.claims[key] = (this.claims[key] ?? 0) + 1;
+        this.claims[key] = [...(this.claims[key] ?? []), seq];
         this.markVerifying(subject, fingerprint);
 
         let released = false;
@@ -370,8 +375,14 @@ class AccountVerificationStore {
             release: () => {
                 if (released) return;
                 released = true;
-                const remaining = (this.claims[key] ?? 1) - 1;
-                if (remaining > 0) this.claims[key] = remaining;
+                // Removes this read's own entry and nothing else, so a release
+                // that arrives after an `invalidateAll` — from a read belonging
+                // to the session that just left — cannot take a newer read's
+                // claim with it.
+                const outstanding = (this.claims[key] ?? []).filter(
+                    (outstandingSeq) => outstandingSeq !== seq,
+                );
+                if (outstanding.length > 0) this.claims[key] = outstanding;
                 else delete this.claims[key];
             },
         };
@@ -379,7 +390,7 @@ class AccountVerificationStore {
 
     /** Whether a read that will record a verdict is already in flight. */
     isVerificationInFlight(subject: VerificationSubject): boolean {
-        return (this.claims[recordKey(subject)] ?? 0) > 0;
+        return (this.claims[recordKey(subject)] ?? []).length > 0;
     }
 
     /**
@@ -415,7 +426,6 @@ class AccountVerificationStore {
             settledSeq: previous?.settledSeq,
             failure: undefined,
             errorCode: undefined,
-            transportDetail: undefined,
         };
     }
 
@@ -431,7 +441,6 @@ class AccountVerificationStore {
             settledSeq: outcome.seq,
             failure: undefined,
             errorCode: undefined,
-            transportDetail: undefined,
         };
     }
 
@@ -446,7 +455,7 @@ class AccountVerificationStore {
     recordFailure(
         subject: VerificationSubject,
         failure: AccountVerificationFailure,
-        outcome: VerificationOutcome & { errorCode?: string | number; transportDetail?: string },
+        outcome: VerificationOutcome & { errorCode?: string | number },
     ): void {
         const key = recordKey(subject);
         this.records[key] = {
@@ -458,7 +467,6 @@ class AccountVerificationStore {
             settledSeq: outcome.seq,
             failure,
             errorCode: outcome.errorCode,
-            transportDetail: outcome.transportDetail,
         };
     }
 
@@ -513,6 +521,29 @@ class AccountVerificationStore {
 }
 
 export const accountVerification = new AccountVerificationStore();
+
+/**
+ * Whether an account has the credentials it needs, independent of any verdict.
+ *
+ * `statusFor` answers "unconfigured" for three different situations: no account
+ * for this venue, an incomplete credential set, and *a complete set that nobody
+ * has read yet*. Only the first two mean the trader has nothing to trade with.
+ * The third is the ordinary state of a working account before its first read
+ * lands, and the state of every account for a moment after a session rotation —
+ * so anything that words its message off the status alone tells a trader with a
+ * working key that they have no credentials.
+ *
+ * Three values rather than a boolean, because "no account at all" and "an
+ * account with a blank field" call for the same sentence but are not the same
+ * fact, and a caller that cares can still tell them apart.
+ */
+export function credentialPresence(
+    subject: VerificationSubject | null,
+): "none" | "incomplete" | "present" {
+    if (!subject) return "none";
+    if (!hasCompleteCredentials(subject.keys, subject.exchange)) return "incomplete";
+    return "present";
+}
 
 /**
  * Whether an envelope that carried no data is the venue refusing.
@@ -612,14 +643,16 @@ export async function verifyAccount(exchange?: ExchangeProvider): Promise<void> 
         // A thrown error is transport, not a verdict: the venue never answered,
         // so this records "unreachable" rather than pretending the key was
         // judged. The status stays `rejected` either way — both mean "not
-        // verified", which is the only thing a caller may act on. The message
-        // goes to `transportDetail`, never to `errorCode`: it is our own
-        // exception text, not something the venue said.
-        accountVerification.recordFailure(subject, "unreachable", {
-            fingerprint,
-            seq,
-            transportDetail: error instanceof Error ? error.message : undefined,
-        });
+        // verified", which is the only thing a caller may act on. The reason
+        // itself goes to the log and not into the record: it is our own
+        // exception text, not something the venue said, and a field no message
+        // reads is a field someone will eventually render.
+        logger.debug(
+            "api",
+            `accountVerification: ${subject.exchange} account read failed`,
+            error instanceof Error ? error : undefined,
+        );
+        accountVerification.recordFailure(subject, "unreachable", { fingerprint, seq });
     } finally {
         // Every early return above — superseded session, outranked read — ends
         // here, so the claim cannot outlive the read that took it.

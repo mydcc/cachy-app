@@ -8424,6 +8424,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0569-order-audit-panel-raw-refusal-field.md"
   },
   {
+    "id": "BUG-0570",
+    "title": "The order dispatch guard's account fingerprint collides on short keys",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",

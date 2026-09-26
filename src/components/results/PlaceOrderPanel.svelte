@@ -37,6 +37,7 @@
   import { accountState } from "../../stores/account.svelte";
   import {
     accountVerification,
+    credentialPresence,
     ensureCurrent,
     subjectFor,
   } from "../../stores/accountVerification.svelte";
@@ -261,12 +262,17 @@
       accountVerificationStatus !== "rejected",
   );
 
-  // Whether the reason is "there is nothing to verify yet" rather than "we are
-  // checking, or checked and the answer is out of date". Different sentence:
-  // a trader with no key needs to be told to add one, not that a check is
-  // running.
+  // Whether the trader has something to verify at all. Not the same question as
+  // the status above: `unconfigured` covers a complete credential set that
+  // nobody has read yet — the ordinary state before a first read, and the state
+  // of every account for a moment after a session rotation — and telling those
+  // traders they have no credentials would be wrong in the one case they are
+  // most likely to hit.
+  const credentialsPresence = $derived(
+    credentialPresence(verificationSubject),
+  );
   const accountCredentialsMissing = $derived(
-    accountVerificationStatus === "unconfigured",
+    credentialsPresence !== "present",
   );
 
   // Make sure a verdict exists whenever the panel is on screen, so the state

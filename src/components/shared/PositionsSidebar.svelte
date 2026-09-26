@@ -38,6 +38,7 @@
   import { paperAccountFeed } from "../../services/paperAccountFeed";
   import { paperState } from "../../stores/paperTrading.svelte";
   import { getDisplayMessage } from "../../utils/errorUtils";
+  import { logger } from "../../services/logger";
   import { unwrapApiEnvelope } from "../../utils/utils";
   import {
     accountVerification,
@@ -628,9 +629,20 @@
     // verdict is coming, so `verifyAccount` does not spend a second request on
     // the same answer; whether *this* caller records it is settled below, by
     // whoever actually performs the read.
+    // One snapshot for the whole read. Taken above the single-flight call and
+    // used both for the claim below and for the signed request inside the
+    // callback, so `markVerifying` / `isCoolingDown` and the request can never be
+    // talking about two different credential sets. `subject.keys` is a live
+    // `$state` proxy and this callback can wait on a flight that was already
+    // running, so reading it again further down would be reading a later value.
+    const apiKey = subject.keys.key;
+    const apiSecret = subject.keys.secret;
+    const passphrase = subject.keys.passphrase;
+    const fingerprint = credentialFingerprint({ key: apiKey, secret: apiSecret, passphrase });
+
     const { seq, release: releaseClaim } = accountVerification.readIssued(
         subject,
-        credentialFingerprint(subject.keys),
+        fingerprint,
     );
 
     const key = accountFetchKey(trigger, provider, settingsState.activeAccountId ?? "");
@@ -640,22 +652,6 @@
     // BUG-0412 sequencing between *different* triggers is untouched.
     try {
       await runAccountFetchOnce(key, async () => {
-        // Snapshotted here, in the same synchronous block that builds the
-        // request below, because this callback can join a flight that was
-        // already running when the trader retried. `subject.keys` is a live
-        // `$state` proxy, so these three strings are the ones that actually get
-        // signed, and they are also the ones every verdict below is
-        // fingerprinted against — a verdict stamped from anything read after the
-        // `await` would belong to a different key than the one that was judged.
-        const apiKey = subject.keys.key;
-        const apiSecret = subject.keys.secret;
-        const passphrase = subject.keys.passphrase;
-        const fingerprint = credentialFingerprint({
-          key: apiKey,
-          secret: apiSecret,
-          passphrase,
-        });
-
         // FEAT-0026. `hydrateBalance` below deliberately *merges*, preserving
         // the margin fields only the WS wallet channel supplies. That merge is
         // correct within one account and is cross-account blending across two,
@@ -733,7 +729,7 @@
             accountState.setPositionMode(data.positionMode);
             accountVerification.recordSuccess(subject, { fingerprint, seq });
           }
-        } catch {
+        } catch (error) {
           // The ticket is usually still unclaimed here — `appFetch` and
           // `response.json()` both run before `mayApply` above. But anything
           // thrown after a claim takes the same exit, so this asks whether
@@ -744,11 +740,15 @@
           errorAccount = $_("apiErrors.generic");
           // The venue never answered, which is not the same as having refused
           // the key (BUG-0560) — the record keeps the two apart so the message
-          // can name whose problem it is.
-          accountVerification.recordFailure(subject, "unreachable", {
-            fingerprint,
-            seq,
-          });
+          // can name whose problem it is. The reason itself goes to the log: it
+          // is our own transport's text, not something the venue said, and
+          // nothing renders it.
+          logger.debug(
+            "api",
+            `PositionsSidebar: ${provider} account read failed`,
+            error instanceof Error ? error : undefined,
+          );
+          accountVerification.recordFailure(subject, "unreachable", { fingerprint, seq });
         }
       });
     } finally {

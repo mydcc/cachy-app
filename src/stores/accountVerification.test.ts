@@ -50,6 +50,17 @@ vi.mock("../services/paperAccountFeed", () => ({
     paperAccountFeed: vi.fn(() => null),
 }));
 
+// The transport-failure path logs the reason it could not reach the venue. Kept
+// quiet here so the suite does not print it, and observable so the test can
+// assert the reason is kept *somewhere* without being in renderable state.
+const loggerMock = vi.hoisted(() => ({
+    debug: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+}));
+vi.mock("../services/logger", () => ({ logger: loggerMock }));
+
 vi.mock("../utils/exchange/browserSigning", () => ({
     exchangeSignedFetch: vi.fn(),
 }));
@@ -281,17 +292,22 @@ describe("accountVerification", () => {
             expect(accountVerification.statusFor(dropped)).toBe("rejected");
         });
 
-        it("keeps a transport message out of the venue's error code", () => {
+        it("keeps a transport message out of the record entirely", async () => {
             // `errorCode` is what a message renders, and a thrown `TypeError` is
-            // our own text about our own request — the venue said nothing.
-            const s = subject();
-            accountVerification.recordFailure(s, "unreachable", {
-                ...settled(s),
-                transportDetail: "Failed to fetch",
-            });
+            // our own text about our own request — the venue said nothing. It
+            // goes to the log instead, and the record carries no field for it: a
+            // field nothing reads is a field someone eventually renders.
+            installAccount();
+            signedFetch.mockRejectedValue(new Error("network down"));
 
-            expect(accountVerification.recordFor(s)?.errorCode).toBeUndefined();
-            expect(accountVerification.recordFor(s)?.transportDetail).toBe("Failed to fetch");
+            await verifyAccount("bitunix");
+
+            const record = accountVerification.recordFor(subject());
+            expect(record?.errorCode).toBeUndefined();
+            expect(record?.failure).toBe("unreachable");
+            expect(record).not.toHaveProperty("transportDetail");
+            // …and the reason is not lost, it is just not in renderable state.
+            expect(loggerMock.debug).toHaveBeenCalled();
         });
     });
 
@@ -430,6 +446,25 @@ describe("accountVerification", () => {
             first.release();
             expect(accountVerification.isVerificationInFlight(s)).toBe(true);
             second.release();
+            expect(accountVerification.isVerificationInFlight(s)).toBe(false);
+        });
+
+        it("does not let a release from before a rotation free a newer claim", () => {
+            // A read in flight when the session rotated belongs to a world that
+            // no longer exists, and its release arrives late. With a plain
+            // counter it read the *new* read's claim as its own decrement and
+            // freed it, so a third caller could spend a duplicate signed read on
+            // an account that already had one on the wire.
+            const s = subject();
+            const stale = accountVerification.readIssued(s, credentialFingerprint(s.keys));
+            accountVerification.invalidateAll();
+            const current = accountVerification.readIssued(s, credentialFingerprint(s.keys));
+            expect(accountVerification.isVerificationInFlight(s)).toBe(true);
+
+            stale.release();
+
+            expect(accountVerification.isVerificationInFlight(s)).toBe(true);
+            current.release();
             expect(accountVerification.isVerificationInFlight(s)).toBe(false);
         });
 

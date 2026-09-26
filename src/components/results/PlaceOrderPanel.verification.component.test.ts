@@ -55,17 +55,34 @@ vi.mock("../../stores/results.svelte", () => ({ resultsState: resultsMock }));
 /** The one thing these cases vary: what the panel is told about the account. */
 const verificationMock = vi.hoisted(() => ({
     status: "verified" as string,
+    // Varies so the panel's message can be told apart by *why* it is blocked:
+    // a blank key field and a complete set nobody has read yet are both
+    // `unconfigured` and deserve different sentences.
+    keys: { key: "k", secret: "s" } as { key: string; secret: string },
     ensureCurrent: vi.fn(async () => undefined),
     startClock: vi.fn(() => () => undefined),
 }));
-vi.mock("../../stores/accountVerification.svelte", () => ({
-    accountVerification: {
-        statusFor: () => verificationMock.status,
-        startClock: verificationMock.startClock,
-    },
-    subjectFor: () => ({ id: "acct-1", exchange: "bitunix", keys: { key: "k", secret: "s" } }),
-    ensureCurrent: verificationMock.ensureCurrent,
-}));
+vi.mock("../../stores/accountVerification.svelte", async () => {
+    const { credentialPresence: realPresence } = await import(
+        "../../stores/accountVerification.svelte"
+    );
+    return {
+        accountVerification: {
+            statusFor: () => verificationMock.status,
+            startClock: verificationMock.startClock,
+        },
+        subjectFor: () => ({
+            id: "acct-1",
+            exchange: "bitunix",
+            keys: verificationMock.keys,
+        }),
+        credentialPresence: (subject: {
+            keys: { key: string; secret: string };
+            exchange: "bitunix" | "bitget";
+        }) => realPresence(subject as never),
+        ensureCurrent: verificationMock.ensureCurrent,
+    };
+});
 
 const mockTradeData = vi.hoisted(() => ({
     symbol: "BTCUSDT",
@@ -209,6 +226,7 @@ beforeEach(() => {
     resultsMock.isMarginExceeded = false;
     paperStateMock.enabled = false;
     verificationMock.status = "verified";
+    verificationMock.keys = { key: "k", secret: "s" };
     mockSymbolMetaStore.symbolMeta = { BTCUSDT: { ...TRADABLE } };
     mockTradeData.positionSize = new Decimal("0.02");
     mockTradeData.entryPrice = new Decimal("50000");
@@ -268,18 +286,36 @@ describe("BUG-0560 — live entry waits for a private-account verdict", () => {
         expect(submitButton().disabled).toBe(true);
     });
 
-    it("tells a trader with no credentials to add some, not that a check is running", async () => {
+    it("tells a trader with a blank key to add one, not that a check is running", async () => {
+        // The credential field is empty: there is genuinely nothing to verify.
         verificationMock.status = "unconfigured";
+        verificationMock.keys = { key: "", secret: "" };
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
-        // Two different situations, two different sentences: "a check is
-        // running" would be a lie when there is nothing to check.
         expect(host.textContent).toContain(
             lookup("orderEntry.errors.accountCredentialsMissing"),
         );
         expect(host.textContent).not.toContain(
             lookup("orderEntry.errors.accountUnverified"),
+        );
+    });
+
+    it("does not claim a complete key is missing just because nobody read it yet", async () => {
+        // The common case, and the one a status-derived sentence gets wrong: a
+        // complete credential set that has no verdict yet — the state before a
+        // first read, and the state of every account for a moment after a
+        // session rotation. Saying "no API credentials configured" here would
+        // point a trader with a working key at paper mode.
+        verificationMock.status = "unconfigured";
+        verificationMock.keys = { key: "k", secret: "s" };
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(submitButton().disabled).toBe(true);
+        expect(host.textContent).toContain(lookup("orderEntry.errors.accountUnverified"));
+        expect(host.textContent).not.toContain(
+            lookup("orderEntry.errors.accountCredentialsMissing"),
         );
     });
 
@@ -328,15 +364,27 @@ describe("BUG-0560 — live entry waits for a private-account verdict", () => {
         expect(placeEntryGroupMock).not.toHaveBeenCalled();
     });
 
-    it("holds the store's clock, so an expired verdict can go stale on its own", async () => {
+    it("holds the store's clock, and lets it go on unmount", async () => {
         // Without a live clock the derived freshness comparison has no reactive
         // input, and a green dot would outlive its window for as long as the tab
         // stayed open. This panel is mounted unconditionally, which is what makes
         // it the one place that can own the tick.
+        //
+        // The teardown is the half worth asserting. The tick is an interval:
+        // an effect that started one and never cleared it would leave the
+        // store's clock running for the rest of the session, and every later
+        // mount would add another.
+        const stopClock = vi.fn();
+        verificationMock.startClock.mockReturnValue(stopClock);
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
         expect(verificationMock.startClock).toHaveBeenCalled();
+        expect(stopClock).not.toHaveBeenCalled();
+
+        unmount(component as never);
+        component = null;
+        expect(stopClock).toHaveBeenCalledTimes(1);
     });
 
     it("asks for a verdict while the panel is on screen", async () => {

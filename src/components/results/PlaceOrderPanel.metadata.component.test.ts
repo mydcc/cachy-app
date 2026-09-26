@@ -46,6 +46,7 @@ vi.mock("../../stores/accountVerification.svelte", () => ({
         exchange: "bitunix",
         keys: { key: "k", secret: "s" },
     }),
+    credentialPresence: () => "present",
     ensureCurrent: vi.fn(async () => undefined),
 }));
 

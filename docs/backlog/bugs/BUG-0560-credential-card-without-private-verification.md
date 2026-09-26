@@ -48,7 +48,10 @@ second, parallel mechanism.
   venue's error code, and a `failure` discriminator that keeps "the exchange
   refused these credentials" apart from "the exchange never answered" and from
   "this response was not readable" (a `success: true` envelope with no payload
-  is our parsing problem, not the trader's key). A verdict is bound to a
+  is our parsing problem, not the trader's key). A thrown error is not a venue
+  code and does not become one: it goes to the log at the catch site, and the
+  record has no field for it — a field nothing reads is a field someone
+  eventually renders. A verdict is bound to a
   `credentialFingerprint` of the three credential fields, so an edit returns the
   account to `stale` before anything refetches. `stale` is also derived from a
   five-minute freshness window, so no verdict stays green by sitting still.
@@ -59,12 +62,17 @@ second, parallel mechanism.
   input rather than the key the venue judged — which is the bug this item is
   about, one level down. Both readers (`verifyAccount`, the sidebar) snapshot
   the same three strings they sign.
-- Reads are ordered by a monotonic sequence number, not by wall clock, and a
-  claim is a count rather than a flag: the sidebar's read and the fallback read
-  can overlap, and "whichever finished first cleared the claim" would let a
-  duplicate go out. A verdict is only superseded by one from a read that
-  *started later* — a settle-time comparison dropped the newer verdict whenever
-  an older read happened to land first.
+- Reads are ordered by a monotonic sequence number, not by wall clock. A verdict
+  is only superseded by one from a read that *started later* — a settle-time
+  comparison dropped the newer verdict whenever an older read happened to land
+  first.
+- An in-flight read is claimed by sequence number, not counted. The sidebar's
+  read and the fallback read can overlap, so a flag would let whichever finished
+  first free the claim while the other was still out; a plain count breaks the
+  other way, because `invalidateAll` empties the list on a session rotation and a
+  release arriving afterwards — from a read belonging to the session that just
+  left — would take the *new* read's claim down with it. Each release removes its
+  own entry and nothing else.
 - `stale` needs a live clock to be reachable at all. Freshness compared against
   `Date.now()` was arithmetically right and practically dead: `Date.now()` is
   no reactive dependency, so the derived never re-ran and a green dot outlived
@@ -78,7 +86,9 @@ second, parallel mechanism.
   otherwise a rotation would sit unverified for the rest of the window.
 - `PositionsSidebar` records the verdict of the read it already performs
   (`readIssued` + `recordSuccess` / `recordFailure`, released in a `finally` so
-  a coalesced or superseded read cannot wedge the account). It resolves its
+  a coalesced or superseded read cannot wedge the account). One snapshot of the
+  three credential strings serves both the claim and the signed request, so the
+  in-flight state and the verdict can never describe two different key sets. It resolves its
   subject through the store's own `subjectFor` rather than from
   `activeAccountId` directly: those two can disagree, and a verdict filed under
   an id that does not own the keys is one nothing can find again. Its
@@ -102,7 +112,17 @@ second, parallel mechanism.
   a trader with no key is told to add one, not that a check is running.
   `rejected` stays open on purpose — the gate has the venue's own refusal, which
   names the actual problem better than this panel could. Paper mode is exempt
-  throughout (AC5). `PlaceOrderPanel` is mounted unconditionally by the app
+  throughout (AC5).
+- The message branches on `credentialPresence`, not on the status. `unconfigured`
+  also covers a complete credential set that nobody has read yet — the ordinary
+  state before a first read, and the state of every account for a moment after a
+  session rotation — and telling *those* traders they have no credentials would
+  be the one sentence that is wrong exactly when it is most likely to be read.
+  Presence is a separate question and is asked separately.
+- A venue that could not be reached wears the connection colour, not the
+  rejection one. The label had made that distinction and the dot had not, so a
+  network blip drew the same red as a refused key and contradicted the words
+  beside it. Amber is a connection state; red is an accusation. `PlaceOrderPanel` is mounted unconditionally by the app
   shell, so its `ensureCurrent()` effect is the app-lifecycle trigger — no
   polling timer.
 - `resetAccountSession` invalidates every verdict, so switching accounts and

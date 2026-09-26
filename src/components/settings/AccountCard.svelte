@@ -89,20 +89,34 @@
      */
     const isVerified = $derived(status === "verified");
 
-    const statusLabel = $derived.by(() => {
-        // A read that never reached the venue is not a statement about the
-        // key, so it gets its own words rather than the venue's refusal.
-        const record = accountVerification.recordFor({
+    const failure = $derived(
+        accountVerification.recordFor({
             id: account.id,
             exchange: account.exchange,
             keys: account.keys,
-        });
-        const key =
-            status === "rejected" && record?.failure === "unreachable"
-                ? "unreachable"
-                : status;
-        return $_(`settings.connections.accounts.verifyStatus.${key}`);
-    });
+        })?.failure,
+    );
+
+    /**
+     * Whether the last read never reached the venue.
+     *
+     * A dropped connection is not the trader's key being refused, and the dot
+     * has to say so too. The label already carried this distinction; the colour
+     * did not, so a network blip drew the same red dot as a rejected key and
+     * contradicted the words right next to it. Amber is a connection state;
+     * red is an accusation.
+     */
+    const isUnreachable = $derived(
+        status === "rejected" && failure === "unreachable",
+    );
+
+    const statusLabel = $derived(
+        $_(
+            `settings.connections.accounts.verifyStatus.${
+                isUnreachable ? "unreachable" : status
+            }`,
+        ),
+    );
 
     const statusTitle = $derived(
         $_("settings.connections.accounts.verifyStatusAria", {
@@ -149,7 +163,8 @@
                 class="status-dot {isVerified ? 'connected' : ''}"
                 class:verifying={status === "verifying"}
                 class:stale={status === "stale"}
-                class:rejected={status === "rejected"}
+                class:unreachable={isUnreachable}
+                class:rejected={status === "rejected" && !isUnreachable}
                 title={statusTitle}
                 role="img"
                 aria-label={statusTitle}
@@ -270,6 +285,13 @@
     }
     .status-dot.verifying {
         animation: status-pulse 1.6s ease-in-out infinite;
+    }
+    /* BUG-0560: a venue that could not be reached is a connection problem, not a
+       rejected key, so it wears the connection colour. The label beside it
+       already said so; this is the half that was still accusing. */
+    .status-dot.unreachable {
+        background: var(--warning-color);
+        opacity: 1;
     }
     .status-dot.rejected {
         background: var(--danger-color);
