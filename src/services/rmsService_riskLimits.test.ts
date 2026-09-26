@@ -1090,8 +1090,9 @@ describe("FEAT-0013 — corrupt persisted state", () => {
 // BUG-0548 — an amendment that enlarges a resting order decides a larger
 // exposure than the trader approved when it was placed, so it faces the
 // same limits an open does: measured at the gate, refused before any
-// signed request. Price-only, shrinking and TP/SL-only amendments change
-// nothing about size and stay usable with every limit configured.
+// signed request. Price-only and TP/SL-only amendments stay usable with
+// every limit configured; shrinking amendments stay exempt from the size
+// caps but face the loss-per-trade ceiling (BUG-0567).
 describe("BUG-0548 — quantity-increasing amendments face the open's limits", () => {
     /** 1 BTC at 50 000 = 50 000 USDT notional, enlarged from 0.2; a 500 stop. */
     function enlargingModifyIntent(): OrderIntent {
@@ -1316,6 +1317,92 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
         const intent = enlargingModifyIntent();
         intent.displayed.provider = "bitget";
         expect(orderGate.verify(intent).refusal?.field).toBe("maxLossPerTrade");
+    });
+});
+
+// BUG-0567 — a shrinking amendment must still face the loss-per-trade
+// ceiling: widening the stop on the way down can push the resulting loss
+// past maxLossPerTradeUsdt. Shrinks stay exempt from the size caps;
+// price-only and TP/SL-only amendments keep their full exemption.
+describe("BUG-0567 — shrinking amendments face the loss-per-trade ceiling", () => {
+    /** 1 → 0.9 with the stop widened 500 → 5000: a 4500 loss plus fees. */
+    function shrinkingModifyIntent(): OrderIntent {
+        return {
+            kind: "modify",
+            endpoint: "/api/orders",
+            payload: {
+                type: "modify-order",
+                orderId: "o-9",
+                symbol: "BTCUSDT",
+                qty: "0.9",
+                price: "50000",
+                slPrice: "45000",
+            },
+            displayed: {
+                ...ACCOUNT,
+                symbol: "BTCUSDT",
+                orderId: "o-9",
+                entryPrice: new Decimal(50000),
+                // Long-correct like the BUG-0548 fixture, so the direction
+                // rule passes and the limit under test decides.
+                positionSide: "LONG",
+                stopLossPrice: new Decimal(45000),
+                modifyQuantity: new Decimal("0.9"),
+                previousQuantity: new Decimal(1),
+                accountSize: new Decimal(1000),
+                stepSize: new Decimal("0.0001"),
+            },
+        };
+    }
+
+    it("refuses a shrink that widens the stop past the loss ceiling", () => {
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const refusal = orderGate.verify(shrinkingModifyIntent()).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
+        expect(refusal?.reason).toBe("riskLimit");
+    });
+
+    it("approves a shrink that keeps the stop inside the ceiling", () => {
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const intent = shrinkingModifyIntent();
+        intent.payload.slPrice = "49500";
+        intent.displayed.stopLossPrice = new Decimal(49500);
+        // 0.9 × 500 = 450 plus fees: over 400, under 600.
+        riskState.setLimit("maxLossPerTradeUsdt", "600");
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("leaves shrinking amendments exempt from the size caps", () => {
+        // 0.9 × 50 000 = 45 000 notional clears a 10 000 cap — the size
+        // exemption holds; only the loss ceiling measures a shrink.
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        riskState.setLimit("maxPositionSizePercent", "1");
+        expect(orderGate.verify(shrinkingModifyIntent()).approved).toBe(true);
+    });
+
+    it("leaves a quantity-less price-only amendment fully exempt", () => {
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
+        riskState.setLimit("maxLossPerTradeUsdt", "1");
+        riskState.setLimit("maxDailyLossUsdt", "1");
+        const intent = shrinkingModifyIntent();
+        delete intent.payload.qty;
+        delete intent.displayed.modifyQuantity;
+        delete intent.displayed.previousQuantity;
+        intent.payload.price = "50100";
+        intent.displayed.entryPrice = new Decimal(50100);
+        expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("refuses a shrink with no stop to measure when the limit is set", () => {
+        // Fail closed like an increasing amendment: with a configured
+        // limit, unprotected exposure is unmeasurable, not approved.
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const intent = shrinkingModifyIntent();
+        delete intent.displayed.stopLossPrice;
+        delete intent.payload.slPrice;
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
+        expect(refusal?.reason).toBe("missing");
     });
 });
 

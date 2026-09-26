@@ -547,14 +547,26 @@ class RiskManagementService {
         // An amendment that enlarges the resting order makes the exposure
         // larger than the trader approved when it was placed, so the same
         // limits an `open` faces apply to the amended order (BUG-0548).
-        // `previousQuantity` vs `modifyQuantity` decides; a price-only or
-        // shrinking amendment changes nothing about exposure and stays
-        // exempt, as do TP/SL-only amendments — those are returned before
-        // any limit runs. `checkOpenPositions` stays out: the order
+        // `previousQuantity` vs `modifyQuantity` decides; a price-only
+        // amendment states no quantity and stays exempt, as do TP/SL-only
+        // amendments — those are returned before any limit runs. A shrinking
+        // amendment stays exempt from the size caps — less quantity is less
+        // exposure — but still faces the loss-per-trade ceiling, because
+        // widening the stop on the way down can push the resulting loss
+        // past it (BUG-0567). `checkOpenPositions` stays out: the order
         // consumed its slot when it was first placed. `checkLeverage` stays
         // out: a modify payload carries no leverage.
         if (intent.kind === "modify") {
-            if (!this.isQuantityIncreasingModify(intent)) return null;
+            if (!this.isQuantityIncreasingModify(intent)) {
+                // No quantity stated anywhere means price-only: there is no
+                // new exposure to measure, so the full exemption holds. A
+                // stated quantity that only shrinks is measured against the
+                // resulting position and stop — and refuses as unmeasurable
+                // when no stop is known, like every other unverifiable input
+                // in this gate.
+                if (this.modifyQtyOf(intent) === null) return null;
+                return this.checkLossPerTrade(intent);
+            }
             return (
                 this.checkDailyLoss() ??
                 this.checkPositionSize(intent) ??
