@@ -676,7 +676,9 @@ class AccountManager {
     if (this.#snapshotMode !== mode) return undefined;
     const asset = this.assets.find((a) => a.currency === "USDT");
     if (asset === undefined) return undefined;
-    return { available: asset.available, total: asset.total, at: this.#snapshotAt ?? 0 };
+    // Mode and stamp are always set and cleared together, so the fallback is
+    // unreachable in practice — it only satisfies the return type.
+    return { available: asset.available, total: asset.total, at: this.#snapshotAt ?? Date.now() };
   }
 
   /**
