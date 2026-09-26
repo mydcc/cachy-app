@@ -2,9 +2,10 @@
 id: BUG-0560
 title: Credential cards show green without private-account verification
 type: bug
-status: in-progress
+status: done
 assignee: opencode
 branch: fix/bug-0560
+shipped: unreleased
 priority: P1
 milestone: none
 editions: [community, pro, private]
