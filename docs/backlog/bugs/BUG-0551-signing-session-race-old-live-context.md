@@ -79,12 +79,12 @@ rather than a field and an internal counter. The gate's existing
 
 Two boundaries, both deliberate:
 
-- **Reads keep their exact behaviour.** `mutatingActionOf` decides. The
-  leverage, position-mode and account reads take a read-order ticket and drop a
-  late answer at the store write (`accountReadOrder`, BUG-0412/BUG-0419); the
-  two position-list reads do not, and BUG-0419 owns that gap. Refusing reads
-  here would turn every account switch into an error in the polling paths for
-  no safety gain.
+- **Reads keep their exact behaviour.** `mutatingActionOf` decides. Three of the
+  read lanes take a read-order ticket and drop a late answer at the store write
+  (the leverage read and both `/api/account` reads); the two position-list
+  reads in `tradeService.ts` take none, and BUG-0419 owns that gap. Refusing
+  reads here would turn every account switch into an error in the polling paths
+  for no safety gain.
 - **`/api/account-settings` got the same guard.** It signs and dispatches on
   its own, never through `signedRequest`, and carried the identical gap — its
   paper guard at the top of the lane cannot see a switch that happens while

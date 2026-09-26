@@ -2,9 +2,9 @@
 
 # Backlog index
 
-445 items. How to read and add them: [README.md](README.md).
+446 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 9 · ✅ done 392 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 20 · 🟢 ready 9 · ✅ done 392 · ⛔ dropped 1
 
 ---
 
@@ -468,6 +468,7 @@ Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 9 · ✅ done 39
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | execution |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | ui |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -908,6 +909,7 @@ Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 9 · ✅ done 39
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -964,4 +966,4 @@ Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 9 · ✅ done 39
 
 ---
 
-Next free number: **0569**
+Next free number: **0570**
