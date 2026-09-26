@@ -138,7 +138,7 @@ let releaseHeld: () => void = () => {};
  * device, with nothing between it and the wire.
  */
 const networkFetch = vi.fn(
-    async (): Promise<Response> =>
+    async (..._args: [input: RequestInfo | URL, init?: RequestInit]): Promise<Response> =>
         new Response(JSON.stringify({ code: "0", data: {} }), {
             status: 200,
             headers: { "content-type": "application/json" },
@@ -201,6 +201,10 @@ beforeEach(() => {
 
     vi.spyOn(globalThis, "fetch").mockImplementation(networkFetch);
     networkFetch.mockClear();
+    // A test that stubs a specific response replaces the implementation, and
+    // `mockClear` leaves that in place for the next test. Reset to the default
+    // every time so no test inherits another's network.
+    networkFetch.mockImplementation(async () => new Response("{}", { status: 200 }));
 
     registerKillSwitch(null);
     registerRiskLimitCheck(null);
@@ -258,9 +262,67 @@ function refusalOf(outcome: Awaited<ReturnType<typeof placeAcrossSwitch>>) {
     return (outcome.error as { refusal?: { field: string; messageKey: string } }).refusal;
 }
 
+/**
+ * Stubs the network so the first signed attempt comes back as a client-token
+ * 401: the one response `appFetch` answers with a fresh token and a second
+ * attempt.
+ *
+ * `onFirstAttempt` runs as that first attempt is answered, so the switch lands
+ * in the window *between* the two attempts — the token refresh, not the
+ * signing. Returns the number of signed attempts that reached the wire, which
+ * is 2 when the retry was not stopped.
+ */
+function staleTokenThenRetry(onFirstAttempt: () => void) {
+    let signedAttempts = 0;
+    networkFetch.mockImplementation(async (input: RequestInfo | URL) => {
+        if (String(input) === "/api/auth/token") {
+            return new Response(JSON.stringify({ token: "refreshed-token" }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+            });
+        }
+        signedAttempts += 1;
+        if (signedAttempts === 1) {
+            onFirstAttempt();
+            return new Response(
+                JSON.stringify({ error: "Unauthorized: Invalid or missing client access token" }),
+                { status: 401, headers: { "content-type": "application/json" } },
+            );
+        }
+        return new Response(JSON.stringify({ code: "0", data: {} }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+        });
+    });
+    return () => signedAttempts;
+}
+
 describe("BUG-0551 — a write signed under a switched context is refused", () => {
-    it("sends nothing when paper trading is switched on mid-signing", async () => {
-        const outcome = await placeAcrossSwitch(() => paperTradingService.setEnabled(true));
+    it("refuses the retried attempt when the context moved during the token refresh", async () => {
+        // The ratchet for the review finding. `appFetch` answers a client-token
+        // 401 with a fresh token and a second attempt — and that second attempt
+        // is the one that would reach the venue. A guard that runs once, before
+        // the call, is already stale here; only a per-attempt check stops it.
+        //
+        // Verified by mutation: moving the check back into the wrapper body
+        // makes this fail with two signed attempts instead of one.
+        const signedAttempts = staleTokenThenRetry(() =>
+            paperTradingService.setEnabled(true),
+        );
+
+        const outcome = await tradeService.placeOrder(entryParams()).then(
+            (result) => ({ sent: true as const, result }),
+            (error: unknown) => ({ sent: false as const, error }),
+        );
+
+        expect(signedAttempts()).toBe(1);
+        expect(refusalOf(outcome)).toMatchObject({
+            field: "mode",
+            messageKey: "orderGate.sessionChanged",
+        });
+    });
+
+    it("sends nothing when paper trading is switched on mid-signing", async () => {        const outcome = await placeAcrossSwitch(() => paperTradingService.setEnabled(true));
 
         expect(networkFetch).not.toHaveBeenCalled();
         expect(refusalOf(outcome)).toMatchObject({

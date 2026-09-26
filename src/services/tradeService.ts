@@ -161,12 +161,13 @@ const READ_BACK_DELAYS_MS = [700, 2000];
  * venue. A check here would run once, before all of it.
  *
  * Read-only requests are deliberately untouched. A read that crosses the
- * boundary is stale, not dangerous — it cannot dispatch a write. The leverage,
- * position-mode and account reads take a read-order ticket and drop a late
- * answer at the store write (`accountReadOrder`, BUG-0412/BUG-0419); the two
- * position-list reads do not, and BUG-0419 owns that gap. Refusing reads here
- * would turn every account switch into an error in the polling paths for no
- * safety gain.
+ * boundary is stale, not dangerous — it cannot dispatch a write. Three of the
+ * read lanes here take a read-order ticket and drop a late answer at the store
+ * write: the leverage read, and both account reads (`/api/account` for the
+ * position mode and the account itself). The two position-list reads in this
+ * file — `/api/sync/positions-pending` and `/api/positions` — take none, and
+ * BUG-0419 owns that gap. Refusing reads here would turn every account switch
+ * into an error in the polling paths for no safety gain.
  */
 function dispatchUnderSession(
     session: AccountSession,
