@@ -51,5 +51,6 @@ describe('patchBuildIndex', () => {
     expect(code).toContain('export { handler }');
     // Must handle `node build` (argv[1] is the directory), not just the file.
     expect(code).toContain('function isEntryPoint()');
+    expect(code).toContain('fs.realpathSync.native');
   });
 });

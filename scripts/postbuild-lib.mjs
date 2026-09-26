@@ -38,13 +38,22 @@ export { handler };
 // True when this file is the program entry point. \`node build\` passes the
 // directory as argv[1] while \`node build/index.js\` passes the file, so a
 // directory is resolved to its index.js before the comparison.
+// Uses fs.realpathSync.native to resolve symlinks (e.g. aaPanel site directories
+// like /www/wwwroot/cachy.app -> /www/server/nodejs/vhost/...) so import.meta.url
+// matches pathToFileURL(realEntry).href.
 function isEntryPoint() {
   const arg = process.argv[1];
   if (!arg) return false;
   const resolved = path.resolve(arg);
   const stat = fs.statSync(resolved, { throwIfNoEntry: false });
   const entry = stat && stat.isDirectory() ? path.join(resolved, 'index.js') : resolved;
-  return import.meta.url === pathToFileURL(entry).href;
+  let realEntry = entry;
+  try {
+    realEntry = fs.realpathSync.native(entry);
+  } catch {
+    // Keep resolved entry if realpath fails
+  }
+  return import.meta.url === pathToFileURL(realEntry).href;
 }
 
 // Boot the Express wrapper (compression + security headers) only when executed;
