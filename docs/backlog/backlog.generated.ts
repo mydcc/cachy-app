@@ -2419,7 +2419,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0567",
     "title": "Shrinking modify with widened stop escapes the loss-per-trade ceiling",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -5415,6 +5416,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0565-paper-live-balance-confusion.md"
+  },
+  {
+    "id": "BUG-0568",
+    "title": "Quantity shrink with pumped price escapes the size caps without a loss limit",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0567"
+    ],
+    "file": "bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md"
   },
   {
     "id": "FEAT-0019",

@@ -243,10 +243,28 @@ describe("modifyOrder — constructor mapping reaches the gate intact", () => {
     it("approves a shrink against caps that would refuse an increase", async () => {
         const wire = mockLive();
         riskState.setLimit("maxPositionSizeUsdt", "1");
-        riskState.setLimit("maxLossPerTradeUsdt", "1");
+        // The shrink's own loss (~103 on 0.1 × 1000 plus fees) passes a
+        // ceiling an increase would clear: the size-cap exemption is the
+        // statement here, the loss ceiling measures the shrink (BUG-0567).
+        riskState.setLimit("maxLossPerTradeUsdt", "10000");
 
         await tradeService.modifyOrder({ orderId: "o-9", qty: "0.1" });
 
         expect(wire).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses a shrink that widens the stop past the loss ceiling end to end", async () => {
+        const wire = mockLive();
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+
+        // 0.1 × 10 000 = 1000 plus fees: the constructor maps the widened
+        // stop through and the gate refuses before any signed request.
+        await expect(
+            tradeService.modifyOrder({ orderId: "o-9", qty: "0.1", slPrice: "40000" }),
+        ).rejects.toMatchObject({
+            name: "OrderRefusedError",
+            refusal: { field: "maxLossPerTrade", reason: "riskLimit" },
+        });
+        expect(wire).not.toHaveBeenCalled();
     });
 });
