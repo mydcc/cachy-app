@@ -312,6 +312,10 @@ export class BitgetWebSocketService {
         if (this.isDestroyed) return;
         if (this.ws === ws) {
           marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
+          // BUG-0565 / IDEA-0563: demote at close, not at the next connect —
+          // the reconnect runs after a backoff delay, and until then the
+          // measurement would stay trusted with a dead stream behind it.
+          accountState.markBalanceUnmeasured();
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
             this.cleanup();
@@ -408,6 +412,10 @@ export class BitgetWebSocketService {
     this.ws = null;
     this.isReconnecting = false;
     this.isAuthenticated = false;
+    // BUG-0565 / IDEA-0563: single socket, shared fate — when it goes down
+    // the authenticated stream goes with it, so a live measurement stops
+    // being one until the next push or REST poll re-stamps it.
+    accountState.markBalanceUnmeasured();
   }
 
   private login(apiKey: string, apiSecret: string, passphrase: string) {

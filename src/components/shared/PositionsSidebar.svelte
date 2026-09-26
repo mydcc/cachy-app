@@ -174,11 +174,12 @@
   }
 
   // Map AccountState Position to OMSPosition
-  // Available/margin/frozen come from the WS-live balance channel once it
-  // has pushed at least once; PnL is always derived live from open
-  // positions (also WS-fed). Both fall back to the last REST snapshot
-  // (accountInfo) before that, rather than showing 0 until the first push.
-  let liveAsset = $derived(accountState.assets.find((a) => a.currency === "USDT"));
+  // Available/margin/frozen come from the store's snapshot (live WS pushes
+  // or the paper account, whichever mode is active — BUG-0565); PnL is
+  // always derived live from open positions (also WS-fed). Both fall back
+  // to the last REST snapshot (accountInfo) before that, rather than
+  // showing 0 until the first push.
+  let activeAsset = $derived(accountState.assets.find((a) => a.currency === "USDT"));
 
   // Mark price for a position: Bitunix's REST/WS position endpoints never
   // return one (see BUG-0055) — the only real source is marketState, fed by
@@ -319,7 +320,7 @@
     if (paper) {
       if (!positionsReadOrder.mayApply(ticket)) return;
       errorPositions = "";
-      accountState.hydratePositions(paper.positions());
+      accountState.hydratePositions(paper.positions(), "paper");
       return;
     }
 
@@ -372,7 +373,7 @@
         // data.positions` assignment used to silently violate the Position
         // type (string fields, no positionId), which both risked a render
         // crash and broke matching against subsequent WS position pushes.
-        accountState.hydratePositions(data.positions);
+        accountState.hydratePositions(data.positions, "live");
       }
     } catch {
       // A stale failure must not clear a fresher snapshot's state either.
@@ -388,7 +389,7 @@
     const paper = paperAccountFeed();
     if (paper) {
       errorOrders = "";
-      accountState.hydrateOpenOrders(paper.pendingOrders());
+      accountState.hydrateOpenOrders(paper.pendingOrders(), "paper");
       return;
     }
 
@@ -423,7 +424,7 @@
         // this list is live afterwards (WS order-channel pushes update it),
         // instead of a snapshot that never changes until the tab is
         // revisited.
-        accountState.hydrateOpenOrders(data.orders || []);
+        accountState.hydrateOpenOrders(data.orders || [], "live");
       }
     } catch {
       errorOrders = $_("apiErrors.failedToLoadOrders");
@@ -591,7 +592,7 @@
         available: info.available,
         margin: info.margin,
         frozen: info.frozen,
-      });
+      }, "paper");
       accountState.setPositionMode(info.positionMode);
       return;
     }
@@ -652,14 +653,14 @@
           accountInfo = data;
           // available/margin/frozen also flow into accountState so
           // AccountSummary can prefer the WS-live balance channel over this
-          // snapshot once it starts pushing (see liveAsset below); the
+          // snapshot once it starts pushing (see activeAsset below); the
           // remaining fields here (bonus/transfer/positionMode/per-mode PnL)
           // have no WS equivalent and stay REST-only.
           accountState.hydrateBalance({
             available: String(data.available),
             margin: String(data.margin),
             frozen: String(data.frozen),
-          });
+          }, "live");
           // FEAT-0068: the trade panel offers this as an editable control, and
           // this snapshot is the only place it arrives. Shared through the
           // store rather than re-fetched there.
@@ -1191,20 +1192,20 @@
   {#if isOpen}
     <!-- Account Summary -->
     <AccountSummary
-      available={liveAsset ? liveAsset.available : accountInfo.available}
-      margin={liveAsset ? liveAsset.margin : accountInfo.margin}
+      available={activeAsset ? activeAsset.available : accountInfo.available}
+      margin={activeAsset ? activeAsset.margin : accountInfo.margin}
       pnl={totalUnrealizedPnl}
       pnlStale={totalPnlStale}
       currency={accountInfo.marginCoin}
-      frozen={liveAsset ? liveAsset.frozen : accountInfo.frozen}
+      frozen={activeAsset ? activeAsset.frozen : accountInfo.frozen}
       transfer={accountInfo.transfer}
       bonus={accountInfo.bonus}
       positionMode={accountInfo.positionMode}
       crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
       isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
-      isolationFrozen={liveAsset?.isolationFrozen}
-      crossFrozen={liveAsset?.crossFrozen}
-      expMoney={liveAsset?.expMoney}
+      isolationFrozen={activeAsset?.isolationFrozen}
+      crossFrozen={activeAsset?.crossFrozen}
+      expMoney={activeAsset?.expMoney}
       totalPositionSize={totalPositionSize}
       error={errorAccount}
     />

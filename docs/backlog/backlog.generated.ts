@@ -5405,7 +5405,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0565",
     "title": "Live balance pushes and paper hydration share one store without a mode guard",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7539,7 +7539,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
-    "status": "idea",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
