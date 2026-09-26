@@ -1206,7 +1206,11 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
         expect(refusal?.field).toBe("maxPositionSize");
     });
 
-    it("leaves a price-only amendment alone", () => {
+    it("leaves an equal-quantity price change alone inside the ceiling", () => {
+        // Named "price-only" before BUG-0567: the amendment states its
+        // quantity (0.2, equal to resting), so it runs through measurement
+        // rather than the price-only exemption — and passes inside the
+        // ceiling (0.2 × 600 = 120 plus fees, under 400).
         everyLimitTight();
         const intent = enlargingModifyIntent();
         intent.payload.qty = "0.2";
@@ -1292,13 +1296,29 @@ describe("BUG-0548 — quantity-increasing amendments face the open's limits", (
         expect(refusal?.reason).toBe("missing");
     });
 
-    it("leaves an equal-quantity amendment alone (gt is strict)", () => {
-        // Documents the boundary: exactly holding size is not an increase.
+    it("leaves an equal-quantity amendment alone inside the ceiling (gt is strict)", () => {
+        // Documents the boundary: exactly holding size is not an increase,
+        // and the unchanged stop keeps the loss (0.2 × 500 = 100 plus fees)
+        // inside the ceiling.
         everyLimitTight();
         const intent = enlargingModifyIntent();
         intent.payload.qty = "0.2";
         intent.displayed.modifyQuantity = new Decimal("0.2");
         expect(orderGate.verify(intent).approved).toBe(true);
+    });
+
+    it("refuses an equal-quantity amendment that widens the stop past the ceiling", () => {
+        // Same size as resting, so no size cap fires — but the widened stop
+        // (0.2 × 5000 = 1000 plus fees) clears the loss ceiling (BUG-0567).
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const intent = enlargingModifyIntent();
+        intent.payload.qty = "0.2";
+        intent.displayed.modifyQuantity = new Decimal("0.2");
+        intent.payload.slPrice = "45000";
+        intent.displayed.stopLossPrice = new Decimal(45000);
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
+        expect(refusal?.reason).toBe("riskLimit");
     });
 
     it("refuses a zero quantity at the structural layer", () => {
@@ -1363,11 +1383,13 @@ describe("BUG-0567 — shrinking amendments face the loss-per-trade ceiling", ()
     });
 
     it("approves a shrink that keeps the stop inside the ceiling", () => {
-        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        // 0.9 × 500 = 450 plus fees: over 400, under 600 — both sides of
+        // the boundary, same intent.
         const intent = shrinkingModifyIntent();
         intent.payload.slPrice = "49500";
         intent.displayed.stopLossPrice = new Decimal(49500);
-        // 0.9 × 500 = 450 plus fees: over 400, under 600.
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        expect(orderGate.verify(intent).refusal?.field).toBe("maxLossPerTrade");
         riskState.setLimit("maxLossPerTradeUsdt", "600");
         expect(orderGate.verify(intent).approved).toBe(true);
     });
@@ -1403,6 +1425,21 @@ describe("BUG-0567 — shrinking amendments face the loss-per-trade ceiling", ()
         const refusal = orderGate.verify(intent).refusal;
         expect(refusal?.field).toBe("maxLossPerTrade");
         expect(refusal?.reason).toBe("missing");
+    });
+
+    it("refuses a short shrink that widens the stop past the ceiling", () => {
+        // The loss math is side-agnostic (abs distance): a short stop above
+        // the entry widens the same way a long stop below it does.
+        riskState.setLimit("maxLossPerTradeUsdt", "400");
+        const intent = shrinkingModifyIntent();
+        intent.displayed.side = "SELL";
+        intent.displayed.positionSide = "SHORT";
+        intent.payload.side = "SELL";
+        intent.payload.slPrice = "55000";
+        intent.displayed.stopLossPrice = new Decimal(55000);
+        const refusal = orderGate.verify(intent).refusal;
+        expect(refusal?.field).toBe("maxLossPerTrade");
+        expect(refusal?.reason).toBe("riskLimit");
     });
 });
 
