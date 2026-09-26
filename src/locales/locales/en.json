@@ -2220,7 +2220,16 @@
         "removeMessage": "Remove “{name}” and delete its API credentials from this device? This cannot be undone. Positions and orders at the exchange are not affected.",
         "addLabel": "Add an account:",
         "exchange": "Exchange",
-        "activeAccountAria": "Active account: {name} on {venue}"
+        "activeAccountAria": "Active account: {name} on {venue}",
+        "verifyStatus": {
+          "unconfigured": "No credentials entered",
+          "verifying": "Verifying …",
+          "verified": "Credentials verified",
+          "rejected": "Exchange rejected these credentials",
+          "stale": "Verification out of date — re-check needed",
+          "unreachable": "Exchange unreachable — credentials unverified"
+        },
+        "verifyStatusAria": "Private account access status: {status}"
       },
       "imgbbRequired": "Required for screenshot uploads.",
       "imgbbGetKey": "Get your API key →"
@@ -4440,7 +4449,8 @@
       "tradingUnavailable": "Trading is unavailable for this symbol.",
       "metadataLoading": "Loading trading pair details...",
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
-      "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
+      "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max}).",
+      "accountUnverified": "Credentials unverified — the private account is still being checked."
     },
     "timeInForceNone": "—",
     "exchangeOrderTp": "Exchange Order TP",

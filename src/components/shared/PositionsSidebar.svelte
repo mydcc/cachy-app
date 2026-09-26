@@ -39,6 +39,13 @@
   import { paperState } from "../../stores/paperTrading.svelte";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { unwrapApiEnvelope } from "../../utils/utils";
+  import {
+    accountVerification,
+    credentialFingerprint,
+    hasCompleteCredentials,
+    isVenueRefusal,
+    subjectFor,
+  } from "../../stores/accountVerification.svelte";
   import { appFetch } from "../../lib/appAuth";
   import { exchangeSignedFetch } from "../../utils/exchange/browserSigning";
   import {
@@ -588,95 +595,168 @@
       errorAccount = "";
       const info = paper.accountInfo();
       accountInfo = info;
-      accountState.hydrateBalance({
-        available: info.available,
-        margin: info.margin,
-        frozen: info.frozen,
-      }, "paper");
+      accountState.hydrateBalance(
+        {
+          available: info.available,
+          margin: info.margin,
+          frozen: info.frozen,
+        },
+        "paper",
+      );
       accountState.setPositionMode(info.positionMode);
       return;
     }
 
     const provider = settingsState.apiProvider || "bitunix";
-    const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-    if (!keys?.key || !keys?.secret) return;
+    // One resolver, both sides. `subjectFor` goes through `activeAccountFor`,
+    // which falls back to the venue's first account when `activeAccountId`
+    // names an account on a different venue — and those two can disagree,
+    // being one fact under two names. Building the subject from the raw id
+    // instead would file this read's verdict under an id that does not own
+    // these keys: nothing looking the account up would find it again, and the
+    // panel would read `unconfigured` while a live balance sat on screen.
+    const subject = subjectFor(provider);
+    if (!subject) return;
+    // The transports' own requirement, in one place: a Bitget set without a
+    // passphrase cannot sign, so asking anyway spends a request to be told
+    // nothing about a key we never sent.
+    if (!hasCompleteCredentials(subject.keys, subject.exchange)) return;
+
+    // BUG-0560: this read is the app's best evidence about whether the
+    // credentials work, so it also records the verdict where the settings card
+    // and the order panel can see it. The claim only tells the store that a
+    // verdict is coming, so `verifyAccount` does not spend a second request on
+    // the same answer; whether *this* caller records it is settled below, by
+    // whoever actually performs the read.
+    const { seq, release: releaseClaim } = accountVerification.readIssued(
+        subject,
+        credentialFingerprint(subject.keys),
+    );
 
     const key = accountFetchKey(trigger, provider, settingsState.activeAccountId ?? "");
     // BUG-0423: the same trigger firing on both mounted instances shares one
     // network round trip. Only the owner takes the ordering ticket (inside
     // the callback); joiners await the shared flight and write nothing, so
     // BUG-0412 sequencing between *different* triggers is untouched.
-    await runAccountFetchOnce(key, async () => {
-      // FEAT-0026. `hydrateBalance` below deliberately *merges*, preserving the
-      // margin fields only the WS wallet channel supplies. That merge is
-      // correct within one account and is cross-account blending across two,
-      // so a response that outlived its session must not reach it.
-      //
-      // BUG-0412 folds the ordering guard into the same ticket: this component
-      // is mounted twice (desktop + mobile) and reads on mount *and* on a
-      // credentials change, so two of its own responses overlap routinely and
-      // the older one used to land last and win.
-      const ticket = accountReadOrder.begin();
-
-      try {
-        // FEAT-0405 A4 — same cutover as /api/positions above: the browser
-        // signs, the server rebuilds its envelope comparison from
-        // `buildAccountQueryParams`, and the secret stays on this side.
-        const response = await exchangeSignedFetch({
-          cachyPath: "/api/account",
-          keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
-          venue: provider,
-          payload: { exchange: provider },
-          queryParams: buildAccountQueryParams(provider),
-          headers: { "X-Provider": provider },
-          fetchFn: appFetch,
+    try {
+      await runAccountFetchOnce(key, async () => {
+        // Snapshotted here, in the same synchronous block that builds the
+        // request below, because this callback can join a flight that was
+        // already running when the trader retried. `subject.keys` is a live
+        // `$state` proxy, so these three strings are the ones that actually get
+        // signed, and they are also the ones every verdict below is
+        // fingerprinted against — a verdict stamped from anything read after the
+        // `await` would belong to a different key than the one that was judged.
+        const apiKey = subject.keys.key;
+        const apiSecret = subject.keys.secret;
+        const passphrase = subject.keys.passphrase;
+        const fingerprint = credentialFingerprint({
+          key: apiKey,
+          secret: apiSecret,
+          passphrase,
         });
-        const json = await response.json();
-        // /api/account responds via jsonSuccess/jsonError
-        // (src/utils/apiResponse.ts): { success: true, data: {...account
-        // fields} } or { success: false, error: { code, message } } — not the
-        // flat shape read here before this fix. `data.error` was always
-        // undefined and `data` itself (rather than `data.data`) was assigned
-        // to accountInfo, so every field silently stuck at its all-zero
-        // initial state — indistinguishable from a genuinely empty account,
-        // and never surfaced as an error either (BUG-0060).
-        // Asked once, after the last `await` and before anything is written,
-        // so an error result orders against a success result too: a stale
-        // failure must not clear a fresher snapshot's numbers either.
-        if (!accountReadOrder.mayApply(ticket)) return;
 
-        const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
-        if (data === null) {
-          errorAccount = translateError({ code, error: message });
-        } else {
-          errorAccount = "";
-          accountInfo = data;
-          // available/margin/frozen also flow into accountState so
-          // AccountSummary can prefer the WS-live balance channel over this
-          // snapshot once it starts pushing (see activeAsset below); the
-          // remaining fields here (bonus/transfer/positionMode/per-mode PnL)
-          // have no WS equivalent and stay REST-only.
-          accountState.hydrateBalance({
-            available: String(data.available),
-            margin: String(data.margin),
-            frozen: String(data.frozen),
-          }, "live");
-          // FEAT-0068: the trade panel offers this as an editable control, and
-          // this snapshot is the only place it arrives. Shared through the
-          // store rather than re-fetched there.
-          accountState.setPositionMode(data.positionMode);
+        // FEAT-0026. `hydrateBalance` below deliberately *merges*, preserving
+        // the margin fields only the WS wallet channel supplies. That merge is
+        // correct within one account and is cross-account blending across two,
+        // so a response that outlived its session must not reach it.
+        //
+        // BUG-0412 folds the ordering guard into the same ticket: this
+        // component is mounted twice (desktop + mobile) and reads on mount
+        // *and* on a credentials change, so two of its own responses overlap
+        // routinely and the older one used to land last and win.
+        const ticket = accountReadOrder.begin();
+
+        try {
+          // FEAT-0405 A4 — same cutover as /api/positions above: the browser
+          // signs, the server rebuilds its envelope comparison from
+          // `buildAccountQueryParams`, and the secret stays on this side.
+          const response = await exchangeSignedFetch({
+            cachyPath: "/api/account",
+            keys: {
+              apiKey,
+              apiSecret,
+              passphrase,
+            },
+            venue: provider,
+            payload: { exchange: provider },
+            queryParams: buildAccountQueryParams(provider),
+            headers: { "X-Provider": provider },
+            fetchFn: appFetch,
+          });
+          const json = await response.json();
+          // /api/account responds via jsonSuccess/jsonError
+          // (src/utils/apiResponse.ts): { success: true, data: {...account
+          // fields} } or { success: false, error: { code, message } } — not
+          // the flat shape read here before this fix. `data.error` was always
+          // undefined and `data` itself (rather than `data.data`) was assigned
+          // to accountInfo, so every field silently stuck at its all-zero
+          // initial state — indistinguishable from a genuinely empty account,
+          // and never surfaced as an error either (BUG-0060).
+          // Asked once, after the last `await` and before anything is
+          // written, so an error result orders against a success result too: a
+          // stale failure must not clear a fresher snapshot's numbers either.
+          if (!accountReadOrder.mayApply(ticket)) return;
+
+          const { data, code, message } = unwrapApiEnvelope<AccountInfo>(json);
+          if (data === null) {
+            errorAccount = translateError({ code, error: message });
+            // BUG-0560: a venue that answered and refused is the one failure
+            // that is really about the credentials. A `success: true` envelope
+            // with no payload is not a refusal — it is a response this client
+            // cannot read, and calling it `rejected` would blame the key for our
+            // own parsing problem.
+            accountVerification.recordFailure(
+              subject,
+              isVenueRefusal(json) ? "rejected" : "unreachable",
+              { fingerprint, seq, errorCode: code },
+            );
+          } else {
+            errorAccount = "";
+            accountInfo = data;
+            // available/margin/frozen also flow into accountState so
+            // AccountSummary can prefer the WS-live balance channel over this
+            // snapshot once it starts pushing (see activeAsset below); the
+            // remaining fields here (bonus/transfer/positionMode/per-mode PnL)
+            // have no WS equivalent and stay REST-only.
+            accountState.hydrateBalance(
+              {
+                available: String(data.available),
+                margin: String(data.margin),
+                frozen: String(data.frozen),
+              },
+              "live",
+            );
+            // FEAT-0068: the trade panel offers this as an editable control,
+            // and this snapshot is the only place it arrives. Shared through
+            // the store rather than re-fetched there.
+            accountState.setPositionMode(data.positionMode);
+            accountVerification.recordSuccess(subject, { fingerprint, seq });
+          }
+        } catch {
+          // The ticket is usually still unclaimed here — `appFetch` and
+          // `response.json()` both run before `mayApply` above. But anything
+          // thrown after a claim takes the same exit, so this asks whether
+          // this read is still the newest instead of assuming it: silent only
+          // when a newer read already landed. Keep fallible work out of the
+          // window between the claim and this catch.
+          if (!accountReadOrder.mayApply(ticket)) return;
+          errorAccount = $_("apiErrors.generic");
+          // The venue never answered, which is not the same as having refused
+          // the key (BUG-0560) — the record keeps the two apart so the message
+          // can name whose problem it is.
+          accountVerification.recordFailure(subject, "unreachable", {
+            fingerprint,
+            seq,
+          });
         }
-      } catch {
-        // The ticket is usually still unclaimed here — `appFetch` and
-        // `response.json()` both run before `mayApply` above. But anything
-        // thrown after a claim takes the same exit, so this asks whether
-        // this read is still the newest instead of assuming it: silent only
-        // when a newer read already landed. Keep fallible work out of the
-        // window between the claim and this catch.
-        if (!accountReadOrder.mayApply(ticket)) return;
-        errorAccount = $_("apiErrors.generic");
-      }
-    });
+      });
+    } finally {
+      // Every path out of the read above returns without recording — a
+      // superseded session, an outranked ticket, a coalesced flight. The claim
+      // is released regardless, or this account would never verify again.
+      releaseClaim();
+    }
   }
 
   onMount(() => {

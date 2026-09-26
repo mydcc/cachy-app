@@ -2198,7 +2198,16 @@
         "removeMessage": "„{name}“ entfernen und die API-Zugangsdaten von diesem Gerät löschen? Das lässt sich nicht rückgängig machen. Positionen und Orders an der Börse bleiben unberührt.",
         "addLabel": "Konto hinzufügen:",
         "exchange": "Börse",
-        "activeAccountAria": "Aktives Konto: {name} auf {venue}"
+        "activeAccountAria": "Aktives Konto: {name} auf {venue}",
+        "verifyStatus": {
+          "unconfigured": "Keine Zugangsdaten hinterlegt",
+          "verifying": "Wird geprüft …",
+          "verified": "Zugangsdaten bestätigt",
+          "rejected": "Zugangsdaten werden von der Börse abgelehnt",
+          "stale": "Bestätigung veraltet — erneut prüfen",
+          "unreachable": "Börse nicht erreichbar — Zugangsdaten ungeprüft"
+        },
+        "verifyStatusAria": "Status des privaten Zugangs: {status}"
       },
       "imgbbRequired": "Erforderlich für Screenshot-Uploads.",
       "imgbbGetKey": "API-Key anfordern →"
@@ -4440,7 +4449,8 @@
       "tradingUnavailable": "Handel ist für dieses Symbol nicht verfügbar.",
       "metadataLoading": "Lade Handelspaar-Details...",
       "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
-      "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max})."
+      "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max}).",
+      "accountUnverified": "Zugangsdaten nicht bestätigt — Privatkonto wird geprüft."
     },
     "timeInForceNone": "—",
     "exchangeOrderTp": "Börsen-Order-TP",
