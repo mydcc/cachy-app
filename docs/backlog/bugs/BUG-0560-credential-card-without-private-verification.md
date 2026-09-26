@@ -46,21 +46,53 @@ second, parallel mechanism.
 - `src/stores/accountVerification.svelte.ts` — per-account record
   (`unconfigured` / `verifying` / `verified` / `rejected` / `stale`), the
   venue's error code, and a `failure` discriminator that keeps "the exchange
-  refused these credentials" apart from "the exchange never answered". A
-  verdict is bound to a display-grade `credentialFingerprint` of the three
-  credential fields, so an edit returns the account to `stale` before anything
-  refetches. `stale` is also derived from a five-minute freshness window, so no
-  verdict stays green by sitting still.
+  refused these credentials" apart from "the exchange never answered" and from
+  "this response was not readable" (a `success: true` envelope with no payload
+  is our parsing problem, not the trader's key). A verdict is bound to a
+  `credentialFingerprint` of the three credential fields, so an edit returns the
+  account to `stale` before anything refetches. `stale` is also derived from a
+  five-minute freshness window, so no verdict stays green by sitting still.
+- The fingerprint is snapshotted **when the request is built** and carried into
+  the verdict, never read back afterwards. The settings card binds its inputs
+  with `bind:value`, so the key object mutates in place under a read in flight;
+  a verdict fingerprinted after the response would belong to the key now in the
+  input rather than the key the venue judged — which is the bug this item is
+  about, one level down. Both readers (`verifyAccount`, the sidebar) snapshot
+  the same three strings they sign.
+- Reads are ordered by a monotonic sequence number, not by wall clock, and a
+  claim is a count rather than a flag: the sidebar's read and the fallback read
+  can overlap, and "whichever finished first cleared the claim" would let a
+  duplicate go out. A verdict is only superseded by one from a read that
+  *started later* — a settle-time comparison dropped the newer verdict whenever
+  an older read happened to land first.
+- `stale` needs a live clock to be reachable at all. Freshness compared against
+  `Date.now()` was arithmetically right and practically dead: `Date.now()` is
+  no reactive dependency, so the derived never re-ran and a green dot outlived
+  its window for as long as the tab stayed open. `PlaceOrderPanel`, mounted
+  unconditionally by the app shell, now holds a 30-second `startClock()` tick
+  that moves one number — no request, no venue, no verdict.
+- A refused or unreachable account is not re-read in a loop. `ensureCurrent`
+  only short-circuits on `verified`, and the effects that call it read the
+  credential fields to stay reactive, so a `RETRY_FLOOR_MS` window holds off a
+  *repeat*. A freshly pasted key is not a repeat and is read immediately —
+  otherwise a rotation would sit unverified for the rest of the window.
 - `PositionsSidebar` records the verdict of the read it already performs
-  (`claimVerification` + `recordSuccess` / `recordFailure`, released in a
-  `finally` so a coalesced or superseded read cannot wedge the account).
+  (`readIssued` + `recordSuccess` / `recordFailure`, released in a `finally` so
+  a coalesced or superseded read cannot wedge the account). It resolves its
+  subject through the store's own `subjectFor` rather than from
+  `activeAccountId` directly: those two can disagree, and a verdict filed under
+  an id that does not own the keys is one nothing can find again. Its
+  credential guard is the same `hasCompleteCredentials` the transports use, so a
+  Bitget set without a passphrase stops asking rather than being told no.
 - `verifyAccount()` is the fallback read for the two cases where no report is
   coming: the sidebars are hidden (`PositionsSidebar` renders only under
   `showSidebars`) or the trader never opens the positions panel. Same signed
   `/api/account` path, the account's own credentials, no order placed. It drops
   its own verdict if the session rotated or a newer read already landed.
 - `AccountCard` shows green only for `verified`; `verifying` and `stale` are
-  amber, `rejected` is red, and every state carries an accessible name.
+  amber, `rejected` is red, and every state carries an accessible name. Only
+  `verifying` pulses: a pulse promises that waiting will answer the question,
+  which is true of a read in flight and false of an expired verdict.
 - `PlaceOrderPanel` disables live entry while the state is unknown or stale and
   says why. `PlaceOrderPanel` is mounted unconditionally by the app shell, so
   its `ensureCurrent()` effect is the app-lifecycle trigger — no polling timer.
