@@ -2235,7 +2235,9 @@
       "id": "BUG-0551",
       "title": "Account or mode changes during signing can dispatch to the old live context",
       "type": "bug",
-      "status": "ready",
+      "status": "done",
+      "assignee": "opencode",
+      "branch": "fix/bug-0551",
       "priority": "P1",
       "milestone": "none",
       "editions": [

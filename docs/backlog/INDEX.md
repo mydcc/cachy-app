@@ -4,7 +4,7 @@
 
 445 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 10 · ✅ done 391 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 9 · ✅ done 392 · ⛔ dropped 1
 
 ---
 
@@ -278,7 +278,7 @@ Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 10 · ✅ done 3
 | [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | execution |
 | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | ✅ done | execution |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | ✅ done | execution |
-| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 🟢 ready | security |
+| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | ✅ done | security |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | ✅ done | trade-panel |
 | [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | ✅ done | execution |
 | [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | execution |
@@ -623,7 +623,7 @@ Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 10 · ✅ done 3
 | [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | none | community, pro, private | A | none | — |
