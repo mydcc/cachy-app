@@ -2,9 +2,9 @@
 
 # Backlog index
 
-444 items. How to read and add them: [README.md](README.md).
+445 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 18 · 🟢 ready 10 · ✅ done 391 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 19 · 🟢 ready 10 · ✅ done 391 · ⛔ dropped 1
 
 ---
 
@@ -377,6 +377,7 @@ Counts by status: 💡 idea 24 · 📋 specced 18 · 🟢 ready 10 · ✅ done 3
 | [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | ✅ done | execution |
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | ui |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 🟢 ready | execution |
+| [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | 📋 specced | execution |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -770,6 +771,7 @@ Counts by status: 💡 idea 24 · 📋 specced 18 · 🟢 ready 10 · ✅ done 3
 | [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -962,4 +964,4 @@ Counts by status: 💡 idea 24 · 📋 specced 18 · 🟢 ready 10 · ✅ done 3
 
 ---
 
-Next free number: **0568**
+Next free number: **0569**
