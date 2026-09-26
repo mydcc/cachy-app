@@ -357,6 +357,14 @@ export interface DisplayedState {
      * simulated balance, so no paper exemption is needed.
      */
     availableMargin?: Decimal;
+    /**
+     * `Date.now()` stamped alongside `availableMargin` by the same qualified
+     * read, so the two can never disagree (BUG-0565). Informational — no
+     * check consumes it as a freshness gate, and a missing stamp never
+     * refuses: intents built outside the service (tests, flash-close) carry
+     * a value with no stamp.
+     */
+    availableMarginAt?: number;
     positionId?: string;
     orderId?: string;
     /**

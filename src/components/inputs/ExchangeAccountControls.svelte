@@ -163,9 +163,13 @@ import { Decimal } from "decimal.js";
     accountState.positions.length > 0 || accountState.openOrders.length > 0,
   );
 
-  /** The open position on this symbol, when there is one. */
-  const openPosition = $derived(
-    accountState.positions.find((p) => p.symbol === venueSymbol),
+  /**
+   * Every open position on this symbol — one entry per hedge side. Leverage
+   * projections iterate this instead of describing only the first match
+   * (BUG-0553).
+   */
+  const openPositions = $derived(
+    accountState.positions.filter((p) => p.symbol === venueSymbol),
   );
 
   const pairMeta = $derived(venueSymbol ? marketState.symbolMeta[venueSymbol] : undefined);
@@ -488,21 +492,48 @@ import { Decimal } from "decimal.js";
      * is "do you want to be asked", and the user's setting decides.
      */
     if (symbolBusy || confirmationPolicyStore.requires("leverage-change")) {
-      const crossMargin =
-        openPosition !== undefined &&
-        openPosition.marginMode !== undefined &&
-        normalizeMarginMode(openPosition.marginMode) === "cross";
-      const projection =
-        openPosition !== undefined && !crossMargin
-          ? projectLiquidation(
-              openPosition.entryPrice,
-              openPosition.liquidationPrice,
-              openPosition.leverage,
-              desired,
-              openPosition.side,
-              openPosition.marginMode,
-            )
-          : null;
+      /*
+       * BUG-0553: one liquidation line per open side. The dialog already
+       * showed the projection live; this is the commit, and it repeats the
+       * number so the last thing read before sending is the consequence —
+       * for *each* side, because in a hedge account the sides liquidate at
+       * different prices.
+       */
+      const sideLines = openPositions.flatMap((p) => {
+        const sideLabel =
+          p.side === "long"
+            ? $_("journal.labels.long")
+            : $_("journal.labels.short");
+        const cross =
+          p.marginMode !== undefined &&
+          normalizeMarginMode(p.marginMode) === "cross";
+        if (cross) {
+          return [
+            sideLabel +
+              ": " +
+              $_("exchange.accountSettings.liquidationCrossMarginNote"),
+          ];
+        }
+        const projection = projectLiquidation(
+          p.entryPrice,
+          p.liquidationPrice,
+          p.leverage,
+          desired,
+          p.side,
+          p.marginMode,
+        );
+        return projection
+          ? [
+              $_("exchange.accountSettings.confirmLeverageLiquidationSide", {
+                values: {
+                  side: sideLabel,
+                  from: formatDynamicDecimal(projection.from),
+                  to: formatDynamicDecimal(projection.to),
+                },
+              }),
+            ]
+          : [];
+      });
       const base = $_("exchange.accountSettings.confirmLeverageMessage", {
         values: {
           symbol: venueSymbol,
@@ -510,18 +541,8 @@ import { Decimal } from "decimal.js";
           to: desired.toString(),
         },
       });
-      const message = projection
-        ? base +
-          "\n\n" +
-          $_("exchange.accountSettings.confirmLeverageLiquidation", {
-            values: {
-              from: formatDynamicDecimal(projection.from),
-              to: formatDynamicDecimal(projection.to),
-            },
-          })
-        : crossMargin
-          ? base + "\n\n" + $_("exchange.accountSettings.liquidationCrossMarginNote")
-          : base;
+      const message =
+        sideLines.length > 0 ? base + "\n\n" + sideLines.join("\n") : base;
 
       const confirmed = await modalState.show(
         $_("exchange.accountSettings.confirmLeverageTitle"),
@@ -733,7 +754,7 @@ import { Decimal } from "decimal.js";
       {maxLeverage}
       {localOnly}
       busy={busy === "leverage"}
-      position={openPosition}
+      positions={openPositions}
       marginMode={marginModeValue}
       onclose={() => (leverageOpen = false)}
       onconfirm={confirmLeverage}

@@ -30,7 +30,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 // `handler` so importing the entry for that export stays side-effect free.
 export const DELEGATE_SHIM = `import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { handler } from './handler.js';
 
 export { handler };
@@ -38,13 +38,28 @@ export { handler };
 // True when this file is the program entry point. \`node build\` passes the
 // directory as argv[1] while \`node build/index.js\` passes the file, so a
 // directory is resolved to its index.js before the comparison.
+// Both sides are canonicalized with fs.realpathSync.native so symlinked
+// hosting paths (e.g. aaPanel /www/wwwroot/cachy.app -> vhost dir) match,
+// including under --preserve-symlinks where import.meta.url keeps the symlink.
 function isEntryPoint() {
   const arg = process.argv[1];
   if (!arg) return false;
   const resolved = path.resolve(arg);
   const stat = fs.statSync(resolved, { throwIfNoEntry: false });
   const entry = stat && stat.isDirectory() ? path.join(resolved, 'index.js') : resolved;
-  return import.meta.url === pathToFileURL(entry).href;
+  let realEntry = entry;
+  try {
+    realEntry = fs.realpathSync.native(entry);
+  } catch {
+    // Keep resolved entry if realpath fails
+  }
+  let self = fileURLToPath(import.meta.url);
+  try {
+    self = fs.realpathSync.native(self);
+  } catch {
+    // Keep unresolved self if realpath fails
+  }
+  return pathToFileURL(self).href === pathToFileURL(realEntry).href;
 }
 
 // Boot the Express wrapper (compression + security headers) only when executed;

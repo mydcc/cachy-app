@@ -45,6 +45,7 @@
     import { settingsState } from "../../../stores/settings.svelte";
     import { keysForActiveAccount } from "../../../stores/settings/accounts";
     import { accountState } from "../../../stores/account.svelte";
+    import { paperAccountFeed } from "../../../services/paperAccountFeed";
     import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { validateTpSlPrice, normalizePositionSide } from "../../../lib/calculators/tpsl";
@@ -328,6 +329,16 @@
     // just replaces the array).
     async function hydratePositionsIfEmpty() {
         if (accountState.positions.length > 0) return;
+        // BUG-0565: the paper seam answers first. After a mode switch the
+        // store is empty and this runs before the simulator's next tick — a
+        // live REST read here would stamp the snapshot "live" and the paper
+        // book would measure against it (the PositionsSidebar siblings at
+        // fetchPositions/fetchPendingOrders already branch this way).
+        const paper = paperAccountFeed();
+        if (paper) {
+            accountState.hydratePositions(paper.positions(), "paper");
+            return;
+        }
         const provider = settingsState.apiProvider || "bitunix";
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
@@ -346,7 +357,7 @@
             });
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
-            if (data?.positions) accountState.hydratePositions(data.positions);
+            if (data?.positions) accountState.hydratePositions(data.positions, "live");
         } catch (e) {
             console.error("[CandleChartView] FEAT-0247: position hydration failed:", e);
         }
@@ -359,6 +370,12 @@
     // real size on it.
     async function hydrateOpenOrdersIfEmpty() {
         if (accountState.openOrders.length > 0) return;
+        // BUG-0565: same paper-first rule as hydratePositionsIfEmpty above.
+        const paper = paperAccountFeed();
+        if (paper) {
+            accountState.hydrateOpenOrders(paper.pendingOrders(), "paper");
+            return;
+        }
         const provider = settingsState.apiProvider || "bitunix";
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
@@ -377,7 +394,7 @@
                 fetchFn: appFetch,
             });
             const json = await response.json();
-            if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[]);
+            if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[], "live");
         } catch (e) {
             console.error("[CandleChartView] FEAT-0247: open order hydration failed:", e);
         }

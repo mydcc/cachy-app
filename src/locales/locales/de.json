@@ -96,7 +96,11 @@
       "trendUnknown": "Nicht messbar — zu wenig Historie für die EMA 200",
       "notAnalysedHint": "Wird nicht analysiert. In den Einstellungen „Alle Favoriten analysieren“ aktivieren.",
       "symbolLoaded": "{symbol} in den Rechner geladen",
-      "selectRow": "Symbol in den Rechner laden"
+      "selectRow": "Symbol in den Rechner laden",
+      "staleQuote": "Veraltet · {source} · {age}s",
+      "snapshotQuote": "Snapshot",
+      "staleRows": "{count} veraltet",
+      "staleQuoteRefused": "{symbol} ohne Preis übernommen: Der Kurs ist veraltet. Der Rechner behält den bisherigen Einstiegspreis."
     },
     "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung",
     "offlineMessage": "Verbindung verloren - Trading-Funktionen eingeschränkt.",
@@ -160,6 +164,9 @@
     "favorites": "Favoriten",
     "marketActivity": "Marktaktivität",
     "positions": "Positionen",
+    "openOrders": {
+      "viewDetails": "{symbol} – Orderdetails anzeigen, {time}"
+    },
     "orders": "Orders",
     "history": "Historie",
     "balance": "Verfügbar",
@@ -724,8 +731,9 @@
       "atrValuePlaceholder": "ATR Wert",
       "multiplierPlaceholder": "Multiplikator",
       "multiplierExample": "1,2",
-      "holdingCost24h": "Geschätzte 24h Haltekosten",
-      "holdingCost24hTooltip": "Geschätzte Funding-Gebühr für 24h Haltedauer basierend auf dem 7-Tage-Durchschnitt der Funding Rate.",
+      "holdingCost24hCost": "Geschätzte 24h Funding-Kosten",
+      "holdingCost24hIncome": "Geschätzte 24h Funding-Ertrag",
+      "holdingCost24hTooltip": "Geschätzte Funding-Zahlung für 24h Haltedauer (7-Tage-Durchschnitt der Funding Rate); je nach Seite Kosten oder Ertrag.",
       "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)",
       "tagsLabel": "Tags"
     },
@@ -1220,7 +1228,9 @@
     "aria": {
       "loadToCalculator": "{symbol} in Rechner laden",
       "regionLabel": "Marktübersicht für {symbol}"
-    }
+    },
+    "staleQuote": "Veralteter Kurs · {source} · {age}s",
+    "staleQuoteRefused": "{symbol} ohne Preis übernommen: Der Kurs ist veraltet. Der Rechner behält den bisherigen Einstiegspreis."
   },
   "seo": {
     "title": "Cachy - Positionsgröße & Risikomanagement",
@@ -2188,7 +2198,16 @@
         "removeMessage": "„{name}“ entfernen und die API-Zugangsdaten von diesem Gerät löschen? Das lässt sich nicht rückgängig machen. Positionen und Orders an der Börse bleiben unberührt.",
         "addLabel": "Konto hinzufügen:",
         "exchange": "Börse",
-        "activeAccountAria": "Aktives Konto: {name} auf {venue}"
+        "activeAccountAria": "Aktives Konto: {name} auf {venue}",
+        "verifyStatus": {
+          "unconfigured": "Keine Zugangsdaten hinterlegt",
+          "verifying": "Wird geprüft …",
+          "verified": "Zugangsdaten bestätigt",
+          "rejected": "Zugangsdaten werden von der Börse abgelehnt",
+          "stale": "Bestätigung veraltet — erneut prüfen",
+          "unreachable": "Börse nicht erreichbar — Zugangsdaten ungeprüft"
+        },
+        "verifyStatusAria": "Status des privaten Zugangs: {status}"
       },
       "imgbbRequired": "Erforderlich für Screenshot-Uploads.",
       "imgbbGetKey": "API-Key anfordern →"
@@ -2445,6 +2464,8 @@
       "limitsDescription": "Ein leeres Feld lässt das jeweilige Limit aus. Limits werden dort geprüft, wo Orders die App verlassen, nicht im Rechner-Formular — eine anders gebaute Order wird also ebenfalls geprüft. Sie blockieren nie das Schließen einer Position oder das Stornieren einer Order.",
       "notConfigured": "Aus",
       "invalidValue": "Dieser Wert wurde nicht gespeichert. Ein Limit muss eine Zahl ab null sein.",
+      "invalidMaxOpenPositions": "Dieser Wert wurde nicht gespeichert. Das Limit für gleichzeitig offene Positionen muss eine ganze, nicht negative Zahl sein.",
+      "invalidStoredMaxOpenPositions": "Der gespeicherte Wert für gleichzeitig offene Positionen ist unlesbar, daher werden neue Positionen blockiert. Gib eine ganze Zahl ab null ein oder leere das Feld, um das Limit zu entfernen.",
       "persistFailed": "Dieses Gerät konnte die Einstellung nicht speichern — sie überlebt einen Reload NICHT. Bitte den Browser-Speicher prüfen.",
       "maxPositionSize": "Max. Positionsgröße",
       "maxPositionSizeHint": "Größter erlaubter Orderwert (Menge × Einstiegskurs).",
@@ -3610,7 +3631,14 @@
       "submitAdd": "Margin erhöhen",
       "submitReduce": "Margin reduzieren",
       "crossOnly": "Nur isolierte Positionen haben eine eigene Margin. Diese läuft auf Cross-Margin.",
-      "hint": "Mehr Margin schiebt den Liquidationspreis weiter weg, weniger Margin näher heran."
+      "hint": "Mehr Margin schiebt den Liquidationspreis weiter weg, weniger Margin näher heran.",
+      "projectedLiquidation": "Erwartete Liquidation",
+      "movesCloser": "Rückt näher an den Einstieg — höheres Risiko.",
+      "movesAway": "Entfernt sich vom Einstieg — geringeres Risiko.",
+      "unmeasurable": "Der neue Liquidationspreis lässt sich aus den verfügbaren Börsendaten nicht berechnen — die Börse hat das letzte Wort.",
+      "confirmReduce": "Ich verstehe: Margin {currentMargin} → {newMargin}, Liquidation {from} → {to}.",
+      "closingText": "Das zieht die komplette isolierte Margin ab — es bleibt kein Puffer und die Börse kann die Position sofort schließen.",
+      "confirmClosing": "Ich verstehe: Margin {currentMargin} → {newMargin}, die Position behält keine isolierte Margin."
     }
   },
   "ui": {
@@ -3643,6 +3671,7 @@
       "sizeBelowMinimum": "Größe {size} liegt unter dem Instrumenten-Minimum von {minimum}.",
       "sizeAboveMaximum": "Größe {size} überschreitet das Instrumenten-Maximum von {maximum}.",
       "leverageAboveMaximum": "Hebel {leverage}x überschreitet das Instrumenten-Maximum von {maximum}x.",
+      "unknownTradeType": "Die Handelsrichtung ist unlesbar. Wähle Long oder Short, bevor du rechnest.",
       "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
     },
     "logic": {
@@ -4058,6 +4087,8 @@
   "orderGate": {
     "title": "Order abgelehnt",
     "mismatch": "Order abgelehnt: {field} stimmt nicht mit der Anzeige überein (erwartet {expected}, erhalten {actual}). Die Order wurde nicht gesendet.",
+    "sessionChanged": "Order abgelehnt: {field} hat sich während des Signierens geändert (zuvor {expected}, jetzt {actual}). Die Order wurde nicht gesendet — platziere sie im aktuellen Kontext erneut.",
+    "sessionRotated": "Order abgelehnt: Die Kontositzung hat sich während des Signierens geändert. Die Order wurde nicht gesendet — platziere sie im aktuellen Kontext erneut.",
     "missing": "Order abgelehnt: {field} fehlt in der Order und konnte deshalb nicht geprüft werden. Die Order wurde nicht gesendet.",
     "sizeMismatch": "Order abgelehnt: Die Größe stimmt nicht mit einer frischen Berechnung überein (erwartet {expected}, erhalten {actual}, Toleranz {tolerance}). Die Order wurde nicht gesendet.",
     "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
@@ -4080,6 +4111,7 @@
       "accountState": "Hebel / Margin-Modus",
       "action": "die Order-Aktion",
       "endpoint": "der Ziel-Endpunkt",
+      "exchange": "die Exchange",
       "gate": "die Prüfung",
       "isApiSupported": "die API-Unterstützung",
       "killSwitch": "der Kill Switch",
@@ -4094,6 +4126,7 @@
       "maxPositionSize": "das Positionsgrößen-Limit",
       "maxPositionSizePercent": "das Positionsgrößen-Limit (Anteil am Kapital)",
       "minTradeVolume": "das Mindesthandelsvolumen",
+      "mode": "der Paper/Live-Modus",
       "availableMargin": "die verfügbare Margin",
       "orderId": "die Order-ID",
       "positionId": "die Positions-ID",
@@ -4110,6 +4143,7 @@
     },
     "riskLimitDailyLoss": "Order abgelehnt: Der heute realisierte Verlust beträgt {actual} und hat das Tageslimit von {limit} erreicht oder überschritten. Das Limit wird um 00:00 UTC zurückgesetzt. Positionen schließen und Orders stornieren ist weiterhin möglich.",
     "riskLimitUnmeasurable": "Order abgelehnt: Für {field} ist ein Limit konfiguriert, aber diese Order enthält nichts, woran es geprüft werden könnte. Die Order wurde nicht gesendet.",
+    "riskLimitInvalidState": "Order abgelehnt: Das gespeicherte Limit für {field} ist unlesbar, daher werden neue Positionen blockiert, bis du die Einstellung reparierst oder leerst. Die Order wurde nicht gesendet.",
     "dailyLossUnmeasurableNoAmount": "Order abgelehnt: {field} ist gesetzt, aber ein Lost- oder Closed-Trade von heute hat keinen realisierten Betrag. Trage den Betrag ein — oder markiere einen echten manuellen Scratch-Trade als Won — und versuche es erneut. Die Order wurde nicht gesendet.",
     "dailyLossUnmeasurableNoExitDate": "Order abgelehnt: {field} ist gesetzt, aber ein geschlossener Trade hat kein Schlussdatum und kann daher heute nicht zugeordnet werden. Setze sein Exit-Datum und versuche es erneut. Die Order wurde nicht gesendet.",
     "dailyLossUnmeasurableUnknownStatus": "Order abgelehnt: {field} ist gesetzt, aber ein Trade hat einen Status, den die Zählung nicht zuordnen kann. Korrigiere seinen Status und versuche es erneut. Die Order wurde nicht gesendet.",
@@ -4193,6 +4227,8 @@
     "remainingAfter": "Verbleibt",
     "realizesPnl": "Realisiert",
     "minimumTradeVolume": "Minimum: {min}",
+    "invalidQuantity": "Bitte eine gültige Menge größer als null eingeben.",
+    "quantityMustBePositive": "Die Menge muss größer als null sein.",
     "fullCloseBadge": "Schließt die gesamte Position",
     "roi": "ROI",
     "margin": "Margin",
@@ -4335,7 +4371,7 @@
       "paperMode": "Paper-Trading ist aktiv — Cachy ändert nichts an der Börse",
       "confirmLeverageTitle": "Hebel bei offener Position ändern?",
       "confirmLeverageMessage": "{symbol} hat eine offene Position. Der Wechsel von {from}x auf {to}x verschiebt den Liquidationspreis sofort.",
-      "confirmLeverageLiquidation": "Liquidation (Schätzung): {from} → {to}. Der tatsächliche Wert der Börse kann abweichen — Gebühren, Funding und gestaffelte Maintenance-Margin sind nicht berücksichtigt.",
+      "confirmLeverageLiquidationSide": "{side}-Liquidation (Schätzung): {from} → {to}. Der tatsächliche Wert der Börse kann abweichen — Gebühren, Funding und gestaffelte Maintenance-Margin sind nicht berücksichtigt.",
       "leverageChanged": "Hebel auf {value}x gesetzt",
       "marginModeChanged": "Margin-Modus geändert",
       "positionModeChanged": "Positionsmodus geändert",
@@ -4388,7 +4424,13 @@
     "confirm": {
       "titleLive": "Diese Order platzieren?",
       "titlePaper": "Diese Paper-Order platzieren?",
-      "message": "{side} {qty} {symbol} als {type}-Order, mit Stop bei {stop}. Fortfahren?"
+      "message": "{side} {qty} {symbol} als {type}-Order.<br>Take-Profit: {takeProfit}<br>Stop: {stop}<br>Hebel: {leverage}<br>Fortfahren?",
+      "takeProfitLeg": "TP{index} bei {price} ({percent})",
+      "noTakeProfit": "kein Take-Profit",
+      "noStopLoss": "Kein Stop-Loss",
+      "leverageLine": "{leverage}x ({marginMode})",
+      "leverageLineNoMode": "{leverage}x",
+      "leverageUnknown": "unbekannt"
     },
     "protection": {
       "attached": "am Einstieg angehängt",
@@ -4407,7 +4449,11 @@
       "tradingUnavailable": "Handel ist für dieses Symbol nicht verfügbar.",
       "metadataLoading": "Lade Handelspaar-Details...",
       "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
-      "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max})."
+      "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max}).",
+      "accountUnverified": "Zugangsdaten nicht bestätigt — Privatkonto wird geprüft.",
+      "accountCredentialsMissing": "Keine Zugangsdaten hinterlegt.",
+      "accountCredentialsIncomplete": "Zugangsdaten unvollständig — ein Pflichtfeld ist leer.",
+      "accountPassphraseMissing": "Zugangsdaten unvollständig — für Bitget wird zusätzlich eine Passphrase benötigt."
     },
     "timeInForceNone": "—",
     "exchangeOrderTp": "Börsen-Order-TP",

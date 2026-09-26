@@ -30,6 +30,7 @@
 import { omsService } from "./omsService";
 import { tradeState } from "../stores/trade.svelte";
 import { accountState } from "../stores/account.svelte";
+import { paperState } from "../stores/paperTrading.svelte";
 import { journalState } from "../stores/journal.svelte";
 import { riskState } from "../stores/riskLimits.svelte";
 import { settingsState } from "../stores/settings.svelte";
@@ -238,6 +239,16 @@ function unmeasurable(field: string): OrderRefusal {
     };
 }
 
+/** A configured risk limit cannot be read safely, so exposure stays blocked. */
+function invalidRiskState(field: string): OrderRefusal {
+    return {
+        field,
+        reason: "riskLimit",
+        messageKey: "orderGate.riskLimitInvalidState",
+        values: { field },
+    };
+}
+
 /**
  * Whether the entry states a realised amount.
  *
@@ -314,7 +325,7 @@ class RiskManagementService {
             // Required Margin = Notional / Leverage
             const requiredMargin = amountUsdt.div(leverage);
 
-            const usdtAsset = accountState.assets.find(a => a.currency === "USDT");
+            const usdtAsset = accountState.readUsdtBalance(paperState.enabled ? "paper" : "live");
             const available = usdtAsset ? usdtAsset.available : new Decimal(0);
 
             // If we don't have asset data loaded yet (available is 0), we might skip or block.
@@ -537,14 +548,26 @@ class RiskManagementService {
         // An amendment that enlarges the resting order makes the exposure
         // larger than the trader approved when it was placed, so the same
         // limits an `open` faces apply to the amended order (BUG-0548).
-        // `previousQuantity` vs `modifyQuantity` decides; a price-only or
-        // shrinking amendment changes nothing about exposure and stays
-        // exempt, as do TP/SL-only amendments — those are returned before
-        // any limit runs. `checkOpenPositions` stays out: the order
+        // `previousQuantity` vs `modifyQuantity` decides; a price-only
+        // amendment states no quantity and stays exempt, as do TP/SL-only
+        // amendments — those are returned before any limit runs. A shrinking
+        // amendment stays exempt from the size caps — less quantity is less
+        // exposure — but still faces the loss-per-trade ceiling, because
+        // widening the stop on the way down can push the resulting loss
+        // past it (BUG-0567). `checkOpenPositions` stays out: the order
         // consumed its slot when it was first placed. `checkLeverage` stays
         // out: a modify payload carries no leverage.
         if (intent.kind === "modify") {
-            if (!this.isQuantityIncreasingModify(intent)) return null;
+            if (!this.isQuantityIncreasingModify(intent)) {
+                // No quantity stated anywhere means price-only: there is no
+                // new exposure to measure, so the full exemption holds. A
+                // stated quantity that only shrinks is measured against the
+                // resulting position and stop — and refuses as unmeasurable
+                // when no stop is known, like every other unverifiable input
+                // in this gate.
+                if (this.modifyQtyOf(intent) === null) return null;
+                return this.checkLossPerTrade(intent);
+            }
             return (
                 this.checkDailyLoss() ??
                 this.checkPositionSize(intent) ??
@@ -641,6 +664,7 @@ class RiskManagementService {
     }
 
     private checkOpenPositions(intent: OrderIntent): OrderRefusal | null {
+        if (riskState.hasInvalidMaxOpenPositions) return invalidRiskState("maxOpenPositions");
         const max = riskState.maxOpenPositions;
         if (max === null) return null;
 

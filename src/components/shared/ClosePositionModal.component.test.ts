@@ -100,6 +100,18 @@ function typeQuantity(value: string) {
     flushSync();
 }
 
+function pressEscape() {
+    quantityInput().dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    flushSync();
+}
+
+/** The submit button is the last one; cancel comes first. */
+function submitButton(): HTMLButtonElement {
+    const buttons = host.querySelectorAll("button");
+    if (buttons.length === 0) throw new Error("no buttons rendered");
+    return buttons[buttons.length - 1] as HTMLButtonElement;
+}
+
 beforeEach(() => {
     vi.clearAllMocks();
     host = document.createElement("div");
@@ -237,5 +249,70 @@ describe("BUG-0512 — ClosePositionModal discloses a non-live preview price", (
         settle();
 
         expect(host.textContent).toContain(lookup("positionsList.stalePriceBadge"));
+    });
+});
+
+describe("BUG-0561 — invalid close drafts stay visible and block submission", () => {
+    it("keeps an invalid draft visible and disables submission", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        typeQuantity("-1");
+
+        expect(quantityInput().value).toBe("-1");
+        expect(host.textContent).toContain(lookup("positionsList.quantityMustBePositive"));
+        expect(submitButton().disabled).toBe(true);
+    });
+
+    it("re-enables submission once the draft is corrected", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        typeQuantity("xyz");
+        expect(submitButton().disabled).toBe(true);
+
+        typeQuantity("1");
+
+        expect(submitButton().disabled).toBe(false);
+        expect(host.textContent).not.toContain(lookup("positionsList.invalidQuantity"));
+    });
+
+    it("restores the seeded quantity on explicit revert (Escape)", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+        expect(quantityInput().value).toBe("2");
+
+        typeQuantity("0");
+        expect(quantityInput().value).toBe("0");
+        expect(submitButton().disabled).toBe(true);
+
+        pressEscape();
+
+        expect(quantityInput().value).toBe("2");
+        expect(submitButton().disabled).toBe(false);
+        expect(host.textContent).not.toContain(lookup("positionsList.quantityMustBePositive"));
+    });
+
+    it("reports the rounded committed amount after a valid commit", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        // Step 0.1 rounds the typed 0.75 down; the field shows what commits.
+        typeQuantity("0.75");
+
+        expect(quantityInput().value).toBe("0.7");
+        expect(submitButton().disabled).toBe(false);
     });
 });

@@ -220,3 +220,35 @@ describe("FEAT-0254 — degrading when the position is gone", () => {
         expect(slider()).toBeNull();
     });
 });
+
+describe("BUG-0553 — the plan edits against its own position id", () => {
+    const SHORT_POSITION = {
+        positionId: "p-2",
+        symbol: "BTCUSDT",
+        side: "short",
+        size: new Decimal(2),
+        entryPrice: new Decimal(100),
+        leverage: new Decimal(10),
+    };
+
+    it("derives context from the scoped position when both hedge sides are open", () => {
+        positions.current = [OPEN_POSITION, SHORT_POSITION];
+        render({ ...PLAN, positionId: "p-2" });
+        expect(slider()).not.toBeNull();
+    });
+
+    it("fails closed to plain price entry for a legacy plan when both sides are open", () => {
+        positions.current = [OPEN_POSITION, SHORT_POSITION];
+        render({ ...PLAN });
+
+        expect(slider()).toBeNull();
+        expect(plainTriggerField()).not.toBeNull();
+        expect(plainTriggerField()!.value).toBe("110");
+    });
+
+    it("keeps the legacy single-position context working", () => {
+        positions.current = [OPEN_POSITION];
+        render({ ...PLAN });
+        expect(slider()).not.toBeNull();
+    });
+});

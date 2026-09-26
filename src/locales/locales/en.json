@@ -96,7 +96,11 @@
       "trendUnknown": "Not measurable - too little history for the EMA 200",
       "notAnalysedHint": "Not analysed. Enable \"Analyze All Favorites\" in Settings.",
       "symbolLoaded": "{symbol} loaded into calculator",
-      "selectRow": "Load symbol into calculator"
+      "selectRow": "Load symbol into calculator",
+      "staleQuote": "Stale · {source} · {age}s",
+      "snapshotQuote": "Snapshot",
+      "staleRows": "{count} stale",
+      "staleQuoteRefused": "{symbol} loaded without a price: the quote is stale. The calculator kept its previous entry price."
     },
     "tradeExecutionDev": "🚧 Trade Execution in Development",
     "offlineMessage": "Connection Lost - Trading functionality may be limited.",
@@ -160,6 +164,9 @@
     "favorites": "Favorites",
     "marketActivity": "Market Activity",
     "positions": "Positions",
+    "openOrders": {
+      "viewDetails": "View order details for {symbol}, {time}"
+    },
     "orders": "Orders",
     "history": "History",
     "balance": "Available",
@@ -198,7 +205,7 @@
         "buy": "Buy",
         "sell": "Sell"
       },
-      "viewDetails": "View Details",
+      "viewDetails": "View details",
       "details": {
         "leverage": "Leverage",
         "margin": "Margin",
@@ -724,8 +731,9 @@
       "atrValuePlaceholder": "ATR Value",
       "multiplierPlaceholder": "Multiplier",
       "multiplierExample": "1.2",
-      "holdingCost24h": "Est. 24h Holding Cost",
-      "holdingCost24hTooltip": "Estimated funding fee for 24h holding duration based on the 7-day average funding rate.",
+      "holdingCost24hCost": "Est. 24h Funding Cost",
+      "holdingCost24hIncome": "Est. 24h Funding Income",
+      "holdingCost24hTooltip": "Estimated funding payment over 24h holding (7-day average rate); a cost or income depending on position side.",
       "tagsPlaceholder": "Add tags... (e.g. #trend)",
       "tagsLabel": "Tags"
     },
@@ -1220,7 +1228,9 @@
     "aria": {
       "loadToCalculator": "Load {symbol} to calculator",
       "regionLabel": "Market Overview for {symbol}"
-    }
+    },
+    "staleQuote": "Stale quote · {source} · {age}s",
+    "staleQuoteRefused": "{symbol} loaded without a price: the quote is stale. The calculator kept its previous entry price."
   },
   "seo": {
     "title": "Cachy - Position Size & Risk Management",
@@ -2210,7 +2220,16 @@
         "removeMessage": "Remove “{name}” and delete its API credentials from this device? This cannot be undone. Positions and orders at the exchange are not affected.",
         "addLabel": "Add an account:",
         "exchange": "Exchange",
-        "activeAccountAria": "Active account: {name} on {venue}"
+        "activeAccountAria": "Active account: {name} on {venue}",
+        "verifyStatus": {
+          "unconfigured": "No credentials entered",
+          "verifying": "Verifying …",
+          "verified": "Credentials verified",
+          "rejected": "Exchange rejected these credentials",
+          "stale": "Verification out of date — re-check needed",
+          "unreachable": "Exchange unreachable — credentials unverified"
+        },
+        "verifyStatusAria": "Private account access status: {status}"
       },
       "imgbbRequired": "Required for screenshot uploads.",
       "imgbbGetKey": "Get your API key →"
@@ -2445,6 +2464,8 @@
       "limitsDescription": "Leave a field empty to leave that limit off. Limits are checked where orders leave the app, not in the calculator form, so an order built any other way is checked too. They never block closing a position or cancelling an order.",
       "notConfigured": "Off",
       "invalidValue": "That value was not stored. A limit has to be a number of zero or more.",
+      "invalidMaxOpenPositions": "That value was not stored. Max concurrent open positions must be a whole non-negative integer.",
+      "invalidStoredMaxOpenPositions": "The stored max-open-positions value cannot be read, so new positions are blocked. Enter a whole number of zero or more, or clear the field to remove the limit.",
       "persistFailed": "This device could not save the setting, so it will NOT survive a reload. Check your browser storage.",
       "maxPositionSize": "Max position size",
       "maxPositionSizeHint": "Largest order value (quantity × entry price) allowed.",
@@ -2734,6 +2755,8 @@
     "remainingAfter": "Remaining",
     "realizesPnl": "Realizes",
     "minimumTradeVolume": "Minimum: {min}",
+    "invalidQuantity": "Enter a valid quantity greater than zero.",
+    "quantityMustBePositive": "Quantity must be greater than zero.",
     "fullCloseBadge": "Closes the whole position",
     "roi": "ROI",
     "margin": "Margin",
@@ -3615,7 +3638,14 @@
       "submitAdd": "Add margin",
       "submitReduce": "Reduce margin",
       "crossOnly": "Only isolated positions have their own margin. This one is on cross margin.",
-      "hint": "Adding margin moves the liquidation price away from the mark; reducing moves it closer."
+      "hint": "Adding margin moves the liquidation price away from the mark; reducing moves it closer.",
+      "projectedLiquidation": "Projected liquidation",
+      "movesCloser": "Moves closer to entry — higher risk.",
+      "movesAway": "Moves away from entry — lower risk.",
+      "unmeasurable": "The new liquidation price cannot be computed from the available venue data — the exchange has the last word.",
+      "confirmReduce": "I understand: margin {currentMargin} → {newMargin}, liquidation {from} → {to}.",
+      "closingText": "This withdraws the full isolated margin — no buffer remains and the venue may close the position immediately.",
+      "confirmClosing": "I understand: margin {currentMargin} → {newMargin}, the position keeps no isolated margin."
     }
   },
   "ui": {
@@ -3685,6 +3715,7 @@
       "sizeBelowMinimum": "Size {size} is below the instrument minimum of {minimum}.",
       "sizeAboveMaximum": "Size {size} exceeds the instrument maximum of {maximum}.",
       "leverageAboveMaximum": "Leverage {leverage}x exceeds the instrument maximum of {maximum}x.",
+      "unknownTradeType": "Trade direction is unreadable. Choose long or short before calculating.",
       "generic": "An error occurred during calculation."
     },
     "logic": {
@@ -4100,6 +4131,8 @@
   "orderGate": {
     "title": "Order refused",
     "mismatch": "Order refused: {field} does not match what was displayed (expected {expected}, got {actual}). The order was not sent.",
+    "sessionChanged": "Order refused: {field} changed while the request was being signed (was {expected}, now {actual}). The order was not sent — place it again in the current context.",
+    "sessionRotated": "Order refused: the account session changed while the request was being signed. The order was not sent — place it again in the current context.",
     "missing": "Order refused: {field} is missing from the order, so it could not be verified. The order was not sent.",
     "sizeMismatch": "Order refused: the size does not match a fresh calculation (expected {expected}, got {actual}, tolerance {tolerance}). The order was not sent.",
     "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
@@ -4122,6 +4155,7 @@
       "accountState": "leverage / margin mode",
       "action": "the order action",
       "endpoint": "the target endpoint",
+      "exchange": "the exchange",
       "gate": "verification",
       "isApiSupported": "API support",
       "killSwitch": "the kill switch",
@@ -4136,6 +4170,7 @@
       "maxPositionSize": "the position size limit",
       "maxPositionSizePercent": "the position size limit (share of equity)",
       "minTradeVolume": "the minimum trade volume",
+      "mode": "the paper/live mode",
       "availableMargin": "the available margin",
       "orderId": "the order ID",
       "positionId": "the position ID",
@@ -4152,6 +4187,7 @@
     },
     "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
     "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent.",
+    "riskLimitInvalidState": "Order refused: the stored {field} limit cannot be read, so new positions are blocked until you repair or clear that setting. The order was not sent.",
     "dailyLossUnmeasurableNoAmount": "Order refused: {field} is set, but a Lost or Closed trade from today has no realised amount. Enter the amount — or mark a genuine manual scratch trade as Won — and retry. The order was not sent.",
     "dailyLossUnmeasurableNoExitDate": "Order refused: {field} is set, but a closed trade has no close date, so it cannot be attributed to today. Set its exit date and retry. The order was not sent.",
     "dailyLossUnmeasurableUnknownStatus": "Order refused: {field} is set, but a trade has a status the counter cannot attribute. Fix its status and retry. The order was not sent.",
@@ -4335,7 +4371,7 @@
       "paperMode": "Paper trading is on — Cachy changes nothing on the exchange",
       "confirmLeverageTitle": "Change leverage on an open position?",
       "confirmLeverageMessage": "{symbol} has an open position. Moving leverage from {from}x to {to}x moves its liquidation price immediately.",
-      "confirmLeverageLiquidation": "Liquidation (estimate): {from} → {to}. The exchange's own figure may differ — fees, funding and tiered maintenance margin are not included.",
+      "confirmLeverageLiquidationSide": "{side} liquidation (estimate): {from} → {to}. The exchange's own figure may differ — fees, funding and tiered maintenance margin are not included.",
       "leverageChanged": "Leverage set to {value}x",
       "marginModeChanged": "Margin mode changed",
       "positionModeChanged": "Position mode changed",
@@ -4388,7 +4424,13 @@
     "confirm": {
       "titleLive": "Place this order?",
       "titlePaper": "Place this paper order?",
-      "message": "{side} {qty} {symbol} as a {type} order, with a stop at {stop}. Continue?"
+      "message": "{side} {qty} {symbol} as a {type} order.<br>Take profit: {takeProfit}<br>Stop: {stop}<br>Leverage: {leverage}<br>Continue?",
+      "takeProfitLeg": "TP{index} at {price} ({percent})",
+      "noTakeProfit": "no take profit",
+      "noStopLoss": "No stop loss",
+      "leverageLine": "{leverage}x ({marginMode})",
+      "leverageLineNoMode": "{leverage}x",
+      "leverageUnknown": "unknown"
     },
     "protection": {
       "attached": "attached to the entry",
@@ -4407,7 +4449,11 @@
       "tradingUnavailable": "Trading is unavailable for this symbol.",
       "metadataLoading": "Loading trading pair details...",
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
-      "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max})."
+      "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max}).",
+      "accountUnverified": "Credentials unverified — the private account is still being checked.",
+      "accountCredentialsMissing": "No API credentials configured.",
+      "accountCredentialsIncomplete": "Credentials incomplete — a required field is empty.",
+      "accountPassphraseMissing": "Credentials incomplete — Bitget also requires a passphrase."
     },
     "timeInForceNone": "—",
     "exchangeOrderTp": "Exchange Order TP",

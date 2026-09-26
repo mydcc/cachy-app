@@ -18,8 +18,9 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
-  import { uiState } from "../../stores/ui.svelte";
   import type { NormalizedOrder } from "../../types/exchange";
+  import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
+  import { clampPopoverPosition } from "../../utils/tooltipPosition";
 
   interface Props {
     orders?: NormalizedOrder[];
@@ -30,29 +31,180 @@
 
   let { orders = [], loading = false, error = "", oncancel }: Props = $props();
 
-  function handleMouseEnter(event: MouseEvent, order: NormalizedOrder) {
-    const coords = getTooltipPosition(event);
-    uiState.showTooltip("order", order, coords.x, coords.y);
+  const instanceId = $props.id();
+  const POPOVER_ID = `order-details-popover-${instanceId}`;
+  const POINTER_EXIT_DELAY = 150;
+  let openOrderId = $state<string | null>(null);
+  let openTrigger = $state<HTMLButtonElement | null>(null);
+  let popoverEl = $state<HTMLElement | null>(null);
+  let pointerFocusPending = false;
+  let suppressNextClick = false;
+  let popoverX = $state(0);
+  let popoverY = $state(0);
+  let pointerCloseTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function getOrderId(order: NormalizedOrder): string {
+    return String(order.id || order.orderId);
   }
 
-  function handleMouseLeave() {
-    uiState.hideTooltip();
+  function getTriggerId(order: NormalizedOrder): string {
+    return `order-details-trigger-${encodeURIComponent(getOrderId(order))}`;
   }
 
-  function getTooltipPosition(event: MouseEvent) {
-    const tooltipWidth = 320;
-    const tooltipHeight = 400;
-    const padding = 10;
-    let x = event.clientX + padding;
-    let y = event.clientY + padding;
-
-    if (x + tooltipWidth > window.innerWidth)
-      x = event.clientX - tooltipWidth - padding;
-    if (y + tooltipHeight > window.innerHeight)
-      y = event.clientY - tooltipHeight - padding;
-
-    return { x: Math.max(padding, x), y: Math.max(padding, y) };
+  function isOrderOpen(order: NormalizedOrder): boolean {
+    return openOrderId === getOrderId(order);
   }
+
+  function isInsidePopover(node: Node | null): boolean {
+    return popoverEl !== null && node !== null && popoverEl.contains(node);
+  }
+
+  function clearPointerClose() {
+    if (pointerCloseTimer === null) return;
+    clearTimeout(pointerCloseTimer);
+    pointerCloseTimer = null;
+  }
+
+  function openOrderDetails(
+    trigger: HTMLButtonElement,
+    order: NormalizedOrder,
+    clientX: number,
+    clientY: number
+  ) {
+    clearPointerClose();
+    const position = clampPopoverPosition(
+      clientX,
+      clientY,
+      window.innerWidth,
+      window.innerHeight
+    );
+    openOrderId = getOrderId(order);
+    openTrigger = trigger;
+    popoverX = position.x;
+    popoverY = position.y;
+  }
+
+  function openAtTrigger(
+    trigger: HTMLButtonElement,
+    order: NormalizedOrder
+  ) {
+    const rect = trigger.getBoundingClientRect();
+    openOrderDetails(trigger, order, rect.right, rect.bottom);
+  }
+
+  function closeOrderDetails(restoreFocus: boolean) {
+    const trigger = openTrigger;
+    clearPointerClose();
+    // Focus is restored before the state closes: focusing an open trigger
+    // re-fires handleFocus, which early-returns while this order is open.
+    if (restoreFocus && trigger?.isConnected) {
+      trigger.focus({ preventScroll: true });
+    }
+    openOrderId = null;
+    openTrigger = null;
+  }
+
+  function handlePointerEnter(event: MouseEvent, order: NormalizedOrder) {
+    openOrderDetails(
+      event.currentTarget as HTMLButtonElement,
+      order,
+      event.clientX,
+      event.clientY
+    );
+  }
+
+  function handlePointerDown() {
+    pointerFocusPending = true;
+  }
+
+  function handleClick(event: MouseEvent, order: NormalizedOrder) {
+    const trigger = event.currentTarget as HTMLButtonElement;
+    pointerFocusPending = false;
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      return;
+    }
+    if (isOrderOpen(order)) {
+      // Native Enter/Space activation arrives as a click; the trigger owns
+      // the toggle so keyboard, pointer and touch share one code path.
+      closeOrderDetails(false);
+      return;
+    }
+    const rect = trigger.getBoundingClientRect();
+    openOrderDetails(
+      trigger,
+      order,
+      event.clientX || rect.right,
+      event.clientY || rect.bottom
+    );
+  }
+
+  function handleFocus(event: FocusEvent, order: NormalizedOrder) {
+    const trigger = event.currentTarget as HTMLButtonElement;
+    if (pointerFocusPending) {
+      pointerFocusPending = false;
+      suppressNextClick = true;
+    }
+    if (isOrderOpen(order)) {
+      openTrigger = trigger;
+      return;
+    }
+    openAtTrigger(trigger, order);
+  }
+
+  function handleTriggerBlur(event: FocusEvent) {
+    const related =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (isInsidePopover(related)) return;
+    if (openOrderId !== null) closeOrderDetails(false);
+  }
+
+  function handleDialogFocusOut(event: FocusEvent) {
+    const related =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (openTrigger?.contains(related) || isInsidePopover(related)) return;
+    closeOrderDetails(false);
+  }
+
+  function schedulePointerClose() {
+    clearPointerClose();
+    pointerCloseTimer = setTimeout(() => {
+      pointerCloseTimer = null;
+      const active = document.activeElement;
+      if (active === openTrigger || isInsidePopover(active)) return;
+      closeOrderDetails(false);
+    }, POINTER_EXIT_DELAY);
+  }
+
+  $effect(() => {
+    if (openOrderId === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeOrderDetails(true);
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof Node ? event.target : null;
+      if (openTrigger?.contains(target) || isInsidePopover(target)) return;
+      closeOrderDetails(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  });
+
+  $effect(() => {
+    return () => clearPointerClose();
+  });
+
+  $effect(() => {
+    const id = openOrderId;
+    if (id === null) return;
+    if (!orders.some((order) => getOrderId(order) === id)) {
+      closeOrderDetails(false);
+    }
+  });
 
   function formatDate(timestamp: number) {
     if (!timestamp) return "-";
@@ -116,25 +268,55 @@
     </div>
   {:else}
     <div class="flex flex-col gap-2">
-      {#each orders as order}
+      {#each orders as order (getOrderId(order))}
         <div
           class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors relative group"
         >
           <div class="grid grid-cols-3 gap-1">
-            <!-- Col 1: Identity & Time (Tooltip Trigger) -->
-            <div
-              class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative"
-              onmouseenter={(e) => handleMouseEnter(e, order)}
-              onmouseleave={handleMouseLeave}
-              role="tooltip"
-            >
-              <span
-                class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"
-                >{order.symbol}</span
+            <!-- Col 1: Identity & Time (Details Disclosure) -->
+            <div class="relative flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1">
+              <button
+                type="button"
+                id={getTriggerId(order)}
+                class="flex flex-col justify-center cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] text-left"
+                onpointerenter={(e) => handlePointerEnter(e, order)}
+                onpointerleave={schedulePointerClose}
+                onclick={(e) => handleClick(e, order)}
+                onfocus={(e) => handleFocus(e, order)}
+                onpointerdown={handlePointerDown}
+                onblur={handleTriggerBlur}
+                aria-expanded={isOrderOpen(order)}
+                aria-haspopup="dialog"
+                aria-controls={isOrderOpen(order) ? POPOVER_ID : undefined}
+                aria-label={$_("dashboard.openOrders.viewDetails", {
+                  values: { symbol: order.symbol, time: formatDate(order.time) },
+                })}
               >
-              <span class="text-[10px] text-[var(--text-secondary)] mt-1"
-                >{formatDate(order.time)}</span
-              >
+                <span
+                  class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2"
+                  >{order.symbol}</span
+                >
+                <span class="text-[10px] text-[var(--text-secondary)] mt-1"
+                  >{formatDate(order.time)}</span
+                >
+              </button>
+
+              {#if isOrderOpen(order)}
+                <div
+                  id={POPOVER_ID}
+                  role="dialog"
+                  aria-labelledby={getTriggerId(order)}
+                  tabindex="-1"
+                  bind:this={popoverEl}
+                  class="fixed z-[10000] pointer-events-auto max-w-[calc(100vw-20px)] max-h-[calc(100vh-20px)] overflow-y-auto overscroll-contain"
+                  style="top: {popoverY}px; left: {popoverX}px;"
+                  onpointerenter={clearPointerClose}
+                  onpointerleave={schedulePointerClose}
+                  onfocusout={handleDialogFocusOut}
+                >
+                  <OrderDetailsTooltip order={order} />
+                </div>
+              {/if}
             </div>
 
             <!-- Col 2: Execution Details -->
@@ -212,4 +394,4 @@
   {/if}
 </div>
 
-<!-- Global Tooltip handled in +layout.svelte -->
+<!-- Order details render as the row-local dialog above. -->

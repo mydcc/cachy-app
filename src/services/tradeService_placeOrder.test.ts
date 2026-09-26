@@ -527,16 +527,18 @@ describe("BUG-0380 — qty is clamped to the symbol step before it travels", () 
 
 describe("BUG-0549 — an open the account cannot fund never reaches the wire", () => {
     beforeEach(() => {
-        accountState.assets = [];
+        // reset(), not a bare asset clear: a direct assignment would leave
+        // the provenance stamp behind for the next test to inherit (BUG-0565).
+        accountState.reset();
     });
 
     afterEach(() => {
-        accountState.assets = [];
+        accountState.reset();
     });
 
     it("refuses locally and sends no signed request when the balance is short", async () => {
         // required margin = 0.02 BTC × 50000 / 10 = 100 USDT.
-        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" }, "live");
 
         await expect(tradeService.placeOrder(baseParams())).rejects.toMatchObject({
             name: "OrderRefusedError",
@@ -550,7 +552,7 @@ describe("BUG-0549 — an open the account cannot fund never reaches the wire", 
     });
 
     it("places the same order once the balance covers the margin", async () => {
-        accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" });
+        accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" }, "live");
         await tradeService.placeOrder(baseParams());
         expect(sent).toHaveLength(1);
     });
@@ -559,7 +561,7 @@ describe("BUG-0549 — an open the account cannot fund never reaches the wire", 
         // Paper diverts inside signedRequest, i.e. after the gate — so the
         // refusal has to come from the same store the paper balance hydrates
         // (AC5), and nothing may have reached the transport by then.
-        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" }, "live");
 
         await expect(
             tradeService.placeOrder({

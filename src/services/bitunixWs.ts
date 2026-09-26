@@ -18,6 +18,7 @@
 import { parseMessage } from "./bitunixWs/messageParser";
 import { dispatchMessage } from "./bitunixWs/channelDispatch";
 import { marketState } from "../stores/market.svelte";
+import { accountState } from "../stores/account.svelte";
 
 
 import { settingsState } from "../stores/settings.svelte";
@@ -599,6 +600,11 @@ export class BitunixWebSocketService {
         if (this.isDestroyed) return;
         if (this.wsPrivate === ws) {
           this.isAuthenticated = false;
+          // BUG-0565 / IDEA-0563: the authenticated stream is gone, so the
+          // live measurement stops being one. The value stays for display;
+          // the qualified read stops trusting it until the next wallet push
+          // or REST poll re-stamps it.
+          accountState.markBalanceUnmeasured();
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
             this.cleanup("private");
@@ -834,6 +840,10 @@ export class BitunixWebSocketService {
       this.wsPrivate = null;
       this.isReconnectingPrivate = false;
       this.isAuthenticated = false;
+      // BUG-0565 / IDEA-0563: single funnel for private teardown (close,
+      // heartbeat/watchdog failure, connection timeout, force rebuild) —
+      // see the onclose hook above for why this is also needed there.
+      accountState.markBalanceUnmeasured();
     }
   }
 

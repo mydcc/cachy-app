@@ -2,7 +2,9 @@
 id: BUG-0556
 title: Refreshing a symbol silently changes the stop strategy to automatic ATR
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0556-stop-strategy-refresh
 priority: P1
 milestone: none
 editions: [community, pro, private]

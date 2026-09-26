@@ -2264,7 +2264,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0551",
     "title": "Account or mode changes during signing can dispatch to the old live context",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0551",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2282,7 +2284,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0553",
     "title": "Hedge-mode UI projections collapse same-symbol positions",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2300,7 +2303,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0554",
     "title": "Reducing isolated margin submits without showing the liquidation consequence",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0554-margin-liquidation-preview",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2318,7 +2323,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0555",
     "title": "Final live-order confirmation omits TP portions and can imply a zero stop",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0555-confirmation-take-profit-plan",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2336,7 +2343,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0556",
     "title": "Refreshing a symbol silently changes the stop strategy to automatic ATR",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0556-stop-strategy-refresh",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2354,7 +2363,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0557",
     "title": "Clearing max-open-positions converts an absent limit into zero",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/0557-max-open-positions",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2372,7 +2383,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0558",
     "title": "Cached market quotes are presented as live and can seed the calculator",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0558-market-quote-freshness",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2390,7 +2403,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0560",
     "title": "Credential cards show green without private-account verification",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0560",
+    "shipped": "unreleased",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2408,7 +2424,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0567",
     "title": "Shrinking modify with widened stop escapes the loss-per-trade ceiling",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -5311,7 +5328,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0552",
     "title": "Paper configuration accepts ranges that break fill quantity and price invariants",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0552-paper-fill-invariants",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5329,7 +5348,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0559",
     "title": "Estimated funding cost ignores long and short direction",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/0559-funding-side",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5347,7 +5368,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0561",
     "title": "Invalid add and close quantity drafts silently revert and submit the old amount",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0561-place-order-invalid-quantity",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5365,7 +5388,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0562",
     "title": "Critical account and pending-order financial details are hover-only",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/0562-financial-disclosure",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5383,7 +5408,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0565",
     "title": "Live balance pushes and paper hydration share one store without a mode guard",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5396,6 +5421,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0565-paper-live-balance-confusion.md"
+  },
+  {
+    "id": "BUG-0568",
+    "title": "Quantity shrink with pumped price escapes the size caps without a loss limit",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0567"
+    ],
+    "file": "bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md"
   },
   {
     "id": "FEAT-0019",
@@ -7497,7 +7542,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
-    "status": "idea",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -8359,6 +8404,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0534-svelte-outside-decimal-enforcement.md"
+  },
+  {
+    "id": "BUG-0569",
+    "title": "Order audit panel shows the raw refusal field name",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0569-order-audit-panel-raw-refusal-field.md"
+  },
+  {
+    "id": "BUG-0570",
+    "title": "The order dispatch guard's account fingerprint collides on short keys",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md"
   },
   {
     "id": "FEAT-0022",
