@@ -2403,7 +2403,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0560",
     "title": "Credential cards show green without private-account verification",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0560",
     "priority": "P1",
     "milestone": "none",
     "editions": [
