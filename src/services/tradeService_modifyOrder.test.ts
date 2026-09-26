@@ -240,12 +240,29 @@ describe("modifyOrder — constructor mapping reaches the gate intact", () => {
         });
     });
 
-    it("approves a shrink against caps that would refuse an increase", async () => {
+    it("refuses a shrink whose notional the size cap rejects end to end", async () => {
         const wire = mockLive();
+        // 0.1 × 50 000 = 5 000 notional against a 1 USDT cap. This asserted
+        // the opposite until BUG-0568: the cap was quantity-shaped, so the
+        // shrink's own notional was never measured — only its loss was, and
+        // the loss ceiling clears this amendment easily.
         riskState.setLimit("maxPositionSizeUsdt", "1");
-        // The shrink's own loss (~103 on 0.1 × 1000 plus fees) passes a
-        // ceiling an increase would clear: the size-cap exemption is the
-        // statement here, the loss ceiling measures the shrink (BUG-0567).
+        riskState.setLimit("maxLossPerTradeUsdt", "10000");
+
+        await expect(
+            tradeService.modifyOrder({ orderId: "o-9", qty: "0.1" }),
+        ).rejects.toMatchObject({
+            name: "OrderRefusedError",
+            refusal: { field: "maxPositionSize", reason: "riskLimit" },
+        });
+        expect(wire).not.toHaveBeenCalled();
+    });
+
+    it("approves a shrink the size cap contains, end to end", async () => {
+        const wire = mockLive();
+        // The ordinary shrink, unchanged: 5 000 notional inside a 10 000 cap,
+        // and the loss ceiling still measures it (BUG-0567).
+        riskState.setLimit("maxPositionSizeUsdt", "10000");
         riskState.setLimit("maxLossPerTradeUsdt", "10000");
 
         await tradeService.modifyOrder({ orderId: "o-9", qty: "0.1" });

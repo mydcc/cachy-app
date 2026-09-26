@@ -551,12 +551,25 @@ class RiskManagementService {
         // `previousQuantity` vs `modifyQuantity` decides; a price-only
         // amendment states no quantity and stays exempt, as do TP/SL-only
         // amendments — those are returned before any limit runs. A shrinking
-        // amendment stays exempt from the size caps — less quantity is less
-        // exposure — but still faces the loss-per-trade ceiling, because
-        // widening the stop on the way down can push the resulting loss
-        // past it (BUG-0567). `checkOpenPositions` stays out: the order
-        // consumed its slot when it was first placed. `checkLeverage` stays
-        // out: a modify payload carries no leverage.
+        // amendment faces the loss-per-trade ceiling, because widening the
+        // stop on the way down can push the resulting loss past it (BUG-0567),
+        // and it faces the size caps, because price is the other half of
+        // notional and was unbounded on this path: a 1 → 0.9 shrink carrying a
+        // pumped price is a 9x notional amendment that measured nothing
+        // (BUG-0568). `checkOpenPositions` stays out: the order consumed its
+        // slot when it was first placed. `checkLeverage` stays out: a modify
+        // payload carries no leverage.
+        //
+        // What the size caps cost on a shrink, stated here so it is not
+        // "discovered" a second time: the cap answers how large the position
+        // becomes, and a modify measures only the amended slice of it. A
+        // position that drifted over the cap through price alone cannot be
+        // trimmed by a small step any more — 4.9 × 25 000 is over a 100 000
+        // cap while 3.9 clears it — so the gate refuses a small reduction and
+        // permits a large one. Exempting "already over the cap" is not the
+        // answer: it needs the same missing resting-order baseline, and the
+        // only available proxy (`previousQuantity × the new price`) hands the
+        // exemption straight back to a pumped shrink.
         if (intent.kind === "modify") {
             if (!this.isQuantityIncreasingModify(intent)) {
                 // No quantity stated anywhere means price-only: there is no
@@ -566,7 +579,7 @@ class RiskManagementService {
                 // when no stop is known, like every other unverifiable input
                 // in this gate.
                 if (this.modifyQtyOf(intent) === null) return null;
-                return this.checkLossPerTrade(intent);
+                return this.checkPositionSize(intent) ?? this.checkLossPerTrade(intent);
             }
             return (
                 this.checkDailyLoss() ??
