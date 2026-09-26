@@ -51,7 +51,12 @@ second, parallel mechanism.
   is our parsing problem, not the trader's key). A thrown error is not a venue
   code and does not become one: it goes to the log at the catch site, and the
   record has no field for it — a field nothing reads is a field someone
-  eventually renders. A verdict is bound to a
+  eventually renders. The venue's own code *is* kept, although no message
+  renders it yet: the card shows a translated refusal, and a bare `10001`
+  helps nobody. It stays because it is the input a mapped refusal needs, and
+  because a venue code is safe to render once it is mapped, while transport
+  text is ours and never will be.
+- A verdict is bound to a
   `credentialFingerprint` of the three credential fields, so an edit returns the
   account to `stale` before anything refetches. `stale` is also derived from a
   five-minute freshness window, so no verdict stays green by sitting still.
@@ -79,11 +84,21 @@ second, parallel mechanism.
   its window for as long as the tab stayed open. `PlaceOrderPanel`, mounted
   unconditionally by the app shell, now holds a 30-second `startClock()` tick
   that moves one number — no request, no venue, no verdict.
-- A refused or unreachable account is not re-read in a loop. `ensureCurrent`
-  only short-circuits on `verified`, and the effects that call it read the
-  credential fields to stay reactive, so a `RETRY_FLOOR_MS` window holds off a
-  *repeat*. A freshly pasted key is not a repeat and is read immediately —
-  otherwise a rotation would sit unverified for the rest of the window.
+- A refused or unreachable account is not re-read in a loop, and neither is a
+  half-typed key. `ensureCurrent` only short-circuits on `verified`, and the
+  effects that call it read the credential fields to stay reactive, so two bounds
+  apply and they bound different things. The store's `RETRY_FLOOR_MS` holds off
+  a *repeat* — the identical fingerprint inside the window — and lets a freshly
+  pasted key through immediately, because a rotation that waited out a window
+  would sit unverified long enough to be missed. That bound is deliberately
+  blind: a fingerprint cannot tell a rotated key from a key mid-word, because
+  every keystroke is a different fingerprint, and the readers only claim once the
+  set is complete, so the store never sees a partial key at all. Keystrokes are
+  bounded where they are observable instead, by a `VERIFICATION_INPUT_DEBOUNCE_MS`
+  debounce on the panel's effect. An earlier attempt to teach the store the
+  difference — a flag for "the last attempt could actually be judged" — turned
+  out to be dead code for exactly that reason, and was removed rather than left
+  in as a promise.
 - `PositionsSidebar` records the verdict of the read it already performs
   (`readIssued` + `recordSuccess` / `recordFailure`, released in a `finally` so
   a coalesced or superseded read cannot wedge the account). One snapshot of the
@@ -94,6 +109,16 @@ second, parallel mechanism.
   an id that does not own the keys is one nothing can find again. Its
   credential guard is the same `hasCompleteCredentials` the transports use, so a
   Bitget set without a passphrase stops asking rather than being told no.
+- Both readers depend on **all three** credential fields, not on `key` alone.
+  The fingerprint hashes all three, so a passphrase-only edit on a Bitget account
+  correctly drops the verdict to `stale` — and if the trigger only watched `key`
+  and `secret`, nothing would re-read it: the account would sit `stale`, saying
+  it was still being checked while nothing was checked, and live entry would stay
+  blocked until some unrelated keystroke, account switch or breakpoint flip came
+  along. Fail-safe, and still a dead end. The panel's effect therefore reads
+  `key`, `secret` and `passphrase`, and the sidebar's keys effect is gated on
+  `hasCompleteCredentials` — which is that effect's dependency list, so the guard
+  and the read cannot be changed one without the other.
 - `verifyAccount()` is the fallback read for the two cases where no report is
   coming: the sidebars are hidden (`PositionsSidebar` renders only under
   `showSidebars`) or the trader never opens the positions panel. Same signed
@@ -118,7 +143,18 @@ second, parallel mechanism.
   state before a first read, and the state of every account for a moment after a
   session rotation — and telling *those* traders they have no credentials would
   be the one sentence that is wrong exactly when it is most likely to be read.
-  Presence is a separate question and is asked separately.
+  Presence is a separate question and is asked separately. Three of its answers
+  get three sentences: no account for the venue, a set with a blank field, and —
+  on Bitget only, since a Bitunix trader has never seen a passphrase field — a
+  set missing exactly the passphrase. The last two used to be one sentence, which
+  told a trader with a working key that they had no credentials.
+- `PlaceOrderPanel.svelte` is over the ~800-line soft ceiling in `AGENTS.md`
+  after this change (733 → 855). The added lines are the gate, the clock owner
+  and two effects; they would sit naturally in a `useAccountVerification` helper
+  beside the store, which would also make the effects testable without mounting
+  the panel. Recorded as the justification `AGENTS.md` asks for, and left for a
+  separate change — splitting the order panel is not something a security fix
+  should smuggle in.
 - A venue that could not be reached wears the connection colour, not the
   rejection one. The label had made that distinction and the dot had not, so a
   network blip drew the same red as a refused key and contradicted the words
