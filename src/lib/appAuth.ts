@@ -126,16 +126,28 @@ function isClientTokenError(body: unknown): boolean {
  * token, e.g. it restarted), a fresh one is issued and the request is retried
  * once. Neither step touches other 401s (a route-specific auth failure) or
  * 429s (rate limiting, where retrying immediately would only make it worse).
+ *
+ * BUG-0551: both self-healing steps await, so the *caller* cannot know when
+ * the request is actually leaving. A caller that must not send under a stale
+ * context — the signed transport, whose write would reach the live venue from
+ * a session the trader has left — passes `beforeAttempt`, which runs
+ * synchronously immediately before every attempt including the retry. The
+ * retry is the one that reaches the venue: the first was rejected at the
+ * proxy, and the window in between is a token round trip, wider than the
+ * signing await it follows. A guard placed around this call would run once,
+ * before any of it.
  */
 export async function appFetch(
   input: string,
   init: RequestInit = {},
+  beforeAttempt?: () => void,
 ): Promise<Response> {
   await settingsState.secretsReady;
   if (!settingsState.appAccessToken) {
     await issueAccessToken();
   }
 
+  beforeAttempt?.();
   const response = await fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
   if (response.status !== 401) return response;
 
@@ -148,5 +160,6 @@ export async function appFetch(
   if (!isClientTokenError(body)) return response;
 
   await issueAccessToken();
+  beforeAttempt?.();
   return fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
 }

@@ -170,7 +170,6 @@ describe("appFetch", () => {
     );
     expect(settingsState.appAccessToken).toBe("fresh-token");
   });
-
   it("does not retry a 401 that is unrelated to the client token", async () => {
     settingsState.appAccessToken = "secret-token";
     let balanceCalls = 0;
@@ -189,5 +188,66 @@ describe("appFetch", () => {
     expect(response.status).toBe(401);
     expect(balanceCalls).toBe(1);
     expect(settingsState.appAccessToken).toBe("secret-token");
+  });
+
+  // BUG-0551: the retry after a client-token 401 is the attempt that reaches
+  // the venue, and the token round trip in front of it is a wider window than
+  // the signing await the caller just came through. A guard that ran once,
+  // around this call, would already be stale here.
+  describe("beforeAttempt", () => {
+    const staleTokenRetry = () => {
+      settingsState.appAccessToken = "stale-token";
+      let balanceCalls = 0;
+      globalThis.fetch = vi.fn((input: RequestInfo | URL) => {
+        if (String(input) === "/api/auth/token") {
+          return Promise.resolve(new Response(JSON.stringify({ token: "fresh-token" })));
+        }
+        balanceCalls += 1;
+        if (balanceCalls === 1) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ error: "Unauthorized: Invalid or missing client access token" }),
+              { status: 401 },
+            ),
+          );
+        }
+        return Promise.resolve(new Response("{}"));
+      }) as typeof fetch;
+      return () => balanceCalls;
+    };
+
+    it("runs before every attempt, the retry included", async () => {
+      staleTokenRetry();
+      const beforeAttempt = vi.fn();
+
+      await appFetch("/api/balance", { method: "POST" }, beforeAttempt);
+
+      expect(beforeAttempt).toHaveBeenCalledTimes(2);
+    });
+
+    it("stops the retry when the guard refuses, and never reaches the venue", async () => {
+      const balanceCalls = staleTokenRetry();
+      // Passes on the first attempt, refuses on the second: exactly the window
+      // a signing guard has to survive.
+      let attempts = 0;
+
+      await expect(
+        appFetch("/api/balance", { method: "POST" }, () => {
+          attempts += 1;
+          if (attempts > 1) throw new Error("refused: context moved");
+        }),
+      ).rejects.toThrow("refused: context moved");
+
+      expect(balanceCalls()).toBe(1);
+    });
+
+    it("is optional — a caller without one keeps the exact previous behaviour", async () => {
+      const balanceCalls = staleTokenRetry();
+
+      const response = await appFetch("/api/balance", { method: "POST" });
+
+      expect(response.status).toBe(200);
+      expect(balanceCalls()).toBe(2);
+    });
   });
 });
