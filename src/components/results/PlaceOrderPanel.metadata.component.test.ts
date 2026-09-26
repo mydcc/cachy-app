@@ -31,6 +31,32 @@ const settings = vi.hoisted(() => ({ apiProvider: "bitunix" as string, autoUpdat
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
 
 const paperStateMock = vi.hoisted(() => ({ enabled: false }));
+// BUG-0560: live entry waits for a private-account verdict, and an account
+// nobody has read counts as unknown — these cases are about order volume against
+// the pair's limits, so the account is put in the verified state here rather
+// than re-tested per file. `PlaceOrderPanel.verification.component.test.ts` owns
+// that gate.
+vi.mock("../../stores/accountVerification.svelte", async (importOriginal) => {
+    // Only the store's behaviour is faked here. Its constants and the real
+    // `credentialPresence` come from the module itself, so a new export can
+    // never silently break a test that happens to fake the whole store.
+    const actual =
+        await importOriginal<typeof import("../../stores/accountVerification.svelte")>();
+    return {
+        ...actual,
+        accountVerification: {
+            statusFor: () => "verified",
+            startClock: () => () => undefined,
+        },
+        subjectFor: () => ({
+            id: "acct-1",
+            exchange: "bitunix",
+            keys: { key: "k", secret: "s" },
+        }),
+        ensureCurrent: vi.fn(async () => undefined),
+    };
+});
+
 vi.mock("../../stores/paperTrading.svelte", () => ({ paperState: paperStateMock }));
 
 const mockTradeData = vi.hoisted(() => ({

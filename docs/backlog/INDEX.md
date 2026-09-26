@@ -2,9 +2,9 @@
 
 # Backlog index
 
-446 items. How to read and add them: [README.md](README.md).
+447 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 8 · ✅ done 394 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 7 · ✅ done 395 · ⛔ dropped 1
 
 ---
 
@@ -285,7 +285,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 8 · ✅ done 39
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | calculation |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | settings |
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | market-data |
-| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 🟢 ready | security |
+| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | security |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
@@ -469,6 +469,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 8 · ✅ done 39
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | ui |
 | [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | ui |
+| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -631,7 +632,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 8 · ✅ done 39
 | [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | none | community, pro, private | C | none | — |
-| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 🟢 ready | none | community, pro, private | A | none | — |
+| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -910,6 +911,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 8 · ✅ done 39
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -966,4 +968,4 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 8 · ✅ done 39
 
 ---
 
-Next free number: **0570**
+Next free number: **0571**

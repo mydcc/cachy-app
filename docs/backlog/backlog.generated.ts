@@ -2403,7 +2403,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0560",
     "title": "Credential cards show green without private-account verification",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0560",
+    "shipped": "unreleased",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -8419,6 +8422,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0569-order-audit-panel-raw-refusal-field.md"
+  },
+  {
+    "id": "BUG-0570",
+    "title": "The order dispatch guard's account fingerprint collides on short keys",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md"
   },
   {
     "id": "FEAT-0022",
