@@ -176,6 +176,17 @@ vi.mock("../../appAuth", () => ({
     appFetch: appFetchMock,
 }));
 
+// BUG-0565: the chart asks the paper seam first. Null by default (paper off),
+// so every existing test below keeps exercising the live path it was written
+// for; the paper describe at the end points this at a feed instead.
+const paperFeedMock = vi.hoisted(() => ({ current: null as null | {
+    positions: () => unknown[];
+    pendingOrders: () => unknown[];
+} }));
+vi.mock("../../../services/paperAccountFeed", () => ({
+    paperAccountFeed: () => paperFeedMock.current,
+}));
+
 // FEAT-0247 drag-to-modify: the exchange adapter and toast surface are
 // spied on directly so the drop tests can assert against them without a
 // real network call.
@@ -273,6 +284,7 @@ beforeEach(() => {
     tpSlState.reset();
     settingsState.accountFor("bitunix").keys = { key: "", secret: "" };
     appFetchMock.mockReset();
+    paperFeedMock.current = null;
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -1253,5 +1265,61 @@ describe("FEAT-0395 — creating an alert from the chart", () => {
         await settle();
 
         expect(menuItem()).toBeNull();
+    });
+});
+
+/*
+ * BUG-0565 — after a mode switch the store is empty and this hydration runs
+ * before the simulator's next tick. A live REST read here would stamp the
+ * snapshot "live" and the paper book would measure against it, so the paper
+ * seam answers first — same branch the PositionsSidebar siblings take.
+ */
+describe("BUG-0565 — chart hydrates from the paper feed in paper mode", () => {
+    it("takes positions and orders from the feed and never reaches the network", async () => {
+        paperFeedMock.current = {
+            positions: () => [
+                {
+                    positionId: "paper-1",
+                    symbol: "BTCUSDT",
+                    side: "long",
+                    size: "1",
+                    entryPrice: "50000",
+                    leverage: "10",
+                    unrealizedPnL: "0",
+                    margin: "5000",
+                    marginMode: "cross",
+                },
+            ],
+            pendingOrders: () => [
+                {
+                    orderId: "paper-o-1",
+                    symbol: "BTCUSDT",
+                    side: "buy",
+                    type: "limit",
+                    price: "49000",
+                    amount: "1",
+                    filled: "0",
+                    status: "NEW",
+                    time: Date.now(),
+                },
+            ],
+        };
+        // Keys configured: without the paper-first branch this would fetch.
+        settingsState.accountFor("bitunix").keys = {
+            key: "test-key-0123456789",
+            secret: "test-secret-0123456789",
+        };
+        accountState.reset();
+
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settleUntil(() => accountState.positions.length > 0);
+
+        expect(appFetchMock).not.toHaveBeenCalled();
+        expect(accountState.positions.some((p) => p.positionId === "paper-1")).toBe(true);
+        expect(accountState.openOrders.some((o) => o.orderId === "paper-o-1")).toBe(true);
+        expect(accountState.snapshotMode).toBe("paper");
     });
 });

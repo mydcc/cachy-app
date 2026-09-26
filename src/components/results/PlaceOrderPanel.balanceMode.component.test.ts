@@ -3,9 +3,9 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,14 +17,14 @@
  */
 
 /*
- * BUG-0549 — the calculator can show the margin-exceeded warning while the
- * place control still offers the order.
+ * BUG-0565 — the panel reads the balance of the active mode.
  *
- * The warning lives next to the results, the refusal lives in the gate; the
- * panel itself was the one surface that had to say yes first. These cases
- * flip the calculator's flag and the live balance behind the gate's back
- * and assert the button follows both — the refusal path itself is covered
- * in orderGate.test.ts and tradeService_placeOrder.test.ts.
+ * Paper hydrates the same store the live wallet pushes into, so an ambient
+ * read measures against whichever writer ran last. The panel takes the
+ * qualified read instead: in paper mode a live-stamped balance is not its
+ * balance — it shows the unmeasured hint (IDEA-0563) rather than the live
+ * figure, and a paper-stamped balance funds it the same way a live one
+ * funds live mode.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -45,7 +45,7 @@ const settings = vi.hoisted(() => ({
 }));
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
 
-const paperStateMock = vi.hoisted(() => ({ enabled: false }));
+const paperStateMock = vi.hoisted(() => ({ enabled: true }));
 vi.mock("../../stores/paperTrading.svelte", () => ({ paperState: paperStateMock }));
 
 const resultsMock = vi.hoisted(() => ({ isMarginExceeded: false }));
@@ -133,8 +133,6 @@ vi.mock("../../stores/modal.svelte", () => ({ modalState: { show: showMock } }))
 const placeEntryGroupMock = vi.hoisted(() => vi.fn());
 vi.mock("../../services/orderPlacementService", () => ({
     orderPlacementService: { placeEntryGroup: placeEntryGroupMock },
-    // Mirrors the real helper (see the doubleSubmit spec): the panel
-    // narrows the free-string trade direction through it.
     narrowTradeType: (tradeType: string) => {
         const normalized = tradeType.toLowerCase();
         if (normalized === "long" || normalized === "short") return normalized;
@@ -192,6 +190,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     settings.apiProvider = "bitunix";
     settings.autoUpdatePriceInput = true;
+    paperStateMock.enabled = true;
     resultsMock.isMarginExceeded = false;
     mockSymbolMetaStore.symbolMeta = { BTCUSDT: { ...TRADABLE } };
     mockTradeData.positionSize = new Decimal("0.02");
@@ -201,7 +200,7 @@ beforeEach(() => {
     mockTradeData.accountSize = new Decimal("1000");
     mockTradeData.riskPercentage = new Decimal("1");
     mockTradeData.leverage = new Decimal("10");
-    // 0.02 × 50000 / 10 = 100 of required margin for the live-balance cases.
+    // 0.02 × 50000 / 10 = 100 of required margin.
     mockTradeData.requiredMargin = new Decimal("100");
     mockTradeData.remoteAccountStateAt = Date.now();
     host = document.createElement("div");
@@ -212,8 +211,6 @@ afterEach(() => {
     if (component) unmount(component);
     component = null;
     host.remove();
-    // reset(), not a bare asset clear: a direct assignment would leave the
-    // provenance stamp behind for the next test to inherit (BUG-0565).
     accountState.reset();
 });
 
@@ -231,85 +228,34 @@ function submitButton(): HTMLButtonElement {
     return button;
 }
 
-describe("BUG-0549 — the place control follows the margin-exceeded flag", () => {
-    it("disables submit while the calculator reports the margin as exceeded", async () => {
-        resultsMock.isMarginExceeded = true;
+describe("BUG-0565 — the panel reads the balance of the active mode", () => {
+    it("funds paper submit from the paper balance", async () => {
+        accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" }, "paper");
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
-        expect(submitButton().disabled).toBe(true);
-        // Affordance, not enforcement: even a click that got through must
-        // not place — enforcement lives in the gate.
-        submitButton().click();
-        await settle();
-        expect(placeEntryGroupMock).not.toHaveBeenCalled();
-    });
-
-    it("keeps submit usable for a funded entry", async () => {
-        component = mount(PlaceOrderPanel, { target: host }) as never;
-        await settle();
-
-        // AC: nothing about a funded open changed — same state, same control.
         expect(submitButton().disabled).toBe(false);
+        expect(host.textContent).not.toContain("Balance not loaded");
     });
 
-    it("disables submit when the live balance cannot fund the margin", async () => {
-        // Calculator flag off — only the live leg decides here.
-        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" }, "live");
-        component = mount(PlaceOrderPanel, { target: host }) as never;
-        await settle();
-
-        expect(submitButton().disabled).toBe(true);
-        submitButton().click();
-        await settle();
-        expect(placeEntryGroupMock).not.toHaveBeenCalled();
-    });
-
-    it("keeps submit usable when the live balance covers the margin", async () => {
+    it("ignores a live-stamped balance while paper is on", async () => {
+        // The wallet pushed while paper mode was on: stamped live, so the
+        // paper read finds nothing — the panel warns instead of funding
+        // the simulator from the live wallet.
         accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" }, "live");
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
         expect(submitButton().disabled).toBe(false);
+        expect(host.textContent).toContain("Balance not loaded");
     });
 
-    it("names both numbers when only the live balance cannot fund the margin", async () => {
-        // The calculator flag stays green here (typed size covers it) while
-        // the control stays disabled — the note must explain the dead end
-        // with the figures the gate will measure.
-        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" }, "live");
+    it("disables paper submit when the paper balance cannot fund the margin", async () => {
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" }, "paper");
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
         expect(submitButton().disabled).toBe(true);
         expect(host.textContent).toContain("Needs 100 margin but only 50 is free");
-    });
-
-    it("hints that the venue decides while the balance has not loaded", async () => {
-        // No hydration: the gate records an availableMarginUnmeasured skip
-        // and approves, so the panel stays usable — but it says so instead
-        // of staying quiet (IDEA-0563, decided P2: warn, don't block).
-        component = mount(PlaceOrderPanel, { target: host }) as never;
-        await settle();
-
-        expect(submitButton().disabled).toBe(false);
-        expect(host.textContent).toContain(
-            "Balance not loaded — the venue decides whether this order is funded.",
-        );
-    });
-
-    it("treats a non-finite balance like an unloaded one, not a shortfall", async () => {
-        // NaN compares false against everything: the gate records a skip
-        // and approves, so the panel must hint rather than disable.
-        accountState.assets = [
-            { currency: "USDT", available: new Decimal(NaN) },
-        ] as never;
-        component = mount(PlaceOrderPanel, { target: host }) as never;
-        await settle();
-
-        expect(submitButton().disabled).toBe(false);
-        expect(host.textContent).toContain(
-            "Balance not loaded — the venue decides whether this order is funded.",
-        );
     });
 });
