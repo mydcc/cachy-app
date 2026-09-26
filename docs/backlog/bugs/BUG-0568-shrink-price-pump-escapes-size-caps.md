@@ -47,8 +47,21 @@ notional and is unbounded on the shrink path.
 Run `checkPositionSize` on the shrink path too. The modify branch's exemption
 becomes: price-only and TP/SL-only amendments stay fully exempt, a *growing*
 amendment faces the daily loss limit, the size caps and the loss ceiling, and a
-*shrinking* amendment faces the size caps and the loss ceiling but not the daily
-loss limit.
+*non-growing* amendment — a shrink, but equally a same-size amendment — faces
+the size caps and the loss ceiling but not the daily loss limit.
+
+The same-size case is not a rounding detail. `isQuantityIncreasingModify` is a
+strict `gt`, so an amendment that leaves the quantity exactly as it rests lands
+on the non-growing side and is now measured: 0.9 BTC at 50 000 amended to 0.9
+BTC at 500 000 carries 10x the notional and is the purest form of the attack,
+the one a quantity-only reading of "shrink" misses. It also means the app's real
+price-change path is measured, because `modifyOrder` falls back to the resting
+size when the request states no quantity.
+
+The size cap is evaluated first, as on every other measured path, so a shrink
+that breaches both caps reports `maxPositionSize`; a `maxLossPerTrade` refusal on
+a non-growing amend is now reachable only when the size caps pass. This is a
+real change in which field such a trader is shown, and it is pinned by a test.
 
 `notionalOf` measures a modify as `modifyQuantity × price`, so a shrink at a
 sane price makes the notional smaller and the cap does not fire. It fires only
@@ -88,30 +101,51 @@ this item took a decision instead of a patch.
 
 **The exemption was load-bearing in five tests, and three of them were passing
 because nothing was measured.** `leaves an equal-quantity price change alone
-inside the ceiling` sat under a 10 000 cap with a notional of 10 020 — its own
-comment computed `0.2 × 600` from a price the fixture had long since changed.
-`leaves a shrinking amendment alone` ran against `everyLimitTight()`, whose
-`maxPositionSizePercent` of 1 on a 1000 account is a 10 USDT cap that no real
-account sets. `leaves an equal-quantity amendment alone inside the ceiling (gt
-is strict)` documented a strict-inequality boundary that no assertion had ever
-reached. None of that was sloppiness in the tests: the path they exercised
+inside the ceiling` sat under a 10 000 cap with a notional of 10 020 — and its
+comment, which computed `0.2 × 600 = 120` against the *loss* ceiling, was
+arithmetically right while describing the wrong limit entirely: the test's
+subject under this item is the size cap, and it said nothing about the notional
+at all. `leaves a shrinking amendment alone` ran against `everyLimitTight()`,
+whose `maxPositionSizePercent` of 1 on a 1000 account is a 10 USDT cap that no
+real account sets. `leaves an equal-quantity amendment alone inside the ceiling
+(gt is strict)` documented a strict-inequality boundary that no assertion had
+ever reached. None of that was sloppiness in the tests: the path they exercised
 skipped the size caps entirely, so a test asserting "inside the ceiling" could
 not fail no matter what the notional was. They are re-pointed at ceilings their
 notionals fit inside, which is what they meant to say, and the strict boundary
-is now genuinely exercised.
+is now genuinely exercised — flipping `gt` to `gte` fails it.
+
+**A price-only amendment is not what the app sends.** `tradeService.modifyOrder`
+falls back to the resting size when the request states no quantity, so the
+app's real price-change path arrives at the gate as an *equal-quantity*
+amendment — which is measured, not exempt. The full exemption only covers a
+hand-built intent with no quantity anywhere, and the two tests that pin it
+describe it as a safety property of the app, which it is not. That is why the
+equal-quantity case is now tested end to end.
 
 **The reproduction is mutation-checked.** Reverting the shrink path to
-`checkLossPerTrade` alone fails exactly three tests — the two BUG-0568 cases
-(absolute and percentage cap) and the inverted BUG-0567 one — and nothing else.
+`checkLossPerTrade` alone fails exactly nine tests and nothing else in
+`src/services` + `src/tests` (205 files, 2368 tests): the six new BUG-0568 cases,
+the inverted BUG-0567 one, and the two new end-to-end cases in
+`tradeService_modifyOrder.test.ts`.
 
 **The percentage cap needed its own case.** The defect is equally reachable
 through `maxPositionSizePercent`, and a test that only sets the absolute cap
 would have left that path unpinned.
 
-**One asymmetry worth knowing.** The gate's kill switch, the daily loss limit
-and `checkOpenPositions` still skip a shrink, deliberately and unchanged: the
-order consumed its slot when it was placed, and the day is the day. What
-changed is only that the amended slice is now *measured* rather than trusted.
+**Two asymmetries worth knowing, and neither is new policy.** The daily loss
+limit and `checkOpenPositions` still skip a shrink, deliberately: the order
+consumed its slot when it was first placed, and the day is the day. The kill
+switch is the exception and always did apply — `increasesExposure` treats every
+non-TP/SL amendment as exposure, so an engaged switch blocks a shrink too.
+
+The second is a cost this change adds rather than inherits: a percentage cap
+that cannot be measured (a corrupt account equity maps to `undefined`) now
+refuses a shrink as unmeasurable, where before the path measured nothing and
+let it through. That is the same refusal an enlargement already gets under
+BUG-0508, so it is consistent and fail-closed — but it is a risk-reducing amend
+refused for an unmeasurable cap, and it is now pinned by a test rather than
+inherited by accident.
 
 ## Acceptance criteria
 

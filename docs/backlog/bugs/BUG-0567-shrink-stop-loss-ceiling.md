@@ -47,6 +47,11 @@ exempt from the size caps but still measure the resulting position and
 stop against `maxLossPerTradeUsdt`. Price-only and TP/SL-only amendments
 keep their full exemption (no new exposure to measure).
 
+> Superseded on the size-caps half by BUG-0568, in the same release: a
+> non-growing amendment now faces the size caps too, because price is the other
+> half of notional and a quantity shrink with a pumped price is a 9x amendment.
+> The loss measurement described above is unchanged.
+
 ## Acceptance criteria
 
 - [x] A test reproduces the defect (shrink + widened stop past the loss ceiling) and fails without the fix
