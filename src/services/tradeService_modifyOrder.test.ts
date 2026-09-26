@@ -270,6 +270,37 @@ describe("modifyOrder — constructor mapping reaches the gate intact", () => {
         expect(wire).toHaveBeenCalledTimes(1);
     });
 
+    it("measures a price-only amendment against the size cap", async () => {
+        mockLive();
+        // No quantity in the request: `modifyOrder` falls back to the resting
+        // size, so this reaches the gate as an *equal-quantity* amendment —
+        // which is why the gate's size exemption, keyed on a quantity that is
+        // absent, does not cover the app's real price-change path (BUG-0568).
+        riskState.setLimit("maxPositionSizeUsdt", "1");
+
+        await expect(
+            tradeService.modifyOrder({ orderId: "o-9", price: "50100" }),
+        ).rejects.toMatchObject({ refusal: { field: "maxPositionSize" } });
+    });
+
+    it("refuses a shrink the percent cap cannot measure", async () => {
+        const wire = mockLive();
+        // A percentage cap needs the account equity, and a corrupt equity maps
+        // to undefined (BUG-0508). The same refusal already stands for an
+        // enlargement; a shrink inherits it, which is a risk-reducing amend
+        // refused for an unmeasurable cap. Fail-closed and consistent, so it
+        // stays — pinned here so it is chosen rather than inherited.
+        tradeState.accountSize = "0";
+        riskState.setLimit("maxPositionSizePercent", "1");
+
+        await expect(
+            tradeService.modifyOrder({ orderId: "o-9", qty: "0.1" }),
+        ).rejects.toMatchObject({
+            refusal: { field: "maxPositionSizePercent", reason: "missing" },
+        });
+        expect(wire).not.toHaveBeenCalled();
+    });
+
     it("refuses a shrink that widens the stop past the loss ceiling end to end", async () => {
         const wire = mockLive();
         riskState.setLimit("maxLossPerTradeUsdt", "400");
