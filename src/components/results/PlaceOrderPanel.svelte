@@ -173,21 +173,21 @@
   // the panel can see (BUG-0549).
   const marginFunded = $derived(!resultsState.isMarginExceeded);
 
-  // The same check against the live balance — required margin above the free
-  // USDT the gate will measure. This is the state AC3 names: the calculator
-  // flag above compares against the typed account size, which can differ
-  // from the wallet in either direction. Unknown — balance not loaded, or
-  // the calculator produced no margin figure — never disables: the panel is
+  // The same check against the balance for the active mode — required
+  // margin above the free USDT the gate will measure. This is the state
+  // AC3 names: the calculator flag above compares against the typed account
+  // size, which can differ from the wallet in either direction. Unknown —
+  // balance not loaded, wrong mode's snapshot on hand (BUG-0565), or the
+  // calculator produced no margin figure — never disables: the panel is
   // only a hint, the gate stays the authority and refuses what it measures.
-  // Paper hydrates this same store, so both modes read the balance they
-  // trade against.
   //
   // Best-effort hint, intentionally unpaired: this pairs the trade store
   // with the account store across time boundaries, so it may disagree with
   // the gate's recomputation for a moment. It must never become
   // enforcement — only the gate's own measurement refuses.
   const liveAvailable = $derived(
-    accountState.assets.find((a) => a.currency === "USDT")?.available,
+    accountState.readUsdtBalance(paperState.enabled ? "paper" : "live")
+      ?.available,
   );
   const liveMarginFunded = $derived.by(() => {
     if (

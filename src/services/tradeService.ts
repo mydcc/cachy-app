@@ -1812,6 +1812,18 @@ class TradeService {
             }
         }
 
+        // The free USDT balance the trader is spending from — read for the
+        // active mode only (BUG-0565). Live wallet and the paper account
+        // hydrate the same store, so an ambient read would measure against
+        // whichever writer ran last. A mismatch (or no measurement at all)
+        // hands the gate `undefined`, and the existing unmeasured path
+        // engages (BUG-0511, recorded as `availableMarginUnmeasured`).
+        // Settlement is currently USDT-M only, so USDT free is the whole
+        // spendable balance until multi-collateral arrives.
+        const balanceForMode = accountState.readUsdtBalance(
+            paperState.enabled ? "paper" : "live",
+        );
+
         const result = await this.gatedRequest({
             kind: "open",
             endpoint: "/api/orders",
@@ -1821,21 +1833,17 @@ class TradeService {
                 symbol: params.symbol,
                 side: params.side,
                 ...params.displayed,
-                // The free USDT balance the trader is spending from — live
-                // wallet or the paper account's simulated balance, which
-                // hydrates the same store (BUG-0549). Settlement is currently
-                // USDT-M only, so USDT free is the whole spendable balance
-                // until multi-collateral arrives. Present, the gate measures
-                // the open's required margin against it; absent or non-finite,
-                // it skips the measurement as before (BUG-0511, recorded as
-                // `availableMarginUnmeasured`). The reading carries no
-                // freshness timestamp (leverage has MAX_ACCOUNT_STATE_AGE_MS,
-                // the balance does not): a stale-high reading approves and
-                // the venue rejects, a stale-low reading refuses early.
-                // Neither creates funds — the venue stays final.
-                availableMargin: accountState.assets.find(
-                    (a) => a.currency === "USDT",
-                )?.available,
+                // Present, the gate measures the open's required margin
+                // against it; absent or non-finite, it skips the measurement
+                // as before (BUG-0511, recorded as
+                // `availableMarginUnmeasured`). Stamped alongside the value
+                // so the two can never disagree — the stamp itself is
+                // informational, no gate consumes it as a freshness check:
+                // a stale-high reading approves and the venue rejects, a
+                // stale-low reading refuses early. Neither creates funds —
+                // the venue stays final.
+                availableMargin: balanceForMode?.available,
+                availableMarginAt: balanceForMode?.at,
                 stepSize,
                 minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
                 maxLimitOrderVolume: meta?.maxLimitOrderVolume ? new Decimal(meta.maxLimitOrderVolume) : undefined,
@@ -1914,14 +1922,16 @@ class TradeService {
                     ? position.markPrice
                     : position.entryPrice;
 
-        // The settlement asset's free balance (USDT-M only). This only carries the reading —
-        // the refusal decision lives in `checkMargin` (orderGate.ts), which
-        // refuses the add when the balance has not loaded, since margin is
-        // its only ceiling (BUG-0511). Paper accounts hydrate the same
-        // channel from the simulated balance.
-        const availableMargin = accountState.assets.find(
-            (a) => a.currency === "USDT",
-        )?.available;
+        // The settlement asset's free balance (USDT-M only), read for the
+        // active mode only (BUG-0565) — see placeOrder above. This only
+        // carries the reading — the refusal decision lives in `checkMargin`
+        // (orderGate.ts), which refuses the add when the balance has not
+        // loaded, since margin is its only ceiling (BUG-0511).
+        const balanceForMode = accountState.readUsdtBalance(
+            paperState.enabled ? "paper" : "live",
+        );
+        const availableMargin = balanceForMode?.available;
+        const availableMarginAt = balanceForMode?.at;
 
         // Account equity for the percentage position-size cap — the same
         // tradeState the order panel reads. Unparseable means the cap is
@@ -1988,6 +1998,7 @@ class TradeService {
                 leverage: position.leverage,
                 marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
                 availableMargin,
+                availableMarginAt,
                 /*
                  * When the venue last confirmed this account's leverage and
                  * margin mode. The gate refuses an add on a read older than
@@ -2137,7 +2148,7 @@ class TradeService {
         const json = await response.json();
         const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
         if (data === null || !data.positions) throw new Error(TRADE_ERRORS.FETCH_FAILED);
-        accountState.hydratePositions(data.positions);
+        accountState.hydratePositions(data.positions, "live");
         if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
         return data.positions;
     }

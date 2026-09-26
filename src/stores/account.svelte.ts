@@ -143,6 +143,19 @@ interface AccountSnapshot {
 }
 
 /**
+ * Where the account snapshot the store holds came from (BUG-0565).
+ *
+ * "live" — the venue, via the WS wallet/position/order channels or a signed
+ * REST read. "paper" — the simulator, via `paperTradingService.syncToStores`.
+ * `undefined` — nothing has written since `reset()`, or the last live
+ * measurement was demoted by `markBalanceUnmeasured`.
+ *
+ * Writers stamp, never readers: the writer knows its provenance, a reader
+ * would have to import `paperState` here and guess.
+ */
+export type AccountSnapshotMode = "live" | "paper";
+
+/**
  * `parseDecimal` already falls back to `Decimal(0)` on a missing or
  * unparseable value (`new Decimal()` throws on a non-numeric string instead
  * of returning NaN — a malformed field on a raw WS push would otherwise
@@ -198,6 +211,36 @@ class AccountManager {
   }
 
   /**
+   * Which mode the current snapshot belongs to (BUG-0565), or undefined when
+   * nothing has written yet — or when the live measurement was demoted (see
+   * `markBalanceUnmeasured`).
+   *
+   * A live WS push arriving while a paper snapshot is on hand is *refused* by
+   * the WS updaters below, not overwritten: the private channels stay
+   * subscribed across a mode switch, and without this the last writer — of
+   * either mode — would win regardless of what the trader is trading against.
+   */
+  #snapshotMode = $state<AccountSnapshotMode | undefined>(undefined);
+
+  /** Read-only to the outside, for the same reason as `positionMode`. */
+  get snapshotMode(): AccountSnapshotMode | undefined {
+    return this.#snapshotMode;
+  }
+
+  /**
+   * When the snapshot was last stamped (epoch ms), or undefined if none ever
+   * has. Informational — nothing consumes it as a freshness gate (live has no
+   * poll, so an age could be legitimately hours old; IDEA-0563's open
+   * freshness question is answered by mode + connection liveness instead).
+   */
+  #snapshotAt = $state<number | undefined>(undefined);
+
+  /** Read-only to the outside, for the same reason as `positionMode`. */
+  get snapshotAt(): number | undefined {
+    return this.#snapshotAt;
+  }
+
+  /**
    * A confirmed write is being read back and the displayed value is not yet
    * proven to be what the venue holds (BUG-0409).
    *
@@ -242,6 +285,8 @@ class AccountManager {
     this.assets = [];
     this.#positionMode = undefined;
     this.#positionModeAt = undefined;
+    this.#snapshotMode = undefined;
+    this.#snapshotAt = undefined;
     this.positionModeVerifying = false;
     this.marginModeVerifying = false;
     this.notifyListeners();
@@ -264,6 +309,12 @@ class AccountManager {
   // --- WS Actions ---
 
   updatePositionFromWs(data: RawWsPosition) {
+    // BUG-0565: the private channels stay subscribed across a mode switch,
+    // so a live push must not land in the paper book. The snapshot holds one
+    // mode at a time; refusing here is what keeps it that way.
+    if (this.#snapshotMode === "paper") return;
+    this.#snapshotMode = "live";
+    this.#snapshotAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
     const index = this.positions.findIndex(
       (p) => String(p.positionId) === String(data.positionId),
     );
@@ -378,6 +429,11 @@ class AccountManager {
   }
 
   updateOrderFromWs(data: RawWsOrder) {
+    // BUG-0565: same rule as updatePositionFromWs — a live push must not land
+    // in the paper book.
+    if (this.#snapshotMode === "paper") return;
+    this.#snapshotMode = "live";
+    this.#snapshotAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
     const index = this.openOrders.findIndex(
       (o) => String(o.orderId) === String(data.orderId),
     );
@@ -447,6 +503,11 @@ class AccountManager {
 
   updateBalanceFromWs(data: RawWsBalance) {
     if (data.coin === "USDT") {
+      // BUG-0565: same rule as the position/order updaters — a live wallet
+      // push must not overwrite the simulated balance.
+      if (this.#snapshotMode === "paper") return;
+      this.#snapshotMode = "live";
+      this.#snapshotAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
       const idx = this.assets.findIndex((a) => a.currency === "USDT");
 
       const available = safeDecimal(data.available, new Decimal(0));
@@ -508,7 +569,11 @@ class AccountManager {
   // caught it because `response.json()` returns `any`) and leaving
   // `positionId` unset, which broke matching against subsequent WS updates.
 
-  hydratePositions(raw: NormalizedPosition[]) {
+  hydratePositions(raw: NormalizedPosition[], mode: AccountSnapshotMode) {
+    // BUG-0565: `mode` is required so no call site can omit it and silently
+    // take the live path (the BUG-0494 `origin: "manual"` precedent).
+    this.#snapshotMode = mode;
+    this.#snapshotAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
     this.positions = raw.map((p, i) => {
       const side = (p.side || "long").toLowerCase() as "long" | "short";
       const entryPrice = parseDecimal(p.entryPrice);
@@ -540,7 +605,10 @@ class AccountManager {
     this.notifyListeners();
   }
 
-  hydrateOpenOrders(raw: NormalizedOrder[]) {
+  hydrateOpenOrders(raw: NormalizedOrder[], mode: AccountSnapshotMode) {
+    // BUG-0565: `mode` is required — see hydratePositions.
+    this.#snapshotMode = mode;
+    this.#snapshotAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
     this.openOrders = raw.map((o) => ({
       orderId: String(o.orderId ?? o.id ?? ""),
       symbol: o.symbol,
@@ -565,7 +633,10 @@ class AccountManager {
     this.notifyListeners();
   }
 
-  hydrateBalance(raw: { available?: string; margin?: string; frozen?: string }) {
+  hydrateBalance(raw: { available?: string; margin?: string; frozen?: string }, mode: AccountSnapshotMode) {
+    // BUG-0565: `mode` is required — see hydratePositions.
+    this.#snapshotMode = mode;
+    this.#snapshotAt = Date.now(); // audit: safe — epoch-ms timestamp, not a financial value
     const available = parseDecimal(raw.available);
     const margin = parseDecimal(raw.margin);
     const frozen = parseDecimal(raw.frozen);
@@ -592,6 +663,38 @@ class AccountManager {
     if (idx !== -1) this.assets[idx] = newAsset;
     else this.assets.push(newAsset);
     this.notifyListeners();
+  }
+
+  /**
+   * The USDT balance *for the given mode*, or undefined when the snapshot on
+   * hand is not that mode's (BUG-0565) — a wrong-mode value is a correctness
+   * bug the gate must never measure against, so callers take the existing
+   * unmeasured path (IDEA-0563: recorded skip for an entry, refusal for an
+   * add) instead of an ambient array find.
+   */
+  readUsdtBalance(mode: AccountSnapshotMode): { available: Decimal; total: Decimal; at: number } | undefined {
+    if (this.#snapshotMode !== mode) return undefined;
+    const asset = this.assets.find((a) => a.currency === "USDT");
+    if (asset === undefined) return undefined;
+    return { available: asset.available, total: asset.total, at: this.#snapshotAt ?? 0 };
+  }
+
+  /**
+   * Demote the live measurement when the private WS connection loses auth
+   * (socket close, heartbeat/watchdog failure, connection timeout) — called
+   * from the WS services' private-teardown paths. The value stays for
+   * display; the qualified read stops trusting it, so the IDEA-0563
+   * unmeasured path engages until the next wallet push or REST poll
+   * re-stamps it.
+   *
+   * Only demotes a live measurement: a paper snapshot is authoritative by
+   * construction (the simulator ticks it every second) and must never be
+   * talked round by a socket event.
+   */
+  markBalanceUnmeasured() {
+    if (this.#snapshotMode !== "live") return;
+    this.#snapshotMode = undefined;
+    this.#snapshotAt = undefined;
   }
 
   /** Live sum of every open position's unrealized PnL — updates as the position channel pushes. */

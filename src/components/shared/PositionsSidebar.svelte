@@ -319,7 +319,7 @@
     if (paper) {
       if (!positionsReadOrder.mayApply(ticket)) return;
       errorPositions = "";
-      accountState.hydratePositions(paper.positions());
+      accountState.hydratePositions(paper.positions(), "paper");
       return;
     }
 
@@ -372,7 +372,7 @@
         // data.positions` assignment used to silently violate the Position
         // type (string fields, no positionId), which both risked a render
         // crash and broke matching against subsequent WS position pushes.
-        accountState.hydratePositions(data.positions);
+        accountState.hydratePositions(data.positions, "live");
       }
     } catch {
       // A stale failure must not clear a fresher snapshot's state either.
@@ -388,7 +388,7 @@
     const paper = paperAccountFeed();
     if (paper) {
       errorOrders = "";
-      accountState.hydrateOpenOrders(paper.pendingOrders());
+      accountState.hydrateOpenOrders(paper.pendingOrders(), "paper");
       return;
     }
 
@@ -423,7 +423,7 @@
         // this list is live afterwards (WS order-channel pushes update it),
         // instead of a snapshot that never changes until the tab is
         // revisited.
-        accountState.hydrateOpenOrders(data.orders || []);
+        accountState.hydrateOpenOrders(data.orders || [], "live");
       }
     } catch {
       errorOrders = $_("apiErrors.failedToLoadOrders");
@@ -591,7 +591,7 @@
         available: info.available,
         margin: info.margin,
         frozen: info.frozen,
-      });
+      }, "paper");
       accountState.setPositionMode(info.positionMode);
       return;
     }
@@ -659,7 +659,7 @@
             available: String(data.available),
             margin: String(data.margin),
             frozen: String(data.frozen),
-          });
+          }, "live");
           // FEAT-0068: the trade panel offers this as an editable control, and
           // this snapshot is the only place it arrives. Shared through the
           // store rather than re-fetched there.
