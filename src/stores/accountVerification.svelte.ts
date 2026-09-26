@@ -92,12 +92,31 @@ export const VERIFICATION_FRESH_MS = 5 * 60_000;
  *
  * `ensureCurrent` only short-circuits on `verified`, so a `rejected` or
  * `unreachable` account is re-read every time a consumer's effect re-runs — and
- * those effects read the credential fields, so a key being typed into fires one
- * per keystroke. Without a floor, a wrong key becomes a request loop. This is
- * the same reasoning as the refresh floors the REST clients use: a verdict that
- * did not change is not worth a signed request to re-learn.
+ * those effects read the credential fields, so typing into a key field fires one
+ * per keystroke. Without a floor, a wrong key becomes a request loop, and a
+ * half-typed one becomes a loop per character.
+ *
+ * Bounds the repeat, not the possibility of a fresh read: a rotated key in an
+ * already-filled credential set, or a verdict that has expired, is read straight
+ * away. See `isCoolingDown`, which is where the two cases are told apart.
  */
 export const RETRY_FLOOR_MS = 15_000;
+
+/**
+ * How long a consumer waits after a credential field changes before asking.
+ *
+ * The credential inputs are text fields, and the panel watches all three, so
+ * every keystroke re-runs its effect. Each one is a different fingerprint as far
+ * as the store is concerned — a rotated key and a key mid-word are the same
+ * event — and a read is a signed request, so the cost of asking on every
+ * character is a request per character. Long enough that a pasted or typed
+ * credential produces one read at the end of it rather than one per keypress,
+ * short enough that the verdict still feels immediate.
+ *
+ * A consumer's choice, not the store's: the store holds no timers, and a
+ * consumer that watches something other than a text field can ask directly.
+ */
+export const VERIFICATION_INPUT_DEBOUNCE_MS = 400;
 
 /**
  * How often the store's clock advances so freshness can expire on its own.
@@ -164,10 +183,17 @@ export interface AccountVerificationRecord {
     /**
      * The venue's error code, when it named one.
      *
-     * The *venue's* code and nothing else. A thrown `TypeError` from the
-     * transport is not one, so it goes to the log at the catch site instead of
-     * into state that a message would render — a field here that nothing reads
-     * is a field waiting to be rendered by someone who does not know that.
+     * The *venue's* code and nothing else.
+     *
+     * A thrown `TypeError` from the transport is not one, so that goes to the
+     * log at the catch site instead — the distinction is why this field may
+     * exist at all: it is the venue's own answer, not ours.
+     *
+     * No message renders it yet, and that is a deliberate gap rather than an
+     * oversight. The card shows a translated refusal, and a bare `10001` helps
+     * nobody; what would help is a mapped one. It stays because it is the input
+     * such a message needs, and a venue code is safe to render once it has one —
+     * unlike the transport text, which is ours and never will be.
      */
     errorCode?: string | number;
 }
@@ -473,21 +499,32 @@ class AccountVerificationStore {
     /**
      * Whether the last read for this account is still inside its retry floor.
      *
-     * Suppresses a *repeat* of a read that already failed on these same
-     * credentials, so a key the venue keeps rejecting cannot become a request
-     * loop — the effects that call `ensureCurrent` read the credential fields,
-     * so without a floor every keystroke would spend a signed request.
+     * Suppresses a *repeat* of a read that already ran on these same
+     * credentials. The floor exists because the effects that call
+     * `ensureCurrent` read the credential fields to stay reactive, so without
+     * one a key the venue keeps rejecting would be re-read on every keystroke.
      *
-     * A different credential set is not a repeat. The trader has just pasted a
-     * new key, and "does this one work?" is the question they are asking, so the
-     * floor does not apply to it — otherwise a rotation would sit unverified for
-     * the whole window.
+     * A different credential set is a different question, not a repeat: the
+     * trader has just pasted or rotated a key, and "does this one work?" is what
+     * they are asking. Read straight away, floor or not.
+     *
+     * What this does *not* bound is typing into a field that already has
+     * content. Every character changes the fingerprint, so each one is a
+     * "different set" and each one spends a signed read — the read is never
+     * issued for a half-empty set at all, because both callers check
+     * completeness first, so "still typing" cannot be recognised from here. The
+     * consumers debounce their own calls instead; see the effect in
+     * `PlaceOrderPanel`.
      */
     isCoolingDown(subject: VerificationSubject): boolean {
         const record = this.records[recordKey(subject)];
         if (!record || record.lastAttemptAt === null) return false;
+        // The window itself, for every branch: an expired verdict has to be
+        // re-readable even when the credentials are the same ones, or a
+        // `stale` account would sit unverified for the rest of the session.
+        if (correctedNow() - record.lastAttemptAt >= RETRY_FLOOR_MS) return false;
         if (record.attemptFingerprint !== credentialFingerprint(subject.keys)) return false;
-        return correctedNow() - record.lastAttemptAt < RETRY_FLOOR_MS;
+        return true;
     }
 
     /**

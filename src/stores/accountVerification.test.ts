@@ -267,7 +267,7 @@ describe("accountVerification", () => {
     });
 
     describe("rejected", () => {
-        it("keeps the venue's error code for the message to use", () => {
+        it("keeps the venue's own error code, which no message renders yet", () => {
             const s = subject();
             accountVerification.recordFailure(s, "rejected", {
                 ...settled(s),
@@ -306,7 +306,9 @@ describe("accountVerification", () => {
             expect(record?.errorCode).toBeUndefined();
             expect(record?.failure).toBe("unreachable");
             expect(record).not.toHaveProperty("transportDetail");
-            // …and the reason is not lost, it is just not in renderable state.
+            // …and the call site does run. What survives it in a production
+            // build is a separate matter: `logger.debug` is DEV-gated, so this
+            // pins the wiring, not a durable record.
             expect(loggerMock.debug).toHaveBeenCalled();
         });
     });
@@ -718,11 +720,40 @@ describe("accountVerification", () => {
     });
 
     describe("accountEpoch", () => {
-        it("is the guard verifyAccount drops a superseded verdict by", () => {
-            // Named here so the dependency is deliberate: the read is async and
-            // the user can switch accounts inside it, exactly as in BUG-0551.
-            expect(typeof accountEpoch.current).toBe("function");
-            expect(typeof accountEpoch.isCurrent).toBe("function");
+        it("drops a verdict whose session rotated while the read was in flight", async () => {
+            // The read is async and the user can switch accounts inside it,
+            // exactly as in BUG-0551. Two early returns guard the writes, and
+            // the cross-account-blending defence rests entirely on them — so this
+            // is where a behavioural test belongs, not a shape assertion on the
+            // import.
+            installAccount();
+            const restore = accountEpoch.seq;
+            let settle!: () => void;
+            signedFetch.mockImplementation(async () => {
+                await new Promise<void>((resolve) => {
+                    settle = resolve;
+                });
+                return envelope({ success: true, data: { available: "1" } });
+            });
+
+            try {
+                const read = verifyAccount("bitunix");
+                await vi.waitFor(() => expect(exchangeSignedFetch).toHaveBeenCalled());
+                accountEpoch.rotate("account-switch");
+                settle();
+                await read;
+
+                // The response describes an account the user has already left, so
+                // no verdict about it may be written. The record keeps the
+                // in-flight state the claim left behind — there is no verdict,
+                // and the next read replaces it.
+                const record = accountVerification.recordFor(subject());
+                expect(record?.checkedAt).toBeNull();
+                expect(record?.status).not.toBe("verified");
+                expect(record?.status).not.toBe("rejected");
+            } finally {
+                accountEpoch.seq = restore;
+            }
         });
     });
 });

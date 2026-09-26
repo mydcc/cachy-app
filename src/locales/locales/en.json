@@ -4451,7 +4451,9 @@
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max}).",
       "accountUnverified": "Credentials unverified — the private account is still being checked.",
-      "accountCredentialsMissing": "No API credentials configured — paper trading needs no account."
+      "accountCredentialsMissing": "No API credentials configured.",
+      "accountCredentialsIncomplete": "Credentials incomplete — a required field is empty.",
+      "accountPassphraseMissing": "Credentials incomplete — Bitget also requires a passphrase."
     },
     "timeInForceNone": "—",
     "exchangeOrderTp": "Exchange Order TP",

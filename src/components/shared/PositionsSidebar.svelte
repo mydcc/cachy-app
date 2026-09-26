@@ -854,7 +854,15 @@
     // because this guard meant a switch to an account with no credentials
     // never invalidated anything, and the previous account's data stayed on
     // screen under the new account's name.
-    if (keys?.key && keys?.secret) {
+    // `hasCompleteCredentials` and not a hand-rolled "key and secret" test:
+    // this condition is also this effect's dependency list, so it has to read
+    // every field a verdict depends on. Reading only two of them left a
+    // passphrase-only edit on a Bitget account marking the verdict stale while
+    // re-triggering nothing — the panel then reported a check in progress with
+    // none running, and live entry stayed blocked until an unrelated keystroke.
+    // The helper reads the passphrase exactly when the venue needs one, so a
+    // passphrase edit on a Bitunix account still costs nothing.
+    if (keys && hasCompleteCredentials(keys, provider)) {
       untrack(() => {
         fetchAccount("keys");
         fetchPositions();

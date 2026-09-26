@@ -58,28 +58,37 @@ const verificationMock = vi.hoisted(() => ({
     // Varies so the panel's message can be told apart by *why* it is blocked:
     // a blank key field and a complete set nobody has read yet are both
     // `unconfigured` and deserve different sentences.
-    keys: { key: "k", secret: "s" } as { key: string; secret: string },
+    keys: { key: "k", secret: "s" } as {
+        key: string;
+        secret: string;
+        passphrase?: string;
+    },
+    exchange: "bitunix" as "bitunix" | "bitget",
     ensureCurrent: vi.fn(async () => undefined),
     startClock: vi.fn(() => () => undefined),
 }));
+// Whether there is an account at all, which is a different fact from a blank
+// field: one has nothing to fill in, the other has something half-filled.
+const subjectMock = vi.hoisted(() => ({ present: true }));
 vi.mock("../../stores/accountVerification.svelte", async () => {
-    const { credentialPresence: realPresence } = await import(
-        "../../stores/accountVerification.svelte"
-    );
+    const actual = await import("../../stores/accountVerification.svelte");
     return {
         accountVerification: {
             statusFor: () => verificationMock.status,
             startClock: verificationMock.startClock,
         },
-        subjectFor: () => ({
-            id: "acct-1",
-            exchange: "bitunix",
-            keys: verificationMock.keys,
-        }),
-        credentialPresence: (subject: {
-            keys: { key: string; secret: string };
-            exchange: "bitunix" | "bitget";
-        }) => realPresence(subject as never),
+        subjectFor: () =>
+            subjectMock.present
+                ? {
+                      id: "acct-1",
+                      exchange: verificationMock.exchange,
+                      keys: verificationMock.keys,
+                  }
+                : null,
+        // The real predicate, so the panel's message is exercised against the
+        // rule and not against a stub that could agree with anything.
+        credentialPresence: actual.credentialPresence,
+        VERIFICATION_INPUT_DEBOUNCE_MS: actual.VERIFICATION_INPUT_DEBOUNCE_MS,
         ensureCurrent: verificationMock.ensureCurrent,
     };
 });
@@ -204,6 +213,9 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import PlaceOrderPanel from "./PlaceOrderPanel.svelte";
+import { readFileSync } from "node:fs";
+// From the mocked module, so the test and the component agree on the window.
+import { VERIFICATION_INPUT_DEBOUNCE_MS } from "../../stores/accountVerification.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -227,6 +239,8 @@ beforeEach(() => {
     paperStateMock.enabled = false;
     verificationMock.status = "verified";
     verificationMock.keys = { key: "k", secret: "s" };
+    verificationMock.exchange = "bitunix";
+    subjectMock.present = true;
     mockSymbolMetaStore.symbolMeta = { BTCUSDT: { ...TRADABLE } };
     mockTradeData.positionSize = new Decimal("0.02");
     mockTradeData.entryPrice = new Decimal("50000");
@@ -286,18 +300,55 @@ describe("BUG-0560 — live entry waits for a private-account verdict", () => {
         expect(submitButton().disabled).toBe(true);
     });
 
-    it("tells a trader with a blank key to add one, not that a check is running", async () => {
-        // The credential field is empty: there is genuinely nothing to verify.
+    it("names the empty field instead of claiming a check is running", async () => {
+        // A field is empty: there is genuinely nothing to verify, and the message
+        // must be about the field rather than about a check.
         verificationMock.status = "unconfigured";
         verificationMock.keys = { key: "", secret: "" };
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
         expect(host.textContent).toContain(
+            lookup("orderEntry.errors.accountCredentialsIncomplete"),
+        );
+        expect(host.textContent).not.toContain(lookup("orderEntry.errors.accountUnverified"));
+        // A Bitunix trader has never seen a passphrase field; naming one would be
+        // a worse wrong answer than the one it replaced.
+        expect(host.textContent).not.toContain(
+            lookup("orderEntry.errors.accountPassphraseMissing"),
+        );
+    });
+
+    it("says no credentials at all when there is no account for the venue", async () => {
+        // `subjectFor` returns null here, which is a different fact from a blank
+        // field: there is nothing to fill in.
+        verificationMock.status = "unconfigured";
+        subjectMock.present = false;
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(host.textContent).toContain(
             lookup("orderEntry.errors.accountCredentialsMissing"),
         );
+    });
+
+    it("names the missing passphrase instead of claiming there are no credentials", async () => {
+        // A Bitget account with a key and a secret and no passphrase has
+        // credentials. Told "no API credentials configured", a trader deletes
+        // the two fields that were fine. The panel reads its venue from
+        // settings, so that is what has to say bitget — not the subject.
+        verificationMock.status = "unconfigured";
+        settings.apiProvider = "bitget";
+        verificationMock.exchange = "bitget";
+        verificationMock.keys = { key: "k", secret: "s" };
+        component = mount(PlaceOrderPanel, { target: host }) as never;
+        await settle();
+
+        expect(host.textContent).toContain(
+            lookup("orderEntry.errors.accountPassphraseMissing"),
+        );
         expect(host.textContent).not.toContain(
-            lookup("orderEntry.errors.accountUnverified"),
+            lookup("orderEntry.errors.accountCredentialsMissing"),
         );
     });
 
@@ -306,7 +357,7 @@ describe("BUG-0560 — live entry waits for a private-account verdict", () => {
         // complete credential set that has no verdict yet — the state before a
         // first read, and the state of every account for a moment after a
         // session rotation. Saying "no API credentials configured" here would
-        // point a trader with a working key at paper mode.
+        // point a trader with a working key away from the problem.
         verificationMock.status = "unconfigured";
         verificationMock.keys = { key: "k", secret: "s" };
         component = mount(PlaceOrderPanel, { target: host }) as never;
@@ -387,11 +438,66 @@ describe("BUG-0560 — live entry waits for a private-account verdict", () => {
         expect(stopClock).toHaveBeenCalledTimes(1);
     });
 
-    it("asks for a verdict while the panel is on screen", async () => {
-        component = mount(PlaceOrderPanel, { target: host }) as never;
-        await settle();
+    it("waits for typing to settle before asking, so a burst is one read", async () => {
+        // The credential fields are text inputs and this effect watches all
+        // three, so every keystroke re-runs it. A read is a signed request, and
+        // the store cannot tell a rotated key from a key mid-word — so the
+        // debounce lives here, where the keystrokes are.
+        vi.useFakeTimers();
+        try {
+            component = mount(PlaceOrderPanel, { target: host }) as never;
+            flushSync();
+            expect(verificationMock.ensureCurrent).not.toHaveBeenCalled();
 
-        expect(verificationMock.ensureCurrent).toHaveBeenCalled();
+            vi.advanceTimersByTime(VERIFICATION_INPUT_DEBOUNCE_MS + 10);
+            await Promise.resolve();
+            expect(verificationMock.ensureCurrent).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("watches every credential field, because the fingerprint hashes all three", () => {
+        // A source scan, deliberately. The claim is about which fields the effect
+        // *depends on*, and that cannot be exercised through a mock: `subjectFor`
+        // here returns a plain object, which no edit can make reactive, so the
+        // effect would not re-run with or without these reads. What is testable is
+        // the dependency list itself — and the panel missing it is exactly the
+        // bug it was: a passphrase-only edit on a Bitget account made the verdict
+        // stale, re-asked nothing, and left live entry blocked behind a
+        // "still being checked" that was checking nothing.
+        //
+        // Both readers, because both are the only thing that re-asks.
+        const panel = readFileSync("src/components/results/PlaceOrderPanel.svelte", "utf8");
+        expect(panel).toMatch(/void verificationSubject\?\.keys\.key;/);
+        expect(panel).toMatch(/void verificationSubject\?\.keys\.secret;/);
+        expect(panel).toMatch(/void verificationSubject\?\.keys\.passphrase;/);
+
+        const sidebar = readFileSync("src/components/shared/PositionsSidebar.svelte", "utf8");
+        // The sidebar's condition is its dependency list as well, so it has to go
+        // through the helper that reads the passphrase rather than a hand-rolled
+        // key-and-secret test.
+        expect(sidebar).toMatch(/if \(keys && hasCompleteCredentials\(keys, provider\)\) \{/);
+    });
+
+    it("asks for a verdict while the panel is on screen, once typing settles", async () => {
+        // Fake timers before the mount: the effect schedules its debounce as it
+        // runs, and a real timer scheduled first would not be the one advanced.
+        // The debounce is this panel's half of the per-keystroke bound — the
+        // store cannot tell a rotated key from a key mid-word, because a read is
+        // never issued for a half-empty set at all.
+        vi.useFakeTimers();
+        try {
+            component = mount(PlaceOrderPanel, { target: host }) as never;
+            flushSync();
+            expect(verificationMock.ensureCurrent).not.toHaveBeenCalled();
+
+            vi.advanceTimersByTime(VERIFICATION_INPUT_DEBOUNCE_MS + 10);
+            await Promise.resolve();
+            expect(verificationMock.ensureCurrent).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("leaves a refused credential to the gate, which names the venue's reason", async () => {

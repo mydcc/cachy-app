@@ -4451,7 +4451,9 @@
       "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
       "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max}).",
       "accountUnverified": "Zugangsdaten nicht bestätigt — Privatkonto wird geprüft.",
-      "accountCredentialsMissing": "Keine Zugangsdaten hinterlegt — im Papierhandel ist kein Konto erforderlich."
+      "accountCredentialsMissing": "Keine Zugangsdaten hinterlegt.",
+      "accountCredentialsIncomplete": "Zugangsdaten unvollständig — ein Pflichtfeld ist leer.",
+      "accountPassphraseMissing": "Zugangsdaten unvollständig — für Bitget wird zusätzlich eine Passphrase benötigt."
     },
     "timeInForceNone": "—",
     "exchangeOrderTp": "Börsen-Order-TP",

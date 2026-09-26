@@ -278,20 +278,18 @@
        expired verdict would promise a resolution that no read is on its way to
        deliver. The animation moves nothing for a screen reader, which gets the
        same words from `aria-label` either way. */
+    /* BUG-0560: a read in flight, an expired verdict and a venue that could not
+       be reached are three unknowns, and the third is a connection problem
+       rather than an accusation — it wears the same amber as the other two,
+       because the label beside it already said so. */
     .status-dot.verifying,
-    .status-dot.stale {
+    .status-dot.stale,
+    .status-dot.unreachable {
         background: var(--warning-color);
         opacity: 1;
     }
     .status-dot.verifying {
         animation: status-pulse 1.6s ease-in-out infinite;
-    }
-    /* BUG-0560: a venue that could not be reached is a connection problem, not a
-       rejected key, so it wears the connection colour. The label beside it
-       already said so; this is the half that was still accusing. */
-    .status-dot.unreachable {
-        background: var(--warning-color);
-        opacity: 1;
     }
     .status-dot.rejected {
         background: var(--danger-color);

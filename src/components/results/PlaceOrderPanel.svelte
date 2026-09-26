@@ -40,6 +40,7 @@
     credentialPresence,
     ensureCurrent,
     subjectFor,
+    VERIFICATION_INPUT_DEBOUNCE_MS,
   } from "../../stores/accountVerification.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { resultsState } from "../../stores/results.svelte";
@@ -255,36 +256,66 @@
   //
   // `rejected` is the one state left open, on purpose: the gate has something
   // better to say about it than this panel could — the venue's own refusal,
-  // which names the actual problem.
+  // which names the actual problem. That reasoning is about `failure:
+  // "rejected"`, where the venue named a reason; for `failure: "unreachable"`
+  // there is nothing to pass on, and this panel stays silent anyway rather than
+  // duplicating the card's wording. If it ever does word that state, the
+  // exemption needs revisiting rather than inheriting this sentence.
   const accountUnverified = $derived(
     !paperState.enabled &&
       accountVerificationStatus !== "verified" &&
       accountVerificationStatus !== "rejected",
   );
 
-  // Whether the trader has something to verify at all. Not the same question as
-  // the status above: `unconfigured` covers a complete credential set that
-  // nobody has read yet — the ordinary state before a first read, and the state
-  // of every account for a moment after a session rotation — and telling those
-  // traders they have no credentials would be wrong in the one case they are
-  // most likely to hit.
+  // Why live entry is blocked, when the reason is the credentials themselves.
+  // Three situations, three sentences, because they are three different problems
+  // and this panel used to fold them into one. A Bitget account with a key and a
+  // secret and no passphrase is missing the one field its venue needs, and
+  // telling it "no API credentials configured" invites a trader to delete the two
+  // fields that were fine.
   const credentialsPresence = $derived(
     credentialPresence(verificationSubject),
   );
-  const accountCredentialsMissing = $derived(
-    credentialsPresence !== "present",
-  );
+  const credentialIssue = $derived.by(() => {
+    if (credentialsPresence === "none") return "none";
+    if (credentialsPresence !== "incomplete") return null;
+    // The passphrase only exists on the Bitunix form's absence; a Bitget
+    // trader has never seen one and would not know what to type.
+    return exchange === "bitget" ? "passphrase" : "incomplete";
+  });
 
   // Make sure a verdict exists whenever the panel is on screen, so the state
   // above resolves to something instead of staying unknown until the trader
-  // presses a disabled button. Cheap when a verdict is current; one signed
-  // read when it is missing, expired or about edited credentials.
+  // presses a disabled button. Cheap when a verdict is current; one signed read
+  // when it is missing, expired or about edited credentials.
+  //
+  // All three credential fields are read, not just the key, because this effect
+  // is the only thing that re-asks. The fingerprint hashes all three, so editing
+  // the passphrase on its own does make the verdict stale — and with the key as
+  // the only dependency, nothing re-ran: the panel reported a check in progress
+  // while none was running, and live entry stayed blocked until an unrelated
+  // keystroke or an account switch.
+  //
+  // Debounced, because these reads are signed and the fields being watched are
+  // text inputs. Every character typed into a field that already has content
+  // changes the fingerprint, so every character is a different credential set as
+  // far as the store is concerned, and it would spend one request per keystroke.
+  // Waiting for the typing to settle asks the same question once. The store's
+  // own retry floor cannot do this: it has no way to tell a rotated key from a
+  // key mid-keystroke, because a read is never issued for a half-empty set at all.
   $effect(() => {
     if (paperState.enabled) return;
     void verificationSubject?.id;
     void verificationSubject?.keys.key;
+    void verificationSubject?.keys.secret;
+    void verificationSubject?.keys.passphrase;
     void accountVerificationStatus;
-    untrack(() => void ensureCurrent(exchange === "bitget" ? "bitget" : "bitunix"));
+    const provider = exchange === "bitget" ? "bitget" : "bitunix";
+    const handle = setTimeout(
+        () => untrack(() => void ensureCurrent(provider)),
+        VERIFICATION_INPUT_DEBOUNCE_MS,
+    );
+    return () => clearTimeout(handle);
   });
 
   // Owns the store's clock. This panel is mounted unconditionally by the app
@@ -631,7 +662,11 @@
       </div>
     {:else if accountUnverified}
       <p class="note warn" role="status">
-        {#if accountCredentialsMissing}
+        {#if credentialIssue === "passphrase"}
+          {$_("orderEntry.errors.accountPassphraseMissing")}
+        {:else if credentialIssue === "incomplete"}
+          {$_("orderEntry.errors.accountCredentialsIncomplete")}
+        {:else if credentialIssue === "none"}
           {$_("orderEntry.errors.accountCredentialsMissing")}
         {:else}
           {$_("orderEntry.errors.accountUnverified")}

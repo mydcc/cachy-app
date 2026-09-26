@@ -246,15 +246,29 @@ describe("BUG-0560 — the credential card reports what the venue said", () => {
     });
 
     it("gives every state an accessible name", async () => {
-        const a = account();
-        accountVerification.recordFailure(subjectFor(a), "rejected", { ...settled(a), errorCode: "10001" });
-        await render({ account: a });
+        // Looped, not sampled. Six keys, six sentences, and a screen reader is
+        // the only consumer of all of them — a missing one is invisible to every
+        // other assertion in this file, and a dotted key path would render as
+        // literal text in the title.
+        const refused = account({ id: "acct-1" });
+        accountVerification.recordFailure(subjectFor(refused), "rejected", {
+            ...settled(refused),
+            errorCode: "10001",
+        });
+        const dropped = account({ id: "acct-2" });
+        accountVerification.recordFailure(subjectFor(dropped), "unreachable", settled(dropped));
+        const working = account({ id: "acct-3" });
+        accountVerification.recordSuccess(subjectFor(working), settled(working));
+        const inFlight = account({ id: "acct-4" });
+        accountVerification.readIssued(subjectFor(inFlight), credentialFingerprint(inFlight.keys));
 
-        const label = dot().getAttribute("aria-label") ?? "";
-        expect(label).toBeTruthy();
-        // Not a dotted key path: the wording has to survive into the UI.
-        expect(label).not.toContain("verifyStatus");
-        expect(dot().getAttribute("role")).toBe("img");
+        for (const candidate of [refused, dropped, working, inFlight, account({ id: "acct-5" })]) {
+            await render({ account: candidate });
+            const label = dot().getAttribute("aria-label") ?? "";
+            expect(label).toBeTruthy();
+            expect(label).not.toContain("verifyStatus");
+            expect(dot().getAttribute("role")).toBe("img");
+        }
     });
 
     it("shows no green for a Bitget account whose passphrase is missing", async () => {
