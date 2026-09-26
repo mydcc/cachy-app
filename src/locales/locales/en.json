@@ -4122,7 +4122,8 @@
   "orderGate": {
     "title": "Order refused",
     "mismatch": "Order refused: {field} does not match what was displayed (expected {expected}, got {actual}). The order was not sent.",
-    "sessionChanged": "Order refused: {field} changed while the request was being signed (was {expected}, now {actual}). The order was not sent — check the account and the paper/live switch, then place it again.",
+    "sessionChanged": "Order refused: {field} changed while the request was being signed (was {expected}, now {actual}). The order was not sent — place it again in the current context.",
+    "sessionRotated": "Order refused: the account session changed while the request was being signed. The order was not sent — place it again in the current context.",
     "missing": "Order refused: {field} is missing from the order, so it could not be verified. The order was not sent.",
     "sizeMismatch": "Order refused: the size does not match a fresh calculation (expected {expected}, got {actual}, tolerance {tolerance}). The order was not sent.",
     "stale": "Order refused: the account state ({field}) is {age}s old, older than the {max}s limit. Refresh it and try again.",
@@ -4167,7 +4168,6 @@
       "price": "the entry price",
       "qty": "the position size",
       "reduceOnly": "the reduce-only flag",
-      "session": "the account session",
       "side": "the direction",
       "stepSize": "the step size",
       "stopLoss": "the stop loss",

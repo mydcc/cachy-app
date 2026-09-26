@@ -132,7 +132,7 @@ const READ_BACK_ATTEMPTS = 3;
 const READ_BACK_DELAYS_MS = [700, 2000];
 
 /**
- * BUG-0551 — the last thing that happens before a write leaves the device.
+ * BUG-0551 — the last check before a write leaves the device.
  *
  * Everything the transport decides is decided synchronously: the provider,
  * the account whose keys sign the request, the paper/live branch. The one
@@ -148,30 +148,35 @@ const READ_BACK_DELAYS_MS = [700, 2000];
  * both sides in the same synchronous block — a switch that happens one await
  * later is invisible to it.
  *
- * So the context is read once, kept, and compared again here, at the only
- * place left that is genuinely later than the decision. Two layers, because
- * they fail differently: the session token catches a rotation whose fields
- * came back unchanged (switch away and back while signing), and the field
- * comparison catches a context write that never rotated one.
+ * So the context is read once, kept, and compared again at the point where
+ * the bytes go out. Two layers, because they fail differently: the session
+ * token catches a rotation whose fields came back unchanged (switch away and
+ * back while signing), and the field comparison catches a context write that
+ * never rotated one.
+ *
+ * The check rides `appFetch`'s per-attempt hook rather than this wrapper's
+ * body. Signing is not the last await in the dispatch path: `appFetch` awaits
+ * the token restore, may issue a token, and on a client-token 401 issues
+ * another and tries again — and that retry is the attempt that reaches the
+ * venue. A check here would run once, before all of it.
  *
  * Read-only requests are deliberately untouched. A read that crosses the
- * boundary is stale, not dangerous — it cannot dispatch a write, and its late
- * answer is already dropped at the store write by the epoch guards in
- * `accountReadOrder` (BUG-0412, BUG-0419). Refusing it here would turn every
- * account switch into an error in the polling paths for no safety gain.
+ * boundary is stale, not dangerous — it cannot dispatch a write. The leverage,
+ * position-mode and account reads take a read-order ticket and drop a late
+ * answer at the store write (`accountReadOrder`, BUG-0412/BUG-0419); the two
+ * position-list reads do not, and BUG-0419 owns that gap. Refusing reads here
+ * would turn every account switch into an error in the polling paths for no
+ * safety gain.
  */
 function dispatchUnderSession(
     session: AccountSession,
-    expected: LiveContext,
+    expected: DispatchContext,
 ): (input: string, init?: RequestInit) => Promise<Response> {
-    return async (input, init) => {
-        assertSessionIntact(session, expected);
-        return appFetch(input, init);
-    };
+    return (input, init) => appFetch(input, init, () => assertSessionIntact(session, expected));
 }
 
 /** The part of a transport context that a switch can move. */
-type LiveContext = Pick<
+type DispatchContext = Pick<
     TransportContext,
     "provider" | "accountFingerprint" | "accountId" | "paperMode"
 >;
@@ -183,7 +188,7 @@ type LiveContext = Pick<
  * is venue-scoped, so reporting `activeAccountId` raw would name an account
  * the signature does not belong to.
  */
-function readLiveContext(): LiveContext {
+function readDispatchContext(): DispatchContext {
     const provider = settingsState.apiProvider;
     const account = activeAccountFor(
         settingsState.accounts,
@@ -204,13 +209,11 @@ function readLiveContext(): LiveContext {
  * Named after what actually changed rather than "invalid request": a mode
  * flip, a venue switch and an account switch are three different mistakes,
  * and the trader reading the toast is the one who has to know which one
- * happened. The session case has no field to name — the rotation is the fact
- * — so it reports the rotation itself.
+ * happened.
  */
 function sessionChangedRefusal(
-    expected: LiveContext,
-    current: LiveContext,
-    session: AccountSession,
+    expected: DispatchContext,
+    current: DispatchContext,
 ): OrderRefusedError {
     const changed = (
         field: string,
@@ -243,27 +246,37 @@ function sessionChangedRefusal(
     // The session rotated while every field it describes reads the same: the
     // trader went to another account and came back, or the credentials were
     // re-entered. The request would technically be safe, but nothing about it
-    // was verified against the context on screen now, so it is refused and the
-    // rotation is what the audit records.
-    return changed("session", String(session.seq), String(accountEpoch.current().seq));
+    // was verified against the context on screen now, so it is refused.
+    //
+    // Its own message rather than a field mismatch, because there is no field
+    // to name: naming one would point the trader at the account or the switch
+    // when neither is what moved, and interpolating the rotation counter would
+    // put an internal sequence number in front of them. `accountEpoch.rotate`
+    // already logs the sequence it moved to.
+    return new OrderRefusedError({
+        field: "session",
+        reason: "mismatch",
+        messageKey: "orderGate.sessionRotated",
+        values: { field: "session" },
+    });
 }
 
 /**
  * Whether the write may still go out, and throws the named refusal if not.
  *
  * Split from `dispatchUnderSession` so the rule is readable on its own: the
- * fetch wrapper is the seam, this is what it enforces.
+ * hook is the seam, this is what it enforces.
  */
-function assertSessionIntact(session: AccountSession, expected: LiveContext): void {
-    const current = readLiveContext();
+function assertSessionIntact(session: AccountSession, expected: DispatchContext): void {
+    const current = readDispatchContext();
     // Both layers, in this order. The session token catches a rotation whose
     // fields came back unchanged; the field comparison then catches a context
     // write that never rotated one — `settingsState` setters do not.
-    if (accountEpoch.isCurrent(session) && sameLiveContext(current, expected)) return;
-    throw sessionChangedRefusal(expected, current, session);
+    if (accountEpoch.isCurrent(session) && sameDispatchContext(current, expected)) return;
+    throw sessionChangedRefusal(expected, current);
 }
 
-function sameLiveContext(a: LiveContext, b: LiveContext): boolean {
+function sameDispatchContext(a: DispatchContext, b: DispatchContext): boolean {
     return (
         a.provider === b.provider &&
         a.accountId === b.accountId &&
@@ -669,7 +682,7 @@ class TradeService {
         // its own re-check. The paper guard above has the same gap it was
         // written to close — the switch that happens while the signature is
         // being computed is not the one it can see.
-        const context = readLiveContext();
+        const context = readDispatchContext();
 
         // Parsed here as well as in the route, and for the same reason the route
         // parses: `marginCoin` carries a default and `amount` a transform, so the

@@ -31,6 +31,13 @@
  * inside the real signer, so deferring it parks the request exactly between
  * the context read and the dispatch, with no module mocked away.
  *
+ * `appFetch` itself is real here. The BUG-0551 guard rides its per-attempt
+ * hook, so mocking it away would mock away the thing under test — and "no
+ * network request" would become unfalsifiable, since the mock's own body would
+ * be the boundary. The network assertion therefore sits on
+ * `globalThis.fetch`, one layer down, where a byte leaving the device is a
+ * `fetch` call and nothing else.
+ *
  * The three accounts exist so a switch has somewhere to switch *to*: two on
  * Bitunix (a bare id change) and one on Bitget (a venue change, which also
  * changes which key signs).
@@ -69,6 +76,11 @@ const settings = vi.hoisted(() => ({
     ],
     activeAccountId: "bx-one",
     journalPaperTrades: true,
+    // The real `appFetch` waits for these before its first attempt. A token is
+    // present so it never takes the token-issuing branch — that one is pinned
+    // in `appAuth.test.ts`.
+    appAccessToken: "test-app-token",
+    secretsReady: Promise.resolve(),
 }));
 vi.mock("../stores/settings.svelte", () => ({ settingsState: settings }));
 
@@ -76,12 +88,9 @@ vi.mock("./toastService.svelte", () => ({
     toastService: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }));
 
-const appFetchMock = vi.hoisted(() => vi.fn());
-vi.mock("../lib/appAuth", () => ({
-    appFetch: appFetchMock,
-    appAuthHeaders: () => ({}),
-}));
-
+// `../lib/appAuth` is deliberately NOT mocked: the guard rides `appFetch`'s
+// per-attempt hook, so a mocked `appFetch` would mock away the thing under
+// test. The network boundary asserted on is `globalThis.fetch` instead.
 import { tradeService } from "./tradeService";
 import { accountEpoch } from "./accountEpoch.svelte";
 import { paperTradingService } from "./paperTradingService";
@@ -123,6 +132,18 @@ function entryParams(origin: "manual" | "bot" = "manual") {
 let signingHeld = false;
 let reachedSigning: () => void = () => {};
 let releaseHeld: () => void = () => {};
+
+/**
+ * The one byte-level boundary: a `fetch` here is a request that left the
+ * device, with nothing between it and the wire.
+ */
+const networkFetch = vi.fn(
+    async (): Promise<Response> =>
+        new Response(JSON.stringify({ code: "0", data: {} }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+        }),
+);
 
 function holdSigning(): Promise<void> {
     signingHeld = true;
@@ -178,12 +199,8 @@ beforeEach(() => {
         return realDigest(algorithm, data);
     });
 
-    appFetchMock.mockResolvedValue({
-        ok: true,
-        status: 200,
-        text: async () => JSON.stringify({ code: "0", data: {} }),
-        json: async () => ({ code: "0", data: {} }),
-    });
+    vi.spyOn(globalThis, "fetch").mockImplementation(networkFetch);
+    networkFetch.mockClear();
 
     registerKillSwitch(null);
     registerRiskLimitCheck(null);
@@ -245,7 +262,7 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
     it("sends nothing when paper trading is switched on mid-signing", async () => {
         const outcome = await placeAcrossSwitch(() => paperTradingService.setEnabled(true));
 
-        expect(appFetchMock).not.toHaveBeenCalled();
+        expect(networkFetch).not.toHaveBeenCalled();
         expect(refusalOf(outcome)).toMatchObject({
             field: "mode",
             messageKey: "orderGate.sessionChanged",
@@ -259,7 +276,7 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
             settings.activeAccountId = "bx-two";
         });
 
-        expect(appFetchMock).not.toHaveBeenCalled();
+        expect(networkFetch).not.toHaveBeenCalled();
         expect(refusalOf(outcome)).toMatchObject({
             field: "account",
             messageKey: "orderGate.sessionChanged",
@@ -273,7 +290,7 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
             accountEpoch.rotate("venue-switch");
         });
 
-        expect(appFetchMock).not.toHaveBeenCalled();
+        expect(networkFetch).not.toHaveBeenCalled();
         expect(refusalOf(outcome)).toMatchObject({
             field: "exchange",
             messageKey: "orderGate.sessionChanged",
@@ -289,10 +306,10 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
             settings.activeAccountId = "bx-one";
         });
 
-        expect(appFetchMock).not.toHaveBeenCalled();
+        expect(networkFetch).not.toHaveBeenCalled();
         expect(refusalOf(outcome)).toMatchObject({
             field: "session",
-            messageKey: "orderGate.sessionChanged",
+            messageKey: "orderGate.sessionRotated",
         });
     });
 
@@ -303,7 +320,7 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
         releaseSigning();
         await placed;
 
-        expect(appFetchMock).toHaveBeenCalledTimes(1);
+        expect(networkFetch).toHaveBeenCalledTimes(1);
     });
 
     it("leaves a read-only request on its exact behaviour", async () => {
@@ -317,7 +334,7 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
         releaseSigning();
         await read;
 
-        expect(appFetchMock).toHaveBeenCalledTimes(1);
+        expect(networkFetch).toHaveBeenCalledTimes(1);
     });
 
     it("records the mode switch in the audit trail, not just the refusal", async () => {
@@ -355,10 +372,17 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
         releaseSigning();
         const outcome = await changed;
 
-        expect(appFetchMock).not.toHaveBeenCalled();
-        expect((outcome as { error?: { refusal?: { field: string } } }).error?.refusal).toMatchObject(
-            { field: "mode" },
-        );
+        expect(networkFetch).not.toHaveBeenCalled();
+        // The message key, not just the field: `assertGatePass`'s own paperMode
+        // check would also report `field: "mode"`, so only the key says this
+        // refusal came from the guard rather than from the gate.
+        expect(
+            (outcome as { error?: { refusal?: { field: string; messageKey: string } } }).error
+                ?.refusal,
+        ).toMatchObject({
+            field: "mode",
+            messageKey: "orderGate.sessionChanged",
+        });
     });
 
     it("keeps the bot paper-only refusal ahead of this one", async () => {
@@ -368,6 +392,6 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
             tradeService.placeOrder(entryParams("bot")),
         ).rejects.toMatchObject({ refusal: { messageKey: BOT_PAPER_ONLY_MESSAGE_KEY } });
 
-        expect(appFetchMock).not.toHaveBeenCalled();
+        expect(networkFetch).not.toHaveBeenCalled();
     });
 });

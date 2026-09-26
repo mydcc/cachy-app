@@ -4078,7 +4078,8 @@
   "orderGate": {
     "title": "Order abgelehnt",
     "mismatch": "Order abgelehnt: {field} stimmt nicht mit der Anzeige überein (erwartet {expected}, erhalten {actual}). Die Order wurde nicht gesendet.",
-    "sessionChanged": "Order abgelehnt: {field} hat sich während des Signierens geändert (zuvor {expected}, jetzt {actual}). Die Order wurde nicht gesendet — prüfe Konto und Paper/Live-Schalter und platziere sie erneut.",
+    "sessionChanged": "Order abgelehnt: {field} hat sich während des Signierens geändert (zuvor {expected}, jetzt {actual}). Die Order wurde nicht gesendet — platziere sie im aktuellen Kontext erneut.",
+    "sessionRotated": "Order abgelehnt: Die Kontositzung hat sich während des Signierens geändert. Die Order wurde nicht gesendet — platziere sie im aktuellen Kontext erneut.",
     "missing": "Order abgelehnt: {field} fehlt in der Order und konnte deshalb nicht geprüft werden. Die Order wurde nicht gesendet.",
     "sizeMismatch": "Order abgelehnt: Die Größe stimmt nicht mit einer frischen Berechnung überein (erwartet {expected}, erhalten {actual}, Toleranz {tolerance}). Die Order wurde nicht gesendet.",
     "stale": "Order abgelehnt: Der Kontostand ({field}) ist {age}s alt und damit älter als das Limit von {max}s. Bitte aktualisieren und erneut versuchen.",
@@ -4123,7 +4124,6 @@
       "price": "der Einstiegskurs",
       "qty": "die Positionsgröße",
       "reduceOnly": "das Reduce-Only-Flag",
-      "session": "die Kontositzung",
       "side": "die Richtung",
       "stepSize": "die Schrittweite",
       "stopLoss": "der Stop-Loss",
