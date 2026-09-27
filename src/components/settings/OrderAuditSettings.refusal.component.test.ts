@@ -75,10 +75,11 @@ function refusedOn(
     field: string,
     values: Record<string, string> = { field, expected: "BTCUSDT", actual: "ETHUSDT" },
     messageKey = "orderGate.mismatch",
+    reason: OrderRefusal["reason"] = "mismatch",
 ): OrderRefusal {
     return {
         field,
-        reason: "mismatch",
+        reason,
         messageKey,
         values,
     };
@@ -208,6 +209,7 @@ describe("BUG-0569 — the audit panel names a refusal the way a trader reads it
             "order",
             { action: "place-order", symbol: "BTCUSDT" },
             "orderGate.duplicateInFlight",
+            "duplicate",
         );
         orderAuditService.record(attempt(refusal));
         render();
