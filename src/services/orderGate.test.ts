@@ -33,6 +33,7 @@ import {
     registerKillSwitch,
     registerRiskLimitCheck,
     translateRefusal,
+    translateRefusalField,
     OrderRefusedError,
     MAX_ACCOUNT_STATE_AGE_MS,
     mutatingActionOf,
@@ -1344,6 +1345,64 @@ describe("orderGate — refusal messages", () => {
         const echo = (key: string, options?: { values?: Record<string, string> }) =>
             key === "orderGate.mismatch" ? `field=${options?.values?.field}` : key;
         expect(translateRefusal(refusal, echo)).toBe("field=takeProfit[0]");
+    });
+});
+
+// BUG-0569. The audit panel shows a refusal without the surrounding gate
+// sentence, so it needs the field half of `translateRefusal` on its own.
+// These pin that half's contract, and — the reason it is a separate export —
+// that it cannot disagree with the toast.
+describe("translateRefusalField", () => {
+    /** svelte-i18n's real behaviour: an unknown key comes back unchanged. */
+    const echo = (key: string) => key;
+    const withField = (field: string) => (key: string) =>
+        key === `orderGate.fields.${field}` ? "the position size" : key;
+
+    it("names a field the way a trader reads it, not the way the code does", () => {
+        expect(translateRefusalField("qty", withField("qty"))).toBe("the position size");
+    });
+
+    it("falls back to the raw name rather than a dotted key path", () => {
+        // "takeProfit[0]" is a real field value the gate produces and there is
+        // no `orderGate.fields.takeProfit[0]` entry, by design.
+        expect(translateRefusalField("takeProfit[0]", echo)).toBe("takeProfit[0]");
+        expect(translateRefusalField("takeProfit[0]", echo)).not.toContain("orderGate.fields");
+    });
+
+    it("treats an echoed key as untranslated, not as its own value", () => {
+        // The `t` below returns the key for everything, which is exactly what
+        // svelte-i18n does for a missing entry. Naively trusting the return
+        // value would print "orderGate.fields.qty" to the trader.
+        const t = (key: string) => key;
+        expect(translateRefusalField("qty", t)).toBe("qty");
+    });
+
+    it("passes an empty field through instead of looking up the root key", () => {
+        expect(translateRefusalField("", echo)).toBe("");
+    });
+
+    it("gives the toast and the panel the same word for the same field", () => {
+        // AC 3, as an invariant rather than a spot check: whatever the panel
+        // resolves, the toast's message must contain. The component test runs
+        // this over the shipped dictionary; here the stub keeps it pinned to
+        // the pure module, with no Svelte or JSON in the way.
+        for (const field of ["qty", "accountState", "takeProfit[0]"]) {
+            const t = (key: string, options?: { values?: Record<string, string> }) => {
+                if (key === `orderGate.fields.${field}`) return `the ${field}`;
+                if (key === "orderGate.mismatch") {
+                    return `Order refused: ${options?.values?.field} does not match.`;
+                }
+                return key;
+            };
+            const refusal = {
+                field,
+                reason: "mismatch",
+                messageKey: "orderGate.mismatch",
+                values: { field },
+            } as Parameters<typeof translateRefusal>[0];
+
+            expect(translateRefusal(refusal, t)).toContain(translateRefusalField(field, t));
+        }
     });
 });
 

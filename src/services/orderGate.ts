@@ -2174,6 +2174,28 @@ export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
 }
 
 /**
+ * The tradeer's word for a gate field name. "qty" is what the code calls it,
+ * "the position size" is what someone reading the audit trail needs.
+ *
+ * Exported because two surfaces show a refusal — the toast and the order audit
+ * panel — and they must not be able to disagree about a field's name. Both go
+ * through here, so a new field name is translated in one place or nowhere.
+ *
+ * Falls back to the raw name when there is no entry. svelte-i18n echoes an
+ * unknown key back, and a field like "takeProfit[0]" legitimately has none, so
+ * showing a dotted key path would be worse than showing the internal name.
+ */
+export function translateRefusalField(
+    field: string,
+    t: (key: string, options?: { values?: Record<string, string> }) => string,
+): string {
+    if (!field) return field;
+    const key = `orderGate.fields.${field}`;
+    const translated = t(key);
+    return translated && translated !== key ? translated : field;
+}
+
+/**
  * Renders a refusal in the user's language. Takes the translate function as
  * an argument rather than importing the i18n store, so the gate stays a pure
  * module that tests can exercise without a Svelte runtime.
@@ -2187,13 +2209,7 @@ export function translateRefusal(
 ): string {
     const values = { ...refusal.values };
     if (values.field) {
-        const translated = t(`orderGate.fields.${values.field}`);
-        // svelte-i18n echoes the key back when it has no entry — a field like
-        // "takeProfit[0]" legitimately has none, so fall back to the raw name
-        // rather than showing the user a dotted key path.
-        if (translated && translated !== `orderGate.fields.${values.field}`) {
-            values.field = translated;
-        }
+        values.field = translateRefusalField(values.field, t);
     }
     /*
      * FEAT-0024's refusal names an action, and it should read the way the

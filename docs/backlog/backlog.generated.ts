@@ -8415,7 +8415,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0569",
     "title": "Order audit panel shows the raw refusal field name",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/bug-0569-order-audit-refusal-field",
     "priority": "P3",
     "milestone": "none",
     "editions": [
