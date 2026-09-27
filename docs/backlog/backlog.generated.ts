@@ -3387,7 +3387,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0526",
     "title": "Explain the kill switch in Settings and make its behaviour configurable",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
