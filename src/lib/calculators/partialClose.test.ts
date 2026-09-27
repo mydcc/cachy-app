@@ -302,4 +302,3 @@ describe("FEAT-0573 — percentage and quantity describe the same slice", () => 
         expect(percentFromQuantity(bigger, qty).toString()).toBe("25");
     });
 });
-

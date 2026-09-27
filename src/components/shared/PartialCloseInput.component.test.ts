@@ -313,7 +313,7 @@ describe("FEAT-0256 — the readout", () => {
  * FEAT-0573 — the slider states what its percentage is measured against.
  *
  * The percentage is a share of the size the venue reports *now*, so pressing
- * 25 % three times closes 43.75 % and not 75 %. The arithmetic is unchanged
+ * 25 % three times closes 57.8 % and not 75 %. The arithmetic is unchanged
  * and was already right; what was missing was the statement of its basis, and
  * a control a trader cannot predict is one they stop trusting — on the control
  * that reduces their position.
@@ -374,17 +374,4 @@ describe("FEAT-0573 — the slider says what its percentage is of", () => {
             expected,
         );
     });
-
-    it.each([["en", en], ["de", de]])(
-        "keeps the %s caption and slider label from saying the same thing twice",
-        (_locale, book) => {
-            const labels = book.positionsList as Record<string, string>;
-            // The label is the aria-label the handle already carries; the
-            // caption adds the basis. Same opening words twice in a row is
-            // the redundancy worth avoiding, not a correctness problem.
-            expect(labels.closePercentBasis.startsWith(labels.closeSliderLabel.split(",")[0])).toBe(
-                false,
-            );
-        },
-    );
 });

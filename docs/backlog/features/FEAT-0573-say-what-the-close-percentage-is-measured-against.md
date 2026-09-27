@@ -22,7 +22,7 @@ depends_on: []
 The partial-close slider runs 0–100 % against the size the venue reports **now**. So
 closing 50 % of a 2-contract position leaves 1 contract, and a second 50 % closes 0.5 —
 half of the remainder, not half of the original. Three presses at 25 % therefore close
-43.75 % of the position, not 75 %.
+57.8 % of the position, not 75 %, leaving 42.2 % open.
 
 Nothing is wrong with that arithmetic. It is what the venue does, and
 `quantityFromPercent` in [`partialClose.ts`](../../../src/lib/calculators/partialClose.ts)
@@ -32,7 +32,7 @@ stored beside it, so the number on the handle and the number that would be submi
 cannot drift apart.
 
 The problem is that none of that is on screen. A trader used to a fixed ladder — 25/50/75/100
-read as cumulative marks — presses 25 % three times, sees 43.75 % of the position still
+read as cumulative marks — presses 25 % three times, sees 42.2 % of the position still
 open, and has no way to tell whether the control is broken or they are misreading it.
 `PartialCloseInput` already offers a typed absolute quantity for anyone who wants a
 specific size, so the capability exists; only the statement of what the slider means is

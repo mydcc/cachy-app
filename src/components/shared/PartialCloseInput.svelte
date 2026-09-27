@@ -220,7 +220,7 @@
     What the percentage is a share of — FEAT-0573.
 
     A percentage bound to a live position means a share of *what is left*, so
-    25 % pressed three times closes 43.75 %, not 75 %. The arithmetic is
+    25 % pressed three times closes 57.8 %, not 75 %. The arithmetic is
     unchanged and correct; without this line the control cannot be predicted
     from its own label, which is the one thing a position-reducing control has
     to offer. The wording names the size the venue reports now — the size can
