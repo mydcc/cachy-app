@@ -2,7 +2,10 @@
 id: BUG-0571
 title: The decimal audit cannot see a conversion passed by reference
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0571-decimal-audit-pattern
+shipped: unreleased
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -54,10 +57,33 @@ signal to stop extending the pattern list.
 
 ## Acceptance criteria
 
-- [ ] A fixture proves `prices.map(Number)` inside a `.svelte` script block is
+- [x] A fixture proves `prices.map(Number)` inside a `.svelte` script block is
       flagged and fails without the fix
-- [ ] The real audit over `src/` is clean, or every new hit carries a reason
-- [ ] The `## Fix` text in BUG-0534 no longer reads as a full-coverage claim
+- [x] The real audit over `src/` is clean, or every new hit carries a reason
+- [x] The `## Fix` text in BUG-0534 no longer reads as a full-coverage claim
+
+## What shipped
+
+`UNSAFE_PATTERN` in `scripts/audit-decimal.mjs` gained the narrow second
+alternative `\.map\(\s*(?:Number|parseFloat)\s*\)`, exactly as proposed — no
+more, no less. The fixture `scripts/__fixtures__/audit-decimal/map-reference/`
+holds both forms in one component script block; against the pre-fix script it
+yields zero violations (the RED run), after the fix two. The belt-and-braces
+grep in `audit.yml` stays untouched: it is a frozen copy of the original check
+on four legacy files, and the widened script covers those files too.
+
+**Triage: two hits, both marked, none converted.** The widened pattern flags
+exactly two lines across `src/`, both in `OrderHistoryList.svelte`
+(`customStartDate` / `customEndDate` split into year, month, day for
+`Date.UTC`). Calendar date parts feeding an epoch-ms range bound — the same
+non-financial class the script's own help text names — so both carry
+`// audit: safe` with that reason instead of a conversion.
+
+**The header no longer promises the old blind spot.** The "What this does not
+claim" paragraph in the script now names the general value-position shape as
+a parser's job and records `.map()` as the one reference form worth a regex.
+BUG-0534's `## Fix` gained the matching sentence, so neither text reads as a
+full-coverage claim anymore.
 
 ## Out of scope
 

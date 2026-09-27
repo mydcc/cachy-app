@@ -8455,7 +8455,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0571",
     "title": "The decimal audit cannot see a conversion passed by reference",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0571-decimal-audit-pattern",
+    "shipped": "unreleased",
     "priority": "P3",
     "milestone": "none",
     "editions": [
