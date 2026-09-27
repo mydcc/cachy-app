@@ -140,7 +140,6 @@ When unsure: follow existing code patterns; ask if it affects money paths, publi
 - [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `refactor`, `BREAKING CHANGE:` in footer).
 - **Commit message discipline (Linux-kernel style):** `subsystem: imperative summary, max ~72 chars, what + why` (e.g. `fix(positions): recompute PnL from live mark price`). One logical change per commit, one entry per PR — land PRs via squash-merge so the history stays readable without later filtering.
 - **Release notes are curated by hand.** `CHANGELOG.md` is maintained per stable release (Added / Changed / Fixed, user language, minor fixes omitted). A release PR adds its highlights there, verified against the diff — no plugin writes to that file.
-- **No tool-attribution footers.** Do not append `Co-Authored-By: Claude ...`, `Claude-Session: ...`, or similar agent-attribution lines to commit messages — they aren't part of Cachy's commit standard. Keep the message to the Conventional Commits format above.
 - **WIP commits on agent branches:** Commit work-in-progress every 30–60 minutes as `wip(<scope>): <what is done, what is open>` (e.g. `wip(alerts): panel renders, sentence still mocked`). Large uncommitted diffs stall the code index (Gortex dirty-overlay) and risk lost work on crashes or rebases. Squash-merge flattens history anyway, so no cleanup is needed. Agent task branches only — never on `develop`/`main`.
 - **Never push directly to `develop` or `main`.** Every change goes through a feature branch and a Pull Request; target branch is always `develop`.
 - **Push and open the PR without asking.** Push the feature branch (`git push -u origin <branch>`) and open a PR against `develop` without waiting for confirmation. Ask only when something is off (failing tests, unclear base, suspected secrets). Open as **Ready** by default — Draft only for known-unfinished work, with a one-line reason in the description. Never merge without explicit instruction.
@@ -162,7 +161,7 @@ Every agent doing code review follows the same checklist:
 
 ## Agent-to-Agent Communication & Tone in PR Comments
 
-When agents (Jules, Antigravity/Gemini, Claude Code, Codex, Cursor, etc.) review each other's PRs or reply to comments:
+When agents review each other's PRs or reply to comments:
 
 - **Language:** All PR comments MUST be written in **English**.
 - **Tone:** Relaxed, friendly, and collegial ("Peer-to-Peer Agent Collaboration"). No authoritative, preachy, or alarmist language.
@@ -174,7 +173,7 @@ When agents (Jules, Antigravity/Gemini, Claude Code, Codex, Cursor, etc.) review
 
 `docs/backlog/` is the single source of truth for upcoming work. This rule concerns **how a task comes about, not which agent it is** — there is no special role for any specific tool. Two modes:
 
-- **Autonomous/Unattended Selection** ("I'll see what's open in the backlog and solve it") — **no** agent does this, whether Jules, Antigravity, Cursor, Codex, or Claude Code. Instead:
+- **Autonomous/Unattended Selection** ("I'll see what's open in the backlog and solve it") — **no** agent does this, whatever tool it runs in. Instead:
   1. Complete missing parts — clarify Acceptance Criteria, Out of Scope, open questions in the fix proposal (see `docs/backlog/README.md`) — and set `status` to `ready` once the item is complete.
   2. Actual implementation runs through the designated, filtered pipeline: `.github/workflows/backlog-dispatch.yml` (`scripts/jules/dispatch-backlog.mjs`, weekly or manually via workflow dispatch) sends `ready` items to Jules. This pipeline — not Jules as a tool — enforces safety filters: `area: execution`, `area: security`, `area: exchange`, and `priority: P0` are intentionally **never automatically dispatched**, requiring manual handoff (`scripts/jules/create-session.sh --file ...`) only after a human inspects the item.
 - **Explicit Human Instruction** ("solve BUG-0053 now") — any capable agent may do this regardless of tool. This is directed work, not backlog grabbing, and does not require a dispatch pipeline.
@@ -183,7 +182,7 @@ An agent may read, expand, discuss a backlog bug with the user (cf. `/backlog-gr
 
 ## Git Cleanliness and Parallel Agent Workspaces
 
-Since multiple agents (e.g., Claude, Antigravity, Cursor, OpenCode) share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own session Git worktree — never directly in the shared checkout. One worktree per agent session is enough; a worktree per task is not required and actively harmful (a pile-up of stale worktree directories makes every checkout harder to reason about, and testing in the wrong worktree causes false results):
+Since multiple agents share the same local folder, conflicts arise (detached HEAD, inherited incomplete commits, index/file-watcher races) if agents work uncoordinatedly. Every agent **must** work in its own session Git worktree — never directly in the shared checkout. One worktree per agent session is enough; a worktree per task is not required and actively harmful (a pile-up of stale worktree directories makes every checkout harder to reason about, and testing in the wrong worktree causes false results):
 
 **Required sequence once per session:**
 ```bash
@@ -223,6 +222,7 @@ Every task follows the same three phases. The point is proactive conflict avoida
 - After every merge, refresh your local main branch from GH (`git fetch origin develop`, fast-forward `develop` if it is checked out) so the next task starts from the current tip.
 - Update the item: `status: done` (+ shipped version) when merged; otherwise leave a short state note ("what exists, what is open") so the next agent can continue instead of doing archaeology.
 - Never leave uncommitted changes behind: commit them to the branch or save a patch.
+- **Remote branches need no cleanup:** GitHub deletes a branch automatically once its PR merges, so never run `git push origin --delete <branch>` (a safety net blocks it anyway) — name a stale remote branch in your report and leave it to the user.
 
 ## Scope Guidance for Autonomous/Asynchronous Agents (e.g., Jules)
 
