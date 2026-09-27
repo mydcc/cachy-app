@@ -48,77 +48,30 @@
  * places a call can sit accepts a line comment — see SAFE_MARKER. The reason
  * is required and enforced, not merely documented.
  *
- * Usage: node scripts/audit-decimal.mjs [--case <fixture-case>]
- * `--case` exists so the test suite can point the script at one fixture case;
- * a fixture under src/ would otherwise fail the real run. It takes a case
- * *name* under a hardcoded root, never a path.
+ * Usage: node scripts/audit-decimal.mjs   (always scans src/)
+ * `auditDirectory(dir)` is exported so the test suite can scan a fixture tree;
+ * see the note above it for why that is not a command-line argument.
  *
  * Exit codes: 0 = clean, 1 = violations found.
  */
 
-import { readdir, readFile, realpath, stat } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 
 /**
- * Where to scan, derived rather than taken.
+ * The scan is a plain function over a directory, and the CLI is a thin wrapper.
  *
- * The only reason this script ever looks anywhere but `src` is its own test
- * suite, which points it at a fixture case. So the argument is a *case name*,
- * not a path: it is matched against a whitelist of name characters and joined
- * onto a hardcoded fixture root, which makes a traversal impossible by
- * construction rather than by a check someone can forget. Nothing
- * command-line-shaped is ever concatenated into a path.
- *
- * `--case` also keeps the test affordance visible in the invocation instead of
- * hiding it behind a positional argument that looks like a real feature.
+ * The function is exported so the test suite can point it at a fixture tree
+ * directly. An earlier version took a directory as a command-line argument for
+ * that purpose, which put a caller-controlled string into a path expression —
+ * CodeQL's `js/path-injection`, and rightly so: a build script that will read
+ * any path it is handed is a worse program than one that scans `src` and
+ * nothing else. Fixtures therefore live outside `src/` and the test passes a
+ * literal.
  */
-const FIXTURE_ROOT = 'scripts/__fixtures__/audit-decimal';
-const CASE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-
-function scanTarget(argv) {
-    if (argv[0] !== '--case') return 'src';
-    const name = argv[1] ?? '';
-    if (!CASE_NAME.test(name)) {
-        throw new Error(`not a fixture case name: ${name}`);
-    }
-    return `${FIXTURE_ROOT}/${name}`;
-}
-
-/**
- * The scan directory, checked before anything is read.
- *
- * A fixture case name is already constrained to a single path segment under a
- * hardcoded root, so the only remaining escape is a symlink inside the fixture
- * tree. That is what the resolved containment check below is for, and it runs
- * on a value that is already inside the repository by construction.
- */
-async function resolveScanDir(requested) {
-    const rootReal = await realpath(ROOT);
-    const target = await realpath(join(rootReal, requested));
-    if (target !== rootReal && !target.startsWith(rootReal + sep)) {
-        throw new Error(`refusing to scan outside the repository: ${target}`);
-    }
-    if (!(await stat(target)).isDirectory()) {
-        throw new Error(`not a directory: ${target}`);
-    }
-    return target;
-}
-
-let SRC;
-try {
-    SRC = await resolveScanDir(scanTarget(process.argv.slice(2)));
-} catch (error) {
-    if (error?.code === 'ENOENT') {
-        console.error(`audit-decimal: no such directory: ${scanTarget(process.argv.slice(2))}`);
-    } else {
-        console.error(`audit-decimal: ${error.message}`);
-    }
-    console.error('usage: node scripts/audit-decimal.mjs [--case <fixture-case>]');
-    process.exit(2);
-}
-
 /**
  * Detects unsafe native-number conversion calls.
  * Anchored with \b so `.toNumber()` and `.toFixed()` are NOT matched —
@@ -191,13 +144,22 @@ async function* walk(dir) {
   }
 }
 
-let violations = 0;
-let unreasoned = 0;
-let tsScanned = 0;
-let svelteScanned = 0;
+/**
+ * Audits one directory tree.
+ *
+ * Returns the findings instead of printing them, so a caller (the CLI, or the
+ * test suite) decides what to do with them. `exemptionsWithoutReason` is kept
+ * apart from `violations` because it is a different kind of failure: the line
+ * is claimed safe, and the claim is unverifiable.
+ */
+export async function auditDirectory(dir) {
+  const findings = [];
+  let unreasoned = 0;
+  let tsScanned = 0;
+  let svelteScanned = 0;
 
-try {
-  for await (const file of walk(SRC)) {    if (EXCLUDE_PATTERN.test(file)) continue;
+  for await (const file of walk(dir)) {
+    if (EXCLUDE_PATTERN.test(file)) continue;
 
     const content = await readFile(file, 'utf8');
     const isSvelte = file.endsWith('.svelte');
@@ -221,47 +183,75 @@ try {
       if (SAFE_MARKER.test(line)) {
         if (SAFE_REASON.test(line)) continue;
         unreasoned++;
-        console.error(
-          `❌  ${relative(ROOT, file)}:${i + 1}:  exemption without a reason:  ${line.trim()}`,
-        );
+        findings.push({
+          file: relative(ROOT, file),
+          line: i + 1,
+          text: line.trim(),
+          kind: 'unreasoned',
+        });
         continue;
       }
-      console.error(`❌  ${relative(ROOT, file)}:${i + 1}:  ${line.trim()}`);
-      violations++;
+      findings.push({ file: relative(ROOT, file), line: i + 1, text: line.trim(), kind: 'violation' });
     }
   }
-} catch (error) {
-  if (error?.code === 'ENOENT') {
-    console.error(`audit-decimal: no such directory: ${SRC}`);
-    console.error('usage: node scripts/audit-decimal.mjs [dir]   (default: src)');
-    process.exit(2);
+
+  return { findings, unreasoned, tsScanned, svelteScanned };
+}
+
+/** Renders one finding the way the CLI and the test both want to read it. */
+function formatFinding({ file, line, text, kind }) {
+  const label = kind === 'unreasoned' ? 'exemption without a reason:' : '';
+  return `❌  ${file}:${line}:  ${label}  ${text}`.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The CLI half. Guarded so that importing `auditDirectory` has no side effect —
+ * a test that imports the function must not trigger a full scan of `src/`, and
+ * a module that runs work on import cannot be reasoned about from its exports.
+ */
+const isEntryPoint =
+    process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isEntryPoint) {
+  let result;
+  try {
+    result = await auditDirectory(join(ROOT, 'src'));
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      console.error('audit-decimal: src/ not found');
+      process.exit(2);
+    }
+    throw error;
   }
-  throw error;
-}
 
-console.log(
-  `\nScanned ${tsScanned} .ts file(s) (Decimal.js importers) and ` +
-    `${svelteScanned} .svelte file(s) under ${relative(ROOT, SRC) || '.'}/.`,
-);
+  for (const finding of result.findings) console.error(formatFinding(finding));
 
-if (unreasoned > 0) {
-  console.error(
-    `\n${unreasoned} exemption(s) carry no reason.` +
-      '\nAn `audit: safe` marker is a claim a reviewer can check, so the reason' +
-      '\nis required:  // audit: safe — <what the value actually is>',
+  const violations = result.findings.filter((f) => f.kind === 'violation').length;
+
+  console.log(
+    `\nScanned ${result.tsScanned} .ts file(s) (Decimal.js importers) and ` +
+      `${result.svelteScanned} .svelte file(s) under src/.`,
   );
-}
 
-if (violations > 0 || unreasoned > 0) {
-  console.error(
-    `\n${violations} violation(s) found.` +
-      '\nUse Decimal.js for all financial values (price, qty, amount, balance, pnl, fee, margin).' +
-      '\nIf the flagged Number() / parseFloat() is NOT a financial value (e.g. epoch-ms timestamp,' +
-      '\narray index, canvas pixel coordinate, a display-only comparison), add' +
-      '\n  // audit: safe — <reason>' +
-      '\nto suppress it. The reason is required: it is what makes the exemption reviewable.'
-  );
-  process.exit(1);
-} else {
-  console.log('✅  No unsafe number operations found in audited files.');
+  if (result.unreasoned > 0) {
+    console.error(
+      `\n${result.unreasoned} exemption(s) carry no reason.` +
+        '\nAn `audit: safe` marker is a claim a reviewer can check, so the reason' +
+        '\nis required:  // audit: safe — <what the value actually is>',
+    );
+  }
+
+  if (violations > 0 || result.unreasoned > 0) {
+    console.error(
+      `\n${violations} violation(s) found.` +
+        '\nUse Decimal.js for all financial values (price, qty, amount, balance, pnl, fee, margin).' +
+        '\nIf the flagged Number() / parseFloat() is NOT a financial value (e.g. epoch-ms timestamp,' +
+        '\narray index, canvas pixel coordinate, a display-only comparison), add' +
+        '\n  // audit: safe — <reason>' +
+        '\nto suppress it. The reason is required: it is what makes the exemption reviewable.'
+    );
+    process.exit(1);
+  } else {
+    console.log('✅  No unsafe number operations found in audited files.');
+  }
 }

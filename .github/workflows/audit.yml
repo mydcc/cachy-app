@@ -80,7 +80,8 @@ jobs:
         # // audit: safe — <reason>; the reason is required.  In a component
         # the marker may also be a block comment inside a { } expression or an
         # HTML comment after a { } expression, because // is not a comment in a
-        # template.
+        # template.  The script always scans src/; its test suite imports
+        # auditDirectory() to scan fixtures instead of passing a path in.
         run: node scripts/audit-decimal.mjs
 
   account-state-check:

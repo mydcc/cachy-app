@@ -85,12 +85,21 @@ the net, it does not re-tune it.
 ## What shipped
 
 `scripts/audit-decimal.mjs` now walks `.svelte` next to `.ts`, and
-`src/tests/architecture/audit_decimal_svelte.test.ts` runs the real script
-against a fixture tree (`scripts/__fixtures__/audit-decimal/`) — eight cases, one
-directory each, so no assertion can be satisfied by a sibling. Against the
-pre-fix script four of the eight tests fail, including both `.svelte` detection
-cases. Two of the four fail only incidentally: the pre-fix script takes no
-directory argument, so it scans the real `src/` instead of the fixture tree.
+`src/tests/architecture/audit_decimal_svelte.test.ts` runs the audit against a
+fixture tree (`scripts/__fixtures__/audit-decimal/`) — nine cases, one directory
+each, so no assertion can be satisfied by a sibling. Against the pre-fix script
+**eight of the nine fail**; the ninth checks the CLI's exit code on the real
+tree, which the pre-fix script also satisfied.
+
+**The scan directory is not a command-line argument.** The first version of this
+change took one, so the test could point the script at a fixture tree. That put
+a caller-controlled string into a path expression, which CodeQL flagged as
+`js/path-injection` — correctly: a build script that will read any path it is
+handed is a worse program than one that scans `src` and nothing else. The scan
+is now an exported `auditDirectory(dir)` and the CLI a guarded wrapper, so
+importing the function has no side effect and no user input ever reaches a
+path. The test passes a literal, and the CLI interface is back to its original
+shape.
 
 **The selection rule is the finding, not the file extension.** A `.ts` file is
 audited when it imports `decimal.js`. Extending that rule to `.svelte` would
@@ -137,13 +146,6 @@ number. But it is the closest thing to financial in the whole sweep, and the
 reason on that line now says so instead of naming the chart library. A
 financial reviewer should make that call themselves; it is recorded as
 BUG-0572 rather than settled here.
-
-**The scan directory is validated, not trusted.** The optional directory
-argument is a command-line value that reaches the filesystem, so it must exist,
-must be a directory, and must resolve inside the repository — a traversal out of
-the repo exits 2 with a usage line. This started as a CodeQL `js/path-injection`
-alert on the argument (two high-severity findings in this change) and is kept
-because the finding is a real property of the program, not a false positive.
 
 **What the sweep does not claim.** Detection patterns are untouched, so a
 conversion passed by reference (`prices.map(Number)`) is still invisible. That
