@@ -4,7 +4,7 @@
 
 452 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 402 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 403 · ⛔ dropped 1
 
 ---
 
@@ -505,7 +505,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 4
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | exchange |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | ui |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | exchange |
-| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | 🟢 ready | ui |
+| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | ui |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | 🟢 ready | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
@@ -957,7 +957,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 4
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | 🟢 ready | none | community, pro, private | none | ADR-0010 | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |

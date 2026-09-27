@@ -2,7 +2,10 @@
 id: FEAT-0573
 title: Say what the partial-close percentage is measured against
 type: feature
-status: ready
+status: done
+assignee: opencode
+branch: feature/feat-0573-close-percent-basis
+shipped: unreleased
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -50,19 +53,19 @@ the fix costs no second copy of the position size.
 
 ## Acceptance criteria
 
-- [ ] The slider states what it is a percentage *of* — the position size the venue
+- [x] The slider states what it is a percentage *of* — the position size the venue
       currently reports — in both locales, next to the control
-- [ ] The absolute quantity the slider currently resolves to stays visible while it is
+- [x] The absolute quantity the slider currently resolves to stays visible while it is
       dragged, and is the quantity that would be submitted
-- [ ] Moving the position size underneath the open dialog changes the resolved quantity,
+- [x] Moving the position size underneath the open dialog changes the resolved quantity,
       and the displayed percentage and the displayed quantity remain consistent with
       each other: `percentFromQuantity(quantityFromPercent(p))` returns `p` for every
       whole multiple of the step
-- [ ] The wording does not imply the percentage is anchored to the size the dialog
+- [x] The wording does not imply the percentage is anchored to the size the dialog
       opened with, because it is not
-- [ ] `quantityFromPercent`, `percentFromQuantity` and the `PartialCloseContext` shape
+- [x] `quantityFromPercent`, `percentFromQuantity` and the `PartialCloseContext` shape
       are unchanged — no second copy of the position size is introduced anywhere
-- [ ] Both locale strings are added and `npm run i18n` parity stays green
+- [x] Both locale strings are added and `npm run i18n` parity stays green
 
 ## Out of scope
 
@@ -85,3 +88,38 @@ the fix costs no second copy of the position size.
 - `src/lib/calculators/partialClose.ts` — `quantityFromPercent`, `percentFromQuantity`
 - `src/components/shared/PartialCloseInput.svelte` — the slider and the typed field
 - `src/components/shared/ClosePositionModal.svelte` — the dialog that mounts the input
+
+## What shipped
+
+A labelling change and nothing else. One new locale key per language,
+`positionsList.closePercentBasis` — "Share of the position size the venue
+currently reports — two 50 % closes half of what is left" / "Anteil der
+aktuell gemeldeten Positionsgröße — zweimal 50 % schließt die Hälfte des
+Restes" — rendered as a caption under the slider in `PartialCloseInput`, so
+every current and future mount point inherits it from the one place that owns
+the control. The wording names the size the venue reports *now* and carries the
+"two 50 %" example that answers the ladder misreading directly, the same
+device `addSliderLabel` already uses for the add-side slider.
+
+`partialClose.ts` is untouched: `quantityFromPercent`, `percentFromQuantity` and
+`PartialCloseContext` keep their shapes, and no second copy of the position size
+exists anywhere. The absolute quantity was already on screen and already the
+submitted one — the modal passes the same `Decimal` to `closePosition` — so the
+second acceptance criterion needed pinning, not building.
+
+TDD: the three caption and wording tests were RED before the strings and the
+markup existed (`expected 'Close 0%25%50%…' to contain 'the position size the
+venue currently reports'`, and both catalogues missing the key), green after.
+The rest are contract pins that were green throughout, which is the honest
+shape here: the arithmetic was already right and is what the new words now
+promise. 101 whole-percent round trips through
+`percentFromQuantity(quantityFromPercent(p))`; the modal test proves 25 % of two
+contracts shows `0.5` *and* sends `0.5`, and that the same 25 % of a size that
+doubled under the dialog shows `1`. 40/40 input + modal component tests,
+238/238 calculator tests, 439/439 calculators + architecture, 17/17 flash-close.
+`generate-i18n-types` (3820 keys), `validate-i18n` and `lint-i18n` clean.
+
+Also fixed in [`TODO.md` 29](../../TODO.md#29-does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left),
+whose worked example said a second 50 % of a 2-contract position is "not a
+quarter of the original" — in that example it *is* a quarter of the original.
+The item and the entry now read identically.
