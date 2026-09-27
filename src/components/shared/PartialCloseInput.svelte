@@ -203,6 +203,7 @@
 
   <RangeSlider
     id="partial-close-slider"
+    describedBy="partial-close-basis"
     label={$_("positionsList.closeSliderLabel")}
     value={percent}
     min={new Decimal(0)}
@@ -214,6 +215,27 @@
     formatValue={(v) => `${v.toDecimalPlaces(0)}%`}
     onChange={(v) => onChange(quantityFromPercent(ctx, v))}
   />
+
+  <!--
+    What the percentage is a share of — FEAT-0573.
+
+    A percentage bound to a live position means a share of *what is left*, so
+    25 % pressed three times closes 57.8 %, not 75 %. The arithmetic is
+    unchanged and correct; without this line the control cannot be predicted
+    from its own label, which is the one thing a position-reducing control has
+    to offer. The wording names the size the venue reports now — the size can
+    move under the dialog, and an "original size" reading would be a claim
+    this control does not make.
+
+    The id is not decoration: `RangeSlider` puts the label on the input as
+    `aria-label` and renders nothing visible, so this line is the only
+    statement of the basis on the screen at all. `aria-describedby` is what
+    carries it to a screen reader moving the handle, which is the same
+    predictability problem one layer down.
+  -->
+  <p id="partial-close-basis" class="text-[10px] text-[var(--text-secondary)]">
+    {$_("positionsList.closePercentBasis")}
+  </p>
 
   <!-- What the close leaves behind, and what it books -->
   <div class="text-[10px] font-mono flex flex-col gap-0.5">

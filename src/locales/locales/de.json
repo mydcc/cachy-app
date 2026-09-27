@@ -4223,6 +4223,7 @@
     "confirmClose": "Position {symbol} schließen?",
     "closeQuantity": "Schließen",
     "closeSliderLabel": "Anteil der Position, der geschlossen wird",
+    "closePercentBasis": "Anteil der aktuell von der Börse gemeldeten Positionsgröße — zweimal 50 % schließt die Hälfte des Restes",
     "addToPosition": "Nachkaufen",
     "addToPositionHint": "Position aufstocken und den neuen Durchschnitts-Entry vorab sehen",
     "addQuantity": "Nachkauf",

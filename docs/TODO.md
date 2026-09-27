@@ -1123,7 +1123,7 @@ behaviour stays, and the UI states its basis. Tracked as
 
 The partial-close slider runs 0–100 % against the size the venue reports
 **now**. So closing 50 % of a 2-contract position leaves 1 contract, and a
-second 50 % closes 0.5 — half of the remainder, not a quarter of the original.
+second 50 % closes 0.5 — half of the remainder, not half of the original.
 
 The alternative is to anchor the percentage to the size the position had when
 the dialog opened, so two 50 % closes would take 1 contract each and the

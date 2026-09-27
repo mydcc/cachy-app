@@ -9312,7 +9312,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0573",
     "title": "Say what the partial-close percentage is measured against",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "feature/feat-0573-close-percent-basis",
+    "shipped": "unreleased",
     "priority": "P3",
     "milestone": "none",
     "editions": [
