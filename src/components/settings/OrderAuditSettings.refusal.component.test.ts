@@ -63,12 +63,24 @@ vi.mock("../../locales/i18n", async () => {
 
 import OrderAuditSettings from "./OrderAuditSettings.svelte";
 
-function refusedOn(field: string): OrderRefusal {
+/**
+ * A refusal shaped like the ones the gate actually raises.
+ *
+ * `values` is overridable because a field name and the sentence's slots are
+ * independent: `duplicateInFlight` names the field "order" while its sentence
+ * fills only `{action}` and `{symbol}`. Passing that through here is what keeps
+ * the panel from ever borrowing the toast's wording.
+ */
+function refusedOn(
+    field: string,
+    values: Record<string, string> = { field, expected: "BTCUSDT", actual: "ETHUSDT" },
+    messageKey = "orderGate.mismatch",
+): OrderRefusal {
     return {
         field,
         reason: "mismatch",
-        messageKey: "orderGate.mismatch",
-        values: { field, expected: "BTCUSDT", actual: "ETHUSDT" },
+        messageKey,
+        values,
     };
 }
 
@@ -185,5 +197,25 @@ describe("BUG-0569 — the audit panel names a refusal the way a trader reads it
             // The toast's own rendering of the same refusal.
             expect(translateRefusal(refusal, t), `toast text for "${field}"`).toContain(label);
         }
+    });
+
+    it("names the field even when the toast sentence has no field slot", () => {
+        // `duplicateInFlight` raises field: "order" but its sentence fills only
+        // {action} and {symbol} — there is no {field} anywhere in it. The panel
+        // reads `refusal.field`, not `values.field`, so it has to resolve the
+        // name on its own rather than borrowing the toast's wording.
+        const refusal = refusedOn(
+            "order",
+            { action: "place-order", symbol: "BTCUSDT" },
+            "orderGate.duplicateInFlight",
+        );
+        orderAuditService.record(attempt(refusal));
+        render();
+
+        expect(refusalLine()).toBe(`${PREFIX}the order`);
+        // The toast has no field slot, so it cannot name the field at all. If
+        // this ever starts containing "the order", the two surfaces have
+        // started sharing a slot and this test has stopped proving anything.
+        expect(translateRefusal(refusal, t)).not.toContain("the order");
     });
 });
