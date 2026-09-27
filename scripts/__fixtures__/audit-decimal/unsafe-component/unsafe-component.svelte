@@ -13,3 +13,4 @@
 </script>
 
 <input bind:value={price} />
+<span>{half(price)}</span>

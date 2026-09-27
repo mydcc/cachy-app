@@ -185,7 +185,7 @@
             marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines?.[timeframe];
         const last = klines?.[klines.length - 1];
         if (!last) return null;
-        const close = Number(last.close);  // audit: safe — chart series data is plain numbers (the chart library's own API)
+        const close = Number(last.close);  // audit: safe — chart price line; also seeds alert rules, where chartAlertSeed.ts re-wraps it in Decimal
         return Number.isFinite(close) ? close : null;
     }
 

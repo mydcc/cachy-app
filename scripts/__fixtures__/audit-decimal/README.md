@@ -13,5 +13,7 @@ run, which is the opposite of what a fixture is for.
 | `unsafe-markup`    | `Number()` in a template expression, not in `<script>`        |
 | `unsafe-decimal`   | a `.ts` Decimal importer with a native conversion (unchanged path) |
 | `safe-marked`      | a display-only conversion carrying `// audit: safe — <reason>` |
+| `safe-marked-markup` | the same in a template expression, where a line comment is not a comment |
+| `unreasoned`       | a marker with no reason — its own failure, not an exemption    |
 | `comment-only`     | conversions that appear only inside comments                  |
 | `summary`          | one clean file of each kind, to assert the reported counts    |

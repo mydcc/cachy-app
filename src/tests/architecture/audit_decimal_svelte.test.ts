@@ -96,6 +96,16 @@ describe("BUG-0534 — the decimal audit covers .svelte components", () => {
         expect(code).toBe(0);
     });
 
+    it("rejects an exemption that carries no reason", () => {
+        // The reason is the point of the marker: without it the exemption is an
+        // unreviewable claim, and an unreviewable claim is what this script
+        // exists to prevent. A bare marker must fail, and it must fail as its
+        // own case — not be silently accepted like a marked line.
+        const { code, out } = audit("unreasoned");
+        expect(out).toContain("exemption without a reason");
+        expect(code).toBe(1);
+    });
+
     it("still flags a .ts Decimal importer, unchanged", () => {
         const { code, out } = audit("unsafe-decimal");
         expect(out).toContain("unsafe-decimal.ts");
