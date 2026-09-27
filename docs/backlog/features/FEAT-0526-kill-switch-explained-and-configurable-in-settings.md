@@ -2,7 +2,7 @@
 id: FEAT-0526
 title: Explain the kill switch in Settings and make its behaviour configurable
 type: feature
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -35,9 +35,13 @@ permitted are single closes, close-all, order cancels and TP/SL adjusts — and
 - block-scope toggles: block adds (default on), block non-TP/SL modifies
   (default on);
 - confirm-before-engage (default on);
-- auto-release: off by default; when on, under which condition;
 - auto-engage rules: daily-loss limit arms the switch automatically (threshold
   configurable, default off until the trader sets a value).
+
+The asymmetry is deliberate: the switch may **engage** itself, but it is released
+only by an explicit user action. Engaging restricts what may happen, so getting it
+wrong costs nothing; releasing re-opens exposure, so it stays with a human. See
+[Decisions](#decisions).
 
 Every toggle states its default and takes effect without a reload. All strings
 in both locales; `npm run i18n` parity stays green.
@@ -51,8 +55,9 @@ in both locales; `npm run i18n` parity stays green.
 - [ ] Confirm-before-engage on blocks accidental engagement, proven by a test
 - [ ] Auto-engage fires at the configured daily-loss threshold and not before,
       proven by a test; default off means no behaviour change for existing users
-- [ ] Auto-release, if enabled, only releases under its stated condition, proven
-      by a test
+- [ ] There is no automatic release path: a test engages the switch, then advances
+      time and crosses every auto-engage threshold again, and asserts it stays
+      engaged until an explicit user action releases it
 - [ ] Changing any setting never weakens the switch silently: the explanation
       text always reflects the active configuration
 - [ ] `npm run backlog:index` output committed in the same PR
@@ -61,15 +66,33 @@ in both locales; `npm run i18n` parity stays green.
 
 - Changing the default rule itself. Defaults stay as `increasesExposure`
   defines them today; this item only exposes and explains them.
+- Auto-release. Considered and dropped — see [Decisions](#decisions). There is
+  no condition under which the switch releases itself.
 - Server-side or cross-device sync of the configuration. Settings are Class A
   (`localStorage` only, ADR-0001) and stay there.
 - The close-all panic placement (BUG-0513). That wires the exit; this item
   explains the gate in front of it.
 
-## Open questions
+## Decisions
 
-- None blocking. Threshold defaults for auto-engage are the trader's choice;
-  the item only requires that "unset" means "off".
+- **Auto-release: none. Release is manual, always.** The proposal originally left
+  the release condition open — "off by default; when on, under which condition" —
+  and the acceptance criteria referred to "its stated condition" without one ever
+  being stated. Decided 2026-09-27: there is no such condition, and no
+  auto-release setting ships.
+
+  A panic control that deactivates itself is a hazard rather than a convenience.
+  The plausible conditions are all bad: releasing on a recovered daily P&L turns
+  a number into an exposure decision made without the trader; a daily reset does
+  the same thing on a schedule, at a moment nobody chose. A trader who engaged the
+  switch because they were afraid of their own P&L should not find it re-opened
+  while they are asleep.
+
+  What already covers the case that auto-release would have: the switch is
+  explainable and configurable (this item), and a trader who wants exposure back
+  releases it themselves, which takes one deliberate action and leaves an audit
+  trail. Making the restrictive direction automatic and the permissive direction
+  manual is the whole point.
 
 ## Links
 
