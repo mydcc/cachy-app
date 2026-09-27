@@ -4190,6 +4190,10 @@
       "tpSlAtEntry": "the take profit / stop loss on entry",
       "confirmation": "Confirmation"
     },
+    "fieldsBare": {
+      "takeProfit": "take profit",
+      "stopLoss": "stop loss"
+    },
     "riskLimitDailyLoss": "Order refused: today's realised loss is {actual}, at or beyond the daily limit of {limit}. The limit resets at 00:00 UTC. Closing positions and cancelling orders still work.",
     "riskLimitUnmeasurable": "Order refused: a limit is configured for {field}, but this order carries nothing to measure it against. The order was not sent.",
     "riskLimitInvalidState": "Order refused: the stored {field} limit cannot be read, so new positions are blocked until you repair or clear that setting. The order was not sent.",
