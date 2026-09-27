@@ -2205,10 +2205,10 @@ export function translateRefusalField(
  * uses the label bare or in an oblique case and needs the article, so the
  * label dictionary itself cannot drop it — hence `orderGate.fieldsBare.*`.
  *
- * Fallback chain is bare → article form → raw name: a future field that
- * reaches `invalidTpSl` without a bare entry renders today's doubled article
- * rather than a dotted key path, and the full-set regression test in
- * `orderGate.test.ts` catches that here, not in prod.
+ * Fallback chain is bare → article form → raw name, a deliberate totality
+ * tradeoff: a future field that reaches `invalidTpSl` without a bare entry
+ * renders today's doubled article rather than a dotted key path. Only
+ * takeProfit and stopLoss ever reach it, and both are covered in fieldsBare.
  */
 export function translateRefusalBareField(
     field: string,

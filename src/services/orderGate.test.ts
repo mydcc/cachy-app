@@ -1661,9 +1661,9 @@ describe("orderGate — invalidTpSl article", () => {
 
     it("falls back from a missing bare label to the article form, then raw", () => {
         // The chain is bare → fields.* → raw name, the same totality contract
-        // translateRefusalField keeps. A future field without a bare entry
-        // renders today's doubled article rather than a dotted key path —
-        // visible, and caught by the full-set test above.
+        // translateRefusalField keeps: a future field without a bare entry
+        // renders today's doubled article rather than a dotted key path.
+        // Visible by design — only takeProfit/stopLoss reach invalidTpSl.
         const stub = (key: string) =>
             key === "orderGate.fields.qty" ? "the position size" : key;
         expect(translateRefusalBareField("takeProfit", catalogueT(enCatalogue))).toBe("take profit");
