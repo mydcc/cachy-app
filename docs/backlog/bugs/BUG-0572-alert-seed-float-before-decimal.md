@@ -2,7 +2,10 @@
 id: BUG-0572
 title: A native float seeds price-alert rules before decimal.js sees it
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0572-alert-seed-float
+shipped: unreleased
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -71,12 +74,37 @@ reader of the marker learns the outcome rather than the question.
 
 ## Acceptance criteria
 
-- [ ] The decision is written in the code at the conversion, and the marker's
+- [x] The decision is written in the code at the conversion, and the marker's
       reason matches it
-- [ ] Either `lastChartPrice()` returns a `Decimal` to its callers, or the
+- [x] Either `lastChartPrice()` returns a `Decimal` to its callers, or the
       rounding contract at `chartAlertSeed.ts` is documented as the boundary
-- [ ] The alert path is covered by a test that would fail if the seed lost
+- [x] The alert path is covered by a test that would fail if the seed lost
       precision a caller could observe
+
+## What shipped
+
+Option 1, as decided: keep the float, document the boundary.
+
+`lastChartPrice()` carries the decision comment — the chart works in f64 by
+design, and neither alert consumer needs more. The marker reason was rewritten
+to match: re-round in `chartAlertSeed.ts`, direction-only comparison in
+`createDrawingAlert.ts`. The rounding contract in `conditionFromChartClick`
+now names itself as the precision boundary: callers pass f64, the re-wrap
+plus `ROUND_HALF_UP` to axis decimals pins the stored level exact at the
+precision the trader read off the scale.
+
+Reading the second consumer confirmed the decision rather than complicating
+it: `buildDrawingAlert` uses `currentPrice` only to pick a side (`eq`/`lt`
+against the drawing's own level) — the stored `right.value` is
+`level.toString()` from the drawing geometry, so that float never reaches a
+document either. Its request interface already said "decides the direction",
+so no change was needed there.
+
+The boundary is pinned by two tests: `0.1 + 0.2` seeds `"0.3"` at two axis
+decimals (without the rounding the document would carry
+`"0.30000000000000004"`, verified by direct `Decimal` evaluation), and the
+stored level is identical whether `lastPrice` carries dust or not. 12/12
+seed tests green, real audit over `src/` clean.
 
 ## Out of scope
 
