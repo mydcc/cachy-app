@@ -26,6 +26,8 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
+import enCatalogue from "../locales/locales/en.json";
+import deCatalogue from "../locales/locales/de.json";
 import {
     orderGate,
     assertGatePass,
@@ -34,6 +36,7 @@ import {
     registerRiskLimitCheck,
     translateRefusal,
     translateRefusalField,
+    translateRefusalBareField,
     OrderRefusedError,
     MAX_ACCOUNT_STATE_AGE_MS,
     mutatingActionOf,
@@ -1597,4 +1600,118 @@ describe("orderGate — an open above the free balance is refused (BUG-0549)", (
         expect(verdict.refusal).toBeNull();
         expect(verdict.checked).toContain("availableMargin");
     });
+});
+
+// BUG-0575 (#3693). `orderGate.invalidTpSl` is the one template whose own
+// article precedes {field} ("the {field} price" / "Der {field}-Preis"), while
+// the label it receives already carries one ("the take profit" /
+// "der Take-Profit"). These render through the shipped dictionaries —
+// imported, not copied — so the tests fail when the catalogue regresses,
+// not just when the code does. Same import shape as the component tests.
+describe("orderGate — invalidTpSl article", () => {
+    /** Dotted-key lookup with svelte-i18n's echo-back for a missing entry. */
+    function catalogueT(catalogue: object) {
+        return (key: string, options?: { values?: Record<string, string> }) => {
+            const template = key
+                .split(".")
+                .reduce<unknown>(
+                    (node, part) =>
+                        typeof node === "object" && node !== null
+                            ? (node as Record<string, unknown>)[part]
+                            : undefined,
+                    catalogue,
+                );
+            if (typeof template !== "string") return key;
+            return template.replace(/\{(\w+)\}/g, (_m, name) => options?.values?.[name] ?? "?");
+        };
+    }
+
+    const VALUES = {
+        actual: "-5",
+        entryPrice: "50000",
+        side: "long",
+        limit: "100",
+        age: "120",
+        max: "60",
+        expected: "E",
+    };
+
+    function invalidTpSlRefusal(field: string) {
+        return {
+            field,
+            reason: "unsupported",
+            messageKey: "orderGate.invalidTpSl",
+            values: { field, ...VALUES },
+        } satisfies OrderRefusal;
+    }
+
+    it.each([
+        ["takeProfit", "Order refused: the take profit price -5 is not valid for this long position with entry price 50000. The order was not sent."],
+        ["stopLoss", "Order refused: the stop loss price -5 is not valid for this long position with entry price 50000. The order was not sent."],
+    ])("renders the English %s refusal without a doubled article", (field, expected) => {
+        expect(translateRefusal(invalidTpSlRefusal(field), catalogueT(enCatalogue))).toBe(expected);
+    });
+
+    it.each([
+        ["takeProfit", "Order abgelehnt: Der Take-Profit-Preis -5 ist für diese long-Position mit Einstiegskurs 50000 ungültig. Die Order wurde nicht gesendet."],
+        ["stopLoss", "Order abgelehnt: Der Stop-Loss-Preis -5 ist für diese long-Position mit Einstiegskurs 50000 ungültig. Die Order wurde nicht gesendet."],
+    ])("renders the German %s refusal without a doubled article", (field, expected) => {
+        expect(translateRefusal(invalidTpSlRefusal(field), catalogueT(deCatalogue))).toBe(expected);
+    });
+
+    it("falls back from a missing bare label to the article form, then raw", () => {
+        // The chain is bare → fields.* → raw name, the same totality contract
+        // translateRefusalField keeps: a future field without a bare entry
+        // renders today's doubled article rather than a dotted key path.
+        // Visible by design — only takeProfit/stopLoss reach invalidTpSl.
+        const stub = (key: string) =>
+            key === "orderGate.fields.qty" ? "the position size" : key;
+        expect(translateRefusalBareField("takeProfit", catalogueT(enCatalogue))).toBe("take profit");
+        expect(translateRefusalBareField("qty", stub)).toBe("the position size");
+        expect(translateRefusalBareField("nope", stub)).toBe("nope");
+        expect(translateRefusalBareField("", stub)).toBe("");
+    });
+
+    it("keeps the article labels in every other {field} template", () => {
+        // AC2/AC3 as a full-set regression: all {field} templates under
+        // orderGate except invalidTpSl, both locales, rendered with the real
+        // article label. If a future template gains its own article, the
+        // doubled-article assertion below catches it here, not in prod.
+        for (const [catalogue, label] of [
+            [enCatalogue, "the take profit"],
+            [deCatalogue, "der Take-Profit"],
+        ] as const) {
+            for (const key of fieldTemplateKeys(catalogue)) {
+                if (key === "orderGate.invalidTpSl") continue;
+                const refusal = {
+                    field: "takeProfit",
+                    reason: "unsupported",
+                    messageKey: key,
+                    values: { field: "takeProfit", ...VALUES },
+                } satisfies OrderRefusal;
+                const text = translateRefusal(refusal, catalogueT(catalogue));
+                expect(text).toContain(label);
+                expect(text).not.toContain("{");
+                expect(text).not.toMatch(/the the|der der/i);
+            }
+        }
+    });
+
+    /** Every dotted key under orderGate whose template takes {field}. */
+    function fieldTemplateKeys(catalogue: { orderGate: Record<string, unknown> }): string[] {
+        const keys: string[] = [];
+        const walk = (node: unknown, prefix: string) => {
+            if (typeof node === "string") {
+                if (node.includes("{field}")) keys.push(prefix);
+                return;
+            }
+            if (typeof node === "object" && node !== null) {
+                for (const [part, child] of Object.entries(node)) {
+                    walk(child, prefix ? `${prefix}.${part}` : part);
+                }
+            }
+        };
+        walk(catalogue.orderGate, "orderGate");
+        return keys;
+    }
 });

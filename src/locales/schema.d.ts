@@ -3459,6 +3459,8 @@ export type TranslationKey =
   | "orderGate.fields.takeProfits"
   | "orderGate.fields.tpSlAtEntry"
   | "orderGate.fields.confirmation"
+  | "orderGate.fieldsBare.takeProfit"
+  | "orderGate.fieldsBare.stopLoss"
   | "orderGate.riskLimitDailyLoss"
   | "orderGate.riskLimitUnmeasurable"
   | "orderGate.riskLimitInvalidState"

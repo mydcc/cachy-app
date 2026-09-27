@@ -2196,6 +2196,32 @@ export function translateRefusalField(
 }
 
 /**
+ * The article-free twin of `translateRefusalField`, for the one template
+ * whose own article precedes `{field}` (BUG-0575).
+ *
+ * `orderGate.invalidTpSl` reads "the {field} price" / "Der {field}-Preis",
+ * but the label it receives already carries an article ("the take profit"),
+ * which renders as "the the take profit". Every other `{field}` consumer
+ * uses the label bare or in an oblique case and needs the article, so the
+ * label dictionary itself cannot drop it — hence `orderGate.fieldsBare.*`.
+ *
+ * Fallback chain is bare → article form → raw name, a deliberate totality
+ * tradeoff: a future field that reaches `invalidTpSl` without a bare entry
+ * renders today's doubled article rather than a dotted key path. Only
+ * takeProfit and stopLoss ever reach it, and both are covered in fieldsBare.
+ */
+export function translateRefusalBareField(
+    field: string,
+    t: (key: string) => string,
+): string {
+    if (!field) return field;
+    const key = `orderGate.fieldsBare.${field}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+    return translateRefusalField(field, t);
+}
+
+/**
  * Renders a refusal in the user's language. Takes the translate function as
  * an argument rather than importing the i18n store, so the gate stays a pure
  * module that tests can exercise without a Svelte runtime.
@@ -2209,7 +2235,14 @@ export function translateRefusal(
 ): string {
     const values = { ...refusal.values };
     if (values.field) {
-        values.field = translateRefusalField(values.field, t);
+        // `invalidTpSl` is the single template that supplies its own article
+        // ("the {field} price"), so it takes the bare label while every other
+        // template keeps the article form. If a second compound template ever
+        // appears, generalise this — not before (YAGNI).
+        values.field =
+            refusal.messageKey === "orderGate.invalidTpSl"
+                ? translateRefusalBareField(values.field, t)
+                : translateRefusalField(values.field, t);
     }
     /*
      * FEAT-0024's refusal names an action, and it should read the way the
