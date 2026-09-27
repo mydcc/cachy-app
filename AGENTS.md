@@ -62,7 +62,7 @@ Before marking a task completed: targeted tests for changed code must pass; CI c
 - `src/components/` — UI components (alerts, inputs, layout, results, settings, shared).
 - `src/lib/` — Calculator core (`calculator.ts`), utilities, types.
 - `src/routes/` — app shell (`+page.svelte`/`+layout.svelte`) plus `[[lang]]/(seo)/` pages (academy, changelog, guide, privacy, whitepaper). New UI strings always in **both** `src/locales/locales/{de,en}.json`.
-- `server/` — SpacetimeDB module; has its own `server/CLAUDE.md` with separate rules.
+- `server/` — SpacetimeDB module.
 - `technicals-wasm/` — WASM module for indicator calculations.
 
 ## Architecture boundaries
