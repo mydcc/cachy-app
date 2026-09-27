@@ -4,7 +4,7 @@
 
 449 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 6 · 🟡 in-progress 1 · ✅ done 397 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 6 · ✅ done 398 · ⛔ dropped 1
 
 ---
 
@@ -468,7 +468,7 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | execution |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | ui |
-| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 🟡 in-progress | ui |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | ✅ done | ui |
 | [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | security |
 | [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | 📋 specced | ui |
 | [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | 📋 specced | ui |
@@ -912,7 +912,7 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 6 · 🟡 in-pro
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 🟡 in-progress | none | community, pro, private | A | none | — |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | none | community, pro, private | A | none | — |
 | [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | 📋 specced | none | community, pro, private | none | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
 | [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | 📋 specced | none | community, pro, private | A | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
