@@ -345,6 +345,24 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
         });
     });
 
+    it("sends nothing when the key is swapped mid-signing (BUG-0570)", async () => {
+        // Same account id, same session: the fingerprint is the only signal
+        // that moves. "key-a" and "key-b" share their first two characters
+        // and their length, so the old slice form fingerprinted both as
+        // "ke…5" and the swap went unseen.
+        settings.accounts[0].keys.key = "key-a";
+        const outcome = await placeAcrossSwitch(() => {
+            settings.accounts[0].keys.key = "key-b";
+        });
+        settings.accounts[0].keys.key = "bx-one-key";
+
+        expect(networkFetch).not.toHaveBeenCalled();
+        expect(refusalOf(outcome)).toMatchObject({
+            field: "account",
+            messageKey: "orderGate.sessionChanged",
+        });
+    });
+
     it("sends nothing to the previous exchange when the venue is switched mid-signing", async () => {
         const outcome = await placeAcrossSwitch(() => {
             settings.apiProvider = "bitget";
