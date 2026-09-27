@@ -350,17 +350,21 @@ describe("BUG-0551 — a write signed under a switched context is refused", () =
         // that moves. "key-a" and "key-b" share their first two characters
         // and their length, so the old slice form fingerprinted both as
         // "ke…5" and the swap went unseen.
+        const originalKey = settings.accounts[0].keys.key;
         settings.accounts[0].keys.key = "key-a";
-        const outcome = await placeAcrossSwitch(() => {
-            settings.accounts[0].keys.key = "key-b";
-        });
-        settings.accounts[0].keys.key = "bx-one-key";
+        try {
+            const outcome = await placeAcrossSwitch(() => {
+                settings.accounts[0].keys.key = "key-b";
+            });
 
-        expect(networkFetch).not.toHaveBeenCalled();
-        expect(refusalOf(outcome)).toMatchObject({
-            field: "account",
-            messageKey: "orderGate.sessionChanged",
-        });
+            expect(networkFetch).not.toHaveBeenCalled();
+            expect(refusalOf(outcome)).toMatchObject({
+                field: "account",
+                messageKey: "orderGate.sessionChanged",
+            });
+        } finally {
+            settings.accounts[0].keys.key = originalKey;
+        }
     });
 
     it("sends nothing to the previous exchange when the venue is switched mid-signing", async () => {
