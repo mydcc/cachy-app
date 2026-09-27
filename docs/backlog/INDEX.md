@@ -2,9 +2,9 @@
 
 # Backlog index
 
-451 items. How to read and add them: [README.md](README.md).
+452 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 401 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 402 · ⛔ dropped 1
 
 ---
 
@@ -472,6 +472,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 4
 | [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | ✅ done | security |
 | [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | ui |
 | [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | ui |
+| [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -918,6 +919,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 4
 | [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
 | [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
+| [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -976,4 +978,4 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 10 · ✅ done 4
 
 ---
 
-Next free number: **0575**
+Next free number: **0576**

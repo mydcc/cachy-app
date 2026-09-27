@@ -8498,6 +8498,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0572-alert-seed-float-before-decimal.md"
   },
   {
+    "id": "BUG-0575",
+    "title": "TP/SL refusal message renders a doubled article in both locales",
+    "type": "bug",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/issue-3693-tpsl-doubled-article",
+    "shipped": "unreleased",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0575-tpsl-refusal-doubled-article.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
