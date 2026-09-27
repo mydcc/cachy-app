@@ -7408,7 +7408,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0525",
     "title": "Store the complete Bitget API reference locally, mirroring the Bitunix coverage",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "branch": "feat-0525-bitget-api-reference",
     "priority": "P2",
     "milestone": "none",
     "editions": [

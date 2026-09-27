@@ -2,7 +2,8 @@
 id: FEAT-0525
 title: Store the complete Bitget API reference locally, mirroring the Bitunix coverage
 type: feature
-status: in-progress
+status: done
+branch: feat-0525-bitget-api-reference
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -48,6 +49,41 @@ Bitget supports it natively or Cachy emulates it client-side.
 - Changing any venue behaviour. This item only pins down what the venue does.
 - Bitunix documentation. That coverage already exists.
 - Auto-syncing the reference. Freshness is manual until someone specs it.
+
+## What shipped
+
+`docs/bitget-api/` — 15 files, 7,026 lines, English.
+
+- All 67 Classic Futures endpoints, grouped as Bitget groups them, with
+  verbatim rate limits (including Bitget's inconsistent formatting), auth
+  scheme, request parameters and response fields
+- `INTEGRATION_STATUS.md` — the native-vs-emulated parity table, with every
+  row linking to the file that implements it, and a ☠️ status distinguishing
+  "wired but calling a decommissioned endpoint" from "not wired"
+- `09_v1_vs_v2.md` — the two API generations side by side, and the order-schema
+  hazard a mechanical port walks into
+- `08_error_codes.md` — the codes that can be evidenced, plus a quarantine for
+  ~95 defects in Bitget's own documentation
+- `10_change_log.md` — upstream log, which settles one of the
+  documentation's self-contradictions
+- `QUICK_REFERENCE.md` — dev cheat sheet for the **live** V2 surface
+
+Every acceptance criterion is met. Sources are dated 2026-09-28 and the docs
+revision (Classic changelog) is named in `README.md`, so staleness is visible.
+
+### The finding that outgrew the item
+
+FEAT-0525 set out to answer "does Bitget have a native bulk-close endpoint?" —
+it does, and so do native TP/SL, cancel-all, batch orders, order modify, mark
+candles and the whole leverage/margin/position-mode set. Cachy uses none of
+them, and the reason it gave in its own code comments was that it had no
+verified wire format and no local reference. This item supplies the reference.
+
+The crawl also turned up something the item did not anticipate: **Bitget's V1
+mix API is decommissioned**, and 9 of the 10 REST shapes Cachy calls use V1
+paths. Filed as BUG-0576 with a full migration plan. The bulk-close loop this
+item was created to explain is, in the end, load-bearing for a reason nobody
+planned.
 
 ## Open questions
 
