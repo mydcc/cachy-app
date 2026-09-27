@@ -82,13 +82,13 @@
     let startTime: number | undefined;
     let endTime: number | undefined;
     if (customStartDate) {
-      const [sy, sm, sd] = customStartDate.split("-").map(Number);
+      const [sy, sm, sd] = customStartDate.split("-").map(Number); // audit: safe — calendar date parts (year, month, day) for an epoch-ms range bound, not a financial value
       if (!isNaN(sy) && !isNaN(sm) && !isNaN(sd)) {
         startTime = Date.UTC(sy, sm - 1, sd, 0, 0, 0, 0);
       }
     }
     if (customEndDate) {
-      const [ey, em, ed] = customEndDate.split("-").map(Number);
+      const [ey, em, ed] = customEndDate.split("-").map(Number); // audit: safe — calendar date parts (year, month, day) for an epoch-ms range bound, not a financial value
       if (!isNaN(ey) && !isNaN(em) && !isNaN(ed)) {
         endTime = Date.UTC(ey, em - 1, ed, 23, 59, 59, 999);
       }

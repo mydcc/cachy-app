@@ -71,7 +71,10 @@ bucketing — but the implementer verifies each, not this item).
 
 Leave the closed PR's four P1 items alone — they were never merged and die
 with #3589. Leave the `.ts` detection semantics untouched; this item widens
-the net, it does not re-tune it.
+the net, it does not re-tune it. Detection covers direct calls and, after
+BUG-0571, the `.map(Number)` reference form; anything more exotic in value
+position stays invisible to a regex by design — the sweep claims the net,
+not the pattern.
 
 ## Acceptance criteria
 
