@@ -1055,58 +1055,61 @@ the audit results and cleanup details.
 - **`.gitignore`:** Added ignore rules for temporary planning assets and scratch
   folders (`*_tpmp/`, `*_tmp/`, `verification/`, `info/`).
 
-## 28. Dependabot alerts bundled inside npm's own CLI tarball — no fix available upstream
+## 28. ✅ Dependabot alerts bundled inside npm's own CLI tarball — resolved by an npm upgrade
 
-**Raised by Dependabot**, August 2026. Covers two families of alerts that
-share one root cause:
+**Raised by Dependabot**, August 2026. **RESOLVED** (2026-09-27) — not by
+action, but by an `npm` upgrade that landed in the tree on its own. Two
+statements in the original entry are no longer true and are corrected below.
 
-- `ip-address` — three alerts (#15, #16, #17): SSRF/trust-boundary bypass via
-  octal-decoded leading-zero octets, a CIDR suffix suppressing special-use
-  classification, IPv4-mapped/NAT64 IPv6 misclassification. **Dismissed on
-  GitHub, 2026-08-15**, reason: *"Vulnerable code is not actually used."*
-- `undici` — four alerts (#8, #10, #13, and one more): downstream response
-  desync via retry interceptor, cookie attribute injection, CRLF injection
-  via blob-like body `type`, plus one further undici advisory. **Same root
-  cause, same dismissal reasoning applies** — not yet dismissed on GitHub as
-  of this writing.
+**Verified state as of 2026-09-27.** The GitHub API reports **0 open, 0
+dismissed, 22 fixed** Dependabot alerts. Every advisory range is now outside
+the installed version:
 
-Both packages only appear vulnerable at
-`node_modules/npm/node_modules/{ip-address,undici}` (`package-lock.json`),
-bundled (`"inBundle": true`) inside the `npm` CLI tarball itself, pulled in
-transitively via `semantic-release → @semantic-release/npm → npm →
-make-fetch-happen → @npmcli/agent → socks-proxy-agent → socks` (`ip-address`)
-and directly inside `npm`'s own bundle (`undici@6.27.0`). Every other
-`undici`/`ip-address` instance in the tree (top-level `undici@6.28.0`, the
-`jsdom`/`@semantic-release/github` copies at `undici@7.29.0`) is already
-past the fixed version — only npm's own internal copies are stale.
+| Package | Advisory range | Installed |
+| --- | --- | --- |
+| `ip-address` (in npm's bundle) | `<= 10.3.0`, `<= 10.2.1`, `<= 10.2.0` | `10.5.0` |
+| `undici` (in npm's bundle) | `< 6.28.0` | `6.28.0` |
+| `undici` (`@semantic-release/github`, `jsdom`) | `>= 7.0.0, < 7.29.0` | `7.29.1` |
+| `undici` (`@actions/http-client`) | `< 6.28.0` | `6.28.1` |
+| `undici` (top level) | `>= 7.0.0, < 7.29.0` | `8.10.2` |
 
-npm extracts bundled dependencies as-is from the parent tarball; a
-root-level `overrides` entry (tried: `"ip-address": "^10.5.0"`) has no
-effect on them — confirmed by installing with the override and finding the
-resolved version unchanged. Checked the npm registry directly: even the
-latest npm release (`npm@12.0.2`) still bundles `ip-address@10.2.0` and
-`undici@6.27.0` — there is currently **no upstream npm release with these
-patched**. (Contrast with the `esbuild` alert, fixed the same day: that one
-came from a normal, non-bundled transitive dependency of `svelte-i18n`, so a
-plain `overrides` entry worked — see the `esbuild` override in
-`package.json`.)
+`node_modules/npm` is at **11.19.1**, and it is a `devDependency` — active
+solely during the semantic-release publish step.
 
-**Risk:** none to Cachy. The path is `devDependency`-only (active solely
-during the semantic-release publish step), and both packages are used
-internally by npm's own SOCKS-proxy/HTTP client — no exposure to user data,
-no SSRF/CRLF/response-desync surface in Cachy's own code (Local-First Klasse
-A/B/C boundary unaffected).
+**Corrections to the original entry.**
 
-**The decision:** nothing to build. Dismiss the remaining `undici` alerts on
-GitHub with the same reasoning as `ip-address`: **"Vulnerable code is not
-actually used"** — accurate, verifiable in `package-lock.json`, and it's the
-reason that best matches the finding (npm's internal client path is never
-reachable from app code). Re-open only if:
-1. Dependabot re-flags after a `package-lock.json` regeneration and the
-   nested path has moved (re-check whether it's still `inBundle`), or
-2. A future `npm`/`@semantic-release/npm` release bundles patched
-   `ip-address`/`undici` — then `npm update` picks it up automatically and
-   the alerts should auto-close.
+- ~~"even the latest npm release (`npm@12.0.2`) still bundles
+  `ip-address@10.2.0` and `undici@6.27.0` — there is currently no upstream npm
+  release with these patched"~~ — **no longer true.** The bundled copies moved
+  with the `npm` upgrade, and `npm@11.19.1` in the current lockfile ships
+  `ip-address@10.5.0` and `undici@6.28.0`, both past every advisory range above.
+  The conclusion drawn from the old fact — that no upstream fix existed — was
+  drawn from a stale check and is retracted with it.
+- ~~"`ip-address` … **Dismissed on GitHub, 2026-08-15**"~~ — **no longer
+  accurate either.** The API reports **0 dismissed** alerts; they closed as
+  `fixed`, not `dismissed`.
+
+**What stays true, and was the useful part.** npm extracts bundled
+dependencies as-is from the parent tarball, so a root-level `overrides` entry
+has no effect on them — confirmed empirically at the time by installing with
+`"ip-address": "^10.5.0"` and finding the resolved version unchanged. (Contrast
+the `esbuild` alert, fixed the same day: that one came from a normal,
+non-bundled transitive dependency of `svelte-i18n`, so a plain `overrides`
+entry did work — see the `esbuild` override in `package.json`.) The escape from
+that constraint was always a `package-lock.json` regeneration picking up a newer
+`npm` tarball, which is what happened.
+
+**The risk was never Cachy.** The path is `devDependency`-only, and both
+packages are used internally by npm's own SOCKS-proxy/HTTP client — no
+exposure to user data, no SSRF/CRLF/response-desync surface in Cachy's own
+code, and the Local-First Klassen A/B/C boundary unaffected. Even at the worst
+point the blast radius was a failed publish, not a misplaced order.
+
+**Nothing to re-open** unless Dependabot flags these packages again. If it
+does, check whether the nested path is still `inBundle` before assuming the
+finding — and prefer fixing the version over dismissing the alert. A dismissal
+records a claim about reachability that goes stale as the tree moves; the fix
+does not.
 
 ---
 
