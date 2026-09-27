@@ -40,14 +40,18 @@ import path from "node:path";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SCRIPT = path.join(REPO_ROOT, "scripts", "audit-decimal.mjs");
-const FIXTURES = "scripts/__fixtures__/audit-decimal";
 
 /**
  * Runs the audit against one fixture case; returns its exit code and output.
- * One directory per case, so an assertion cannot be satisfied by a sibling.
+ * One case per directory, so an assertion cannot be satisfied by a sibling.
+ *
+ * The script takes a case *name*, not a path: it is joined onto a hardcoded
+ * fixture root, so a traversal is impossible by construction. That is also what
+ * keeps the argument out of a path expression entirely, which is where the
+ * first version of this PR put it and where CodeQL correctly objected.
  */
-function audit(fixture: string) {
-    const result = spawnSync(process.execPath, [SCRIPT, `${FIXTURES}/${fixture}`], {
+function audit(fixtureCase: string) {
+    const result = spawnSync(process.execPath, [SCRIPT, "--case", fixtureCase], {
         cwd: REPO_ROOT,
         encoding: "utf-8",
     });

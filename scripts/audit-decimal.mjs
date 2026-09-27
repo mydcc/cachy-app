@@ -48,36 +48,53 @@
  * places a call can sit accepts a line comment — see SAFE_MARKER. The reason
  * is required and enforced, not merely documented.
  *
- * Usage: node scripts/audit-decimal.mjs [dir]   (default: src)
- * The optional directory exists so the test suite can point the script at a
- * fixture tree; a fixture under src/ would otherwise fail the real run.
+ * Usage: node scripts/audit-decimal.mjs [--case <fixture-case>]
+ * `--case` exists so the test suite can point the script at one fixture case;
+ * a fixture under src/ would otherwise fail the real run. It takes a case
+ * *name* under a hardcoded root, never a path.
  *
  * Exit codes: 0 = clean, 1 = violations found.
  */
 
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
-import { isAbsolute, join, relative, sep } from 'node:path';
+import { join, relative, sep } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 
 /**
- * The directory to scan, validated before it reaches the filesystem.
+ * Where to scan, derived rather than taken.
  *
- * The argument is a command-line value, so it is checked rather than trusted.
- * The string check comes first and rejects an absolute path or a `..` segment,
- * so an unvalidated value never reaches a filesystem call at all; the resolved
- * containment check then runs as a second line of defence, because a symlink
- * inside the repository can still point out of it.
+ * The only reason this script ever looks anywhere but `src` is its own test
+ * suite, which points it at a fixture case. So the argument is a *case name*,
+ * not a path: it is matched against a whitelist of name characters and joined
+ * onto a hardcoded fixture root, which makes a traversal impossible by
+ * construction rather than by a check someone can forget. Nothing
+ * command-line-shaped is ever concatenated into a path.
  *
- * Without this, a caller could point the script at any path on the machine.
- * CodeQL flags that as `js/path-injection`, and the finding is a real property
- * of the program rather than a false positive.
+ * `--case` also keeps the test affordance visible in the invocation instead of
+ * hiding it behind a positional argument that looks like a real feature.
+ */
+const FIXTURE_ROOT = 'scripts/__fixtures__/audit-decimal';
+const CASE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+function scanTarget(argv) {
+    if (argv[0] !== '--case') return 'src';
+    const name = argv[1] ?? '';
+    if (!CASE_NAME.test(name)) {
+        throw new Error(`not a fixture case name: ${name}`);
+    }
+    return `${FIXTURE_ROOT}/${name}`;
+}
+
+/**
+ * The scan directory, checked before anything is read.
+ *
+ * A fixture case name is already constrained to a single path segment under a
+ * hardcoded root, so the only remaining escape is a symlink inside the fixture
+ * tree. That is what the resolved containment check below is for, and it runs
+ * on a value that is already inside the repository by construction.
  */
 async function resolveScanDir(requested) {
-    const segments = requested.split(/[\\/]+/);
-    if (isAbsolute(requested) || segments.includes('..')) {
-        throw new Error(`refusing a path outside the repository: ${requested}`);
-    }
     const rootReal = await realpath(ROOT);
     const target = await realpath(join(rootReal, requested));
     if (target !== rootReal && !target.startsWith(rootReal + sep)) {
@@ -91,14 +108,14 @@ async function resolveScanDir(requested) {
 
 let SRC;
 try {
-    SRC = await resolveScanDir(process.argv[2] ?? 'src');
+    SRC = await resolveScanDir(scanTarget(process.argv.slice(2)));
 } catch (error) {
     if (error?.code === 'ENOENT') {
-        console.error(`audit-decimal: no such directory: ${join(ROOT, process.argv[2] ?? 'src')}`);
+        console.error(`audit-decimal: no such directory: ${scanTarget(process.argv.slice(2))}`);
     } else {
         console.error(`audit-decimal: ${error.message}`);
     }
-    console.error('usage: node scripts/audit-decimal.mjs [dir]   (default: src)');
+    console.error('usage: node scripts/audit-decimal.mjs [--case <fixture-case>]');
     process.exit(2);
 }
 
