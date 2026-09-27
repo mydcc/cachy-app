@@ -9251,6 +9251,42 @@
       "file": "features/FEAT-0546-bitget-contracts-isstatuserror.md"
     },
     {
+      "id": "FEAT-0573",
+      "title": "Say what the partial-close percentage is measured against",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md"
+    },
+    {
+      "id": "FEAT-0574",
+      "title": "Say when the close dialog's PnL mark is derived, not reported",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "ADR-0010",
+      "depends_on": [],
+      "file": "features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md"
+    },
+    {
       "id": "IDEA-0036",
       "title": "A gamified fork built on SpacetimeDB and the 3D layer",
       "type": "idea",
@@ -9581,5 +9617,5 @@
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
     }
   ],
-  "count": 449
+  "count": 451
 }
