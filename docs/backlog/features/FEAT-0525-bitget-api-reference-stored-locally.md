@@ -2,13 +2,14 @@
 id: FEAT-0525
 title: Store the complete Bitget API reference locally, mirroring the Bitunix coverage
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
 area: exchange
 data_class: none
 adr: none
+assignee: opencode
 depends_on: []
 ---
 
@@ -50,12 +51,34 @@ Bitget supports it natively or Cachy emulates it client-side.
 
 ## Open questions
 
-- Where the reference lives: alongside the Bitunix coverage in `docs/bitunix-api/`
-  (`00_common.md` through `10_change_log.md`, plus `README.md`,
-  `QUICK_REFERENCE.md`, `INTEGRATION_STATUS.md`) — the implementing agent
-  picks the exact spot (e.g. `docs/bitget-api/`) and links it here.
+None. Resolved during implementation:
+
+- **Where the reference lives:** `docs/bitget-api/`, alongside `docs/bitunix-api/`,
+  with the same file split (`00_common.md` … `10_change_log.md`, plus
+  `README.md`, `QUICK_REFERENCE.md`, `INTEGRATION_STATUS.md`) and two additions
+  Bitunix has no need for: `08_error_codes.md` (which also quarantines Bitget's
+  own documentation defects) and `09_v1_vs_v2.md` (Bitget runs two API
+  generations side by side; Cachy speaks the dead one).
+- **Language:** English, matching `docs/README.md`, `docs/TODO.md`, the ADRs and
+  every backlog item, rather than inheriting the German/English mix inside
+  `docs/bitunix-api/`.
+- **Account family:** Classic only, since that is what Cachy talks to. UTA is
+  Bitget's recommended family and is a live fork, so it gets a pointer rather
+  than a mirror.
+
+## Implementation note
+
+Branch: `feat-0525-bitget-api-reference`.
+
+The crawl surfaced a finding that changes this item's value: Bitget's **V1 mix
+API is decommissioned** and answers `30032`, while 9 of the 10 REST shapes
+`src/utils/server/venues/bitget.ts` calls are on V1 paths. This item still
+stands — a reference that records the live surface is the precondition for
+migrating — but the migration itself is out of scope here and is filed as
+BUG-0576. See `docs/bitget-api/09_v1_vs_v2.md`.
 
 ## Links
 
+- BUG-0576 — the decommissioned V1 surface, filed from this item
 - BUG-0514 — the item whose Bitget bulk-close question motivated this
 - BUG-0513 — close-all wiring, the first consumer of the parity answer

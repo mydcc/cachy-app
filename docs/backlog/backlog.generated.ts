@@ -526,6 +526,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0550-tpsl-direction-not-validated.md"
   },
   {
+    "id": "BUG-0576",
+    "title": "Bitget integration calls the decommissioned V1 API, so every signed REST call fails",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "area": "exchange",
+    "created": "2026-09-28",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -7389,7 +7408,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0525",
     "title": "Store the complete Bitget API reference locally, mirroring the Bitunix coverage",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7400,6 +7419,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "area": "exchange",
     "data_class": "none",
     "adr": "none",
+    "assignee": "opencode",
     "depends_on": [],
     "file": "features/FEAT-0525-bitget-api-reference-stored-locally.md"
   },
