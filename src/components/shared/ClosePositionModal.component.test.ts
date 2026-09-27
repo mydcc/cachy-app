@@ -316,3 +316,63 @@ describe("BUG-0561 — invalid close drafts stay visible and block submission", 
         expect(submitButton().disabled).toBe(false);
     });
 });
+
+/*
+ * FEAT-0573 — the percentage resolves against the size the venue reports now.
+ *
+ * Two claims the close dialog makes in words once the slider states its basis:
+ * the quantity on screen is the quantity that would be submitted, and moving
+ * the position under the open dialog re-resolves the same percentage. Both are
+ * proven through the real parent loop, which the input's own tests cannot
+ * reach — the input is controlled, so it emits and waits.
+ */
+describe("FEAT-0573 — the close dialog resolves the percentage against the live size", () => {
+    function dragTo(percent: number) {
+        const range = host.querySelector<HTMLInputElement>('input[type="range"]');
+        if (!range) throw new Error("slider not rendered");
+        range.value = String(percent);
+        range.dispatchEvent(new Event("input", { bubbles: true }));
+        flushSync();
+    }
+
+    it("shows the quantity the handle resolves to, and submits exactly that", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        dragTo(25);
+
+        // Quarter of two contracts, on a 0.1 step: 0.5 exactly.
+        expect(quantityInput().value).toBe("0.5");
+
+        submitButton().click();
+        flushSync();
+
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+        const sent = closeSpy.mock.calls[0][0] as { amount: Decimal };
+        expect(sent.amount.toString()).toBe("0.5");
+    });
+
+    it("re-resolves the same percentage after the size moves under the dialog", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION },
+        }) as never;
+        settle();
+
+        dragTo(25);
+        expect(quantityInput().value).toBe("0.5");
+
+        // The size doubles under the open dialog; the handle stays at 25 %.
+        component?.refresh({ ...POSITION, amount: new Decimal(4) });
+        settle();
+
+        dragTo(25);
+
+        expect(quantityInput().value).toBe("1");
+        const range = host.querySelector<HTMLInputElement>('input[type="range"]')!;
+        expect(range.value).toBe("25");
+    });
+});

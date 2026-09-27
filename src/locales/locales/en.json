@@ -2742,6 +2742,7 @@
     "confirmClose": "Close position for {symbol}?",
     "closeQuantity": "Close",
     "closeSliderLabel": "Share of the position to close",
+    "closePercentBasis": "Share of the position size the venue currently reports — two 50 % closes half of what is left",
     "addToPosition": "Add",
     "addToPositionHint": "Add to this position and preview the new average entry",
     "addQuantity": "Add",

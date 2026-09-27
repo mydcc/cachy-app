@@ -246,3 +246,97 @@ describe("isFullClose", () => {
         expect(isFullClose(COARSE, quantityFromPercent(COARSE, new Decimal(100)))).toBe(true);
     });
 });
+
+/*
+ * FEAT-0573 — the percentage is a share of the size the venue reports *now*.
+ *
+ * This is the contract the close dialog's labelling rests on: the percentage
+ * the handle shows and the quantity it resolves to describe the same slice of
+ * the same position, so the two can be shown side by side without either
+ * contradicting the other. The arithmetic is unchanged and was already right —
+ * these pin it, so a later change to the maths cannot quietly break the claim
+ * the UI now makes in words.
+ *
+ * The round trip is exact wherever step rounding is the identity, which is
+ * every whole percent of a position that divides cleanly by the step. On the
+ * `COARSE` fixture it cannot hold — 50 % of 0.7 rounds down to 0.3 — and that
+ * is rounding doing its documented job rather than the ratio drifting, so
+ * `COARSE` is not used here.
+ */
+describe("FEAT-0573 — percentage and quantity describe the same slice", () => {
+    it.each(Array.from({ length: 101 }, (_, p) => p))(
+        "round-trips %i%% through the quantity the venue would receive",
+        (p) => {
+            const percent = new Decimal(p);
+            const qty = quantityFromPercent(LONG, percent);
+            expect(percentFromQuantity(LONG, qty).toString()).toBe(percent.toString());
+        },
+    );
+
+    it("resolves the same percentage against a size that moved under the dialog", () => {
+        const bigger = { ...LONG, positionAmount: new Decimal(4) };
+
+        // Half of two is one; half of four is two. The handle did not move,
+        // the position did — which is the whole reason the wording has to name
+        // the live size rather than the size the dialog opened with.
+        expect(quantityFromPercent(LONG, new Decimal(50)).toString()).toBe("1");
+        expect(quantityFromPercent(bigger, new Decimal(50)).toString()).toBe("2");
+    });
+
+    it("reports a fixed quantity as a smaller share once the size grows", () => {
+        const bigger = { ...LONG, positionAmount: new Decimal(4) };
+        const qty = new Decimal(1);
+
+        // The percentage is derived from the amount rather than stored beside
+        // it, so it cannot claim 50 % of a position that is now twice as large.
+        expect(percentFromQuantity(LONG, qty).toString()).toBe("50");
+        expect(percentFromQuantity(bigger, qty).toString()).toBe("25");
+    });
+});
+
+/*
+ * FEAT-0573 — the percentage is a share of the size the venue reports *now*.
+ *
+ * This is the contract the close dialog's labelling rests on: the percentage
+ * the handle shows and the quantity it resolves to describe the same slice of
+ * the same position, so the two can be shown side by side without either
+ * contradicting the other. The arithmetic is unchanged and was already right —
+ * these pin it, so a later "fix" to the maths cannot quietly break the claim
+ * the UI now makes in words.
+ *
+ * The round trip is exact wherever step rounding is the identity, which is
+ * every whole percent of a position that divides cleanly by the step. On the
+ * `COARSE` fixture it cannot hold — 50 % of 0.7 rounds down to 0.3 — and that
+ * is rounding doing its documented job rather than the ratio drifting, so
+ * `COARSE` is not used here.
+ */
+describe("FEAT-0573 — percentage and quantity describe the same slice", () => {
+    it.each(Array.from({ length: 101 }, (_, p) => p))(
+        "round-trips %i%% through the quantity the venue would receive",
+        (p) => {
+            const percent = new Decimal(p);
+            const qty = quantityFromPercent(LONG, percent);
+            expect(percentFromQuantity(LONG, qty).toString()).toBe(percent.toString());
+        },
+    );
+
+    it("resolves the same percentage against a size that moved under the dialog", () => {
+        const bigger = { ...LONG, positionAmount: new Decimal(4) };
+
+        // Half of two is one; half of four is two. The handle did not move,
+        // the position did — which is the whole reason the wording has to name
+        // the live size rather than the size the dialog opened with.
+        expect(quantityFromPercent(LONG, new Decimal(50)).toString()).toBe("1");
+        expect(quantityFromPercent(bigger, new Decimal(50)).toString()).toBe("2");
+    });
+
+    it("reports a fixed quantity as a smaller share once the size grows", () => {
+        const bigger = { ...LONG, positionAmount: new Decimal(4) };
+        const qty = new Decimal(1);
+
+        // The percentage is derived from the amount rather than stored beside
+        // it, so it cannot claim 50 % of a position that is now twice as large.
+        expect(percentFromQuantity(LONG, qty).toString()).toBe("50");
+        expect(percentFromQuantity(bigger, qty).toString()).toBe("25");
+    });
+});

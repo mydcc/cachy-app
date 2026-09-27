@@ -26,6 +26,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import { Decimal } from "decimal.js";
 import en from "../../locales/locales/en.json";
+import de from "../../locales/locales/de.json";
 import type { PartialCloseContext } from "../../lib/calculators/partialClose";
 
 function lookup(key: string): string {
@@ -300,5 +301,33 @@ describe("FEAT-0256 — the readout", () => {
         render({ quantity: new Decimal(2), onChange: vi.fn() });
         const line = host.textContent ?? "";
         expect(line).toContain(`${lookup("positionsList.remainingAfter")}: 0`);
+    });
+});
+
+/*
+ * FEAT-0573 — the slider states what its percentage is measured against.
+ *
+ * The percentage is a share of the size the venue reports *now*, so pressing
+ * 25 % three times closes 43.75 % and not 75 %. The arithmetic is unchanged
+ * and was already right; what was missing was the statement of its basis, and
+ * a control a trader cannot predict is one they stop trusting — on the control
+ * that reduces their position.
+ *
+ * The wording test below reads the real catalogues rather than the mock, so it
+ * holds for the German string too, which the rendered-text test cannot reach.
+ */
+describe("FEAT-0573 — the slider says what its percentage is of", () => {
+    it("names the live position size next to the control", () => {
+        render({ quantity: new Decimal(1), onChange: vi.fn() });
+        expect(host.textContent).toContain("the position size the venue currently reports");
+    });
+
+    it.each([
+        ["en", en],
+        ["de", de],
+    ])("counts %s against the live size, not the size the dialog opened with", (_locale, catalogue) => {
+        const basis = (catalogue.positionsList as Record<string, string>).closePercentBasis;
+        expect(basis).toMatch(/currently reports|aktuell gemeldeten/);
+        expect(basis).not.toMatch(/original|opening|ursprüng|Öffnung/i);
     });
 });

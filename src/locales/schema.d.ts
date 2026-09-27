@@ -2385,6 +2385,7 @@ export type TranslationKey =
   | "positionsList.confirmClose"
   | "positionsList.closeQuantity"
   | "positionsList.closeSliderLabel"
+  | "positionsList.closePercentBasis"
   | "positionsList.addToPosition"
   | "positionsList.addToPositionHint"
   | "positionsList.addQuantity"
