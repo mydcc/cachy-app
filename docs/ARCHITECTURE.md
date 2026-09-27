@@ -51,7 +51,7 @@ browser                                      server (SvelteKit node adapter)
   orchestrate them, and `implementations/` holds the concrete windows (chart,
   chat, assistant, markdown, dialog, symbol picker, iframe).
 - **`spacetimedb/`** — generated client bindings. **Never hand-edited**; see
-  [`server/CLAUDE.md`](../server/CLAUDE.md).
+  [`server/.cursor/rules/spacetimedb-typescript.mdc`](../server/.cursor/rules/spacetimedb-typescript.mdc).
 - **`server/`** — code that runs server-side only: `logger.ts` (with key
   redaction), `appAuth.ts`.
 - **`physics/`, `pets/`** — the 3D/visual layer.
@@ -141,7 +141,7 @@ disagree, that is a bug rather than a style question — see
 
 The optional server module. One table of user data — `global_message` with
 `sender`, `text`, `sent_at` — plus a scheduled retention sweep. Its own rules
-live in [`server/CLAUDE.md`](../server/CLAUDE.md); generated bindings are never
+live in [`server/.cursor/rules/spacetimedb-typescript.mdc`](../server/.cursor/rules/spacetimedb-typescript.mdc); generated bindings are never
 hand-edited.
 
 ---
