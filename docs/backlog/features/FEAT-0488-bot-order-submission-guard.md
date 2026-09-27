@@ -2,7 +2,7 @@
 id: FEAT-0488
 title: Guard bot order submission against duplicates, stacking and unbounded repeat
 type: feature
-status: specced
+status: ready
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -53,10 +53,19 @@ limits below it is what ADR-0012 decision 5 forbids.
   the previous one has not settled is refused with its own reason, not queued.
 - **Per-rule cooldown.** A minimum interval between two submissions from the same rule,
   independent of `frequency`. `frequency` says how often a rule may *announce*; this says
-  how often it may *act*, and they are not the same question.
+  how often it may *act*, and they are not the same question. The interval is **derived from
+  `trigger_timeframe`**, not a field of its own: a 1m rule may act at most once a minute, a
+  1d rule once a day. A field would be more flexible, but it is a schema change and it moves
+  the content hash of every existing rule document — churn for a limit whose correct value
+  the trader has already stated by choosing a timeframe.
 - **Open-exposure check.** A bot does not open a second position in the same direction on
-  the same symbol while the first is open. Reading position state is already authorised —
-  `may_read_account_state()` is true at `simulate`.
+  the same symbol while the first is open. It reads the position book through the
+  environment's account-state reader rather than tracking what this rule itself opened, so
+  the refusal also holds against a position the trader opened by hand or that another rule
+  opened — stacking onto a foreign position is one of the three failures this item exists to
+  stop, and a per-rule memory cannot see it. Reading position state is already authorised:
+  `may_read_account_state()` is true at `simulate`, so this widens the environment by one
+  reader, not the authorisation.
 
 Each refusal goes through the existing `BotOrderRefusal` channel, so it is a typed member,
 a toast in both locales, and deduplicated per rule and reason for free.
@@ -67,13 +76,19 @@ a toast in both locales, and deduplicated per rule and reason for free.
       exactly one order reaches `place()`
 - [ ] A test fires an `every_time` bot on consecutive closes and asserts the cooldown
       holds submissions back while the announcements continue
+- [ ] The cooldown interval is derived from `trigger_timeframe`, and no field is added to
+      the rule document schema or to its content hash
 - [ ] A test fires a bot while a position it opened is still open and asserts no second
       entry is submitted
+- [ ] A test fires a bot against a position that was **not** opened by that rule — already
+      open when the bot first fired — and asserts the same-direction entry is still refused
 - [ ] Each of the three refusals is a `BotOrderRefusal` member with a message in both
       locales, enforced by the existing typed `BOT_REFUSAL_KEYS` record
 - [ ] Announcements are unchanged: `inner(firing)` still receives every firing, refused
       submissions included
 - [ ] The paper-trading gate is untouched
+- [ ] The environment gains a position reader, and it is reached only where
+      `may_read_account_state()` already holds
 
 ## Out of scope
 
@@ -82,15 +97,6 @@ a toast in both locales, and deduplicated per rule and reason for free.
   `reduce-only-unsupported` stays a refusal here
 - Any risk limit that already lives inside `OrderGate`. This item adds rate and
   concurrency limits, not position sizing.
-
-## Open questions
-
-- Is the cooldown a fixed interval, one trigger-timeframe period, or configured per rule?
-  A per-rule field is a schema change and moves the content hash; a derived default does
-  not. Deriving it from `trigger_timeframe` is the cheaper answer and probably the right one.
-- Should the open-exposure check read the paper position book directly, or should it track
-  what this rule itself opened? The first is more correct, the second keeps the module's
-  port boundary narrow.
 
 ## Links
 
