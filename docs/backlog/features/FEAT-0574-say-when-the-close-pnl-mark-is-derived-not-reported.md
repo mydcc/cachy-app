@@ -18,14 +18,14 @@ depends_on: []
 
 `OMSPosition.markPrice` is optional — Bitget does not always send it. The partial-close
 dialog needs a mark to say what PnL a close would realise, so
-[`ClosePositionModal.svelte`](../../src/components/shared/ClosePositionModal.svelte)
+[`ClosePositionModal.svelte`](../../../src/components/shared/ClosePositionModal.svelte)
 recovers one from the unrealised PnL the venue *does* report: PnL is the mark distance
 times the size, so the mark is entry plus PnL per unit.
 
 That recovery is the right fallback. Defaulting to the entry price instead would print a
 realised PnL of exactly zero, which reads as *"this close books nothing"* rather than
 *"the mark is unknown"* — the same failure mode
-[ADR-0010](../../docs/adr/0010-estimates-inform-but-never-determine-what-is-sent.md)
+[ADR-0010](../../adr/0010-estimates-inform-but-never-determine-what-is-sent.md)
 rejects for the net-of-fees line, where an absent rate hides the figure instead of
 rendering it as zero.
 
@@ -84,4 +84,4 @@ informing.
 - [`TODO.md` 30](../../TODO.md#30-how-should-the-panel-behave-when-the-venue-does-not-report-a-mark-price) — the decision and its full reasoning
 - `src/components/shared/ClosePositionModal.svelte` — the `markPrice` derivation
 - `src/lib/calculators/partialClose.ts` — `realizedPnlOnClose`, which drives nothing
-- [`ADR-0010`](../../docs/adr/0010-estimates-inform-but-never-determine-what-is-sent.md) — estimates inform, never determine
+- [`ADR-0010`](../../adr/0010-estimates-inform-but-never-determine-what-is-sent.md) — estimates inform, never determine

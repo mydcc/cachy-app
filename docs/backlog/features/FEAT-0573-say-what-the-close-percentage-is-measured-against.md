@@ -22,7 +22,7 @@ half of the remainder, not half of the original. Three presses at 25 % therefore
 43.75 % of the position, not 75 %.
 
 Nothing is wrong with that arithmetic. It is what the venue does, and
-`quantityFromPercent` in [`partialClose.ts`](../../src/lib/calculators/partialClose.ts)
+`quantityFromPercent` in [`partialClose.ts`](../../../src/lib/calculators/partialClose.ts)
 documents it as deliberate: a percentage bound to a live position naturally expresses a
 share of *what is left*. The displayed percentage is derived from the amount rather than
 stored beside it, so the number on the handle and the number that would be submitted
@@ -75,7 +75,7 @@ the fix costs no second copy of the position size.
   misread is the permissive one.
 - The gate's quantity rules — step rounding down, the venue-minimum floor, and 100 %
   passing through unrounded. Untouched and still owned by
-  [`partialClose.ts`](../../src/lib/calculators/partialClose.ts).
+  [`partialClose.ts`](../../../src/lib/calculators/partialClose.ts).
 - The realised-PnL figure shown beside the quantity — that is
   [`FEAT-0574`](FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md).
 
