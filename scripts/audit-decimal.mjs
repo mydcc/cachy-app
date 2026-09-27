@@ -56,20 +56,28 @@
  */
 
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
+import { isAbsolute, join, relative, sep } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 
 /**
  * The directory to scan, validated before it reaches the filesystem.
  *
- * The argument is a command-line value, so it is checked rather than trusted:
- * it must exist, it must be a directory, and it must resolve *inside* the
- * repository. Without the containment check a caller could point this script at
- * any path on the machine, which is CodeQL's `js/path-injection` finding and a
- * real property of the program, not a false positive.
+ * The argument is a command-line value, so it is checked rather than trusted.
+ * The string check comes first and rejects an absolute path or a `..` segment,
+ * so an unvalidated value never reaches a filesystem call at all; the resolved
+ * containment check then runs as a second line of defence, because a symlink
+ * inside the repository can still point out of it.
+ *
+ * Without this, a caller could point the script at any path on the machine.
+ * CodeQL flags that as `js/path-injection`, and the finding is a real property
+ * of the program rather than a false positive.
  */
 async function resolveScanDir(requested) {
+    const segments = requested.split(/[\\/]+/);
+    if (isAbsolute(requested) || segments.includes('..')) {
+        throw new Error(`refusing a path outside the repository: ${requested}`);
+    }
     const rootReal = await realpath(ROOT);
     const target = await realpath(join(rootReal, requested));
     if (target !== rootReal && !target.startsWith(rootReal + sep)) {
