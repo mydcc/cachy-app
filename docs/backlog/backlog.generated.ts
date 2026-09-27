@@ -3369,7 +3369,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0488",
     "title": "Guard bot order submission against duplicates, stacking and unbounded repeat",
     "type": "feature",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
