@@ -39,6 +39,7 @@ import {
     mutatingActionOf,
     type OrderIntent,
     type GatePass,
+    type OrderRefusal,
 } from "./orderGate";
 
 const ACCOUNT = {
@@ -1399,7 +1400,7 @@ describe("translateRefusalField", () => {
                 reason: "mismatch",
                 messageKey: "orderGate.mismatch",
                 values: { field },
-            } as Parameters<typeof translateRefusal>[0];
+            } satisfies OrderRefusal;
 
             expect(translateRefusal(refusal, t)).toContain(translateRefusalField(field, t));
         }

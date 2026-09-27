@@ -33,7 +33,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import en from "../../locales/locales/en.json";
 import { orderAuditService } from "../../services/orderAuditService";
-import { translateRefusal, type OrderAttempt, type OrderRefusal } from "../../services/orderGate";
+import { translateRefusal, translateRefusalField, type OrderAttempt, type OrderRefusal } from "../../services/orderGate";
 
 /** The app's `_`, with `{name}` interpolation, over the real dictionary. */
 function lookup(key: string, values?: Record<string, string | number>): string {
@@ -112,6 +112,12 @@ function render() {
     flushSync();
 }
 
+/**
+ * The panel's own wording, read from the dictionary rather than pasted here.
+ * A copy change in `en.json` must not fail this file; a raw key on screen must.
+ */
+const PREFIX = en.settings.audit.refusedField.replace("{field}", "");
+
 function refusalLine(): string {
     const el = host.querySelector(".refusal-line");
     if (!el) throw new Error("no refusal line rendered");
@@ -125,7 +131,7 @@ describe("BUG-0569 — the audit panel names a refusal the way a trader reads it
         orderAuditService.record(attempt(refusedOn("qty")));
         render();
 
-        expect(refusalLine()).toBe("Refused on: the position size");
+        expect(refusalLine()).toBe(`${PREFIX}the position size`);
         expect(refusalLine()).not.toContain("orderGate.fields.");
     });
 
@@ -135,7 +141,7 @@ describe("BUG-0569 — the audit panel names a refusal the way a trader reads it
         orderAuditService.record(attempt(refusedOn("accountState")));
         render();
 
-        expect(refusalLine()).toBe("Refused on: leverage / margin mode");
+        expect(refusalLine()).toBe(`${PREFIX}leverage / margin mode`);
     });
 
     it("falls back to the raw name rather than a dotted key path", () => {
@@ -144,14 +150,19 @@ describe("BUG-0569 — the audit panel names a refusal the way a trader reads it
         orderAuditService.record(attempt(refusedOn("takeProfit[0]")));
         render();
 
-        expect(refusalLine()).toBe("Refused on: takeProfit[0]");
+        expect(refusalLine()).toBe(`${PREFIX}takeProfit[0]`);
         expect(refusalLine()).not.toContain("orderGate.fields");
     });
 
     it("agrees with the toast about the same refusal", () => {
-        // AC 3, as an invariant over the shipped dictionary rather than a
-        // spot check: the panel's label has to appear in the sentence the toast
-        // shows, for every field name the gate can emit.
+        // AC 3, as an invariant over the shipped dictionary rather than a spot
+        // check: for a representative set of the field names the gate emits,
+        // the panel's label has to appear in the sentence the toast shows.
+        //
+        // The remount per iteration is load-bearing. `orderAuditService`
+        // exposes a plain array, not a store, so a panel mounted once would
+        // keep showing the first iteration's entry and these assertions would
+        // pass against stale data. Do not collapse this into a single mount.
         const fields = [
             "qty",
             "accountState",
@@ -169,11 +180,10 @@ describe("BUG-0569 — the audit panel names a refusal the way a trader reads it
             orderAuditService.record(attempt(refusal));
             render();
 
-            const shown = refusalLine().replace("Refused on: ", "");
+            const label = translateRefusalField(field, t);
+            expect(refusalLine(), `panel text for "${field}"`).toBe(`${PREFIX}${label}`);
             // The toast's own rendering of the same refusal.
-            const toast = translateRefusal(refusal, t);
-
-            expect(toast, `toast text for "${field}"`).toContain(shown);
+            expect(translateRefusal(refusal, t), `toast text for "${field}"`).toContain(label);
         }
     });
 });

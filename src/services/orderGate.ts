@@ -2187,7 +2187,7 @@ export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
  */
 export function translateRefusalField(
     field: string,
-    t: (key: string, options?: { values?: Record<string, string> }) => string,
+    t: (key: string) => string,
 ): string {
     if (!field) return field;
     const key = `orderGate.fields.${field}`;

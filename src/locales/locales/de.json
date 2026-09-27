@@ -2531,7 +2531,7 @@
       "clearMessage": "Alle erfassten Sendeversuche werden gelöscht. Das lässt sich nicht rückgängig machen und betrifft weder dein Journal noch offene Positionen. Fortfahren?",
       "empty": "Noch keine Order-Versuche erfasst.",
       "count": "{count} Versuch(e) erfasst, neueste zuerst.",
-      "refusedField": "Abgelehnt wegen: {field}",
+      "refusedField": "Abgelehnt: {field}",
       "modeLive": "Live",
       "modePaper": "Paper",
       "outcome": {
