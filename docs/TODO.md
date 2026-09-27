@@ -1113,11 +1113,13 @@ does not.
 
 ---
 
-## 29. Does a close percentage mean a share of the original position, or of what is left?
+## 29. ✅ Does a close percentage mean a share of the original position, or of what is left?
 
 **Raised by [`FEAT-0256`](backlog/features/FEAT-0256-partial-close-position.md)**,
 2026-08-23. Shipped with one behaviour chosen; recorded here because it should
-be a decision rather than an accident.
+be a decision rather than an accident. **DECIDED** (2026-09-27): the live
+behaviour stays, and the UI states its basis. Tracked as
+[`FEAT-0573`](backlog/features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md).
 
 The partial-close slider runs 0–100 % against the size the venue reports
 **now**. So closing 50 % of a 2-contract position leaves 1 contract, and a
@@ -1152,17 +1154,24 @@ of a value that the current design avoids. Not large, but it changes the
 component's shape, so it is worth deciding before more callers mount it
 (FEAT-0070, FEAT-0247).
 
-**Not blocking anything.** The current behaviour is defensible and tested; this
-entry exists so that changing it later is a decision with the reasoning
-attached, not a rediscovery.
+**Decision, 2026-09-27.** The behaviour stays, and the objection is answered by
+labelling rather than by changing the arithmetic. The maths was already right;
+what was missing was the statement of what the slider is a percentage *of*. A
+third option was considered and rejected on its own terms — a toggle between
+the two bases — for the reason [`FEAT-0526`](backlog/features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md)
+resolved the kill switch: two semantics behind one control, and the one that
+gets misread is the permissive one. The resolution itself is small; the reason
+the entry existed was not.
 
 ---
 
-## 30. How should the panel behave when the venue does not report a mark price?
+## 30. ✅ How should the panel behave when the venue does not report a mark price?
 
 **Raised by [`FEAT-0256`](backlog/features/FEAT-0256-partial-close-position.md)**,
 2026-08-23. Same status: shipped with one behaviour, recorded because the
-alternatives differ in what they tell a trader.
+alternatives differ in what they tell a trader. **DECIDED** (2026-09-27):
+recovery stays, and the dialog says when the figure is derived. Tracked as
+[`FEAT-0574`](backlog/features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md).
 
 `OMSPosition.markPrice` is optional — Bitget does not always send it. The
 partial-close dialog needs it to say what PnL a close would realise.
@@ -1197,3 +1206,22 @@ misplaced order.
 **Worth resolving before** the PnL figure is reused anywhere it *is* load-bearing
 — a journal entry, a risk calculation, or a confirmation summary under
 [`FEAT-0024`](backlog/features/FEAT-0024-confirmation-policy.md).
+
+**Decision, 2026-09-27.** Recovery stays and hiding is rejected, because the
+two options above were not the only ones: a figure can be shown *and* labelled
+as derived. That gets the honesty hiding was after — the trader can see when
+the number is the venue's and when it is arithmetic on a PnL that may be stale
+— without taking away the one number they want during a panic close, and without
+making the dialog inconsistent across venues.
+
+This is what ADR-0010 actually asks of an estimate: it informs, and it says that
+it is informing. Hiding is the strict reading; a visible qualifier is the
+disciplined one, and the quantity that reaches the venue is identical either
+way.
+
+**Still open, deliberately:** the qualifier stops at this dialog. Reusing a
+derived mark in a journal entry, a risk calculation or a
+[`FEAT-0024`](backlog/features/FEAT-0024-confirmation-policy.md) confirmation
+summary would make an estimate load-bearing, which is a different decision and
+is listed under Out of scope in
+[`FEAT-0574`](backlog/features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md).
