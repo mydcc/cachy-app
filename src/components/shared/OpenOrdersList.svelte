@@ -208,7 +208,7 @@
 
   function formatDate(timestamp: number) {
     if (!timestamp) return "-";
-    const date = new Date(Number(timestamp));
+    const date = new Date(Number(timestamp));  // audit: safe — epoch-ms timestamp, not a financial value
     if (isNaN(date.getTime())) return "-";
 
     const day = date.getDate().toString().padStart(2, "0");
@@ -343,7 +343,7 @@
                 >
                   {formatDynamicDecimal(order.amount)}
                 </span>
-                {#if Number(order.filled) > 0}
+                {#if Number(order.filled) /* audit: safe — zero test to decide whether the filled row is shown; the value is rendered as Decimal */ > 0}
                   <span class="text-[9px] text-[var(--text-secondary)]">
                     ({formatDynamicDecimal(order.filled)})
                   </span>

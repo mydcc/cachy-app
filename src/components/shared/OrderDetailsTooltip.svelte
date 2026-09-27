@@ -49,7 +49,7 @@
 
   function formatDate(ts: unknown) {
     if (!ts) return "-";
-    return new Date(Number(ts)).toLocaleString();
+    return new Date(Number(ts)).toLocaleString();  // audit: safe — epoch-ms timestamp, not a financial value
   }
 
   function getOrderType(order: LooseOrder) {
@@ -125,21 +125,21 @@
     <div class="flex justify-between">
       <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.pnl")}:</span>
       <span
-        class:text-[var(--success-color)]={Number(order.realizedPNL) > 0}
-        class:text-[var(--danger-color)]={Number(order.realizedPNL) < 0}
+        class:text-[var(--success-color)]={Number(order.realizedPNL) /* audit: safe — sign test to pick a colour class; the PnL itself is rendered as Decimal */ > 0}
+        class:text-[var(--danger-color)]={Number(order.realizedPNL) /* audit: safe — sign test to pick a colour class; the PnL itself is rendered as Decimal */ < 0}
       >
         {formatDynamicDecimal(order.realizedPNL)}
       </span>
     </div>
 
     <!-- TP/SL -->
-    {#if (order.tpPrice && Number(order.tpPrice) > 0) || (order.slPrice && Number(order.slPrice) > 0)}
+    {#if (order.tpPrice && Number(order.tpPrice) /* audit: safe — presence test on a TP/SL price; the prices are rendered as Decimal */ > 0) || (order.slPrice && Number(order.slPrice) /* audit: safe — presence test on a TP/SL price; the prices are rendered as Decimal */ > 0)}
       <div
         class="col-span-2 mt-1 border-t border-[var(--border-color)] pt-1 font-bold text-[var(--text-secondary)]"
       >
         {$_("dashboard.tpsl")}
       </div>
-      {#if order.tpPrice && Number(order.tpPrice) > 0}
+      {#if order.tpPrice && Number(order.tpPrice) /* audit: safe — presence test on a TP price; the price is rendered as Decimal */ > 0}
         <div class="col-span-2 flex justify-between">
           <span class="text-[var(--success-color)]">{$_("common.tp")}:</span>
           <span
@@ -147,7 +147,7 @@
           >
         </div>
       {/if}
-      {#if order.slPrice && Number(order.slPrice) > 0}
+      {#if order.slPrice && Number(order.slPrice) /* audit: safe — presence test on an SL price; the price is rendered as Decimal */ > 0}
         <div class="col-span-2 flex justify-between">
           <span class="text-[var(--danger-color)]">{$_("common.sl")}:</span>
           <span

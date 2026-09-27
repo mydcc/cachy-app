@@ -445,7 +445,7 @@
       return new Decimal(10).pow(-symbolMeta.quotePrecision).toNumber();
     }
     if (!entryPrice) return 0.01;
-    const price = parseFloat(String(entryPrice));
+    const price = parseFloat(String(entryPrice));  // audit: safe — derives a price step size for the input's step attribute, not a price value
     if (isNaN(price) || price === 0) return 0.01;
 
     // Dynamic precision for low-sat assets vs high-value assets
