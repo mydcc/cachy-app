@@ -8419,6 +8419,46 @@
       "file": "bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md"
     },
     {
+      "id": "BUG-0571",
+      "title": "The decimal audit cannot see a conversion passed by reference",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0534"
+      ],
+      "file": "bugs/BUG-0571-decimal-audit-misses-reference-passing.md"
+    },
+    {
+      "id": "BUG-0572",
+      "title": "A native float seeds price-alert rules before decimal.js sees it",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "A",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0534"
+      ],
+      "file": "bugs/BUG-0572-alert-seed-float-before-decimal.md"
+    },
+    {
       "id": "FEAT-0022",
       "title": "Make settings findable with a search box",
       "type": "feature",
@@ -9539,5 +9579,5 @@
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
     }
   ],
-  "count": 447
+  "count": 449
 }

@@ -86,10 +86,11 @@ the net, it does not re-tune it.
 
 `scripts/audit-decimal.mjs` now walks `.svelte` next to `.ts`, and
 `src/tests/architecture/audit_decimal_svelte.test.ts` runs the real script
-against a fixture tree (`scripts/__fixtures__/audit-decimal/`) — six cases, one
+against a fixture tree (`scripts/__fixtures__/audit-decimal/`) — eight cases, one
 directory each, so no assertion can be satisfied by a sibling. Against the
-pre-fix script four of the seven tests fail, including both `.svelte` detection
-cases.
+pre-fix script four of the eight tests fail, including both `.svelte` detection
+cases. Two of the four fail only incidentally: the pre-fix script takes no
+directory argument, so it scans the real `src/` instead of the fixture tree.
 
 **The selection rule is the finding, not the file extension.** A `.ts` file is
 audited when it imports `decimal.js`. Extending that rule to `.svelte` would
@@ -98,35 +99,49 @@ with a native conversion do not import `decimal.js` at all** — including
 `OpenOrdersList.svelte`, `OrderDetailsTooltip.svelte` and `TpSlList.svelte`.
 A component that converts a price with `parseFloat` instead of using Decimal
 does not import Decimal, so the import gate would skip precisely the file the
-check exists to catch. Components are therefore audited unconditionally, and
+check exists to catch. Components are therefore audited without the gate, and
 the import gate stays exactly where it means what it says.
 
 **The marker needed three forms, not one.** A conversion in a component sits in
 one of three places and only one of them accepts a line comment: a `<script>`
-block takes `//`, a template expression needs an HTML comment *after* the
-expression, and an attribute expression — where most of these lines live —
-accepts only a block comment inside its braces, because an HTML comment is
-invalid inside a tag's attribute list. Before this, exempting a conversion in
-markup would have broken the component instead of documenting it. The fixtures
-pin all three positions.
+block takes `//`, a template expression needs a block comment inside its braces,
+and template text takes an HTML comment *after* the expression. The middle one
+is where most of these lines live (`class:foo={Number(x) > 0}`), and there an
+HTML comment is invalid inside a tag. Before this, exempting a conversion in
+markup would have broken the component instead of documenting it.
+
+**The reason is enforced, not documented.** An earlier version of this item
+claimed three times that the marker requires a reason, while the regex accepted
+a bare marker — so `Number(x); /* audit: safe */` was a green build. A missing
+reason is now its own failure class with its own message, because an
+unreviewable claim is exactly what this check exists to prevent.
 
 **Triage: 67 lines across 22 components, every one verified, none converted.**
 The item predicted the four known sites were marking candidates; the widened
-scan found 67, and each was read rather than assumed. All are display, visual or
-input-chrome paths: epoch-ms timestamps, page size, a row id, a notification
-volume, a reconnect interval, background-animation parameters, chart series
-data (the chart library's own number API), market-picker filtering and sorting,
-price-change percentages for display, and a handful of sign/existence tests that
-pick a colour class while the value itself is rendered as Decimal. The four sites
-the closed audit PR #3589 named are among them. **No financial conversion was
-found in a component**, so nothing was converted to `Decimal`; the honest answer
-for all 67 is a reason.
+scan found 67, and each was read rather than assumed. All but one are display,
+visual or input-chrome paths: epoch-ms timestamps, page size, a row id, a
+notification volume, a reconnect interval, background-animation parameters,
+chart series data (the chart library's own number API), market-picker filtering
+and sorting, price strings compared to pick an animation trend, and a handful
+of sign/existence tests that choose a colour class while the value itself is
+rendered as Decimal. The four sites the closed audit PR #3589 named are among
+them.
 
-**What the sweep did *not* claim.** A `Number(...)` comparison on a financial
-field is not automatically a violation — a `> 0` test that decides whether to
-draw a row cannot move money. That is why the marker requires a reason: each of
-the 67 is a claim a reviewer can check, and the reason says what the number is
-actually for.
+**The one that is not, and why it is still marked.** `CandleChartView.svelte:188`
+converts a kline close to a native number, and that value is not only chart
+series data: it is the seed for **price-alert rules**, where
+`chartAlertSeed.ts` constructs a `Decimal` *from the already-lossy float*. It
+cannot move money — an alert notifies, it does not place an order, and the seed
+is deliberately rounded to axis precision downstream — so it stays a native
+number. But it is the closest thing to financial in the whole sweep, and the
+reason on that line now says so instead of naming the chart library. A
+financial reviewer should make that call themselves; it is recorded as
+BUG-0572 rather than settled here.
+
+**What the sweep does not claim.** Detection patterns are untouched, so a
+conversion passed by reference (`prices.map(Number)`) is still invisible. That
+is the item's stated scope — widen the net, do not re-tune it — and it is
+BUG-0571.
 
 ## Out of scope
 
