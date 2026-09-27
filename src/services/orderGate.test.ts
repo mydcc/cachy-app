@@ -1413,16 +1413,24 @@ describe("accountFingerprint", () => {
         const fingerprint = accountFingerprint(key);
         expect(fingerprint).not.toBe(key);
         expect(fingerprint).not.toContain("EXAMPLEKEY");
-        expect(fingerprint).toBe("AKIA…3456");
+        expect(fingerprint).toMatch(/^[0-9a-f]+#\d+$/);
     });
 
     it("does not leak a short key wholesale", () => {
-        expect(accountFingerprint("abc")).toBe("ab…3");
+        const fingerprint = accountFingerprint("abc");
+        expect(fingerprint).not.toContain("abc");
+        expect(fingerprint).toMatch(/^[0-9a-f]+#\d+$/);
     });
 
     it("is stable and distinguishes accounts", () => {
         expect(accountFingerprint("key-one-aaaa")).toBe(accountFingerprint("key-one-aaaa"));
         expect(accountFingerprint("key-one-aaaa")).not.toBe(accountFingerprint("key-two-bbbb"));
+    });
+
+    it("tells two same-length short keys apart (BUG-0570)", () => {
+        // Same first two characters, same length: the old slice form
+        // returned "ke…5" for both, so a mid-signing key swap went unseen.
+        expect(accountFingerprint("key-a")).not.toBe(accountFingerprint("key-b"));
     });
 
     it("has a defined answer for a missing key", () => {
