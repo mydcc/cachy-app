@@ -94,6 +94,11 @@ in both locales; `npm run i18n` parity stays green.
   trail. Making the restrictive direction automatic and the permissive direction
   manual is the whole point.
 
+- **The auto-engage threshold's default value is the trader's to choose.** Carried
+  over from the item's original open-questions section, which recorded it as a
+  deliberate deferral rather than a gap. This item requires only that "unset"
+  means "off", so a trader who never sets a value gets today's behaviour.
+
 ## Links
 
 - `src/services/rmsService.ts::increasesExposure` — the rule being exposed
