@@ -318,11 +318,11 @@
             return new Decimal(live.priceChangePercent).toNumber();
         }
         const snapshot = row.analysis?.change24h;
-        return snapshot === undefined ? null : parseFloat(snapshot);
+        return snapshot === undefined ? null : parseFloat(snapshot);  // audit: safe — display formatting of a market snapshot, not an order value
     }
 
     function formatPrice(price: string | number) {
-        const p = typeof price === "string" ? parseFloat(price) : price;
+        const p = typeof price === "string" ? parseFloat(price) : price;  // audit: safe — display formatting of a market snapshot, not an order value
         if (isNaN(p)) return "0.00";
         return p < 1
             ? p.toFixed(6)
@@ -688,7 +688,7 @@
                         {@const liveChange = getLiveChange(row)}
                         {@const livePrice = getLivePrice(row)}
                         {@const quote = quoteOf(row)}
-                        {@const rsiNum = row.analysis ? parseFloat(row.analysis.rsi1h) : null}
+                        {@const rsiNum = row.analysis ? parseFloat(row.analysis.rsi1h) /* audit: safe — display formatting of a market snapshot, not an order value */ : null}
                         {@const trends = row.analysis?.trends}
                         {@const signal = signalOf(row.analysis)}
                         {@const isPartial = row.analysis?.quality === "partial"}

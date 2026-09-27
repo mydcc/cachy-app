@@ -88,12 +88,12 @@
         }
 
         // 3. Filter: Min Volume
-        const minVol = parseFloat(minVolumeStr);
+        const minVol = parseFloat(minVolumeStr);  // audit: safe — market-picker filtering and sorting, not an order value
         if (minVol > 0) {
             result = result.filter((s) => {
                 const data = snapshot[s];
                 if (!data) return false;
-                return Number(data.quoteVolume || 0) >= minVol;
+                return Number(data.quoteVolume || 0) >= minVol;  // audit: safe — market-picker filtering and sorting, not an order value
             });
         }
 
@@ -104,7 +104,7 @@
                 result = result.filter((s) => favSet.has(s));
             } else if (viewMode === "volatile") {
                 result = result.filter((s) => {
-                    const change = Number(snapshot[s]?.priceChangePercent || 0);
+                    const change = Number(snapshot[s]?.priceChangePercent || 0);  // audit: safe — market-picker filtering and sorting, not an order value
                     return Math.abs(change) >= 5;
                 });
             }
@@ -116,20 +116,20 @@
 
         if (effectiveSort === "gainers") {
             result.sort((a, b) => {
-                const changeA = Number(snapshot[a]?.priceChangePercent || 0);
-                const changeB = Number(snapshot[b]?.priceChangePercent || 0);
+                const changeA = Number(snapshot[a]?.priceChangePercent || 0);  // audit: safe — market-picker filtering and sorting, not an order value
+                const changeB = Number(snapshot[b]?.priceChangePercent || 0);  // audit: safe — market-picker filtering and sorting, not an order value
                 return changeB - changeA;
             });
         } else if (effectiveSort === "losers") {
             result.sort((a, b) => {
-                const changeA = Number(snapshot[a]?.priceChangePercent || 0);
-                const changeB = Number(snapshot[b]?.priceChangePercent || 0);
+                const changeA = Number(snapshot[a]?.priceChangePercent || 0);  // audit: safe — market-picker filtering and sorting, not an order value
+                const changeB = Number(snapshot[b]?.priceChangePercent || 0);  // audit: safe — market-picker filtering and sorting, not an order value
                 return changeA - changeB;
             });
         } else if (effectiveSort === "volume") {
             result.sort((a, b) => {
-                const volA = Number(snapshot[a]?.quoteVolume || 0);
-                const volB = Number(snapshot[b]?.quoteVolume || 0);
+                const volA = Number(snapshot[a]?.quoteVolume || 0);  // audit: safe — market-picker filtering and sorting, not an order value
+                const volB = Number(snapshot[b]?.quoteVolume || 0);  // audit: safe — market-picker filtering and sorting, not an order value
                 return volB - volA;
             });
         } else {
@@ -174,9 +174,9 @@
     function getChangePercent(s: string) {
         const live = marketState.data[s]?.priceChangePercent;
         if (live !== undefined && live !== null)
-            return Number(live);
+            return Number(live);  // audit: safe — market-picker filtering and sorting, not an order value
         const snap = snapshot[s]?.priceChangePercent;
-        return snap ? Number(snap) : null;
+        return snap ? Number(snap) : null;  // audit: safe — market-picker filtering and sorting, not an order value
     }
 
     function selectSymbol(s: string) {

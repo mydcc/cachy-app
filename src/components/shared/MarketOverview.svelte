@@ -165,8 +165,8 @@
 
     if (prevPriceState && s !== prevPriceState) {
       // Use efficient number parsing for comparison instead of Decimal overhead for UI effects
-      const currNum = parseFloat(s);
-      const prevNum = parseFloat(prevPriceState);
+      const currNum = parseFloat(s);  // audit: safe — price string compared to pick the flash-animation trend; nothing is stored or sent
+      const prevNum = parseFloat(prevPriceState);  // audit: safe — price string compared to pick the flash-animation trend; nothing is stored or sent
 
       const trend = currNum > prevNum ? "up" : "down";
       const newIndexes = new Set<number>();
