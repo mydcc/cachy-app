@@ -8478,7 +8478,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0572",
     "title": "A native float seeds price-alert rules before decimal.js sees it",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0572-alert-seed-float",
+    "shipped": "unreleased",
     "priority": "P3",
     "milestone": "none",
     "editions": [
