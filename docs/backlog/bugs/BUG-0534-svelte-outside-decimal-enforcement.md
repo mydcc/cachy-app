@@ -138,6 +138,13 @@ reason on that line now says so instead of naming the chart library. A
 financial reviewer should make that call themselves; it is recorded as
 BUG-0572 rather than settled here.
 
+**The scan directory is validated, not trusted.** The optional directory
+argument is a command-line value that reaches the filesystem, so it must exist,
+must be a directory, and must resolve inside the repository — a traversal out of
+the repo exits 2 with a usage line. This started as a CodeQL `js/path-injection`
+alert on the argument (two high-severity findings in this change) and is kept
+because the finding is a real property of the program, not a false positive.
+
 **What the sweep does not claim.** Detection patterns are untouched, so a
 conversion passed by reference (`prices.map(Number)`) is still invisible. That
 is the item's stated scope — widen the net, do not re-tune it — and it is

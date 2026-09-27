@@ -55,11 +55,44 @@
  * Exit codes: 0 = clean, 1 = violations found.
  */
 
-import { readdir, readFile } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { readdir, readFile, realpath, stat } from 'node:fs/promises';
+import { join, relative, sep } from 'node:path';
 
 const ROOT = new URL('..', import.meta.url).pathname;
-const SRC = join(ROOT, process.argv[2] ?? 'src');
+
+/**
+ * The directory to scan, validated before it reaches the filesystem.
+ *
+ * The argument is a command-line value, so it is checked rather than trusted:
+ * it must exist, it must be a directory, and it must resolve *inside* the
+ * repository. Without the containment check a caller could point this script at
+ * any path on the machine, which is CodeQL's `js/path-injection` finding and a
+ * real property of the program, not a false positive.
+ */
+async function resolveScanDir(requested) {
+    const rootReal = await realpath(ROOT);
+    const target = await realpath(join(rootReal, requested));
+    if (target !== rootReal && !target.startsWith(rootReal + sep)) {
+        throw new Error(`refusing to scan outside the repository: ${target}`);
+    }
+    if (!(await stat(target)).isDirectory()) {
+        throw new Error(`not a directory: ${target}`);
+    }
+    return target;
+}
+
+let SRC;
+try {
+    SRC = await resolveScanDir(process.argv[2] ?? 'src');
+} catch (error) {
+    if (error?.code === 'ENOENT') {
+        console.error(`audit-decimal: no such directory: ${join(ROOT, process.argv[2] ?? 'src')}`);
+    } else {
+        console.error(`audit-decimal: ${error.message}`);
+    }
+    console.error('usage: node scripts/audit-decimal.mjs [dir]   (default: src)');
+    process.exit(2);
+}
 
 /**
  * Detects unsafe native-number conversion calls.
@@ -139,8 +172,7 @@ let tsScanned = 0;
 let svelteScanned = 0;
 
 try {
-  for await (const file of walk(SRC)) {
-    if (EXCLUDE_PATTERN.test(file)) continue;
+  for await (const file of walk(SRC)) {    if (EXCLUDE_PATTERN.test(file)) continue;
 
     const content = await readFile(file, 'utf8');
     const isSvelte = file.endsWith('.svelte');
