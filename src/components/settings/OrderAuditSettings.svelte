@@ -32,6 +32,8 @@
     type OrderAuditEntry,
   } from "../../services/orderAuditService";
   import { modalState } from "../../stores/modal.svelte";
+  import { translateRefusalField } from "../../services/orderGate";
+  import type { TranslationKey } from "../../locales/schema";
 
   let refreshToken = $state(0);
   let expanded = $state<string | null>(null);
@@ -53,6 +55,21 @@
     if (outcome === "sent") return $_("settings.audit.outcome.sent");
     if (outcome === "refused") return $_("settings.audit.outcome.refused");
     return $_("settings.audit.outcome.failed");
+  }
+
+  /**
+   * How a refusal's field reads here.
+   *
+   * The toast for the same refusal says "the position size", because it goes
+   * through the gate's own vocabulary. This panel used to print the internal
+   * name instead — `qty`, `accountState` — so the two surfaces disagreed about
+   * the same refusal. `translateRefusalField` is what the toast reads too, and
+   * it falls back to the raw name for a field that has no entry, so an
+   * untranslatable name degrades to something honest rather than to a dotted
+   * key path.
+   */
+  function refusedFieldLabel(field: string): string {
+    return translateRefusalField(field, (key) => $_(key as TranslationKey));
   }
 
   function when(ms: number): string {
@@ -139,9 +156,9 @@
             </button>
 
             {#if entry.refusal}
-              <p class="text-[11px] px-2 pb-1 text-[var(--danger-color)]">
+              <p class="refusal-line text-[11px] px-2 pb-1 text-[var(--danger-color)]">
                 {$_("settings.audit.refusedField", {
-                  values: { field: entry.refusal.field },
+                  values: { field: refusedFieldLabel(entry.refusal.field) },
                 })}
               </p>
             {/if}

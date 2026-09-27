@@ -2,7 +2,9 @@
 id: BUG-0569
 title: Order audit panel shows the raw refusal field name
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/bug-0569-order-audit-refusal-field
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -53,11 +55,11 @@ invents its own wording.
 
 ## Acceptance criteria
 
-- [ ] A component test renders a refused entry with a field name from
+- [x] A component test renders a refused entry with a field name from
   `orderGate.fields.*` and shows the translated label, not the raw key
-- [ ] An entry whose field has no translation falls back to the raw name
+- [x] An entry whose field has no translation falls back to the raw name
   rather than showing a dotted key path
-- [ ] The toast wording and the panel wording agree for the same refusal
+- [x] The toast wording and the panel wording agree for the same refusal
 
 ## Out of scope
 
