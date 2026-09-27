@@ -355,7 +355,7 @@ describe("FEAT-0573 — the close dialog resolves the percentage against the liv
         expect(sent.amount.toString()).toBe("0.5");
     });
 
-    it("re-resolves the same percentage after the size moves under the dialog", () => {
+    it("resolves 25 % of a size that doubled under the dialog to 1", () => {
         component = mount(ClosePositionLiveWrapper, {
             target: host,
             props: { initialPosition: POSITION },
@@ -365,9 +365,15 @@ describe("FEAT-0573 — the close dialog resolves the percentage against the liv
         dragTo(25);
         expect(quantityInput().value).toBe("0.5");
 
-        // The size doubles under the open dialog; the handle stays at 25 %.
+        // The size doubles under the open dialog. The seed resets the quantity
+        // to the new full size (BUG-0347), so the handle returns to 100 % and
+        // has to be dragged again — which is why this is a second drag rather
+        // than a claim that the handle survived. What it shows is that the same
+        // 25 % of a bigger position is a bigger amount: 0.5 became 1.
         component?.refresh({ ...POSITION, amount: new Decimal(4) });
         settle();
+
+        expect(quantityInput().value).toBe("4");
 
         dragTo(25);
 

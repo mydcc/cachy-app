@@ -59,13 +59,17 @@ the fix costs no second copy of the position size.
       dragged, and is the quantity that would be submitted
 - [x] Moving the position size underneath the open dialog changes the resolved quantity,
       and the displayed percentage and the displayed quantity remain consistent with
-      each other: `percentFromQuantity(quantityFromPercent(p))` returns `p` for every
-      whole multiple of the step
+      each other: on a position that divides cleanly by the step and carries no venue
+      minimum, `percentFromQuantity(quantityFromPercent(p))` returns `p` for every whole
+      percentage `p` — where either quantity rule is not the identity, the round trip is
+      the documented rounding, not a drift
 - [x] The wording does not imply the percentage is anchored to the size the dialog
       opened with, because it is not
 - [x] `quantityFromPercent`, `percentFromQuantity` and the `PartialCloseContext` shape
       are unchanged — no second copy of the position size is introduced anywhere
-- [x] Both locale strings are added and `npm run i18n` parity stays green
+- [x] Both locale strings are added and the i18n checks stay green —
+      `node scripts/generate-i18n-types.js`, `node scripts/validate-i18n.js`,
+      `node scripts/lint-i18n.js`
 
 ## Out of scope
 
@@ -91,33 +95,47 @@ the fix costs no second copy of the position size.
 
 ## What shipped
 
-A labelling change and nothing else. One new locale key per language,
-`positionsList.closePercentBasis` — "Share of the position size the venue
-currently reports — two 50 % closes half of what is left" / "Anteil der
-aktuell gemeldeten Positionsgröße — zweimal 50 % schließt die Hälfte des
-Restes" — rendered as a caption under the slider in `PartialCloseInput`, so
-every current and future mount point inherits it from the one place that owns
-the control. The wording names the size the venue reports *now* and carries the
-"two 50 %" example that answers the ladder misreading directly, the same
-device `addSliderLabel` already uses for the add-side slider.
+A labelling change, an accessibility association, and nothing else. One new
+locale key per language, `positionsList.closePercentBasis`, rendered as a
+caption under the slider in `PartialCloseInput` — so every current and future
+mount point inherits it from the one place that owns the control. `RangeSlider`
+gained an optional `describedBy` prop, and the close slider passes the
+caption's id: the slider's own label is an `aria-label` and renders nothing
+visible, so the caption is the only statement of the basis on screen, and
+`aria-describedby` is what carries it to a screen reader moving the handle.
+The two other `RangeSlider` mounts are untouched and inherit the prop as
+optional.
+
+Wording, which is the deliverable here: "Share of the position size the venue
+currently reports — pressing 50 % twice closes half of what is left, not the
+whole position" / "Anteil der aktuell von der Börse gemeldeten Positionsgröße
+— zweimal 50 % schließt die Hälfte des Restes". Both name the size the venue
+reports now, both attribute it to the venue, and both carry the worked example
+that answers the ladder misreading — the same device `addSliderLabel` already
+uses for the add side.
 
 `partialClose.ts` is untouched: `quantityFromPercent`, `percentFromQuantity` and
 `PartialCloseContext` keep their shapes, and no second copy of the position size
 exists anywhere. The absolute quantity was already on screen and already the
-submitted one — the modal passes the same `Decimal` to `closePosition` — so the
-second acceptance criterion needed pinning, not building.
+submitted one — the modal passes the same `Decimal` to `closePosition` — so that
+acceptance criterion needed pinning, not building.
 
-TDD: the three caption and wording tests were RED before the strings and the
-markup existed (`expected 'Close 0%25%50%…' to contain 'the position size the
-venue currently reports'`, and both catalogues missing the key), green after.
-The rest are contract pins that were green throughout, which is the honest
-shape here: the arithmetic was already right and is what the new words now
-promise. 101 whole-percent round trips through
+TDD: the caption and wording tests were RED before the strings and the markup
+existed (`expected 'Close 0%25%50%…' to contain 'the position size the venue
+currently reports'`, both catalogues missing the key), green after. The rest are
+contract pins that were green throughout, which is the honest shape here: the
+arithmetic was already right and is what the new words now promise. 101 whole
+percentages of the clean fixture round-trip through
 `percentFromQuantity(quantityFromPercent(p))`; the modal test proves 25 % of two
 contracts shows `0.5` *and* sends `0.5`, and that the same 25 % of a size that
-doubled under the dialog shows `1`. 40/40 input + modal component tests,
-238/238 calculator tests, 439/439 calculators + architecture, 17/17 flash-close.
-`generate-i18n-types` (3820 keys), `validate-i18n` and `lint-i18n` clean.
+doubled under the dialog shows `1`.
+
+Worth knowing when reading those tests: the round trip holds where both quantity
+rules are the identity — step rounding and the venue-minimum floor. It does not
+hold on the coarse fixture (50 % of 0.7 rounds down to 0.3) nor with a
+`minTradeVolume` above a small partial (1 % of 2 with a 0.5 minimum resolves to
+0.5, i.e. 25 %). Both are the documented rules doing their job, so neither
+fixture is used, and the header says so.
 
 Also fixed in [`TODO.md` 29](../../TODO.md#29-does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left),
 whose worked example said a second 50 % of a 2-contract position is "not a

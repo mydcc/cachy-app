@@ -203,6 +203,7 @@
 
   <RangeSlider
     id="partial-close-slider"
+    describedBy="partial-close-basis"
     label={$_("positionsList.closeSliderLabel")}
     value={percent}
     min={new Decimal(0)}
@@ -225,8 +226,14 @@
     to offer. The wording names the size the venue reports now — the size can
     move under the dialog, and an "original size" reading would be a claim
     this control does not make.
+
+    The id is not decoration: `RangeSlider` puts the label on the input as
+    `aria-label` and renders nothing visible, so this line is the only
+    statement of the basis on the screen at all. `aria-describedby` is what
+    carries it to a screen reader moving the handle, which is the same
+    predictability problem one layer down.
   -->
-  <p class="text-[10px] text-[var(--text-secondary)]">
+  <p id="partial-close-basis" class="text-[10px] text-[var(--text-secondary)]">
     {$_("positionsList.closePercentBasis")}
   </p>
 

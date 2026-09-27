@@ -45,6 +45,11 @@ vi.mock("../../locales/i18n", async () => {
 
 import PartialCloseInput from "./PartialCloseInput.svelte";
 
+/** The real catalogue for a locale, for the wording guards below. */
+function catalogue(locale: string): typeof en {
+    return locale === "de" ? de : en;
+}
+
 /** 2 contracts, entered at 100, marked at 110, step 0.1. */
 const LONG: PartialCloseContext = {
     positionAmount: new Decimal(2),
@@ -317,17 +322,69 @@ describe("FEAT-0256 — the readout", () => {
  * holds for the German string too, which the rendered-text test cannot reach.
  */
 describe("FEAT-0573 — the slider says what its percentage is of", () => {
-    it("names the live position size next to the control", () => {
+    it("puts the basis next to the slider it describes", () => {
         render({ quantity: new Decimal(1), onChange: vi.fn() });
-        expect(host.textContent).toContain("the position size the venue currently reports");
+
+        // Placement, not copy: the caption the trader needs when the handle
+        // moves has to sit with the control, and the wording itself is the
+        // catalogue's business.
+        const caption = [...host.querySelectorAll("p")].find((p) =>
+            p.textContent?.includes(lookup("positionsList.closePercentBasis")),
+        );
+        expect(caption).toBeDefined();
+
+        // After the slider and before the readout block — so it reads as a
+        // property of the control rather than of the figures below it.
+        const blocks = [...host.querySelectorAll("input[type=range], p")];
+        const sliderAt = blocks.indexOf(slider());
+        const captionAt = blocks.indexOf(caption!);
+        const remainingAt = blocks.findIndex((el) =>
+            el.textContent?.includes(lookup("positionsList.remainingAfter")),
+        );
+        expect(sliderAt).toBeGreaterThanOrEqual(0);
+        expect(captionAt).toBeGreaterThan(sliderAt);
+        expect(remainingAt).toBeGreaterThan(captionAt);
+
+        // And the caption is what a screen reader hears while the handle
+        // moves: the label is the accessible *name*, so without the
+        // description the basis is on screen and absent from the audio path.
+        expect(caption!.id).toBe("partial-close-basis");
+        expect(slider().getAttribute("aria-describedby")).toBe("partial-close-basis");
     });
 
+    /*
+     * The wording guards below read the exact strings rather than matching a
+     * vocabulary. A regex over copy is a guard that punishes the next
+     * copywriter: "not the original size" is a *correct* clarification of this
+     * string, and it would trip a ban on the word "original". Pinning the
+     * strings makes a wording change a visible, deliberate act here, which is
+     * the honest way to guard a deliverable that is prose.
+     */
     it.each([
-        ["en", en],
-        ["de", de],
-    ])("counts %s against the live size, not the size the dialog opened with", (_locale, catalogue) => {
-        const basis = (catalogue.positionsList as Record<string, string>).closePercentBasis;
-        expect(basis).toMatch(/currently reports|aktuell gemeldeten/);
-        expect(basis).not.toMatch(/original|opening|ursprüng|Öffnung/i);
+        [
+            "en",
+            "Share of the position size the venue currently reports — pressing 50 % twice closes half of what is left, not the whole position",
+        ],
+        [
+            "de",
+            "Anteil der aktuell von der Börse gemeldeten Positionsgröße — zweimal 50 % schließt die Hälfte des Restes",
+        ],
+    ])("names the live size in %s, and nothing else", (_locale, expected) => {
+        expect((catalogue(_locale).positionsList as Record<string, string>).closePercentBasis).toBe(
+            expected,
+        );
     });
+
+    it.each([["en", en], ["de", de]])(
+        "keeps the %s caption and slider label from saying the same thing twice",
+        (_locale, book) => {
+            const labels = book.positionsList as Record<string, string>;
+            // The label is the aria-label the handle already carries; the
+            // caption adds the basis. Same opening words twice in a row is
+            // the redundancy worth avoiding, not a correctness problem.
+            expect(labels.closePercentBasis.startsWith(labels.closeSliderLabel.split(",")[0])).toBe(
+                false,
+            );
+        },
+    );
 });
