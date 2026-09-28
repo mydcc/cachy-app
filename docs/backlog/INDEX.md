@@ -2,9 +2,9 @@
 
 # Backlog index
 
-455 items. How to read and add them: [README.md](README.md).
+458 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 406 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 18 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 406 · ⛔ dropped 1
 
 ---
 
@@ -288,6 +288,8 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | market-data |
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | security |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | execution |
+| [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | exchange |
+| [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -379,6 +381,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | ui |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | execution |
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | execution |
+| [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 📋 specced | exchange |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -643,6 +646,8 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | none | community, pro, private | C | none | — |
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
+| [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -783,6 +788,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) |
+| [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -984,4 +990,4 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 
 ---
 
-Next free number: **0579**
+Next free number: **0582**
