@@ -103,7 +103,7 @@
     // Hardening: Treat empty input as null (if allowed) or "0" to prevent Decimal constructor crashes
     if (val === "") return allowEmpty ? null : "0";
 
-    const num = parseFloat(val);  // audit: safe — range check on an input string; the clamped result is returned as a string
+    const num = parseFloat(val);
     if (isNaN(num)) return "0"; // Safe fallback
 
     if (num < min) return String(min);

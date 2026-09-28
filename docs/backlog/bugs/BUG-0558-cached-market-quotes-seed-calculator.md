@@ -2,9 +2,7 @@
 id: BUG-0558
 title: Cached market quotes are presented as live and can seed the calculator
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0558-market-quote-freshness
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]

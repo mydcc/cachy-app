@@ -165,7 +165,7 @@
 
   function formatDate(timestamp: number) {
     if (!timestamp) return $_("dashboard.orderHistory.noDate");
-    const date = new Date(Number(timestamp));  // audit: safe — epoch-ms timestamp, not a financial value
+    const date = new Date(Number(timestamp));
     if (isNaN(date.getTime())) return $_("dashboard.orderHistory.noDate");
 
     try {

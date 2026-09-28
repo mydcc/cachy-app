@@ -2,9 +2,7 @@
 id: BUG-0555
 title: Final live-order confirmation omits TP portions and can imply a zero stop
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0555-confirmation-take-profit-plan
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]

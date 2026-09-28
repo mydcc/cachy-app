@@ -72,10 +72,10 @@
         settingsState.tradeFlowSettings.gridLength = parseInt(e.currentTarget.value);
     }
     function handleSpreadChange(e: Event & { currentTarget: HTMLInputElement }) {
-        settingsState.tradeFlowSettings.spread = parseFloat(e.currentTarget.value);  // audit: safe — background animation parameter, not a financial value
+        settingsState.tradeFlowSettings.spread = parseFloat(e.currentTarget.value);
     }
     function handleSizeChange(e: Event & { currentTarget: HTMLInputElement }) {
-        settingsState.tradeFlowSettings.size = parseFloat(e.currentTarget.value);  // audit: safe — background animation parameter, not a financial value
+        settingsState.tradeFlowSettings.size = parseFloat(e.currentTarget.value);
     }
     function handleCamHeightChange(e: Event & { currentTarget: HTMLInputElement }) {
         settingsState.tradeFlowSettings.cameraHeight = parseInt(e.currentTarget.value);

@@ -131,7 +131,7 @@
         // the rounding decimal.js exists to avoid.
         const params: Record<string, ParamValue> = {
             ...row.form.subject.params,
-            [name]: kind === "period" ? Number(raw) : raw,  // audit: safe — indicator lookback in bars, not a price
+            [name]: kind === "period" ? Number(raw) : raw,
         };
         form = replaceRow(form, row.id, {
             form: { ...row.form, subject: { ...row.form.subject, params } },

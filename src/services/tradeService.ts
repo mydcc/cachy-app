@@ -55,7 +55,7 @@ import { unwrapApiEnvelope, formatApiNum, parseDecimal } from "../utils/utils";
 import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
-import { accountEpoch, type AccountSession } from "./accountEpoch.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { accountReadOrder, leverageReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
@@ -66,13 +66,11 @@ import {
     translateRefusal,
     OrderRefusedError,
     mismatch,
-    mutatingActionOf,
     BOT_PAPER_ONLY_MESSAGE_KEY,
     type GatePass,
     type DisplayedState,
     type OrderIntent,
     type OrderOrigin,
-    type TransportContext,
 } from "./orderGate";
 import { exchangeSignedFetch, SIGNING_ERRORS } from "../utils/exchange/browserSigning";
 import {
@@ -130,161 +128,6 @@ const READ_BACK_ATTEMPTS = 3;
  * per endpoint and every other account read is event-driven.
  */
 const READ_BACK_DELAYS_MS = [700, 2000];
-
-/**
- * BUG-0551 — the last check before a write leaves the device.
- *
- * Everything the transport decides is decided synchronously: the provider,
- * the account whose keys sign the request, the paper/live branch. The one
- * thing that is not is signing itself — `exchangeSignedFetch` awaits the
- * WebCrypto digests before it dispatches — and a trader who switches account,
- * venue or mode inside that window used to get the write anyway. The
- * live-to-paper case is the one that costs real money: the UI shows a
- * simulated order while the live branch, chosen before the switch, dispatches
- * it.
- *
- * `assertGatePass` above cannot see it. That check answers "does the account
- * the transport resolved still match what the gate approved", and it reads
- * both sides in the same synchronous block — a switch that happens one await
- * later is invisible to it.
- *
- * So the context is read once, kept, and compared again at the point where
- * the bytes go out. Two layers, because they fail differently: the session
- * token catches a rotation whose fields came back unchanged (switch away and
- * back while signing), and the field comparison catches a context write that
- * never rotated one.
- *
- * The check rides `appFetch`'s per-attempt hook rather than this wrapper's
- * body. Signing is not the last await in the dispatch path: `appFetch` awaits
- * the token restore, may issue a token, and on a client-token 401 issues
- * another and tries again — and that retry is the attempt that reaches the
- * venue. A check here would run once, before all of it.
- *
- * Read-only requests are deliberately untouched. A read that crosses the
- * boundary is stale, not dangerous — it cannot dispatch a write. Three of the
- * read lanes here take a read-order ticket and drop a late answer at the store
- * write: the leverage read, and both account reads (`/api/account` for the
- * position mode and the account itself). The two position-list reads in this
- * file — `/api/sync/positions-pending` and `/api/positions` — take none, and
- * BUG-0419 owns that gap. Refusing reads here would turn every account switch
- * into an error in the polling paths for no safety gain.
- */
-function dispatchUnderSession(
-    session: AccountSession,
-    expected: DispatchContext,
-): (input: string, init?: RequestInit) => Promise<Response> {
-    return (input, init) => appFetch(input, init, () => assertSessionIntact(session, expected));
-}
-
-/** The part of a transport context that a switch can move. */
-type DispatchContext = Pick<
-    TransportContext,
-    "provider" | "accountFingerprint" | "accountId" | "paperMode"
->;
-
-/**
- * The context a request is about to be sent under, read now.
- *
- * The same derivation as at approval time, deliberately: `activeAccountFor`
- * is venue-scoped, so reporting `activeAccountId` raw would name an account
- * the signature does not belong to.
- */
-function readDispatchContext(): DispatchContext {
-    const provider = settingsState.apiProvider;
-    const account = activeAccountFor(
-        settingsState.accounts,
-        settingsState.activeAccountId,
-        provider,
-    );
-    return {
-        provider,
-        accountId: account?.id,
-        accountFingerprint: accountFingerprint(account?.keys.key),
-        paperMode: paperState.enabled,
-    };
-}
-
-/**
- * The refusal for a context that moved under the signing await.
- *
- * Named after what actually changed rather than "invalid request": a mode
- * flip, a venue switch and an account switch are three different mistakes,
- * and the trader reading the toast is the one who has to know which one
- * happened.
- */
-function sessionChangedRefusal(
-    expected: DispatchContext,
-    current: DispatchContext,
-): OrderRefusedError {
-    const changed = (
-        field: string,
-        from: string | undefined,
-        to: string | undefined,
-    ): OrderRefusedError =>
-        new OrderRefusedError({
-            field,
-            reason: "mismatch",
-            messageKey: "orderGate.sessionChanged",
-            values: { field, expected: from ?? "—", actual: to ?? "—" },
-        });
-
-    if (current.provider !== expected.provider) {
-        return changed("exchange", expected.provider, current.provider);
-    }
-    if (current.paperMode !== expected.paperMode) {
-        return changed(
-            "mode",
-            expected.paperMode ? "paper" : "live",
-            current.paperMode ? "paper" : "live",
-        );
-    }
-    if (current.accountId !== expected.accountId) {
-        return changed("account", expected.accountId, current.accountId);
-    }
-    if (current.accountFingerprint !== expected.accountFingerprint) {
-        return changed("account", expected.accountFingerprint, current.accountFingerprint);
-    }
-    // The session rotated while every field it describes reads the same: the
-    // trader went to another account and came back, or the credentials were
-    // re-entered. The request would technically be safe, but nothing about it
-    // was verified against the context on screen now, so it is refused.
-    //
-    // Its own message rather than a field mismatch, because there is no field
-    // to name: naming one would point the trader at the account or the switch
-    // when neither is what moved, and interpolating the rotation counter would
-    // put an internal sequence number in front of them. `accountEpoch.rotate`
-    // already logs the sequence it moved to.
-    return new OrderRefusedError({
-        field: "session",
-        reason: "mismatch",
-        messageKey: "orderGate.sessionRotated",
-        values: { field: "session" },
-    });
-}
-
-/**
- * Whether the write may still go out, and throws the named refusal if not.
- *
- * Split from `dispatchUnderSession` so the rule is readable on its own: the
- * hook is the seam, this is what it enforces.
- */
-function assertSessionIntact(session: AccountSession, expected: DispatchContext): void {
-    const current = readDispatchContext();
-    // Both layers, in this order. The session token catches a rotation whose
-    // fields came back unchanged; the field comparison then catches a context
-    // write that never rotated one — `settingsState` setters do not.
-    if (accountEpoch.isCurrent(session) && sameDispatchContext(current, expected)) return;
-    throw sessionChangedRefusal(expected, current);
-}
-
-function sameDispatchContext(a: DispatchContext, b: DispatchContext): boolean {
-    return (
-        a.provider === b.provider &&
-        a.accountId === b.accountId &&
-        a.accountFingerprint === b.accountFingerprint &&
-        a.paperMode === b.paperMode
-    );
-}
 
 class TradeService {
     // Hardening: Promise Coalescing to prevent Thundering Herd
@@ -362,20 +205,17 @@ class TradeService {
         // Re-read of the account the request will actually be signed with,
         // compared against the account the gate approved. Settings can change
         // between the click and the send; this is where that is caught.
-        //
-        // BUG-0551: built once and kept, because the signing await below is
-        // the one gap between this read and the network — `dispatchUnderSession`
-        // compares against this very object after signing, so the two checks
-        // cannot drift apart.
-        const transportContext: TransportContext = {
-            endpoint,
-            payload,
-            provider,
-            accountFingerprint: accountFingerprint(keys?.key),
-            accountId: account?.id,
-            paperMode: paperState.enabled,
-        };
-        assertGatePass(transportContext, pass);
+        assertGatePass(
+            {
+                endpoint,
+                payload,
+                provider,
+                accountFingerprint: accountFingerprint(keys?.key),
+                accountId: account?.id,
+                paperMode: paperState.enabled,
+            },
+            pass
+        );
 
         // FEAT-0012: THE seam. Live and paper differ here and nowhere else —
         // construction, the gate, the risk limits, OMS tracking, the journal
@@ -486,16 +326,7 @@ class TradeService {
                   // secret, so without this line a Bitget account would sign a
                   // Bitunix envelope with Bitget keys and Bitunix could not tell.
                   venue: provider,
-                  // BUG-0551: the signing await inside `exchangeSignedFetch` is
-                  // the last place a context switch can slip through, so the
-                  // dispatch itself is where the re-check lives. A read keeps
-                  // its exact behaviour — `mutatingActionOf` says the payload
-                  // carries no write, and a stale read is dropped at the store,
-                  // not here.
-                  fetchFn:
-                      mutatingActionOf(payload, endpoint) === null
-                          ? appFetch
-                          : dispatchUnderSession(accountEpoch.current(), transportContext),
+                  fetchFn: appFetch,
                   // Still named here: the route reads the provider to resolve
                   // its venue, and the envelope only carries credentials.
                   headers: { "X-Provider": provider },
@@ -679,12 +510,6 @@ class TradeService {
             throw new Error("apiErrors.missingCredentials");
         }
 
-        // BUG-0551: this lane signs and dispatches on its own, so it carries
-        // its own re-check. The paper guard above has the same gap it was
-        // written to close — the switch that happens while the signature is
-        // being computed is not the one it can see.
-        const context = readDispatchContext();
-
         // Parsed here as well as in the route, and for the same reason the route
         // parses: `marginCoin` carries a default and `amount` a transform, so the
         // two sides only build the same bytes if they build from the same parsed
@@ -705,7 +530,7 @@ class TradeService {
             // Named rather than inferred: the route resolves its venue from the
             // body, and the envelope itself carries only credentials.
             venue: provider,
-            fetchFn: dispatchUnderSession(accountEpoch.current(), context),
+            fetchFn: appFetch,
             headers: { "X-Provider": provider },
             payload: parsed.data,
         });
@@ -1812,18 +1637,6 @@ class TradeService {
             }
         }
 
-        // The free USDT balance the trader is spending from — read for the
-        // active mode only (BUG-0565). Live wallet and the paper account
-        // hydrate the same store, so an ambient read would measure against
-        // whichever writer ran last. A mismatch (or no measurement at all)
-        // hands the gate `undefined`, and the existing unmeasured path
-        // engages (BUG-0511, recorded as `availableMarginUnmeasured`).
-        // Settlement is currently USDT-M only, so USDT free is the whole
-        // spendable balance until multi-collateral arrives.
-        const balanceForMode = accountState.readUsdtBalance(
-            paperState.enabled ? "paper" : "live",
-        );
-
         const result = await this.gatedRequest({
             kind: "open",
             endpoint: "/api/orders",
@@ -1833,17 +1646,21 @@ class TradeService {
                 symbol: params.symbol,
                 side: params.side,
                 ...params.displayed,
-                // Present, the gate measures the open's required margin
-                // against it; absent or non-finite, it skips the measurement
-                // as before (BUG-0511, recorded as
-                // `availableMarginUnmeasured`). Stamped alongside the value
-                // so the two can never disagree — the stamp itself is
-                // informational, no gate consumes it as a freshness check:
-                // a stale-high reading approves and the venue rejects, a
-                // stale-low reading refuses early. Neither creates funds —
-                // the venue stays final.
-                availableMargin: balanceForMode?.available,
-                availableMarginAt: balanceForMode?.at,
+                // The free USDT balance the trader is spending from — live
+                // wallet or the paper account's simulated balance, which
+                // hydrates the same store (BUG-0549). Settlement is currently
+                // USDT-M only, so USDT free is the whole spendable balance
+                // until multi-collateral arrives. Present, the gate measures
+                // the open's required margin against it; absent or non-finite,
+                // it skips the measurement as before (BUG-0511, recorded as
+                // `availableMarginUnmeasured`). The reading carries no
+                // freshness timestamp (leverage has MAX_ACCOUNT_STATE_AGE_MS,
+                // the balance does not): a stale-high reading approves and
+                // the venue rejects, a stale-low reading refuses early.
+                // Neither creates funds — the venue stays final.
+                availableMargin: accountState.assets.find(
+                    (a) => a.currency === "USDT",
+                )?.available,
                 stepSize,
                 minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
                 maxLimitOrderVolume: meta?.maxLimitOrderVolume ? new Decimal(meta.maxLimitOrderVolume) : undefined,
@@ -1922,16 +1739,14 @@ class TradeService {
                     ? position.markPrice
                     : position.entryPrice;
 
-        // The settlement asset's free balance (USDT-M only), read for the
-        // active mode only (BUG-0565) — see placeOrder above. This only
-        // carries the reading — the refusal decision lives in `checkMargin`
-        // (orderGate.ts), which refuses the add when the balance has not
-        // loaded, since margin is its only ceiling (BUG-0511).
-        const balanceForMode = accountState.readUsdtBalance(
-            paperState.enabled ? "paper" : "live",
-        );
-        const availableMargin = balanceForMode?.available;
-        const availableMarginAt = balanceForMode?.at;
+        // The settlement asset's free balance (USDT-M only). This only carries the reading —
+        // the refusal decision lives in `checkMargin` (orderGate.ts), which
+        // refuses the add when the balance has not loaded, since margin is
+        // its only ceiling (BUG-0511). Paper accounts hydrate the same
+        // channel from the simulated balance.
+        const availableMargin = accountState.assets.find(
+            (a) => a.currency === "USDT",
+        )?.available;
 
         // Account equity for the percentage position-size cap — the same
         // tradeState the order panel reads. Unparseable means the cap is
@@ -1998,7 +1813,6 @@ class TradeService {
                 leverage: position.leverage,
                 marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
                 availableMargin,
-                availableMarginAt,
                 /*
                  * When the venue last confirmed this account's leverage and
                  * margin mode. The gate refuses an add on a read older than
@@ -2148,7 +1962,7 @@ class TradeService {
         const json = await response.json();
         const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
         if (data === null || !data.positions) throw new Error(TRADE_ERRORS.FETCH_FAILED);
-        accountState.hydratePositions(data.positions, "live");
+        accountState.hydratePositions(data.positions);
         if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
         return data.positions;
     }

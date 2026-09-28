@@ -44,7 +44,6 @@ import {
 import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
-import { paperState } from "./paperTrading.svelte";
 import { journalState } from "./journal.svelte";
 import { cmcService } from "../services/cmcService";
 import { indicatorState } from "./indicator.svelte";
@@ -885,10 +884,8 @@ class AiManager {
       )
       .toFixed(2);
 
-    // BUG-0565: the assistant reasons about the balance of the active mode,
-    // not whichever writer ran last.
-    const usdtBalance = account.readUsdtBalance(paperState.enabled ? "paper" : "live");
-    const accountSize = usdtBalance ? usdtBalance.total.toString() : "Unknown";
+    const usdtAsset = account.assets?.find((a) => a.currency === "USDT");
+    const accountSize = usdtAsset ? usdtAsset.total.toString() : "Unknown";
 
     const limit = settings.aiTradeHistoryLimit || 50;
     const symbol = trade.symbol;

@@ -20,7 +20,6 @@ import { CONSTANTS } from "../constants";
 import type { JournalEntry } from "../../stores/types";
 import { isUnsafeObjectKey } from "../../utils/utils";
 import { getTradePnL } from "./core";
-import { normalizeTradeDirection } from "../tradeDirection";
 import {
   calculateJournalStats,
   calculatePerformanceStats,
@@ -239,9 +238,8 @@ export function getDirectionData(journal: JournalEntry[], context?: JournalConte
   let shortPnl = new Decimal(0);
   closedTrades.forEach((t) => {
     const pnl = getTradePnL(t);
-    const direction = normalizeTradeDirection(t.tradeType);
-    if (direction === CONSTANTS.TRADE_TYPE_LONG) longPnl = longPnl.plus(pnl);
-    else if (direction === CONSTANTS.TRADE_TYPE_SHORT) shortPnl = shortPnl.plus(pnl);
+    if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) longPnl = longPnl.plus(pnl);
+    else shortPnl = shortPnl.plus(pnl);
   });
 
   // 2. Symbol Performance (Top 5 / Bottom 5)

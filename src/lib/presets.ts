@@ -20,7 +20,6 @@ import { presetState } from "../stores/preset.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import type { AppState } from "../stores/types";
 import { CONSTANTS } from "./constants";
-import { normalizeTradeDirection } from "./tradeDirection";
 
 /**
  * Loads all presets from localStorage.
@@ -30,16 +29,7 @@ export const loadPresets = (): Record<string, AppState> => {
   if (!browser) return {};
   try {
     const presets = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY);
-    const parsed = presets ? JSON.parse(presets) : {};
-    return Object.fromEntries(
-      Object.entries(parsed as Record<string, AppState>).map(([name, data]) => {
-        const normalized = { ...data } as AppState;
-        if (typeof data?.tradeType === "string") {
-          normalized.tradeType = normalizeTradeDirection(data.tradeType);
-        }
-        return [name, normalized];
-      }),
-    ) as Record<string, AppState>;
+    return presets ? JSON.parse(presets) : {};
   } catch (e) {
     console.warn("Could not load presets from localStorage.", e);
     return {};

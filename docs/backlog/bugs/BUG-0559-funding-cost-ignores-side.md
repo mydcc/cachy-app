@@ -2,9 +2,7 @@
 id: BUG-0559
 title: Estimated funding cost ignores long and short direction
 type: bug
-status: done
-assignee: opencode
-branch: fix/0559-funding-side
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -34,10 +32,10 @@ Apply position side to the funding cash flow, distinguish cost from income in wo
 
 ## Acceptance criteria
 
-- [x] Long and short × positive/negative rate tests produce the correct signed cash flow.
-- [x] Positive cost and negative income use distinct labels and semantic colors.
-- [x] Funding intervals other than eight hours remain exact.
-- [x] The displayed value is explicitly identified as an average-rate estimate.
+- [ ] Long and short × positive/negative rate tests produce the correct signed cash flow.
+- [ ] Positive cost and negative income use distinct labels and semantic colors.
+- [ ] Funding intervals other than eight hours remain exact.
+- [ ] The displayed value is explicitly identified as an average-rate estimate.
 
 ## Out of scope
 

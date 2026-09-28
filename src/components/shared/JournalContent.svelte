@@ -452,8 +452,7 @@
         const matchesAllStatus = journalFilterStatus === "all";
         const noTagSelected = selectedTag === "";
         const hasStartDate = filterDateStart !== "";
-        // Performance (Bolt): Date.parse() is ~25% faster than new Date().getTime() by avoiding object allocation
-        const startDateMs = hasStartDate ? Date.parse(filterDateStart) : 0;
+        const startDateMs = hasStartDate ? new Date(filterDateStart).getTime() : 0;
         const hasEndDate = filterDateEnd !== "";
         let endDateMs = 0;
         if (hasEndDate) {
@@ -468,8 +467,7 @@
             if (selectedSymbol && trade.symbol?.trim() !== selectedSymbol) return false;
             if (!noTagSelected && (!trade.tags || !trade.tags.includes(selectedTag))) return false;
             if (hasStartDate || hasEndDate) {
-                // Performance (Bolt): Date.parse() is ~25% faster than new Date().getTime() by avoiding object allocation
-                const tradeDateMs = Date.parse(trade.date);
+                const tradeDateMs = new Date(trade.date).getTime();
                 if (hasStartDate && tradeDateMs < startDateMs) return false;
                 if (hasEndDate && tradeDateMs > endDateMs) return false;
             }
