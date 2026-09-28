@@ -83,12 +83,52 @@ This epic is done when each child item is done. It has no code of its own.
       start until a trailing endpoint is verified against the live API. **This
       epic stays open until then**, and that is the correct outcome: closing it
       early would record a capability the product does not have.
-- [ ] Unsupported actions absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)
+- [x] Unsupported actions absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md) — audited 2026-09-28, see the capability audit below
 - [ ] Each action verified live on each supported exchange
 
 The two criteria that outlive every child — *unsupported actions are absent per
 capabilities* and *verified live* — stay here rather than being copied into each
 child, because they are properties of the finished set, not of any one control.
+
+## Capability audit (FEAT-0017)
+
+Audited 2026-09-28, the first time this criterion was checkable: FEAT-0017
+shipped in 1.6.0-beta.135, so the four finished controls had something to be
+measured against.
+
+**One real gap, fixed here.** The modify-TP/SL control was offered on every
+venue. `PositionsSidebar` passed `ontpSl={handleTpSl}` unconditionally, and
+`PositionsList` rendered the button without a guard, calling through
+`ontpSl?.(pos)` — so on a venue that answers `tpSlStandalone: false` (Bitget,
+whose every TP/SL verb is refused on `supports.tpSl: false` and whose tpsl
+route rejects every exchange but Bitunix) a trader got the form, filled it in,
+and only then hit the refusal. That is the direction `bitgetCapabilities.ts`
+warns about when it declares a venue feature Cachy cannot yet spell: a
+control that fails *after* the trader committed. The add-to-position control
+two dozen lines below already followed the rule, with the rule written next to
+it. Both now do, and both are pinned by tests.
+
+**The other three were already correct, and it is worth saying how.**
+
+- *Close, partial close, flash close* — no capability flag exists for closing,
+  and none is missing: both venues wire `closePosition` and
+  `flashClosePosition`, so there is nothing to declare. A flag that is
+  uniformly true guards nothing.
+- *Add to position* — gated on `capabilities.addToPosition` and absent on a
+  venue that cannot scale in. Was untested until now; it is now pinned beside
+  the TP/SL control, since a guard that covers only the newer control is how
+  this gap opened.
+- *Trailing stop* — `trailingStop` is `false` on both venues because Cachy has
+  no wire format for it at all, and correspondingly no control exists anywhere.
+  The criterion holds vacuously, and correctly so: the honest version of
+  "absent" for an unbuilt feature is "not there".
+
+**Observed, not fixed — a different surface.** The TP/SL *manager* tab
+(`TpSlList`) is not capability-gated either: it offers edit and cancel on
+`tpSlState`'s plans regardless of what the venue takes. That is the dashboard's
+TP/SL surface rather than this epic's position row, and it reads and cancels
+plans rather than creating one, so it sits outside the four controls audited
+here. Recorded rather than silently widened into this change.
 
 ## Out of scope
 
