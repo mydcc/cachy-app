@@ -1,9 +1,9 @@
 # Error Codes
 
-Quelle: https://www.bitunix.com/api-docs/futures/ErrorCode/error_code.html
+Source: https://www.bitunix.com/api-docs/futures/ErrorCode/error_code.html
 
-Alle Business-Fehlercodes werden mit HTTP-Statuscode `200` zurückgegeben; der
-eigentliche Fehler steht im JSON-Feld `code`/`msg` der Response.
+All business error codes are returned with HTTP status code `200`; the
+actual error is in the `code`/`msg` JSON field of the response.
 
 | ErrorCode | Description | httpStatusCode |
 |-----------|--------------|----------------|
@@ -69,7 +69,7 @@ eigentliche Fehler steht im JSON-Feld `code`/`msg` der Response.
 | 30034 | TP price must be less than mark price [sic — duplicates 30033 upstream] | 200 |
 | 30035 | SL price must be greater than trigger price: | 200 |
 | 30036 | TP price must be greater than trigger price: | 200 |
-| 30037 | TP price must be greater than trigger price: | 200 |
+| 30037 | TP price must be greater than trigger price: [sic — duplicates 30036 upstream] | 200 |
 | 30038 | TP/SL amount must be less than the size of the position. | 200 |
 | 30039 | The order qty can't be greater than the max order qty: | 200 |
 | 30040 | Futures trading is prohibited, please contact customer service. | 200 |
@@ -83,3 +83,74 @@ eigentliche Fehler steht im JSON-Feld `code`/`msg` der Response.
 | 40006 | Sub-account reaches the limit. | 200 |
 | 40007 | Share settlement is being processed,lease try again later | 200 |
 | 40008 | After the transfer, the account balance will be less than the order amount, please enter again. | 200 |
+
+## Defects in this table
+
+Every code below is transcribed exactly as published. All 76 codes on the
+vendor page are present here and none were added — this file is complete
+against the source. What follows are the vendor's own defects, recorded so a
+future crawl does not re-report them as new findings, and so a reader does not
+mistake a transcription for an endorsement.
+
+### Duplicated codes
+
+Two pairs repeat a description verbatim, under adjacent numbers:
+
+| Code | Description | Duplicates |
+|---|---|---|
+| `30034` | TP price must be less than mark price: | `30033`, character for character |
+| `30037` | TP price must be greater than trigger price: | `30036`, character for character |
+
+The surrounding block is otherwise a clean long/short direction pair — `30026`/`30032`
+(TP vs last price), `30027`/`30033` (TP vs mark), `30028`/`30030` (SL vs last),
+`30029`/`30031` (SL vs mark), `30035`/`30036` (SL/TP vs trigger). Under that
+pattern `30034` and `30037` are the two unpaired repeats, which is what makes a
+copy-paste error the likely cause. **That is an inference from the pattern, not
+something the page says** — and it does not matter operationally, since the
+codes are interchangeable in behaviour either way.
+
+### Truncated descriptions, systemically
+
+`30016` reads *"The qty should be larger than"* and stops — no object, no full
+stop.
+
+This is not a one-off. Every code from `30020` through `30033`, plus `30035`–`30037`
+and `30039`, ends in a bare colon with nothing after it:
+
+```
+30020 | Trigger price for TP should be higher than mark price:
+```
+
+The pattern strongly suggests a message template that interpolates the offending
+value at runtime, and the documentation captured the template without its
+placeholders. So a client must treat every one of these as a *prefix*: **the
+`msg` field on the wire will contain more than the docs show**, and should not
+be matched against literally.
+
+### Likely typos that must be transcribed as-is
+
+- `30015` reads **"Mini Sell Order Price"**, where the neighbouring `30014` is
+  "Max Buy Order Price". "Max" is almost certainly intended — the page
+  documents no minimum-sell code at all. Left verbatim, because silently
+  repairing a wire-message string makes a mirror untrustworthy.
+- `40002` reads *"Lead amount hast to be over the limits"* — "hast" for "has".
+- `40007` reads *"Share settlement is being processed,lease try again later"* —
+  "lease" for "please", and a missing space after the comma.
+- `30023` reads *"Trigger price fo SL should be lower than mark price:"* — "fo"
+  for "for".
+
+### Codes that read as a swapped pair
+
+`30002` is "Price below liquidated price" and `30003` is "Price above
+liquidated price".
+
+These look transposed, and the mirror does not swap them. But they may equally
+be **correct and merely under-documented**: a single liquidation price is
+legitimately violated from both directions, since a long is liquidated when
+price falls to it and a short when price rises to it. The page gives no
+side-dependency, no example and no cross-reference, so the "swapped" reading
+and the "both directions" reading fit the text equally well.
+
+**Not resolved here.** A client that needs to distinguish the two should
+establish the side-dependency against a sandbox rather than infer it from these
+two strings.
