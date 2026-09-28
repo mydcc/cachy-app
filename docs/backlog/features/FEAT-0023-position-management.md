@@ -125,14 +125,27 @@ it. Both now do, and both are pinned by tests.
 
 **A second gap on a neighbouring surface, found while fixing the first.** The
 TP/SL *manager* tab is the same rule in a different place: it listed, edited
-and cancelled plans regardless of what the venue takes, and on a venue that
-takes none even the list read is refused — so the tab could only ever resolve
-to an error, for a trader who had already clicked it. It is now absent on such
-a venue, on the same flag. Reading plans is not a lesser capability than
-writing them: a venue that cannot be given a stop has none to list.
+and cancelled plans regardless of what the venue takes. On a venue that takes
+none, its list read is deliberately non-throwing — `fetchTpSlOrders` returns
+`[]` rather than raising, on purpose, so an unsupported venue cannot open a
+dialog — so the tab would not have errored. It would have sat permanently
+empty and never once said why. It is now absent on such a venue, on the same
+flag. Reading plans is not a lesser capability than writing them: a venue that
+cannot be given a stop has none to list.
 
 It sits on the dashboard rather than on this epic's position row, so it is
 recorded here rather than counted as one of the four controls.
+
+**Both gates had to be reactive, which the first version was not.** A gate
+written as a plain `const` from a capability keeps the value it had at mount,
+and the sidebar is not remounted when the account or venue changes — so a
+Bitunix → Bitget switch with the tab open would have left the tab there, which
+is the failure this closes. Two tests now switch venue on a mounted component
+rather than before mounting; the test harness reads its capabilities from a
+`$state` module for exactly this reason, since a plain mocked object severs the
+dependency the derived would have. A third test pins the consequence: a tab the
+venue does not have must not stay active, or the content chain — which has no
+`{:else}` — renders an empty panel with nothing highlighted.
 
 ## Out of scope
 

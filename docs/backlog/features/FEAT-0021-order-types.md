@@ -62,8 +62,9 @@ than reimplementing it.
       `PlaceOrderParams.orderType` is typed `"LIMIT" | "MARKET"` — the
       intersection of what both venues declare — so an unsupported entry type
       cannot be offered at all, and the trade panel has no type selector to
-      offer one with. Nothing reads `capabilities.orderTypes`, and nothing
-      needs to today.
+      offer one with. `orderGate` reads `capabilities.orderTypes` to refuse an
+      entry the venue would not take, which is the enforcement half; no *UI*
+      reads it, which is why nothing needs to today.
       **The day a trigger entry is added, that stops being free:** the model
       already carries the field and it has no consumer, so a trigger UI would
       have nothing gating it. Gate it on `capabilities.orderTypes` in the same
