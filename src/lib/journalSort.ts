@@ -45,6 +45,14 @@ function parseDateish(value: SortableValue): number {
 }
 
 /**
+ * Fields holding a single point in time, so they sort as milliseconds rather
+ * than as text. `entryDate` belongs here: it is a `keyof JournalEntry`, so it
+ * is a reachable sort field, and as a plain string "2026-01-02T00:00:00+02:00"
+ * sorted after "2026-01-01T23:00:00Z" despite being an hour earlier.
+ */
+const DATE_FIELDS = new Set(["date", "entryDate", "exitDate"]);
+
+/**
  * Sorts journal rows for `JournalContent`, including the `duration` derived
  * column (milliseconds between entry and exit, floored at 0).
  *
@@ -73,8 +81,15 @@ export function sortJournalRows<T>(rows: T[], field: string, direction: SortDire
                 // without `exitDate` used to suppress the conversion on BOTH
                 // sides, so the neighbour's ISO string was compared as a string
                 // against a millisecond number and the two compared equal.
-                if ((field === "date" || field === "exitDate") && typeof val === "string") {
-                    val = Date.parse(val);
+                //
+                // A value `Date.parse` cannot read becomes NaN, and every
+                // comparison against NaN is false — the comparator would answer
+                // "equal to everything" and the row would freeze in place while
+                // the rows around it kept their order. An unreadable date is a
+                // missing value, so it joins the -Infinity bucket above.
+                if (DATE_FIELDS.has(field) && typeof val === "string") {
+                    const parsed = Date.parse(val);
+                    val = isNaN(parsed) ? -Infinity : parsed;
                 }
             }
 

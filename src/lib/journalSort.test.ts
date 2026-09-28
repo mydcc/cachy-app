@@ -93,6 +93,49 @@ describe("sortJournalRows", () => {
         ]);
     });
 
+    it("sorts a row with an unparseable date with the blank rows, not in place", () => {
+        const rows: Row[] = [
+            { id: "jan-01", date: "2026-01-01T00:00:00.000Z" },
+            { id: "jan-02", date: "2026-01-02T00:00:00.000Z" },
+            { id: "corrupt", date: "13/45/2026" },
+            { id: "jan-03", date: "2026-01-03T00:00:00.000Z" },
+        ];
+
+        // Date.parse returns NaN for a value it cannot read, and every
+        // comparison against NaN is false, so the comparator used to answer
+        // "equal to everything": the row never moved and acted as a barrier the
+        // surrounding rows could not cross. An unparseable date is a missing
+        // value, so it belongs in the same bucket -- first ascending, last
+        // descending, exactly like a row with no date at all.
+        expect(ids(sortJournalRows(rows, "date", "asc"))).toEqual([
+            "corrupt",
+            "jan-01",
+            "jan-02",
+            "jan-03",
+        ]);
+        expect(ids(sortJournalRows(rows, "date", "desc"))).toEqual([
+            "jan-03",
+            "jan-02",
+            "jan-01",
+            "corrupt",
+        ]);
+    });
+
+    it("orders entryDate chronologically rather than as text", () => {
+        // `entryDate` is a `keyof JournalEntry`, so it is a reachable sort
+        // field. It was missing from the date-parsing branch and fell through to
+        // a string compare, where "2026-01-02…" sorts after "2026-01-01…" no
+        // matter what the clock says. These two rows are 23:00Z and 22:00Z; only
+        // the offset makes the two orders disagree.
+        const rows: Row[] = [
+            { id: "late-utc", entryDate: "2026-01-01T23:00:00.000Z" },
+            { id: "early-offset", entryDate: "2026-01-02T00:00:00+02:00" },
+        ];
+
+        expect(ids(sortJournalRows(rows, "entryDate", "asc"))).toEqual(["early-offset", "late-utc"]);
+        expect(ids(sortJournalRows(rows, "entryDate", "desc"))).toEqual(["late-utc", "early-offset"]);
+    });
+
     it("sorts the duration column by elapsed milliseconds", () => {
         const rows: Row[] = [
             { id: "long", entryDate: "2026-01-01T00:00:00.000Z", exitDate: "2026-01-01T01:00:00.000Z" },
