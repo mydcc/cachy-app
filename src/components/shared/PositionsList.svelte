@@ -390,23 +390,12 @@
 
               <!-- Footer: Buttons -->
               <div class="flex gap-2 pt-1">
-                <!--
-                  FEAT-0254. Absent entirely where the venue cannot take a
-                  standalone plan (FEAT-0017: `tpSlStandalone`), the same rule
-                  the add-to-position control below follows and for the same
-                  reason: a form the trader fills in and submits, and only then
-                  fails, is the expensive direction. The button opens a dialog
-                  — the commitment is made after the fields, not before.
-                -->
-                {#if ontpSl}
-                  <button
-                    class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
-                    data-track-id="btn-tp-sl"
-                    onclick={() => ontpSl(pos)}
-                  >
-                    {$_("positionsList.tpsl")}
-                  </button>
-                {/if}
+                <button
+                  class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
+                  onclick={() => ontpSl?.(pos)}
+                >
+                  {$_("positionsList.tpsl")}
+                </button>
                 {#if canAdjustMargin(pos)}
                   <button
                     class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"

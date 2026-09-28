@@ -2,9 +2,7 @@
 id: BUG-0570
 title: The order dispatch guard's account fingerprint collides on short keys
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0570-fingerprint-collision
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]

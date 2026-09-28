@@ -2,7 +2,7 @@
 id: FEAT-0488
 title: Guard bot order submission against duplicates, stacking and unbounded repeat
 type: feature
-status: ready
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -20,22 +20,16 @@ A bot is a `RuleDocument` at `simulate` whose conditions hold. Nothing between "
 conditions hold" and "an order is submitted" limits how often that may happen, or notices
 that it is already happening.
 
-Two ways that goes wrong today, none of which needs a bug elsewhere to trigger:
+Three ways that goes wrong today, none of which needs a bug elsewhere to trigger:
 
-1. **Stacking, and no bound on the count.** Each submission builds a fresh `EntryPlan`
-   with `tradeType` long or short and no reference to what is already open.
-   `frequency: "every_time"` on a 1m trigger is one market order per minute for as long
-   as the condition holds — twenty fires is twenty entries in the same direction, each
-   sized against an equity figure the previous nineteen have already moved. The core
-   answers `every_time` with yes however often the rule has fired, by design, and
-   `withBotOrders` has no counterpart.
-
-   The *rate* is not what is wrong here. `RuleEvaluationGate.evaluate` refuses an anchor
-   at or before the one already decided, so a rule is asked at most once per close of
-   its `trigger_timeframe`; `evaluateIntrabar` caps announcements at one per candle for
-   every frequency alike. What is unbounded is the *count* — and the only thing bounding
-   it today is the trader's own patience.
-2. **Concurrency.** `withBotOrders` fires `void submitBotOrder(...)` and returns. The
+1. **Unbounded repeat.** `frequency: "every_time"` on a 1m trigger is one market order per
+   minute for as long as the condition holds. The core answers `every_time` with yes
+   however often the rule has fired — by design — and `withBotOrders` has no counterpart.
+   `once_per_candle_close` is the same story at a slower rate.
+2. **Stacking.** Each submission builds a fresh `EntryPlan` with `tradeType` long or short
+   and no reference to what is already open. Twenty fires is twenty entries in the same
+   direction, each sized against an equity figure the previous nineteen have already moved.
+3. **Concurrency.** `withBotOrders` fires `void submitBotOrder(...)` and returns. The
    promise is neither awaited nor tracked, so two closes arriving close together — a
    backfill, a busy series, an intrabar rule on a fast market — have two submissions in
    flight against the same rule with no in-flight guard between them.
@@ -43,8 +37,8 @@ Two ways that goes wrong today, none of which needs a bug elsewhere to trigger:
 Today the blast radius is bounded by `env.paperEnabled()`: a bot that fires with paper
 trading off refuses with `paper-trading-off`, and with it on the orders route to the paper
 account. That bound is a property of this item's *scope*, not of its safety. The moment
-[`FEAT-0035`](FEAT-0035-autonomous-execution-agent.md) lifts the paper gate, both become
-live-money behaviour, and they would arrive as a side effect of a different item.
+[`FEAT-0035`](FEAT-0035-autonomous-execution-agent.md) lifts the paper gate, all three
+become live-money behaviour, and they would arrive as a side effect of a different item.
 
 This is why it is filed at P1 while nothing is at risk yet: it is cheap now and it is a
 prerequisite later.
@@ -57,14 +51,12 @@ limits below it is what ADR-0012 decision 5 forbids.
 
 - **In-flight guard.** One outstanding submission per rule id. A firing that arrives while
   the previous one has not settled is refused with its own reason, not queued.
+- **Per-rule cooldown.** A minimum interval between two submissions from the same rule,
+  independent of `frequency`. `frequency` says how often a rule may *announce*; this says
+  how often it may *act*, and they are not the same question.
 - **Open-exposure check.** A bot does not open a second position in the same direction on
-  the same symbol while the first is open. It reads the position book through the
-  environment's account-state reader rather than tracking what this rule itself opened, so
-  the refusal also holds against a position the trader opened by hand or that another rule
-  opened — stacking onto a foreign position is one of the two failures this item exists to
-  stop, and a per-rule memory cannot see it. This is the limit that bounds the *count*: a
-  rule whose first entry is still open cannot add to it on the next fire, however many
-  candles pass.
+  the same symbol while the first is open. Reading position state is already authorised —
+  `may_read_account_state()` is true at `simulate`.
 
 Each refusal goes through the existing `BotOrderRefusal` channel, so it is a typed member,
 a toast in both locales, and deduplicated per rule and reason for free.
@@ -73,20 +65,15 @@ a toast in both locales, and deduplicated per rule and reason for free.
 
 - [ ] A test fires one rule twice with the first submission still pending and asserts
       exactly one order reaches `place()`
+- [ ] A test fires an `every_time` bot on consecutive closes and asserts the cooldown
+      holds submissions back while the announcements continue
 - [ ] A test fires a bot while a position it opened is still open and asserts no second
       entry is submitted
-- [ ] A test fires a bot against a position that was **not** opened by that rule — already
-      open when the bot first fired — and asserts the same-direction entry is still refused
-- [ ] A test fires a bot across many consecutive trigger closes and asserts the number of
-      entries reaches one and stays there, which is the count the exposure check exists to
-      bound
-- [ ] Each of the two refusals is a `BotOrderRefusal` member with a message in both
+- [ ] Each of the three refusals is a `BotOrderRefusal` member with a message in both
       locales, enforced by the existing typed `BOT_REFUSAL_KEYS` record
 - [ ] Announcements are unchanged: `inner(firing)` still receives every firing, refused
       submissions included
 - [ ] The paper-trading gate is untouched
-- [ ] The environment gains a position reader, and it is reachable only from the `simulate`
-      path a bot rule is admitted through — a `notify` or `send` rule never reaches it
 
 ## Out of scope
 
@@ -95,27 +82,15 @@ a toast in both locales, and deduplicated per rule and reason for free.
   `reduce-only-unsupported` stays a refusal here
 - Any risk limit that already lives inside `OrderGate`. This item adds rate and
   concurrency limits, not position sizing.
-- A per-rule cooldown. Considered and dropped — see [Decisions](#decisions). The one
-  case a cooldown would have caught, a burst of anchors during a refill, is already
-  covered by the in-flight guard for as long as a submission is outstanding.
 
-## Decisions
+## Open questions
 
-- **No per-rule cooldown.** A previous revision of this item derived a cooldown
-  interval from `trigger_timeframe`, on the reasoning that a 1m rule should act at
-  most once a minute. That is inert, and the reason is worth keeping: the
-  evaluation gate already refuses a second evaluation of the same trigger anchor,
-  so a rule is asked at most once per close of its timeframe regardless of
-  `frequency`. A cooldown equal to the timeframe is satisfied by every submission
-  the gate would otherwise have let through, and it would have refused nothing.
-  The proposal's original framing — "`frequency` says how often a rule may
-  announce, this says how often it may act" — is a real distinction, but not one a
-  per-rule interval can enforce here, because the two rates are already equal.
-
-  The failure it was aimed at is real; the mechanism was not. What is unbounded is
-  the *count* of entries while a condition holds, not their rate, and the exposure
-  check is the limit that bounds it. Dropping the cooldown leaves two guards that
-  each do work rather than three where one did not.
+- Is the cooldown a fixed interval, one trigger-timeframe period, or configured per rule?
+  A per-rule field is a schema change and moves the content hash; a derived default does
+  not. Deriving it from `trigger_timeframe` is the cheaper answer and probably the right one.
+- Should the open-exposure check read the paper position book directly, or should it track
+  what this rule itself opened? The first is more correct, the second keeps the module's
+  port boundary narrow.
 
 ## Links
 
