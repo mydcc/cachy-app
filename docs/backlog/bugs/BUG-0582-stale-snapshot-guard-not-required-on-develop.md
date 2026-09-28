@@ -2,7 +2,7 @@
 id: BUG-0582
 title: The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: repo
 data_class: none
 adr: none
 depends_on: []
+shipped: 2026-09-28
 ---
 
 # BUG-0582 — The stale-snapshot revert guard is not a required check
@@ -82,8 +83,31 @@ the three damaging merges; BUG-0583 is what stops the third.
       a base-added file is refused at merge time, not merely reported red
 - [ ] The `allow-base-revert` escape hatch is documented as the only way past it
 
+## Shipped
+
+Applied 2026-09-28 as a repository-settings change (no code, so no commit
+carries it). `required_status_checks.contexts` on `develop` went from 9 to 10
+entries with `Stale Snapshot Revert Guard` appended; a before/after diff of the
+protection object confirms nothing else moved — `strict` still `true`,
+`enforce_admins` still `false`, `required_conversation_resolution` still
+`true`, and every other section byte-identical.
+
+Verified: PR #3724 reports `mergeStateStatus: BLOCKED` with the guard in its
+check rollup, so the required set is live.
+
+Two notes for whoever picks this up next:
+
+- The sub-resource endpoint `PUT …/protection/required_status_checks` returns
+  404 on this repo; the working call is `PUT …/protection` with the **full**
+  object. `required_pull_request_reviews` and `restrictions` must both be
+  present (`null` when unset) or the API answers 422.
+- This closes two of the three damaging merges (#3680, #3692). The third,
+  #3718, is BUG-0583 — a structural blind spot in the guard, not a settings
+  gap. Do not treat this item as closing the incident class.
+
 ## Links
 
 - BUG-0447 — the agent-snapshot item this guard was written for
-- BUG-0583 — the guard's own false negative on #3718
-- PR #3720 — the manual restore
+- BUG-0583 — the guard's own blind spot on branches that have not merged base
+- PR #3724 — the audit PR this item was filed in
+- PR #3720 — the manual restore of the 2026-09-28 damage

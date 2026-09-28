@@ -548,7 +548,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0582",
     "title": "The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -560,6 +560,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "shipped": "2026-09-28",
     "file": "bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md"
   },
   {
