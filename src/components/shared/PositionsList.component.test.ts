@@ -84,6 +84,103 @@ async function settle(rounds = 4) {
     flushSync();
 }
 
+/*
+ * FEAT-0023 — a control the venue cannot take is absent, not broken.
+ *
+ * The capability model (FEAT-0017) exists so the UI never offers an action the
+ * venue will refuse: a form the trader fills in and submits, and only then
+ * fails, is the expensive direction. Add-to-position already worked that way
+ * (the `{#if onadd}` below, with the rule written next to it); the TP/SL
+ * button beside it did not, which is why both are pinned here together — the
+ * rule is worth less than the habit of applying it.
+ *
+ * The sidebar half of this (the capability flag reaching `ontpSl`) is tested
+ * in `PositionsSidebar.live-position.component.test.ts`.
+ */
+describe("FEAT-0023 — unsupported actions are absent, not broken", () => {
+    const SAMPLE: OMSPosition = {
+        symbol: "BTCUSDT",
+        side: "long",
+        amount: new Decimal("0.5"),
+        entryPrice: new Decimal("64000"),
+        markPrice: new Decimal("65000"),
+        unrealizedPnl: new Decimal("500"),
+        leverage: new Decimal("10"),
+        marginMode: "cross",
+    };
+
+    const tpSlButton = () => host.querySelector<HTMLButtonElement>('[data-track-id="btn-tp-sl"]');
+    const addButton = () => host.querySelector<HTMLButtonElement>('[data-track-id="btn-add-to-position"]');
+    const flashCloseButton = () =>
+        host.querySelector<HTMLButtonElement>('[data-track-id="btn-flash-close"]');
+
+    it("offers no TP/SL button when the caller has no way to place one", async () => {
+        // The venue declares `tpSlStandalone: false`; the sidebar then passes
+        // no handler, and the row must show nothing at all.
+        component = mount(PositionsList, {
+            target: host,
+            props: { positions: [SAMPLE] },
+        }) as never;
+        await settle();
+
+        // Stated here rather than left to the next test: a null button proves
+        // nothing unless the row really rendered, and the neighbouring test is
+        // a different mount.
+        expect(tpSlButton()).toBeNull();
+        expect(flashCloseButton()).not.toBeNull();
+    });
+
+    it("opens the TP/SL dialog when the handler is wired", async () => {
+        const ontpSl = vi.fn();
+        component = mount(PositionsList, {
+            target: host,
+            props: { positions: [SAMPLE], ontpSl },
+        }) as never;
+        await settle();
+
+        const button = tpSlButton();
+        expect(button).not.toBeNull();
+        button!.click();
+        flushSync();
+
+        expect(ontpSl).toHaveBeenCalledTimes(1);
+        expect(ontpSl).toHaveBeenCalledWith(SAMPLE);
+    });
+
+    it("applies the same rule to add-to-position", async () => {
+        // Already implemented (FEAT-0334). Pinned here so the two controls
+        // cannot drift apart again — a guard that only covers the newer one
+        // is how the gap opened in the first place.
+        component = mount(PositionsList, {
+            target: host,
+            props: { positions: [SAMPLE] },
+        }) as never;
+        await settle();
+        expect(addButton()).toBeNull();
+
+        // Unmount before the second mount. afterEach only tears down the last
+        // assigned tree, so without this the first component stays live and
+        // addButton() is a query across two trees — the exact shape that made
+        // the ClosePositionModal selector match nothing and pass anyway.
+        unmount(component as never);
+        component = null;
+
+        const onadd = vi.fn();
+        component = mount(PositionsList, {
+            target: host,
+            props: { positions: [SAMPLE], onadd },
+        }) as never;
+        await settle();
+
+        const button = addButton();
+        expect(button).not.toBeNull();
+        button!.click();
+        flushSync();
+
+        expect(onadd).toHaveBeenCalledWith(SAMPLE);
+    });
+});
+
 describe("BUG-0211 — Position details rendered inline without hover delay", () => {
     const SAMPLE_POSITION: OMSPosition = {
         symbol: "BTCUSDT",
