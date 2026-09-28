@@ -1144,11 +1144,12 @@
    */
   /**
    * A tab the venue does not have cannot stay active. The content chain has no
-   * `{:else}`, so leaving `activeTab` on a hidden tab renders an empty panel
-   * with nothing highlighted — and that is reachable at runtime, because the
-   * sidebar is not remounted when the account or venue changes. Written as a
-   * guard rather than a reset inside the account-switch effect, so it holds
-   * however the capability is lost.
+   * `{:else}` and now also tests the capability itself, so without this guard
+   * the tab strip would highlight nothing while the panel rendered empty — the
+   * state this effect removes. It is reachable at runtime because the sidebar
+   * is not remounted when the account or venue changes. Written as a guard
+   * rather than a reset inside the account-switch effect, so it holds however
+   * the capability is lost.
    */
   $effect(() => {
     if (activeTab === "tpsl" && !canPlaceStandaloneTpSl) activeTab = "positions";
@@ -1366,8 +1367,8 @@
           class:text-[var(--text-secondary)]={activeTab !== "tpsl"}
           class:border-transparent={activeTab !== "tpsl"}
           data-testid="tab-tpsl"
-        data-active={activeTab === "tpsl"}
-        onclick={() => (activeTab = "tpsl")}
+          data-active={activeTab === "tpsl"}
+          onclick={() => (activeTab = "tpsl")}
         >
           {$_("dashboard.tpsl")}
         </button>

@@ -158,6 +158,13 @@ describe("FEAT-0023 — unsupported actions are absent, not broken", () => {
         await settle();
         expect(addButton()).toBeNull();
 
+        // Unmount before the second mount. afterEach only tears down the last
+        // assigned tree, so without this the first component stays live and
+        // addButton() is a query across two trees — the exact shape that made
+        // the ClosePositionModal selector match nothing and pass anyway.
+        unmount(component as never);
+        component = null;
+
         const onadd = vi.fn();
         component = mount(PositionsList, {
             target: host,

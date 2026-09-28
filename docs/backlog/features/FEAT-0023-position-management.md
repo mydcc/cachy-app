@@ -69,6 +69,20 @@ scope. Nothing can be built against it until the API is confirmed.
 Every action is an order and passes the [`FEAT-0011`](FEAT-0011-preflight-order-verification.md)
 gate.
 
+## Follow-ups not done here
+
+- **The dialog-closing invariant the TP/SL gate now leans on is unpinned.**
+  An open `TpSlCreateModal` is gated by neither `tpSlStandalone` nor the
+  derived. It closes on a venue switch only through an indirect chain: the
+  provider setter → `appEffects` `providerChanged` → `accountSession.reset`
+  → `accountEpoch.rotate` → the sidebar's epoch effect clears
+  `tpSlCreatePositionId`. It holds today, but if that chain is ever decoupled,
+  a trader with the form open switches venue and gets a submittable form the
+  venue refuses — the failure this audit exists to prevent, reappearing. One
+  test asserting the id is cleared across a provider change would close it.
+  Not fixed in [#3710](https://github.com/mydcc/cachy-app/pull/3710) because it
+  is a pre-existing dependency, not part of the gate being added.
+
 ## Acceptance criteria
 
 This epic is done when each child item is done. It has no code of its own.
