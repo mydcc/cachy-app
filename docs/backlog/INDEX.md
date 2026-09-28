@@ -2,9 +2,9 @@
 
 # Backlog index
 
-452 items. How to read and add them: [README.md](README.md).
+453 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 403 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 404 · ⛔ dropped 1
 
 ---
 
@@ -219,6 +219,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | execution |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | execution |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | execution |
+| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | exchange |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -418,7 +419,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | ✅ done | trade-panel |
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | trade-panel |
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | exchange |
-| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | exchange |
+| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | ✅ done | exchange |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | alerts |
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | ✅ done | indicators |
 | [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | architecture |
@@ -547,6 +548,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -864,7 +866,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | — |
 | [FEAT-0471](features/FEAT-0471-single-provider-registry-five-tabs.md) | Single AI provider registry with five tabs and fetched model pickers | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) |
 | [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | ✅ done | M4 | community, pro, private | A | none | — |
-| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) |
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -978,4 +980,4 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 
 ---
 
-Next free number: **0576**
+Next free number: **0577**
