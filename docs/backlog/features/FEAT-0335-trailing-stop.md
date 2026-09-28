@@ -4,7 +4,7 @@ title: Trail a stop behind a position once the exchange endpoint is verified
 type: feature
 status: in-progress
 assignee: opencode
-branch: feature/feat-0335-bitget-trailing-stop
+branch: feature/feat-0335-bitget-trailing-stop (verification work; this text landed on docs/bitget-api-crawl)
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -87,14 +87,21 @@ a different item with its own honest name and its own warning copy.
 ## Open questions
 
 - **Which venues actually support it, and with which parameter shape?**
-  Partly answered 2026-09-25 (web verification, no venue account used) —
-  see Verification status below. The answer is one item per exchange if
-  Bitunix ever gets an endpoint; until then Bitget-only is the only
-  buildable half.
+  Partly answered 2026-09-25 (documentation, no venue account used) — see
+  *Verification status* below, superseded in part by *Field-level
+  verification*. The answer is one item per exchange if Bitunix ever gets an
+  endpoint; until then Bitget-only is the only buildable half.
+- **Which side fires, and on which side of the high?** Not documented
+  anywhere in `docs/bitget-api/` — see the field-level verification. This has
+  to be settled against the live venue before `callbackRatio` is encoded.
 
-## Verification status (2026-09-25)
+## Verification status (2026-09-25) — superseded in part 2026-09-28
 
-- **Bitget: verified from public docs.** `POST /api/v2/mix/order/place-tpsl-order`
+Read alongside *Field-level verification* below, which overturns the Bitget
+verdict in this section.
+
+- **Bitget: documented from public docs** (documentation is not live
+  verification — criterion 1 is still half met). `POST /api/v2/mix/order/place-tpsl-order`
   with `planType: moving_plan` (trailing stop, `rangeRate` callback range,
   market execution, `size` required) and `POST /api/v2/mix/order/place-plan-order`
   with `track_plan`, plus `orders-plan-pending` / `orders-plan-history`
@@ -107,54 +114,68 @@ a different item with its own honest name and its own warning copy.
   placement route is documented. The `/api/v1/futures/plan/` family is real
   (`get_history_plan_orders` is used by the journal sync) yet place/cancel/
   pending remain uncrawled — see the TODO in `INTEGRATION_STATUS.md`.
-- Decision 2026-09-25: document only; the item stays blocked until Bitunix
-  publishes a placement endpoint or a Bitget-only build is commissioned.
+- Decision 2026-09-25 (spent 2026-09-28): document only; the item stays blocked
+  until Bitunix publishes a placement endpoint **or** a Bitget-only build is
+  commissioned. The second condition is now met, so only the Bitunix half
+  remains blocked.
 
 ## Field-level verification (2026-09-28)
 
-Commissioned and verified against Bitget's public documentation, read from the
+Commissioned and checked against Bitget's public documentation, read from the
 Classic v2 mix tree (`bitget.com/docs/catalog/classic-contract-plan/classic-contract-plan`
-and the `/api-doc/classic/contract/plan/*` pages). Every field below is quoted
-from those tables; nothing here is reconstructed from memory, which is why the
-`rangeRate` finding below is reported as a gap rather than guessed around.
+and the `/api-doc/classic/contract/plan/*` pages) and transcribed in
+[`06_tp_sl.md`](../../bitget-api/06_tp_sl.md) and
+[`08_error_codes.md`](../../bitget-api/08_error_codes.md). Each claim below
+cites the file it comes from, which is why the `rangeRate` finding is reported
+as a gap rather than guessed around.
 
-**This is a second, independent pass, and it agrees with the reference.**
-[`06_tp_sl.md`](../../bitget-api/06_tp_sl.md) already reaches the same
-conclusion — its capability table records `planType: track_plan` +
-`callbackRatio` as the trailing-stop shape, and
-[`INTEGRATION_STATUS.md`](../../bitget-api/INTEGRATION_STATUS.md) §Trailing
-stop records it as ✅ documented against `trailingStop: false`. Two passes over
-the same documentation landing on the same answer is worth more than either
-alone, and it means the finding below is not one researcher's reading. What
-this pass adds is the *field-level* detail the reference does not spell out.
+**The reference reached this conclusion first, and this pass does not
+corroborate it.** [`06_tp_sl.md`](../../bitget-api/06_tp_sl.md) records
+`track_plan` as *Trailing stop order* in its Family A table (`:34`) and the
+callback field as `callbackRatio` in its field-name table (`:113`);
+[`INTEGRATION_STATUS.md`](../../bitget-api/INTEGRATION_STATUS.md) §3
+*Capability parity* records it as ✅ against `trailingStop: false` (`:177`).
+This pass reads the same documentation as the same author, so the agreement is
+a consistency check and carries no independent evidential weight — it is the
+expected outcome by construction, not a confirmation of anything. What the pass
+adds is the *field-level* detail the reference does not spell out.
 
 **The path this item named is not the buildable one.** The 2026-09-25 note
 recorded `place-tpsl-order` with `planType: moving_plan` and a `rangeRate`
 callback range. That request shape exists and is documented — but the trail
 distance itself is not. `rangeRate` is documented as *"Callback range. It's
 required only in `planType` is `moving_plan`"*
-([`06_tp_sl.md`](../../bitget-api/06_tp_sl.md) §place-tpsl-order) with **no
-units, no range, no precision and no worked example carrying a value**. That
-the one field a value is *required* for belongs to the one plan type we cannot
-build is the finding: whether it is a percentage or an absolute amount is not
-stated anywhere, and the only thing provable is that a lower bound exists
-(error `43032`, `rangeRate is smaller than {0}`). The reference's own defect
-list reaches the neighbouring half of this — defect 22 records that the
-trailing-stop callback field is `callbackRatio` in one family and `rangeRate`
-in the other. Building against an unspecified unit would mean writing a field
+([`06_tp_sl.md`](../../bitget-api/06_tp_sl.md) `:189`) with **no units, no
+range and no precision**. That the one field a value is *required* for belongs
+to the one plan type we cannot build is the finding: whether it is a percentage
+or an absolute amount is not stated anywhere, and the only thing provable is
+that a lower bound exists (error `43032`, `rangeRate is smaller than {0}`).
+The reference elides this endpoint's example body (`:202`), so whether the
+live page carries a worked example is not established here either way. The
+neighbouring half is caught by the same file's group defect list — defect 22
+records that the trailing-stop callback field is `callbackRatio` in one family
+and `rangeRate` in the other (`06_tp_sl.md:741`). Building against an unspecified unit would mean writing a field
 whose unit we do not know into a signed request that places a protective stop —
 the unverified-shape failure the capability model exists to prevent.
 
-**The buildable path is the newer unified one**: `place-plan-order` with
+**The buildable path is the unified one**: `place-plan-order` with
 `planType: track_plan` and `callbackRatio`, documented as *"Required for
-trailing stop orders and the rate cannot be greater than 10"*, with the
-pending-orders response stating the range outright: *"Callback rate.
-(Range 1-10)"*. Market execution only (`orderType` must be `market`, `price`
-must be empty), `triggerType` required (`mark_price` or `fill_price`),
+trailing stop orders and the rate cannot be greater than 10"*
+([`06_tp_sl.md`](../../bitget-api/06_tp_sl.md) `:308`), with the range stated
+outright in the pending-orders response: *"Implementation of the callback rate.
+(Range 1-10) …"* (`:492`). Market execution only (`orderType` must be `market`,
+`price` must be empty), `triggerType` required (`mark_price` or `fill_price`),
 `tradeSide` required in hedge mode, `reduceOnly` applicable in one-way mode
-only. Long positions trail upward — the stop follows the highest price and
-fires a sell — confirmed from Bitget's own support articles rather than
-inferred, and consistent with the arming-price errors 43034/43035.
+only.
+
+**The trail direction is not documented, and this item does not assert it.**
+`side` and `tradeSide` are client-supplied, and the one view of a triggered
+plan — `plan-sub-order` — omits `side` entirely. Errors `43034`/`43035`
+constrain a trigger price against market once and say nothing about a
+`track_plan` being reset as the high moves, so they cannot corroborate
+"follows the highest price" either. Which side fires, and on which side of
+the high, is an open question for implementation to settle against the live
+venue.
 
 **The `rangeRate` path is not rejected as wrong, only as unspecified.** If
 Bitget ever documents its units, the older shape becomes viable; until then
@@ -177,11 +198,13 @@ take-profit is the `track_plan` percentage fields instead, which is the
 already-out-of-scope trailing take-profit, not this item.
 
 **Still not verified, and blocking nothing here:** Bitunix placement (unchanged
-— no documented route), the numeric cap behind 45091, and Bitget's *UTA*
-account family, which is a different non-v2 API (`/api/v3/trade/place-strategy-order`
-with `type: trailing_stop`) and whose trailing field names this verification
-did not retrieve. Cachy talks to the Classic v2 family; UTA is out of scope and
-should stay explicitly so.
+— no documented route), the numeric cap behind 45091, the trail direction
+above, and Bitget's *UTA* account family — a different, non-v2 API under
+`/api/v3/*` ([`00_common.md`](../../bitget-api/00_common.md),
+[`13_vendor_guidance.md`](../../bitget-api/13_vendor_guidance.md)) which this
+reference does not transcribe at all, so no UTA trailing field names were
+retrieved. Cachy talks to the Classic v2 family; UTA is out of scope and should
+stay explicitly so.
 
 ## Links
 

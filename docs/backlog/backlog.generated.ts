@@ -6573,7 +6573,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "feature",
     "status": "in-progress",
     "assignee": "opencode",
-    "branch": "feature/feat-0335-bitget-trailing-stop",
+    "branch": "feature/feat-0335-bitget-trailing-stop (verification work; this text landed on docs/bitget-api-crawl)",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
