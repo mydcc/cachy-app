@@ -531,6 +531,7 @@
   <div class="absolute top-2 right-2 flex gap-1 z-50">
     {#if settingsState.showTechnicals && !isFavoriteTile && onToggleTechnicals}
       <button
+        type="button"
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
         class:text-[var(--accent-color)]={isTechnicalsVisible}
         data-track-id="btn-toggle-technicals"
@@ -551,6 +552,7 @@
     {/if}
 
     <button
+      type="button"
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title={$_("marketOverview.tooltips.openChart")}
       data-track-id="btn-open-chart"
@@ -579,6 +581,7 @@
     </button>
 
     <button
+      type="button"
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title={$_("marketOverview.tooltips.refreshStats")}
       data-track-id="btn-refresh-stats"
@@ -848,6 +851,7 @@
                 (w) => w.id === windowId,
               )}
               <button
+                type="button"
                 class="transition-colors p-1.5 rounded flex items-center hover:bg-[var(--bg-tertiary)]"
                 class:text-[var(--accent-color)]={isOpen}
                 class:text-[var(--text-secondary)]={!isOpen}
@@ -867,6 +871,7 @@
             {/if}
 
             <button
+              type="button"
               class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1.5 flex items-center hover:bg-[var(--bg-tertiary)] rounded"
               class:text-[var(--accent-color)]={isFavorite}
               data-track-id="btn-toggle-favorite"

@@ -97,3 +97,4 @@ client-token 401 issues another and tries again — and that retry is the attemp
 that reaches the venue, through a window wider than the signing await. The
 check therefore rides a `beforeAttempt` hook that runs before *every* attempt
 rather than wrapping the call once.
+

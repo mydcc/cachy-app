@@ -1,40 +1,40 @@
 # WebSocket API
 
-## Prepare / Verbindung
+## Prepare / Connection
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/prepare/WebSocket.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/prepare/WebSocket.html
 
-WebSocket ist ein HTML5-Protokoll für Vollduplex-Datenübertragung zwischen
-Client und Server. Nach nur einem Handshake kann der Server Daten gemäß
-vordefinierter Regeln an den Client pushen. Vorteile:
+WebSocket is an HTML5 protocol for full-duplex data transmission between
+client and server. After a single handshake the server can push data to the
+client according to predefined rules. Advantages:
 
-- Header-Größe für Datenübertragung zwischen Client/Server nur 2 Bytes
-- Sowohl Client als auch Server können Datenübertragung initiieren
-- Kein wiederholtes Erstellen/Löschen von TCP-Verbindungen nötig (spart
-  Bandbreite und Serverressourcen)
+- Header size for data transmission between client/server is only 2 bytes
+- Both client and server can initiate data transmission
+- No repeated creation/deletion of TCP connections required (saves
+  bandwidth and server resources)
 
 ### WebSocket Connection Limits
-Der WebSocket-Server akzeptiert maximal **5 Nachrichten pro Sekunde**.
-Nachrichten umfassen:
-- PING-Frames
-- PONG-Frames
-- JSON-formatierte Nachrichten (z.B. Subscribe-/Unsubscribe-Requests)
+The WebSocket server accepts a maximum of **5 messages per second**.
+Messages include:
+- PING frames
+- PONG frames
+- JSON-formatted messages (e.g. subscribe/unsubscribe requests)
 
-Wenn ein Nutzer diese Grenze überschreitet, wird die Verbindung getrennt. IPs,
-die wiederholt getrennt werden, können vom Server blockiert werden.
+If a user exceeds this limit, the connection is disconnected. IPs that are
+disconnected repeatedly may be blocked by the server.
 
 ### OpenAPI Demo
 https://github.com/BitunixOfficial/open-api
 
-Es wird dringend empfohlen, die WebSocket-API für Marktinformationen und
-Transaktionstiefe zu nutzen.
+It is strongly recommended to use the WebSocket API for market information
+and transaction depth.
 
 ### Domains
 
-| Domain           | WebSocket API                    | Empfehlung |
-|------------------|-----------------------------------|------------|
-| WebSocket Domain | `wss://fapi.bitunix.com/public/`  | Hauptdomain, Public Channel |
-| WebSocket Domain | `wss://fapi.bitunix.com/private/` | Hauptdomain, Private Channel |
+| Domain           | WebSocket API                    | Recommendation |
+|------------------|-----------------------------------|----------------|
+| WebSocket Domain | `wss://fapi.bitunix.com/public/`  | Main domain, Public Channel |
+| WebSocket Domain | `wss://fapi.bitunix.com/private/` | Main domain, Private Channel |
 
 ### Ping
 
@@ -42,9 +42,9 @@ Transaktionstiefe zu nutzen.
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
 | op        | String | Yes      | Operation: `ping` |
-| ping      | int64  | Yes      | Unix-Timestamp in Sekunden |
+| ping      | int64  | Yes      | Unix timestamp in seconds |
 
-Request-Beispiel:
+Request example:
 ```json
 {
    "op":"ping",
@@ -52,7 +52,7 @@ Request-Beispiel:
 }
 ```
 
-Response-Beispiel:
+Response example:
 ```json
 {
    "op":"ping",
@@ -62,18 +62,18 @@ Response-Beispiel:
 ```
 
 ### Connect
-**Subscription Limit**: max. 300 Channel-Abonnements pro Verbindung.
+**Subscription Limit**: max. 300 channel subscriptions per connection.
 
 ### Subscribe
 
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
 | op        | String | Yes      | Operation: `subscribe` |
-| args      | Array  | Yes      | Liste der zu abonnierenden Channels |
-| > ch      | String | Yes      | Channel-Name |
+| args      | Array  | Yes      | List of channels to subscribe to |
+| > ch      | String | Yes      | Channel name |
 | > symbol  | String | No       | Instrument ID |
 
-Request-Beispiel:
+Request example:
 ```json
 {
     "op":"subscribe",
@@ -95,11 +95,11 @@ Request-Beispiel:
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
 | op        | String | Yes      | Operation: `unsubscribe` |
-| args      | Array  | Yes      | Liste der zu deabonnierenden Channels |
-| > ch      | String | Yes      | Channel-Name |
+| args      | Array  | Yes      | List of channels to unsubscribe from |
+| > ch      | String | Yes      | Channel name |
 | > symbol  | String | No       | Instrument ID |
 
-Request-Beispiel:
+Request example:
 ```json
 {
     "op":"unsubscribe",
@@ -120,11 +120,11 @@ Request-Beispiel:
 | op          | String | Yes      | Operation: `login` |
 | args        | Array  | Yes      | |
 | > apiKey    | String | Yes      | API Key |
-| > timestamp | Int    | Yes      | Unix-Timestamp in Sekunden |
-| > nonce     | String | Yes      | Zufälliger String |
-| > sign      | String | Yes      | Signatur-String |
+| > timestamp | Int    | Yes      | Unix timestamp in seconds |
+| > nonce     | String | Yes      | Random string |
+| > sign      | String | Yes      | Signature string |
 
-Request-Beispiel:
+Request example:
 ```json
 {
    "op":"login",
@@ -139,7 +139,7 @@ Request-Beispiel:
 }
 ```
 
-### Signatur-Code-Beispiele für Login
+### Login signature code examples
 
 **Go:**
 ```go
@@ -190,140 +190,222 @@ def sign():
 
 ## Balance Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/private/Balance%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/private/Balance%20Channel.html
 
 ### Description
-Balance-Updates (wire channel: `wallet`).
+Balance updates.
+
+> #### ⚠️ The wire channel name is disputed: this mirror says `wallet`, the vendor says `balance`
+>
+> The vendor's `ch` row reads **"Channel name: `balance`"**. This mirror records
+> `wallet`, and Cachy subscribes with `wallet`
+> ([`subscribePrivate` in bitunixWs.ts](../../src/services/bitunixWs.ts)) — so
+> the code and this mirror agree with each other and disagree with the vendor.
+>
+> Unlike the `tp_sl` case there is no comment in the code justifying the choice,
+> and the vendor's WebSocket connect page publishes no authoritative list of
+> private channel names — so **nothing outside this mirror corroborates
+> `wallet`**.
+>
+> If `balance` is the correct name, the subscribe is rejected and **no balance
+> update ever arrives**, silently. A client that treats the WebSocket as the
+> live balance source would show a stale figure indefinitely. **Resolving this
+> needs a credentialed check against the live gateway.**
 
 ### Push Parameters
 | Parameter         | Type     | Description |
 |-------------------|----------|-------------|
-| ch                | String   | Channel-Name: `wallet` |
+| ch                | String   | Channel name — vendor says `balance`, this mirror says `wallet` (see above) |
 | ts                | Int64    | Timestamp |
 | data              | Object   | |
 | > coin            | String   | Coin |
-| > available       | String   | Verfügbar |
+| > available       | String   | Available |
 | > frozen          | String   | `frozen = isolationFrozen + crossFrozen` |
-| > isolationFrozen | String   | Sperrung pro Warehouse (Isolation) |
-| > crossFrozen     | String   | Full-Warehouse-Sperrung (Cross) |
+| > isolationFrozen | String   | Freeze per warehouse (Isolated) |
+| > crossFrozen     | String   | Full-warehouse freeze (Cross) |
 | > margin          | String   | Margin |
-| > isolationMargin | String   | Margin pro Warehouse (Isolation) |
-| > crossMargin     | String   | Full-Warehouse-Margin (Cross) |
+| > isolationMargin | String   | Margin per warehouse (Isolated) |
+| > crossMargin     | String   | Full-warehouse margin (Cross) |
 | > expMoney        | String   | Experience Money |
 
 ---
 
 ## Order Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/private/Order%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/private/Order%20Channel.html
 
 ### Description
-Abonniert den Order-Channel. Daten werden gepusht bei folgenden Events:
-1. Open/Close-Orders werden erstellt
-2. Open/Close-Orders werden ausgeführt (filled)
-3. Orders werden storniert
+Subscribes to the order channel. Data is pushed on the following events:
+1. Open/close orders are created
+2. Open/close orders are filled
+3. Orders are cancelled
 
 ### Push Parameters
 | Parameter      | Type   | Description |
 |----------------|--------|-------------|
-| ch             | String | Channel-Name: `order` |
-| ts             | Int64  | Timestamp |
-| data           | Object | Subscription-Daten |
+| ch             | String | Channel name: `order` |
+| ts             | Int64  | Gateway send time in milliseconds. **Not business event time; do not confuse with `ctime` / `mtime`** |
+| data           | Object | Subscription data |
 | > event        | String | `CREATE`/`UPDATE`/`CLOSE` |
 | > orderId      | String | Order ID |
 | > symbol       | String | Symbol |
-| > positionType | String | Margin Mode: `ISOLATION`/`CROSS` |
-| > positionMode | String | Position Mode: `ONE_WAY`/`HEDGE` |
+| > positionType | String | Margin mode: `ISOLATION`/`CROSS` |
+| > positionMode | String | Position mode: `ONE_WAY`/`HEDGE` |
 | > side         | String | `BUY`/`SELL` |
-| > effect       | String | Gültigkeitsdauer: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
+| > effect       | String | Validity period: `IOC`, `FOK`, `GTC` (default), `POST_ONLY` |
 | > type         | String | `LIMIT`/`MARKET` |
-| > qty          | String | Menge (Base-Coin) |
-| > price        | String | Orderpreis (erforderlich bei `LIMIT`) |
-| > ctime        | String | Erstell-Timestamp |
-| > mtime        | String | Änderungs-Timestamp |
+| > qty          | String | Quantity (base coin) |
+| > price        | String | Order price (required for `LIMIT`) |
+| > ctime        | String | Create time, **ISO-8601 nanosecond string**, e.g. `2024-05-16T08:13:09.123456789Z`. **REST order APIs use millisecond integers** |
+| > mtime        | String | Last modify time, **ISO-8601 nanosecond string**, same format as `ctime`. **REST order APIs use millisecond integers** |
 | > leverage     | String | Leverage |
 | > orderStatus  | String | `INIT`, `NEW`, `PART_FILLED`, `CANCELED`, `FILLED`, `PART_FILLED_CANCELED` |
-| > fee          | String | Abgezogene Handelsgebühren |
-| > averagePrice | String | Durchschnittspreis |
-| > dealAmount   | String | Ausgeführter Betrag |
+| > fee          | String | Deducted trading fees |
+| > averagePrice | String | Average price |
+| > dealAmount   | String | Filled amount |
 | > clientId     | String | Client ID |
-| > tpStopType   | String | Take-Profit-Trigger-Typ: `MARK_PRICE`/`LAST_PRICE` |
-| > tpPrice      | String | Take-Profit-Trigger-Preis |
-| > tpOrderType  | String | Take-Profit-Order-Typ: `LIMIT`/`MARKET` |
-| > tpOrderPrice | String | Take-Profit-Order-Preis |
-| > slStopType   | String | Stop-Loss-Trigger-Typ: `MARK_PRICE`/`LAST_PRICE` |
-| > slPrice      | String | Stop-Loss-Trigger-Preis |
-| > slOrderType  | String | Stop-Loss-Order-Typ: `LIMIT`/`MARKET` |
-| > slOrderPrice | String | Stop-Loss-Order-Preis |
+| > tpStopType   | String | Take-profit trigger type: `MARK_PRICE`/`LAST_PRICE` |
+| > tpPrice      | String | Take-profit trigger price |
+| > tpOrderType  | String | Take-profit order type: `LIMIT`/`MARKET` |
+| > tpOrderPrice | String | Take-profit order price |
+| > slStopType   | String | Stop-loss trigger type: `MARK_PRICE`/`LAST_PRICE` |
+| > slPrice      | String | Stop-loss trigger price |
+| > slOrderType  | String | Stop-loss order type: `LIMIT`/`MARKET` |
+| > slOrderPrice | String | Stop-loss order price |
 
 ---
 
 ## Position Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/private/Position%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/private/Position%20Channel.html
 
 ### Description
-Abonniert den Position-Channel. Daten werden gepusht bei folgenden Events:
-1. Open/Close-Orders werden erstellt
-2. Open/Close-Orders werden ausgeführt (filled)
-3. Orders werden storniert
+Subscribes to the position channel. Data is pushed on the following events:
+1. Open/close orders are created
+2. Open/close orders are filled
+3. Orders are cancelled
+
+> #### ⚠️ This description is a vendor copy-paste, and this mirror reproduces it
+>
+> The three events above are **order** events — "Open/close orders are created",
+> "orders are filled", "orders are cancelled" — on the page for the **position**
+> channel, whose payload contains no order fields at all. The Order Channel page
+> carries a near-identical description; the two differ only in the channel name
+> and a spelling of "occurred" (`occured` on the Order page).
+>
+> Transcribed as found. Do not "fix" it — and note that the *Push Parameters*
+> table below is **not** affected: it is correctly position-specific, with its
+> own `OPEN/UPDATE/CLOSE` event triple, `side: SHORT/LONG`, `positionId`,
+> `marginMode` and `leverage`. Only the prose is wrong upstream.
 
 ### Push Parameters
 | Parameter       | Type   | Description |
 |-----------------|--------|-------------|
-| ch              | String | Channel-Name: `position` |
+| ch              | String | Channel name: `position` |
 | ts              | Int64  | Timestamp |
-| data            | Object | Subscription-Daten |
+| data            | Object | Subscription data |
 | > event         | String | `OPEN`/`UPDATE`/`CLOSE` |
 | > positionId    | String | Position ID |
-| > marginMode    | String | Margin Mode: `ISOLATION`/`CROSS` |
-| > positionMode  | String | Position Mode: `ONE_WAY`/`HEDGE` |
-| > side          | String | Positions-Richtung: `SHORT`/`LONG` |
+| > marginMode    | String | Margin mode: `ISOLATION`/`CROSS` |
+| > positionMode  | String | Position mode: `ONE_WAY`/`HEDGE` |
+| > side          | String | Position direction: `SHORT`/`LONG` |
 | > leverage      | String | Leverage |
 | > margin        | String | Margin |
-| > ctime         | String | Erstell-Timestamp |
-| > qty           | String | Positionsgröße |
+| > ctime         | String | Creation timestamp |
+| > qty           | String | Position size |
 | > symbol        | String | Symbol |
-| > realizedPNL   | String | Realized PnL (exkl. Funding Fee und Handelsgebühr) |
-| > unrealizedPNL | String | Unrealized PnL |
-| > funding       | String | Gesamte Funding Fee während der Position |
-| > fee           | String | Abgezogene Handelsgebühren |
+| > realizedPNL   | String | Realised PnL (excl. funding fee and trading fee) |
+| > unrealizedPNL | String | Unrealised PnL |
+| > funding       | String | Total funding fee during the position |
+| > fee           | String | Deducted trading fees |
 
 ---
 
 ## Tp Sl Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/private/Tp%20Sl%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/private/Tp%20Sl%20Channel.html
 
 ### Description
-TP/SL-Order-Updates (wire channel: `tp_sl`).
+TP/SL order updates.
+
+> #### ⚠️ The wire channel name is disputed: this mirror says `tp_sl`, the vendor says `tpsl`
+>
+> The vendor's page states the channel name **twice**, in the Description and
+> again in the `ch` row of the Push Parameters table, and both say **`tpsl`** —
+> no underscore. This mirror records `tp_sl`.
+>
+> Cachy subscribes with `tp_sl`
+> ([`subscribePrivate` in bitunixWs.ts](../../src/services/bitunixWs.ts)), so the
+> code and this mirror agree with each other and disagree with the vendor.
+>
+> **Neither side is verified, and the code's own justification is circular.** The
+> comment above the subscription cites *this file* as the source for `tp_sl`'s
+> behaviour, and the channel list itself carries no citation at all. So there is
+> no observation of working traffic recorded anywhere — only this mirror, and
+> the vendor's page contradicting it.
+>
+> If `tpsl` is the correct name, the subscribe is rejected and **no TP/SL update
+> ever arrives** — silently, because a rejected subscription is a push that does
+> not come. That is the same failure shape as the Bitget WebSocket field-name
+> mismatch in [`docs/TODO.md`](../TODO.md). **Resolving this needs a
+> credentialed check against the live gateway; documentation cannot settle it.**
 
 ### Push Parameters
 | Parameter      | Type   | Description |
 |----------------|--------|-------------|
-| ch             | String | Channel-Name: `tp_sl` |
-| ts             | Int64  | Timestamp |
-| data           | Object | Subscription-Daten |
+| ch             | String | Channel name — vendor says `tpsl`, this mirror says `tp_sl` (see above) |
+| ts             | Int64  | Gateway send time, Unix milliseconds. **Do not use this field to order business events** |
+| data           | Object | Subscription data. **Always an object, never an array** |
 | > event        | String | `CREATE`/`UPDATE`/`CLOSE` |
 | > positionId   | String | Position ID |
 | > orderId      | String | Order ID |
 | > symbol       | String | Symbol |
 | > leverage     | String | Leverage |
 | > side         | String | `BUY`/`SELL` |
-| > positionMode | String | Position Mode: `ONE_WAY`/`HEDGE` |
-| > status       | String | `INIT`, `NEW`, `PART_FILLED`, `CANCELED`, `FILLED` |
-| > ctime        | String | Erstell-Timestamp |
+| > positionMode | String | Position mode: `ONE_WAY`/`HEDGE` |
+| > status       | String | `NEW`/`CANCELED`/`SYSTEM_CANCELED`/`FILLED`/`FAILED` — see note below |
+| > ctime        | String | Create time, **ISO-8601 nanosecond string**, e.g. `2024-05-16T08:13:09.123456789Z`. REST history APIs use millisecond integers instead |
 | > type         | String | `LIMIT`/`MARKET` |
-| > tpQty        | String | Take-Profit-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| > slQty        | String | Stop-Loss-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| > tpStopType   | String | Take-Profit-Trigger-Typ: `MARK_PRICE`/`LAST_PRICE` |
-| > tpPrice      | String | Take-Profit-Trigger-Preis |
-| > tpOrderType  | String | Take-Profit-Order-Typ: `LIMIT`/`MARKET` |
-| > tpOrderPrice | String | Take-Profit-Order-Preis |
-| > slStopType   | String | Stop-Loss-Trigger-Typ: `MARK_PRICE`/`LAST_PRICE` |
-| > slPrice      | String | Stop-Loss-Trigger-Preis |
-| > slOrderType  | String | Stop-Loss-Order-Typ: `LIMIT`/`MARKET` |
-| > slOrderPrice | String | Stop-Loss-Order-Preis |
+| > tpQty        | String | Take-profit quantity (base coin). Omitted if unused. Never Boolean, never JSON `null` |
+| > slQty        | String | Stop-loss quantity (base coin). Omitted if unused. Never Boolean, never JSON `null`; `"0"` is sent as `"0"` |
+| > tpStopType   | String | Take-profit trigger type: `MARK_PRICE`/`LAST_PRICE` |
+| > tpPrice      | String | Take-profit trigger price |
+| > tpOrderType  | String | Take-profit order type: `LIMIT`/`MARKET` |
+| > tpOrderPrice | String | Take-profit order price |
+| > slStopType   | String | Stop-loss trigger type: `MARK_PRICE`/`LAST_PRICE` |
+| > slPrice      | String | Stop-loss trigger price |
+| > slOrderType  | String | Stop-loss order type: `LIMIT`/`MARKET` |
+| > slOrderPrice | String | Stop-loss order price |
+
+> #### The `status` enum was wrong in this mirror, and the correction removes values
+>
+> An earlier version of this file listed `INIT`, `NEW`, `PART_FILLED`, `CANCELED`,
+> `FILLED`. The vendor's enum is `NEW` / `CANCELED` / `SYSTEM_CANCELED` / `FILLED`
+> / `FAILED`, and the page **explicitly disclaims two of the values this mirror
+> had listed**:
+>
+> > Statuses that are not pushed: `INIT`, `PENDING_CANCEL`, `TRIGGER_WAIT_PLACE`.
+> > Do not document `PART_FILLED` on this channel.
+>
+> So the mirror documented a status the vendor says cannot occur, and omitted two
+> that can — including `SYSTEM_CANCELED`, which is how a venue-initiated
+> cancellation is distinguished from a user-initiated one. A consumer keying on
+> the old list would not recognise a system cancel.
+>
+> The mirror also asserted *"At least one of `tpQty`/`slQty` is required"*. The
+> vendor says no such thing — only **"Omitted if unused"**. That requirement was
+> **invented**. Removed.
+
+#### The `CLOSE` event is not a final state, and `FILLED` does not mean the child order filled
+
+Both statements are the vendor's, and both are load-bearing for anything
+consuming this channel:
+
+- Read **`event` together with `status`**, always. A `CLOSE` on its own is not a
+  final state.
+- `FILLED` means **the trigger fired and the child order was placed** — not that
+  the child order itself is filled. Reading it as "TP/SL done" is wrong by one
+  step.
 
 ---
 
@@ -331,27 +413,27 @@ TP/SL-Order-Updates (wire channel: `tp_sl`).
 
 ## Depth Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/public/depth%20channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/public/depth%20channel.html
 
 ### Description
-Nutze `books` für Snapshot-Daten, `book1` für 1 Tiefenlevel, `book5` für 5
-Tiefenlevel, `book15` für 15 Tiefenlevel.
+Use `books` for snapshot data, `book1` for 1 depth level, `book5` for 5 depth
+levels, `book15` for 15 depth levels.
 
-- `books`: Push der vollständigen `snapshot`-Daten beim ersten Mal, danach
-  alle Änderungen der Tiefe.
-- `book1`: 1 Tiefenlevel wird bei jedem Push übertragen.
-- `book5`: 5 Tiefenlevel werden bei jedem Push übertragen.
-- `book15`: 15 Tiefenlevel werden bei jedem Push übertragen.
+- `books`: Push of the complete `snapshot` data the first time, then all
+  changes of the depth.
+- `book1`: 1 depth level is transmitted with every push.
+- `book5`: 5 depth levels are transmitted with every push.
+- `book15`: 15 depth levels are transmitted with every push.
 
 ### Request Parameters
 | Parameter | Type         | Required | Description |
 |-----------|--------------|----------|-------------|
 | op        | String       | Yes      | Operation: `subscribe`/`unsubscribe` |
-| args      | List<Object> | Yes      | Liste der zu abonnierenden Channels |
-| > ch      | String       | Yes      | Channel-Name: `depth_books`, `depth_book1`, `depth_book5`, `depth_book15` |
+| args      | List<Object> | Yes      | List of channels to subscribe to |
+| > ch      | String       | Yes      | Channel name: `depth_books`, `depth_book1`, `depth_book5`, `depth_book15` |
 | > symbol  | String       | Yes      | Product ID |
 
-Request-Beispiel:
+Request example:
 ```json
 {
     "op":"subscribe",
@@ -367,14 +449,30 @@ Request-Beispiel:
 ### Push Parameters
 | Parameter | Type         | Description |
 |-----------|--------------|-------------|
-| ch        | Object       | Channel-Name |
+| ch        | Object       | Channel name |
+| data      | String       | Subscription data — but the example below sends an object |
+
+> #### ⚠️ Two type errors on one table, both contradicted by this page's own example
+>
+> `ch` is typed **Object**, yet the example sends the string `"depth_book1"`.
+> `data` is typed **String**, yet the example sends an object with `b` and
+> `a` arrays.
+>
+> The `ch: Object` type is the **sole outlier** — all ten channels were checked
+> and the other nine type it `String`. Transcribed as published; if you write a
+> parser, follow the example, not the table.
+>
+> Also on this page: the depth channel names are irregular —
+> `books` (plural, snapshot plus incremental) but `book1`, `book5`,
+> `book15` (**singular**). That inconsistency is intentional-looking and appears
+> in the vendor's subscribe examples too, so it is a real name, not a typo.
 | symbol    | String       | Product ID |
 | ts        | Int64        | Timestamp |
-| data      | String       | Subscription-Daten |
-| > a       | List<String> | Seller-Tiefe (Asks) |
-| > b       | List<String> | Buyer-Tiefe (Bids) |
+| data      | String       | Subscription data |
+| > a       | List<String> | Seller depth (asks) |
+| > b       | List<String> | Buyer depth (bids) |
 
-Push-Daten-Beispiel:
+Push data example:
 ```json
 {
   "ch": "depth_book1",
@@ -401,30 +499,30 @@ Push-Daten-Beispiel:
 
 ## Kline Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/public/kline%20channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/public/kline%20channel.html
 
 ### Description
-Ruft Candlestick-Daten eines Symbols ab. Daten werden alle 500ms gepusht.
+Retrieves candlestick data of a symbol. Data is pushed every 500ms.
 
-Der Channel pusht nach erfolgreichem Abonnement zunächst einen Snapshot,
-gefolgt von weiteren Updates.
+The channel pushes an initial snapshot after a successful subscription,
+followed by further updates.
 
-> **Hinweis**: Um K-Line-Intervalle zu wechseln, ohne die WebSocket-Verbindung
-> zu trennen, muss zuerst ein `unsubscribe`-Befehl für das vorherige
-> Abonnement gesendet werden, bevor das neue Intervall abonniert wird. Wenn
-> du z.B. aktuell `mark_kline_1min` abonniert hast und zu `mark_kline_15min`
-> wechseln willst, musst du zuerst `mark_kline_1min` deabonnieren und dann
-> `mark_kline_15min` abonnieren.
+> **Note**: To switch the K-line interval without disconnecting the WebSocket
+> connection, an `unsubscribe` command for the previous subscription must be
+> sent first, before the new interval is subscribed. If, for example, you are
+> currently subscribed to `mark_kline_1min` and want to switch to
+> `mark_kline_15min`, you must first unsubscribe from `mark_kline_1min` and
+> then subscribe to `mark_kline_15min`.
 
 ### Request Parameters
 | Parameter | Type         | Required | Description |
 |-----------|--------------|----------|-------------|
 | op        | String       | Yes      | Operation: `subscribe`/`unsubscribe` |
-| args      | List<Object> | Yes      | Liste der zu abonnierenden Channels |
-| > ch      | String       | Yes      | Channel-Name: `<Preistyp>_kline_<Intervall>`. Preistypen: `market` (Marktpreis) und `mark` (Mark-Preis). Venue-documented intervals: `1min, 3min, 5min, 15min, 30min, 60min, 2h, 4h, 6h, 8h, 12h, 1day, 3day, 1week, 1month` (jeweils für beide Preistypen). Cachy natively subscribes `market_kline_*` for `1min, 5min, 15min, 30min, 60min, 4h, 1day, 1week, 1month` and synthesizes the rest (see `timeframes.md`); `mark_*` is never subscribed. |
-| > symbol  | String       | Yes      | Product ID, z.B. ETHUSDT |
+| args      | List<Object> | Yes      | List of channels to subscribe to |
+| > ch      | String       | Yes      | Channel name: `<PriceType>_kline_<Interval>`. Price types: `market` (market price) and `mark` (mark price). Venue-documented intervals: `1min, 3min, 5min, 15min, 30min, 60min, 2h, 4h, 6h, 8h, 12h, 1day, 3day, 1week, 1month` (each for both price types). Cachy natively subscribes `market_kline_*` for `1min, 5min, 15min, 30min, 60min, 4h, 1day, 1week, 1month` and synthesizes the rest (see `timeframes.md`); `mark_*` is never subscribed. |
+| > symbol  | String       | Yes      | Product ID, e.g. ETHUSDT |
 
-Request-Beispiel:
+Request example:
 ```json
 {
     "op":"subscribe",
@@ -440,18 +538,18 @@ Request-Beispiel:
 ### Push Parameters
 | Parameter | Type         | Description |
 |-----------|--------------|-------------|
-| ch        | String       | Channel-Name |
-| symbol    | String       | Product ID, z.B. ETHUSDT |
+| ch        | String       | Channel name |
+| symbol    | String       | Product ID, e.g. ETHUSDT |
 | ts        | int64        | Timestamp |
-| data      | List<String> | Subscription-Daten |
-| > o       | String       | Eröffnungspreis |
-| > h       | String       | Höchstpreis |
-| > l       | String       | Tiefstpreis |
-| > c       | String       | Schlusspreis |
-| > b       | String       | Handelsvolumen des Coins |
-| > q       | String       | Handelsvolumen der Quote-Währung |
+| data      | List<String> | Subscription data |
+| > o       | String       | Opening price |
+| > h       | String       | Highest price |
+| > l       | String       | Lowest price |
+| > c       | String       | Closing price |
+| > b       | String       | Trading volume of the coin |
+| > q       | String       | Trading volume of the quote currency |
 
-Push-Daten-Beispiel:
+Push data example:
 ```json
 {
   "ch": "market_kline_1min",
@@ -472,17 +570,17 @@ Push-Daten-Beispiel:
 
 ## MarketPrice Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/public/MarketPrice%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/public/MarketPrice%20Channel.html
 
 ### Request Parameters
 | Parameter | Type         | Required | Description |
 |-----------|--------------|----------|-------------|
 | op        | String       | Yes      | Operation: `subscribe`/`unsubscribe` |
 | args      | List<Object> | Yes      | |
-| > symbol  | String       | Yes      | Product ID, z.B. ETHUSDT |
+| > symbol  | String       | Yes      | Product ID, e.g. ETHUSDT |
 | > ch      | String       | Yes      | Channel: `price` |
 
-Request-Beispiel:
+Request example:
 ```json
 {
     "op":"subscribe",
@@ -498,17 +596,17 @@ Request-Beispiel:
 ### Push Parameters
 | Parameter | Type         | Description |
 |-----------|--------------|-------------|
-| ch        | String       | Channel-Name |
-| symbol    | String       | Product ID, z.B. ETHUSDT |
+| ch        | String       | Channel name |
+| symbol    | String       | Product ID, e.g. ETHUSDT |
 | ts        | int64        | Timestamp |
-| data      | List<String> | Subscription-Daten |
+| data      | List<String> | Subscription data |
 | > mp      | String       | Market Price |
 | > ip      | String       | Index Price |
 | > fr      | String       | Funding Rate |
 | > ft      | String       | Funding Rate Settlement Time |
-| > nft     | String       | Nächste Funding Rate Settlement Time |
+| > nft     | String       | Next Funding Rate Settlement Time |
 
-Push-Daten-Beispiel:
+Push data example:
 ```json
 {
   "ch": "price",
@@ -528,22 +626,22 @@ Push-Daten-Beispiel:
 
 ## Ticker Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/public/Ticker%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/public/Ticker%20Channel.html
 
 ### Description
-24h-Rolling-Window Mini-Ticker-Statistiken für alle Symbole. Dies sind
-**keine** UTC-Tages-Statistiken, sondern ein 24h-Rolling-Window von
-Request-Zeit bis 24h davor.
+24h rolling window mini-ticker statistics for all symbols. These are
+**not** UTC daily statistics, but a 24h rolling window from request time
+back 24h.
 
 ### Request Parameters
 | Parameter | Type         | Required | Description |
 |-----------|--------------|----------|-------------|
 | op        | String       | Yes      | Operation: `subscribe`/`unsubscribe` |
 | args      | List<Object> | Yes      | |
-| > symbol  | String       | Yes      | Product ID, z.B. ETHUSDT |
+| > symbol  | String       | Yes      | Product ID, e.g. ETHUSDT |
 | > ch      | String       | Yes      | Channel: `ticker` |
 
-Request-Beispiel:
+Request example:
 ```json
 {
     "op":"subscribe",
@@ -559,20 +657,31 @@ Request-Beispiel:
 ### Push Parameters
 | Parameter | Type         | Description |
 |-----------|--------------|-------------|
-| ch        | String       | Channel-Name |
-| symbol    | String       | Product ID, z.B. ETHUSDT |
+| ch        | String       | Channel name |
+| symbol    | String       | Product ID, e.g. ETHUSDT |
 | ts        | int64        | Timestamp |
-| data      | List<String> | Subscription-Daten |
-| > s       | String       | Symbol, Product ID, z.B. ETHUSDT |
-| > o       | String       | Eröffnungspreis |
-| > h       | String       | Höchstpreis |
-| > l       | String       | Tiefstpreis |
+| data      | List<String> | Subscription data |
+| > s       | String       | Symbol, Product ID, e.g. ETHUSDT |
+| > o       | String       | Opening price |
+| > h       | String       | Highest price |
+| > l       | String       | Lowest price |
 | > la      | String       | Last Price |
-| > b       | String       | Handelsvolumen des Coins |
-| > q       | String       | Handelsvolumen der Quote-Währung |
-| > r       | String       | 24h-Schwankung |
+| > b       | String       | Trading volume of the coin |
+| > q       | String       | Trading volume of the quote currency |
+| > r       | String       | 24h change |
 
-Push-Daten-Beispiel:
+> #### ⚠️ This example is internally inconsistent — in the vendor's, not the mirror's
+>
+> The envelope says `"symbol": "BNBUSDT"` while the body's `data.s` says
+> `"BTCUSDT"`. The same page's field table then glosses `data.s` as *"Symbol,
+> Product ID E.g. ETHUSDT"* — a third symbol matching neither.
+>
+> Transcribed as published. The identical `BNBUSDT` envelope also appears in the
+> MarketPrice example, where nothing contradicts it, so it looks copy-pasted
+> across pages while the body was later updated. **Treat `data.s` as the
+> authoritative symbol and the envelope as unreliable.**
+
+Push data example:
 ```json
 {
   "ch": "ticker",
@@ -595,23 +704,23 @@ Push-Daten-Beispiel:
 
 ## Tickers Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/public/Tickers%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/public/Tickers%20Channel.html
 
 ### Description
-24h-Rolling-Window Mini-Ticker-Statistiken für alle Symbole (aggregierter
-Stream, andere Datenstruktur im Vergleich zum einzelnen Ticker-Abonnement).
-Diese Statistiken basieren nicht auf UTC-Tagesdaten, sondern auf einem
-24h-Rolling-Window von der Request-Zeit rückwärts.
+24h rolling window mini-ticker statistics for all symbols (aggregated stream,
+different data structure compared to the individual ticker subscription).
+These statistics are not based on UTC daily data, but on a 24h rolling window
+backwards from the request time.
 
 ### Request Parameters
 | Parameter | Type         | Required | Description |
 |-----------|--------------|----------|-------------|
 | op        | String       | Yes      | Operation: `subscribe`/`unsubscribe` |
 | args      | List<Object> | Yes      | |
-| > symbol  | String       | Yes      | Product ID, z.B. ETHUSDT |
+| > symbol  | String       | Yes      | Product ID, e.g. ETHUSDT |
 | > ch      | String       | Yes      | Channel: `tickers` |
 
-Request-Beispiel:
+Request example:
 ```json
 {
 	"op": "subscribe",
@@ -630,23 +739,23 @@ Request-Beispiel:
 ### Push Parameters
 | Parameter | Type         | Description |
 |-----------|--------------|-------------|
-| ch        | String       | Channel-Name |
+| ch        | String       | Channel name |
 | ts        | int64        | Timestamp |
-| data      | List<Object> | Subscription-Daten (Array pro Symbol) |
-| > s       | String       | Symbol, Product ID, z.B. ETHUSDT |
-| > o       | String       | Eröffnungspreis |
-| > h       | String       | Höchstpreis |
-| > l       | String       | Tiefstpreis |
+| data      | List<Object> | Subscription data (array per symbol) |
+| > s       | String       | Symbol, Product ID, e.g. ETHUSDT |
+| > o       | String       | Opening price |
+| > h       | String       | Highest price |
+| > l       | String       | Lowest price |
 | > la      | String       | Last Price |
-| > b       | String       | Handelsvolumen des Coins |
-| > q       | String       | Handelsvolumen der Quote-Währung |
-| > r       | String       | 24h-Schwankung |
+| > b       | String       | Trading volume of the coin |
+| > q       | String       | Trading volume of the quote currency |
+| > r       | String       | 24h change |
 | > bd      | String       | Best Bid Price |
 | > ak      | String       | Best Ask Price |
 | > bv      | String       | Best Bid Volume |
 | > av      | String       | Best Ask Volume |
 
-Push-Daten-Beispiel:
+Push data example:
 ```json
 {
   "ch": "tickers",
@@ -688,20 +797,20 @@ Push-Daten-Beispiel:
 
 ## Trade Channel
 
-Quelle: https://www.bitunix.com/api-docs/futures/websocket/public/Trade%20Channel.html
+Source: https://www.bitunix.com/api-docs/futures/websocket/public/Trade%20Channel.html
 
 ### Description
-Liefert öffentliche Trade-Daten.
+Delivers public trade data.
 
 ### Request Parameters
 | Parameter | Type         | Required | Description |
 |-----------|--------------|----------|-------------|
 | op        | String       | Yes      | Operation: `subscribe`/`unsubscribe` |
 | args      | List<Object> | Yes      | |
-| > symbol  | String       | Yes      | Product ID, z.B. ETHUSDT |
+| > symbol  | String       | Yes      | Product ID, e.g. ETHUSDT |
 | > ch      | String       | Yes      | Channel: `trade` |
 
-Request-Beispiel:
+Request example:
 ```json
 {
     "op":"subscribe",
@@ -720,13 +829,20 @@ Request-Beispiel:
 | ch        | String       | Channel: `trade` |
 | symbol    | String       | Symbol: ETHUSDT |
 | ts        | String       | Timestamp |
-| data      | List<Object> | Daten |
-| > p       | String       | Ausführungspreis |
-| > v       | String       | Ausführungsmenge |
-| > s       | String       | Ausführungsseite: `sell`/`buy` |
+
+> #### ⚠️ `ts` is typed `String` here and is the only channel like that
+>
+> The example sends `"ts": 1775540872598` — an unquoted integer. Balance,
+> Order, Position, Tp Sl and Depth all type `ts` as `Int64`; Kline,
+> MarketPrice, Ticker and Tickers all type it `int64`. Transcribed as
+> published.
+| data      | List<Object> | Data |
+| > p       | String       | Execution price |
+| > v       | String       | Execution quantity |
+| > s       | String       | Execution side: `sell`/`buy` |
 | > t       | String       | Timestamp (venue sends ISO-8601, e.g. `2026-04-07T05:47:52Z`; Cachy normalizes to epoch ms `number` in `TradeData.t`) |
 
-Push-Daten-Beispiel:
+Push data example:
 ```json
 {
   "ch": "trade",
