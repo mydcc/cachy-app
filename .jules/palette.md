@@ -43,6 +43,6 @@
 **Learning:** When using svelte-i18n's `$_` with dynamic interpolation variables, passing the variables object directly as the second argument causes the raw keys to be rendered instead of the values.
 **Action:** Always wrap the interpolation object in `{ values: ... }` like `$_(key, { values: dynamicObject })`.
 
-## 2024-05-15 - [Added type="button" to button elements]
-**Learning:** Many button elements in the codebase are missing `type="button"`. Not providing `type="button"` can cause unintended form submissions in some contexts, and fixing this is a good semantic HTML practice mentioned in `AGENTS.md`. I added `type="button"` to several components today to prevent these issues.
-**Action:** Added `type="button"` to `<button>` elements in `SettingsButton.svelte`, `EngineDebugPanel.svelte`, `MarketOverview.svelte`, and `ManageTab.svelte`.
+## 2026-09-28 - [Added type="button" to button elements]
+**Learning:** A `<button>` without `type` defaults to `type="submit"`, so adding `type="button"` is the standard defensive fix — but check whether the risk is real before writing it up. In this repo it is not: a scan of all tracked source files found **zero** `<form>` elements, and submit only fires when a button has a form owner, so the attribute is currently a functional no-op here. It is still worth adding as consistency and defense-in-depth for when a form is introduced, and it matches the 139 buttons that already carry it. The practice is **not** documented in `AGENTS.md`; do not cite it as if it were.
+**Action:** Added `type="button"` to all 12 `<button>` elements in `SettingsButton.svelte`, `EngineDebugPanel.svelte`, `MarketOverview.svelte`, and `ManageTab.svelte`. This is a partial sweep, not a completed one: ~225 buttons across ~64 tracked `.svelte` files still lack the attribute. Adopt it when touching a file rather than treating the remainder as a live bug.
