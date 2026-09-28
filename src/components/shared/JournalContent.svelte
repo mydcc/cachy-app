@@ -23,6 +23,7 @@
     import { app } from "../../services/app";
     import { imgbbService } from "../../services/imgbbService";
     import { calculator } from "../../lib/calculator";
+    import { sortJournalRows } from "../../lib/journalSort";
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import { icons } from "../../lib/constants";
@@ -369,36 +370,7 @@
         field: string,
         direction: "asc" | "desc",
     ): JournalTableRow[] {
-        // Perf (Schwartzian transform): Cache parsed dates and Decimals before sorting
-        return trades.map(rawT => {
-            const t = rawT as unknown as Record<string, string | number | Decimal | undefined | null>;
-            let val = t[field];
-
-            if (field === "duration") {
-                const start = typeof (t.entryDate || t.date) === "string" ? Date.parse((t.entryDate || t.date) as string) : (t.entryDate || t.date) as number;
-                const end = typeof (t.exitDate || t.date) === "string" ? Date.parse((t.exitDate || t.date) as string) : (t.exitDate || t.date) as number;
-                val = isNaN(start) || isNaN(end) ? 0 : Math.max(0, end - start);
-            } else {
-                if (val instanceof Decimal) val = val.toNumber();
-                if (val === undefined || val === null) val = field === "symbol" || field === "status" ? "" : -Infinity;
-                if ((field === "date" || field === "exitDate") && typeof val === "string") {
-                    val = Date.parse(val);
-                }
-            }
-
-            return { item: rawT, val };
-        }).sort((a, b) => {
-            const valA = a.val;
-            const valB = b.val;
-
-            if (typeof valA === "string" && typeof valB === "string") {
-                return direction === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
-            }
-
-            if ((valA as number) < (valB as number)) return direction === "asc" ? -1 : 1;
-            if ((valA as number) > (valB as number)) return direction === "asc" ? 1 : -1;
-            return 0;
-        }).map(obj => obj.item);
+        return sortJournalRows(trades, field, direction);
     }
 
     let journalSearchQuery = $derived(tradeState.journalSearchQuery);

@@ -35,6 +35,7 @@
         new Map((settingsState.accounts ?? []).map((a) => [a.id, a.name])),
     );
     import { formatDynamicDecimal } from "../../../utils/utils";
+    import { sortJournalEntries } from "../../../lib/journalSort";
     import { Decimal } from "decimal.js";
     import type { JournalEntry, JournalTableRow, JournalGroupSummary } from "../../../stores/types";
 
@@ -116,46 +117,7 @@
         field: string,
         direction: "asc" | "desc",
     ): JournalEntry[] {
-        // Perf (Schwartzian transform): Cache computed sort fields before sorting
-        return list.map(item => {
-            const rawItem = item as unknown as Record<string, string | number | Decimal | undefined | null>;
-            let val = rawItem[field];
-
-            if (field === "slAtr") {
-                if (!item.entryPrice || !item.stopLossPrice || !item.atrValue) {
-                    val = -1;
-                } else {
-                    const entry = new Decimal(item.entryPrice);
-                    const sl = new Decimal(item.stopLossPrice);
-                    const atr = new Decimal(item.atrValue);
-                    if (atr.isZero()) {
-                        val = -1;
-                    } else {
-                        val = entry.minus(sl).abs().div(atr).toNumber();
-                    }
-                }
-            } else {
-                if (val instanceof Decimal) val = val.toNumber();
-            }
-
-            return { item, val };
-        }).sort((a, b) => {
-            const aVal = a.val;
-            const bVal = b.val;
-
-            if (aVal == null && bVal == null) return 0;
-            if (aVal == null) return direction === "asc" ? 1 : -1;
-            if (bVal == null) return direction === "asc" ? -1 : 1;
-
-            let comparison: number;
-            if (typeof aVal === "string" && typeof bVal === "string") {
-                comparison = aVal.localeCompare(bVal);
-            } else {
-                comparison = (aVal as number) < (bVal as number) ? -1 : (aVal as number) > (bVal as number) ? 1 : 0;
-            }
-
-            return direction === "asc" ? comparison : -comparison;
-        }).map(obj => obj.item);
+        return sortJournalEntries(list, field, direction);
     }
 
     let safeItemsPerPage = $derived(Math.max(1, Number(itemsPerPage || 10)));
