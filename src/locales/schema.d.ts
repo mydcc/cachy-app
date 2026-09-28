@@ -2048,6 +2048,7 @@ export type TranslationKey =
   | "settings.system.debug.cacheSummary"
   | "settings.system.debug.noUncachedYet"
   | "settings.system.debug.panelTitle"
+  | "settings.system.debug.aria.recentHistoryToggle"
   | "settings.performance.monitor"
   | "settings.performance.tips.highAnalysisTime"
   | "settings.performance.tips.highApiCalls"

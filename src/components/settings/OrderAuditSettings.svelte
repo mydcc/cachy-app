@@ -86,18 +86,21 @@
 
     <div class="mt-3 flex flex-wrap gap-2">
       <button
+        type="button"
         class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
         onclick={() => orderAuditService.downloadExport()}
       >
         {$_("settings.audit.export")}
       </button>
       <button
+        type="button"
         class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
         onclick={() => (refreshToken += 1)}
       >
         {$_("settings.audit.refresh")}
       </button>
       <button
+        type="button"
         class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--danger-color)] hover:border-[var(--danger-color)] transition-colors"
         onclick={clearLog}
       >
@@ -120,6 +123,7 @@
         {#each entries as entry (entry.id)}
           <div class="audit-row">
             <button
+              type="button"
               class="audit-head"
               onclick={() => (expanded = expanded === entry.id ? null : entry.id)}
               aria-expanded={expanded === entry.id}
