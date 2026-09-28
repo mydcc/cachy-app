@@ -126,15 +126,20 @@ output looks authoritative.
 
 The response is to refuse the substitution, not to route around the tool:
 
-- Re-issue with `require_exact: true`. A view that cannot be served exactly is
-  then refused instead of answered with something else, which is the honest
-  outcome.
-- For a worktree, pass `view: {kind: "worktree", checkout_id}`. Check that the
-  response *names the view you asked for* — a payload that reports it was not
-  served exactly is a refusal, not an answer. The exact envelope key has moved
-  between Gortex versions, so verify what the response actually says rather
-  than trusting a key name written down here; an agent sent looking for a field
-  that does not exist reports a false integration failure.
+- Re-issue asking for an exact match, so a view that cannot be served exactly
+  is refused instead of answered with something else. The server documents
+  this as `require_exact: true` in its freshness options, but that field is
+  **not exposed in the current tool schemas** — `explore` and `read` both
+  reject unknown properties, so passing it yields a schema error, not a
+  refusal. Check whether your Gortex version accepts it before relying on it,
+  and read a schema rejection as a missing field, not a broken tool.
+- For a worktree, pass `view: {kind: "worktree", checkout_id}` (both are real,
+  documented fields). Then check the response *names the view you asked for*.
+  A payload reporting it was not served exactly is a refusal, not an answer —
+  and if the envelope carries no exactness field at all, treat the answer as
+  unverified and report it rather than reading meaning into a substituted
+  payload. The envelope key has moved between Gortex versions, so verify what
+  the response says instead of trusting a key name written down here.
 - Re-issuing a `localize` after a completed contract replays the same payload;
   do not read repetition as confirmation.
 - If Gortex still cannot answer, that is a **Gortex integration failure**:
@@ -144,16 +149,22 @@ The response is to refuse the substitution, not to route around the tool:
 **A known path is not a bypass.** This rule is about *substituted answers*, not
 about the tools that follow one. Once you know a file's exact path, reading it
 directly is correct — Gortex itself routes file content through
-`read`/`editing_context` and prescribes exactly that. The refusal applies when
-a graph tool answers a navigation question with someone else's neighbourhood,
-or when the graph tool is the only way to obtain a file you do not have a path
-to. Concretely, on 2026-09-28 `explore`, `read` and `editing_context` each
-returned the same 17 unrelated alert/chart symbols for a question about
-`PositionsList.component.test.ts`, across two worktrees; re-issuing changed
-nothing, and the response envelope carried no staleness signal, so there was
-no way to detect the substitution from the payload. The read path for that
-file was gated behind the graph tool, which made the file unreachable — a
-total tooling failure, not a navigation inconvenience.
+`read`/`editing_context` and prescribes exactly that.
+
+So the refusal applies when a graph tool answers a navigation question with
+someone else's neighbourhood. It does **not** apply to a file whose path you
+already have: reading that file directly is correct, and the guidance in force
+at the time did not say so.
+
+Observed in one session on 2026-09-28, in two worktrees: `explore`, `read` and
+`editing_context` each returned the same unrelated alert/chart symbols for a
+question about a component test, and re-issuing changed nothing. Nothing in
+those responses identified the substitution — which is part of the problem,
+since no `view` had been requested and so there was no exactness to report.
+Under the guidance as it then stood, the file was never read: the guidance
+sent the agent back to a tool that had just answered wrongly. That is the gap
+this carve-out closes. The specifics above are a session observation and are
+recorded in no test, issue or log.
 
 Verify code you were told about by a graph tool before acting on it — a wrong
 neighbourhood that reads plausibly is worse than no navigation at all.
@@ -164,7 +175,7 @@ Use for code analysis, action routing, and semantic understanding.
 - `route { "query": "your task in a sentence" }` — picks the right action automatically.
 - `menu { "query": "…" }` — discover available actions.
 - `jcodemunch_guide` — full catalogue and rules.
-- **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
+- **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search; when jCodeMunch cannot answer, that is an integration failure to report, same as Gortex.
 - **After editing files:** `order { "action": "register_edit", "args": { "paths": ["<edited-file>"] } }` so the index stays current (skip when PostToolUse hooks already reindex automatically).
 
 ## Philosophy: Act, Don't Ask
