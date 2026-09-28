@@ -126,7 +126,7 @@
     <div class="cutover-notice" role="status">
         <h4>{$_("dashboard.alerts.cutoverNoticeTitle")}</h4>
         <p>{$_("dashboard.alerts.cutoverNoticeBody")}</p>
-        <button class="cutover-dismiss" onclick={dismissCutoverNotice}>
+        <button type="button" class="cutover-dismiss" onclick={dismissCutoverNotice}>
             {$_("dashboard.alerts.cutoverNoticeDismiss")}
         </button>
     </div>
@@ -211,6 +211,7 @@
 
 <div class="list-tabs" role="tablist">
     <button
+        type="button"
         role="tab"
         aria-selected={listTab === "active"}
         class:active={listTab === "active"}
@@ -219,6 +220,7 @@
         {$_("dashboard.alerts.active")}
     </button>
     <button
+        type="button"
         role="tab"
         aria-selected={listTab === "history"}
         class:active={listTab === "history"}
@@ -254,6 +256,7 @@
                 {/if}
             </div>
             <button
+                type="button"
                 class="delete-btn"
                 aria-label={$_("dashboard.alerts.deleteAlert")}
                 onclick={() => deleteRow(row.id)}

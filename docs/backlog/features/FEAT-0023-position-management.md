@@ -69,6 +69,28 @@ scope. Nothing can be built against it until the API is confirmed.
 Every action is an order and passes the [`FEAT-0011`](FEAT-0011-preflight-order-verification.md)
 gate.
 
+## Follow-ups not done here
+
+- **The dialog-clearing invariant the TP/SL gate now leans on is unpinned.**
+  An open `TpSlCreateModal` is gated by neither `tpSlStandalone` nor
+  `canPlaceStandaloneTpSl` — only by `tpSlCreatePosition`, the derived that
+  resolves the stored id against a live position. The modal itself therefore
+  disappears as soon as that lookup returns `null`, which a venue switch causes
+  by emptying the position list, independently of any chain.
+
+  What the chain guards is the **id**, not the dialog. When an account is
+  configured, the provider setter → `appEffects` `providerChanged` →
+  `accountSession.reset` → `accountEpoch.rotate` → the sidebar's epoch effect
+  clears `tpSlCreatePositionId`. Without it the dialog closes but the id
+  survives, and switching back to the same account re-opens it on the same
+  position — a stale dialog, not a submittable form on a venue that refuses
+  it, which is why this is a follow-up rather than a defect.
+
+  It holds today and nothing pins it. One test asserting the id is cleared
+  across a provider change would. Not fixed in
+  [#3710](https://github.com/mydcc/cachy-app/pull/3710) because it is a
+  pre-existing dependency, not part of the gate being added.
+
 ## Acceptance criteria
 
 This epic is done when each child item is done. It has no code of its own.
@@ -83,12 +105,69 @@ This epic is done when each child item is done. It has no code of its own.
       start until a trailing endpoint is verified against the live API. **This
       epic stays open until then**, and that is the correct outcome: closing it
       early would record a capability the product does not have.
-- [ ] Unsupported actions absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)
+- [x] Unsupported actions absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md) — audited 2026-09-28, see the capability audit below
 - [ ] Each action verified live on each supported exchange
 
 The two criteria that outlive every child — *unsupported actions are absent per
 capabilities* and *verified live* — stay here rather than being copied into each
 child, because they are properties of the finished set, not of any one control.
+
+## Capability audit (FEAT-0017)
+
+Audited 2026-09-28, the first time this criterion was checkable: FEAT-0017
+shipped in 1.6.0-beta.135, so the four finished controls had something to be
+measured against.
+
+**One real gap, fixed here.** The modify-TP/SL control was offered on every
+venue. `PositionsSidebar` passed `ontpSl={handleTpSl}` unconditionally, and
+`PositionsList` rendered the button without a guard, calling through
+`ontpSl?.(pos)` — so on a venue that answers `tpSlStandalone: false` (Bitget,
+whose every TP/SL verb is refused on `supports.tpSl: false` and whose tpsl
+route rejects every exchange but Bitunix) a trader got the form, filled it in,
+and only then hit the refusal. That is the direction `bitgetCapabilities.ts`
+warns about when it declares a venue feature Cachy cannot yet spell: a
+control that fails *after* the trader committed. The add-to-position control
+two dozen lines below already followed the rule, with the rule written next to
+it. Both now do, and both are pinned by tests.
+
+**The other three were already correct, and it is worth saying how.**
+
+- *Close, partial close, flash close* — no capability flag exists for closing,
+  and none is missing: both venues wire `closePosition` and
+  `flashClosePosition`, so there is nothing to declare. A flag that is
+  uniformly true guards nothing.
+- *Add to position* — gated on `capabilities.addToPosition` and absent on a
+  venue that cannot scale in. Was untested until now; it is now pinned beside
+  the TP/SL control, since a guard that covers only the newer control is how
+  this gap opened.
+- *Trailing stop* — `trailingStop` is `false` on both venues because Cachy has
+  no wire format for it at all, and correspondingly no control exists anywhere.
+  The criterion holds vacuously, and correctly so: the honest version of
+  "absent" for an unbuilt feature is "not there".
+
+**A second gap on a neighbouring surface, found while fixing the first.** The
+TP/SL *manager* tab is the same rule in a different place: it listed, edited
+and cancelled plans regardless of what the venue takes. On a venue that takes
+none, its list read is deliberately non-throwing — `fetchTpSlOrders` returns
+`[]` rather than raising, on purpose, so an unsupported venue cannot open a
+dialog — so the tab would not have errored. It would have sat permanently
+empty and never once said why. It is now absent on such a venue, on the same
+flag. Reading plans is not a lesser capability than writing them: a venue that
+cannot be given a stop has none to list.
+
+It sits on the dashboard rather than on this epic's position row, so it is
+recorded here rather than counted as one of the four controls.
+
+**Both gates had to be reactive, which the first version was not.** A gate
+written as a plain `const` from a capability keeps the value it had at mount,
+and the sidebar is not remounted when the account or venue changes — so a
+Bitunix → Bitget switch with the tab open would have left the tab there, which
+is the failure this closes. Two tests now switch venue on a mounted component
+rather than before mounting; the test harness reads its capabilities from a
+`$state` module for exactly this reason, since a plain mocked object severs the
+dependency the derived would have. A third test pins the consequence: a tab the
+venue does not have must not stay active, or the content chain — which has no
+`{:else}` — renders an empty panel with nothing highlighted.
 
 ## Out of scope
 

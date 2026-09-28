@@ -526,6 +526,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0550-tpsl-direction-not-validated.md"
   },
   {
+    "id": "BUG-0576",
+    "title": "Bitget integration calls the decommissioned V1 API, so every signed REST call fails",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "area": "exchange",
+    "created": "2026-09-28",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -6552,7 +6571,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0335",
     "title": "Trail a stop behind a position once the exchange endpoint is verified",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "docs/bitget-api-crawl (supersedes feature/feat-0335-bitget-trailing-stop, which is unmerged, still carries the pre-review wording, and whose bitget-api/ copy diverges from develop — so the line references below are develop's)",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
@@ -7389,7 +7410,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0525",
     "title": "Store the complete Bitget API reference locally, mirroring the Bitunix coverage",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
+    "branch": "feat-0525-bitget-api-reference",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7400,6 +7422,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "area": "exchange",
     "data_class": "none",
     "adr": "none",
+    "assignee": "opencode",
     "depends_on": [],
     "file": "features/FEAT-0525-bitget-api-reference-stored-locally.md"
   },
@@ -7540,6 +7563,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0545-duck-companion-settings-with-master-toggle.md"
+  },
+  {
+    "id": "FEAT-0577",
+    "title": "The Bitunix mirror was translated into German while its source is English",
+    "type": "feature",
+    "status": "done",
+    "branch": "docs/bitunix-api-english",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "docs",
+    "data_class": "none",
+    "adr": "none",
+    "assignee": "opencode",
+    "depends_on": [],
+    "file": "features/FEAT-0577-bitunix-mirror-english.md"
+  },
+  {
+    "id": "FEAT-0578",
+    "title": "Verify the Bitunix mirror against the live vendor pages and fix what it got wrong",
+    "type": "feature",
+    "status": "done",
+    "priority": "P2",
+    "area": "docs",
+    "created": "2026-09-28",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0578-bitunix-mirror-fidelity-audit.md"
   },
   {
     "id": "IDEA-0563",
