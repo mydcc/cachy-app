@@ -193,12 +193,29 @@ def sign():
 Source: https://www.bitunix.com/api-docs/futures/websocket/private/Balance%20Channel.html
 
 ### Description
-Balance updates (wire channel: `wallet`).
+Balance updates.
+
+> #### ⚠️ The wire channel name is disputed: this mirror says `wallet`, the vendor says `balance`
+>
+> The vendor's `ch` row reads **"Channel name: `balance`"**. This mirror records
+> `wallet`, and Cachy subscribes with `wallet`
+> ([`subscribePrivate` in bitunixWs.ts](../../src/services/bitunixWs.ts)) — so
+> the code and this mirror agree with each other and disagree with the vendor.
+>
+> Unlike the `tp_sl` case there is no comment in the code justifying the choice,
+> and the vendor's WebSocket connect page publishes no authoritative list of
+> private channel names — so **nothing outside this mirror corroborates
+> `wallet`**.
+>
+> If `balance` is the correct name, the subscribe is rejected and **no balance
+> update ever arrives**, silently. A client that treats the WebSocket as the
+> live balance source would show a stale figure indefinitely. **Resolving this
+> needs a credentialed check against the live gateway.**
 
 ### Push Parameters
 | Parameter         | Type     | Description |
 |-------------------|----------|-------------|
-| ch                | String   | Channel name: `wallet` |
+| ch                | String   | Channel name — vendor says `balance`, this mirror says `wallet` (see above) |
 | ts                | Int64    | Timestamp |
 | data              | Object   | |
 | > coin            | String   | Coin |
@@ -227,7 +244,7 @@ Subscribes to the order channel. Data is pushed on the following events:
 | Parameter      | Type   | Description |
 |----------------|--------|-------------|
 | ch             | String | Channel name: `order` |
-| ts             | Int64  | Timestamp |
+| ts             | Int64  | Gateway send time in milliseconds. **Not business event time; do not confuse with `ctime` / `mtime`** |
 | data           | Object | Subscription data |
 | > event        | String | `CREATE`/`UPDATE`/`CLOSE` |
 | > orderId      | String | Order ID |
@@ -239,8 +256,8 @@ Subscribes to the order channel. Data is pushed on the following events:
 | > type         | String | `LIMIT`/`MARKET` |
 | > qty          | String | Quantity (base coin) |
 | > price        | String | Order price (required for `LIMIT`) |
-| > ctime        | String | Creation timestamp |
-| > mtime        | String | Modification timestamp |
+| > ctime        | String | Create time, **ISO-8601 nanosecond string**, e.g. `2024-05-16T08:13:09.123456789Z`. **REST order APIs use millisecond integers** |
+| > mtime        | String | Last modify time, **ISO-8601 nanosecond string**, same format as `ctime`. **REST order APIs use millisecond integers** |
 | > leverage     | String | Leverage |
 | > orderStatus  | String | `INIT`, `NEW`, `PART_FILLED`, `CANCELED`, `FILLED`, `PART_FILLED_CANCELED` |
 | > fee          | String | Deducted trading fees |
@@ -267,6 +284,19 @@ Subscribes to the position channel. Data is pushed on the following events:
 1. Open/close orders are created
 2. Open/close orders are filled
 3. Orders are cancelled
+
+> #### ⚠️ This description is a vendor copy-paste, and this mirror reproduces it
+>
+> The three events above are **order** events — "Open/close orders are created",
+> "orders are filled", "orders are cancelled" — on the page for the **position**
+> channel, whose payload contains no order fields at all. The Order Channel page
+> carries a near-identical description; the two differ only in the channel name
+> and a spelling of "occurred" (`occured` on the Order page).
+>
+> Transcribed as found. Do not "fix" it — and note that the *Push Parameters*
+> table below is **not** affected: it is correctly position-specific, with its
+> own `OPEN/UPDATE/CLOSE` event triple, `side: SHORT/LONG`, `positionId`,
+> `marginMode` and `leverage`. Only the prose is wrong upstream.
 
 ### Push Parameters
 | Parameter       | Type   | Description |
@@ -296,14 +326,36 @@ Subscribes to the position channel. Data is pushed on the following events:
 Source: https://www.bitunix.com/api-docs/futures/websocket/private/Tp%20Sl%20Channel.html
 
 ### Description
-TP/SL order updates (wire channel: `tp_sl`).
+TP/SL order updates.
+
+> #### ⚠️ The wire channel name is disputed: this mirror says `tp_sl`, the vendor says `tpsl`
+>
+> The vendor's page states the channel name **twice**, in the Description and
+> again in the `ch` row of the Push Parameters table, and both say **`tpsl`** —
+> no underscore. This mirror records `tp_sl`.
+>
+> Cachy subscribes with `tp_sl`
+> ([`subscribePrivate` in bitunixWs.ts](../../src/services/bitunixWs.ts)), so the
+> code and this mirror agree with each other and disagree with the vendor.
+>
+> **Neither side is verified, and the code's own justification is circular.** The
+> comment above the subscription cites *this file* as the source for `tp_sl`'s
+> behaviour, and the channel list itself carries no citation at all. So there is
+> no observation of working traffic recorded anywhere — only this mirror, and
+> the vendor's page contradicting it.
+>
+> If `tpsl` is the correct name, the subscribe is rejected and **no TP/SL update
+> ever arrives** — silently, because a rejected subscription is a push that does
+> not come. That is the same failure shape as the Bitget WebSocket field-name
+> mismatch in [`docs/TODO.md`](../TODO.md). **Resolving this needs a
+> credentialed check against the live gateway; documentation cannot settle it.**
 
 ### Push Parameters
 | Parameter      | Type   | Description |
 |----------------|--------|-------------|
-| ch             | String | Channel name: `tp_sl` |
-| ts             | Int64  | Timestamp |
-| data           | Object | Subscription data |
+| ch             | String | Channel name — vendor says `tpsl`, this mirror says `tp_sl` (see above) |
+| ts             | Int64  | Gateway send time, Unix milliseconds. **Do not use this field to order business events** |
+| data           | Object | Subscription data. **Always an object, never an array** |
 | > event        | String | `CREATE`/`UPDATE`/`CLOSE` |
 | > positionId   | String | Position ID |
 | > orderId      | String | Order ID |
@@ -311,11 +363,11 @@ TP/SL order updates (wire channel: `tp_sl`).
 | > leverage     | String | Leverage |
 | > side         | String | `BUY`/`SELL` |
 | > positionMode | String | Position mode: `ONE_WAY`/`HEDGE` |
-| > status       | String | `INIT`, `NEW`, `PART_FILLED`, `CANCELED`, `FILLED` |
-| > ctime        | String | Creation timestamp |
+| > status       | String | `NEW`/`CANCELED`/`SYSTEM_CANCELED`/`FILLED`/`FAILED` — see note below |
+| > ctime        | String | Create time, **ISO-8601 nanosecond string**, e.g. `2024-05-16T08:13:09.123456789Z`. REST history APIs use millisecond integers instead |
 | > type         | String | `LIMIT`/`MARKET` |
-| > tpQty        | String | Take-profit quantity (base coin). At least one of `tpQty`/`slQty` is required |
-| > slQty        | String | Stop-loss quantity (base coin). At least one of `tpQty`/`slQty` is required |
+| > tpQty        | String | Take-profit quantity (base coin). Omitted if unused. Never Boolean, never JSON `null` |
+| > slQty        | String | Stop-loss quantity (base coin). Omitted if unused. Never Boolean, never JSON `null`; `"0"` is sent as `"0"` |
 | > tpStopType   | String | Take-profit trigger type: `MARK_PRICE`/`LAST_PRICE` |
 | > tpPrice      | String | Take-profit trigger price |
 | > tpOrderType  | String | Take-profit order type: `LIMIT`/`MARKET` |
@@ -324,6 +376,36 @@ TP/SL order updates (wire channel: `tp_sl`).
 | > slPrice      | String | Stop-loss trigger price |
 | > slOrderType  | String | Stop-loss order type: `LIMIT`/`MARKET` |
 | > slOrderPrice | String | Stop-loss order price |
+
+> #### The `status` enum was wrong in this mirror, and the correction removes values
+>
+> An earlier version of this file listed `INIT`, `NEW`, `PART_FILLED`, `CANCELED`,
+> `FILLED`. The vendor's enum is `NEW` / `CANCELED` / `SYSTEM_CANCELED` / `FILLED`
+> / `FAILED`, and the page **explicitly disclaims two of the values this mirror
+> had listed**:
+>
+> > Statuses that are not pushed: `INIT`, `PENDING_CANCEL`, `TRIGGER_WAIT_PLACE`.
+> > Do not document `PART_FILLED` on this channel.
+>
+> So the mirror documented a status the vendor says cannot occur, and omitted two
+> that can — including `SYSTEM_CANCELED`, which is how a venue-initiated
+> cancellation is distinguished from a user-initiated one. A consumer keying on
+> the old list would not recognise a system cancel.
+>
+> The mirror also asserted *"At least one of `tpQty`/`slQty` is required"*. The
+> vendor says no such thing — only **"Omitted if unused"**. That requirement was
+> **invented**. Removed.
+
+#### The `CLOSE` event is not a final state, and `FILLED` does not mean the child order filled
+
+Both statements are the vendor's, and both are load-bearing for anything
+consuming this channel:
+
+- Read **`event` together with `status`**, always. A `CLOSE` on its own is not a
+  final state.
+- `FILLED` means **the trigger fired and the child order was placed** — not that
+  the child order itself is filled. Reading it as "TP/SL done" is wrong by one
+  step.
 
 ---
 
@@ -368,6 +450,22 @@ Request example:
 | Parameter | Type         | Description |
 |-----------|--------------|-------------|
 | ch        | Object       | Channel name |
+| data      | String       | Subscription data — but the example below sends an object |
+
+> #### ⚠️ Two type errors on one table, both contradicted by this page's own example
+>
+> `ch` is typed **Object**, yet the example sends the string `"depth_book1"`.
+> `data` is typed **String**, yet the example sends an object with `b` and
+> `a` arrays.
+>
+> The `ch: Object` type is the **sole outlier** — all ten channels were checked
+> and the other nine type it `String`. Transcribed as published; if you write a
+> parser, follow the example, not the table.
+>
+> Also on this page: the depth channel names are irregular —
+> `books` (plural, snapshot plus incremental) but `book1`, `book5`,
+> `book15` (**singular**). That inconsistency is intentional-looking and appears
+> in the vendor's subscribe examples too, so it is a real name, not a typo.
 | symbol    | String       | Product ID |
 | ts        | Int64        | Timestamp |
 | data      | String       | Subscription data |
@@ -572,6 +670,17 @@ Request example:
 | > q       | String       | Trading volume of the quote currency |
 | > r       | String       | 24h change |
 
+> #### ⚠️ This example is internally inconsistent — in the vendor's, not the mirror's
+>
+> The envelope says `"symbol": "BNBUSDT"` while the body's `data.s` says
+> `"BTCUSDT"`. The same page's field table then glosses `data.s` as *"Symbol,
+> Product ID E.g. ETHUSDT"* — a third symbol matching neither.
+>
+> Transcribed as published. The identical `BNBUSDT` envelope also appears in the
+> MarketPrice example, where nothing contradicts it, so it looks copy-pasted
+> across pages while the body was later updated. **Treat `data.s` as the
+> authoritative symbol and the envelope as unreliable.**
+
 Push data example:
 ```json
 {
@@ -720,6 +829,13 @@ Request example:
 | ch        | String       | Channel: `trade` |
 | symbol    | String       | Symbol: ETHUSDT |
 | ts        | String       | Timestamp |
+
+> #### ⚠️ `ts` is typed `String` here and is the only channel like that
+>
+> The example sends `"ts": 1775540872598` — an unquoted integer. Balance,
+> Order, Position, Tp Sl and Depth all type `ts` as `Int64`; Kline,
+> MarketPrice, Ticker and Tickers all type it `int64`. Transcribed as
+> published.
 | data      | List<Object> | Data |
 | > p       | String       | Execution price |
 | > v       | String       | Execution quantity |

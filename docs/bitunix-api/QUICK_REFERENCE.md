@@ -45,11 +45,34 @@ const sign = SHA256(digest + secretKey);
 | Funding Rate (batch) | GET | `/api/v1/futures/market/funding_rate/batch` |
 | Funding Rate History | GET | `/api/v1/futures/market/get_funding_rate_history` |
 
-`fundingRate` in both REST responses is documented as a fraction
-(`"0.0005"` = 0.05%), but live wire data confirms it's actually already a
-**percentage** — same as the WS `price` channel's `fr` field. Both get
-normalized to a fraction at ingestion (`apiService.fetchBitunixFundingRates`
-for REST, historically `bitunixWs.ts` for WS, now unused for this).
+> ### ⚠️ `fundingRate` — the two REST endpoints disagree, and this set records the disagreement
+>
+> Both pages document the field as a fraction (`"0.0005"` = 0.05%). Beyond that
+> the documentation is silent and the two endpoints are not treated the same
+> way in this repository:
+>
+> | | Batch | History |
+> |---|---|---|
+> | Vendor description | *"Current funding rates"* | *"Funding rate"* |
+> | Vendor example value | `0.0005` | `-0.00001191` |
+> | Unit as treated here | **percentage** — divided by 100 on ingestion | recorded elsewhere in this set as **already a fraction** |
+> | Code evidence | Yes — see below | **None. Nothing in the repository consumes this endpoint.** |
+>
+> The batch side is settled: `fetchBitunixFundingRates` applies
+> `entry.fundingRate.dividedBy(100)`, so the venue's value is a percentage and
+> the division is deliberate.
+>
+> The history side is **not**. `04_market.md` marks that field as an
+> already-a-fraction with a "do NOT divide" warning, which contradicts the
+> "both" claim that stood here previously. Neither reading has code evidence,
+> because no call site reads `get_funding_rate_history` at all. Treat the
+> history endpoint's unit as unverified — check live wire data before trusting
+> either note.
+
+REST ingestion lives in `fetchBitunixFundingRates`
+([src/services/api/marketData.ts:759](../../src/services/api/marketData.ts)).
+The WebSocket `price` channel's `fr` field was normalised the same way, but
+that path is now unused.
 
 ---
 

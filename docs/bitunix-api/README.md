@@ -23,9 +23,94 @@ documentation at:
 | `06_tp_sl.md` | Take-profit / stop-loss endpoints |
 | `07_trade.md` | Order endpoints (place, modify, cancel, batch, history) |
 | `08_websocket.md` | WebSocket connection, login, all private & public channels |
-| `09_error_codes.md` | Complete error code table |
+| `09_error_codes.md` | Complete error code table — 76 codes, plus the vendor's defects in them |
 | `10_change_log.md` | Changelog of the official documentation |
+| `12_doc_defects.md` | Quarantine: where Bitunix's own docs are wrong, and where this mirror silently repaired them |
 | `INTEGRATION_STATUS.md` | Reconciliation: which endpoints/channels Cachy already uses, what is missing |
+| `QUICK_REFERENCE.md` | Developer cheat sheet |
+| `timeframes.md` | Kline intervals Bitunix serves natively vs. what Cachy synthesizes |
+
+## House rules for this mirror
+
+Two rules, both learned the hard way and both enforced by
+`12_doc_defects.md`:
+
+1. **Transcribe verbatim. Mark every repair.** Where Bitunix's page is wrong,
+   the wrong text stays and a note says so. Silently fixing a vendor error makes
+   a mirror impossible to diff against its source — and, historically, produced
+   a *different* error that then read as transcribed fact: a `nonce`
+   description of "32-char hex string (128-bit random)" that appears on no
+   Bitunix page, was internally contradictory, and had spread across three files
+   before it was caught. An invented sentence in a reference is worse than a
+   missing one.
+2. **Cachy-side knowledge is labelled as such.** Notes about what Cachy does,
+   assumes, or has observed are marked and kept separate from vendor text.
+
+## Coverage
+
+Stated explicitly, because a mirror that does not say what it skipped cannot be
+distinguished from a mirror that did not look.
+
+### Mirrored — 54 of 54 pages
+
+Measured from the live sidebar on 2026-09-28, not from memory:
+
+| Group | Vendor pages | File | Endpoints |
+|---|---|---|---|
+| Account | 8 | `02_account.md` | 8 |
+| Common | 2 | `00_common.md`, `01_sign.md` | 2 |
+| CopyTrading | 3 | `03_copytrading.md` | 3 |
+| Error codes | 1 | `09_error_codes.md` | 76 codes |
+| Log | 1 | `10_change_log.md` | 1 |
+| Market | 7 | `04_market.md` | 7 |
+| Position | 3 | `05_position.md` | 3 |
+| TP/SL | 7 | `06_tp_sl.md` | 7 |
+| Trade | 11 | `07_trade.md` | 11 |
+| WebSocket | 11 | `08_websocket.md` | 11 (4 private, 6 public, 1 connect) |
+| **Total** | **54** | | **42 endpoints + 11 channels + 1 log** |
+
+**Nothing is missing.** Every page the vendor publishes for Futures is
+transcribed. `get_position_mode` and `get_trading_settings` were added on
+2026-09-28 — the first crawl had missed two of the eight Account endpoints.
+
+Bitunix's Futures surface has no product line this set skips: there is no
+Spot/Margin/Copy-trading-of-trading split, no second account family, and no
+decommissioned generation to document separately. By contrast the Bitget mirror (FEAT-0525, a separate branch) covers 88
+endpoints of one product line out of a much larger site, and has to state what
+it left out.
+
+### Not mirrored
+
+| Area | Why |
+|---|---|
+| The plan-order family (`/api/v1/futures/plan/*`) | **Undocumented by the vendor.** No `plan` section in the sidebar, and `…/futures/plan/get_history_plan_orders.html` returns 404. Cachy calls one of these endpoints anyway — see `INTEGRATION_STATUS.md` |
+| Bitunix Spot, and the other product lines | Cachy trades futures only |
+| Announcement / notice endpoints | Bitunix publishes none for API consumers |
+
+### What "verified" means here, and what it does not
+
+Every rate limit, parameter, field name and error code in this set was
+transcribed from the live vendor pages, and the set was re-audited against them
+on 2026-09-28. The error-code table was checked code by code: **76 codes, none
+missing, none added.**
+
+What is **not** verified is request signing and live behaviour, because
+verifying it needs credentials and a sandbox. Recorded as unresolved in place
+rather than settled by inference:
+
+- Whether `params` belongs in the WebSocket prehash — Bitunix's two pages
+  disagree (`01_sign.md`).
+- The WebSocket login timestamp unit — seconds on four sources, milliseconds in
+  one example (`01_sign.md`).
+- The real `nonce` width and charset, which the vendor states three different
+  ways (`01_sign.md`).
+- **The `wallet`/`balance` and `tp_sl`/`tpsl` private channel names** — the code
+  and this mirror say one thing, the vendor says another, and the code's own
+  justification cites this documentation set. If the vendor is right, no balance
+  and no TP/SL update ever arrives, silently (`08_websocket.md`,
+  `12_doc_defects.md`).
+- The `fundingRate` unit on the history endpoint — no code reads it
+  (`04_market.md`, `QUICK_REFERENCE.md`).
 
 ## Quick overview of the API structure
 
@@ -47,7 +132,7 @@ unwired — see `INTEGRATION_STATUS.md` and the adapter verb table in
 | Header | Description |
 |---|---|
 | `api-key` | API key of the request |
-| `nonce` | 32-char hex string (128-bit random) |
+| `nonce` | `Random string，32bits` [sic] — see `01_sign.md` |
 | `timestamp` | Current timestamp in milliseconds |
 | `sign` | Signature string (see `01_sign.md`) |
 | `Content-Type` | Always `application/json` |

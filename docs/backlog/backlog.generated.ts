@@ -7583,6 +7583,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0577-bitunix-mirror-english.md"
   },
   {
+    "id": "FEAT-0578",
+    "title": "Verify the Bitunix mirror against the live vendor pages and fix what it got wrong",
+    "type": "feature",
+    "status": "done",
+    "priority": "P2",
+    "area": "docs",
+    "created": "2026-09-28",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0578-bitunix-mirror-fidelity-audit.md"
+  },
+  {
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
