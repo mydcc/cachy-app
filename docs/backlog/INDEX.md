@@ -2,9 +2,9 @@
 
 # Backlog index
 
-453 items. How to read and add them: [README.md](README.md).
+455 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 404 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 406 · ⛔ dropped 1
 
 ---
 
@@ -427,6 +427,8 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | alerts |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | alerts |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | ui |
+| [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | docs |
+| [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | docs |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
@@ -874,6 +876,8 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | none | community | none | none | — |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -980,4 +984,4 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 
 ---
 
-Next free number: **0577**
+Next free number: **0579**
