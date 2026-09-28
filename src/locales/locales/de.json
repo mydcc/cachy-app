@@ -2091,7 +2091,10 @@
         "cache": "Ergebnis-Cache",
         "cacheSummary": "Treffer {hits} · Fehlzugriffe {misses} · {hitRate} % Trefferquote",
         "noUncachedYet": "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten.",
-        "panelTitle": "⚡ Engine-Debug-Panel"
+        "panelTitle": "⚡ Engine-Debug-Panel",
+        "aria": {
+          "recentHistoryToggle": "Verlauf — ein- oder ausblenden"
+        }
       }
     },
     "performance": {

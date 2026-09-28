@@ -2328,7 +2328,10 @@
         "cache": "Result Cache",
         "cacheSummary": "Hits {hits} · Misses {misses} · {hitRate}% hit rate",
         "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark.",
-        "panelTitle": "⚡ Engine Debug Panel"
+        "panelTitle": "⚡ Engine Debug Panel",
+        "aria": {
+          "recentHistoryToggle": "Recent History — show or hide"
+        }
       }
     },
     "performance": {
