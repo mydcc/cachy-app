@@ -23,9 +23,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * The awkward part this covers is a deployment state, not a bug. The reducer
  * lives in `server/spacetimedb/src/index.ts`, but the client can only call it
  * through bindings produced by `spacetime generate`. A build made before that
- * ran does not have it, and hand-editing generated files is forbidden by
- * `server/CLAUDE.md`. So the client checks, and says so plainly, instead of
- * throwing an opaque "not a function".
+   * ran does not have it, and hand-editing generated files is forbidden by
+   * `server/.cursor/rules/spacetimedb-typescript.mdc`. So the client checks,
+   * and says so plainly, instead of throwing an opaque "not a function".
  */
 
 const { mockLogger, mockReducers } = vi.hoisted(() => ({

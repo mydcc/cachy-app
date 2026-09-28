@@ -466,7 +466,7 @@
           <JournalEntryTags
             tags={trade.tags || []}
             {availableTags}
-            tradeId={Number(trade.id) || 0}
+            tradeId={Number(trade.id) /* audit: safe — journal row id, not a financial value */ || 0}
             onTagsChange={handleTagsChange}
           />
         </div>

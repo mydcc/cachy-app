@@ -379,7 +379,7 @@ export class HistoryFetcher {
                       volume: data.volume,
                       priceChangePercent: data.priceChangePercent,
                       quoteVolume: data.quoteVolume,
-                    });
+                    }, "rest");
                 } else if (channel.startsWith("kline_")) {
                     const tf = channel.replace("kline_", "");
                     const klines = await (provider === "bitget"

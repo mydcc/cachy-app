@@ -94,7 +94,7 @@ describe("reset clears what belongs to the account being left", () => {
         // the previous asset row — correct within one account, cross-account
         // blending across two. Emptying `assets` is what makes the next
         // hydration a fresh write rather than a merge.
-        accountState.hydrateBalance({ available: "100", margin: "10", frozen: "0" });
+        accountState.hydrateBalance({ available: "100", margin: "10", frozen: "0" }, "live");
         expect(accountState.assets).toHaveLength(1);
 
         accountSession.reset("account-switch");

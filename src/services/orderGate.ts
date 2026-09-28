@@ -357,6 +357,14 @@ export interface DisplayedState {
      * simulated balance, so no paper exemption is needed.
      */
     availableMargin?: Decimal;
+    /**
+     * `Date.now()` stamped alongside `availableMargin` by the same qualified
+     * read, so the two can never disagree (BUG-0565). Informational — no
+     * check consumes it as a freshness gate, and a missing stamp never
+     * refuses: intents built outside the service (tests, flash-close) carry
+     * a value with no stamp.
+     */
+    availableMarginAt?: number;
     positionId?: string;
     orderId?: string;
     /**
@@ -2166,6 +2174,54 @@ export function assertGatePass(ctx: TransportContext, pass?: GatePass): void {
 }
 
 /**
+ * The tradeer's word for a gate field name. "qty" is what the code calls it,
+ * "the position size" is what someone reading the audit trail needs.
+ *
+ * Exported because two surfaces show a refusal — the toast and the order audit
+ * panel — and they must not be able to disagree about a field's name. Both go
+ * through here, so a new field name is translated in one place or nowhere.
+ *
+ * Falls back to the raw name when there is no entry. svelte-i18n echoes an
+ * unknown key back, and a field like "takeProfit[0]" legitimately has none, so
+ * showing a dotted key path would be worse than showing the internal name.
+ */
+export function translateRefusalField(
+    field: string,
+    t: (key: string) => string,
+): string {
+    if (!field) return field;
+    const key = `orderGate.fields.${field}`;
+    const translated = t(key);
+    return translated && translated !== key ? translated : field;
+}
+
+/**
+ * The article-free twin of `translateRefusalField`, for the one template
+ * whose own article precedes `{field}` (BUG-0575).
+ *
+ * `orderGate.invalidTpSl` reads "the {field} price" / "Der {field}-Preis",
+ * but the label it receives already carries an article ("the take profit"),
+ * which renders as "the the take profit". Every other `{field}` consumer
+ * uses the label bare or in an oblique case and needs the article, so the
+ * label dictionary itself cannot drop it — hence `orderGate.fieldsBare.*`.
+ *
+ * Fallback chain is bare → article form → raw name, a deliberate totality
+ * tradeoff: a future field that reaches `invalidTpSl` without a bare entry
+ * renders today's doubled article rather than a dotted key path. Only
+ * takeProfit and stopLoss ever reach it, and both are covered in fieldsBare.
+ */
+export function translateRefusalBareField(
+    field: string,
+    t: (key: string) => string,
+): string {
+    if (!field) return field;
+    const key = `orderGate.fieldsBare.${field}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+    return translateRefusalField(field, t);
+}
+
+/**
  * Renders a refusal in the user's language. Takes the translate function as
  * an argument rather than importing the i18n store, so the gate stays a pure
  * module that tests can exercise without a Svelte runtime.
@@ -2179,13 +2235,14 @@ export function translateRefusal(
 ): string {
     const values = { ...refusal.values };
     if (values.field) {
-        const translated = t(`orderGate.fields.${values.field}`);
-        // svelte-i18n echoes the key back when it has no entry — a field like
-        // "takeProfit[0]" legitimately has none, so fall back to the raw name
-        // rather than showing the user a dotted key path.
-        if (translated && translated !== `orderGate.fields.${values.field}`) {
-            values.field = translated;
-        }
+        // `invalidTpSl` is the single template that supplies its own article
+        // ("the {field} price"), so it takes the bare label while every other
+        // template keeps the article form. If a second compound template ever
+        // appears, generalise this — not before (YAGNI).
+        values.field =
+            refusal.messageKey === "orderGate.invalidTpSl"
+                ? translateRefusalBareField(values.field, t)
+                : translateRefusalField(values.field, t);
     }
     /*
      * FEAT-0024's refusal names an action, and it should read the way the
@@ -2206,14 +2263,24 @@ export function translateRefusal(
 
 /**
  * Non-secret, stable identifier for an API key. Class A data never leaves the
- * device, and this shortened form additionally keeps the key out of refusal
- * messages and logs.
+ * device, and a hash additionally keeps the key out of refusal messages and
+ * logs.
+ *
+ * FNV-1a over the key, synchronously, rendered as hex plus the key length —
+ * the same shape as `credentialFingerprint` in
+ * `src/stores/accountVerification.svelte.ts`. A slice of the key cannot tell
+ * two short keys apart (`"key-a"` and `"key-b"` both read `"ke…5"`), so a key
+ * swap during signing went unseen by the dispatch guard (BUG-0570).
  */
 /** What `accountFingerprint` reports for an account with no key at all. */
 export const NO_CREDENTIALS = "none";
 
 export function accountFingerprint(apiKey: string | undefined | null): string {
     if (!apiKey) return NO_CREDENTIALS;
-    if (apiKey.length <= 8) return `${apiKey.slice(0, 2)}…${apiKey.length}`;
-    return `${apiKey.slice(0, 4)}…${apiKey.slice(-4)}`;
+    let hash = 0x811c9dc5;
+    for (let index = 0; index < apiKey.length; index++) {
+        hash ^= apiKey.charCodeAt(index);
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return `${hash.toString(16)}#${apiKey.length}`;
 }

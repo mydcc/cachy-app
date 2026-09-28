@@ -17,6 +17,7 @@
 
 import { Decimal } from "decimal.js";
 import type { Kline, KlineBuffers } from "../../services/technicalsTypes";
+import type { QuoteSource } from "../../services/priceResolution";
 
 export interface MarketData {
   symbol: string;
@@ -52,6 +53,21 @@ export interface MarketData {
    * price resolver; nothing else should write it.
    */
   markPriceUpdatedAt?: number;
+  /**
+   * When `lastPrice` last arrived with a real value (BUG-0558) — the age of
+   * the price, not the age of the object. Mirrors BUG-0512's
+   * `markPriceUpdatedAt`: `lastUpdated` is refreshed by any channel's
+   * traffic (klines, depth), so it cannot tell a live quote from a frozen
+   * one. Stamped in `applyUpdate`, read by `resolveMarketQuote`; nothing
+   * else should write it.
+   */
+  lastPriceUpdatedAt?: number;
+  /**
+   * Source of the last stamped `lastPrice`: WS ticks are primary, REST only
+   * fills gaps (the historyFetcher bridge poll). Preserved across updates
+   * that carry no source of their own (technicals, depth, funding).
+   */
+  lastPriceSource?: QuoteSource;
   /** Per-timeframe freshness — set whenever klines for that tf are updated (WS or REST).
    *  Used by the polling loop to detect stale kline channels independently of the
    *  global lastUpdated (which is refreshed by ticker/price messages and would otherwise

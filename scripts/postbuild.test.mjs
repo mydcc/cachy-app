@@ -19,7 +19,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { patchBuildIndex } from './postbuild-lib.mjs';
+import { pathToFileURL } from 'node:url';
+import { patchBuildIndex, DELEGATE_SHIM } from './postbuild-lib.mjs';
 
 describe('patchBuildIndex', () => {
   /** @type {string} */
@@ -51,5 +52,28 @@ describe('patchBuildIndex', () => {
     expect(code).toContain('export { handler }');
     // Must handle `node build` (argv[1] is the directory), not just the file.
     expect(code).toContain('function isEntryPoint()');
+    // Symlink fix: both argv side and self side are canonicalized.
+    expect(code).toContain('fs.realpathSync.native');
+    expect(code).toContain('fileURLToPath');
+  });
+
+  it('resolves a symlinked entry to the same canonical file URL as the real path', () => {
+    const realDir = path.join(root, 'real-build');
+    fs.mkdirSync(realDir, { recursive: true });
+    const realFile = path.join(realDir, 'index.js');
+    fs.writeFileSync(realFile, '// adapter entry\n', 'utf-8');
+    const linkDir = path.join(root, 'link-build');
+    fs.symlinkSync(realDir, linkDir, 'dir');
+
+    const viaSymlink = path.join(linkDir, 'index.js');
+    const realEntry = fs.realpathSync.native(viaSymlink);
+    expect(realEntry).toBe(realFile);
+    expect(pathToFileURL(realEntry).href).toBe(pathToFileURL(realFile).href);
+  });
+
+  it('keeps the canonicalization logic in the generated shim', () => {
+    expect(DELEGATE_SHIM).toContain('fs.realpathSync.native(entry)');
+    expect(DELEGATE_SHIM).toContain('fs.realpathSync.native(self)');
+    expect(DELEGATE_SHIM).toContain('fileURLToPath(import.meta.url)');
   });
 });
