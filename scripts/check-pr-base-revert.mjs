@@ -33,13 +33,21 @@
  * The check is decidable from git alone, with no heuristics about authorship.
  * Three anchors do the work:
  *
- * - `M`, the merge-base of base and head: `diff M..head` is exactly the
- *   payload a squash-merge would apply, so only removals inside it can revert
- *   anything. A branch that simply has not merged the base yet is unaffected.
+ * - `M`, the merge-base of base and head: `diff M..head` is the payload a
+ *   squash-merge applies, so only removals inside it can revert anything. A
+ *   branch that simply has not merged the base yet is unaffected.
  * - `P`, the tree the PR started from (first parent of its first commit):
  *   a removed line counts as base-introduced only when the fork-era version
  *   does not contain it. Deleting a pre-existing file, or a line the PR could
  *   already see at fork time, is the PR's own business and passes.
+ *
+ * That payload is empty, though, when the head tree *is* the fork-era tree —
+ * which is what a stale snapshot looks like (BUG-0583, PR #3718). A branch
+ * that never merged the base has `M == P`, so `diff M..head` inspects nothing
+ * and the merge still overwrites the base tree. A second pass therefore walks
+ * the branch's own commits: a commit that drops content its own parent had,
+ * and that the fork point never had, is a snapshot regardless of what the base
+ * has done since.
  *
  * A palette PR has no business deleting a file the base added; a deliberate
  * revert opts in with a visible label, never a commit-message token.
@@ -125,10 +133,10 @@ function countLines(buf) {
  * the PR's own work and skipped by the caller.
  */
 function payloadEntries(mergeBase, head) {
-    const out = execFileSync("git", ["diff", "--name-status", "-z", mergeBase, head], {
-        encoding: "utf8",
-        maxBuffer: 256 * 1024 * 1024,
-    });
+    return nameStatus(mergeBase, head);
+}
+
+function parseNameStatus(out) {
     const tokens = out.split("\0").filter((t) => t.length > 0);
     const entries = [];
     for (let i = 0; i < tokens.length; i++) {
@@ -145,6 +153,100 @@ function payloadEntries(mergeBase, head) {
     }
     return entries;
 }
+
+function nameStatus(from, to) {
+    return parseNameStatus(git("diff", "--name-status", "-z", from, to));
+}
+
+/**
+ * Content removed going from `from` to `to`, judged against the tree the
+ * branch forked from.
+ *
+ * `forkRev` is the anchor: a removed line counts as base-introduced only when
+ * the fork-era copy does not already contain it. Deleting a file the branch
+ * could already see at fork time is the branch's own business.
+ */
+function removedBaseLines(entries, from, to, forkRev) {
+    const violations = [];
+    for (const { status, oldPath, path } of entries) {
+        if (status.startsWith("A")) continue; // the branch's own addition.
+        if (GENERATED_BACKLOG_PATHS.has(path) || GENERATED_BACKLOG_PATHS.has(oldPath)) continue;
+
+        const fromBuf = blobBuffer(from, oldPath);
+        const toBuf = blobBuffer(to, path);
+
+        // Binary blobs have no meaningful lines: only an exact reset to the
+        // fork-era blob counts as a revert, anything else is undecidable.
+        if ((fromBuf !== null && fromBuf.includes(0)) || (toBuf !== null && toBuf.includes(0))) {
+            const toSha = blobSha(to, path);
+            if (toSha === blobSha(forkRev, oldPath) && toSha !== blobSha(from, oldPath)) {
+                violations.push({ path, kind: "binary-revert", count: 1, samples: [] });
+            }
+            continue;
+        }
+
+        // Lines `to` no longer has, per occurrence so duplicated lines only
+        // match when every copy is gone.
+        const toCounts = countLines(toBuf);
+        const removed = [];
+        for (const [line, count] of countLines(fromBuf)) {
+            const kept = Math.min(toCounts.get(line) ?? 0, count);
+            toCounts.set(line, (toCounts.get(line) ?? 0) - kept);
+            for (let i = 0; i < count - kept; i++) removed.push(line);
+        }
+        if (removed.length === 0) continue;
+
+        const forkCounts = countLines(blobBuffer(forkRev, oldPath));
+        const samples = [];
+        let baseRemoved = 0;
+        for (const line of removed) {
+            const left = forkCounts.get(line) ?? 0;
+            if (left > 0) {
+                forkCounts.set(line, left - 1);
+            } else {
+                baseRemoved += 1;
+                if (samples.length < MAX_SAMPLE_LINES) samples.push(line);
+            }
+        }
+        if (baseRemoved > 0) {
+            violations.push({
+                path,
+                kind: toBuf === null ? "deleted" : "removed-lines",
+                count: baseRemoved,
+                samples,
+            });
+        }
+    }
+    return violations;
+}
+
+/**
+ * A branch that commits a stale snapshot of its own checkout (BUG-0583).
+ *
+ * `diff(mergeBase, head)` is the wrong payload when the head tree *is* the
+ * fork-era tree: the diff is empty, so there is nothing to inspect and the
+ * check reports success — while the merge still replaces the base tree with
+ * the stale one. That is exactly PR #3718, where the branch never merged
+ * `develop`, so `mergeBase` is the fork point and `diff(mergeBase, head)` was
+ * empty.
+ *
+ * This walks the branch's own commits instead. A commit that removes content
+ * its own parent had, and that the fork point never had, is a snapshot of an
+ * older checkout no matter what the base has done since — decidable from the
+ * branch alone, with no base comparison that can collapse.
+ */
+function selfRevertViolations(commits, forkRev) {
+    const violations = [];
+    for (let i = 1; i < commits.length; i++) {
+        const parent = commits[i - 1];
+        const commit = commits[i];
+        const entries = nameStatus(parent, commit);
+        violations.push(...removedBaseLines(entries, parent, commit, forkRev));
+    }
+    return violations;
+}
+
+
 
 function main() {
     const [base, head] = process.argv.slice(2);
@@ -189,63 +291,34 @@ function main() {
         return;
     }
 
-    const violations = [];
-    let checked = 0;
-    for (const { status, oldPath, path } of payloadEntries(mergeBase, head)) {
-        if (status.startsWith("A")) continue; // the PR's own addition.
-        if (GENERATED_BACKLOG_PATHS.has(path) || GENERATED_BACKLOG_PATHS.has(oldPath)) continue;
-        checked += 1;
+    const violations = removedBaseLines(payloadEntries(mergeBase, head), mergeBase, head, forkRev);
+    const checked = payloadEntries(mergeBase, head).filter(
+        ({ status, path, oldPath }) =>
+            !status.startsWith("A") && !(GENERATED_BACKLOG_PATHS.has(path) || GENERATED_BACKLOG_PATHS.has(oldPath)),
+    ).length;
 
-        const mBuf = blobBuffer(mergeBase, oldPath);
-        const hBuf = blobBuffer(head, path);
-        const mSha = mBuf === null ? null : blobSha(mergeBase, oldPath);
-        const hSha = hBuf === null ? null : blobSha(head, path);
-
-        // Binary blobs have no meaningful lines: only an exact reset to the
-        // fork-era blob counts as a revert, anything else is undecidable.
-        if ((mBuf !== null && mBuf.includes(0)) || (hBuf !== null && hBuf.includes(0))) {
-            const pSha = blobSha(forkRev, oldPath);
-            if (hSha === pSha && hSha !== mSha) {
-                violations.push({ path, kind: "binary-revert", count: 1, samples: [] });
-            }
-            continue;
-        }
-
-        // Lines the merge payload removes, per occurrence so duplicated lines
-        // only match when every copy is gone.
-        const headCounts = countLines(hBuf);
-        const removed = [];
-        for (const [line, count] of countLines(mBuf)) {
-            const kept = Math.min(headCounts.get(line) ?? 0, count);
-            headCounts.set(line, (headCounts.get(line) ?? 0) - kept);
-            for (let i = 0; i < count - kept; i++) removed.push(line);
-        }
-        if (removed.length === 0) continue;
-
-        // …of which the fork-era version does not contain: base-introduced.
-        const forkCounts = countLines(blobBuffer(forkRev, oldPath));
-        const samples = [];
-        let baseRemoved = 0;
-        for (const line of removed) {
-            const left = forkCounts.get(line) ?? 0;
-            if (left > 0) {
-                forkCounts.set(line, left - 1);
-            } else {
-                baseRemoved += 1;
-                if (samples.length < MAX_SAMPLE_LINES) samples.push(line);
-            }
-        }
-        if (baseRemoved > 0) {
-            violations.push({
-                path,
-                kind: hBuf === null ? "deleted" : "removed-lines",
-                count: baseRemoved,
-                samples,
-            });
-        }
+    // BUG-0583: the payload above is empty when the head tree is the fork-era
+    // tree, which is exactly what a stale snapshot looks like. Walk the
+    // branch's own commits so that case is still decidable.
+    const branchCommits = git("rev-list", "--reverse", "--first-parent", `${base}..${head}`, "--")
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+    for (const v of selfRevertViolations(branchCommits, forkRev)) {
+        violations.push(v);
     }
 
-    if (violations.length === 0) {
+    // Both passes can name the same removal, e.g. a branch that merged base
+    // and then snapshotted. One line per file keeps the report readable.
+    const seen = new Set();
+    const reported = violations.filter(v => {
+        const key = `${v.path} ${v.kind} ${v.count} ${v.samples.join("")}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    if (reported.length === 0) {
         console.log(
             `✅ PR keeps base-branch work intact (${checked} changed path(s) checked since ${first.slice(0, 8)}).`,
         );
@@ -253,7 +326,7 @@ function main() {
     }
 
     console.error("❌ This PR reverts work the base branch merged after the PR forked.\n");
-    for (const v of violations) {
+    for (const v of reported) {
         if (v.kind === "deleted") {
             console.error(`   deleted file with ${v.count} base-added line(s):  ${v.path}`);
         } else if (v.kind === "binary-revert") {

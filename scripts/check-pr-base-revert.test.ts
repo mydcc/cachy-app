@@ -123,6 +123,66 @@ describe("check-pr-base-revert.mjs", () => {
         expect(result.output).toContain("keeps base-branch work intact");
     });
 
+    /**
+     * PR #3718, the shape the guard cleared by accident.
+     *
+     * The branch never merges `develop` — which is what AGENTS.md's "Jules
+     * Sandbox Hygiene" tells agents to do — and its tip is a full-tree
+     * snapshot committed on top of the branch's own earlier work. The real
+     * merge had `base` = the branch's own fork point, so `merge-base == first^1`
+     * and the fork-era anchor carries every line the payload removes.
+     *
+     * Recovered with `git fetch origin pull/3718/head`: head `d6e58dec`, parent
+     * `ea116d72`, and the squash on develop carried `d6e58dec`'s tree verbatim.
+     * Here `merged.ts` stands in for the work `develop` gained after the fork.
+     */
+    it("fails when a branch that never merged base commits a stale snapshot (PR #3718)", () => {
+        git(root, "checkout", "-b", "feat");
+        commitFile(root, "intended.txt", "intended\n", "perf(journal): intended change");
+
+        // The base moves on while the branch does not know it.
+        git(root, "checkout", "develop");
+        commitFile(root, "common.txt", "base v1\nbase v2 line\n", "base work");
+        commitFile(root, "merged.ts", "merged\n", "more base work");
+
+        // The branch then lands real work of its own, on a checkout that has
+        // seen none of the above. This is ea116d72 in the real incident.
+        git(root, "checkout", "feat");
+        commitFile(root, "journalSort.ts", "export const sort = 1;\n", "perf(journal): add helper");
+
+        // The tip is a whole-tree snapshot of that same stale checkout, so it
+        // silently drops the helper its own parent just added — d6e58dec.
+        const staleTree = git(root, "rev-parse", "HEAD~1^{tree}");
+        const stale = git(root, "commit-tree", staleTree, "-p", "HEAD", "-m", "perf(journal): intended change");
+        git(root, "checkout", "--detach", stale);
+
+        const result = runScript(root, git(root, "rev-parse", "develop"), stale);
+
+        expect(result.status).toBe(1);
+        expect(result.output).toContain("journalSort.ts");
+    });
+
+    /**
+     * The same shape without the regression: the branch's own commits are
+     * intact and the base work it never saw is simply not there because the
+     * branch predates it. The era of the head's blob is the merge-base, so
+     * this must pass -- it is the control that keeps the fix from flagging
+     * every un-merged branch.
+     */
+    it("passes for a branch that never merged base but made no snapshot commit", () => {
+        git(root, "checkout", "-b", "feat");
+        commitFile(root, "intended.txt", "intended\n", "perf(journal): intended change");
+        const head = git(root, "rev-parse", "HEAD");
+
+        git(root, "checkout", "develop");
+        commitFile(root, "merged.ts", "merged\n", "more base work");
+
+        const result = runScript(root, git(root, "rev-parse", "develop"), head);
+
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("keeps base-branch work intact");
+    });
+
     it("passes for a PR that deletes a file that already existed at fork time", () => {
         commitFile(root, "old.txt", "old\n", "pre-existing file");
         git(root, "checkout", "-b", "feat");
