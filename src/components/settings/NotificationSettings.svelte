@@ -242,7 +242,7 @@
           value={notificationSoundStore.volume}
           disabled={notificationSoundStore.muted}
           oninput={(e) =>
-            notificationSoundStore.setVolume(Number((e.currentTarget as HTMLInputElement).value)/* audit: safe — UI volume in 0..1, not a financial value */)}
+            notificationSoundStore.setVolume(Number((e.currentTarget as HTMLInputElement).value))}
         />
         <span class="w-8 text-right text-[11px] text-[var(--text-secondary)]">
           {Math.round(notificationSoundStore.volume * 100)}%

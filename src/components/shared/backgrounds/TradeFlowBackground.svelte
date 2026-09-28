@@ -206,8 +206,8 @@
     
     if (!side || pStr === undefined || vStr === undefined) return;
 
-    const price = parseFloat(String(pStr));  // audit: safe — background particle maths; no order value is derived from it
-    const amount = parseFloat(String(vStr));  // audit: safe — background particle maths; no order value is derived from it
+    const price = parseFloat(String(pStr));
+    const amount = parseFloat(String(vStr));
     
     if (isNaN(price) || isNaN(amount)) return;
     
@@ -326,7 +326,7 @@
     const entry = marketState.data[symbol];
     const tech = entry?.technicals?.[timeframe];
     // Decimal -> number for visual maths only; see indicatorSignal.ts.
-    const lastPrice = entry?.lastPrice ? Number(entry.lastPrice) : null;  // audit: safe — background particle maths; no order value is derived from it
+    const lastPrice = entry?.lastPrice ? Number(entry.lastPrice) : null;
 
     worker.postMessage({
       type: "indicator",

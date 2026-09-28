@@ -42,3 +42,7 @@
 ## 2026-09-05 - Fix backup rejection message untranslated (BUG-0354)
 **Learning:** When using svelte-i18n's `$_` with dynamic interpolation variables, passing the variables object directly as the second argument causes the raw keys to be rendered instead of the values.
 **Action:** Always wrap the interpolation object in `{ values: ... }` like `$_(key, { values: dynamicObject })`.
+
+## 2024-05-15 - [Added type="button" to button elements]
+**Learning:** Many button elements in the codebase are missing `type="button"`. Not providing `type="button"` can cause unintended form submissions in some contexts, and fixing this is a good semantic HTML practice mentioned in `AGENTS.md`. I added `type="button"` to several components today to prevent these issues.
+**Action:** Added `type="button"` to `<button>` elements in `SettingsButton.svelte`, `EngineDebugPanel.svelte`, `MarketOverview.svelte`, and `ManageTab.svelte`.

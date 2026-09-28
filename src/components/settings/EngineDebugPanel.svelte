@@ -110,7 +110,7 @@
 <div class="debug-panel">
     <div class="panel-header">
         <h4 class="panel-title">{$_("settings.system.debug.panelTitle")}</h4>
-        <button class="refresh-btn" onclick={refresh} title={$_("settings.system.debug.refresh")}>🔄</button>
+        <button type="button" class="refresh-btn" onclick={refresh} title={$_("settings.system.debug.refresh")}>🔄</button>
     </div>
 
     <!-- Capabilities -->
@@ -210,7 +210,7 @@
 
     <!-- Recent History -->
     <div class="section">
-        <button class="history-toggle" onclick={() => showHistory = !showHistory}>
+        <button type="button" class="history-toggle" onclick={() => showHistory = !showHistory}>
             {showHistory ? '▾' : '▸'} {$_("settings.system.debug.recentHistory")} ({telemetry.performanceHistory.length})
         </button>
         

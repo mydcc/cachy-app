@@ -2,8 +2,7 @@
 id: BUG-0553
 title: Hedge-mode UI projections collapse same-symbol positions
 type: bug
-status: done
-assignee: opencode
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]

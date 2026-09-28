@@ -117,7 +117,7 @@
 
   function handleInput(event: Event) {
     const target = event.currentTarget as HTMLInputElement;
-    onChange(valueAt(Number(target.value)));  // audit: safe — slider index into a value table, not a financial value
+    onChange(valueAt(Number(target.value)));
   }
 
   function markPercent(mark: Mark): number {

@@ -25,7 +25,7 @@ Found in the read-only security/privacy audit on 2026-09-02 (finding F-05).
 
 `send_message` sets the message timestamp with `Date.now()`
 (`server/spacetimedb/src/index.ts:130`). Reducers must be deterministic —
-`server/.cursor/rules/spacetimedb-typescript.mdc` hard requirement #3 — and the module itself demonstrates
+`server/CLAUDE.md` hard requirement #3 — and the module itself demonstrates
 the correct pattern one reducer over: `delete_expired_messages` uses
 `ctx.timestamp.microsSinceUnixEpoch / 1000n` (`index.ts:74-75`).
 
@@ -58,4 +58,4 @@ client expects a JS number, `Number(...)` at the boundary).
 ## Links
 
 - Related audit findings: BUG-0372, BUG-0373, FEAT-0375 (same file)
-- [server/.cursor/rules/spacetimedb-typescript.mdc](../../../server/.cursor/rules/spacetimedb-typescript.mdc) — "Reducers must be deterministic"
+- [server/CLAUDE.md](../../../server/CLAUDE.md) — "Reducers must be deterministic"
