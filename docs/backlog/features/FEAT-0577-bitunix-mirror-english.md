@@ -78,4 +78,4 @@ Two deliberate deviations from byte-identical, both justified in the PR:
 ## Links
 
 - FEAT-0525 — the Bitget reference, which is why this surfaced
-- [docs/bitunix-api/README.md](../bitunix-api/README.md)
+- [docs/bitunix-api/README.md](../../bitunix-api/README.md)
