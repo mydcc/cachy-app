@@ -44,6 +44,15 @@ Rules:
 - **Non-code changes** (documentation, markdown, shell scripts, root configs): no tests, no `npm run check`.
 - **Money/exchange/risk paths** (position size, risk calculations, signature/crypto logic, `decimal.js` precision, Local-First boundary): always test + human review + green CI before merge.
 - Reuse existing test suites; add new tests only for genuinely new behavior.
+- **Prove a new RED test fails for the reason you mean.** A test that is green
+  before the fix is either a typo or a selector nothing carries yet — the second
+  is the dangerous one, because the guard looks real. Before believing a RED,
+  check the failure message names the code path under test, and before shipping
+  it, confirm it still goes red when that code is removed. Optional-chained
+  queries (`host.querySelector(sel)?.click()`) are the usual culprit: a selector
+  that matches nothing turns an assertion about behaviour into an assertion
+  about nothing. When a test needs a test-only anchor, add the anchor first and
+  watch it fail before adding the fix.
 
 Before every push — sync first, then run targeted tests, then push:
 
@@ -115,6 +124,31 @@ Use for all code navigation, exploration, impact analysis, and graph queries.
 - After switching branches, re-orient before the next call — never wait on a stale generation.
 - On the first edit inside a fresh worktree, verify the `files[].path` prefix in the Edit response before continuing.
 - A freshness-guaranteed call that waits longer than 5 minutes: abort it and retry without the freshness requirement.
+
+**Known failure modes, and what to do instead.** These are properties of the
+current server, not of your usage; recognising them costs an hour each:
+
+- `gortex__read` can return a payload from an **earlier task in the session** —
+  the right file, the wrong conversation's content. If the body is about code
+  you were not looking for, it is stale: re-issue once, and if it repeats, stop
+  trusting it and use `git grep` / `git show HEAD:<path>` / `sed -n`.
+- `gortex__search` replays its previous result for a new query. Treat a
+  hit-list that ignores the query as a broken call, not as an empty result.
+- `gortex__explore(operation:"localize")` sometimes returns a whole
+  neighbourhood from an unrelated subsystem. Say so and fall back; a confident
+  wrong neighbourhood is worse than none.
+- Reads and greps of **indexed** source are blocked in the shell. `git grep`,
+  `sed -n` and `git show` are not, and are correct — the block is about staying
+  on the graph, not about the file being unreadable.
+- `gortex__edit` needs `view:{kind:"worktree", checkout_id}` and the view
+  **rebuilds for 90–150 s after every write** ("not fully routed yet"). `batch`
+  is read-only through a routed view, so plan for single-file edits with a wait
+  between them, and batch your thinking rather than your writes. A session's
+  native `edit` works for `.svelte`, `.json` and `.md`; for `.ts` it is blocked,
+  so use `python3` for text replacement there.
+- `change(operation:"detect")` reads the **shared checkout**, not your
+  worktree, so it reports "no changes" for worktree edits. Verify with a test
+  run instead.
 
 ### jCodeMunch
 Use for code analysis, action routing, and semantic understanding.
