@@ -4,7 +4,7 @@
 
 455 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 406 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 406 · ⛔ dropped 1
 
 ---
 
@@ -105,7 +105,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | ✅ done | ui |
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | ui |
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
-| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | trade-panel |
+| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 🟡 in-progress | trade-panel |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 🟢 ready | trade-panel |
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | chart |
 | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | chart |
@@ -830,7 +830,7 @@ Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 40
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
 | [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | ✅ done | none | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0020](features/FEAT-0020-account-settings-panel.md) |
-| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
+| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
 | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) | Design Token Foundation | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
