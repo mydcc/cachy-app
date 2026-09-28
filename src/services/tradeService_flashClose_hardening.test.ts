@@ -179,6 +179,18 @@ describe('BUG-0586 — a flash close refused by the session guard', () => {
             }),
         );
 
+        // `getOrder` has to answer, or this test passes for the wrong reason:
+        // the indeterminate branch re-reads the optimistic order and only
+        // updates it if it is still there, so an undefined mock would skip
+        // `updateOrder` entirely and the assertion below would hold whether or
+        // not the fix is present. With the order present, a regression that
+        // routes a refusal back through the indeterminate branch does call
+        // `updateOrder` with `_isUnconfirmed`, and this goes red.
+        vi.mocked(omsService.getOrder).mockReturnValue({
+            id: 'optimistic-1',
+            status: 'pending',
+        } as never);
+
         // `flashClosePosition` reports failure as a resolved `{ success: false }`
         // rather than a rejection, so the contract under test is the OMS state
         // it leaves behind, not the throw.

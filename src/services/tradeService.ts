@@ -1458,6 +1458,20 @@ class TradeService {
              * the user already agreed to when they confirmed the close. The
              * refusal is caught below, so the symptom would have been silent —
              * the position closes with its stops still resting.
+             *
+             * What this ordering does NOT cover, and why the fix stops here
+             * rather than reordering: by the time a session refusal is raised,
+             * these stops are already gone and the position is still open, so
+             * the trader is left unprotected. The obvious repair — close first,
+             * cancel after — closes that hole but introduces a worse one. The
+             * resting stop this line just cancelled can no longer be the one
+             * that fills, but a stop placed *after* the cancel and *before* the
+             * close would be, and in hedge mode that fill opens a reverse
+             * position rather than flattening one. Trading a known-unprotected
+             * position for a possible unintended reverse is a product call,
+             * not a mechanical one, so BUG-0586 stays `specced` with both
+             * orderings and their trade-offs written down rather than having
+             * one picked silently inside a catch block.
              */
             try {
                 await this.cancelAllOrders(symbol, true, {
