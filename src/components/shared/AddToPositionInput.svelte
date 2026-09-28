@@ -40,6 +40,7 @@
 <script lang="ts">
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
+  import type { TranslationKey } from "../../locales/schema";
   import RangeSlider from "./RangeSlider.svelte";
   import {
     addQuantityFromPercent,
@@ -76,9 +77,15 @@
     disabled?: boolean;
     /** Always receives a quantity the venue can fill. */
     onChange: (quantity: Decimal) => void;
+    /**
+     * Receives the draft validity whenever it changes, so the parent can
+     * disable submission while an invalid draft is on screen (BUG-0561).
+     * True on mount and whenever no invalid draft is present.
+     */
+    onValidityChange?: (valid: boolean) => void;
   }
 
-  let { ctx, quantity, fillPrice, stopPrice = null, accountSize = null, disabled = false, onChange }: Props = $props();
+  let { ctx, quantity, fillPrice, stopPrice = null, accountSize = null, disabled = false, onChange, onValidityChange }: Props = $props();
 
   const percent = $derived(percentFromAddQuantity(ctx, quantity));
   const preview = $derived(previewAdd(ctx, quantity, fillPrice, stopPrice ?? undefined));
@@ -145,25 +152,59 @@
    * number, and reformatting on every keystroke fights the person typing. It
    * commits on blur and on Enter; until then the slider keeps showing the
    * committed value.
+   *
+   * An invalid draft is kept on screen with its reason instead of silently
+   * reverting to the committed value, and the parent is told submission is
+   * blocked until the draft is corrected or explicitly reverted (BUG-0561).
+   * An empty draft is not an error: committing it restores the committed
+   * value, the same as Escape.
    */
   let draft = $state<string | null>(null);
   const quantityDisplay = $derived(draft ?? quantity.toString());
 
+  /** The reason a draft cannot commit, or null when it can (or is empty). */
+  function draftErrorFor(text: string): TranslationKey | null {
+    if (text.trim() === "") return null;
+    let parsed: Decimal;
+    try {
+      parsed = new Decimal(text);
+    } catch {
+      return "positionsList.invalidQuantity";
+    }
+    if (!parsed.isFinite()) return "positionsList.invalidQuantity";
+    if (parsed.lte(0)) return "positionsList.quantityMustBePositive";
+    return null;
+  }
+
+  const draftErrorKey = $derived(draft === null ? null : draftErrorFor(draft));
+
   function commitQuantity() {
     const text = draft;
-    draft = null;
-    if (text === null || text.trim() === "") return;
-    try {
-      const parsed = new Decimal(text);
-      if (!parsed.isFinite() || parsed.lte(0)) return;
-      // No clamp to the position: unlike a reduce, an add above the current
-      // size is a legitimate intent. Margin is what limits it, and the gate
-      // owns that answer.
-      const stepped = roundAddQuantityToStep(parsed, ctx.stepSize);
-      onChange(stepped.lte(0) ? ctx.stepSize : stepped);
-    } catch {
-      // Not a number — drop it and fall back to the committed value.
+    if (text === null || text.trim() === "") {
+      draft = null;
+      onValidityChange?.(true);
+      return;
     }
+    if (draftErrorFor(text) !== null) {
+      // Invalid: stay visible with the inline reason; the parent keeps the
+      // previous committed quantity and submission stays disabled.
+      onValidityChange?.(false);
+      return;
+    }
+    draft = null;
+    onValidityChange?.(true);
+    // Parses: validated above, so this cannot throw.
+    const parsed = new Decimal(text);
+    // No clamp to the position: unlike a reduce, an add above the current
+    // size is a legitimate intent. Margin is what limits it, and the gate
+    // owns that answer.
+    const stepped = roundAddQuantityToStep(parsed, ctx.stepSize);
+    onChange(stepped.lte(0) ? ctx.stepSize : stepped);
+  }
+
+  function revertDraft() {
+    draft = null;
+    onValidityChange?.(true);
   }
 
   function onFieldKey(event: KeyboardEvent) {
@@ -171,7 +212,7 @@
       event.preventDefault();
       commitQuantity();
     } else if (event.key === "Escape") {
-      draft = null;
+      revertDraft();
     }
   }
 </script>
@@ -195,10 +236,14 @@
       oninput={(e) => (draft = e.currentTarget.value)}
       onblur={commitQuantity}
       onkeydown={onFieldKey}
+      aria-invalid={draftErrorKey !== null}
       class="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded
              p-1.5 text-xs font-mono text-[var(--text-primary)] disabled:opacity-50"
     />
   </div>
+  {#if draftErrorKey}
+    <p role="alert" class="text-[10px] text-[var(--danger-color)]">{$_(draftErrorKey)}</p>
+  {/if}
 
   <RangeSlider
     id="add-position-slider"

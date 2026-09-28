@@ -46,6 +46,32 @@ const settings = vi.hoisted(() => ({
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settings }));
 
 const paperStateMock = vi.hoisted(() => ({ enabled: false }));
+// BUG-0560: live entry waits for a private-account verdict, and an account
+// nobody has read counts as unknown — these cases are about volume limits, TP
+// legs and margin, so the account is put in the verified state here rather than
+// re-tested per file. `PlaceOrderPanel.verification.component.test.ts` owns that
+// gate.
+vi.mock("../../stores/accountVerification.svelte", async (importOriginal) => {
+    // Only the store's behaviour is faked here. Its constants and the real
+    // `credentialPresence` come from the module itself, so a new export can
+    // never silently break a test that happens to fake the whole store.
+    const actual =
+        await importOriginal<typeof import("../../stores/accountVerification.svelte")>();
+    return {
+        ...actual,
+        accountVerification: {
+            statusFor: () => "verified",
+            startClock: () => () => undefined,
+        },
+        subjectFor: () => ({
+            id: "acct-1",
+            exchange: "bitunix",
+            keys: { key: "k", secret: "s" },
+        }),
+        ensureCurrent: vi.fn(async () => undefined),
+    };
+});
+
 vi.mock("../../stores/paperTrading.svelte", () => ({ paperState: paperStateMock }));
 
 const resultsMock = vi.hoisted(() => ({ isMarginExceeded: false }));
@@ -212,7 +238,9 @@ afterEach(() => {
     if (component) unmount(component);
     component = null;
     host.remove();
-    accountState.assets = [];
+    // reset(), not a bare asset clear: a direct assignment would leave the
+    // provenance stamp behind for the next test to inherit (BUG-0565).
+    accountState.reset();
 });
 
 async function settle(rounds = 6) {
@@ -253,7 +281,7 @@ describe("BUG-0549 — the place control follows the margin-exceeded flag", () =
 
     it("disables submit when the live balance cannot fund the margin", async () => {
         // Calculator flag off — only the live leg decides here.
-        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" }, "live");
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
@@ -264,7 +292,7 @@ describe("BUG-0549 — the place control follows the margin-exceeded flag", () =
     });
 
     it("keeps submit usable when the live balance covers the margin", async () => {
-        accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" });
+        accountState.hydrateBalance({ available: "200", margin: "0", frozen: "0" }, "live");
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 
@@ -275,7 +303,7 @@ describe("BUG-0549 — the place control follows the margin-exceeded flag", () =
         // The calculator flag stays green here (typed size covers it) while
         // the control stays disabled — the note must explain the dead end
         // with the figures the gate will measure.
-        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" });
+        accountState.hydrateBalance({ available: "50", margin: "0", frozen: "0" }, "live");
         component = mount(PlaceOrderPanel, { target: host }) as never;
         await settle();
 

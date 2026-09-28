@@ -111,7 +111,6 @@
             {$_("settings.data.title")}
         </h3>
         <button
-            type="button"
             class="px-4 py-2 bg-accent-paired rounded hover:opacity-90 transition-opacity disabled:opacity-50"
             onclick={scan}
             disabled={isScanning || isRepairing}
@@ -155,7 +154,6 @@
             <div class="flex gap-2">
                 {#if missingAtrCount > 0 && !isRepairing}
                     <button
-                        type="button"
                         class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
                         onclick={repair}
                     >
@@ -184,7 +182,6 @@
             <div class="flex gap-2">
                 {#if missingMfeMaeCount > 0 && !isRepairing}
                     <button
-                        type="button"
                         class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
                         onclick={repairMfeMae}
                     >
@@ -217,7 +214,6 @@
             <div class="flex gap-2">
                 {#if invalidSymbolCount > 0 && !isRepairing}
                     <button
-                        type="button"
                         class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
                         onclick={repairSymbols}
                     >

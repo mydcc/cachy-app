@@ -65,6 +65,13 @@
     label: string;
     /** DOM id, so a caller can point a `<label for>` at it. */
     id: string;
+    /**
+     * Ids of elements describing the slider, for `aria-describedby`. For a
+     * slider that renders no visible label of its own, a neighbouring caption
+     * is the only statement of what the value means — the description is how
+     * it reaches a screen reader instead of stopping at the accent colour.
+     */
+    describedBy?: string;
     /** Reads the value out for screen readers, e.g. "+50%". */
     formatValue?: (v: Decimal) => string;
     /** Which semantic colour the filled part of the track takes. */
@@ -81,6 +88,7 @@
     marks = [],
     label,
     id,
+    describedBy,
     formatValue = (v: Decimal) => v.toString(),
     tone = "accent",
     disabled = false,
@@ -117,7 +125,7 @@
 
   function handleInput(event: Event) {
     const target = event.currentTarget as HTMLInputElement;
-    onChange(valueAt(Number(target.value)));
+    onChange(valueAt(Number(target.value)));  // audit: safe — slider index into a value table, not a financial value
   }
 
   function markPercent(mark: Mark): number {
@@ -136,6 +144,7 @@
     step="1"
     value={index}
     aria-label={label}
+    aria-describedby={describedBy}
     aria-valuetext={formatValue(value)}
     oninput={handleInput}
     class="cachy-range w-full cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"

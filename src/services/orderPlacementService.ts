@@ -52,6 +52,7 @@ import { OrderRefusedError, type OrderRefusal, type OrderOrigin } from "./orderG
 // Shared with the resting-stop read (review on PR #3551) so the two cannot drift.
 import { planSideMatchesEntry as sideCompatible } from "./tpslNormalize";
 import { getDisplayMessage } from "../utils/errorUtils";
+import { isTradeDirection, normalizeTradeDirection } from "../lib/tradeDirection";
 
 export type ProtectionState =
     /** Rode along with the entry and was confirmed present afterwards. */
@@ -159,9 +160,8 @@ function planIdOf(order: TpSlOrder): string | null {
  * defaulting it to long.
  */
 export function narrowTradeType(tradeType: string): "long" | "short" | null {
-    const normalized = tradeType.toLowerCase();
-    if (normalized === "long" || normalized === "short") return normalized;
-    return null;
+    const normalized = normalizeTradeDirection(tradeType);
+    return isTradeDirection(normalized) ? normalized : null;
 }
 
 /** This entry's venue side, from the calculator's trade direction. */

@@ -74,6 +74,99 @@
     totalPositionSize = 0,
     error = ""
   }: Props = $props();
+
+  // BUG-0562: equity and margin details are a disclosure, not a hover.
+  // One state flag driven by mouse, focus and keyboard alike, so touch
+  // (tap = focus) and keyboard reach the same content as the mouse.
+  // The panel renders inline below the balance row — including on narrow
+  // screens, where there is no hover to fall back to.
+  let detailsOpen = $state(false);
+  let triggerEl: HTMLElement | null = $state(null);
+  const instanceId = $props.id();
+  const ACCOUNT_DETAILS_PANEL_ID = `account-details-panel-${instanceId}`;
+  let panelEl: HTMLElement | null = $state(null);
+  let pointerOverPanel = $state(false);
+  let pointerFocusPending = false;
+  let suppressNextClick = false;
+
+  function openDetails() {
+    detailsOpen = true;
+  }
+
+  function closeDetails() {
+    pointerOverPanel = false;
+    detailsOpen = false;
+  }
+
+  // Escape dismisses the disclosure and hands focus back to its trigger.
+  // Focus is restored BEFORE closing: a focus() that actually moves focus
+  // re-fires onfocus → openDetails(), so the close has to run last for the
+  // panel to end up closed. When the trigger already holds focus the
+  // focus() call is skipped (it would not move focus anyway).
+  function handleEscape() {
+    if (document.activeElement !== triggerEl) triggerEl?.focus();
+    closeDetails();
+  }
+
+  function handleTriggerBlur(event: FocusEvent) {
+    // The pointer resting inside the panel keeps the disclosure open even
+    // though focus left the trigger (e.g. a mousedown inside the panel).
+    const related =
+      event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (pointerOverPanel || panelEl?.contains(related)) return;
+    closeDetails();
+  }
+
+  function handleWrapperMouseLeave() {
+    // Keyboard focus outranks the pointer: a pointer pass must not
+    // collapse a disclosure whose trigger still holds focus (finding 7).
+    if (document.activeElement !== triggerEl) closeDetails();
+  }
+
+  function handlePointerDown() {
+    pointerFocusPending = true;
+  }
+
+  function handleTriggerFocus() {
+    if (pointerFocusPending) {
+      pointerFocusPending = false;
+      suppressNextClick = true;
+    }
+    openDetails();
+  }
+
+  function handleTriggerClick() {
+    // Native Enter/Space activation arrives as a click; the trigger owns
+    // the toggle so keyboard, pointer and touch share one code path.
+    pointerFocusPending = false;
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      return;
+    }
+    if (detailsOpen) closeDetails();
+    else openDetails();
+  }
+
+  // Document-level dismissal handles both a mouse-opened panel and the
+  // first outside pointerdown/tap. Listeners exist only while open and are
+  // always removed again.
+  $effect(() => {
+    if (!detailsOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") handleEscape();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof Node ? event.target : null;
+      if (triggerEl?.contains(target) || panelEl?.contains(target)) return;
+      closeDetails();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  });
 </script>
 
 <div
@@ -84,39 +177,68 @@
       <span>{error}</span>
     </div>
   {/if}
+  <!-- Trigger + panel live in their own relative wrapper: the panel is a
+       sibling of the native button, so button semantics never flatten the
+       equity details out of the accessibility tree. The wrapper's pointer
+       handlers are enhancements; focus and keyboard use the same state. -->
   <div
-    class="flex justify-between items-center group cursor-help relative"
-    role="tooltip"
+    class="relative"
+    role="presentation"
+    onmouseenter={openDetails}
+    onmouseleave={handleWrapperMouseLeave}
   >
-    <div class="flex items-center gap-1">
-      <span
-        class="text-xs text-[var(--text-secondary)] border-b border-dashed border-[var(--text-secondary)]"
-        >{$_("dashboard.account.balance")}</span
-      >
-    </div>
-    <span class="text-sm font-bold text-[var(--text-primary)]"
-      >{formatDynamicDecimal(available, 2)} {currency}</span
+    <button
+      type="button"
+      bind:this={triggerEl}
+      class="flex w-full justify-between items-center text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] rounded"
+      aria-expanded={detailsOpen}
+      aria-controls={detailsOpen ? ACCOUNT_DETAILS_PANEL_ID : undefined}
+      onclick={handleTriggerClick}
+      onfocus={handleTriggerFocus}
+      onpointerdown={handlePointerDown}
+      onblur={handleTriggerBlur}
     >
+      <span class="flex items-center gap-1">
+        <span
+          class="text-xs text-[var(--text-secondary)] border-b border-dashed border-[var(--text-secondary)]"
+          >{$_("dashboard.account.balance")}</span
+        >
+      </span>
+      <span class="text-sm font-bold text-[var(--text-primary)]"
+        >{formatDynamicDecimal(available, 2)} {currency}</span
+      >
+    </button>
 
-    <div class="absolute z-[100] left-0 top-full pt-2 hidden group-hover:block">
-      <AccountTooltip
-        account={{
-          available,
-          margin,
-          marginCoin: currency,
-          frozen,
-          transfer,
-          bonus,
-          positionMode,
-          crossUnrealizedPNL,
-          isolationUnrealizedPNL,
-          isolationFrozen,
-          crossFrozen,
-          expMoney,
-          totalUnrealizedPnL: pnl,
-        }}
-      />
-    </div>
+    {#if detailsOpen}
+      <!-- role="group" marks the panel as a non-interactive content set;
+           its pointer handlers only inform the blur logic above. -->
+      <div
+        id={ACCOUNT_DETAILS_PANEL_ID}
+        bind:this={panelEl}
+        role="group"
+        class="absolute z-[100] left-0 top-full pt-2"
+        onmouseenter={() => (pointerOverPanel = true)}
+        onmouseleave={() => (pointerOverPanel = false)}
+      >
+        <AccountTooltip
+          account={{
+            available,
+            margin,
+            marginCoin: currency,
+            frozen,
+            transfer,
+            bonus,
+            positionMode,
+            crossUnrealizedPNL,
+            isolationUnrealizedPNL,
+            isolationFrozen,
+            crossFrozen,
+            expMoney,
+            totalUnrealizedPnL: pnl,
+          }}
+        />
+      </div>
+    {/if}
   </div>
 
   <div class="flex justify-between items-center">

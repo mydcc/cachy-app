@@ -620,6 +620,9 @@ import { afterNavigate } from "$app/navigation";
 {/if}
 
 {#if uiState.tooltip.visible}
+  <!-- Legacy hover-only consumers still share this portal. BUG-0562's
+       pending-order disclosure renders its own ordered dialog next to the
+       trigger instead of joining this tooltip container. -->
   <div
     class="fixed z-[10000] pointer-events-auto"
     style="top: {uiState.tooltip.y}px; left: {uiState.tooltip.x}px;"

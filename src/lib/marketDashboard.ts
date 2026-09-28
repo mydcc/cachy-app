@@ -28,6 +28,8 @@
 
 import type { SymbolAnalysis, TrendState } from "../stores/analysis.svelte";
 import type { TranslationKey } from "../locales/schema";
+import type { Decimal } from "decimal.js";
+import type { MarketData } from "../stores/market/types";
 
 /** Favourites analysed when `analyzeAllFavorites` is off. Mirrors marketAnalyst. */
 export const TOP_FAVOURITES_COUNT = 4;
@@ -102,7 +104,7 @@ function usableRows(rows: DashboardRow[]): DashboardRow[] {
 export function marketHeat(rows: DashboardRow[]): number | null {
     const usable = usableRows(rows);
     if (usable.length === 0) return null;
-    const sum = usable.reduce((acc, r) => acc + parseFloat(r.analysis!.rsi1h), 0);
+    const sum = usable.reduce((acc, r) => acc + parseFloat(r.analysis!.rsi1h), 0); // audit: safe — RSI is a dimensionless 0–100 oscillator averaged for a display-only heat reading, not a price/amount/balance
     return sum / usable.length;
 }
 
@@ -182,4 +184,93 @@ export function trendCellClass(state: TrendState | undefined): string {
     if (state === "bearish") return "bg-[var(--danger-color)]";
     if (state === "neutral") return "bg-[var(--text-secondary)]/40";
     return "border border-dashed border-[var(--text-secondary)]/50";
+}
+
+export interface ResolvedRowQuote {
+    /** Display-ready price, or null when honestly unpriced (never $0). */
+    price: string | null;
+    /** "none" when neither store nor snapshot has a price to show. */
+    source: StoreQuoteSource | "snapshot" | "none" | undefined;
+    /** True when the value is not provably fresh — badge it, and never let
+     *  it silently become a calculator entry price. */
+    stale: boolean;
+    ageMs: number | null;
+}
+
+/** Where a store quote was last observed (BUG-0558). Mirrors the service. */
+export type StoreQuoteSource = "ws" | "rest";
+
+export interface StoreQuoteInput {
+    lastPrice?: Decimal | null;
+    lastPriceUpdatedAt?: number;
+    lastPriceSource?: StoreQuoteSource;
+}
+
+export interface StoreQuoteResult {
+    price?: Decimal;
+    stale: boolean;
+    source?: StoreQuoteSource;
+    ageMs: number | null;
+}
+
+/**
+ * Port for the quote-freshness rule. lib is a domain layer and must not
+ * import services — the component caller (which may import both layers)
+ * supplies the implementation, e.g. `resolveMarketQuote` from
+ * services/priceResolution with `MAX_MARK_PRICE_AGE_MS`.
+ */
+export interface RowQuoteDeps {
+    maxAgeMs: number;
+    resolveStoreQuote: (
+        input: StoreQuoteInput,
+        now?: number,
+    ) => StoreQuoteResult;
+}
+
+/**
+ * BUG-0558 — one freshness rule for every dashboard row.
+ *
+ * A live store quote wins when one exists (fresh or stale-but-labelled);
+ * otherwise the analysis snapshot fills in with its own `updatedAt` as the
+ * age and `"snapshot"` as the source, under the same maximum age. Neither
+ * means honestly unpriced. The modal renders source and staleness per row
+ * from this, and `selectRow` refuses a stale value as a silent calculator
+ * seed.
+ */
+export function resolveRowQuote(
+    entry:
+        | Pick<MarketData, "lastPrice" | "lastPriceUpdatedAt" | "lastPriceSource">
+        | undefined,
+    analysis: SymbolAnalysis | undefined,
+    now: number = Date.now(),
+    deps: RowQuoteDeps,
+): ResolvedRowQuote {
+    if (entry) {
+        const live = deps.resolveStoreQuote(
+            {
+                lastPrice: entry.lastPrice,
+                lastPriceUpdatedAt: entry.lastPriceUpdatedAt,
+                lastPriceSource: entry.lastPriceSource,
+            },
+            now,
+        );
+        if (live.price !== undefined) {
+            return {
+                price: live.price.toString(),
+                source: live.source,
+                stale: live.stale,
+                ageMs: live.ageMs,
+            };
+        }
+    }
+    if (analysis) {
+        const ageMs = Math.max(0, now - analysis.updatedAt);
+        return {
+            price: analysis.price,
+            source: "snapshot",
+            stale: ageMs > deps.maxAgeMs,
+            ageMs,
+        };
+    }
+    return { price: null, source: "none", stale: false, ageMs: null };
 }

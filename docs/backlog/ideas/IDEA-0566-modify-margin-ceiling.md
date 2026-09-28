@@ -39,7 +39,11 @@ open's skip (recorded, not silent — see `availableMarginUnmeasured`).
   calculator, panel and gate comparisons and replaces the three inline
   `assets.find(USDT)` reads. Sensible cleanup to do alongside, not
   required for the ceiling itself.
-- Reducing modifies and price-only edits: no new exposure, stay exempt.
+- Reducing modifies and price-only edits: no new exposure, stay exempt. Note
+  that "no new exposure" is now measured rather than assumed — BUG-0568 puts a
+  non-growing amendment through the size caps, since a price change alone can
+  carry the notional. This item's margin ceiling should read the amendment the
+  same way: a reduce whose price inflated is not obviously harmless either.
 
 ## Acceptance criteria
 

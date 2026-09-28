@@ -226,7 +226,7 @@
     }
 
     function handleIntervalChange(slot: FileTargetSlot, e: Event) {
-        const value = Number((e.target as HTMLInputElement).value);
+        const value = Number((e.target as HTMLInputElement).value);  // audit: safe — reconnect interval in seconds, not a financial value
         if (!Number.isNaN(value)) {
             setFileTargetInterval(slot, value);
         }

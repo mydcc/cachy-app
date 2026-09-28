@@ -146,7 +146,6 @@
       }))}
     </p>
     <button
-      type="button"
       class="text-xs text-[var(--danger-color)] hover:underline"
       onclick={resetToDefaults}
     >
@@ -170,7 +169,6 @@
               <span class="text-sm min-w-0">{$_(action.labelKey)}</span>
 
               <button
-                type="button"
                 class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center transition-colors shrink-0
                                 {editingId === action.id
                   ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] animate-pulse'

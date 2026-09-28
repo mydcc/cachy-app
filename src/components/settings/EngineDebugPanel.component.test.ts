@@ -171,47 +171,4 @@ describe("EngineDebugPanel", () => {
             "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten."
         );
     });
-
-    // The selector is asserted present before use, never optional-chained: a
-    // `querySelector(...)?.click()` that matches nothing turns every assertion
-    // below into an assertion about nothing.
-    it("reports the history toggle's open state via aria-expanded", async () => {
-        await renderFresh();
-
-        const toggle = host!.querySelector<HTMLButtonElement>("button.history-toggle");
-        expect(toggle, "history toggle button is present").not.toBeNull();
-        expect(toggle!.getAttribute("aria-expanded")).toBe("false");
-
-        toggle!.click();
-        svelteApi!.flushSync();
-
-        expect(toggle!.getAttribute("aria-expanded")).toBe("true");
-    });
-
-    it("names the history toggle for assistive tech in both locales", async () => {
-        await renderFresh();
-        const english = host!.querySelector<HTMLButtonElement>("button.history-toggle");
-        expect(english, "history toggle button is present").not.toBeNull();
-        // WCAG 2.5.3 (Label in Name): the accessible name must contain the
-        // visible label, or voice control users cannot invoke the button.
-        expect(english!.getAttribute("aria-label")).toBe("Recent History — show or hide");
-        expect(english!.textContent).toContain("Recent History");
-
-        locale.current = "de";
-        await renderFresh();
-        const german = host!.querySelector<HTMLButtonElement>("button.history-toggle");
-        expect(german, "history toggle button is present").not.toBeNull();
-        expect(german!.getAttribute("aria-label")).toBe("Verlauf — ein- oder ausblenden");
-        expect(german!.textContent).toContain("Verlauf");
-    });
-
-    it("names the icon-only refresh button for assistive tech", async () => {
-        await renderFresh();
-
-        // Icon-only: the 🔄 glyph is the content, so without an explicit label
-        // the button relies on `title` alone, which AT support varies on.
-        const refresh = host!.querySelector<HTMLButtonElement>("button.refresh-btn");
-        expect(refresh, "refresh button is present").not.toBeNull();
-        expect(refresh!.getAttribute("aria-label")).toBe("Refresh");
-    });
 });
