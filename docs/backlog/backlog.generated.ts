@@ -6571,7 +6571,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0335",
     "title": "Trail a stop behind a position once the exchange endpoint is verified",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "feature/feat-0335-bitget-trailing-stop",
     "priority": "P2",
     "milestone": "M3",
     "editions": [
