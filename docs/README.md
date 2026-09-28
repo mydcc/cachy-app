@@ -56,6 +56,7 @@ and this repository has already paid for that once — see
 | [`wire-format.md`](wire-format.md) | GCX1 compact wire format referenced by the generated gortex skill docs |
 | [`calculation-engine.md`](calculation-engine.md), [`calculation-engine-dev.md`](calculation-engine-dev.md) | The risk/position maths |
 | [`bitunix-api/`](bitunix-api/README.md) | Bitunix API notes and quick reference |
+| [`bitget-api/`](bitget-api/README.md) | Bitget Classic Futures API reference — all 67 endpoints, and the V1 decommission that makes 9 of Cachy 10 REST calls fail (BUG-0576) |
 | [`backlog/ideas/IDEA-0326-feedback-system.md`](backlog/ideas/IDEA-0326-feedback-system.md) | The in-app feedback path |
 | [`REPO-AUDIT.md`](REPO-AUDIT.md) | July 2026 audit — what was found wrong and what was done. Historical, still worth reading |
 | [`archive/`](archive/README.md) | Documents that were true once. Not maintained |
