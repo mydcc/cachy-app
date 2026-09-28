@@ -545,6 +545,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
   },
   {
+    "id": "BUG-0582",
+    "title": "The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -2497,6 +2515,114 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0580-bitget-query-param-ordering-unverified.md"
+  },
+  {
+    "id": "BUG-0583",
+    "title": "The stale-snapshot revert guard reported success on a PR that did revert develop",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0583-revert-guard-false-passed-pr-3718.md"
+  },
+  {
+    "id": "BUG-0584",
+    "title": "semantic-release cannot push, so no release has shipped since 2026-09-20",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0584-semantic-release-cannot-push.md"
+  },
+  {
+    "id": "BUG-0585",
+    "title": "A row with an unparseable date silently freezes the whole journal sort column",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "journal",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0585-journalsort-nan-date-freezes-column.md"
+  },
+  {
+    "id": "BUG-0586",
+    "title": "A flash close that the new session guard refuses still leaves the position open with its stops cancelled",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md"
+  },
+  {
+    "id": "BUG-0587",
+    "title": "Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0587-unticketed-store-writing-reads.md"
+  },
+  {
+    "id": "BUG-0588",
+    "title": "A partially filled order's stale-low previousQuantity is read as a shrink, so the daily-loss limit is skipped",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md"
   },
   {
     "id": "FEAT-0014",
