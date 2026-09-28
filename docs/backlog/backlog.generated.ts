@@ -2461,6 +2461,44 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0567-shrink-stop-loss-ceiling.md"
   },
   {
+    "id": "BUG-0579",
+    "title": "Bitunix private WebSocket channel names are unverified and may be silently dead",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "area": "exchange",
+    "created": "2026-09-28",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md"
+  },
+  {
+    "id": "BUG-0580",
+    "title": "Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "area": "exchange",
+    "created": "2026-09-28",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0580-bitget-query-param-ordering-unverified.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -5463,6 +5501,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0567"
     ],
     "file": "bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md"
+  },
+  {
+    "id": "BUG-0581",
+    "title": "Bitget WebSocket login success may never be detected because the vendor documents code \\\"0\\\" but Cachy tests \\\"00000\\\"",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "area": "exchange",
+    "created": "2026-09-28",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0581-bitget-ws-login-success-code-unverified.md"
   },
   {
     "id": "FEAT-0019",
