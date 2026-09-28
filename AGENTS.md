@@ -44,15 +44,7 @@ Rules:
 - **Non-code changes** (documentation, markdown, shell scripts, root configs): no tests, no `npm run check`.
 - **Money/exchange/risk paths** (position size, risk calculations, signature/crypto logic, `decimal.js` precision, Local-First boundary): always test + human review + green CI before merge.
 - Reuse existing test suites; add new tests only for genuinely new behavior.
-- **Prove a new RED test fails for the reason you mean.** A test that is green
-  before the fix is either a typo or a selector nothing carries yet — the second
-  is the dangerous one, because the guard looks real. Before believing a RED,
-  check the failure message names the code path under test, and before shipping
-  it, confirm it still goes red when that code is removed. Optional-chained
-  queries (`host.querySelector(sel)?.click()`) are the usual culprit: a selector
-  that matches nothing turns an assertion about behaviour into an assertion
-  about nothing. When a test needs a test-only anchor, add the anchor first and
-  watch it fail before adding the fix.
+- **Prove a new RED test fails for the reason you mean.** A test that is green before the fix is a typo, a selector nothing carries yet, or an assertion that cannot fail — and the last two are dangerous, because the guard looks real. Before believing a RED, check that its failure message names the code path under test; before shipping, confirm it still goes red when that code is removed. Optional-chained queries (`host.querySelector(sel)?.click()`) hide this best: a selector that matches nothing turns an assertion about behaviour into an assertion about nothing. When a test needs a test-only anchor, add the anchor first and watch it fail, so the failure you see is the one you meant.
 
 Before every push — sync first, then run targeted tests, then push:
 
@@ -125,30 +117,28 @@ Use for all code navigation, exploration, impact analysis, and graph queries.
 - On the first edit inside a fresh worktree, verify the `files[].path` prefix in the Edit response before continuing.
 - A freshness-guaranteed call that waits longer than 5 minutes: abort it and retry without the freshness requirement.
 
-**Known failure modes, and what to do instead.** These are properties of the
-current server, not of your usage; recognising them costs an hour each:
+**When a call answers about something you did not ask for.** Observed in this
+environment, 2026-09: `read` and `explore` have returned a payload from an
+earlier task in the same session — the right file, the wrong conversation's
+content — and `search` has returned a previous result for a new query. These
+are server-side, not a misuse, and they are dangerous precisely because the
+output looks authoritative.
 
-- `gortex__read` can return a payload from an **earlier task in the session** —
-  the right file, the wrong conversation's content. If the body is about code
-  you were not looking for, it is stale: re-issue once, and if it repeats, stop
-  trusting it and use `git grep` / `git show HEAD:<path>` / `sed -n`.
-- `gortex__search` replays its previous result for a new query. Treat a
-  hit-list that ignores the query as a broken call, not as an empty result.
-- `gortex__explore(operation:"localize")` sometimes returns a whole
-  neighbourhood from an unrelated subsystem. Say so and fall back; a confident
-  wrong neighbourhood is worse than none.
-- Reads and greps of **indexed** source are blocked in the shell. `git grep`,
-  `sed -n` and `git show` are not, and are correct — the block is about staying
-  on the graph, not about the file being unreadable.
-- `gortex__edit` needs `view:{kind:"worktree", checkout_id}` and the view
-  **rebuilds for 90–150 s after every write** ("not fully routed yet"). `batch`
-  is read-only through a routed view, so plan for single-file edits with a wait
-  between them, and batch your thinking rather than your writes. A session's
-  native `edit` works for `.svelte`, `.json` and `.md`; for `.ts` it is blocked,
-  so use `python3` for text replacement there.
-- `change(operation:"detect")` reads the **shared checkout**, not your
-  worktree, so it reports "no changes" for worktree edits. Verify with a test
-  run instead.
+The response is to refuse the substitution, not to route around the tool:
+
+- Re-issue with `require_exact: true`. A view that cannot be served exactly is
+  then refused instead of answered with something else, which is the honest
+  outcome.
+- For a worktree, pass `view: {kind: "worktree", checkout_id}` and check the
+  response's `freshness.actual_view` against what you asked for.
+- Re-issuing a `localize` after a completed contract replays the same payload;
+  do not read repetition as confirmation.
+- If Gortex still cannot answer, that is a **Gortex integration failure**:
+  report it, as the instructions above require. Both servers are required, and
+  a bypass recorded here would be a rule telling the next agent to ignore that.
+
+Verify code you were told about by a graph tool before acting on it — a wrong
+neighbourhood that reads plausibly is worse than no navigation at all.
 
 ### jCodeMunch
 Use for code analysis, action routing, and semantic understanding.

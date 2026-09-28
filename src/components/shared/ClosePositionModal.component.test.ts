@@ -196,7 +196,7 @@ describe("BUG-0347 — ClosePositionModal keeps an edited quantity on price tick
         expect(quantityInput().value).toBe("10");
     });
 
-    it("offers no submit when the live size shrank below the typed quantity", () => {
+    it("refuses a submit when the live size shrank below the typed quantity", () => {
         component = mount(ClosePositionLiveWrapper, {
             target: host,
             props: { initialPosition: { ...POSITION, amount: new Decimal(10) } },
