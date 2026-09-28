@@ -55,13 +55,23 @@ than reimplementing it.
 - [x] Sizes and prices come from the calculator, computed with `Decimal`, and
       match what the UI displayed
 - [x] Every path passes the [`FEAT-0011`](FEAT-0011-preflight-order-verification.md) gate
-- [~] Unsupported types are absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)
-      — the behaviour is there, the source is not.
-      [`FEAT-0017`](FEAT-0017-exchange-capability-model.md) is still `specced`
-      and waits on [`FEAT-0016`](FEAT-0016-exchange-adapter-interface.md), so
-      `src/services/exchangeCapabilities.ts` states the same facts by hand in
-      the shape FEAT-0017 will serve them. FEAT-0017 replaces the table's
-      source, not its consumers.
+- [x] Unsupported types are absent per [`FEAT-0017`](FEAT-0017-exchange-capability-model.md)
+      — closed 2026-09-28, when FEAT-0017 shipped (1.6.0-beta.135) and this
+      item's note about it "still specced" became stale.
+      The absence holds, though not by the mechanism this item expected.
+      `PlaceOrderParams.orderType` is typed `"LIMIT" | "MARKET"` — the
+      intersection of what both venues declare — so an unsupported entry type
+      cannot be offered at all, and the trade panel has no type selector to
+      offer one with. `orderGate` reads `capabilities.orderTypes` to refuse an
+      entry the venue would not take, which is the enforcement half; no *UI*
+      reads it, which is why nothing needs to today.
+      **The day a trigger entry is added, that stops being free:** the model
+      already carries the field and it has no consumer, so a trigger UI would
+      have nothing gating it. Gate it on `capabilities.orderTypes` in the same
+      commit that adds the control — the same rule FEAT-0023's audit found
+      missing on two position surfaces.
+      `timeInForce`, by contrast, is wired: `tradeService.effectFor` reads the
+      venue's list rather than assuming a value.
 - [x] A partially placed order group (entry filled, stop rejected) is detected
       and reported, with a test
 - [x] German and English strings — but see
