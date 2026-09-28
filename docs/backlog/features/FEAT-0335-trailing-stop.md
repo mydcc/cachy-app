@@ -4,7 +4,7 @@ title: Trail a stop behind a position once the exchange endpoint is verified
 type: feature
 status: in-progress
 assignee: opencode
-branch: feature/feat-0335-bitget-trailing-stop (verification work; this text landed on docs/bitget-api-crawl)
+branch: docs/bitget-api-crawl (supersedes feature/feat-0335-bitget-trailing-stop, which is unmerged, still carries the pre-review wording, and whose bitget-api/ copy diverges from develop — so the line references below are develop's)
 priority: P2
 milestone: M3
 editions: [community, pro, private]
@@ -27,10 +27,13 @@ parent: FEAT-0023
 > commissioned 2026-09-28. The reference is
 > [`docs/bitget-api/`](../../bitget-api/README.md), and its first acceptance
 > criterion is still **half met**: the endpoint is documented, but *verified
-> against the live venue* has not happened, and that half gates the rest. What
-> the documentation established — including which of the two trailing shapes is
-> specifiable at all — is in the field-level verification below. This item
-> still carries no `estimate` and no `size`: both would be invented numbers.
+> against the live venue* has not happened, and that half gates the rest. The
+> second criterion is gated on its own evidence as well — it was narrowed to
+> the percentage, because neither documented path expresses an absolute
+> distance. What the documentation established — including which of the two
+> trailing shapes is specifiable at all — is in the field-level verification
+> below. This item still carries no `estimate` and no `size`: both would be
+> invented numbers.
 
 ## Problem
 
@@ -66,8 +69,13 @@ a different item with its own honest name and its own warning copy.
 - [ ] A trailing-stop endpoint is documented in the API crawl and verified
       against the live venue, per exchange — this criterion gates every one
       below it
-- [ ] A trail distance can be set on an open position, as a percentage or an
-      absolute offset, in `decimal.js`
+- [ ] A trail distance can be set on an open position, in `decimal.js`, as the
+      percentage `callbackRatio` documents. **An absolute offset is not
+      offered**: `callbackRatio` is a percentage ("Range 1-10"), and the unit
+      of the alternative, `rangeRate`, is undocumented — so no documented path
+      expresses an absolute distance. This criterion was narrowed by the
+      2026-09-28 verification, which is the reason it reads differently than
+      when it was written.
 - [ ] The instruction is placed at the exchange and survives Cachy being closed
 - [ ] The trail moves only in the position's favour, with a test
 - [ ] The action passes the [`FEAT-0011`](FEAT-0011-preflight-order-verification.md)
@@ -150,13 +158,16 @@ range and no precision**. That the one field a value is *required* for belongs
 to the one plan type we cannot build is the finding: whether it is a percentage
 or an absolute amount is not stated anywhere, and the only thing provable is
 that a lower bound exists (error `43032`, `rangeRate is smaller than {0}`).
-The reference elides this endpoint's example body (`:202`), so whether the
-live page carries a worked example is not established here either way. The
+The reference quotes only the first three fields of this endpoint's example
+body — and flags that quote as a doc defect in its own right (`:202`) — so
+whether the example carries a `rangeRate` value, and whether such a value would
+carry a unit, is not established here either way. The
 neighbouring half is caught by the same file's group defect list — defect 22
 records that the trailing-stop callback field is `callbackRatio` in one family
-and `rangeRate` in the other (`06_tp_sl.md:741`). Building against an unspecified unit would mean writing a field
-whose unit we do not know into a signed request that places a protective stop —
-the unverified-shape failure the capability model exists to prevent.
+and `rangeRate` in the other (`06_tp_sl.md:741`). Building against an
+unspecified unit would mean writing a field whose unit we do not know into a
+signed request that places a protective stop — the unverified-shape failure
+the capability model exists to prevent.
 
 **The buildable path is the unified one**: `place-plan-order` with
 `planType: track_plan` and `callbackRatio`, documented as *"Required for
@@ -188,7 +199,7 @@ symbol or per account is not derivable from it — and a cap on tracking orders
 (`45091`) whose value is unpublished and whose scope is equally unstated.
 Neither is load-bearing: the app can react to both codes rather than
 pre-emptively encode a rule it cannot cite, and that is the cheaper design
-besides. Minimum size and step are not hardcoded anywhere in Cachy — they come
+besides. Minimum size and step are not hardcoded in the order path — they come
 per symbol from `mix/market/contracts`.
 
 **Not on this path:** `place-tpsl-order` cannot express a trailing take-profit
@@ -201,10 +212,10 @@ already-out-of-scope trailing take-profit, not this item.
 — no documented route), the numeric cap behind 45091, the trail direction
 above, and Bitget's *UTA* account family — a different, non-v2 API under
 `/api/v3/*` ([`00_common.md`](../../bitget-api/00_common.md),
-[`13_vendor_guidance.md`](../../bitget-api/13_vendor_guidance.md)) which this
-reference does not transcribe at all, so no UTA trailing field names were
-retrieved. Cachy talks to the Classic v2 family; UTA is out of scope and should
-stay explicitly so.
+[`13_vendor_guidance.md`](../../bitget-api/13_vendor_guidance.md)). The
+reference discusses UTA throughout but does not transcribe its endpoints, so no
+UTA trailing field names were retrieved. Cachy talks to the Classic v2 family;
+UTA is out of scope and should stay explicitly so.
 
 ## Links
 

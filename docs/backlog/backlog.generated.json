@@ -6544,7 +6544,7 @@
       "type": "feature",
       "status": "in-progress",
       "assignee": "opencode",
-      "branch": "feature/feat-0335-bitget-trailing-stop (verification work; this text landed on docs/bitget-api-crawl)",
+      "branch": "docs/bitget-api-crawl (supersedes feature/feat-0335-bitget-trailing-stop, which is unmerged, still carries the pre-review wording, and whose bitget-api/ copy diverges from develop — so the line references below are develop's)",
       "priority": "P2",
       "milestone": "M3",
       "editions": [
