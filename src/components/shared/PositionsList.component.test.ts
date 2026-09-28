@@ -111,6 +111,8 @@ describe("FEAT-0023 — unsupported actions are absent, not broken", () => {
 
     const tpSlButton = () => host.querySelector<HTMLButtonElement>('[data-track-id="btn-tp-sl"]');
     const addButton = () => host.querySelector<HTMLButtonElement>('[data-track-id="btn-add-to-position"]');
+    const flashCloseButton = () =>
+        host.querySelector<HTMLButtonElement>('[data-track-id="btn-flash-close"]');
 
     it("offers no TP/SL button when the caller has no way to place one", async () => {
         // The venue declares `tpSlStandalone: false`; the sidebar then passes
@@ -121,7 +123,11 @@ describe("FEAT-0023 — unsupported actions are absent, not broken", () => {
         }) as never;
         await settle();
 
+        // Stated here rather than left to the next test: a null button proves
+        // nothing unless the row really rendered, and the neighbouring test is
+        // a different mount.
         expect(tpSlButton()).toBeNull();
+        expect(flashCloseButton()).not.toBeNull();
     });
 
     it("opens the TP/SL dialog when the handler is wired", async () => {

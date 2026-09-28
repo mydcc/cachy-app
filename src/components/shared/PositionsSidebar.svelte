@@ -1142,6 +1142,18 @@
    *
    * Registers no listener, so there is nothing to return.
    */
+  /**
+   * A tab the venue does not have cannot stay active. The content chain has no
+   * `{:else}`, so leaving `activeTab` on a hidden tab renders an empty panel
+   * with nothing highlighted — and that is reachable at runtime, because the
+   * sidebar is not remounted when the account or venue changes. Written as a
+   * guard rather than a reset inside the account-switch effect, so it holds
+   * however the capability is lost.
+   */
+  $effect(() => {
+    if (activeTab === "tpsl" && !canPlaceStandaloneTpSl) activeTab = "positions";
+  });
+
   $effect(() => {
     void accountEpoch.seq;
     untrack(() => {
@@ -1207,18 +1219,18 @@
    * is refused on `supports.tpSl: false` — so the row must not offer the
    * control at all (FEAT-0023), the same call already made for `addToPosition`
    * below.
+   *
+   * One fact, two controls: the row button that places a plan and the tab that
+   * lists them. A venue that cannot be given a stop has none to list, so the
+   * two go together — and the list read is deliberately non-throwing on an
+   * unsupported venue (`fetchTpSlOrders` returns `[]` there, on purpose, so it
+   * cannot raise a dialog), which means a tab kept on such a venue would sit
+   * permanently empty and never once say why.
+   *
+   * `$derived`, not a snapshot: this has to follow an account or venue switch
+   * at runtime, and the sidebar is not remounted when that happens.
    */
   const canPlaceStandaloneTpSl = $derived(activeExchange().capabilities.tpSlStandalone);
-
-  /**
-   * FEAT-0017, same flag, second consequence: the TP/SL tab is where plans are
-   * listed, edited and cancelled, and on a venue that takes no standalone plan
-   * every one of those verbs is refused — the list read included. The tab can
-   * therefore never hold anything, only an error, so it is absent rather than
-   * offered. Reading the plans is not a lesser capability than writing them: a
-   * venue that cannot be given a stop has none to list.
-   */
-  const canSeeTpSlPlans = canPlaceStandaloneTpSl;
 
   /** FEAT-0334: opens the scale-in dialog for a position. */
   function handleAdd(pos: OMSPosition) {
@@ -1327,6 +1339,8 @@
         class:border-[var(--accent-color)]={activeTab === "positions"}
         class:text-[var(--text-secondary)]={activeTab !== "positions"}
         class:border-transparent={activeTab !== "positions"}
+        data-testid="tab-positions"
+        data-active={activeTab === "positions"}
         onclick={() => (activeTab = "positions")}
         oncontextmenu={handleContextMenu}
       >
@@ -1338,18 +1352,22 @@
         class:border-[var(--accent-color)]={activeTab === "orders"}
         class:text-[var(--text-secondary)]={activeTab !== "orders"}
         class:border-transparent={activeTab !== "orders"}
+        data-testid="tab-orders"
+        data-active={activeTab === "orders"}
         onclick={() => (activeTab = "orders")}
       >
         {$_("dashboard.orders")} ({openOrders.length})
       </button>
-      {#if canSeeTpSlPlans}
+      {#if canPlaceStandaloneTpSl}
         <button
           class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
           class:text-[var(--accent-color)]={activeTab === "tpsl"}
           class:border-[var(--accent-color)]={activeTab === "tpsl"}
           class:text-[var(--text-secondary)]={activeTab !== "tpsl"}
           class:border-transparent={activeTab !== "tpsl"}
-          onclick={() => (activeTab = "tpsl")}
+          data-testid="tab-tpsl"
+        data-active={activeTab === "tpsl"}
+        onclick={() => (activeTab = "tpsl")}
         >
           {$_("dashboard.tpsl")}
         </button>
@@ -1360,6 +1378,8 @@
         class:border-[var(--accent-color)]={activeTab === "history"}
         class:text-[var(--text-secondary)]={activeTab !== "history"}
         class:border-transparent={activeTab !== "history"}
+        data-testid="tab-history"
+        data-active={activeTab === "history"}
         onclick={() => (activeTab = "history")}
       >
         {$_("dashboard.history")}
@@ -1386,7 +1406,7 @@
           loading={loadingOrders}
           error={errorOrders}
         />
-      {:else if activeTab === "tpsl" && canSeeTpSlPlans}
+      {:else if activeTab === "tpsl" && canPlaceStandaloneTpSl}
         <TpSlList isActive={activeTab === "tpsl"} />
       {:else if activeTab === "history"}
         <OrderHistoryList
