@@ -123,12 +123,16 @@ it. Both now do, and both are pinned by tests.
   The criterion holds vacuously, and correctly so: the honest version of
   "absent" for an unbuilt feature is "not there".
 
-**Observed, not fixed — a different surface.** The TP/SL *manager* tab
-(`TpSlList`) is not capability-gated either: it offers edit and cancel on
-`tpSlState`'s plans regardless of what the venue takes. That is the dashboard's
-TP/SL surface rather than this epic's position row, and it reads and cancels
-plans rather than creating one, so it sits outside the four controls audited
-here. Recorded rather than silently widened into this change.
+**A second gap on a neighbouring surface, found while fixing the first.** The
+TP/SL *manager* tab is the same rule in a different place: it listed, edited
+and cancelled plans regardless of what the venue takes, and on a venue that
+takes none even the list read is refused — so the tab could only ever resolve
+to an error, for a trader who had already clicked it. It is now absent on such
+a venue, on the same flag. Reading plans is not a lesser capability than
+writing them: a venue that cannot be given a stop has none to list.
+
+It sits on the dashboard rather than on this epic's position row, so it is
+recorded here rather than counted as one of the four controls.
 
 ## Out of scope
 

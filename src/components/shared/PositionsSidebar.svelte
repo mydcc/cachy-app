@@ -1210,6 +1210,16 @@
    */
   const canPlaceStandaloneTpSl = $derived(activeExchange().capabilities.tpSlStandalone);
 
+  /**
+   * FEAT-0017, same flag, second consequence: the TP/SL tab is where plans are
+   * listed, edited and cancelled, and on a venue that takes no standalone plan
+   * every one of those verbs is refused — the list read included. The tab can
+   * therefore never hold anything, only an error, so it is absent rather than
+   * offered. Reading the plans is not a lesser capability than writing them: a
+   * venue that cannot be given a stop has none to list.
+   */
+  const canSeeTpSlPlans = canPlaceStandaloneTpSl;
+
   /** FEAT-0334: opens the scale-in dialog for a position. */
   function handleAdd(pos: OMSPosition) {
     addingPositionId = pos.positionId ?? null;
@@ -1332,16 +1342,18 @@
       >
         {$_("dashboard.orders")} ({openOrders.length})
       </button>
-      <button
-        class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
-        class:text-[var(--accent-color)]={activeTab === "tpsl"}
-        class:border-[var(--accent-color)]={activeTab === "tpsl"}
-        class:text-[var(--text-secondary)]={activeTab !== "tpsl"}
-        class:border-transparent={activeTab !== "tpsl"}
-        onclick={() => (activeTab = "tpsl")}
-      >
-        {$_("dashboard.tpsl")}
-      </button>
+      {#if canSeeTpSlPlans}
+        <button
+          class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
+          class:text-[var(--accent-color)]={activeTab === "tpsl"}
+          class:border-[var(--accent-color)]={activeTab === "tpsl"}
+          class:text-[var(--text-secondary)]={activeTab !== "tpsl"}
+          class:border-transparent={activeTab !== "tpsl"}
+          onclick={() => (activeTab = "tpsl")}
+        >
+          {$_("dashboard.tpsl")}
+        </button>
+      {/if}
       <button
         class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
         class:text-[var(--accent-color)]={activeTab === "history"}
@@ -1374,7 +1386,7 @@
           loading={loadingOrders}
           error={errorOrders}
         />
-      {:else if activeTab === "tpsl"}
+      {:else if activeTab === "tpsl" && canSeeTpSlPlans}
         <TpSlList isActive={activeTab === "tpsl"} />
       {:else if activeTab === "history"}
         <OrderHistoryList
