@@ -68,7 +68,12 @@ Also decide deliberately whether `strict: true` is wanted for the required set
 `develop` has moved since the PR forked).
 
 Nothing to change in `scripts/check-pr-base-revert.mjs` itself; its detection
-was correct for #3680 and #3692. Its false-negative on #3718 is BUG-0583.
+was correct for #3680 and #3692. Its blind spot — the guard reported SUCCESS on
+#3718, which also did damage — is BUG-0583, and it is structural: the guard
+cannot fire on a branch that has not merged base, which is the common case.
+
+So this item alone does not close the incident class. Landing it stops two of
+the three damaging merges; BUG-0583 is what stops the third.
 
 ## Acceptance criteria
 

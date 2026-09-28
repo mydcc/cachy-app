@@ -38,54 +38,98 @@ reported **SUCCESS**, yet that merge is one of the three that reverted
 So the guard was asked the right question and answered it wrongly for this
 branch.
 
-**Not yet reproduced locally.** The bot branch is deleted from the remote, so
-the exact commit graph the runner saw cannot be replayed today. The hypothesis
-below is the most likely mechanism and needs a fixture to confirm or refute.
+**The cause is now established from git, not inferred.** The PR's real head was
+force-pushed away, but GitHub retains it at `refs/pull/3718/head`; fetching
+that ref recovers the exact tree the runner saw.
+
+- Merged head: `d6e58dec` (parent `ea116d72`)
+- Squash on develop: `d0b5c7bf`, whose tree is **byte-identical** to
+  `d6e58dec`'s tree (`f4fb2108…`) — GitHub applied the head tree wholesale
+- `journalSort.ts` exists at `ea116d72` and is **missing at `d6e58dec`**
+
+So the branch tip `d6e58dec` was itself a full-tree snapshot that reverted 189
+files, committed on top of the good commit `ea116d72`. The branch never merged
+`develop`; it just carried a stale tree forward.
 
 ## Cause
 
-Unknown. The most likely mechanism, from reading
-`scripts/check-pr-base-revert.mjs`:
+The guard is blind whenever the PR branch has **not merged the base branch**,
+which is the normal shape for a branch cut from `develop` and the shape
+AGENTS.md's "Jules Sandbox Hygiene" tells agents to produce ("Never `git merge`
+or `git rebase` `origin/develop` mid-session").
 
-- The fork-era anchor is `forkRev = first^1`, where `first` is
-  `git rev-list --reverse --first-parent base..head` — the oldest first-parent
-  commit reachable from head but not base (lines 168-182).
-- The line-level test treats a removed line as base-introduced only when
-  `forkRev`'s version of the file does not already contain it (lines 226-237).
-- If `auto-update-prs.yml` merged `develop` into the bot branch, and the
-  agent's full-tree snapshot commit then landed *on top of that merge*, the
-  first-parent ordering can put `forkRev` at the already-merged state. Every
-  line the snapshot removed is then present in `forkRev`, so nothing counts as
-  base-introduced and the check passes — even though the payload removes work
-  `develop` gained.
+Two anchors in `scripts/check-pr-base-revert.mjs` collapse onto each other in
+that case. For #3718 (`base` = `9358fde2`, `head` = `d6e58dec`):
 
-That would make the guard blind precisely to the case the merge companion
-(`auto-update-prs.yml`) creates, which is the case that matters.
+    merge-base(base, head)          = 9358fde2
+    first  = oldest first-parent in base..head = d9ec403e
+    forkRev = first^1                = 9358fde2
+
+`forkRev == mergeBase`. The payload's removed lines are computed as
+`countLines(mergeBase) − countLines(head)` (lines 216-222), and a line counts as
+base-introduced only when `forkRev`'s copy lacks it (lines 226-237). When
+`forkRev` **is** `mergeBase`, every removed line is by construction present in
+`forkRev`, so `baseRemoved` is always `0` and the check can never fire.
+
+This is not a subtle edge case — it is the default for any branch that has not
+merged base. The guard only works when a base-merge commit exists on the
+branch, because only then does a gap open between `merge-base` (the new base
+tip) and `first^1` (the old fork point). The BUG-0447 fixture passes for
+exactly that reason: it merges `develop` into the branch before snapshotting.
+
+**Consequence.** The guard's coverage is the inverse of what is wanted. It
+catches the stale snapshot that an agent produced *despite* following the
+documented hygiene rule (merge base first, then snapshot), and misses the one
+produced *by* following it.
 
 ## Fix
 
-Determine the actual graph for #3718 before changing anything — do not fix the
-hypothesis. Then:
+Anchor on content era, not on the commit graph. For each path where head
+differs from the current base tip, decide staleness by asking when the head's
+blob was last current on base:
 
-- Add a fixture to `scripts/check-pr-base-revert.test.ts` that replays the
-  #3718 shape: a branch that has merged base, followed by a full-tree snapshot
-  commit, merged when base has moved further. It must fail.
-- If the `forkRev` derivation is the cause, anchor it on the merge-base rather
-  than on `first^1`, or additionally require that `forkRev` is not itself a
-  commit that `base` already contains.
+- if `git log --find-object=<headBlob> <base>` reports an era **older** than the
+  merge-base, the head carries a pre-merge snapshot for that path and base has
+  moved on — a revert
+- if the era is the merge-base itself, the change is the PR's own
 
-Leave the `GENERATED_BACKLOG_PATHS` exemption alone: it is reasoned, tested and
-correct.
+This decides correctly in both shapes, needs no fork anchor, and cannot collapse.
+
+Constraints, because this runs on every PR:
+
+- sample the paths (the `MAX_SAMPLE_LINES` cap already exists) and bound each
+  `git log` with a timeout, so a large PR cannot stall the check
+- keep the `allow-base-revert` label escape hatch
+- keep the `GENERATED_BACKLOG_PATHS` exemption — it is reasoned and tested
+- an undecidable path (blob not found on base, timeout) must **not** pass
+  silently; report it so a human looks
+
+Do **not** try to fix this by walking first-parents to the first
+base-reachable ancestor: for #3718 that value already *is* `9358fde2`, so it
+changes nothing. That approach was tried against these refs and is a no-op.
+
+## Fix
+
+See Cause — the mechanism is established, and the shape of the fix is decided
+there. Summary: decide staleness by content era (`git log --find-object`) rather
+than by the fork-point anchor, which collapses onto the merge-base whenever the
+branch has not merged base.
 
 ## Acceptance criteria
 
-- [ ] The real #3718 commit graph is recovered or faithfully reconstructed, and
-      the actual cause is written down
-- [ ] A fixture reproduces the defect and fails without the fix
+- [ ] A fixture reproduces the defect — a branch that has **not** merged base,
+      whose tip is a full-tree snapshot — and fails without the fix. The
+      existing BUG-0447 fixture (branch *has* merged base) must keep failing, so
+      both shapes are covered
 - [ ] The fixture passes with the fix
-- [ ] The other two fixtures (#3296 and #3297) still pass
+- [ ] A PR whose head blob has no era on base is reported as undecidable rather
+      than passed silently
+- [ ] The check stays within a bounded time on a large PR
+- [ ] The other two fixtures (#3296, #3297) still pass
 
 ## Links
 
 - BUG-0582 — the guard is not required, so even a correct pass/fail changes nothing
 - BUG-0447 — the original incident class
+- Recovered head: `git fetch origin pull/3718/head:refs/audit/pr3718` reproduces
+  the exact tree the guard cleared (`d6e58dec`, tree `f4fb2108…`)
