@@ -2609,9 +2609,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
   },
   {
     "id": "BUG-0588",
-    "title": "A partially filled order's stale-low previousQuantity is read as a shrink, so the daily-loss limit is skipped",
+    "title": "A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
