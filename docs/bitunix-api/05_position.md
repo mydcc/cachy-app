@@ -1,18 +1,18 @@
 # Position Endpoints
 
-`Get History Positions` und `Get Pending Positions` sind **private** Interfaces
-(Signatur erforderlich). `Get Position Tiers` ist **public**.
+`Get History Positions` and `Get Pending Positions` are **private** interfaces
+(signature required). `Get Position Tiers` is **public**.
 
 ---
 
 ## Get History Positions
 
-Quelle: https://www.bitunix.com/api-docs/futures/position/get_history_positions.html
+Source: https://www.bitunix.com/api-docs/futures/position/get_history_positions.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Ruft historische Positionen ab.
+Retrieves historical positions.
 
 ### HTTP Request
 `GET /api/v1/futures/position/get_history_positions`
@@ -20,13 +20,13 @@ Ruft historische Positionen ab.
 ### Request Parameters
 | Parameter     | Type   | Required | Description |
 |---------------|--------|----------|-------------|
-| symbol        | string | false    | Trading Pair |
+| symbol        | string | false    | Trading pair |
 | positionId    | string | false    | Position ID |
-| startTime     | int64  | false    | Start-Timestamp (Position-Erstellzeit), Unix ms, z.B. 1597026383085 |
-| endTime       | int64  | false    | End-Timestamp (Position-Erstellzeit), Unix ms, z.B. 1597026683085 |
-| skip          | int64  | false    | Anzahl übersprungener Orders, Default: 0 |
-| limit         | int64  | false    | Max. Abfragen: 100, Default: 10 |
-| subAccountId  | int64  | false    | Mit `subAccountId`: nur Positionen dieses Subaccounts. Ohne: Positionen des Hauptaccounts |
+| startTime     | int64  | false    | Start timestamp (position creation time), Unix ms, e.g. 1597026383085 |
+| endTime       | int64  | false    | End timestamp (position creation time), Unix ms, e.g. 1597026683085 |
+| skip          | int64  | false    | Number of skipped orders, Default: 0 |
+| limit         | int64  | false    | Max. queries: 100, Default: 10 |
+| subAccountId  | int64  | false    | With `subAccountId`: only the positions of that sub-account. Without: the positions of the main account |
 
 ### Request Example
 ```bash
@@ -42,25 +42,25 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/position/get_h
 ### Response Parameters
 | Parameter       | Type   | Description |
 |-----------------|--------|-------------|
-| positionList    | list   | Positionsliste |
+| positionList    | list   | Position list |
 | > positionId    | string | Position ID |
-| > symbol        | string | Trading Pair |
-| > maxQty        | string | Maximale Positionsmenge |
-| > entryPrice    | string | Durchschnittlicher Einstiegspreis |
-| > closePrice    | string | Durchschnittlicher Schließpreis |
-| > liqQty        | string | Liquidations-Menge |
+| > symbol        | string | Trading pair |
+| > maxQty        | string | Maximum position quantity |
+| > entryPrice    | string | Average entry price |
+| > closePrice    | string | Average close price |
+| > liqQty        | string | Liquidation quantity |
 | > side          | string | `LONG` / `SHORT` |
 | > marginMode    | string | `ISOLATION` / `CROSS` |
 | > positionMode  | string | `ONE_WAY` / `HEDGE` |
 | > leverage      | int32  | Leverage |
-| > fee           | string | Abgezogene Handelsgebühren während der Position |
-| > funding       | string | Gesamte Funding Fee während der Position |
-| > realizedPNL   | string | Realized PnL (exkl. Funding Fee und Handelsgebühr) |
-| > liqPrice      | string | Geschätzter Liquidationspreis. `<= 0` bedeutet niedriges Risiko, kein Liquidationspreis |
-| > ctime         | int64  | Erstell-Timestamp |
-| > mtime         | int64  | Letzter Änderungs-Timestamp |
-| > subAccountId  | int64  | Positions-Account-ID |
-| total           | int64  | Gesamtanzahl |
+| > fee           | string | Trading fees deducted during the position |
+| > funding       | string | Total funding fee during the position |
+| > realizedPNL   | string | Realised PnL (excl. funding fee and trading fee) |
+| > liqPrice      | string | Estimated liquidation price. `<= 0` means low risk, no liquidation price |
+| > ctime         | int64  | Creation timestamp |
+| > mtime         | int64  | Last modification timestamp |
+| > subAccountId  | int64  | Position account ID |
+| total           | int64  | Total count |
 
 ### Response Example
 ```json
@@ -71,12 +71,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/position/get_h
 
 ## Get Pending Positions
 
-Quelle: https://www.bitunix.com/api-docs/futures/position/get_pending_positions.html
+Source: https://www.bitunix.com/api-docs/futures/position/get_pending_positions.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Ruft offene (pending) Positionen ab.
+Retrieves open (pending) positions.
 
 ### HTTP Request
 `GET /api/v1/futures/position/get_pending_positions`
@@ -84,10 +84,10 @@ Ruft offene (pending) Positionen ab.
 ### Request Parameters
 | Parameter           | Type   | Required | Description |
 |---------------------|--------|----------|-------------|
-| symbol              | string | false    | Trading Pair |
+| symbol              | string | false    | Trading pair |
 | positionId          | string | false    | Position ID |
-| subAccountId        | int64  | false    | Mit `subAccountId`: nur Positionen dieses Subaccounts. Ohne: Positionen des Hauptaccounts + aller Subaccounts, auf die der aktuelle API-Key Zugriff hat |
-| includeSubAccounts  | bool   | false    | Subaccount-Abfrage aktivieren/deaktivieren (Cachy always queries the accessible scope; per-subaccount filtering is not exposed in the adapter) |
+| subAccountId        | int64  | false    | With `subAccountId`: only the positions of that sub-account. Without: the positions of the main account + of all sub-accounts the current API key has access to |
+| includeSubAccounts  | bool   | false    | Enable/disable sub-account querying (Cachy always queries the accessible scope; per-subaccount filtering is not exposed in the adapter) |
 
 ### Request Example
 ```bash
@@ -104,24 +104,24 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/position/get_p
 | Parameter       | Type   | Description |
 |-----------------|--------|-------------|
 | positionId      | string | Position ID |
-| symbol          | string | Trading Pair |
-| qty             | string | Positionsmenge |
-| entryValue      | string | Verfügbarer Betrag für Positionen |
+| symbol          | string | Trading pair |
+| qty             | string | Position quantity |
+| entryValue      | string | Available amount for positions |
 | side            | string | `LONG` / `SHORT` |
 | marginMode      | string | `ISOLATION` / `CROSS` |
 | positionMode    | string | `ONE_WAY` / `HEDGE` |
 | leverage        | int32  | Leverage |
-| fee             | string | Abgezogene Handelsgebühren während der Position |
-| funding         | string | Gesamte Funding Fee während der Position |
-| realizedPNL     | string | Realized PnL (exkl. Funding Fee und Handelsgebühr) |
-| margin          | string | Gesperrter Betrag der Position |
-| unrealizedPNL   | string | Unrealized PnL |
-| liqPrice        | string | Geschätzter Liquidationspreis. `<= 0` bedeutet niedriges Risiko, kein Liquidationspreis |
-| marginRate      | string | Margin-Ratio |
-| avgOpenPrice    | string | Durchschnittlicher Eröffnungspreis |
-| ctime           | int64  | Erstell-Timestamp |
-| mtime           | int64  | Letzter Änderungs-Timestamp |
-| subAccountId    | int64  | Positions-Account-ID |
+| fee             | string | Trading fees deducted during the position |
+| funding         | string | Total funding fee during the position |
+| realizedPNL     | string | Realised PnL (excl. funding fee and trading fee) |
+| margin          | string | Frozen amount of the position |
+| unrealizedPNL   | string | Unrealised PnL |
+| liqPrice        | string | Estimated liquidation price. `<= 0` means low risk, no liquidation price |
+| marginRate      | string | Margin ratio |
+| avgOpenPrice    | string | Average entry price |
+| ctime           | int64  | Creation timestamp |
+| mtime           | int64  | Last modification timestamp |
+| subAccountId    | int64  | Position account ID |
 
 ### Response Example
 ```json
@@ -132,12 +132,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/position/get_p
 
 ## Get Position Tiers
 
-Quelle: https://www.bitunix.com/api-docs/futures/position/get_position_tiers.html
+Source: https://www.bitunix.com/api-docs/futures/position/get_position_tiers.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Ruft die Position-Tiers (Margin-Stufen) ab.
+Retrieves the position tiers (margin levels).
 
 ### HTTP Request
 `GET /api/v1/futures/position/get_position_tiers`
@@ -145,7 +145,7 @@ Ruft die Position-Tiers (Margin-Stufen) ab.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| symbol    | string | true     | Trading Pair |
+| symbol    | string | true     | Trading pair |
 
 ### Request Example
 ```bash
@@ -155,12 +155,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/position/get_p
 ### Response Parameters
 | Parameter               | Type   | Description |
 |--------------------------|--------|-------------|
-| symbol                    | string | Trading Pair |
-| level                     | int32  | Stufe (Level) |
-| startValue                | string | Minimalwert |
-| endValue                  | string | Maximalwert |
+| symbol                    | string | Trading pair |
+| level                     | int32  | Level |
+| startValue                | string | Minimum value |
+| endValue                  | string | Maximum value |
 | leverage                  | int32  | Leverage |
-| maintenanceMarginRate     | string | Maintenance Margin Rate: Der Margin-Betrag entspricht der Positionsmengen-Stufe. Fällt die Margin-Rate einer Position unter die Maintenance Margin Rate, wird eine erzwungene Teil- oder Vollliquidation ausgelöst |
+| maintenanceMarginRate     | string | Maintenance margin rate: the margin amount corresponds to the position quantity level. If the margin rate of a position falls below the maintenance margin rate, a forced partial or full liquidation is triggered |
 
 ### Response Example
 ```json
