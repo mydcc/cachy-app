@@ -138,28 +138,42 @@ describe("check-pr-base-revert.mjs", () => {
      */
     it("fails when a branch that never merged base commits a stale snapshot (PR #3718)", () => {
         git(root, "checkout", "-b", "feat");
-        commitFile(root, "intended.txt", "intended\n", "perf(journal): intended change");
+        const fork = git(root, "rev-parse", "HEAD");
 
         // The base moves on while the branch does not know it.
         git(root, "checkout", "develop");
         commitFile(root, "common.txt", "base v1\nbase v2 line\n", "base work");
         commitFile(root, "merged.ts", "merged\n", "more base work");
 
-        // The branch then lands real work of its own, on a checkout that has
-        // seen none of the above. This is ea116d72 in the real incident.
+        // The branch picks up the base's file contents without merging it — a
+        // `git checkout develop -- .`, a cherry-pick, a stash pop, an agent
+        // syncing its working tree. This is what makes the dropped line
+        // reachable in the branch's parent while `develop` stays outside its
+        // history, which is the whole shape of the incident: the payload diff
+        // `mergeBase..head` is empty, so the base pass has nothing to look at.
         git(root, "checkout", "feat");
-        commitFile(root, "journalSort.ts", "export const sort = 1;\n", "perf(journal): add helper");
+        git(root, "checkout", "develop", "--", "common.txt");
+        git(root, "commit", "-m", "chore: sync common.txt from develop");
 
-        // The tip is a whole-tree snapshot of that same stale checkout, so it
-        // silently drops the helper its own parent just added — d6e58dec.
-        const staleTree = git(root, "rev-parse", "HEAD~1^{tree}");
-        const stale = git(root, "commit-tree", staleTree, "-p", "HEAD", "-m", "perf(journal): intended change");
+        // Real work, then a whole-tree snapshot of the checkout from before
+        // that sync — d6e58dec. The synced line is silently gone.
+        commitFile(root, "journalSort.ts", "export const sort = 1;\n", "perf(journal): add helper");
+        const preSyncTree = git(root, "rev-parse", "HEAD~2^{tree}");
+        const stale = git(root, "commit-tree", preSyncTree, "-p", "HEAD", "-m", "perf(journal): intended change");
         git(root, "checkout", "--detach", stale);
+        expect(fork).not.toBe(stale);
 
         const result = runScript(root, git(root, "rev-parse", "develop"), stale);
 
+        // The dropped base line is the violation.
         expect(result.status).toBe(1);
-        expect(result.output).toContain("journalSort.ts");
+        expect(result.output).toContain("common.txt");
+        // The helper the branch abandoned is its own business, not a base
+        // revert, and must not be reported: on the real refs `journalSort.ts`
+        // and `journalSort.test.ts` are absent from develop too, alongside the
+        // two files it does carry. Reporting all four would be two true hits
+        // buried in two false ones.
+        expect(result.output).not.toContain("journalSort.ts");
     });
 
     /**
@@ -194,6 +208,64 @@ describe("check-pr-base-revert.mjs", () => {
         const result = runScript(root, git(root, "rev-parse", "develop"), git(root, "rev-parse", "feat"));
 
         expect(result.status).toBe(0);
+    });
+
+    /**
+     * A branch that writes a file and then removes it again is refining its own
+     * work, which is the opposite of reverting the base. The fork-era anchor
+     * cannot see the difference — the dropped line is absent there, so it reads
+     * as base-introduced — and the first cut of the self-pass got this wrong
+     * badly enough to block the pure-docs PR #3724, which rewrites its own
+     * backlog prose across several commits. Only the base-tree anchor separates
+     * the two, and this is the fixture that says so.
+     */
+    it("passes when a branch adds a file and a later commit removes it again", () => {
+        git(root, "checkout", "-b", "feat");
+        commitFile(root, "helper.ts", "export const helper = 1;\n", "feat: add helper");
+        git(root, "rm", "helper.ts");
+        git(root, "commit", "-m", "feat: drop it again, superset was wrong");
+        const head = git(root, "rev-parse", "HEAD");
+
+        git(root, "checkout", "develop");
+        commitFile(root, "merged.ts", "merged\n", "unrelated base work");
+
+        const result = runScript(root, git(root, "rev-parse", "develop"), head);
+
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("keeps base-branch work intact");
+    });
+
+    /**
+     * The other side of the same boundary, so the fix cannot degenerate into
+     * "ignore every self-pass removal". This is the PR #3718 geometry: the
+     * work reached the base, the branch forked before it did, and the branch's
+     * later commit drops it again. The fork anchor cannot see that (the content
+     * is absent there, which is why it looked base-introduced), and the base
+     * anchor is exactly what keeps it reported.
+     */
+    it("still fails when the base carries what a branch commit drops", () => {
+        git(root, "checkout", "-b", "feat");
+        const fork = git(root, "rev-parse", "HEAD");
+
+        git(root, "checkout", "develop");
+        commitFile(root, "feature.ts", "export const feature = 1;\n", "feat: add feature");
+        const base = git(root, "rev-parse", "HEAD");
+
+        // The branch syncs the file's contents without merging, then a stale
+        // snapshot drops them again. The base stays outside the branch's
+        // history, so only the self-pass can see this.
+        git(root, "checkout", "feat");
+        git(root, "checkout", "develop", "--", "feature.ts");
+        git(root, "commit", "-m", "chore: sync feature.ts");
+        const preSyncTree = git(root, "rev-parse", "HEAD~1^{tree}");
+        const head = git(root, "commit-tree", preSyncTree, "-p", "HEAD", "-m", "docs: snapshot");
+        git(root, "checkout", "--detach", head);
+        expect(fork).not.toBe(head);
+
+        const result = runScript(root, base, head);
+
+        expect(result.status).toBe(1);
+        expect(result.output).toContain("feature.ts");
     });
 
     it("passes a stale snapshot when the opt-in label is present", () => {

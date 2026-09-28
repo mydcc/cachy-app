@@ -162,11 +162,19 @@ function nameStatus(from, to) {
  * Content removed going from `from` to `to`, judged against the tree the
  * branch forked from.
  *
- * `forkRev` is the anchor: a removed line counts as base-introduced only when
- * the fork-era copy does not already contain it. Deleting a file the branch
- * could already see at fork time is the branch's own business.
+ * `forkRev` is the fork-era anchor: a removed line counts as base-introduced
+ * only when the fork-era copy does not already contain it. Deleting a file the
+ * branch could already see at fork time is the branch's own business.
+ *
+ * `baseRev` is the second, independent anchor, and it is what makes the
+ * self-pass safe. The fork tree alone cannot tell branch churn from base work:
+ * a commit that drops a line the branch itself added in an earlier commit looks
+ * identical to one that drops a line the base had added. The base tree does
+ * tell them apart, because it carries only the latter. Without it, a branch
+ * that simply refines its own work across commits reads as a base revert —
+ * which is how the first cut of this pass blocked the pure-docs PR #3724.
  */
-function removedBaseLines(entries, from, to, forkRev) {
+function removedBaseLines(entries, from, to, forkRev, baseRev = null) {
     const violations = [];
     for (const { status, oldPath, path } of entries) {
         if (status.startsWith("A")) continue; // the branch's own addition.
@@ -197,9 +205,14 @@ function removedBaseLines(entries, from, to, forkRev) {
         if (removed.length === 0) continue;
 
         const forkCounts = countLines(blobBuffer(forkRev, oldPath));
+        const baseCounts = baseRev ? countLines(blobBuffer(baseRev, oldPath)) : null;
         const samples = [];
         let baseRemoved = 0;
         for (const line of removed) {
+            // A line the base tree does not carry cannot be base work, however
+            // it got dropped. Skipping it here is what keeps a branch's own
+            // add-then-refine from being reported as a revert.
+            if (baseCounts && !baseCounts.has(line)) continue;
             const left = forkCounts.get(line) ?? 0;
             if (left > 0) {
                 forkCounts.set(line, left - 1);
@@ -223,25 +236,36 @@ function removedBaseLines(entries, from, to, forkRev) {
 /**
  * A branch that commits a stale snapshot of its own checkout (BUG-0583).
  *
- * `diff(mergeBase, head)` is the wrong payload when the head tree *is* the
- * fork-era tree: the diff is empty, so there is nothing to inspect and the
- * check reports success — while the merge still replaces the base tree with
- * the stale one. That is exactly PR #3718, where the branch never merged
- * `develop`, so `mergeBase` is the fork point and `diff(mergeBase, head)` was
- * empty.
+ * The payload pass diffs `mergeBase..head`, so it can only ever see content
+ * the branch removed *relative to the merge-base*. Damage the branch did to
+ * files it had already rewritten, before that merge-base existed, is not in
+ * the diff at all — those files are simply already missing on both sides, and
+ * the check reports success.
  *
- * This walks the branch's own commits instead. A commit that removes content
- * its own parent had, and that the fork point never had, is a snapshot of an
- * older checkout no matter what the base has done since — decidable from the
- * branch alone, with no base comparison that can collapse.
+ * PR #3718 is that case, and it is worth being precise about how it failed,
+ * because the obvious explanation is wrong. The payload is not empty. With the
+ * PR's own base the diff carries 142 paths and the old guard inspects every one
+ * of them, then passes. What fails is the question it asks: `merge-base` of
+ * the PR head and the base is `9358fde2`, the fork-era anchor, so everything
+ * those 142 paths touch is judged "pre-existing at the fork" and nothing can
+ * count as base-introduced. The check is not blind, it is degenerate — and
+ * degenerating silently is the same outcome as being blind, which is why the
+ * fix below is a second pass rather than a threshold.
+ *
+ * This walks the branch's own commits so the judgement does not depend on a
+ * diff that can collapse. A commit that drops content its own parent carried
+ * *may* be a snapshot; it is one when that content is also carried by the base
+ * tree, which is what `baseRev` checks. It is not otherwise — a branch
+ * refining its own earlier commit is doing the opposite of reverting, and the
+ * original wording of this comment claimed otherwise.
  */
-function selfRevertViolations(commits, forkRev) {
+function selfRevertViolations(commits, forkRev, baseRev) {
     const violations = [];
     for (let i = 1; i < commits.length; i++) {
         const parent = commits[i - 1];
         const commit = commits[i];
         const entries = nameStatus(parent, commit);
-        violations.push(...removedBaseLines(entries, parent, commit, forkRev));
+        violations.push(...removedBaseLines(entries, parent, commit, forkRev, baseRev));
     }
     return violations;
 }
@@ -291,20 +315,23 @@ function main() {
         return;
     }
 
-    const violations = removedBaseLines(payloadEntries(mergeBase, head), mergeBase, head, forkRev);
-    const checked = payloadEntries(mergeBase, head).filter(
+    const payload = payloadEntries(mergeBase, head);
+    const violations = removedBaseLines(payload, mergeBase, head, forkRev, base);
+    const checked = payload.filter(
         ({ status, path, oldPath }) =>
             !status.startsWith("A") && !(GENERATED_BACKLOG_PATHS.has(path) || GENERATED_BACKLOG_PATHS.has(oldPath)),
     ).length;
 
-    // BUG-0583: the payload above is empty when the head tree is the fork-era
-    // tree, which is exactly what a stale snapshot looks like. Walk the
-    // branch's own commits so that case is still decidable.
+    // BUG-0583: the payload above cannot see damage the branch did inside the
+    // fork window, because that content is already missing at `mergeBase`. Walk
+    // the branch's own commits so that case is still decidable, anchored on the
+    // base tree so the walk does not flag the branch refining its own work.
     const branchCommits = git("rev-list", "--reverse", "--first-parent", `${base}..${head}`, "--")
         .split("\n")
         .map((l) => l.trim())
         .filter(Boolean);
-    for (const v of selfRevertViolations(branchCommits, forkRev)) {
+    const selfViolations = selfRevertViolations(branchCommits, forkRev, base);
+    for (const v of selfViolations) {
         violations.push(v);
     }
 
@@ -319,8 +346,14 @@ function main() {
     });
 
     if (reported.length === 0) {
+        // Report both halves honestly: a run can inspect zero payload paths and
+        // still have walked the branch's commits, which is the normal shape of
+        // a clean PR whose merge-base is the fork point.
+        const detail = selfViolations.length || checked === 0
+            ? `${checked} changed path(s) in merge-base..head, ${Math.max(0, branchCommits.length - 1)} branch commit(s) walked`
+            : `${checked} changed path(s) checked`;
         console.log(
-            `✅ PR keeps base-branch work intact (${checked} changed path(s) checked since ${first.slice(0, 8)}).`,
+            `✅ PR keeps base-branch work intact (${detail}, forked at ${first.slice(0, 8)}).`,
         );
         return;
     }
