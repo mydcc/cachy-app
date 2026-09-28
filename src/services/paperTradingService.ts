@@ -270,15 +270,15 @@ class PaperTradingService {
         // The two arrays the panel renders, through the same hydration the
         // REST snapshots use — so `PositionsSidebar` needs no notion of which
         // mode produced them, and neither does anything downstream of it.
-        accountState.hydratePositions(feed.positions());
-        accountState.hydrateOpenOrders(feed.pendingOrders());
+        accountState.hydratePositions(feed.positions(), "paper");
+        accountState.hydrateOpenOrders(feed.pendingOrders(), "paper");
 
         const account = feed.accountInfo();
         accountState.hydrateBalance({
             available: account.available,
             margin: account.margin,
             frozen: account.frozen,
-        });
+        }, "paper");
         accountState.setPositionMode(account.positionMode);
 
         this.mirrorToOms();

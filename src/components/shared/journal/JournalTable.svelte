@@ -116,33 +116,38 @@
         field: string,
         direction: "asc" | "desc",
     ): JournalEntry[] {
-        return [...list].sort((a, b) => {
-            const rawA = a as unknown as Record<string, string | number | Decimal | undefined | null>;
-            const rawB = b as unknown as Record<string, string | number | Decimal | undefined | null>;
-            let aVal = rawA[field];
-            let bVal = rawB[field];
+        // Perf (Schwartzian transform): Cache computed sort fields before sorting
+        return list.map(item => {
+            const rawItem = item as unknown as Record<string, string | number | Decimal | undefined | null>;
+            let val = rawItem[field];
 
-            if (aVal instanceof Decimal) aVal = aVal.toNumber();
-            if (bVal instanceof Decimal) bVal = bVal.toNumber();
-
-            if (aVal == null && bVal == null) return 0;
-            if (aVal == null) return 1;
-            if (bVal == null) return -1;
-
-            let comparison: number;
             if (field === "slAtr") {
-                const getSlAtr = (item: JournalEntry) => {
-                    if (!item.entryPrice || !item.stopLossPrice || !item.atrValue) return -1;
+                if (!item.entryPrice || !item.stopLossPrice || !item.atrValue) {
+                    val = -1;
+                } else {
                     const entry = new Decimal(item.entryPrice);
                     const sl = new Decimal(item.stopLossPrice);
                     const atr = new Decimal(item.atrValue);
-                    if (atr.isZero()) return -1;
-                    return entry.minus(sl).abs().div(atr).toNumber();
-                };
-                aVal = getSlAtr(a);
-                bVal = getSlAtr(b);
+                    if (atr.isZero()) {
+                        val = -1;
+                    } else {
+                        val = entry.minus(sl).abs().div(atr).toNumber();
+                    }
+                }
+            } else {
+                if (val instanceof Decimal) val = val.toNumber();
             }
 
+            return { item, val };
+        }).sort((a, b) => {
+            const aVal = a.val;
+            const bVal = b.val;
+
+            if (aVal == null && bVal == null) return 0;
+            if (aVal == null) return direction === "asc" ? 1 : -1;
+            if (bVal == null) return direction === "asc" ? -1 : 1;
+
+            let comparison: number;
             if (typeof aVal === "string" && typeof bVal === "string") {
                 comparison = aVal.localeCompare(bVal);
             } else {
@@ -150,10 +155,10 @@
             }
 
             return direction === "asc" ? comparison : -comparison;
-        });
+        }).map(obj => obj.item);
     }
 
-    let safeItemsPerPage = $derived(Math.max(1, Number(itemsPerPage || 10)));
+    let safeItemsPerPage = $derived(Math.max(1, Number(itemsPerPage || 10)));  // audit: safe — rows per page, not a financial value
     let totalPages = $derived(
         Math.ceil((trades?.length || 0) / safeItemsPerPage),
     );

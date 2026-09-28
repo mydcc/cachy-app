@@ -17,9 +17,10 @@
 
 import { Decimal } from "decimal.js";
 import type { MarketUpdatePayload, RawNumeric } from "./types";
+import type { QuoteSource } from "../../services/priceResolution";
 
 
-export function applyUpdate(marketManager: import("../market.svelte").MarketManager, symbol: string, partial: MarketUpdatePayload) {
+export function applyUpdate(marketManager: import("../market.svelte").MarketManager, symbol: string, partial: MarketUpdatePayload, source?: QuoteSource) {
   try {
     marketManager.touchSymbol(symbol);
     const current = marketManager.getOrCreateSymbol(symbol);
@@ -46,6 +47,14 @@ export function applyUpdate(marketManager: import("../market.svelte").MarketMana
           console.warn(`[Market] Received null lastPrice for ${symbol}`);
         }
         current.lastPrice = newVal;
+        // BUG-0558: stamp only when a real value arrived (mirrors BUG-0512's
+        // markPriceUpdatedAt). A sourceless update (technicals, depth,
+        // funding) keeps the old price AND the old stamp/source — the price
+        // did not get fresher.
+        if (newVal !== null) {
+          current.lastPriceUpdatedAt = Date.now();
+          if (source !== undefined) current.lastPriceSource = source;
+        }
 
         // FEAT-0399: nothing evaluates here any more. The legacy engine was a
         // per-tick cross detector, so this call site had to run on every price

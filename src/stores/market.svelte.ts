@@ -40,6 +40,7 @@ import type {
   RawKlineWsMessage,
   RawNumeric
 } from "./market/types";
+import type { QuoteSource } from "../services/priceResolution";
 
 export type {
   MarketData,
@@ -123,6 +124,13 @@ export class MarketManager {
   }
 
   private pendingUpdates = new Map<string, MarketUpdatePayload>();
+  /**
+   * Quote source per buffered symbol (BUG-0558). The flush buffer merges
+   * partials and would otherwise lose which channel a price came from.
+   * Last writer wins per flush window; a sourceless update never clears a
+   * stored source, so a technicals-only tick cannot relabel a WS price.
+   */
+  private pendingSources = new Map<string, QuoteSource>();
   private pendingKlineUpdates = new Map<string, RawKline[]>();
   // `ReturnType<typeof ...>` rather than `number`: the handle is a number in the
   // browser and a Timeout object under Node, and these run in both.
@@ -174,6 +182,7 @@ export class MarketManager {
     this.marketTelemetry.destroy();
     this.symbolCache.clear();
     this.pendingUpdates.clear();
+    this.pendingSources.clear();
     this.klineBufferManager.clear();
     this.data = {};
     this.symbolMeta = {};
@@ -209,7 +218,7 @@ export class MarketManager {
     this.symbolCache.enforceLimit(this.symbolCache.metadata.size, () => Array.from(this.symbolCache.metadata.keys()));
   }
 
-  updateSymbol(symbol: string, partial: MarketUpdatePayload) {
+  updateSymbol(symbol: string, partial: MarketUpdatePayload, source?: QuoteSource) {
     // Instead of updating immediately, we buffer updates
     const existing = this.pendingUpdates.get(symbol) || {};
 
@@ -239,6 +248,15 @@ export class MarketManager {
       }
     }
     this.pendingUpdates.set(symbol, merged);
+    // BUG-0558: only price-bearing writes relabel the source — a sourceless
+    // tick buffered after a price must not flip the stamp's provenance.
+    if (
+      source !== undefined &&
+      partial.lastPrice !== undefined &&
+      partial.lastPrice !== null
+    ) {
+      this.pendingSources.set(symbol, source);
+    }
 
     // Safety: Prevent memory leak if flush interval stalls
     // Dynamic limit based on cache size (5x cache size to allow for burst)
@@ -262,12 +280,13 @@ export class MarketManager {
       if (this.pendingUpdates.size > 0) {
         this.pendingUpdates.forEach((partial, symbol) => {
           try {
-            this.applyUpdate(symbol, partial);
+            this.applyUpdate(symbol, partial, this.pendingSources.get(symbol));
           } catch (e) {
             if (import.meta.env.DEV) console.error(`[Market] Error flushing update for ${symbol}`, e);
           }
         });
         this.pendingUpdates.clear();
+        this.pendingSources.clear();
       }
 
       // Gap detection for alerts
@@ -302,8 +321,8 @@ export class MarketManager {
     this.enforceCacheLimit();
   }
 
-  private applyUpdate(symbol: string, partial: MarketUpdatePayload) {
-    applyUpdate(this, symbol, partial);
+  private applyUpdate(symbol: string, partial: MarketUpdatePayload, source?: QuoteSource) {
+    applyUpdate(this, symbol, partial, source);
   }
 
   updateTelemetry(partial: Partial<typeof this.telemetry>) {
@@ -391,12 +410,12 @@ export class MarketManager {
   }
 
   // Legacy update methods refactored to use updateSymbol
-  updatePrice(symbol: string, data: RawPriceUpdate) {
-    updatePrice(this, symbol, data);
+  updatePrice(symbol: string, data: RawPriceUpdate, source: QuoteSource = "ws") {
+    updatePrice(this, symbol, data, source);
   }
 
-  updateTicker(symbol: string, data: RawTickerUpdate) {
-    updateTicker(this, symbol, data);
+  updateTicker(symbol: string, data: RawTickerUpdate, source: QuoteSource = "ws") {
+    updateTicker(this, symbol, data, source);
   }
 
   updateDepth(symbol: string, data: RawDepthUpdate) {
@@ -410,6 +429,7 @@ export class MarketManager {
   reset() {
     this.klineBufferManager.clear();
     this.symbolCache.clear();
+    this.pendingSources.clear();
     this.data = {};
     this.symbolMeta = {};
     this.positionTiers = {};

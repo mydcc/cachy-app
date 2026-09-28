@@ -45,6 +45,7 @@
     import { settingsState } from "../../../stores/settings.svelte";
     import { keysForActiveAccount } from "../../../stores/settings/accounts";
     import { accountState } from "../../../stores/account.svelte";
+    import { paperAccountFeed } from "../../../services/paperAccountFeed";
     import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { validateTpSlPrice, normalizePositionSide } from "../../../lib/calculators/tpsl";
@@ -179,12 +180,21 @@
         return sampled;
     }
 
+    /**
+     * BUG-0572 decision (Option 1: keep the float, document the boundary).
+     * The chart works in f64 by design — the series API is number-based, and
+     * so is this seed. Both alert consumers need no more: `conditionFromChartClick`
+     * re-wraps the seed in Decimal and rounds to axis precision (that rounding
+     * is the precision boundary), and `buildDrawingAlert` compares it only to
+     * pick a side — the stored level comes from the drawing itself. No document
+     * ever carries this float unrounded.
+     */
     function lastChartPrice(): number | null {
         const klines =
             marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines?.[timeframe];
         const last = klines?.[klines.length - 1];
         if (!last) return null;
-        const close = Number(last.close);
+        const close = Number(last.close); // audit: safe — f64 chart seed; alert consumers re-round (chartAlertSeed.ts) or compare direction only (createDrawingAlert.ts)
         return Number.isFinite(close) ? close : null;
     }
 
@@ -328,6 +338,16 @@
     // just replaces the array).
     async function hydratePositionsIfEmpty() {
         if (accountState.positions.length > 0) return;
+        // BUG-0565: the paper seam answers first. After a mode switch the
+        // store is empty and this runs before the simulator's next tick — a
+        // live REST read here would stamp the snapshot "live" and the paper
+        // book would measure against it (the PositionsSidebar siblings at
+        // fetchPositions/fetchPendingOrders already branch this way).
+        const paper = paperAccountFeed();
+        if (paper) {
+            accountState.hydratePositions(paper.positions(), "paper");
+            return;
+        }
         const provider = settingsState.apiProvider || "bitunix";
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
@@ -346,7 +366,7 @@
             });
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
-            if (data?.positions) accountState.hydratePositions(data.positions);
+            if (data?.positions) accountState.hydratePositions(data.positions, "live");
         } catch (e) {
             console.error("[CandleChartView] FEAT-0247: position hydration failed:", e);
         }
@@ -359,6 +379,12 @@
     // real size on it.
     async function hydrateOpenOrdersIfEmpty() {
         if (accountState.openOrders.length > 0) return;
+        // BUG-0565: same paper-first rule as hydratePositionsIfEmpty above.
+        const paper = paperAccountFeed();
+        if (paper) {
+            accountState.hydrateOpenOrders(paper.pendingOrders(), "paper");
+            return;
+        }
         const provider = settingsState.apiProvider || "bitunix";
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
         if (!keys.key || !keys.secret) return;
@@ -377,7 +403,7 @@
                 fetchFn: appFetch,
             });
             const json = await response.json();
-            if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[]);
+            if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[], "live");
         } catch (e) {
             console.error("[CandleChartView] FEAT-0247: open order hydration failed:", e);
         }
@@ -509,7 +535,7 @@
             timeToX: (ms) => chart?.timeScale().timeToCoordinate((ms / 1000) as Time) ?? null,
             xToTime: (x) => {
                 const time = chart?.timeScale().coordinateToTime(x);
-                return time === null || time === undefined ? null : Number(time) * 1000;
+                return time === null || time === undefined ? null : Number(time) * 1000;  // audit: safe — chart series data is plain numbers (the chart library's own API)
             },
             priceToY: (price) => candleSeries?.priceToCoordinate(price.toNumber()) ?? null,
             yToPrice: (y) => {
@@ -1128,10 +1154,10 @@
                             const currentLastTime = (currentLastKline.time / 1000) as Time;
                             const update = {
                                 time: currentLastTime,
-                                open: Number(currentLastKline.open),
-                                high: Number(currentLastKline.high),
-                                low: Number(currentLastKline.low),
-                                close: Number(currentLastKline.close),
+                                open: Number(currentLastKline.open),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                high: Number(currentLastKline.high),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                low: Number(currentLastKline.low),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                close: Number(currentLastKline.close),  // audit: safe — chart series data is plain numbers (the chart library's own API)
                             };
                             candleSeries.update(update);
 
@@ -1144,11 +1170,11 @@
                             // Optional call: the component-test mock provides
                             // a no-op layer without this method.
                             indicatorLayer?.updateHeaderValues?.({
-                                open: Number(currentLastKline.open),
-                                high: Number(currentLastKline.high),
-                                low: Number(currentLastKline.low),
-                                close: Number(currentLastKline.close),
-                                volume: Number(currentLastKline.volume),
+                                open: Number(currentLastKline.open),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                high: Number(currentLastKline.high),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                low: Number(currentLastKline.low),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                close: Number(currentLastKline.close),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                volume: Number(currentLastKline.volume),  // audit: safe — chart series data is plain numbers (the chart library's own API)
                             });
 
                             if (win.currentPrice !== undefined) {
@@ -1197,15 +1223,15 @@
                     const formatted: CandlestickData[] = klines
                         .map((k) => ({
                             time: (k.time / 1000) as Time,
-                            open: Number(k.open),
-                            high: Number(k.high),
-                            low: Number(k.low),
-                            close: Number(k.close),
+                            open: Number(k.open),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                            high: Number(k.high),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                            low: Number(k.low),  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                            close: Number(k.close),  // audit: safe — chart series data is plain numbers (the chart library's own API)
                         }))
                         .filter(
                             (k) =>
-                                !isNaN(Number(k.time)) &&
-                                Number(k.time) > 0 &&
+                                !isNaN(Number(k.time)) &&  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                                Number(k.time) > 0 &&  // audit: safe — chart series data is plain numbers (the chart library's own API)
                                 !isNaN(k.open) &&
                                 !isNaN(k.high) &&
                                 !isNaN(k.low) &&
@@ -1213,14 +1239,14 @@
                         );
 
                     // Sorting check (Lightweight charts requires strictly ascending time)
-                    formatted.sort((a, b) => Number(a.time) - Number(b.time));
+                    formatted.sort((a, b) => Number(a.time) - Number(b.time));  // audit: safe — chart series data is plain numbers (the chart library's own API)
 
                     // Deduping check
                     const unique: CandlestickData[] = [];
                     const seen = new Set();
                     for (const k of formatted) {
-                        if (!seen.has(Number(k.time))) {
-                            seen.add(Number(k.time));
+                        if (!seen.has(Number(k.time))) {  // audit: safe — chart series data is plain numbers (the chart library's own API)
+                            seen.add(Number(k.time));  // audit: safe — chart series data is plain numbers (the chart library's own API)
                             unique.push(k);
                         }
                     }
@@ -1229,13 +1255,13 @@
                     // layer (volume pane, VWAP, OBV, MFI…) gets correct input.
                     const volByTime = new Map<number, number>();
                     for (const k of klines) {
-                        const t = Number(k.time / 1000);
+                        const t = Number(k.time / 1000);  // audit: safe — chart series data is plain numbers (the chart library's own API)
                         if (!volByTime.has(t)) {
-                            volByTime.set(t, Number(k.volume));
+                            volByTime.set(t, Number(k.volume));  // audit: safe — chart series data is plain numbers (the chart library's own API)
                         }
                     }
                     const rows: ChartRow[] = unique.map((c) => {
-                        const t = Number(c.time);
+                        const t = Number(c.time);  // audit: safe — chart series data is plain numbers (the chart library's own API)
                         return {
                             time: c.time,
                             open: c.open,
@@ -1251,7 +1277,7 @@
                     // the line still spans the full series on a 5 000-candle
                     // history instead of stopping partway across.
                     drawingSampleTimes = strideSampled(
-                        unique.map((c) => Number(c.time) * 1000),
+                        unique.map((c) => Number(c.time) * 1000),  // audit: safe — chart series data is plain numbers (the chart library's own API)
                     );
                     drawingPrimitive?.update();
 

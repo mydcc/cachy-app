@@ -46,6 +46,7 @@
  */
 
 import { Decimal } from "decimal.js";
+import { normalizeSymbol } from "../../utils/symbolUtils";
 
 export type PositionSide = "LONG" | "SHORT";
 export type TpSlPriceKind = "TP" | "SL";
@@ -305,4 +306,35 @@ export function netRoiPercentFromPrice(
     const margin = ctx.positionSize.times(ctx.entryPrice).div(ctx.leverage);
     if (margin.lte(0)) return new Decimal(0);
     return netPnlFromPrice(ctx, price, fees).div(margin).times(100);
+}
+
+/**
+ * BUG-0553 — which open position a TP/SL plan's PnL/ROI context is computed
+ * against.
+ *
+ * A scoped plan names its position (`positionId`, BUG-0524) and matches it
+ * exactly; a closed or unknown id matches nothing, and the caller falls back
+ * to plain price entry. A legacy plan carries no identity, so it may only
+ * borrow context when exactly one same-symbol position is open — with a
+ * long and a short side open, either choice would describe the wrong side,
+ * and guessing is worse than no context.
+ *
+ * Symbol comparison is venue-normalized (BUG-0501) when the caller passes a
+ * venue — a venue-prefixed plan symbol still finds its bare position — and
+ * falls back to a raw comparison without one.
+ */
+export function resolveTpSlPosition<
+    P extends { symbol: string; positionId?: string },
+    O extends { symbol: string; positionId?: string },
+>(positions: readonly P[], order: O, venue?: string): P | undefined {
+    const same = positions.filter((p) =>
+        venue
+            ? normalizeSymbol(p.symbol, venue) ===
+              normalizeSymbol(order.symbol, venue)
+            : p.symbol === order.symbol,
+    );
+    if (order.positionId) {
+        return same.find((p) => p.positionId === order.positionId);
+    }
+    return same.length === 1 ? same[0] : undefined;
 }

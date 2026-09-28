@@ -2,9 +2,9 @@
 
 # Backlog index
 
-444 items. How to read and add them: [README.md](README.md).
+452 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 380 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 16 · 🟢 ready 9 · ✅ done 403 · ⛔ dropped 1
 
 ---
 
@@ -278,22 +278,22 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | execution |
 | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | ✅ done | execution |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | ✅ done | execution |
-| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | security |
-| [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | 📋 specced | trade-panel |
-| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | 📋 specced | execution |
-| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | 📋 specced | execution |
-| [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | 📋 specced | calculation |
-| [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | 📋 specced | settings |
-| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | market-data |
-| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 📋 specced | security |
-| [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | 📋 specced | execution |
+| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | ✅ done | security |
+| [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | ✅ done | trade-panel |
+| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | ✅ done | execution |
+| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | execution |
+| [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | calculation |
+| [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | settings |
+| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | market-data |
+| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | security |
+| [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | ✅ done | ui |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | security |
-| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | execution |
-| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | execution |
+| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 🟢 ready | execution |
+| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 🟢 ready | execution |
 | [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | ✅ done | alerts |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -372,11 +372,12 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [BUG-0520](bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md) | attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path | P2 | ✅ done | security |
 | [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | ✅ done | security |
 | [BUG-0523](bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md) | Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day | P2 | ✅ done | execution |
-| [BUG-0552](bugs/BUG-0552-paper-config-break-fill-invariants.md) | Paper configuration accepts ranges that break fill quantity and price invariants | P2 | 📋 specced | execution |
-| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | 📋 specced | calculation |
-| [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | 📋 specced | execution |
-| [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | 📋 specced | ui |
-| [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 📋 specced | execution |
+| [BUG-0552](bugs/BUG-0552-paper-config-break-fill-invariants.md) | Paper configuration accepts ranges that break fill quantity and price invariants | P2 | ✅ done | execution |
+| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | ✅ done | calculation |
+| [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | ✅ done | execution |
+| [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | ui |
+| [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | execution |
+| [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | execution |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -425,7 +426,7 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | alerts |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | alerts |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | ui |
-| [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | 💡 idea | execution |
+| [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | ui |
@@ -466,7 +467,12 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | security |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | execution |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
-| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | ui |
+| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | ui |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | ✅ done | ui |
+| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | ✅ done | security |
+| [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | ui |
+| [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | ui |
+| [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -499,6 +505,8 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | exchange |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | ui |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | exchange |
+| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | ui |
+| [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | 🟢 ready | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -622,15 +630,15 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [BUG-0547](bugs/BUG-0547-tpsl-actions-bypass-structural-order-gate.md) | TP/SL creation actions bypass the structural order gate | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) | Pending-order quantity amendments bypass configured risk limits | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) | An entry with insufficient displayed margin remains orderable | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | 📋 specced | none | community, pro, private | C | none | — |
-| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
+| [BUG-0551](bugs/BUG-0551-signing-session-race-old-live-context.md) | Account or mode changes during signing can dispatch to the old live context | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0553](bugs/BUG-0553-hedge-ui-projections-collapse-sides.md) | Hedge-mode UI projections collapse same-symbol positions | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0554](bugs/BUG-0554-margin-reduction-without-liquidation-preview.md) | Reducing isolated margin submits without showing the liquidation consequence | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0555](bugs/BUG-0555-final-confirmation-omits-tp-plan.md) | Final live-order confirmation omits TP portions and can imply a zero stop | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0556](bugs/BUG-0556-symbol-refresh-changes-atr-mode.md) | Refreshing a symbol silently changes the stop strategy to automatic ATR | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0557](bugs/BUG-0557-empty-max-open-positions-becomes-zero.md) | Clearing max-open-positions converts an absent limit into zero | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0558](bugs/BUG-0558-cached-market-quotes-seed-calculator.md) | Cached market quotes are presented as live and can seed the calculator | P1 | ✅ done | none | community, pro, private | C | none | — |
+| [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -670,8 +678,8 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
-| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
-| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 🟢 ready | none | community, pro, private | A | ADR-0012 | — |
+| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
@@ -765,11 +773,12 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [BUG-0520](bugs/BUG-0520-legacy-iteration-fallback-cannot-fire-for-device-key-blobs.md) | attemptDecrypt ignores its iterations argument on every branch a production caller uses, so the legacy PBKDF2 fallback is a duplicate attempt rather than a recovery path | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0521](bugs/BUG-0521-unhandled-indexeddb-blocked-leaves-the-device-key-promise-pending.md) | indexedDB.open has no onblocked handler, so a concurrent factory reset leaves the device-key promise pending forever and secretsReady never resolves | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0523](bugs/BUG-0523-daily-loss-unmeasurable-cause-and-synced-scratch.md) | Daily-loss unmeasurable refusal names no cause and synced scratch trades brick the day | P2 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0552](bugs/BUG-0552-paper-config-break-fill-invariants.md) | Paper configuration accepts ranges that break fill quantity and price invariants | P2 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | 📋 specced | none | community, pro, private | C | none | — |
-| [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | 📋 specced | none | community, pro, private | A | none | — |
-| [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0552](bugs/BUG-0552-paper-config-break-fill-invariants.md) | Paper configuration accepts ranges that break fill quantity and price invariants | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0559](bugs/BUG-0559-funding-cost-ignores-side.md) | Estimated funding cost ignores long and short direction | P2 | ✅ done | none | community, pro, private | C | none | — |
+| [BUG-0561](bugs/BUG-0561-invalid-quantity-draft-reverts.md) | Invalid add and close quantity drafts silently revert and submit the old amount | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -863,7 +872,7 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | none | community, pro, private | A | none | — |
-| [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
+| [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0008](bugs/BUG-0008-toast-array-unbounded.md) | The toast array grows without a bound | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -905,7 +914,12 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [BUG-0497](bugs/BUG-0497-x-api-sign-escapes-redaction.md) | The x-api-sign header escapes isSensitiveKey because the sign pattern is anchored | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
-| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
+| [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
+| [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -943,6 +957,8 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | 🟢 ready | none | community, pro, private | none | ADR-0010 | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -962,4 +978,4 @@ Counts by status: 💡 idea 24 · 📋 specced 32 · 🟢 ready 7 · ✅ done 38
 
 ---
 
-Next free number: **0568**
+Next free number: **0576**

@@ -266,7 +266,7 @@ describe('AccountManager', () => {
                     leverage: '10',
                     marginMode: 'CROSS',
                 },
-            ]);
+            ], 'live');
 
             expect(accountState.positions).toHaveLength(1);
             const pos = accountState.positions[0];
@@ -280,12 +280,12 @@ describe('AccountManager', () => {
         it('does not throw on a malformed field and replaces the whole array', () => {
             accountState.hydratePositions([
                 { positionId: '1', symbol: 'BTCUSDT', side: 'LONG', size: 'MARKET', marginMode: 'CROSS' },
-            ]);
+            ], 'live');
             expect(accountState.positions).toHaveLength(1);
             expect(accountState.positions[0].size.toString()).toBe('0');
 
             // A second hydration fully replaces the first (REST is a full snapshot).
-            accountState.hydratePositions([]);
+            accountState.hydratePositions([], 'live');
             expect(accountState.positions).toHaveLength(0);
         });
     });
@@ -298,7 +298,7 @@ describe('AccountManager', () => {
                     price: '3000', amount: '2', filled: '0', status: 'NEW', time: 1700000000000,
                     fee: '0', realizedPNL: '0',
                 },
-            ]);
+            ], 'live');
 
             expect(accountState.openOrders).toHaveLength(1);
             const order = accountState.openOrders[0];
@@ -320,7 +320,7 @@ describe('AccountManager', () => {
                     fee: '0', realizedPNL: '0', leverage: '15', marginMode: 'ISOLATION',
                     positionMode: 'HEDGE', tpPrice: '3100', slPrice: '2900',
                 },
-            ]);
+            ], 'live');
 
             const order = accountState.openOrders[0];
             expect(order.leverage).toBe('15');
@@ -370,7 +370,7 @@ describe('AccountManager', () => {
 
     describe('hydrateBalance', () => {
         it('sets available/margin/frozen and derives total', () => {
-            accountState.hydrateBalance({ available: '1000', margin: '50', frozen: '10' });
+            accountState.hydrateBalance({ available: '1000', margin: '50', frozen: '10' }, 'live');
             expect(accountState.assets).toHaveLength(1);
             const asset = accountState.assets[0];
             expect(asset.available.toString()).toBe('1000');
@@ -394,7 +394,7 @@ describe('AccountManager', () => {
                 expMoney: '3.5',
             });
 
-            accountState.hydrateBalance({ available: '1000', margin: '50', frozen: '10' });
+            accountState.hydrateBalance({ available: '1000', margin: '50', frozen: '10' }, 'live');
 
             const asset = accountState.assets.find((a) => a.currency === 'USDT');
             expect(asset?.isolationFrozen?.toString()).toBe('5');
@@ -413,7 +413,7 @@ describe('AccountManager', () => {
                     positionId: '1', symbol: 'BTCUSDT', side: 'LONG', marginMode: 'CROSS',
                     marginRate: '0.05', realizedPnl: '12.34',
                 },
-            ]);
+            ], 'live');
             expect(accountState.positions[0].marginRate.toString()).toBe('0.05');
             expect(accountState.positions[0].realizedPnl.toString()).toBe('12.34');
         });
@@ -424,7 +424,7 @@ describe('AccountManager', () => {
                     positionId: '1', symbol: 'BTCUSDT', side: 'LONG', marginMode: 'CROSS',
                     marginRate: '0.05', realizedPnl: '0',
                 },
-            ]);
+            ], 'live');
 
             accountState.updatePositionFromWs({
                 positionId: '1', symbol: 'BTCUSDT', side: 'long',
@@ -517,12 +517,12 @@ describe('AccountManager', () => {
             accountState.hydratePositions([
                 { symbol: 'BTCUSDT', side: 'LONG', unrealizedPnL: '100', marginMode: 'CROSS' },
                 { symbol: 'ETHUSDT', side: 'SHORT', unrealizedPnL: '-30', marginMode: 'CROSS' },
-            ]);
+            ], 'live');
             expect(accountState.totalUnrealizedPnl.toString()).toBe('70');
         });
 
         it('is zero with no open positions', () => {
-            accountState.hydratePositions([]);
+            accountState.hydratePositions([], 'live');
             expect(accountState.totalUnrealizedPnl.toString()).toBe('0');
         });
     });
@@ -547,7 +547,7 @@ describe('AccountManager', () => {
                     positionId: '1', symbol: 'BTCUSDT', side: 'LONG',
                     entryPrice: '50000', marginMode: 'CROSS',
                 },
-            ]);
+            ], 'live');
 
             const pos = accountState.positions[0];
             expect(
@@ -574,7 +574,7 @@ describe('AccountManager', () => {
                     positionId: '1', symbol: 'BTCUSDT', side: 'LONG',
                     entryPrice: '50000', marginMode: 'CROSS',
                 },
-            ]);
+            ], 'live');
 
             expect(
                 accountState.positions[0].breakEvenPrice.equals(

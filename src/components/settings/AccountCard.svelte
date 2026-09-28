@@ -34,6 +34,10 @@
 <script lang="ts">
     import { _ } from "../../locales/i18n";
     import type { ExchangeAccount } from "../../stores/settings/accounts";
+    import {
+        accountVerification,
+        type AccountVerificationStatus,
+    } from "../../stores/accountVerification.svelte";
 
     interface Props {
         account: ExchangeAccount;
@@ -55,13 +59,69 @@
     const fieldId = (part: string) => `account-${account.id}-${part}`;
     const toggle = (part: string) => (shown[part] = !shown[part]);
 
-    /** Green once the account can actually sign: a key alone cannot. */
-    const isConfigured = $derived(
-        Boolean(
-            account.keys.key &&
-                account.keys.secret &&
-                (account.exchange !== "bitget" || account.keys.passphrase),
+    /**
+     * What we actually know about these credentials — BUG-0560.
+     *
+     * This used to be "are the three fields nonempty", which made a revoked or
+     * mistyped key look exactly as healthy as a working one: the card was
+     * telling the trader their credentials were fine on the strength of having
+     * typed them. The answer now comes from the verification store, which only
+     * reports `verified` after a signed account read came back from the venue.
+     *
+     * Per account, so switching accounts cannot show the previous account's
+     * verdict, and derived from the account object the parent passes on every
+     * render (see the file note on never holding a captured `account`).
+     */
+    const status = $derived<AccountVerificationStatus>(
+        accountVerification.statusFor({
+            id: account.id,
+            exchange: account.exchange,
+            keys: account.keys,
+        }),
+    );
+
+    /**
+     * The one state that gets the green dot.
+     *
+     * Not "not red": only a read that the venue accepted. `verifying` and
+     * `stale` are both unproven, and colouring them as anything but pending
+     * would be the bug again in a different shade.
+     */
+    const isVerified = $derived(status === "verified");
+
+    const failure = $derived(
+        accountVerification.recordFor({
+            id: account.id,
+            exchange: account.exchange,
+            keys: account.keys,
+        })?.failure,
+    );
+
+    /**
+     * Whether the last read never reached the venue.
+     *
+     * A dropped connection is not the trader's key being refused, and the dot
+     * has to say so too. The label already carried this distinction; the colour
+     * did not, so a network blip drew the same red dot as a rejected key and
+     * contradicted the words right next to it. Amber is a connection state;
+     * red is an accusation.
+     */
+    const isUnreachable = $derived(
+        status === "rejected" && failure === "unreachable",
+    );
+
+    const statusLabel = $derived(
+        $_(
+            `settings.connections.accounts.verifyStatus.${
+                isUnreachable ? "unreachable" : status
+            }`,
         ),
+    );
+
+    const statusTitle = $derived(
+        $_("settings.connections.accounts.verifyStatusAria", {
+            values: { status: statusLabel },
+        }),
     );
 </script>
 
@@ -99,7 +159,16 @@
                     >{$_("settings.connections.accounts.active")}</span
                 >
             {/if}
-            <span class="status-dot {isConfigured ? 'connected' : ''}"></span>
+            <span
+                class="status-dot {isVerified ? 'connected' : ''}"
+                class:verifying={status === "verifying"}
+                class:stale={status === "stale"}
+                class:unreachable={isUnreachable}
+                class:rejected={status === "rejected" && !isUnreachable}
+                title={statusTitle}
+                role="img"
+                aria-label={statusTitle}
+            ></span>
         </div>
     </div>
     <div class="body">
@@ -200,6 +269,45 @@
         background: var(--success-color);
         opacity: 1;
         box-shadow: 0 0 8px var(--success-color);
+    }
+    /* BUG-0560: a read in flight and a verdict that has expired are two
+       different unknowns, and both are unproven — amber, not green. They are
+       not the same unknown, though, so they do not look the same: the pulse
+       says "a read is happening, waiting will answer this", and a steady amber
+       says "nothing is happening, and nothing here is proven". Animating an
+       expired verdict would promise a resolution that no read is on its way to
+       deliver. The animation moves nothing for a screen reader, which gets the
+       same words from `aria-label` either way. */
+    /* BUG-0560: a read in flight, an expired verdict and a venue that could not
+       be reached are three unknowns, and the third is a connection problem
+       rather than an accusation — it wears the same amber as the other two,
+       because the label beside it already said so. */
+    .status-dot.verifying,
+    .status-dot.stale,
+    .status-dot.unreachable {
+        background: var(--warning-color);
+        opacity: 1;
+    }
+    .status-dot.verifying {
+        animation: status-pulse 1.6s ease-in-out infinite;
+    }
+    .status-dot.rejected {
+        background: var(--danger-color);
+        opacity: 1;
+    }
+    @keyframes status-pulse {
+        0%,
+        100% {
+            opacity: 0.45;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .status-dot.verifying {
+            animation: none;
+        }
     }
     .api-input {
         width: 100%;

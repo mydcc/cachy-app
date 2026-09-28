@@ -116,6 +116,37 @@ describe("Trade Store Integration", () => {
         expect(tradeState.entryPrice).toBe("55000");
     });
 
+    it("normalizes a persisted mixed-case trade direction", () => {
+        const stored = {
+            tradeType: "ShOrT",
+            accountSize: "1000",
+            riskPercentage: "1",
+            entryPrice: "50000",
+            stopLossPrice: "49000",
+            leverage: "10",
+            fees: "0.0140",
+            symbol: "BTCUSDT",
+            atrValue: null,
+            atrMultiplier: "1.2",
+            useAtrSl: false,
+            atrMode: "auto",
+            atrTimeframe: "5m",
+            tradeNotes: "",
+            tags: [],
+            targets: [{ price: "50000", percent: "100", isLocked: false }],
+            isPositionSizeLocked: false,
+            lockedPositionSize: null,
+            isRiskAmountLocked: false,
+            riskAmount: null,
+        };
+        localStorage.setItem("cachy_trade_store", JSON.stringify(stored));
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reaching the private load() is the point of this test
+        (tradeState as any).load();
+
+        expect(tradeState.tradeType).toBe("short");
+    });
+
     it("BUG-0002: filters out a persisted numeric-zero target on load()", () => {
         // Exercises the real hydration path (private load()), not a copy of its
         // logic — a numeric 0 must be caught by the same Decimal-based check

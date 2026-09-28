@@ -25,14 +25,24 @@
 
   The dialog closes on success and shows nothing new about the position: the
   updated margin arrives on the private position channel (with a REST resync
-  behind it), so what the trader reads afterwards is the exchange's number,
-  not this dialog's arithmetic.
+  behind it — `tradeService.adjustPositionMargin` calls
+  `accountState.requestSync()`), so what the trader reads afterwards is the
+  exchange's number, not this dialog's arithmetic. The parent's `onsuccess`
+  (PositionsSidebar `handleAdjustMarginSuccess`: close + toast) is that
+  reconciliation trigger — the same established pattern ClosePositionModal
+  and AddToPositionModal use — so no extra refresh is added here.
+  Failure never calls `onsuccess` and the dialog stays open.
+
+  BUG-0554 — the dialog also projects the liquidation consequence via
+  `projectLiquidation` and gates a tightening reduce behind an explicit
+  acknowledgement of current margin, new margin, and liquidation move.
 -->
 
 <script lang="ts">
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { activeExchange } from "../../services/exchange";
+  import { projectLiquidation } from "../../lib/calculators/liquidation";
   import { getDisplayMessage } from "../../utils/errorUtils";
   import { formatDynamicDecimal } from "../../utils/utils";
   import type { OMSPosition } from "../../services/omsTypes";
@@ -51,6 +61,7 @@
   let amountText = $state("");
   let loading = $state(false);
   let error = $state("");
+  let acknowledged = $state(false);
 
   /*
    * Bitunix reports ISOLATION, the mapper lowercases whatever arrives, and
@@ -86,9 +97,115 @@
       amount.gt(position.margin),
   );
 
-  const canSubmit = $derived(
-    !loading && isIsolated && amount !== null && !exceedsMargin,
+  /*
+   * BUG-0554 — project the liquidation consequence of the drafted change.
+   *
+   * The margin change is a leverage change at constant notional
+   * (notional = amount × entry), so the new leverage is notional / newMargin
+   * and `projectLiquidation` (BUG-0504) solves the venue MMR from the
+   * entry/liquidation/current-leverage triple and re-applies it there.
+   *
+   * `null` from the helper — or any missing/non-positive input here — is an
+   * explicit unmeasurable state, never the old liquidation value presented
+   * as the consequence. A full withdrawal (reduce with newMargin <= 0)
+   * removes the entire isolated buffer, so it is a distinct `closing` state
+   * with its own acknowledgement gate rather than an unmeasurable one:
+   * there is no liquidation price left to project.
+   */
+  type Projection =
+    | { state: "idle" }
+    | { state: "unmeasurable" }
+    | { state: "closing"; newMargin: Decimal }
+    | {
+        state: "ok";
+        to: Decimal;
+        tighter: boolean;
+        newMargin: Decimal;
+      };
+
+  const projection = $derived.by<Projection>(() => {
+    if (!position || amount === null) return { state: "idle" };
+    try {
+      const entry = position.entryPrice;
+      const liq = position.liquidationPrice;
+      const margin = position.margin;
+      const size = position.amount;
+      if (!entry?.isFinite() || entry.lte(0)) return { state: "unmeasurable" };
+      if (!liq?.isFinite() || liq.lte(0)) return { state: "unmeasurable" };
+      if (!margin?.isFinite() || margin.lte(0)) return { state: "unmeasurable" };
+      if (!size?.isFinite() || size.lte(0)) return { state: "unmeasurable" };
+      if (position.side !== "long" && position.side !== "short")
+        return { state: "unmeasurable" };
+
+      const notional = size.times(entry);
+      const newMargin =
+        direction === "add" ? margin.plus(amount) : margin.minus(amount);
+      if (!newMargin.isFinite()) return { state: "unmeasurable" };
+      if (newMargin.lte(0)) {
+        // Review: a full withdrawal is not "unmeasurable" — the consequence
+        // is certain (no isolated buffer left) and must be acknowledged.
+        // Only a reduce can reach this; an add on a positive margin never
+        // produces a non-positive new margin.
+        if (direction !== "reduce") return { state: "unmeasurable" };
+        return { state: "closing", newMargin };
+      }
+
+      const stated = position.leverage;
+      const currentLeverage =
+        stated?.isFinite() && stated.gt(0)
+          ? stated
+          : notional.div(margin);
+      if (!currentLeverage?.isFinite() || currentLeverage.lte(0))
+        return { state: "unmeasurable" };
+      const newLeverage = notional.div(newMargin);
+      if (!newLeverage.isFinite() || newLeverage.lte(0))
+        return { state: "unmeasurable" };
+
+      const result = projectLiquidation(
+        entry,
+        liq,
+        currentLeverage,
+        newLeverage,
+        position.side,
+        position.marginMode,
+      );
+      if (!result) return { state: "unmeasurable" };
+      return {
+        state: "ok",
+        to: result.to,
+        tighter: result.tighter,
+        newMargin,
+      };
+    } catch {
+      return { state: "unmeasurable" };
+    }
+  });
+
+  /*
+   * A reduce that moves liquidation closer (tighter) cannot submit until the
+   * trader acknowledges the explicit consequence — and neither can a full
+   * withdrawal, which removes the isolated buffer entirely. An add moves
+   * liquidation away, so it needs no gate — but the projection is still shown.
+   */
+  const requiresConfirmation = $derived(
+    direction === "reduce" &&
+      ((projection.state === "ok" && projection.tighter) ||
+        projection.state === "closing"),
   );
+  const needsAck = $derived(requiresConfirmation && !acknowledged);
+
+  const canSubmit = $derived(
+    !loading && isIsolated && amount !== null && !exceedsMargin && !needsAck,
+  );
+
+  function selectDirection(next: "add" | "reduce") {
+    direction = next;
+    acknowledged = false;
+  }
+
+  function handleAmountInput() {
+    acknowledged = false;
+  }
 
   async function submit() {
     if (!position || !amount || !canSubmit) return;
@@ -162,7 +279,7 @@
           class:border-[var(--accent-color)]={direction === "add"}
           class:text-[var(--accent-color)]={direction === "add"}
           class:border-[var(--border-color)]={direction !== "add"}
-          onclick={() => (direction = "add")}
+          onclick={() => selectDirection("add")}
         >
           {$_("modals.adjustMargin.add")}
         </button>
@@ -172,7 +289,7 @@
           class:border-[var(--accent-color)]={direction === "reduce"}
           class:text-[var(--accent-color)]={direction === "reduce"}
           class:border-[var(--border-color)]={direction !== "reduce"}
-          onclick={() => (direction = "reduce")}
+          onclick={() => selectDirection("reduce")}
         >
           {$_("modals.adjustMargin.reduce")}
         </button>
@@ -184,11 +301,80 @@
           type="text"
           inputmode="decimal"
           bind:value={amountText}
+          oninput={handleAmountInput}
           disabled={loading}
           class="input-field w-full px-3 py-1.5 rounded-md text-sm"
           placeholder="0"
         />
       </label>
+
+      {#if projection.state === "ok"}
+        <div class="flex justify-between text-xs">
+          <span class="text-[var(--text-secondary)]"
+            >{$_("modals.adjustMargin.projectedLiquidation")}</span
+          >
+          <span class="font-mono text-[var(--text-primary)]"
+            >{formatDynamicDecimal(projection.to)}</span
+          >
+        </div>
+        <p
+          class="text-[11px]"
+          class:text-[var(--danger-color)]={projection.tighter}
+          class:text-[var(--success-color)]={!projection.tighter}
+        >
+          {projection.tighter
+            ? $_("modals.adjustMargin.movesCloser")
+            : $_("modals.adjustMargin.movesAway")}
+        </p>
+        {#if requiresConfirmation}
+          <label
+            class="flex items-start gap-2 text-[11px] text-[var(--text-secondary)] cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              bind:checked={acknowledged}
+              disabled={loading}
+              class="mt-0.5"
+            />
+            <span
+              >{$_("modals.adjustMargin.confirmReduce", {
+                values: {
+                  currentMargin: formatDynamicDecimal(position?.margin),
+                  newMargin: formatDynamicDecimal(projection.newMargin),
+                  from: formatDynamicDecimal(position?.liquidationPrice),
+                  to: formatDynamicDecimal(projection.to),
+                },
+              })}</span
+            >
+          </label>
+        {/if}
+      {:else if projection.state === "closing"}
+        <p class="text-[11px] text-[var(--danger-color)]">
+          {$_("modals.adjustMargin.closingText")}
+        </p>
+        <label
+          class="flex items-start gap-2 text-[11px] text-[var(--text-secondary)] cursor-pointer"
+        >
+          <input
+            type="checkbox"
+            bind:checked={acknowledged}
+            disabled={loading}
+            class="mt-0.5"
+          />
+          <span
+            >{$_("modals.adjustMargin.confirmClosing", {
+              values: {
+                currentMargin: formatDynamicDecimal(position?.margin),
+                newMargin: formatDynamicDecimal(projection.newMargin),
+              },
+            })}</span
+          >
+        </label>
+      {:else if projection.state === "unmeasurable"}
+        <p class="text-[11px] text-[var(--warning-color)]">
+          {$_("modals.adjustMargin.unmeasurable")}
+        </p>
+      {/if}
 
       <p class="text-[10px] text-[var(--text-tertiary)]">
         {$_("modals.adjustMargin.hint")}

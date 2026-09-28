@@ -230,8 +230,9 @@ class CloudService {
    * The reducer exists in `server/spacetimedb/src/index.ts`, but the bindings in
    * `src/lib/spacetimedb/` are produced by `spacetime generate` and a build made
    * before that ran does not have it. Editing generated files by hand is
-   * forbidden (`server/CLAUDE.md`), so the client asks instead of assuming — a
-   * missing reducer is a deployment state, not a bug.
+   * forbidden (`server/.cursor/rules/spacetimedb-typescript.mdc`), so the
+   * client asks instead of assuming — a missing reducer is a deployment
+   * state, not a bug.
    */
   canDeleteMyMessages(): boolean {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

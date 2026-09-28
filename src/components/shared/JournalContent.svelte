@@ -369,41 +369,36 @@
         field: string,
         direction: "asc" | "desc",
     ): JournalTableRow[] {
-        return [...trades].sort((rawA, rawB) => {
-            const a = rawA as unknown as Record<string, string | number | Decimal | undefined | null>;
-            const b = rawB as unknown as Record<string, string | number | Decimal | undefined | null>;
-            let valA: string | number | Decimal | undefined | null = a[field];
-            let valB: string | number | Decimal | undefined | null = b[field];
+        // Perf (Schwartzian transform): Cache parsed dates and Decimals before sorting
+        return trades.map(rawT => {
+            const t = rawT as unknown as Record<string, string | number | Decimal | undefined | null>;
+            let val = t[field];
 
             if (field === "duration") {
-                const startA = new Date((a.entryDate || a.date) as string | number).getTime();
-                const endA = new Date((a.exitDate || a.date) as string | number).getTime();
-                valA = isNaN(startA) || isNaN(endA) ? 0 : Math.max(0, endA - startA);
-
-                const startB = new Date((b.entryDate || b.date) as string | number).getTime();
-                const endB = new Date((b.exitDate || b.date) as string | number).getTime();
-                valB = isNaN(startB) || isNaN(endB) ? 0 : Math.max(0, endB - startB);
+                const start = typeof (t.entryDate || t.date) === "string" ? Date.parse((t.entryDate || t.date) as string) : (t.entryDate || t.date) as number;
+                const end = typeof (t.exitDate || t.date) === "string" ? Date.parse((t.exitDate || t.date) as string) : (t.exitDate || t.date) as number;
+                val = isNaN(start) || isNaN(end) ? 0 : Math.max(0, end - start);
+            } else {
+                if (val instanceof Decimal) val = val.toNumber();
+                if (val === undefined || val === null) val = field === "symbol" || field === "status" ? "" : -Infinity;
+                if ((field === "date" || field === "exitDate") && typeof val === "string") {
+                    val = Date.parse(val);
+                }
             }
 
-            if (valA instanceof Decimal) valA = valA.toNumber();
-            if (valB instanceof Decimal) valB = valB.toNumber();
-
-            if (valA === undefined || valA === null) valA = field === "symbol" || field === "status" ? "" : -Infinity;
-            if (valB === undefined || valB === null) valB = field === "symbol" || field === "status" ? "" : -Infinity;
-
-            if ((field === "date" || field === "exitDate") && typeof valA === "string") {
-                valA = new Date(valA).getTime();
-                valB = new Date(valB as string).getTime();
-            }
+            return { item: rawT, val };
+        }).sort((a, b) => {
+            const valA = a.val;
+            const valB = b.val;
 
             if (typeof valA === "string" && typeof valB === "string") {
                 return direction === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
             }
 
-            if (valA < valB) return direction === "asc" ? -1 : 1;
-            if (valA > valB) return direction === "asc" ? 1 : -1;
+            if ((valA as number) < (valB as number)) return direction === "asc" ? -1 : 1;
+            if ((valA as number) > (valB as number)) return direction === "asc" ? 1 : -1;
             return 0;
-        });
+        }).map(obj => obj.item);
     }
 
     let journalSearchQuery = $derived(tradeState.journalSearchQuery);

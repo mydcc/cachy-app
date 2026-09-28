@@ -21,7 +21,6 @@
 </script>
 
 <button
-  type="button"
   class="btn-icon-accent"
   onclick={() => uiState.toggleSettingsModal(true)}
   aria-label={$_("settings.title")}

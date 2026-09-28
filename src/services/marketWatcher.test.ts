@@ -82,7 +82,7 @@ describe('MarketWatcher Locking & Deduplication', () => {
         await Promise.all([p1, p2]);
 
         // Verify update was called
-        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({ lastPrice: '50000' }));
+        expect(marketState.updateSymbol).toHaveBeenCalledWith('BTCUSDT', expect.objectContaining({ lastPrice: '50000' }), "rest");
     });
 
     it('should allow new request after previous one finishes', async () => {

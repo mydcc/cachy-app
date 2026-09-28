@@ -28,6 +28,7 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { trackCustomEvent } from "./trackingService";
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";
+import { isTradeDirection } from "../lib/tradeDirection";
 
 // Define interfaces for dependencies to improve testability
 interface Calculator {
@@ -464,6 +465,14 @@ export class CalculatorService {
     fields?: string[];
     data?: TradeValues;
   } {
+    if (!isTradeDirection(currentTradeState.tradeType)) {
+      return {
+        status: CONSTANTS.STATUS_INVALID,
+        message: get(_)("calculator.errors.unknownTradeType"),
+        fields: ["tradeType"],
+      };
+    }
+
     const values: TradeValues = {
       accountSize: parseDecimal(currentTradeState.accountSize),
       riskPercentage: parseDecimal(currentTradeState.riskPercentage),
