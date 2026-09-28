@@ -106,7 +106,7 @@ Do not delete code of unclear purpose. Leave copyright headers and metadata unto
 
 ## Tools & MCP
 
-Two MCP servers are configured for this project. **Both are required, not optional.** Every agent must use them before falling back to generic file-reading or grep.
+Two MCP servers are configured for this project. **Both are required, not optional.** Every agent must use them. If one cannot answer, that is an integration failure to report — not a route to a workaround.
 
 ### Gortex
 Use for all code navigation, exploration, impact analysis, and graph queries.
@@ -115,7 +115,7 @@ Use for all code navigation, exploration, impact analysis, and graph queries.
 - Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-pr-review`, etc.
 - After switching branches, re-orient before the next call — never wait on a stale generation.
 - On the first edit inside a fresh worktree, verify the `files[].path` prefix in the Edit response before continuing.
-- A freshness-guaranteed call that waits longer than 5 minutes: abort it and retry without the freshness requirement.
+- A freshness-guaranteed call that waits longer than 5 minutes: abort it. What you may drop is the *wait*, not the *exactness* — re-issuing without the freshness requirement and taking the answer is the substitution the block below forbids.
 
 **When a call answers about something you did not ask for.** Observed in this
 environment, 2026-09: `read` and `explore` have returned a payload from an
@@ -129,13 +129,31 @@ The response is to refuse the substitution, not to route around the tool:
 - Re-issue with `require_exact: true`. A view that cannot be served exactly is
   then refused instead of answered with something else, which is the honest
   outcome.
-- For a worktree, pass `view: {kind: "worktree", checkout_id}` and check the
-  response's `freshness.actual_view` against what you asked for.
+- For a worktree, pass `view: {kind: "worktree", checkout_id}`. Check that the
+  response *names the view you asked for* — a payload that reports it was not
+  served exactly is a refusal, not an answer. The exact envelope key has moved
+  between Gortex versions, so verify what the response actually says rather
+  than trusting a key name written down here; an agent sent looking for a field
+  that does not exist reports a false integration failure.
 - Re-issuing a `localize` after a completed contract replays the same payload;
   do not read repetition as confirmation.
 - If Gortex still cannot answer, that is a **Gortex integration failure**:
   report it, as the instructions above require. Both servers are required, and
   a bypass recorded here would be a rule telling the next agent to ignore that.
+
+**A known path is not a bypass.** This rule is about *substituted answers*, not
+about the tools that follow one. Once you know a file's exact path, reading it
+directly is correct — Gortex itself routes file content through
+`read`/`editing_context` and prescribes exactly that. The refusal applies when
+a graph tool answers a navigation question with someone else's neighbourhood,
+or when the graph tool is the only way to obtain a file you do not have a path
+to. Concretely, on 2026-09-28 `explore`, `read` and `editing_context` each
+returned the same 17 unrelated alert/chart symbols for a question about
+`PositionsList.component.test.ts`, across two worktrees; re-issuing changed
+nothing, and the response envelope carried no staleness signal, so there was
+no way to detect the substitution from the payload. The read path for that
+file was gated behind the graph tool, which made the file unreachable — a
+total tooling failure, not a navigation inconvenience.
 
 Verify code you were told about by a graph tool before acting on it — a wrong
 neighbourhood that reads plausibly is worse than no navigation at all.
