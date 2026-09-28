@@ -101,13 +101,6 @@ function plainDecimal(value: Decimal): string {
  * off the scale, not the 14 digits a pixel-to-price conversion happens to
  * produce. Rounding before the sign check also means a click that rounds onto
  * zero is refused rather than armed as a level nothing crosses.
- *
- * Precision boundary (BUG-0572, Option 1: keep the float, document it).
- * Callers pass f64 chart prices — the series API is number-based, so the seed
- * arrives lossy. The re-wrap (`new Decimal(f64)`) plus the rounding above IS
- * the boundary: the level stored in the document is exact at the precision the
- * trader read off the scale, and binary dust does not survive it (pinned by
- * test). `lastPrice` only feeds the direction choice, never the stored level.
  */
 export function conditionFromChartClick(
   input: ChartAlertSeedInput,

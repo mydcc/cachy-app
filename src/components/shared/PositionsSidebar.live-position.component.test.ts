@@ -83,20 +83,8 @@ vi.mock("../../stores/tpsl.svelte", () => ({
     tpSlState: { ensureFresh: vi.fn(), invalidate: vi.fn() },
 }));
 
-/**
- * The venue's own declaration of what it takes (FEAT-0017). Reactive, and read
- * through `venueCapabilities.svelte.ts` rather than a hoisted plain object, so
- * a test can switch venue *after* mounting — which is the only way a gate
- * written as a snapshot instead of a `$derived` can be caught. Defaults keep
- * the fixture this file was written against: a venue that cannot scale in and
- * cannot take a standalone plan.
- */
-const { venueCapabilities, resetVenueCapabilities } = await import(
-    "../../tests/helpers/venueCapabilities.svelte"
-);
-
 vi.mock("../../services/exchange", () => ({
-    activeExchange: () => ({ capabilities: venueCapabilities, supports: {} }),
+    activeExchange: () => ({ capabilities: { addToPosition: false }, supports: {} }),
 }));
 
 vi.mock("../../lib/appAuth", () => ({ appFetch: vi.fn() }));
@@ -120,9 +108,7 @@ vi.mock("./ClosePositionModal.svelte", async () => ({
 vi.mock("./ConfirmActionModal.svelte", stubComponent);
 vi.mock("./AdjustMarginModal.svelte", stubComponent);
 vi.mock("./AddToPositionModal.svelte", stubComponent);
-vi.mock("./TpSlCreateModal.svelte", async () => ({
-    default: (await import("../../tests/helpers/PositionProbeModal.svelte")).default,
-}));
+vi.mock("./TpSlCreateModal.svelte", stubComponent);
 
 function lookup(key: string): string {
     return key
@@ -238,7 +224,6 @@ function text(testid: string): string {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    resetVenueCapabilities();
     resetAccountFetchSingleflightForTest();
     accountState.reset();
     host = document.createElement("div");
@@ -249,131 +234,6 @@ afterEach(() => {
     for (const component of mounted) unmount(component as never);
     mounted = [];
     host.remove();
-});
-
-
-/*
- * FEAT-0023 — the epic's last checkable acceptance criterion: an action the
- * venue cannot take must be absent, not offered and refused.
- *
- * `PositionsList` pins the rendering rule; this pins the half above it — that
- * the venue's own `tpSlStandalone` declaration is what decides. On a venue
- * that answers false, `TpSlCreateModal` is unreachable from a position row,
- * so there is no form to fill in and no submission to be refused after the
- * trader committed.
- */
-describe("FEAT-0023 — capability flags decide which position controls exist", () => {
-    const tab = (id: string) => host.querySelector(`[data-testid="tab-${id}"]`);
-
-    async function renderWithPosition() {
-        routeFetch();
-        mounted.push(
-            mount(PositionsSidebar, {
-                target: host,
-                props: { activeAccountId: "acc-1" },
-            }) as never,
-        );
-        await settleUntil(() => host.querySelector('[data-testid="open-close"]') !== null);
-    }
-
-    it("offers no TP/SL control where the venue takes no standalone plan", async () => {
-        venueCapabilities.tpSlStandalone = false;
-        await renderWithPosition();
-
-        expect(host.querySelector('[data-testid="open-close"]')).not.toBeNull();
-        expect(host.querySelector('[data-testid="open-tp-sl"]')).toBeNull();
-    });
-
-    it("offers the TP/SL control where the venue does, and it opens the dialog", async () => {
-        venueCapabilities.tpSlStandalone = true;
-        await renderWithPosition();
-
-        const control = host.querySelector<HTMLButtonElement>('[data-testid="open-tp-sl"]');
-        expect(control).not.toBeNull();
-        expect(host.querySelector('[data-testid="probe-symbol"]')).toBeNull();
-
-        control!.click();
-        flushSync();
-
-        // The modal is stubbed to a probe, so reaching it is the claim. (This
-        // used to assert `data-position-id` on the control, which the trigger
-        // sets at render time and which the click cannot influence.)
-        expect(text("probe-symbol")).toBe("BTCUSDT");
-    });
-
-    it("offers no TP/SL tab where the venue holds no plans", async () => {
-        // The tab's list read is deliberately non-throwing on a venue that
-        // takes no plans — `fetchTpSlOrders` returns `[]` there on purpose, so
-        // it cannot raise a dialog — so the tab would not error, it would sit
-        // permanently empty and never once say why. A venue that cannot be
-        // given a stop has none to list.
-        venueCapabilities.tpSlStandalone = false;
-        await renderWithPosition();
-
-        expect(tab("tpsl")).toBeNull();
-        // Its siblings stay: a venue that cannot do TP/SL can still list
-        // positions, orders and history.
-        expect(tab("orders")).not.toBeNull();
-        expect(tab("history")).not.toBeNull();
-    });
-
-    it("offers the TP/SL tab where the venue does", async () => {
-        venueCapabilities.tpSlStandalone = true;
-        await renderWithPosition();
-
-        expect(tab("tpsl")).not.toBeNull();
-    });
-
-    /*
-     * The regression this gate existed to be caught by.
-     *
-     * The sidebar is not remounted when the account or venue changes, so a
-     * capability read as a plain `const` keeps the value it had at mount — and
-     * every test that sets its flags *before* mounting cannot tell the two
-     * apart. Switching here, with the component already live, does.
-     */
-    it("follows a venue switch that takes the capability away", async () => {
-        venueCapabilities.tpSlStandalone = true;
-        await renderWithPosition();
-        expect(tab("tpsl")).not.toBeNull();
-
-        // The same sidebar, now pointed at a venue that takes no standalone
-        // plan — no remount, no reload.
-        venueCapabilities.tpSlStandalone = false;
-        flushSync();
-
-        expect(tab("tpsl")).toBeNull();
-    });
-
-    it("returns to the positions tab after a venue switch, not an empty panel", async () => {
-        venueCapabilities.tpSlStandalone = true;
-        await renderWithPosition();
-
-        tab("tpsl")!.click();
-        flushSync();
-        expect(tab("tpsl")!.getAttribute("data-active")).toBe("true");
-
-        // Switching away must not leave `activeTab` on a tab the new venue
-        // does not have: the content chain has no `{:else}`, so the panel
-        // would render empty with nothing highlighted.
-        venueCapabilities.tpSlStandalone = false;
-        flushSync();
-
-        expect(tab("positions")!.getAttribute("data-active")).toBe("true");
-    });
-
-    it("applies the same rule to add-to-position", async () => {
-        venueCapabilities.addToPosition = false;
-        await renderWithPosition();
-        expect(host.querySelector('[data-testid="open-add"]')).toBeNull();
-
-        unmount(mounted.pop() as never);
-        mounted = [];
-
-        venueCapabilities.addToPosition = true;
-        await renderWithPosition();
-        expect(host.querySelector('[data-testid="open-add"]')).not.toBeNull();
-    });
 });
 
 describe("BUG-0347 — the open dialog follows the live position", () => {

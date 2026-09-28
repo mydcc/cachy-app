@@ -497,25 +497,6 @@
       "file": "bugs/BUG-0550-tpsl-direction-not-validated.md"
     },
     {
-      "id": "BUG-0576",
-      "title": "Bitget integration calls the decommissioned V1 API, so every signed REST call fails",
-      "type": "bug",
-      "status": "specced",
-      "priority": "P0",
-      "area": "exchange",
-      "created": "2026-09-28",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
-    },
-    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -3359,7 +3340,7 @@
       "id": "FEAT-0488",
       "title": "Guard bot order submission against duplicates, stacking and unbounded repeat",
       "type": "feature",
-      "status": "ready",
+      "status": "specced",
       "priority": "P1",
       "milestone": "none",
       "editions": [
@@ -3377,7 +3358,7 @@
       "id": "FEAT-0526",
       "title": "Explain the kill switch in Settings and make its behaviour configurable",
       "type": "feature",
-      "status": "ready",
+      "status": "specced",
       "priority": "P1",
       "milestone": "none",
       "editions": [
@@ -6542,9 +6523,7 @@
       "id": "FEAT-0335",
       "title": "Trail a stop behind a position once the exchange endpoint is verified",
       "type": "feature",
-      "status": "in-progress",
-      "assignee": "opencode",
-      "branch": "docs/bitget-api-crawl (supersedes feature/feat-0335-bitget-trailing-stop, which is unmerged, still carries the pre-review wording, and whose bitget-api/ copy diverges from develop — so the line references below are develop's)",
+      "status": "specced",
       "priority": "P2",
       "milestone": "M3",
       "editions": [
@@ -7381,8 +7360,7 @@
       "id": "FEAT-0525",
       "title": "Store the complete Bitget API reference locally, mirroring the Bitunix coverage",
       "type": "feature",
-      "status": "done",
-      "branch": "feat-0525-bitget-api-reference",
+      "status": "specced",
       "priority": "P2",
       "milestone": "none",
       "editions": [
@@ -7393,7 +7371,6 @@
       "area": "exchange",
       "data_class": "none",
       "adr": "none",
-      "assignee": "opencode",
       "depends_on": [],
       "file": "features/FEAT-0525-bitget-api-reference-stored-locally.md"
     },
@@ -7534,44 +7511,6 @@
       "adr": "none",
       "depends_on": [],
       "file": "features/FEAT-0545-duck-companion-settings-with-master-toggle.md"
-    },
-    {
-      "id": "FEAT-0577",
-      "title": "The Bitunix mirror was translated into German while its source is English",
-      "type": "feature",
-      "status": "done",
-      "branch": "docs/bitunix-api-english",
-      "priority": "P2",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
-      ],
-      "area": "docs",
-      "data_class": "none",
-      "adr": "none",
-      "assignee": "opencode",
-      "depends_on": [],
-      "file": "features/FEAT-0577-bitunix-mirror-english.md"
-    },
-    {
-      "id": "FEAT-0578",
-      "title": "Verify the Bitunix mirror against the live vendor pages and fix what it got wrong",
-      "type": "feature",
-      "status": "done",
-      "priority": "P2",
-      "area": "docs",
-      "created": "2026-09-28",
-      "assignee": "opencode",
-      "milestone": "none",
-      "editions": [
-        "community"
-      ],
-      "data_class": "none",
-      "adr": "none",
-      "depends_on": [],
-      "file": "features/FEAT-0578-bitunix-mirror-fidelity-audit.md"
     },
     {
       "id": "IDEA-0563",
@@ -8447,9 +8386,7 @@
       "id": "BUG-0569",
       "title": "Order audit panel shows the raw refusal field name",
       "type": "bug",
-      "status": "done",
-      "assignee": "opencode",
-      "branch": "fix/bug-0569-order-audit-refusal-field",
+      "status": "specced",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -8467,9 +8404,7 @@
       "id": "BUG-0570",
       "title": "The order dispatch guard's account fingerprint collides on short keys",
       "type": "bug",
-      "status": "done",
-      "assignee": "opencode",
-      "branch": "fix/bug-0570-fingerprint-collision",
+      "status": "specced",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -8487,10 +8422,7 @@
       "id": "BUG-0571",
       "title": "The decimal audit cannot see a conversion passed by reference",
       "type": "bug",
-      "status": "done",
-      "assignee": "opencode",
-      "branch": "fix/bug-0571-decimal-audit-pattern",
-      "shipped": "unreleased",
+      "status": "specced",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -8510,10 +8442,7 @@
       "id": "BUG-0572",
       "title": "A native float seeds price-alert rules before decimal.js sees it",
       "type": "bug",
-      "status": "done",
-      "assignee": "opencode",
-      "branch": "fix/bug-0572-alert-seed-float",
-      "shipped": "unreleased",
+      "status": "specced",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -8530,13 +8459,10 @@
       "file": "bugs/BUG-0572-alert-seed-float-before-decimal.md"
     },
     {
-      "id": "BUG-0575",
-      "title": "TP/SL refusal message renders a doubled article in both locales",
+      "id": "BUG-0573",
+      "title": "Journal date filter uses local end bound against UTC start bound",
       "type": "bug",
-      "status": "done",
-      "assignee": "opencode",
-      "branch": "fix/issue-3693-tpsl-doubled-article",
-      "shipped": "unreleased",
+      "status": "specced",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -8548,7 +8474,7 @@
       "data_class": "none",
       "adr": "none",
       "depends_on": [],
-      "file": "bugs/BUG-0575-tpsl-refusal-doubled-article.md"
+      "file": "bugs/BUG-0573-journal-filter-timezones.md"
     },
     {
       "id": "FEAT-0022",
@@ -9341,13 +9267,10 @@
       "file": "features/FEAT-0546-bitget-contracts-isstatuserror.md"
     },
     {
-      "id": "FEAT-0573",
-      "title": "Say what the partial-close percentage is measured against",
+      "id": "FEAT-0574",
+      "title": "Add test coverage for the journal date filter",
       "type": "feature",
-      "status": "done",
-      "assignee": "opencode",
-      "branch": "feature/feat-0573-close-percent-basis",
-      "shipped": "unreleased",
+      "status": "specced",
       "priority": "P3",
       "milestone": "none",
       "editions": [
@@ -9358,26 +9281,10 @@
       "area": "ui",
       "data_class": "none",
       "adr": "none",
-      "depends_on": [],
-      "file": "features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md"
-    },
-    {
-      "id": "FEAT-0574",
-      "title": "Say when the close dialog's PnL mark is derived, not reported",
-      "type": "feature",
-      "status": "ready",
-      "priority": "P3",
-      "milestone": "none",
-      "editions": [
-        "community",
-        "pro",
-        "private"
+      "depends_on": [
+        "BUG-0573"
       ],
-      "area": "ui",
-      "data_class": "none",
-      "adr": "ADR-0010",
-      "depends_on": [],
-      "file": "features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md"
+      "file": "features/FEAT-0574-journal-filter-tests.md"
     },
     {
       "id": "IDEA-0036",
@@ -9710,5 +9617,5 @@
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
     }
   ],
-  "count": 455
+  "count": 451
 }

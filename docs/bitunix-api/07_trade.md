@@ -1,22 +1,22 @@
 # Trade Endpoints
 
-All endpoints are **private** interfaces and require a signature (see `01_sign.md`).
+Alle Endpunkte sind **private** Interfaces und erfordern Signatur (siehe `01_sign.md`).
 
-> ⚠️ **Important**: For interfaces that modify, create or delete orders
-> the following applies: A successful interface response does not necessarily
-> mean that the operation succeeded. Use the WebSocket push message as
-> reliable confirmation.
+> ⚠️ **Wichtig**: Bei ordermodifizierenden/-erstellenden/-löschenden Interfaces
+> gilt: Eine erfolgreiche Interface-Antwort bedeutet nicht zwangsläufig, dass
+> die Operation erfolgreich war. Nutze die WebSocket-Push-Nachricht als
+> verlässliche Bestätigung.
 
 ---
 
 ## Batch Order
 
-Source: https://www.bitunix.com/api-docs/futures/trade/batch_order.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/batch_order.html
 
 **Rate Limit**: 1 req/sec/uid
 
 ### Description
-Places several orders in one request (max. 5).
+Platziert mehrere Orders in einem Request (max. 5).
 
 ### HTTP Request
 `POST /api/v1/futures/trade/batch_order`
@@ -25,24 +25,24 @@ Places several orders in one request (max. 5).
 | Parameter       | Type    | Required | Description |
 |-----------------|---------|----------|-------------|
 | symbol          | string  | true     | Trading Pair |
-| orderList       | list    | true     | Order list, max. length: 5 |
-| > qty           | string  | true     | Quantity (base coin) |
-| > price         | string  | false    | Order price. Required for order type `LIMIT` |
-| > side          | string  | true     | Order side: `BUY` / `SELL` |
-| > tradeSide     | string  | true     | Only required in hedge mode. `OPEN`/`CLOSE`. Open Long: side=`BUY`, tradeSide=`OPEN`. Open Short: side=`SELL`, tradeSide=`OPEN`. Close Long: side=`BUY`, tradeSide=`CLOSE`. Close Short: side=`SELL`, tradeSide=`CLOSE` |
-| > positionId    | string  | false    | Position ID. Required if `tradeSide` = `CLOSE` |
-| > orderType     | string  | true     | Order type: `LIMIT` / `MARKET` |
-| > effect        | string  | false    | Time in force, required for `orderType=LIMIT`: `IOC` (Immediate or Cancel), `FOK` (Fill or Kill), `GTC` (Good till Canceled, Default), `POST_ONLY` |
-| > clientId      | string  | false    | Custom order ID |
-| > reduceOnly    | boolean | false    | Position reduction only |
-| > tpPrice       | string  | false    | Take-profit trigger price |
-| > tpStopType    | string  | false    | Take-profit trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| > tpOrderType   | string  | false    | Take-profit order type: `LIMIT` / `MARKET` |
-| > tpOrderPrice  | string  | false    | Take-profit order price (required for `tpOrderType=LIMIT`) |
-| > slPrice       | string  | false    | Stop-loss trigger price |
-| > slStopType    | string  | false    | Stop-loss trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| > slOrderType   | string  | false    | Stop-loss order type: `LIMIT` / `MARKET` |
-| > slOrderPrice  | string  | false    | Stop-loss order price (required for `slOrderType=LIMIT`) |
+| orderList       | list    | true     | Order-Liste, max. Länge: 5 |
+| > qty           | string  | true     | Menge (Base-Coin) |
+| > price         | string  | false    | Orderpreis. Erforderlich bei Ordertyp `LIMIT` |
+| > side          | string  | true     | Order-Richtung: `BUY` / `SELL` |
+| > tradeSide     | string  | true     | Nur im Hedge-Modus erforderlich. `OPEN`/`CLOSE`. Open Long: side=`BUY`, tradeSide=`OPEN`. Open Short: side=`SELL`, tradeSide=`OPEN`. Close Long: side=`BUY`, tradeSide=`CLOSE`. Close Short: side=`SELL`, tradeSide=`CLOSE` |
+| > positionId    | string  | false    | Position ID. Erforderlich, wenn `tradeSide` = `CLOSE` |
+| > orderType     | string  | true     | Ordertyp: `LIMIT` / `MARKET` |
+| > effect        | string  | false    | Gültigkeitsdauer, erforderlich bei `orderType=LIMIT`: `IOC` (Immediate or Cancel), `FOK` (Fill or Kill), `GTC` (Good till Canceled, Default), `POST_ONLY` |
+| > clientId      | string  | false    | Individuelle Order-ID |
+| > reduceOnly    | boolean | false    | Nur Positionsreduzierung |
+| > tpPrice       | string  | false    | Take-Profit-Trigger-Preis |
+| > tpStopType    | string  | false    | Take-Profit-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| > tpOrderType   | string  | false    | Take-Profit-Order-Typ: `LIMIT` / `MARKET` |
+| > tpOrderPrice  | string  | false    | Take-Profit-Order-Preis (erforderlich bei `tpOrderType=LIMIT`) |
+| > slPrice       | string  | false    | Stop-Loss-Trigger-Preis |
+| > slStopType    | string  | false    | Stop-Loss-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| > slOrderType   | string  | false    | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` |
+| > slOrderPrice  | string  | false    | Stop-Loss-Order-Preis (erforderlich bei `slOrderType=LIMIT`) |
 
 ### Request Example
 ```bash
@@ -59,13 +59,13 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/batch_o
 ### Response Parameters
 | Parameter     | Type   | Description |
 |---------------|--------|-------------|
-| successList   | list   | List of successful orders |
+| successList   | list   | Liste erfolgreicher Orders |
 | > id          | string | Order ID |
 | > clientId    | string | Client ID |
-| failureList   | list   | List of failed orders |
+| failureList   | list   | Liste fehlgeschlagener Orders |
 | > clientId    | string | Client ID |
-| > errorMsg    | string | Error message |
-| > errorCode   | string | Error code |
+| > errorMsg    | string | Fehlermeldung |
+| > errorCode   | string | Fehlercode |
 
 ### Response Example
 ```json
@@ -78,12 +78,12 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/batch_o
 
 ## Cancel All Orders
 
-Source: https://www.bitunix.com/api-docs/futures/trade/cancel_all_orders.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/cancel_all_orders.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Cancels all orders.
+Storniert alle Orders.
 
 ### HTTP Request
 `POST /api/v1/futures/trade/cancel_all_orders`
@@ -108,14 +108,14 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/cancel_
 ### Response Parameters
 | Parameter     | Type   | Description |
 |---------------|--------|-------------|
-| successList   | list   | List of successful orders |
+| successList   | list   | Liste erfolgreicher Orders |
 | > id          | string | Order ID |
 | > clientId    | string | Client ID |
-| failureList   | list   | List of failed orders |
+| failureList   | list   | Liste fehlgeschlagener Orders |
 | > id          | string | Order ID |
 | > clientId    | string | Client ID |
-| > errorMsg    | string | Error message |
-| > errorCode   | string | Error code |
+| > errorMsg    | string | Fehlermeldung |
+| > errorCode   | string | Fehlercode |
 
 ### Response Example
 ```json
@@ -126,12 +126,12 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/cancel_
 
 ## Cancel Orders
 
-Source: https://www.bitunix.com/api-docs/futures/trade/cancel_orders.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/cancel_orders.html
 
 **Rate Limit**: 5 req/sec/uid
 
 ### Description
-Cancels specific orders.
+Storniert bestimmte Orders.
 
 ### HTTP Request
 `POST /api/v1/futures/trade/cancel_orders`
@@ -140,9 +140,9 @@ Cancels specific orders.
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
 | symbol    | string | true     | Trading Pair |
-| orderList | list   | true     | List of order parameters |
-| orderId   | string | false    | Order ID. `orderId` or `clientId` required. If both are given, `orderId` takes precedence |
-| clientId  | string | false    | Custom order ID. `orderId` or `clientId` required. If both are given, `orderId` takes precedence |
+| orderList | list   | true     | Liste der Order-Parameter |
+| orderId   | string | false    | Order ID. `orderId` oder `clientId` erforderlich. Bei beiden hat `orderId` Vorrang |
+| clientId  | string | false    | Individuelle Order-ID. `orderId` oder `clientId` erforderlich. Bei beiden hat `orderId` Vorrang |
 
 ### Request Example
 ```bash
@@ -159,14 +159,14 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/cancel_
 ### Response Parameters
 | Parameter     | Type   | Description |
 |---------------|--------|-------------|
-| successList   | list   | List of successful orders |
+| successList   | list   | Liste erfolgreicher Orders |
 | > id          | string | Order ID |
 | > clientId    | string | Client ID |
-| failureList   | list   | List of failed orders |
+| failureList   | list   | Liste fehlgeschlagener Orders |
 | > id          | string | Order ID |
 | > clientId    | string | Client ID |
-| > errorMsg    | string | Error message |
-| > errorCode   | string | Error code |
+| > errorMsg    | string | Fehlermeldung |
+| > errorCode   | string | Fehlercode |
 
 ### Response Example
 ```json
@@ -177,12 +177,12 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/cancel_
 
 ## Close All Position
 
-Source: https://www.bitunix.com/api-docs/futures/trade/close_all_position.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/close_all_position.html
 
 **Rate Limit**: 1 req/sec/uid
 
 ### Description
-Closes all positions.
+Schließt alle Positionen.
 
 ### HTTP Request
 `POST /api/v1/futures/trade/close_all_position`
@@ -205,7 +205,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/close_a
 ```
 
 ### Response Parameters
-None.
+Keine.
 
 ### Response Example
 ```json
@@ -216,12 +216,12 @@ None.
 
 ## Flash Close Position
 
-Source: https://www.bitunix.com/api-docs/futures/trade/flash_close_position.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/flash_close_position.html
 
 **Rate Limit**: 5 req/sec/uid
 
 ### Description
-Closes a position by position ID (market order).
+Schließt eine Position anhand der Position-ID (Market Order).
 
 ### HTTP Request
 `POST /api/v1/futures/trade/flash_close_position`
@@ -257,12 +257,12 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/flash_c
 
 ## Get History Orders
 
-Source: https://www.bitunix.com/api-docs/futures/trade/get_history_orders.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/get_history_orders.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Retrieves historical orders, sorted by creation time in descending order.
+Ruft historische Orders ab, sortiert nach Erstellzeit absteigend.
 
 ### HTTP Request
 `GET /api/v1/futures/trade/get_history_orders`
@@ -273,14 +273,14 @@ Retrieves historical orders, sorted by creation time in descending order.
 | symbol          | string  | false    | Trading Pair |
 | orderId         | string  | false    | Order ID |
 | clientId        | string  | false    | Client ID |
-| status          | string  | false    | Order status: `FILLED`, `CANCELED`, `PART_FILLED_CANCELED`, `EXPIRED` |
-| type            | string  | false    | Order type: `LIMIT`, `MARKET`, default all |
-| startTime       | int64   | false    | Start timestamp, Unix ms, e.g. 1597026383085 |
-| endTime         | int64   | false    | End timestamp, Unix ms, e.g. 1597026683085 |
-| skip            | int64   | false    | Number of skipped orders, Default: 0 |
-| limit           | int64   | false    | Max. queries: 100, Default: 10 |
-| subAccountId    | int64   | false    | With `subAccountId`: only historical orders of this sub-account. Without: orders of the main account |
-| queryCanceled   | boolean | false    | Whether only cancelled orders are queried. Default: `false`. `true`: only cancelled orders (max. 3 days back); `false`: excluding cancelled orders (max. 90 days back) |
+| status          | string  | false    | Order-Status: `FILLED`, `CANCELED`, `PART_FILLED_CANCELED`, `EXPIRED` |
+| type            | string  | false    | Ordertyp: `LIMIT`, `MARKET`, default alle |
+| startTime       | int64   | false    | Start-Timestamp, Unix ms, z.B. 1597026383085 |
+| endTime         | int64   | false    | End-Timestamp, Unix ms, z.B. 1597026683085 |
+| skip            | int64   | false    | Anzahl übersprungener Orders, Default: 0 |
+| limit           | int64   | false    | Max. Abfragen: 100, Default: 10 |
+| subAccountId    | int64   | false    | Mit `subAccountId`: nur historische Orders dieses Subaccounts. Ohne: Orders des Hauptaccounts |
+| queryCanceled   | boolean | false    | Ob nur stornierte Orders abgefragt werden sollen. Default: `false`. `true`: nur stornierte Orders (max. 3 Tage rückwirkend); `false`: ohne stornierte Orders (max. 90 Tage rückwirkend) |
 
 ### Request Example
 ```bash
@@ -296,35 +296,35 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_hist
 ### Response Parameters
 | Parameter        | Type    | Description |
 |-------------------|---------|-------------|
-| orderList         | list    | Order list |
+| orderList         | list    | Order-Liste |
 | > orderId         | string  | Order ID |
 | > symbol          | string  | Trading Pair |
-| > qty             | string  | Quantity (base coin) |
-| > tradeQty        | string  | Filled quantity (base coin) |
-| > positionMode    | string  | `ONE_WAY` or `HEDGE` |
-| > marginMode      | string  | `ISOLATION` or `CROSS` |
+| > qty             | string  | Menge (Base-Coin) |
+| > tradeQty        | string  | Ausgeführte Menge (Base-Coin) |
+| > positionMode    | string  | `ONE_WAY` oder `HEDGE` |
+| > marginMode      | string  | `ISOLATION` oder `CROSS` |
 | > leverage        | int     | Leverage |
-| > price           | string  | Order price (required for `LIMIT`) |
+| > price           | string  | Orderpreis (erforderlich bei `LIMIT`) |
 | > side            | string  | `BUY` / `SELL` |
 | > orderType       | string  | `LIMIT` / `MARKET` |
-| > effect          | string  | Time in force: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
-| > clientId        | string  | Custom order ID |
-| > reduceOnly      | boolean | Position reduction only |
+| > effect          | string  | Gültigkeitsdauer: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
+| > clientId        | string  | Individuelle Order-ID |
+| > reduceOnly      | boolean | Nur Positionsreduzierung |
 | > status          | string  | `INIT`, `NEW`, `PART_FILLED`, `CANCELED`, `FILLED` |
-| > fee             | string  | Fee |
+| > fee             | string  | Gebühr |
 | > realizedPNL     | string  | Realized PnL |
-| > tpPrice         | string  | Take-profit trigger price |
-| > tpStopType      | string  | Take-profit trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| > tpOrderType     | string  | Take-profit order type: `LIMIT` / `MARKET` |
-| > tpOrderPrice    | string  | Take-profit order price (required for `LIMIT`) |
-| > slPrice         | string  | Stop-loss trigger price |
-| > slStopType      | string  | Stop-loss trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| > slOrderType     | string  | Stop-loss order type: `LIMIT` / `MARKET` |
-| > slOrderPrice    | string  | Stop-loss order price (required for `LIMIT`) |
-| > ctime           | int64   | Creation timestamp |
-| > mtime           | int64   | Last modification timestamp |
-| > subAccountId    | int64   | Order account ID |
-| total             | int64   | Total count |
+| > tpPrice         | string  | Take-Profit-Trigger-Preis |
+| > tpStopType      | string  | Take-Profit-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| > tpOrderType     | string  | Take-Profit-Order-Typ: `LIMIT` / `MARKET` |
+| > tpOrderPrice    | string  | Take-Profit-Order-Preis (erforderlich bei `LIMIT`) |
+| > slPrice         | string  | Stop-Loss-Trigger-Preis |
+| > slStopType      | string  | Stop-Loss-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| > slOrderType     | string  | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` |
+| > slOrderPrice    | string  | Stop-Loss-Order-Preis (erforderlich bei `LIMIT`) |
+| > ctime           | int64   | Erstell-Timestamp |
+| > mtime           | int64   | Letzter Änderungs-Timestamp |
+| > subAccountId    | int64   | Order-Account-ID |
+| total             | int64   | Gesamtanzahl |
 
 ### Response Example
 ```json
@@ -335,12 +335,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_hist
 
 ## Get History Trades
 
-Source: https://www.bitunix.com/api-docs/futures/trade/get_history_trades.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/get_history_trades.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Retrieves historical trades, sorted by creation time in descending order.
+Ruft historische Trades ab, sortiert nach Erstellzeit absteigend.
 
 ### HTTP Request
 `GET /api/v1/futures/trade/get_history_trades`
@@ -351,10 +351,10 @@ Retrieves historical trades, sorted by creation time in descending order.
 | symbol      | string | false    | Trading Pair |
 | orderId     | string | false    | Order ID |
 | positionId  | string | false    | Position ID |
-| startTime   | int64  | false    | Start timestamp, Unix ms, e.g. 1597026383085 |
-| endTime     | int64  | false    | End timestamp, Unix ms, e.g. 1597026683085 |
-| skip        | int64  | false    | Number of skipped orders, Default: 0 |
-| limit       | int64  | false    | Max. queries: 100, Default: 10 |
+| startTime   | int64  | false    | Start-Timestamp, Unix ms, z.B. 1597026383085 |
+| endTime     | int64  | false    | End-Timestamp, Unix ms, z.B. 1597026683085 |
+| skip        | int64  | false    | Anzahl übersprungener Orders, Default: 0 |
+| limit       | int64  | false    | Max. Abfragen: 100, Default: 10 |
 
 ### Request Example
 ```bash
@@ -370,25 +370,25 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_hist
 ### Response Parameters
 | Parameter        | Type    | Description |
 |-------------------|---------|-------------|
-| tradeList         | list    | Trade list |
+| tradeList         | list    | Trade-Liste |
 | > tradeId         | string  | Trade ID |
 | > orderId         | string  | Order ID |
 | > symbol          | string  | Trading Pair |
-| > qty             | string  | Quantity (base coin) |
-| > positionMode    | string  | `ONE_WAY` or `HEDGE` |
-| > marginMode      | string  | `ISOLATION` or `CROSS` |
+| > qty             | string  | Menge (Base-Coin) |
+| > positionMode    | string  | `ONE_WAY` oder `HEDGE` |
+| > marginMode      | string  | `ISOLATION` oder `CROSS` |
 | > leverage        | int     | Leverage |
-| > price           | string  | Order price (required for `LIMIT`) |
+| > price           | string  | Orderpreis (erforderlich bei `LIMIT`) |
 | > side            | string  | `BUY` / `SELL` |
 | > orderType       | string  | `LIMIT` / `MARKET` |
-| > effect          | string  | Time in force: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
-| > clientId        | string  | Custom order ID |
-| > reduceOnly      | boolean | Position reduction only |
-| > fee             | string  | Fee |
+| > effect          | string  | Gültigkeitsdauer: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
+| > clientId        | string  | Individuelle Order-ID |
+| > reduceOnly      | boolean | Nur Positionsreduzierung |
+| > fee             | string  | Gebühr |
 | > realizedPNL     | string  | Realized PnL |
-| > ctime           | int64   | Creation timestamp |
-| > roleType        | string  | `TAKER` or `MAKER` |
-| total             | int64   | Total count |
+| > ctime           | int64   | Erstell-Timestamp |
+| > roleType        | string  | `TAKER` oder `MAKER` |
+| total             | int64   | Gesamtanzahl |
 
 ### Response Example
 ```json
@@ -399,12 +399,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_hist
 
 ## Get Order Detail
 
-Source: https://www.bitunix.com/api-docs/futures/trade/get_order_detail.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/get_order_detail.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Retrieves order details.
+Ruft Order-Details ab.
 
 ### HTTP Request
 `GET /api/v1/futures/trade/get_order_detail`
@@ -412,8 +412,8 @@ Retrieves order details.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| orderId   | string | false    | Order ID. At least one of `orderId`/`clientId` required |
-| clientId  | string | false    | Client ID. At least one of `orderId`/`clientId` required |
+| orderId   | string | false    | Order ID. Mind. eines von `orderId`/`clientId` erforderlich |
+| clientId  | string | false    | Client ID. Mind. eines von `orderId`/`clientId` erforderlich |
 
 ### Request Example
 ```bash
@@ -431,30 +431,30 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_orde
 |---------------|---------|-------------|
 | orderId       | string  | Order ID |
 | symbol        | string  | Trading Pair |
-| qty           | string  | Quantity (base coin) |
-| tradeQty      | string  | Filled quantity (base coin) |
-| positionMode  | string  | `ONE_WAY` or `HEDGE` |
-| marginMode    | string  | `ISOLATION` or `CROSS` |
+| qty           | string  | Menge (Base-Coin) |
+| tradeQty      | string  | Ausgeführte Menge (Base-Coin) |
+| positionMode  | string  | `ONE_WAY` oder `HEDGE` |
+| marginMode    | string  | `ISOLATION` oder `CROSS` |
 | leverage      | int     | Leverage |
-| price         | string  | Order price (required for `LIMIT`) |
+| price         | string  | Orderpreis (erforderlich bei `LIMIT`) |
 | side          | string  | `BUY` / `SELL` |
 | orderType     | string  | `LIMIT` / `MARKET` |
-| effect        | string  | Time in force: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
-| clientId      | string  | Custom order ID |
-| reduceOnly    | boolean | Position reduction only |
+| effect        | string  | Gültigkeitsdauer: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
+| clientId      | string  | Individuelle Order-ID |
+| reduceOnly    | boolean | Nur Positionsreduzierung |
 | status        | string  | `INIT`, `NEW`, `PART_FILLED`, `CANCELED`, `FILLED` |
-| fee           | string  | Fee |
+| fee           | string  | Gebühr |
 | realizedPNL   | string  | Realized PnL |
-| tpPrice       | string  | Take-profit trigger price |
-| tpStopType    | string  | Take-profit trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| tpOrderType   | string  | Take-profit order type: `LIMIT` / `MARKET` |
-| tpOrderPrice  | string  | Take-profit order price (required for `LIMIT`) |
-| slPrice       | string  | Stop-loss trigger price |
-| slStopType    | string  | Stop-loss trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| slOrderType   | string  | Stop-loss order type: `LIMIT` / `MARKET` |
-| slOrderPrice  | string  | Stop-loss order price (required for `LIMIT`) |
-| ctime         | int64   | Creation timestamp |
-| mtime         | int64   | Last modification timestamp |
+| tpPrice       | string  | Take-Profit-Trigger-Preis |
+| tpStopType    | string  | Take-Profit-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| tpOrderType   | string  | Take-Profit-Order-Typ: `LIMIT` / `MARKET` |
+| tpOrderPrice  | string  | Take-Profit-Order-Preis (erforderlich bei `LIMIT`) |
+| slPrice       | string  | Stop-Loss-Trigger-Preis |
+| slStopType    | string  | Stop-Loss-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| slOrderType   | string  | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` |
+| slOrderPrice  | string  | Stop-Loss-Order-Preis (erforderlich bei `LIMIT`) |
+| ctime         | int64   | Erstell-Timestamp |
+| mtime         | int64   | Letzter Änderungs-Timestamp |
 
 ### Response Example
 ```json
@@ -465,12 +465,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_orde
 
 ## Get Pending Orders
 
-Source: https://www.bitunix.com/api-docs/futures/trade/get_pending_orders.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/get_pending_orders.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Retrieves open (pending) orders, sorted by creation time in descending order.
+Ruft offene (pending) Orders ab, sortiert nach Erstellzeit absteigend.
 
 ### HTTP Request
 `GET /api/v1/futures/trade/get_pending_orders`
@@ -481,11 +481,11 @@ Retrieves open (pending) orders, sorted by creation time in descending order.
 | symbol    | string | false    | Trading Pair |
 | orderId   | string | false    | Order ID |
 | clientId  | string | false    | Client ID |
-| status    | string | false    | Order status: `NEW` or `PART_FILLED` |
-| startTime | int64  | false    | Start timestamp, Unix ms, e.g. 1597026383085 |
-| endTime   | int64  | false    | End timestamp, Unix ms, e.g. 1597026683085 |
-| skip      | int64  | false    | Number of skipped orders, Default: 0 |
-| limit     | int64  | false    | Max. queries: 100, Default: 10 |
+| status    | string | false    | Order-Status: `NEW` oder `PART_FILLED` |
+| startTime | int64  | false    | Start-Timestamp, Unix ms, z.B. 1597026383085 |
+| endTime   | int64  | false    | End-Timestamp, Unix ms, z.B. 1597026683085 |
+| skip      | int64  | false    | Anzahl übersprungener Orders, Default: 0 |
+| limit     | int64  | false    | Max. Abfragen: 100, Default: 10 |
 
 ### Request Example
 ```bash
@@ -499,8 +499,8 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/trade/get_pend
 ```
 
 ### Response Parameters
-Analogous to `Get History Orders` (see above), field `orderList` with the same
-sub-parameters.
+Analog zu `Get History Orders` (siehe oben), Feld `orderList` mit denselben
+Unterparametern.
 
 ### Response Example
 ```json
@@ -511,13 +511,13 @@ sub-parameters.
 
 ## Modify Order
 
-Source: https://www.bitunix.com/api-docs/futures/trade/modify_order.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/modify_order.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Interface for order modification, used to change an open order (e.g. TP/SL
-and/or price/quantity).
+Interface zur Ordermodifikation, um eine offene Order zu ändern (z.B. TP/SL
+und/oder Preis/Menge).
 
 ### HTTP Request
 `POST /api/v1/futures/trade/modify_order`
@@ -525,18 +525,18 @@ and/or price/quantity).
 ### Request Parameters
 | Parameter      | Type   | Required | Description |
 |----------------|--------|----------|-------------|
-| orderId        | string | false    | Order ID. `orderId` or `clientId` required. If both are given, `orderId` takes precedence |
-| clientId       | string | false    | Custom order ID. `orderId` or `clientId` required. If both are given, `orderId` takes precedence |
-| qty            | string | true     | Quantity (base coin) (exchange requirement; Cachy Safe Modify backfills from the live order when omitted) |
-| price          | string | true     | Order price (required for `LIMIT`) (exchange requirement; Cachy Safe Modify backfills from the live order when omitted) |
-| tpPrice        | string | false    | Take-profit trigger price |
-| tpStopType     | string | false    | Take-profit trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| tpOrderType    | string | false    | Take-profit order type: `LIMIT` / `MARKET` |
-| tpOrderPrice   | string | false    | Take-profit order price (required for `LIMIT`) |
-| slPrice        | string | false    | Stop-loss trigger price |
-| slStopType     | string | false    | Stop-loss trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| slOrderType    | string | false    | Stop-loss order type: `LIMIT` / `MARKET` |
-| slOrderPrice   | string | false    | Stop-loss order price (required for `LIMIT`) |
+| orderId        | string | false    | Order ID. `orderId` oder `clientId` erforderlich. Bei beiden hat `orderId` Vorrang |
+| clientId       | string | false    | Individuelle Order-ID. `orderId` oder `clientId` erforderlich. Bei beiden hat `orderId` Vorrang |
+| qty            | string | true     | Menge (Base-Coin) (exchange requirement; Cachy Safe Modify backfills from the live order when omitted) |
+| price          | string | true     | Orderpreis (erforderlich bei `LIMIT`) (exchange requirement; Cachy Safe Modify backfills from the live order when omitted) |
+| tpPrice        | string | false    | Take-Profit-Trigger-Preis |
+| tpStopType     | string | false    | Take-Profit-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| tpOrderType    | string | false    | Take-Profit-Order-Typ: `LIMIT` / `MARKET` |
+| tpOrderPrice   | string | false    | Take-Profit-Order-Preis (erforderlich bei `LIMIT`) |
+| slPrice        | string | false    | Stop-Loss-Trigger-Preis |
+| slStopType     | string | false    | Stop-Loss-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| slOrderType    | string | false    | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` |
+| slOrderPrice   | string | false    | Stop-Loss-Order-Preis (erforderlich bei `LIMIT`) |
 
 ### Request Example
 ```bash
@@ -565,12 +565,12 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/trade/modify_
 
 ## Place Order
 
-Source: https://www.bitunix.com/api-docs/futures/trade/place_order.html
+Quelle: https://www.bitunix.com/api-docs/futures/trade/place_order.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Places an order.
+Platziert eine Order.
 
 ### HTTP Request
 `POST /api/v1/futures/trade/place_order`
@@ -579,23 +579,23 @@ Places an order.
 | Parameter      | Type    | Required | Description |
 |----------------|---------|----------|-------------|
 | symbol         | string  | true     | Trading Pair |
-| qty            | string  | true     | Quantity (base coin) |
-| price          | string  | false    | Order price (required for `LIMIT`) |
-| side           | string  | true     | Order side: `BUY` / `SELL` |
-| tradeSide      | string  | true     | Only required in hedge mode. `OPEN`/`CLOSE`. Open Long: side=`BUY`, tradeSide=`OPEN`. Open Short: side=`SELL`, tradeSide=`OPEN`. Close Long: side=`BUY`, tradeSide=`CLOSE`. Close Short: side=`SELL`, tradeSide=`CLOSE` |
-| positionId     | string  | false    | Position ID. Required if `tradeSide` = `CLOSE` |
-| orderType      | string  | true     | Order type: `LIMIT` / `MARKET` |
-| effect         | string  | false    | Time in force, required for `LIMIT`: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
-| clientId       | string  | false    | Custom order ID |
-| reduceOnly     | boolean | false    | Position reduction only |
-| tpPrice        | string  | false    | Take-profit trigger price |
-| tpStopType     | string  | false    | Take-profit trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| tpOrderType    | string  | false    | Take-profit order type: `LIMIT` / `MARKET` |
-| tpOrderPrice   | string  | false    | Take-profit order price (required for `LIMIT`) |
-| slPrice        | string  | false    | Stop-loss trigger price |
-| slStopType     | string  | false    | Stop-loss trigger type: `MARK_PRICE` / `LAST_PRICE` |
-| slOrderType    | string  | false    | Stop-loss order type: `LIMIT` / `MARKET` |
-| slOrderPrice   | string  | false    | Stop-loss order price (required for `LIMIT`) |
+| qty            | string  | true     | Menge (Base-Coin) |
+| price          | string  | false    | Orderpreis (erforderlich bei `LIMIT`) |
+| side           | string  | true     | Order-Richtung: `BUY` / `SELL` |
+| tradeSide      | string  | true     | Nur im Hedge-Modus erforderlich. `OPEN`/`CLOSE`. Open Long: side=`BUY`, tradeSide=`OPEN`. Open Short: side=`SELL`, tradeSide=`OPEN`. Close Long: side=`BUY`, tradeSide=`CLOSE`. Close Short: side=`SELL`, tradeSide=`CLOSE` |
+| positionId     | string  | false    | Position ID. Erforderlich, wenn `tradeSide` = `CLOSE` |
+| orderType      | string  | true     | Ordertyp: `LIMIT` / `MARKET` |
+| effect         | string  | false    | Gültigkeitsdauer, erforderlich bei `LIMIT`: `IOC`, `FOK`, `GTC` (Default), `POST_ONLY` |
+| clientId       | string  | false    | Individuelle Order-ID |
+| reduceOnly     | boolean | false    | Nur Positionsreduzierung |
+| tpPrice        | string  | false    | Take-Profit-Trigger-Preis |
+| tpStopType     | string  | false    | Take-Profit-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| tpOrderType    | string  | false    | Take-Profit-Order-Typ: `LIMIT` / `MARKET` |
+| tpOrderPrice   | string  | false    | Take-Profit-Order-Preis (erforderlich bei `LIMIT`) |
+| slPrice        | string  | false    | Stop-Loss-Trigger-Preis |
+| slStopType     | string  | false    | Stop-Loss-Trigger-Typ: `MARK_PRICE` / `LAST_PRICE` |
+| slOrderType    | string  | false    | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` |
+| slOrderPrice   | string  | false    | Stop-Loss-Order-Preis (erforderlich bei `LIMIT`) |
 
 ### Request Example
 ```bash

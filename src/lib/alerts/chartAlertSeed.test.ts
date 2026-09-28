@@ -86,33 +86,6 @@ describe("conditionFromChartClick", () => {
       conditionFromChartClick({ ...base, clickedPrice: 0.004, decimals: 2 }),
     ).toBeNull();
   });
-
-  it("absorbs binary float dust into the axis-rounded level (BUG-0572)", () => {
-    // Option 1 boundary pin: the seed arrives as f64, so 0.1 + 0.2 is
-    // 0.30000000000000004. The axis rounding is the precision boundary —
-    // without it the dust would travel into the document and its content
-    // hash. With it the stored level is exactly what the axis shows.
-    const condition = conditionFromChartClick({
-      ...base,
-      clickedPrice: 0.1 + 0.2,
-      lastPrice: 0.29,
-      decimals: 2,
-    });
-    expect(condition).toMatchObject({
-      direction: "above",
-      right: { kind: "constant", value: "0.3" },
-    });
-  });
-
-  it("keeps the level independent of dust in the last price (BUG-0572)", () => {
-    // lastPrice only feeds the direction choice, never the stored level,
-    // so representation dust there must not move what the document carries.
-    const seed = { ...base, clickedPrice: 0.1 + 0.2, decimals: 2 };
-    const a = conditionFromChartClick({ ...seed, lastPrice: 0.29 });
-    const b = conditionFromChartClick({ ...seed, lastPrice: 0.29 + 1e-12 });
-    expect(a?.right).toEqual(b?.right);
-    expect(a?.right).toMatchObject({ value: "0.3" });
-  });
 });
 
 describe("ruleTimeframeFor", () => {

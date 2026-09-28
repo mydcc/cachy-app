@@ -1055,75 +1055,70 @@ the audit results and cleanup details.
 - **`.gitignore`:** Added ignore rules for temporary planning assets and scratch
   folders (`*_tpmp/`, `*_tmp/`, `verification/`, `info/`).
 
-## 28. ✅ Dependabot alerts bundled inside npm's own CLI tarball — resolved by an npm upgrade
+## 28. Dependabot alerts bundled inside npm's own CLI tarball — no fix available upstream
 
-**Raised by Dependabot**, August 2026. **RESOLVED** (2026-09-27) — not by
-action, but by an `npm` upgrade that landed in the tree on its own. Two
-statements in the original entry are no longer true and are corrected below.
+**Raised by Dependabot**, August 2026. Covers two families of alerts that
+share one root cause:
 
-**Verified state as of 2026-09-27.** The GitHub API reports **0 open, 0
-dismissed, 22 fixed** Dependabot alerts. Every advisory range is now outside
-the installed version:
+- `ip-address` — three alerts (#15, #16, #17): SSRF/trust-boundary bypass via
+  octal-decoded leading-zero octets, a CIDR suffix suppressing special-use
+  classification, IPv4-mapped/NAT64 IPv6 misclassification. **Dismissed on
+  GitHub, 2026-08-15**, reason: *"Vulnerable code is not actually used."*
+- `undici` — four alerts (#8, #10, #13, and one more): downstream response
+  desync via retry interceptor, cookie attribute injection, CRLF injection
+  via blob-like body `type`, plus one further undici advisory. **Same root
+  cause, same dismissal reasoning applies** — not yet dismissed on GitHub as
+  of this writing.
 
-| Package | Advisory range | Installed |
-| --- | --- | --- |
-| `ip-address` (in npm's bundle) | `<= 10.3.0`, `<= 10.2.1`, `<= 10.2.0` | `10.5.0` |
-| `undici` (in npm's bundle) | `< 6.28.0` | `6.28.0` |
-| `undici` (`@semantic-release/github`, `jsdom`) | `>= 7.0.0, < 7.29.0` | `7.29.1` |
-| `undici` (`@actions/http-client`) | `< 6.28.0` | `6.28.1` |
-| `undici` (top level) | `>= 7.0.0, < 7.29.0` | `8.10.2` |
+Both packages only appear vulnerable at
+`node_modules/npm/node_modules/{ip-address,undici}` (`package-lock.json`),
+bundled (`"inBundle": true`) inside the `npm` CLI tarball itself, pulled in
+transitively via `semantic-release → @semantic-release/npm → npm →
+make-fetch-happen → @npmcli/agent → socks-proxy-agent → socks` (`ip-address`)
+and directly inside `npm`'s own bundle (`undici@6.27.0`). Every other
+`undici`/`ip-address` instance in the tree (top-level `undici@6.28.0`, the
+`jsdom`/`@semantic-release/github` copies at `undici@7.29.0`) is already
+past the fixed version — only npm's own internal copies are stale.
 
-`node_modules/npm` is at **11.19.1**, and it is a `devDependency` — active
-solely during the semantic-release publish step.
+npm extracts bundled dependencies as-is from the parent tarball; a
+root-level `overrides` entry (tried: `"ip-address": "^10.5.0"`) has no
+effect on them — confirmed by installing with the override and finding the
+resolved version unchanged. Checked the npm registry directly: even the
+latest npm release (`npm@12.0.2`) still bundles `ip-address@10.2.0` and
+`undici@6.27.0` — there is currently **no upstream npm release with these
+patched**. (Contrast with the `esbuild` alert, fixed the same day: that one
+came from a normal, non-bundled transitive dependency of `svelte-i18n`, so a
+plain `overrides` entry worked — see the `esbuild` override in
+`package.json`.)
 
-**Corrections to the original entry.**
+**Risk:** none to Cachy. The path is `devDependency`-only (active solely
+during the semantic-release publish step), and both packages are used
+internally by npm's own SOCKS-proxy/HTTP client — no exposure to user data,
+no SSRF/CRLF/response-desync surface in Cachy's own code (Local-First Klasse
+A/B/C boundary unaffected).
 
-- ~~"even the latest npm release (`npm@12.0.2`) still bundles
-  `ip-address@10.2.0` and `undici@6.27.0` — there is currently no upstream npm
-  release with these patched"~~ — **no longer true.** The bundled copies moved
-  with the `npm` upgrade, and `npm@11.19.1` in the current lockfile ships
-  `ip-address@10.5.0` and `undici@6.28.0`, both past every advisory range above.
-  The conclusion drawn from the old fact — that no upstream fix existed — was
-  drawn from a stale check and is retracted with it.
-- ~~"`ip-address` … **Dismissed on GitHub, 2026-08-15**"~~ — **no longer
-  accurate either.** The API reports **0 dismissed** alerts; they closed as
-  `fixed`, not `dismissed`.
-
-**What stays true, and was the useful part.** npm extracts bundled
-dependencies as-is from the parent tarball, so a root-level `overrides` entry
-has no effect on them — confirmed empirically at the time by installing with
-`"ip-address": "^10.5.0"` and finding the resolved version unchanged. (Contrast
-the `esbuild` alert, fixed the same day: that one came from a normal,
-non-bundled transitive dependency of `svelte-i18n`, so a plain `overrides`
-entry did work — see the `esbuild` override in `package.json`.) The escape from
-that constraint was always a `package-lock.json` regeneration picking up a newer
-`npm` tarball, which is what happened.
-
-**The risk was never Cachy.** The path is `devDependency`-only, and both
-packages are used internally by npm's own SOCKS-proxy/HTTP client — no
-exposure to user data, no SSRF/CRLF/response-desync surface in Cachy's own
-code, and the Local-First Klassen A/B/C boundary unaffected. Even at the worst
-point the blast radius was a failed publish, not a misplaced order.
-
-**Nothing to re-open** unless Dependabot flags these packages again. If it
-does, check whether the nested path is still `inBundle` before assuming the
-finding — and prefer fixing the version over dismissing the alert. A dismissal
-records a claim about reachability that goes stale as the tree moves; the fix
-does not.
+**The decision:** nothing to build. Dismiss the remaining `undici` alerts on
+GitHub with the same reasoning as `ip-address`: **"Vulnerable code is not
+actually used"** — accurate, verifiable in `package-lock.json`, and it's the
+reason that best matches the finding (npm's internal client path is never
+reachable from app code). Re-open only if:
+1. Dependabot re-flags after a `package-lock.json` regeneration and the
+   nested path has moved (re-check whether it's still `inBundle`), or
+2. A future `npm`/`@semantic-release/npm` release bundles patched
+   `ip-address`/`undici` — then `npm update` picks it up automatically and
+   the alerts should auto-close.
 
 ---
 
-## 29. ✅ Does a close percentage mean a share of the original position, or of what is left?
+## 29. Does a close percentage mean a share of the original position, or of what is left?
 
 **Raised by [`FEAT-0256`](backlog/features/FEAT-0256-partial-close-position.md)**,
 2026-08-23. Shipped with one behaviour chosen; recorded here because it should
-be a decision rather than an accident. **DECIDED** (2026-09-27): the live
-behaviour stays, and the UI states its basis. Tracked as
-[`FEAT-0573`](backlog/features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md).
+be a decision rather than an accident.
 
 The partial-close slider runs 0–100 % against the size the venue reports
 **now**. So closing 50 % of a 2-contract position leaves 1 contract, and a
-second 50 % closes 0.5 — half of the remainder, not half of the original.
+second 50 % closes 0.5 — half of the remainder, not a quarter of the original.
 
 The alternative is to anchor the percentage to the size the position had when
 the dialog opened, so two 50 % closes would take 1 contract each and the
@@ -1154,24 +1149,17 @@ of a value that the current design avoids. Not large, but it changes the
 component's shape, so it is worth deciding before more callers mount it
 (FEAT-0070, FEAT-0247).
 
-**Decision, 2026-09-27.** The behaviour stays, and the objection is answered by
-labelling rather than by changing the arithmetic. The maths was already right;
-what was missing was the statement of what the slider is a percentage *of*. A
-third option was considered and rejected on its own terms — a toggle between
-the two bases — for the reason [`FEAT-0526`](backlog/features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md)
-resolved the kill switch: two semantics behind one control, and the one that
-gets misread is the permissive one. The resolution itself is small; the reason
-the entry existed was not.
+**Not blocking anything.** The current behaviour is defensible and tested; this
+entry exists so that changing it later is a decision with the reasoning
+attached, not a rediscovery.
 
 ---
 
-## 30. ✅ How should the panel behave when the venue does not report a mark price?
+## 30. How should the panel behave when the venue does not report a mark price?
 
 **Raised by [`FEAT-0256`](backlog/features/FEAT-0256-partial-close-position.md)**,
 2026-08-23. Same status: shipped with one behaviour, recorded because the
-alternatives differ in what they tell a trader. **DECIDED** (2026-09-27):
-recovery stays, and the dialog says when the figure is derived. Tracked as
-[`FEAT-0574`](backlog/features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md).
+alternatives differ in what they tell a trader.
 
 `OMSPosition.markPrice` is optional — Bitget does not always send it. The
 partial-close dialog needs it to say what PnL a close would realise.
@@ -1206,22 +1194,3 @@ misplaced order.
 **Worth resolving before** the PnL figure is reused anywhere it *is* load-bearing
 — a journal entry, a risk calculation, or a confirmation summary under
 [`FEAT-0024`](backlog/features/FEAT-0024-confirmation-policy.md).
-
-**Decision, 2026-09-27.** Recovery stays and hiding is rejected, because the
-two options above were not the only ones: a figure can be shown *and* labelled
-as derived. That gets the honesty hiding was after — the trader can see when
-the number is the venue's and when it is arithmetic on a PnL that may be stale
-— without taking away the one number they want during a panic close, and without
-making the dialog inconsistent across venues.
-
-This is what ADR-0010 actually asks of an estimate: it informs, and it says that
-it is informing. Hiding is the strict reading; a visible qualifier is the
-disciplined one, and the quantity that reaches the venue is identical either
-way.
-
-**Still open, deliberately:** the qualifier stops at this dialog. Reusing a
-derived mark in a journal entry, a risk calculation or a
-[`FEAT-0024`](backlog/features/FEAT-0024-confirmation-policy.md) confirmation
-summary would make an estimate load-bearing, which is a different decision and
-is listed under Out of scope in
-[`FEAT-0574`](backlog/features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md).
