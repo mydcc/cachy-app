@@ -71,17 +71,25 @@ gate.
 
 ## Follow-ups not done here
 
-- **The dialog-closing invariant the TP/SL gate now leans on is unpinned.**
-  An open `TpSlCreateModal` is gated by neither `tpSlStandalone` nor the
-  derived. It closes on a venue switch only through an indirect chain: the
-  provider setter → `appEffects` `providerChanged` → `accountSession.reset`
-  → `accountEpoch.rotate` → the sidebar's epoch effect clears
-  `tpSlCreatePositionId`. It holds today, but if that chain is ever decoupled,
-  a trader with the form open switches venue and gets a submittable form the
-  venue refuses — the failure this audit exists to prevent, reappearing. One
-  test asserting the id is cleared across a provider change would close it.
-  Not fixed in [#3710](https://github.com/mydcc/cachy-app/pull/3710) because it
-  is a pre-existing dependency, not part of the gate being added.
+- **The dialog-clearing invariant the TP/SL gate now leans on is unpinned.**
+  An open `TpSlCreateModal` is gated by neither `tpSlStandalone` nor
+  `canPlaceStandaloneTpSl` — only by `tpSlCreatePosition`, the derived that
+  resolves the stored id against a live position. The modal itself therefore
+  disappears as soon as that lookup returns `null`, which a venue switch causes
+  by emptying the position list, independently of any chain.
+
+  What the chain guards is the **id**, not the dialog. When an account is
+  configured, the provider setter → `appEffects` `providerChanged` →
+  `accountSession.reset` → `accountEpoch.rotate` → the sidebar's epoch effect
+  clears `tpSlCreatePositionId`. Without it the dialog closes but the id
+  survives, and switching back to the same account re-opens it on the same
+  position — a stale dialog, not a submittable form on a venue that refuses
+  it, which is why this is a follow-up rather than a defect.
+
+  It holds today and nothing pins it. One test asserting the id is cleared
+  across a provider change would. Not fixed in
+  [#3710](https://github.com/mydcc/cachy-app/pull/3710) because it is a
+  pre-existing dependency, not part of the gate being added.
 
 ## Acceptance criteria
 
