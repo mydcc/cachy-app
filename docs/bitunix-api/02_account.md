@@ -229,6 +229,59 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/account/get_le
 
 ---
 
+## Get Position Mode
+
+Source: https://www.bitunix.com/api-docs/futures/account/get_position_mode.html
+
+**Rate Limit**: 20 req/sec/uid
+
+### Description
+Get the user's futures position mode (one-way or hedge).
+
+### HTTP Request
+`GET /api/v1/futures/account/position_mode`
+
+> ⚠️ The page filename says `get_position_mode`, but the endpoint path is
+> `position_mode` — no `get_` prefix. The same asymmetry exists one page over:
+> the filename is `get_leverage_and_margin_mode` while the path is
+> `get_leverage_margin_mode`. Doc filenames and API paths do not reliably match
+> on this site.
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| None     | \-   | No       | No query parameters |
+
+### Request Example
+```bash
+curl -X 'GET'  --location 'https://fapi.bitunix.com/api/v1/futures/account/position_mode' \
+   -H "api-key:*******" \
+   -H "sign:*" \
+   -H "nonce:your-nonce" \
+   -H "timestamp:1659076670000" \
+   -H "language:en-US" \
+   -H "Content-Type: application/json"
+```
+
+### Response Parameters
+| Parameter       | Type   | Description |
+|-----------------|--------|-------------|
+| code            | integer| Response code. `0` means success |
+| msg             | string | Response message |
+| data            | object | Response data object |
+| data.positionMode | string | Position mode<br>**ONE_WAY**: one-way position mode<br>**HEDGE**: hedge (dual-side) position mode |
+
+### Response Example
+```json
+{"code":0,"data":{"positionMode":"HEDGE"},"msg":"Success"}
+```
+
+> **Why this matters to Cachy.** The order schema differs by position mode —
+> hedge mode carries a `positionSide`, one-way mode does not. Reading this one
+> field tells a client which request shape to build. See `INTEGRATION_STATUS.md`.
+
+---
+
 ## Get Single Account
 
 Source: https://www.bitunix.com/api-docs/futures/account/get_single_account.html
@@ -274,3 +327,65 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/account?margin
 ```json
 {"code":0,"data":[{"marginCoin":"USDT","available":"1000","frozen":"0","margin":"10","transfer":"1000","positionMode":"HEDGE","crossUnrealizedPNL":"2","isolationUnrealizedPNL":"0","bonus":"0"}],"msg":"Success"}
 ```
+
+---
+
+## Get Trading Settings
+
+Source: https://www.bitunix.com/api-docs/futures/account/get_trading_settings.html
+
+**Rate Limit**: 20 req/sec/uid
+
+### Description
+Get the user's futures trading settings (margin mode and leverage) by symbol.
+If `symbols` is omitted, all configured trading settings for the user are
+returned. If `symbols` is provided, settings for the specified symbols are
+returned (comma-separated, case-insensitive, max 50 symbols).
+
+### HTTP Request
+`GET /api/v1/futures/account/trading_settings`
+
+> ⚠️ Third naming asymmetry on this site: filename `get_trading_settings`,
+> path `trading_settings` — no `get_` prefix, same as `position_mode` above.
+
+### Request Parameters
+| Parameter | Type   | Required | Description |
+|-----------|--------|----------|-------------|
+| symbols   | string | false    | Trading pair symbols, comma-separated (e.g. `BTCUSDT,ETHUSDT`). Case-insensitive. Max 50 symbols. If omitted, returns all user trading settings. |
+
+### Request Example
+```bash
+curl -X 'GET'  --location 'https://fapi.bitunix.com/api/v1/futures/account/trading_settings?symbols=BTCUSDT,ETHUSDT' \
+   -H "api-key:*******" \
+   -H "sign:*" \
+   -H "nonce:your-nonce" \
+   -H "timestamp:1659076670000" \
+   -H "language:en-US" \
+   -H "Content-Type: application/json"
+```
+
+### Response Parameters
+| Parameter        | Type   | Description |
+|------------------|--------|-------------|
+| code             | integer| Response code. `0` means success |
+| msg              | string | Response message |
+| data             | list   | Trading settings list |
+| data.symbol      | string | Trading pair symbol |
+| data.marginCoin  | string | Margin coin (settlement coin) |
+| data.marginMode  | string | Margin mode<br>**CROSS**: cross margin<br>**ISOLATION**: isolated margin |
+| data.leverage    | int    | Leverage (legacy / one-way field) |
+| data.longLeverage  | int  | Long leverage in hedge mode |
+| data.shortLeverage | int  | Short leverage in hedge mode |
+
+### Response Example
+```json
+{"code":0,"data":[{"symbol":"BTCUSDT","marginCoin":"USDT","marginMode":"CROSS","leverage":20,"longLeverage":20,"shortLeverage":20},{"symbol":"ETHUSDT","marginCoin":"USDT","marginMode":"ISOLATION","leverage":10,"longLeverage":10,"shortLeverage":10}],"msg":"Success"}
+```
+
+> **Why this matters to Cachy.** This is the only documented Bitunix endpoint
+> that returns leverage for **several symbols in one call** — `Get Leverage and
+> Margin Mode` takes exactly one `symbol`, so a watchlist of ten symbols costs
+> ten requests against a 10 req/sec limit. This endpoint costs one.
+>
+> It also carries `longLeverage` / `shortLeverage` separately, which matters
+> only in hedge mode; in one-way mode `leverage` is the field to read.

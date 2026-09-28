@@ -97,11 +97,41 @@ exchange.
 
 ### Miscellaneous
 
-- **Plan orders (trigger orders):** `GET /api/v1/futures/plan/get_history_plan_orders`
-  is used by the journal sync
-  ([routes/api/sync/orders](../../src/routes/api/sync/orders/+server.ts)),
-  but the rest of the plan order family (place/cancel/get_pending) is not
-  crawled yet. TODO: add under `docs/bitunix-api/` on the next crawl.
+- **Plan orders (trigger orders): 🟡 called, but undocumented by the venue.**
+  Cachy reads `GET /api/v1/futures/plan/get_history_plan_orders` in the journal
+  sync
+  ([routes/api/sync/orders](../../src/routes/api/sync/orders/+server.ts), one of
+  three parallel sources). **The endpoint appears nowhere in Bitunix's
+  documentation.** Verified 2026-09-28: there is no `plan` section in the
+  Futures sidebar, and `…/api-docs/futures/plan/get_history_plan_orders.html`
+  returns **404**. The place/cancel/get_pending members of the family are
+  equally absent. So this is not a crawl that was missed — there is nothing on
+  the vendor side to crawl.
+
+  Two consequences worth knowing:
+
+  - **The wire format in this repository is unverified against any
+    documentation.** Whatever shape `fetchBitunixPage` expects for these orders
+    is inherited from the code, not from a spec. It is one of only a handful of
+    call sites in Cachy with no upstream source to check against.
+  - **A failure here is silent by design.** The route uses `Promise.allSettled`
+    and the comment says so: *"A source that fails degrades to nothing rather
+    than failing the page."* If this endpoint stops working, the journal
+    imports regular and TP/SL orders and silently omits trigger orders, leaving
+    one `logger.warn` and no user-visible signal. The page cursor is derived
+    from the orders that *did* arrive, so the walk still terminates — the
+    degradation is bounded, not a hang.
+
+  Bitunix's prehash does not include the request path
+  (`nonce + timestamp + apiKey + queryParams + body`), so one signature covers
+  all three sources. The upside is three calls for one envelope; the downside
+  is that the signature cannot detect a wrong path — a typo here surfaces only as
+  a venue-side error, swallowed by the `allSettled` above.
+
+  Whether the endpoint still works cannot be established from outside: Bitunix
+  answers an invalid credential with **HTTP 200 and `code: 404`**, so an
+  unauthenticated probe returns the same body as a missing route. This needs a
+  credentialed check.
 - **CopyTrading** (`03_copytrading.md`): asset query + sub-account transfers —
   not integrated, currently out of scope.
 
