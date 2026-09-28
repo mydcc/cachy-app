@@ -21,7 +21,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
   import { accountEpoch } from "../../services/accountEpoch.svelte";
-  import { accountReadOrder, positionsReadOrder } from "../../services/accountReadOrder";
+  import { accountReadOrder, pendingOrdersReadOrder, positionsReadOrder } from "../../services/accountReadOrder";
   import {
     accountFetchKey,
     runAccountFetchOnce,
@@ -394,8 +394,15 @@
   }
 
   async function fetchPendingOrders() {
+    // BUG-0587: taken before the first await, like fetchPositions above. This
+    // read hydrates the same store and used to take no ticket at all, so a
+    // response landing after an account switch was written into the new
+    // session's open-orders list.
+    const ticket = pendingOrdersReadOrder.begin();
+
     const paper = paperAccountFeed();
     if (paper) {
+      if (!pendingOrdersReadOrder.mayApply(ticket)) return;
       errorOrders = "";
       accountState.hydrateOpenOrders(paper.pendingOrders(), "paper");
       return;
@@ -426,8 +433,12 @@
       });
       const data = await response.json();
       if (data.error) {
+        if (!pendingOrdersReadOrder.mayApply(ticket)) return;
         errorOrders = translateError(data);
       } else {
+        // Claimed immediately before the write, not before the parse: a read
+        // that produced nothing to apply leaves the slot to whoever did.
+        if (!pendingOrdersReadOrder.mayApply(ticket)) return;
         // Same reasoning as fetchPositions: hydrate through accountState so
         // this list is live afterwards (WS order-channel pushes update it),
         // instead of a snapshot that never changes until the tab is
@@ -435,7 +446,10 @@
         accountState.hydrateOpenOrders(data.orders || [], "live");
       }
     } catch {
-      errorOrders = $_("apiErrors.failedToLoadOrders");
+      // A stale failure must not clear a fresher snapshot's state either.
+      if (pendingOrdersReadOrder.mayApply(ticket)) {
+        errorOrders = $_("apiErrors.failedToLoadOrders");
+      }
     } finally {
       loadingOrders = false;
     }

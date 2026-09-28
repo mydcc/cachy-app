@@ -46,6 +46,7 @@
     import { keysForActiveAccount } from "../../../stores/settings/accounts";
     import { accountState } from "../../../stores/account.svelte";
     import { paperAccountFeed } from "../../../services/paperAccountFeed";
+import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/accountReadOrder";
     import { tpSlState } from "../../../stores/tpsl.svelte";
     import { normalizeSymbol } from "../../../utils/symbolUtils";
     import { validateTpSlPrice, normalizePositionSide } from "../../../lib/calculators/tpsl";
@@ -338,6 +339,10 @@
     // just replaces the array).
     async function hydratePositionsIfEmpty() {
         if (accountState.positions.length > 0) return;
+        // BUG-0587: taken before the first await. This window is a second,
+        // independent reader of the account store, so a read issued from here
+        // has to carry its own ticket — the panel's covers the panel's reads.
+        const ticket = positionsReadOrder.begin();
         // BUG-0565: the paper seam answers first. After a mode switch the
         // store is empty and this runs before the simulator's next tick — a
         // live REST read here would stamp the snapshot "live" and the paper
@@ -345,7 +350,9 @@
         // fetchPositions/fetchPendingOrders already branch this way).
         const paper = paperAccountFeed();
         if (paper) {
-            accountState.hydratePositions(paper.positions(), "paper");
+            if (positionsReadOrder.mayApply(ticket)) {
+                accountState.hydratePositions(paper.positions(), "paper");
+            }
             return;
         }
         const provider = settingsState.apiProvider || "bitunix";
@@ -366,7 +373,12 @@
             });
             const json = await response.json();
             const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
-            if (data?.positions) accountState.hydratePositions(data.positions, "live");
+            // BUG-0587: this window is a second, independent reader of the same
+            // store, so it needs its own ticket — the panel's is scoped to that
+            // lane and cannot cover a read issued from here.
+            if (data?.positions && positionsReadOrder.mayApply(ticket)) {
+                accountState.hydratePositions(data.positions, "live");
+            }
         } catch (e) {
             console.error("[CandleChartView] FEAT-0247: position hydration failed:", e);
         }
@@ -379,10 +391,14 @@
     // real size on it.
     async function hydrateOpenOrdersIfEmpty() {
         if (accountState.openOrders.length > 0) return;
+        // BUG-0587: own lane, own ticket — see hydratePositionsIfEmpty above.
+        const ticket = pendingOrdersReadOrder.begin();
         // BUG-0565: same paper-first rule as hydratePositionsIfEmpty above.
         const paper = paperAccountFeed();
         if (paper) {
-            accountState.hydrateOpenOrders(paper.pendingOrders(), "paper");
+            if (pendingOrdersReadOrder.mayApply(ticket)) {
+                accountState.hydrateOpenOrders(paper.pendingOrders(), "paper");
+            }
             return;
         }
         const provider = settingsState.apiProvider || "bitunix";
@@ -403,7 +419,9 @@
                 fetchFn: appFetch,
             });
             const json = await response.json();
-            if (json?.orders) accountState.hydrateOpenOrders(json.orders as NormalizedOrder[], "live");
+            if (json?.orders && pendingOrdersReadOrder.mayApply(ticket)) {
+                accountState.hydrateOpenOrders(json.orders as NormalizedOrder[], "live");
+            }
         } catch (e) {
             console.error("[CandleChartView] FEAT-0247: open order hydration failed:", e);
         }
