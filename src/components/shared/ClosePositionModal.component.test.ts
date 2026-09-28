@@ -205,16 +205,33 @@ describe("BUG-0347 — ClosePositionModal keeps an edited quantity on price tick
 
         typeQuantity("8");
         expect(quantityInput().value).toBe("8");
+        expect(submitButton().disabled).toBe(false);
 
-        // The live size shrinks after the edit. Click before the seed effect
-        // re-seeds, so the dialog briefly holds the old, now-too-large
-        // quantity — it must refuse rather than send the gate a reduce it
-        // will reject.
+        // The live size shrinks under the dialog. Click in the same tick,
+        // before the seed effect re-seeds and before the button's `disabled`
+        // attribute can update: the dialog briefly holds a quantity the
+        // position no longer has, and the click lands on an enabled button
+        // whose handler reads state that has already moved. That is the race
+        // the handler's own `quantity.gt(position.amount)` guard exists for
+        // (BUG-0561's belt and braces) — an over-size close must not be sent
+        // for the gate to refuse.
+        //
+        // No `settle()` here on purpose: flushing lets the seed re-seed to 5,
+        // which is a legitimate full close and would assert nothing. This test
+        // used to select `button:not([type="button"])`, matched nothing — both
+        // buttons carry `type="button"` — and passed for that reason.
         component?.refresh({ ...POSITION, amount: new Decimal(5) });
-        const submit = host.querySelector<HTMLButtonElement>('button:not([type="button"])');
-        submit?.click();
+        expect(quantityInput().value).toBe("8");
+        expect(submitButton().disabled).toBe(false);
+
+        submitButton().click();
 
         expect(closeSpy).not.toHaveBeenCalled();
+
+        // And once the UI settles, the dialog holds a quantity the position
+        // actually has.
+        settle();
+        expect(quantityInput().value).toBe("5");
     });
 });
 
