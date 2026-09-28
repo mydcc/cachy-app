@@ -109,6 +109,27 @@ Consequences worth stating plainly:
   inconsistent with each other by a factor of 20, and both are printed. The
   hard limit is 1000; the guidance is 50.
 
+## ⚠️ Bitget states outright that pushes can be lost
+
+From the FAQ (Q15, `13_vendor_guidance.md`), verbatim:
+
+> Yes.The current fixed regular release date for backend is every Tuesday and
+> Thursday from 14:00 PM to 18:00 PM (UTC +8)… Yes, there is a possibility of
+> message loss. We recommend users always use the REST API as a fallback.
+
+Taken apart, that answer contains two claims:
+
+1. **There is no delivery guarantee on the private channels.** Bitget's own
+   guidance is to treat the WebSocket as an optimisation and keep REST as the
+   source of truth. It is not a latency layer in front of a durable feed.
+2. The 24-hour forced disconnect is a *scheduled* one, alongside the weekly
+   release window.
+
+This is the vendor confirming the failure mode that a `pseq`/`seq` gap check
+exists to detect. A client that treats a private push as authoritative state
+will drift silently during a disconnect or a lost message. A client that
+re-reads REST on reconnect will not.
+
 ## Heartbeat
 
 - **Client → server:** the literal string `ping` (not a JSON object), on a

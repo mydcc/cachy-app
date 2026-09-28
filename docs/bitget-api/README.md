@@ -46,18 +46,89 @@ A crawl of the official Bitget **Classic** Futures API documentation at:
 | `06_tp_sl.md` | Trigger orders and TP/SL plan orders |
 | `07_websocket.md` | WebSocket connection, login, public channels |
 | `07_websocket_private.md` | Private push channels, request channels, WS-vs-REST mismatches |
-| `08_error_codes.md` | Error code table, plus known defects in Bitget's own documentation |
+| `08_error_codes.md` | The two vendor error-code tables — 829 REST and 154 WebSocket codes |
 | `09_v1_vs_v2.md` | The two API generations side by side, and what migrating costs |
 | `10_change_log.md` | Upstream crawl log, frozen at the crawl date |
+| `11_public_endpoints.md` | Public and common endpoints: server time, notices, trade rates, funding assets, virtual sub-account |
+| `12_doc_defects.md` | Quarantine for defects in Bitget's own documentation |
+| `13_vendor_guidance.md` | Best practices, FAQ, UTA upgrade guide, demo trading |
 | `INTEGRATION_STATUS.md` | Reconciliation: which endpoints/channels Cachy already uses, what it emulates, what is missing |
 | `QUICK_REFERENCE.md` | Developer cheat sheet |
 
-This set mirrors `docs/bitunix-api/`. CopyTrading is absent because Classic
-Futures has no copy-trading group. Three additions, none of which Bitunix
-needs: `07_websocket_private.md` because Bitget splits public and private
-traffic across two endpoints, and `08_error_codes.md` and `09_v1_vs_v2.md`
-because Bitget's documentation carries a large number of defects that need
-quarantining somewhere other than the reference proper.
+This set mirrors `docs/bitunix-api/`. Four additions, none of which Bitunix
+needs: `07_websocket_private.md`, because Bitget splits public and private
+traffic across two endpoints; `08_error_codes.md`, `12_doc_defects.md` and
+`13_vendor_guidance.md`, because Bitget publishes an unusually large and
+unusually inconsistent body of prose that needs somewhere to live other than
+the endpoint reference; and `09_v1_vs_v2.md`, because Bitget runs two API
+generations side by side and Cachy speaks the dead one.
+
+## Coverage
+
+Stated explicitly, because a mirror that does not say what it skipped cannot be
+distinguished from a mirror that did not look.
+
+### Mirrored in full
+
+| Area | Source | Endpoints |
+|---|---|---|
+| Market | `contract/market` | 20 |
+| Account | `contract/account` | 20 |
+| Trade | `contract/trade` | 13 |
+| Trigger / TP-SL | `contract/plan` | 9 |
+| Position | `contract/position` | 5 |
+| Public / common | `common/*` | 7 |
+| WebSocket channels | `contract/websocket/{public,private}` | 14 |
+| Error codes, REST | `contract/error-code/restapi` | 829 codes |
+| Error codes, WebSocket | `contract/error-code/websocket` | 154 codes |
+| Narrative | `best-practices`, `faq`, `uta-api-upgrade-guide`, `demotrading/*` | 4 pages |
+| Reference | `intro`, `rate-limit`, `changelog` | 3 pages |
+
+**88 endpoints and channels**, 67 of them in the Futures groups that Cachy
+touches, plus 983 error codes and 4 pages of narrative guidance. Every
+endpoint page's rate limit, auth requirement, request parameters and response
+fields were transcribed, including the formatting defects.
+
+Two groups are collapsed in Bitget's own navigation but fully transcribed
+here: `contract/position` lists 2 entries in the sidebar while 5 pages exist,
+and `contract/websocket` collapses to 1 entry while 14 channel pages exist.
+
+### Deliberately not mirrored
+
+Each of these is a product line Cachy does not integrate, not an oversight.
+
+| Area | Why |
+|---|---|
+| Spot (`/api/v2/spot/*`) | Cachy trades futures only |
+| Margin | Futures only |
+| Copy Trading (16 pages) | No Cachy integration |
+| Earn / Shark Fin | No Cachy integration |
+| Tax, P2P, Affiliate, Broker, Inst Loan | No Cachy integration |
+| **UTA / `/api/v3/*`** | A separate account family Cachy does not use. `00_common.md` records the differences that matter for a future port, and `13_vendor_guidance.md` carries Bitget's own migration guide — but it is not mirrored, because a mirror of a family Cachy cannot authenticate against would be unverifiable |
+
+If Cachy ever adds one of these product lines, that is a new backlog item and a
+new file, not an extension of this set.
+
+### What "verified" means here, and what it does not
+
+Every rate limit, parameter and field name in the group files was read off a
+live vendor page on 2026-09-28. The V1-decommission finding was verified
+against the live API with unauthenticated requests.
+
+Everything about **request signing and order behaviour** is *not* verified,
+because verifying it needs credentials and a sandbox:
+
+- Whether query parameters must be sorted before signing (`01_sign.md`) — the
+  blocker on the whole migration.
+- Which code a WebSocket login success actually carries (`01_sign.md`).
+- What each V2 response looks like on the wire, since V1 is undocumented
+  (`09_v1_vs_v2.md`).
+- Whether `symbol-price` requires a signature, and whether `granularity=2H` is
+  accepted (`03_market.md`).
+
+These are marked **Unresolved** in place rather than resolved by inference.
+`12_doc_defects.md` lists every documentation self-contradiction found and
+whether it could be settled.
 
 ## Quick overview of the API surface
 

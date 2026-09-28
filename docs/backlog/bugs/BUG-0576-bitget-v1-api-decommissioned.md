@@ -140,16 +140,27 @@ Then, in dependency order:
    identifier remaps. Establish each V2 response shape with a live call and
    record what actually arrives before rewriting the parser. Mechanical once
    the ordering question holds.
-2. **Write paths** (rows 1, 4), with the order-schema split done deliberately
+2. **Read the position mode, from the response Cachy is already parsing.**
+   `GET /api/v2/mix/account/account` (row 5) returns `posMode` —
+   `one_way_mode` | `hedge_mode` — directly beside `marginMode` in the same
+   object. `fetchBitgetAccount` already parses five fields out of that payload
+   and simply does not read `posMode`. This is the only step here that needs no
+   new endpoint, and it is not optional: **the V2 order schema is
+   mode-dependent**, so step 3 cannot pick a request shape without it. The
+   error-code table makes the coupling concrete — `22042` rejects a reduce-only
+   trigger order in one-way mode, `45021` requires the order type to match the
+   position type in one-way mode, and `45020` refuses liquidation outside
+   two-way mode. So: add `posMode` to the parsed account data, declare
+   `positionModes: ["one_way", "hedge"]`, and let the existing
+   `accountState.positionMode` path carry it to the UI the way it already does
+   for Bitunix.
+3. **Write paths** (rows 1, 4), with the order-schema split done deliberately
    against a real **hedge-mode** account.
-3. **WebSocket split**, as its own change: two sockets, two lifecycles, the
+4. **WebSocket split**, as its own change: two sockets, two lifecycles, the
    `instType` rename.
-4. **Re-verify the capability flags** against V2's actual support. At minimum
-   `tpSlAtEntry` gains a verified shape (`presetStop*` on `place-order`,
-   which answers BUG-0503), and `positionModes` becomes a real answer
-   (`one_way_mode` | `hedge_mode`) rather than an empty list. Note that the V2
-   order schema *requires* knowing hedge vs one-way, so reading it is on the
-   critical path for step 2 — `history-position` returns `posMode`.
+5. **Re-verify the remaining capability flags** against V2's actual support. At
+   minimum `tpSlAtEntry` gains a verified shape (`presetStop*` on `place-order`,
+   which answers BUG-0503).
 
 **Leave alone.** The refusal design. Cancelling a Bitget order, reading TP/SL
 or changing leverage must keep failing loudly at the signer before a request
@@ -178,6 +189,10 @@ risks reintroducing it.
 - [ ] `src/utils/symbolUtils.ts` no longer appends `_UMCBL`
 - [ ] `place-order` sends `productType` and `marginMode`; no request body
       contains `timInForceValue`
+- [ ] `fetchBitgetAccount` parses `posMode` out of the account response, and
+      `bitgetCapabilities.positionModes` declares `["one_way", "hedge"]` — with
+      the mode reaching the UI through the existing `accountState.positionMode`
+      path, as it already does for Bitunix
 - [ ] A close placed on a **hedge-mode** account returns the position to flat,
       verified in a sandbox — not merely a `200` response
 - [ ] One-way mode is handled explicitly, since `tradeSide` is ignored there
@@ -187,8 +202,8 @@ risks reintroducing it.
       `instType: "USDT-FUTURES"`, and survives the venue's 24-hour forced
       disconnect
 - [ ] The test passes with the fix
-- [ ] `bitgetCapabilities.tpSlAtEntry` and `positionModes` are re-evaluated
-      against V2, each with a test added *before* the value is flipped
+- [ ] `bitgetCapabilities.tpSlAtEntry` is re-evaluated against V2, with a test
+      added *before* the value is flipped
 - [ ] [`docs/bitget-api/INTEGRATION_STATUS.md`](../../bitget-api/INTEGRATION_STATUS.md)
       no longer contains a ☠️ row
 - [ ] The WebSocket field-name mismatch in `docs/TODO.md` is resolved or
