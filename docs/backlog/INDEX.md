@@ -2,9 +2,9 @@
 
 # Backlog index
 
-465 items. How to read and add them: [README.md](README.md).
+466 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-progress 1 · ✅ done 407 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 11 · 🟡 in-progress 1 · ✅ done 407 · ⛔ dropped 1
 
 ---
 
@@ -297,6 +297,7 @@ Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-pr
 | [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | trade-panel |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | 📋 specced | execution |
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | 🟢 ready | execution |
+| [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 🟢 ready | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -662,6 +663,7 @@ Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-pr
 | [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -1004,4 +1006,4 @@ Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-pr
 
 ---
 
-Next free number: **0589**
+Next free number: **0590**

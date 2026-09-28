@@ -2626,6 +2626,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md"
   },
   {
+    "id": "BUG-0589",
+    "title": "Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always \"0",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
