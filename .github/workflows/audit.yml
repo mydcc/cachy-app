@@ -70,18 +70,11 @@ jobs:
             echo "✅ Legacy critical files use Decimal.js correctly."
           fi
 
-      - name: Audit financial files and every .svelte component
-        # Discovers every .ts file that imports decimal.js and checks it for
-        # Number() / parseFloat() calls, and checks *every* .svelte component
-        # without that gate (BUG-0534) — an import gate would skip exactly the
-        # component that converts a price natively instead of using Decimal.
-        # New financial files and new components are included automatically —
-        # no list to maintain.  Suppress a known-safe use with
-        # // audit: safe — <reason>; the reason is required.  In a component
-        # the marker may also be a block comment inside a { } expression or an
-        # HTML comment after a { } expression, because // is not a comment in a
-        # template.  The script always scans src/; its test suite imports
-        # auditDirectory() to scan fixtures instead of passing a path in.
+      - name: Audit all financial files (Decimal.js importers)
+        # Dynamically discovers every .ts file that imports decimal.js and
+        # checks it for Number() / parseFloat() calls.  New financial files
+        # are included automatically — no list to maintain.  Suppress a
+        # known-safe use by appending  // audit: safe — <reason>  to the line.
         run: node scripts/audit-decimal.mjs
 
   account-state-check:

@@ -32,16 +32,8 @@
 
 <script lang="ts">
   import { Decimal } from "decimal.js";
-  import { untrack } from "svelte";
   import { _ } from "../../locales/i18n";
   import { accountState } from "../../stores/account.svelte";
-  import {
-    accountVerification,
-    credentialPresence,
-    ensureCurrent,
-    subjectFor,
-    VERIFICATION_INPUT_DEBOUNCE_MS,
-  } from "../../stores/accountVerification.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { resultsState } from "../../stores/results.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -181,21 +173,21 @@
   // the panel can see (BUG-0549).
   const marginFunded = $derived(!resultsState.isMarginExceeded);
 
-  // The same check against the balance for the active mode — required
-  // margin above the free USDT the gate will measure. This is the state
-  // AC3 names: the calculator flag above compares against the typed account
-  // size, which can differ from the wallet in either direction. Unknown —
-  // balance not loaded, wrong mode's snapshot on hand (BUG-0565), or the
-  // calculator produced no margin figure — never disables: the panel is
+  // The same check against the live balance — required margin above the free
+  // USDT the gate will measure. This is the state AC3 names: the calculator
+  // flag above compares against the typed account size, which can differ
+  // from the wallet in either direction. Unknown — balance not loaded, or
+  // the calculator produced no margin figure — never disables: the panel is
   // only a hint, the gate stays the authority and refuses what it measures.
+  // Paper hydrates this same store, so both modes read the balance they
+  // trade against.
   //
   // Best-effort hint, intentionally unpaired: this pairs the trade store
   // with the account store across time boundaries, so it may disagree with
   // the gate's recomputation for a moment. It must never become
   // enforcement — only the gate's own measurement refuses.
   const liveAvailable = $derived(
-    accountState.readUsdtBalance(paperState.enabled ? "paper" : "live")
-      ?.available,
+    accountState.assets.find((a) => a.currency === "USDT")?.available,
   );
   const liveMarginFunded = $derived.by(() => {
     if (
@@ -225,107 +217,6 @@
       data.requiredMargin.gt(liveAvailable),
   );
 
-  /*
-   * BUG-0560: the panel used to be ready whenever the calculator had a size and
-   * the wallet could cover it, so live order entry was offered on credentials
-   * nobody had ever presented to the exchange. Now it needs a verdict from a
-   * read that came back — and, per the panel's own contract, it says why.
-   *
-   * Two deliberate exclusions, because the gate remains the authority:
-   * paper mode consults nothing (the simulated book needs no credentials, and
-   * AC5 requires that it not start asking), and a *rejected* credential is not
-   * this panel's business either — the gate refuses an order the venue will not
-   * accept, with a far more specific message than "unverified" could be. What
-   * the panel adds is the case the gate cannot see: an account whose state is
-   * simply unknown, where the old panel said nothing at all.
-   */
-  const verificationSubject = $derived(
-    subjectFor(exchange === "bitget" ? "bitget" : "bitunix"),
-  );
-  const accountVerificationStatus = $derived(
-    accountVerification.statusFor(verificationSubject),
-  );
-  // Everything that is not a verdict blocks. That is `unconfigured` too, which
-  // this used to wave through on the argument that "no credential" cannot
-  // coexist with a live balance — it can. `accountState` keeps its balance
-  // hydrated after the key fields are cleared, and the sidebar is what
-  // hydrates it, so the panel would have gone live on a funded account with no
-  // credential behind it. The gate refuses such an order at submit, so this is
-  // defence in depth rather than the last line — but AC4 says "unknown or
-  // stale", and an account nobody has read is exactly that.
-  //
-  // `rejected` is the one state left open, on purpose: the gate has something
-  // better to say about it than this panel could — the venue's own refusal,
-  // which names the actual problem. That reasoning is about `failure:
-  // "rejected"`, where the venue named a reason; for `failure: "unreachable"`
-  // there is nothing to pass on, and this panel stays silent anyway rather than
-  // duplicating the card's wording. If it ever does word that state, the
-  // exemption needs revisiting rather than inheriting this sentence.
-  const accountUnverified = $derived(
-    !paperState.enabled &&
-      accountVerificationStatus !== "verified" &&
-      accountVerificationStatus !== "rejected",
-  );
-
-  // Why live entry is blocked, when the reason is the credentials themselves.
-  // Three situations, three sentences, because they are three different problems
-  // and this panel used to fold them into one. A Bitget account with a key and a
-  // secret and no passphrase is missing the one field its venue needs, and
-  // telling it "no API credentials configured" invites a trader to delete the two
-  // fields that were fine.
-  const credentialsPresence = $derived(
-    credentialPresence(verificationSubject),
-  );
-  const credentialIssue = $derived.by(() => {
-    if (credentialsPresence === "none") return "none";
-    if (credentialsPresence !== "incomplete") return null;
-    // The passphrase only exists on the Bitunix form's absence; a Bitget
-    // trader has never seen one and would not know what to type.
-    return exchange === "bitget" ? "passphrase" : "incomplete";
-  });
-
-  // Make sure a verdict exists whenever the panel is on screen, so the state
-  // above resolves to something instead of staying unknown until the trader
-  // presses a disabled button. Cheap when a verdict is current; one signed read
-  // when it is missing, expired or about edited credentials.
-  //
-  // All three credential fields are read, not just the key, because this effect
-  // is the only thing that re-asks. The fingerprint hashes all three, so editing
-  // the passphrase on its own does make the verdict stale — and with the key as
-  // the only dependency, nothing re-ran: the panel reported a check in progress
-  // while none was running, and live entry stayed blocked until an unrelated
-  // keystroke or an account switch.
-  //
-  // Debounced, because these reads are signed and the fields being watched are
-  // text inputs. Every character typed into a field that already has content
-  // changes the fingerprint, so every character is a different credential set as
-  // far as the store is concerned, and it would spend one request per keystroke.
-  // Waiting for the typing to settle asks the same question once. The store's
-  // own retry floor cannot do this: it has no way to tell a rotated key from a
-  // key mid-keystroke, because a read is never issued for a half-empty set at all.
-  $effect(() => {
-    if (paperState.enabled) return;
-    void verificationSubject?.id;
-    void verificationSubject?.keys.key;
-    void verificationSubject?.keys.secret;
-    void verificationSubject?.keys.passphrase;
-    void accountVerificationStatus;
-    const provider = exchange === "bitget" ? "bitget" : "bitunix";
-    const handle = setTimeout(
-        () => untrack(() => void ensureCurrent(provider)),
-        VERIFICATION_INPUT_DEBOUNCE_MS,
-    );
-    return () => clearTimeout(handle);
-  });
-
-  // Owns the store's clock. This panel is mounted unconditionally by the app
-  // shell, which makes it the one place that can hold the tick for as long as
-  // the app is open; without a live clock the derived freshness comparison has
-  // no reactive input, so an expired verdict would keep reading `verified` for
-  // as long as the tab stayed open. The tick moves one number — no request, no
-  // venue, no verdict — and the effect above re-runs when the window closes.
-  $effect(() => accountVerification.startClock());
-
   // The calculator produces a size only when the inputs make one derivable.
   // AC 1: Trading-pair metadata is available in a store before submit action is enabled.
   // AC 3: Below minTradeVolume or above max order volume disables submit action.
@@ -338,8 +229,7 @@
       tradingAvailable &&
       volumeValid &&
       marginFunded &&
-      liveMarginFunded &&
-      !accountUnverified,
+      liveMarginFunded,
   );
 
   // An unreadable trade direction is not a long: the control stays
@@ -403,97 +293,21 @@
     submitting = true;
     try {
       const isPaper = paperState.enabled;
-      // BUG-0555 — one normalized fact set feeds BOTH the confirmation
-      // text below and the EntryPlan further down, so the trader confirms
-      // exactly what is sent. Derived here, before the modal call — never
-      // re-read from inputs afterwards.
-      //
-      // Absence rules (same as the service's): a stop counts as present
-      // only when it is a positive Decimal — empty AND zero both render
-      // the explicit no-stop-loss key, never a numeric zero. A TP leg
-      // counts only when its price is a positive Decimal; zero legs render
-      // the explicit no-take-profit state, not silence. The plan carries
-      // prices only (EntryPlan.takeProfits is Decimal[] — portions are
-      // not part of the payload), so the payload stays prices-only while
-      // the confirmation shows each leg with its configured portion from
-      // the same normalized targets.
-      const legs = (data.targets ?? []).filter(
-        (t) => t.price instanceof Decimal && t.price.gt(0),
-      );
-      const takeProfits = legs.map((t) => t.price);
-      // Portion of the position closed at this leg, as configured in the
-      // calculator targets (50 → "50%"). A missing/unreadable portion
-      // renders explicitly, never as a silent zero.
-      const formatLegPercent = (value: unknown): string =>
-        value instanceof Decimal && value.isFinite()
-          ? `${value.toString()}%`
-          : "—";
-      const quotePrecision = meta?.quotePrecision ?? 2;
-      const stopLossPrice = data.stopLossPrice;
-      const stopPresent =
-        stopLossPrice instanceof Decimal && stopLossPrice.gt(0);
-      const leverage = data.leverage;
-      const leveragePresent =
-        leverage instanceof Decimal && leverage.gt(0);
-      const marginMode = tradeState.remoteMarginMode;
-      const facts = {
-        symbol: data.symbol,
-        tradeType: data.tradeType,
-        qty: data.positionSize,
-        entryPrice: data.entryPrice,
-        stopLossPrice,
-        leverage,
-        marginMode,
-        takeProfits,
-        side: $_(
-          (data.tradeType === "short"
-            ? "orderEntry.side.short"
-            : "orderEntry.side.long") as TranslationKey,
-        ),
-        entryTypeLabel: typeLabel(entryType),
-        takeProfitText:
-          legs.length > 0
-            ? legs
-                .map((t, i) =>
-                  $_("orderEntry.confirm.takeProfitLeg", {
-                    values: {
-                      index: String(i + 1),
-                      price: formatDynamicDecimal(t.price, quotePrecision),
-                      percent: formatLegPercent(t.percent),
-                    },
-                  }),
-                )
-                .join(", ")
-            : $_("orderEntry.confirm.noTakeProfit"),
-        stopText: stopPresent
-          ? formatDynamicDecimal(stopLossPrice, quotePrecision)
-          : $_("orderEntry.confirm.noStopLoss"),
-        leverageText: leveragePresent
-          ? marginMode
-            ? $_("orderEntry.confirm.leverageLine", {
-                values: {
-                  leverage: leverage.toString(),
-                  marginMode,
-                },
-              })
-            : $_("orderEntry.confirm.leverageLineNoMode", {
-                values: { leverage: leverage.toString() },
-              })
-          : $_("orderEntry.confirm.leverageUnknown"),
-      };
       const confirmed = await modalState.show(
         isPaper
           ? $_("orderEntry.confirm.titlePaper")
           : $_("orderEntry.confirm.titleLive"),
         $_("orderEntry.confirm.message", {
           values: {
-            side: facts.side,
-            qty: facts.qty.toString(),
-            symbol: facts.symbol,
-            type: facts.entryTypeLabel,
-            takeProfit: facts.takeProfitText,
-            stop: facts.stopText,
-            leverage: facts.leverageText,
+            side: $_(
+              (data.tradeType === "short"
+                ? "orderEntry.side.short"
+                : "orderEntry.side.long") as TranslationKey,
+            ),
+            qty: data.positionSize.toString(),
+            symbol: data.symbol,
+            type: typeLabel(entryType),
+            stop: data.stopLossPrice.toString(),
           },
         }),
         "confirm",
@@ -515,7 +329,7 @@
 
       result = await orderPlacementService.placeEntryGroup({
         exchange,
-        symbol: facts.symbol,
+        symbol: data.symbol,
         // BUG-0494 — a clicked order is manual provenance. Required on the
         // plan so no call site can omit it and silently take the live path.
         origin: "manual",
@@ -524,16 +338,18 @@
         // is not a long: tradeDirectionKnown already disabled the control
         // and guarded submit, so this fallback below is unreachable — it
         // exists only because the union demands a direction.
-        tradeType: narrowTradeType(facts.tradeType) ?? "long",
+        tradeType: narrowTradeType(data.tradeType) ?? "long",
         entryType,
-        qty: facts.qty,
-        entryPrice: facts.entryPrice,
-        stopLossPrice: facts.stopLossPrice,
-        takeProfits: facts.takeProfits,
+        qty: data.positionSize,
+        entryPrice: data.entryPrice,
+        stopLossPrice: data.stopLossPrice,
+        takeProfits: (data.targets ?? [])
+          .map((t) => t.price)
+          .filter((p) => p instanceof Decimal && p.gt(0)),
         accountSize: data.accountSize,
         riskPercentage: data.riskPercentage,
-        leverage: facts.leverage,
-        marginMode: facts.marginMode,
+        leverage: data.leverage,
+        marginMode: tradeState.remoteMarginMode,
         accountStateAt: tradeState.remoteAccountStateAt,
         timeInForce: entryType === "limit" ? effectiveTimeInForce : undefined,
       });
@@ -660,18 +476,6 @@
           <span class="detail">{$_("dashboard.symbolInfo.apiNotSupported")}</span>
         {/if}
       </div>
-    {:else if accountUnverified}
-      <p class="note warn" role="status">
-        {#if credentialIssue === "passphrase"}
-          {$_("orderEntry.errors.accountPassphraseMissing")}
-        {:else if credentialIssue === "incomplete"}
-          {$_("orderEntry.errors.accountCredentialsIncomplete")}
-        {:else if credentialIssue === "none"}
-          {$_("orderEntry.errors.accountCredentialsMissing")}
-        {:else}
-          {$_("orderEntry.errors.accountUnverified")}
-        {/if}
-      </p>
     {:else if balanceUnmeasured}
       <p class="note">{$_("orderEntry.notes.balanceUnmeasured")}</p>
     {:else if liveMarginShortfall && data?.requiredMargin instanceof Decimal && liveAvailable instanceof Decimal}

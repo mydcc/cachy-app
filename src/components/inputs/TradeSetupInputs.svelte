@@ -30,7 +30,6 @@
   import { marketState } from "../../stores/market.svelte";
   import { resultsState } from "../../stores/results.svelte";
   import { fundingRateService } from "../../services/fundingRateService.svelte";
-  import { signedFundingCashFlow24h } from "../../lib/fundingCashFlow";
   import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { SymbolPickerWindow } from "../../lib/windows/implementations/SymbolPickerWindow.svelte";
   import { app } from "../../services/app";
@@ -156,27 +155,15 @@
 
       const notional = posSizeDecimal.times(entryDecimal);
       const fundingInterval = marketState.data[norm]?.fundingInterval ?? 8;
-      // BUG-0559: a positive rate means longs pay shorts, so the signed
-      // estimate reads as a cost for a long and as income for a short.
-      // The pure helper normalizes the persisted/preset value and returns
-      // null for an unknown direction instead of silently treating it as long.
-      return signedFundingCashFlow24h(
-        notional,
-        history.avg7d,
-        fundingInterval,
-        tradeState.tradeType,
-      );
+      const settlementsPerDay = new Decimal(24).dividedBy(fundingInterval);
+
+      // Cost = Notional * avg7d_rate * (24 / interval)
+      const cost24h = notional.times(history.avg7d).times(settlementsPerDay);
+      return cost24h;
     } catch {
       return null;
     }
   });
-
-  // BUG-0559: ONE predicate drives the Cost/Income label, the sign prefix
-  // and the semantic color. gte(0) for the label with gt(0)/lt(0) for the
-  // colors used to leave an exact zero reading "Cost" without any color.
-  let isHoldingCost24h = $derived(
-    estimatedHoldingCost24h !== null && estimatedHoldingCost24h.gte(0),
-  );
 
   // On symbol change, fetch funding history on demand if not cached
   $effect(() => {
@@ -272,13 +259,8 @@
 
   function handleFetchPriceClick() {
     trackCustomEvent("Price", "Fetch", symbol);
-    // BUG-0556: a price refresh loads market context only — it must not
-    // change the stop strategy. The user's useAtrSl/atrMode and manual stop
-    // values survive; only the symbol context is (re-)applied.
-    tradeState.applySymbolRefresh({
-      symbol,
-      provider: settingsState.apiProvider || "bitunix",
-    });
+    // Force ATR SL to be active when fetching price manually
+    tradeState.update((s) => ({ ...s, useAtrSl: true, atrMode: "auto" }));
     // Use unified fetch
     app.fetchAllAnalysisData(symbol, false);
   }
@@ -445,7 +427,7 @@
       return new Decimal(10).pow(-symbolMeta.quotePrecision).toNumber();
     }
     if (!entryPrice) return 0.01;
-    const price = parseFloat(String(entryPrice));  // audit: safe — derives a price step size for the input's step attribute, not a price value
+    const price = parseFloat(String(entryPrice));
     if (isNaN(price) || price === 0) return 0.01;
 
     // Dynamic precision for low-sat assets vs high-value assets
@@ -692,15 +674,14 @@
       {#if estimatedHoldingCost24h !== null}
         <span class="flex items-center gap-1">
           <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
-            <span class="text-[var(--text-secondary)]">{isHoldingCost24h ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
+            <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
           </Tooltip>
           <span
-            data-testid="funding-estimate-24h"
             class="font-medium"
-            class:text-[var(--danger-color)]={isHoldingCost24h}
-            class:text-[var(--success-color)]={!isHoldingCost24h}
+            class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
+            class:text-[var(--success-color)]={estimatedHoldingCost24h.lt(0)}
           >
-            {isHoldingCost24h ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
+            {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
           </span>
         </span>
       {/if}
@@ -711,15 +692,14 @@
     >
       <span class="flex items-center gap-1">
         <Tooltip text={$_("dashboard.tradeSetupInputs.holdingCost24hTooltip")}>
-          <span class="text-[var(--text-secondary)]">{isHoldingCost24h ? $_("dashboard.tradeSetupInputs.holdingCost24hCost") : $_("dashboard.tradeSetupInputs.holdingCost24hIncome")}:</span>
+          <span class="text-[var(--text-secondary)]">{$_("dashboard.tradeSetupInputs.holdingCost24h")}:</span>
         </Tooltip>
         <span
-          data-testid="funding-estimate-24h"
           class="font-medium"
-          class:text-[var(--danger-color)]={isHoldingCost24h}
-          class:text-[var(--success-color)]={!isHoldingCost24h}
+          class:text-[var(--danger-color)]={estimatedHoldingCost24h.gt(0)}
+          class:text-[var(--success-color)]={estimatedHoldingCost24h.lt(0)}
         >
-          {isHoldingCost24h ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
+          {estimatedHoldingCost24h.gte(0) ? `+${formatDynamicDecimal(estimatedHoldingCost24h, 2)}` : formatDynamicDecimal(estimatedHoldingCost24h, 2)} USDT
         </span>
       </span>
     </div>

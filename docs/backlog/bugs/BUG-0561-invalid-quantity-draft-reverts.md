@@ -2,9 +2,7 @@
 id: BUG-0561
 title: Invalid add and close quantity drafts silently revert and submit the old amount
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0561-place-order-invalid-quantity
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]

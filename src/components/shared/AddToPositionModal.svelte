@@ -66,13 +66,6 @@
   let quantity = $state<Decimal | null>(null);
   let loading = $state(false);
   let error = $state("");
-  /*
-   * True while the quantity field holds an invalid draft (BUG-0561). The
-   * committed quantity is untouched by such a draft, but submitting it would
-   * send a different amount than the one on screen — so submission is
-   * blocked until the draft is corrected or explicitly reverted.
-   */
-  let quantityInvalid = $state(false);
 
   /** Quantity step from the instrument's base precision; 0 disables rounding. */
   const stepSize = $derived.by(() => {
@@ -178,9 +171,6 @@
 
   async function handleAdd() {
     if (!position || !quantity || quantity.lte(0)) return;
-    // Belt and braces: the button is disabled while a draft is invalid, but
-    // a blur-commit races a click — the handler must refuse too (BUG-0561).
-    if (quantityInvalid) return;
 
     loading = true;
     error = "";
@@ -241,7 +231,6 @@
         {accountSize}
         disabled={loading}
         onChange={(next) => (quantity = next)}
-        onValidityChange={(valid) => (quantityInvalid = !valid)}
       />
     {/if}
 
@@ -262,7 +251,7 @@
       <button
         type="button"
         onclick={handleAdd}
-        disabled={loading || !ctx || !quantity || quantity.lte(0) || quantityInvalid}
+        disabled={loading || !ctx || !quantity || quantity.lte(0)}
         class="px-3 py-1.5 text-xs rounded font-bold bg-accent-paired
                disabled:opacity-50 disabled:cursor-not-allowed"
       >

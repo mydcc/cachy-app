@@ -90,16 +90,17 @@ function givePosition(position: Record<string, unknown>) {
     vi.spyOn(omsService, "getPositions").mockReturnValue([position] as never);
 }
 
-/** Free margin the account reports, stamped live like the wallet channel would. */
+/** Free margin the account reports, as the balance channel would leave it. */
 function giveBalance(available: Decimal) {
-    accountState.hydrateBalance(
+    accountState.assets = [
         {
-            available: available.toString(),
-            margin: "0",
-            frozen: "0",
+            currency: "USDT",
+            available,
+            margin: new Decimal(0),
+            frozen: new Decimal(0),
+            total: available,
         },
-        "live",
-    );
+    ] as never;
 }
 
 beforeEach(() => {
@@ -136,7 +137,7 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.restoreAllMocks();
-    accountState.reset();
+    accountState.assets = [] as never;
     registerKillSwitch(null);
     registerRiskLimitCheck(null);
     registerAuditRecorder(null);

@@ -153,7 +153,7 @@
         });
     }
 
-    let safeItemsPerPage = $derived(Math.max(1, Number(itemsPerPage || 10)));  // audit: safe — rows per page, not a financial value
+    let safeItemsPerPage = $derived(Math.max(1, Number(itemsPerPage || 10)));
     let totalPages = $derived(
         Math.ceil((trades?.length || 0) / safeItemsPerPage),
     );

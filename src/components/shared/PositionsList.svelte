@@ -231,7 +231,7 @@
                       <div
                         class="absolute inset-y-0 left-0 transition-all duration-300 opacity-30"
                         style="width: {Math.min(
-                          Math.abs(Number(getRoi(pos))/* audit: safe — ROI percentage driving a CSS bar width, clamped to 100 */),
+                          Math.abs(Number(getRoi(pos))),
                           100,
                         )}%; background-color: {pos.unrealizedPnl.gt(0)
                           ? 'var(--success-color)'

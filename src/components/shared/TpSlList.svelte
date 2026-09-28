@@ -126,7 +126,7 @@
 
   function formatDate(ts: number) {
     if (!ts) return "-";
-    const d = new Date(Number(ts));  // audit: safe — epoch-ms timestamp, not a financial value
+    const d = new Date(Number(ts));
     return `${d.getDate()}.${
       d.getMonth() + 1
     } ${d.getHours()}:${d.getMinutes()}`;

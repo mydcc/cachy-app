@@ -2,8 +2,7 @@
 id: BUG-0567
 title: Shrinking modify with widened stop escapes the loss-per-trade ceiling
 type: bug
-status: done
-assignee: opencode
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -12,7 +11,6 @@ data_class: A
 adr: none
 depends_on: [BUG-0548]
 ---
-
 
 # BUG-0567 — Shrinking modify with widened stop escapes the loss-per-trade ceiling
 
@@ -47,26 +45,13 @@ exempt from the size caps but still measure the resulting position and
 stop against `maxLossPerTradeUsdt`. Price-only and TP/SL-only amendments
 keep their full exemption (no new exposure to measure).
 
-> Superseded on the size-caps half by BUG-0568, in the same release: a
-> non-growing amendment now faces the size caps too, because price is the other
-> half of notional and a quantity shrink with a pumped price is a 9x amendment.
-> The loss measurement described above is unchanged.
-
 ## Acceptance criteria
 
-- [x] A test reproduces the defect (shrink + widened stop past the loss ceiling) and fails without the fix
-- [x] The test passes with the fix
-- [x] Increasing, price-only and TP/SL-only modifies keep their exact behaviour (regression tests)
+- [ ] A test reproduces the defect (shrink + widened stop past the loss ceiling) and fails without the fix
+- [ ] The test passes with the fix
+- [ ] Increasing, price-only and TP/SL-only modifies keep their exact behaviour (regression tests)
 
 ## Links
 
 - `src/services/rmsService.ts` (modify branch before `checkLossPerTrade`)
 - BUG-0548 (quantity-increasing modify ceilings)
-
-## State
-
-Done on branch `fix/shrink-stop-loss-ceiling` (assignee: opencode).
-
-## What shipped
-
-Shipped in 1.6.0-beta.364.
