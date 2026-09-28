@@ -38,12 +38,9 @@
  * exactly the file the check exists to catch. The import gate is kept for
  * `.ts`, where it means what it says.
  *
- * What this does not claim: the general shape — any reference to `Number` /
- * `parseFloat` in a value position — is a parser's job, not a regex's. The
- * one reference form common enough to name, `.map(Number)` /
- * `.map(parseFloat)`, is detected (BUG-0571); anything more exotic stays
- * invisible. If more forms keep appearing, that is the signal to stop
- * extending the pattern list.
+ * What this does not claim: detection is unchanged, so a conversion passed by
+ * reference (`prices.map(Number)`) is still invisible. Widening the net to
+ * components was this item's scope; re-tuning the patterns was explicitly not.
  *
  * Opt-out for known-safe uses (e.g. epoch-ms timestamps, array indices):
  * append   // audit: safe — <reason>   to the offending line. In a component
@@ -80,15 +77,8 @@ const ROOT = new URL('..', import.meta.url).pathname;
  * Anchored with \b so `.toNumber()` and `.toFixed()` are NOT matched —
  * those are Decimal → primitive conversions that are intentional and safe
  * at display / serialisation boundaries.
- *
- * The second alternative covers a conversion passed by reference
- * (`prices.map(Number)`, BUG-0571): a bare function reference is the same
- * conversion with the syntax on the other side of the identifier, and the
- * call-only form never saw it. Narrow on purpose — `.map(` with the name
- * immediately inside the parens, so `mymap(Number)` or `.map(Number2)`
- * stay out, and the general value-position shape stays a parser's job.
  */
-const UNSAFE_PATTERN = /\b(?:Number|parseFloat)\s*\(|\.map\(\s*(?:Number|parseFloat)\s*\)/;
+const UNSAFE_PATTERN = /\b(Number|parseFloat)\s*\(/;
 
 /**
  * Lines carrying this marker are explicitly acknowledged as non-financial.

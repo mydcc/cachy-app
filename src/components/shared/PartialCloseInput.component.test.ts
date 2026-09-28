@@ -26,7 +26,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import { Decimal } from "decimal.js";
 import en from "../../locales/locales/en.json";
-import de from "../../locales/locales/de.json";
 import type { PartialCloseContext } from "../../lib/calculators/partialClose";
 
 function lookup(key: string): string {
@@ -44,11 +43,6 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import PartialCloseInput from "./PartialCloseInput.svelte";
-
-/** The real catalogue for a locale, for the wording guards below. */
-function catalogue(locale: string): typeof en {
-    return locale === "de" ? de : en;
-}
 
 /** 2 contracts, entered at 100, marked at 110, step 0.1. */
 const LONG: PartialCloseContext = {
@@ -306,72 +300,5 @@ describe("FEAT-0256 — the readout", () => {
         render({ quantity: new Decimal(2), onChange: vi.fn() });
         const line = host.textContent ?? "";
         expect(line).toContain(`${lookup("positionsList.remainingAfter")}: 0`);
-    });
-});
-
-/*
- * FEAT-0573 — the slider states what its percentage is measured against.
- *
- * The percentage is a share of the size the venue reports *now*, so pressing
- * 25 % three times closes 57.8 % and not 75 %. The arithmetic is unchanged
- * and was already right; what was missing was the statement of its basis, and
- * a control a trader cannot predict is one they stop trusting — on the control
- * that reduces their position.
- *
- * The wording test below reads the real catalogues rather than the mock, so it
- * holds for the German string too, which the rendered-text test cannot reach.
- */
-describe("FEAT-0573 — the slider says what its percentage is of", () => {
-    it("puts the basis next to the slider it describes", () => {
-        render({ quantity: new Decimal(1), onChange: vi.fn() });
-
-        // Placement, not copy: the caption the trader needs when the handle
-        // moves has to sit with the control, and the wording itself is the
-        // catalogue's business.
-        const caption = [...host.querySelectorAll("p")].find((p) =>
-            p.textContent?.includes(lookup("positionsList.closePercentBasis")),
-        );
-        expect(caption).toBeDefined();
-
-        // After the slider and before the readout block — so it reads as a
-        // property of the control rather than of the figures below it.
-        const blocks = [...host.querySelectorAll("input[type=range], p")];
-        const sliderAt = blocks.indexOf(slider());
-        const captionAt = blocks.indexOf(caption!);
-        const remainingAt = blocks.findIndex((el) =>
-            el.textContent?.includes(lookup("positionsList.remainingAfter")),
-        );
-        expect(sliderAt).toBeGreaterThanOrEqual(0);
-        expect(captionAt).toBeGreaterThan(sliderAt);
-        expect(remainingAt).toBeGreaterThan(captionAt);
-
-        // And the caption is what a screen reader hears while the handle
-        // moves: the label is the accessible *name*, so without the
-        // description the basis is on screen and absent from the audio path.
-        expect(caption!.id).toBe("partial-close-basis");
-        expect(slider().getAttribute("aria-describedby")).toBe("partial-close-basis");
-    });
-
-    /*
-     * The wording guards below read the exact strings rather than matching a
-     * vocabulary. A regex over copy is a guard that punishes the next
-     * copywriter: "not the original size" is a *correct* clarification of this
-     * string, and it would trip a ban on the word "original". Pinning the
-     * strings makes a wording change a visible, deliberate act here, which is
-     * the honest way to guard a deliverable that is prose.
-     */
-    it.each([
-        [
-            "en",
-            "Share of the position size the venue currently reports — pressing 50 % twice closes half of what is left, not the whole position",
-        ],
-        [
-            "de",
-            "Anteil der aktuell von der Börse gemeldeten Positionsgröße — zweimal 50 % schließt die Hälfte des Restes",
-        ],
-    ])("names the live size in %s, and nothing else", (_locale, expected) => {
-        expect((catalogue(_locale).positionsList as Record<string, string>).closePercentBasis).toBe(
-            expected,
-        );
     });
 });

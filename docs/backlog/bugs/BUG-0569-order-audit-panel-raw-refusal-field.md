@@ -2,9 +2,7 @@
 id: BUG-0569
 title: Order audit panel shows the raw refusal field name
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0569-order-audit-refusal-field
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -55,11 +53,11 @@ invents its own wording.
 
 ## Acceptance criteria
 
-- [x] A component test renders a refused entry with a field name from
+- [ ] A component test renders a refused entry with a field name from
   `orderGate.fields.*` and shows the translated label, not the raw key
-- [x] An entry whose field has no translation falls back to the raw name
+- [ ] An entry whose field has no translation falls back to the raw name
   rather than showing a dotted key path
-- [x] The toast wording and the panel wording agree for the same refusal
+- [ ] The toast wording and the panel wording agree for the same refusal
 
 ## Out of scope
 
@@ -72,22 +70,3 @@ invents its own wording.
 - `src/components/settings/OrderAuditSettings.svelte`
 - `src/services/orderGate.ts` (`translateRefusal`)
 - Found during the BUG-0551 review; that PR deliberately left it out of scope
-
-## Resolution
-
-Shipped in PR #3689 (issue #3688). The field half of `translateRefusal` was
-extracted as `translateRefusalField` so the toast and the panel read one
-implementation, and the five field labels the gate emits that had no entry were
-added — the panel can now receive 28 distinct field names and all 28 have a
-label.
-
-Two things came out of it and are tracked separately rather than here:
-
-- **#3693** — `orderGate.invalidTpSl` renders a doubled article in *both*
-  locales, reached from ten call sites. The one template where the label
-  article is genuinely wrong, and the reason a bare-label sub-dictionary is
-  needed rather than a template rewrite.
-- **#3688 (comment)** — `qty.inputs` cannot be labelled at all: it would need
-  `orderGate.fields.qty.inputs`, which requires `fields.qty` to become an
-  object where it is currently a string. A structural limit of the flat
-  dictionary, covered by the documented raw-name fallback.

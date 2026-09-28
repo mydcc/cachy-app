@@ -2,9 +2,9 @@
 
 # Backlog index
 
-455 items. How to read and add them: [README.md](README.md).
+451 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 406 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 24 · 🟢 ready 6 · ✅ done 397 · ⛔ dropped 1
 
 ---
 
@@ -105,7 +105,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0299](features/FEAT-0299-epic-first-time-user-onboarding.md) | Epic: First-Time User Onboarding & Interactive Walkthrough | P2 | ✅ done | ui |
 | [FEAT-0300](features/FEAT-0300-onboarding-spotlight-ui-and-content.md) | Onboarding spotlight walkthrough UI, state engine, and data-driven steps | P2 | ✅ done | ui |
 | [FEAT-0301](features/FEAT-0301-ducklogic-onboarding-companion-and-achievement.md) | Active 3D Duck companion integration and onboarding achievement | P2 | ✅ done | mascot |
-| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 🟡 in-progress | trade-panel |
+| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | trade-panel |
 | [FEAT-0378](features/FEAT-0378-account-name-remaining-surfaces.md) | Name the active account on the surfaces FEAT-0026 did not reach | P2 | 🟢 ready | trade-panel |
 | [FEAT-0400](features/FEAT-0400-collapse-chart-indicator-sub-panes.md) | Collapse chart indicator sub-panes to header strips | P2 | ✅ done | chart |
 | [FEAT-0403](features/FEAT-0403-chart-pane-visibility-toggles.md) | Toggle chart indicator panes per indicator in Settings | P2 | ✅ done | chart |
@@ -219,7 +219,6 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | execution |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | execution |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | execution |
-| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | exchange |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -293,8 +292,8 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
 | [FEAT-0352](features/FEAT-0352-storage-wrapper-migration.md) | Migrate all raw localStorage access to storageWrapper | P1 | ✅ done | ui |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | security |
-| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 🟢 ready | execution |
-| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 🟢 ready | execution |
+| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | execution |
+| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | execution |
 | [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | ✅ done | alerts |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -419,7 +418,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0417](features/FEAT-0417-account-state-write-guard.md) | Guard position-mode writes in CI so the freshness stamp cannot be dropped | P2 | ✅ done | trade-panel |
 | [FEAT-0420](features/FEAT-0420-account-state-setter-only.md) | Make the stamped account fields writable only through their setter | P2 | ✅ done | trade-panel |
 | [FEAT-0461](features/FEAT-0461-multi-broker-journal-sync.md) | Generalize the journal history sync to Bitget and further venues | P2 | 📋 specced | exchange |
-| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | ✅ done | exchange |
+| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | exchange |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | alerts |
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | ✅ done | indicators |
 | [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | architecture |
@@ -427,8 +426,6 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | alerts |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | alerts |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | ui |
-| [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | docs |
-| [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | docs |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
@@ -471,11 +468,11 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | execution |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | security |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | ui |
-| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | ✅ done | ui |
-| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | ✅ done | security |
-| [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | ui |
-| [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | ui |
-| [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | ui |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | ui |
+| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | security |
+| [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | 📋 specced | ui |
+| [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | 📋 specced | ui |
+| [BUG-0573](bugs/BUG-0573-journal-filter-timezones.md) | Journal date filter uses local end bound against UTC start bound | P3 | 📋 specced | ui |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -508,8 +505,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | exchange |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | ui |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | exchange |
-| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | ui |
-| [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | 🟢 ready | ui |
+| [FEAT-0574](features/FEAT-0574-journal-filter-tests.md) | Add test coverage for the journal date filter | P3 | 📋 specced | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -550,7 +546,6 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -682,8 +677,8 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0401](features/FEAT-0401-record-migration-origin-ledger.md) | Record a migration origin ledger for rules converted from legacy alerts | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0388](features/FEAT-0388-migrate-alerts-to-rule-documents.md) |
 | [FEAT-0405](features/FEAT-0405-client-side-signing-cutover.md) | Cut REST signing over to client-side WebCrypto (finish FEAT-0285 Option A) | P1 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [FEAT-0440](features/FEAT-0440-real-firing-sink.md) | Replace the shadow sink with one that announces, counts and retires | P1 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0393](features/FEAT-0393-rule-trigger-method-and-lifecycle.md) |
-| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 🟢 ready | none | community, pro, private | A | ADR-0012 | — |
-| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 🟢 ready | none | community, pro, private | A | none | — |
+| [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 📋 specced | none | community, pro, private | A | ADR-0012 | — |
+| [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
@@ -830,7 +825,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0319](features/FEAT-0319-conformance-guard-destroy-forgets-subscriptions.md) | Make "destroy forgets subscriptions" a conformance-suite invariant | P2 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0018](features/FEAT-0018-adapter-conformance-suite.md), [FEAT-0227](features/FEAT-0227-adapter-owns-its-socket.md) |
 | [FEAT-0328](features/FEAT-0328-compact-account-controls-and-fee-display.md) | Compact account-controls row and wire up maker/taker fee display | P2 | ✅ done | none | community, pro, private | A | none | [FEAT-0068](features/FEAT-0068-bitunix-account-settings.md) |
 | [FEAT-0332](features/FEAT-0332-asset-mode.md) | Show and change the account's asset mode | P2 | 📋 specced | M4 | community, pro, private | A | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md), [FEAT-0020](features/FEAT-0020-account-settings-panel.md) |
-| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 🟡 in-progress | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
+| [FEAT-0335](features/FEAT-0335-trailing-stop.md) | Trail a stop behind a position once the exchange endpoint is verified | P2 | 📋 specced | M3 | community, pro, private | none | none | [FEAT-0017](features/FEAT-0017-exchange-capability-model.md) |
 | [FEAT-0336](features/FEAT-0336-css-design-token-foundation.md) | CSS Design Token Foundation & UI Harmonization | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
 | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) | Design Token Foundation | P2 | ✅ done | none | community, pro, private | none | ADR-0014 | — |
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
@@ -868,7 +863,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | — |
 | [FEAT-0471](features/FEAT-0471-single-provider-registry-five-tabs.md) | Single AI provider registry with five tabs and fetched model pickers | P2 | ✅ done | M8 | community, pro, private | A | ADR-0019 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) |
 | [FEAT-0480](features/FEAT-0480-persistent-chart-drawings.md) | Persistent, addressable chart drawings | P2 | ✅ done | M4 | community, pro, private | A | none | — |
-| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0525](features/FEAT-0525-bitget-api-reference-stored-locally.md) | Store the complete Bitget API reference locally, mirroring the Bitunix coverage | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0529](features/FEAT-0529-carry-drawing-anchor-in-rule-document.md) | Carry the drawing anchor inside the rule document | P2 | 💡 idea | none | community, pro, private | A | none | [BUG-0498](bugs/BUG-0498-lost-drawing-anchor-silently-freezes-the-level.md) |
 | [FEAT-0538](features/FEAT-0538-unify-smc-mitigation-checks.md) | Unify the duplicated SMC mitigation checks | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0539](features/FEAT-0539-break-service-import-cycles.md) | Break the service import cycles | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -876,8 +871,6 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0542](features/FEAT-0542-view-and-edit-armed-alert-from-manage.md) | View and edit an armed alert from Manage | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0543](features/FEAT-0543-show-full-rule-configuration-on-manage-rows.md) | Show full rule configuration on each Manage row | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | none | community, pro, private | A | none | — |
-| [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | none | community | none | none | — |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -921,11 +914,11 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0507](bugs/BUG-0507-double-submit-guard-sits-on-the-wrong-side-of-the-confirmation.md) | The entry panel's double-submit guard is set after the confirmation dialog, so what actually prevents a second order is an unrelated invariant in the modal store | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0528](bugs/BUG-0528-redactstring-json-shape-leaks-prefixed-sign.md) | redactString leaves prefixed sign spellings unredacted in embedded JSON | P3 | ✅ done | none | community, pro, private | A | ADR-0013 | — |
 | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) | .svelte files are outside automated decimal enforcement | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
-| [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
-| [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0569](bugs/BUG-0569-order-audit-panel-raw-refusal-field.md) | Order audit panel shows the raw refusal field name | P3 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0570](bugs/BUG-0570-dispatch-guard-fingerprint-collides-on-short-keys.md) | The order dispatch guard's account fingerprint collides on short keys | P3 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | 📋 specced | none | community, pro, private | none | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
+| [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | 📋 specced | none | community, pro, private | A | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
+| [BUG-0573](bugs/BUG-0573-journal-filter-timezones.md) | Journal date filter uses local end bound against UTC start bound | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -963,8 +956,7 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0536](features/FEAT-0536-isstatuserror-shared-http-errors.md) | Extract shared isStatusError helper for API routes | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0537](features/FEAT-0537-single-katex-marked-setup.md) | Unify the double KaTeX marked setup into one place | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | 🟢 ready | none | community, pro, private | none | ADR-0010 | — |
+| [FEAT-0574](features/FEAT-0574-journal-filter-tests.md) | Add test coverage for the journal date filter | P3 | 📋 specced | none | community, pro, private | none | none | [BUG-0573](bugs/BUG-0573-journal-filter-timezones.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -984,4 +976,4 @@ Counts by status: 💡 idea 23 · 📋 specced 15 · 🟢 ready 9 · 🟡 in-pro
 
 ---
 
-Next free number: **0579**
+Next free number: **0575**

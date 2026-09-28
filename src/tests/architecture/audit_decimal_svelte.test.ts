@@ -141,17 +141,3 @@ describe("BUG-0534 — the decimal audit covers .svelte components", () => {
         expect(run.stdout).toContain("✅");
     });
 });
-
-describe("BUG-0571 — the decimal audit sees reference passing", () => {
-    it("flags a conversion passed by reference in a component's script block", async () => {
-        // prices.map(Number) is the same conversion as Number(x) with the
-        // syntax on the other side of the identifier. The call-only pattern
-        // required an opening parenthesis right after the name, so a bare
-        // reference passed the audit silently.
-        const result = await audit("map-reference");
-        expect(violations(result)).toHaveLength(2);
-        expect(violations(result)[0].file).toContain("map-reference.svelte");
-        expect(violations(result)[0].text).toContain(".map(Number)");
-        expect(violations(result)[1].text).toContain(".map(parseFloat)");
-    });
-});

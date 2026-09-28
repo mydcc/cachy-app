@@ -1,23 +1,23 @@
 # CopyTrading – Asset Endpoints
 
-All endpoints are **private** interfaces and require a signature (see `01_sign.md`).
+Alle Endpunkte sind **private** Interfaces und erfordern Signatur (siehe `01_sign.md`).
 
 ---
 
 ## Asset Query
 
-Source: https://www.bitunix.com/api-docs/futures/copyTrading/asset/asset_query.html
+Quelle: https://www.bitunix.com/api-docs/futures/copyTrading/asset/asset_query.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Interface for asset querying.
+Interface zur Asset-Abfrage.
 
 ### HTTP Request
 `GET /api/v1/cp/asset/query`
 
 ### Request Parameters
-None.
+Keine.
 
 ### Request Example
 ```bash
@@ -32,8 +32,8 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/cp/asset/query' \
 ### Response Parameters
 | Parameter    | Type   | Description |
 |--------------|--------|-------------|
-| available    | string | Available futures funds |
-| maxTransfer  | string | Maximum transferable amount |
+| available    | string | Verfügbare Futures-Mittel |
+| maxTransfer  | string | Maximal transferierbarer Betrag |
 
 ### Response Example
 ```json
@@ -44,12 +44,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/cp/asset/query' \
 
 ## Transfer Asset from Main Account to Sub Account
 
-Source: https://www.bitunix.com/api-docs/futures/copyTrading/asset/transfer_asset_from_main_account_to_sub_account.html
+Quelle: https://www.bitunix.com/api-docs/futures/copyTrading/asset/transfer_asset_from_main_account_to_sub_account.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Interface for transferring assets from the main account to the sub-account.
+Interface zum Transfer von Assets vom Hauptaccount zum Subaccount.
 
 ### HTTP Request
 `POST /api/v1/cp/asset/transfer-to-sub-account`
@@ -57,8 +57,8 @@ Interface for transferring assets from the main account to the sub-account.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| amount    | string | true     | Transfer amount |
-| assetType | string | true     | Assets are transferred from the main account's futures or spot account. e.g.: `FUTURES`/`SPOT` |
+| amount    | string | true     | Transfer-Betrag |
+| assetType | string | true     | Assets werden vom Futures- oder Spot-Account des Hauptaccounts transferiert. z.B.: `FUTURES`/`SPOT` |
 
 ### Request Example
 ```bash
@@ -73,7 +73,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/cp/asset/transfer-to-
 ```
 
 ### Response Parameters
-None.
+Keine.
 
 ### Response Example
 ```json
@@ -84,12 +84,12 @@ None.
 
 ## Transfer Asset from Sub Account to Main Account
 
-Source: https://www.bitunix.com/api-docs/futures/copyTrading/asset/transfer_asset_from_subaccount_to_main_account.html
+Quelle: https://www.bitunix.com/api-docs/futures/copyTrading/asset/transfer_asset_from_subaccount_to_main_account.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Interface for transferring assets from the sub-account to the main account.
+Interface zum Transfer von Assets vom Subaccount zum Hauptaccount.
 
 ### HTTP Request
 `POST /api/v1/cp/asset/transfer-to-main-account`
@@ -97,8 +97,8 @@ Interface for transferring assets from the sub-account to the main account.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| amount    | string | true     | Transfer amount |
-| assetType | string | true     | Assets are transferred to the main account's futures or spot account. e.g.: `SPOT`/`FUTURES` |
+| amount    | string | true     | Transfer-Betrag |
+| assetType | string | true     | Assets werden zum Futures- oder Spot-Account des Hauptaccounts transferiert. z.B.: `SPOT`/`FUTURES` |
 
 ### Request Example
 ```bash
@@ -113,7 +113,7 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/cp/asset/transfer-to-
 ```
 
 ### Response Parameters
-None.
+Keine.
 
 ### Response Example
 ```json

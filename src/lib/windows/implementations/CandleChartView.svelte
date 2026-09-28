@@ -180,21 +180,12 @@
         return sampled;
     }
 
-    /**
-     * BUG-0572 decision (Option 1: keep the float, document the boundary).
-     * The chart works in f64 by design — the series API is number-based, and
-     * so is this seed. Both alert consumers need no more: `conditionFromChartClick`
-     * re-wraps the seed in Decimal and rounds to axis precision (that rounding
-     * is the precision boundary), and `buildDrawingAlert` compares it only to
-     * pick a side — the stored level comes from the drawing itself. No document
-     * ever carries this float unrounded.
-     */
     function lastChartPrice(): number | null {
         const klines =
             marketState.data[normalizeSymbol(symbol, "bitunix")]?.klines?.[timeframe];
         const last = klines?.[klines.length - 1];
         if (!last) return null;
-        const close = Number(last.close); // audit: safe — f64 chart seed; alert consumers re-round (chartAlertSeed.ts) or compare direction only (createDrawingAlert.ts)
+        const close = Number(last.close);  // audit: safe — chart price line; also seeds alert rules, where chartAlertSeed.ts re-wraps it in Decimal
         return Number.isFinite(close) ? close : null;
     }
 

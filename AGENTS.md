@@ -44,7 +44,6 @@ Rules:
 - **Non-code changes** (documentation, markdown, shell scripts, root configs): no tests, no `npm run check`.
 - **Money/exchange/risk paths** (position size, risk calculations, signature/crypto logic, `decimal.js` precision, Local-First boundary): always test + human review + green CI before merge.
 - Reuse existing test suites; add new tests only for genuinely new behavior.
-- **Prove a new RED test fails for the reason you mean.** A test that is green before the fix is a typo, a selector nothing carries yet, or an assertion that cannot fail — and the last two are dangerous, because the guard looks real. Before believing a RED, check that its failure message names the code path under test; before shipping, confirm it still goes red when that code is removed. Optional-chained queries (`host.querySelector(sel)?.click()`) hide this best: a selector that matches nothing turns an assertion about behaviour into an assertion about nothing. When a test needs a test-only anchor, add the anchor first and watch it fail, so the failure you see is the one you meant.
 
 Before every push — sync first, then run targeted tests, then push:
 
@@ -106,7 +105,7 @@ Do not delete code of unclear purpose. Leave copyright headers and metadata unto
 
 ## Tools & MCP
 
-Two MCP servers are configured for this project. **Both are required, not optional.** Every agent must use them. If one cannot answer, that is an integration failure to report — not a route to a workaround.
+Two MCP servers are configured for this project. **Both are required, not optional.** Every agent must use them before falling back to generic file-reading or grep.
 
 ### Gortex
 Use for all code navigation, exploration, impact analysis, and graph queries.
@@ -115,59 +114,7 @@ Use for all code navigation, exploration, impact analysis, and graph queries.
 - Available as slash commands: `/gortex-explore`, `/gortex-debug`, `/gortex-impact`, `/gortex-refactor`, `/gortex-pr-review`, etc.
 - After switching branches, re-orient before the next call — never wait on a stale generation.
 - On the first edit inside a fresh worktree, verify the `files[].path` prefix in the Edit response before continuing.
-- A freshness-guaranteed call that waits longer than 5 minutes: abort it. What you may drop is the *wait*, not the *exactness* — re-issuing without the freshness requirement and taking the answer is the substitution the block below forbids.
-
-**When a call answers about something you did not ask for.** Observed in this
-environment, 2026-09: `read` and `explore` have returned a payload from an
-earlier task in the same session — the right file, the wrong conversation's
-content — and `search` has returned a previous result for a new query. These
-are server-side, not a misuse, and they are dangerous precisely because the
-output looks authoritative.
-
-The response is to refuse the substitution, not to route around the tool:
-
-- Re-issue asking for an exact match, so a view that cannot be served exactly
-  is refused instead of answered with something else. The server documents
-  this as `require_exact: true` in its freshness options, but that field is
-  **not exposed in the current tool schemas** — `explore` and `read` both
-  reject unknown properties, so passing it yields a schema error, not a
-  refusal. Check whether your Gortex version accepts it before relying on it,
-  and read a schema rejection as a missing field, not a broken tool.
-- For a worktree, pass `view: {kind: "worktree", checkout_id}` (both are real,
-  documented fields). Then check the response *names the view you asked for*.
-  A payload reporting it was not served exactly is a refusal, not an answer —
-  and if the envelope carries no exactness field at all, treat the answer as
-  unverified and report it rather than reading meaning into a substituted
-  payload. The envelope key has moved between Gortex versions, so verify what
-  the response says instead of trusting a key name written down here.
-- Re-issuing a `localize` after a completed contract replays the same payload;
-  do not read repetition as confirmation.
-- If Gortex still cannot answer, that is a **Gortex integration failure**:
-  report it, as the instructions above require. Both servers are required, and
-  a bypass recorded here would be a rule telling the next agent to ignore that.
-
-**A known path is not a bypass.** This rule is about *substituted answers*, not
-about the tools that follow one. Once you know a file's exact path, reading it
-directly is correct — Gortex itself routes file content through
-`read`/`editing_context` and prescribes exactly that.
-
-So the refusal applies when a graph tool answers a navigation question with
-someone else's neighbourhood. It does **not** apply to a file whose path you
-already have: reading that file directly is correct, and the guidance in force
-at the time did not say so.
-
-Observed in one session on 2026-09-28, in two worktrees: `explore`, `read` and
-`editing_context` each returned the same unrelated alert/chart symbols for a
-question about a component test, and re-issuing changed nothing. Nothing in
-those responses identified the substitution — which is part of the problem,
-since no `view` had been requested and so there was no exactness to report.
-Under the guidance as it then stood, the file was never read: the guidance
-sent the agent back to a tool that had just answered wrongly. That is the gap
-this carve-out closes. The specifics above are a session observation and are
-recorded in no test, issue or log.
-
-Verify code you were told about by a graph tool before acting on it — a wrong
-neighbourhood that reads plausibly is worse than no navigation at all.
+- A freshness-guaranteed call that waits longer than 5 minutes: abort it and retry without the freshness requirement.
 
 ### jCodeMunch
 Use for code analysis, action routing, and semantic understanding.
@@ -175,7 +122,7 @@ Use for code analysis, action routing, and semantic understanding.
 - `route { "query": "your task in a sentence" }` — picks the right action automatically.
 - `menu { "query": "…" }` — discover available actions.
 - `jcodemunch_guide` — full catalogue and rules.
-- **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search; when jCodeMunch cannot answer, that is an integration failure to report, same as Gortex.
+- **Rule:** Prefer `route`/`order` over grep/Glob/find for code understanding. Never fall back to raw file search when jCodeMunch can answer the question.
 - **After editing files:** `order { "action": "register_edit", "args": { "paths": ["<edited-file>"] } }` so the index stays current (skip when PostToolUse hooks already reindex automatically).
 
 ## Philosophy: Act, Don't Ask

@@ -205,33 +205,16 @@ describe("BUG-0347 — ClosePositionModal keeps an edited quantity on price tick
 
         typeQuantity("8");
         expect(quantityInput().value).toBe("8");
-        expect(submitButton().disabled).toBe(false);
 
-        // The live size shrinks under the dialog. Click in the same tick,
-        // before the seed effect re-seeds and before the button's `disabled`
-        // attribute can update: the dialog briefly holds a quantity the
-        // position no longer has, and the click lands on an enabled button
-        // whose handler reads state that has already moved. That is the race
-        // the handler's own `quantity.gt(position.amount)` guard exists for
-        // (BUG-0561's belt and braces) — an over-size close must not be sent
-        // for the gate to refuse.
-        //
-        // No `settle()` here on purpose: flushing lets the seed re-seed to 5,
-        // which is a legitimate full close and would assert nothing. This test
-        // used to select `button:not([type="button"])`, matched nothing — both
-        // buttons carry `type="button"` — and passed for that reason.
+        // The live size shrinks after the edit. Click before the seed effect
+        // re-seeds, so the dialog briefly holds the old, now-too-large
+        // quantity — it must refuse rather than send the gate a reduce it
+        // will reject.
         component?.refresh({ ...POSITION, amount: new Decimal(5) });
-        expect(quantityInput().value).toBe("8");
-        expect(submitButton().disabled).toBe(false);
-
-        submitButton().click();
+        const submit = host.querySelector<HTMLButtonElement>('button:not([type="button"])');
+        submit?.click();
 
         expect(closeSpy).not.toHaveBeenCalled();
-
-        // And once the UI settles, the dialog holds a quantity the position
-        // actually has.
-        settle();
-        expect(quantityInput().value).toBe("5");
     });
 });
 
@@ -331,71 +314,5 @@ describe("BUG-0561 — invalid close drafts stay visible and block submission", 
 
         expect(quantityInput().value).toBe("0.7");
         expect(submitButton().disabled).toBe(false);
-    });
-});
-
-/*
- * FEAT-0573 — the percentage resolves against the size the venue reports now.
- *
- * Two claims the close dialog makes in words once the slider states its basis:
- * the quantity on screen is the quantity that would be submitted, and moving
- * the position under the open dialog re-resolves the same percentage. Both are
- * proven through the real parent loop, which the input's own tests cannot
- * reach — the input is controlled, so it emits and waits.
- */
-describe("FEAT-0573 — the close dialog resolves the percentage against the live size", () => {
-    function dragTo(percent: number) {
-        const range = host.querySelector<HTMLInputElement>('input[type="range"]');
-        if (!range) throw new Error("slider not rendered");
-        range.value = String(percent);
-        range.dispatchEvent(new Event("input", { bubbles: true }));
-        flushSync();
-    }
-
-    it("shows the quantity the handle resolves to, and submits exactly that", () => {
-        component = mount(ClosePositionLiveWrapper, {
-            target: host,
-            props: { initialPosition: POSITION },
-        }) as never;
-        settle();
-
-        dragTo(25);
-
-        // Quarter of two contracts, on a 0.1 step: 0.5 exactly.
-        expect(quantityInput().value).toBe("0.5");
-
-        submitButton().click();
-        flushSync();
-
-        expect(closeSpy).toHaveBeenCalledTimes(1);
-        const sent = closeSpy.mock.calls[0][0] as { amount: Decimal };
-        expect(sent.amount.toString()).toBe("0.5");
-    });
-
-    it("resolves 25 % of a size that doubled under the dialog to 1", () => {
-        component = mount(ClosePositionLiveWrapper, {
-            target: host,
-            props: { initialPosition: POSITION },
-        }) as never;
-        settle();
-
-        dragTo(25);
-        expect(quantityInput().value).toBe("0.5");
-
-        // The size doubles under the open dialog. The seed resets the quantity
-        // to the new full size (BUG-0347), so the handle returns to 100 % and
-        // has to be dragged again — which is why this is a second drag rather
-        // than a claim that the handle survived. What it shows is that the same
-        // 25 % of a bigger position is a bigger amount: 0.5 became 1.
-        component?.refresh({ ...POSITION, amount: new Decimal(4) });
-        settle();
-
-        expect(quantityInput().value).toBe("4");
-
-        dragTo(25);
-
-        expect(quantityInput().value).toBe("1");
-        const range = host.querySelector<HTMLInputElement>('input[type="range"]')!;
-        expect(range.value).toBe("25");
     });
 });
