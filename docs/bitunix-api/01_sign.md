@@ -1,6 +1,6 @@
 # Signature (Sign)
 
-Quelle: https://www.bitunix.com/api-docs/futures/common/sign.html
+Source: https://www.bitunix.com/api-docs/futures/common/sign.html
 
 ## Restful API Signature – Public Parameters
 
@@ -8,27 +8,26 @@ Quelle: https://www.bitunix.com/api-docs/futures/common/sign.html
 
 | Name        | Type   | Mandatory | Description                        |
 |-------------|--------|-----------|-------------------------------------|
-| `api-key`   | string | Y         | Beantragter API-Key                 |
+| `api-key`   | string | Y         | Requested API key                  |
 | `nonce`     | string | Y         | 32-char hex string (128-bit random)           |
-| `timestamp` | string | Y         | Aktueller Timestamp, Millisekunden  |
-| `sign`      | string | Y         | Signatur-String                     |
+| `timestamp` | string | Y         | Current timestamp, milliseconds  |
+| `sign`      | string | Y         | Signature string                    |
 
-### Signatur-Schritte
+### Signature steps
 
-1. Alle `queryParams` werden aufsteigend nach ASCII-Wert des Keys sortiert.
-   Beispiel: `String queryParams = "id1uid200"`
-2. Parameter im Body werden zu einem String komprimiert – **alle Leerzeichen
-   entfernen**. Beispiel:
+1. All `queryParams` are sorted ascending by the ASCII value of the key.
+   Example: `String queryParams = "id1uid200"`
+2. Body parameters are compressed into a string – **remove all spaces**. Example:
    `String body = {"uid":"2899","arr":[{"id":1,"name":"maple"},{"id":2,"name":"lily"}]}`
-   > **Achtung**: Das Request-Body-Format muss exakt mit dem Signatur-String
-   > übereinstimmen.
-3. Signatur – zweifache Verschlüsselung nötig:
+   > **Caution**: The request body format must match the signature string
+   > exactly.
+3. Signature – double encryption required:
    - `digest = SHA256(nonce + timestamp + api-key + queryParams + body)`
    - `sign = SHA256(digest + secretKey)`
-   - Hinweis: `secretKey` wird zusammen mit dem API-Key beim Beantragen
-     ausgegeben. Sicher aufbewahren, nicht weitergeben.
+   - Note: `secretKey` is issued together with the API key when applying. Store
+     it securely, do not share it.
 
-### Signatur-Beispiel (Go)
+### Signature example (Go)
 
 ```go
 package main
@@ -64,7 +63,7 @@ func sha256Hex(input string) string {
 }
 ```
 
-### Signatur-Beispiel (Python)
+### Signature example (Python)
 
 ```python
 import hashlib
@@ -98,25 +97,25 @@ if __name__ == "__main__":
 
 ## WebSocket API Signature Parameters
 
-WebSocket-API-Requests erfordern Authentifizierung. Folgende Felder müssen in
-allen Request-Parametern (`params`) enthalten sein:
+WebSocket API requests require authentication. The following fields must be
+included in all request parameters (`params`):
 
 | Name        | Type   | Mandatory | Description       |
 |-------------|--------|-----------|--------------------|
-| `apiKey`    | string | Y         | API Key            |
+| `apiKey`    | string | Y         | API key            |
 | `timestamp` | string | Y         | Timestamp          |
-| `nonce`     | string | Y         | Zufälliger String  |
-| `sign`      | string | Y         | Signatur-String    |
+| `nonce`     | string | Y         | Random string      |
+| `sign`      | string | Y         | Signature string    |
 
-### Signatur-Schritte (WebSocket)
+### Signature steps (WebSocket)
 
 The following applies to `login` (no additional params). Per-channel subscribe frames are unauthenticated.
 
-1. Alle Felder in `params` außer `sign` aufsteigend nach ASCII-Wert des Keys
-   sortieren, **alle Leerzeichen entfernen**. Beispiel:
+1. Sort all fields in `params` except `sign` ascending by the ASCII value of the
+   key, **remove all spaces**. Example:
    `String params = "apiKey9a25209b66004da404d9ddcb48d1e11fnonce123456symbolBTCtimestamp1724285700000"`
-2. Signatur – zweifache Verschlüsselung nötig:
+2. Signature – double encryption required:
    - `digest = SHA256(nonce + timestamp + apiKey + params)`
    - `sign = SHA256(digest + secretKey)`
-   - Hinweis: `secretKey` wird zusammen mit dem `apiKey` beim Beantragen
-     ausgegeben. Sicher aufbewahren, nicht weitergeben.
+   - Note: `secretKey` is issued together with the `apiKey` when applying. Store
+     it securely, do not share it.

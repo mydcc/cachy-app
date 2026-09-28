@@ -1,9 +1,9 @@
 # Error Codes
 
-Quelle: https://www.bitunix.com/api-docs/futures/ErrorCode/error_code.html
+Source: https://www.bitunix.com/api-docs/futures/ErrorCode/error_code.html
 
-Alle Business-Fehlercodes werden mit HTTP-Statuscode `200` zurückgegeben; der
-eigentliche Fehler steht im JSON-Feld `code`/`msg` der Response.
+All business error codes are returned with HTTP status code `200`; the
+actual error is in the `code`/`msg` JSON field of the response.
 
 | ErrorCode | Description | httpStatusCode |
 |-----------|--------------|----------------|

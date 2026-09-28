@@ -1,6 +1,6 @@
 # Bitunix API - Quick Reference
 
-**⚡ Schnellreferenz für Entwickler**
+**⚡ Quick reference for developers**
 
 ---
 

@@ -1,74 +1,82 @@
-# Bitunix Futures OpenAPI – Dokumentation (Crawl)
+# Bitunix Futures OpenAPI – Documentation (Crawl)
 
-Diese Dokumentation ist ein vollständiger Crawl der offiziellen Bitunix Futures
-OpenAPI-Dokumentation unter:
+This documentation is a complete crawl of the official Bitunix Futures OpenAPI
+documentation at:
 
-- Quelle: https://www.bitunix.com/api-docs/futures/common/introduction.html
-- Gecrawlt am: 08.08.2026
-- Basis-Domain REST API: `https://fapi.bitunix.com`
-- Basis-Domain WebSocket: `wss://fapi.bitunix.com/public/` (öffentlich) und
-  `wss://fapi.bitunix.com/private/` (privat)
-- Offizielles Demo-Repo: https://github.com/BitunixOfficial/open-api
+- Source: https://www.bitunix.com/api-docs/futures/common/introduction.html
+- Crawled on: 08.08.2026
+- Base domain REST API: `https://fapi.bitunix.com`
+- Base domain WebSocket: `wss://fapi.bitunix.com/public/` (public) and
+  `wss://fapi.bitunix.com/private/` (private)
+- Official demo repo: https://github.com/BitunixOfficial/open-api
 
-## Dateiübersicht
+## File overview
 
-| Datei | Inhalt |
+| File | Contents |
 |---|---|
-| `00_common.md` | Einführung, Auth-Header, Interaktionsmodell, Standards |
-| `01_sign.md` | REST- & WebSocket-Signaturverfahren (inkl. Go/Python-Code) |
-| `02_account.md` | Account-Endpunkte (Leverage, Margin, Position Mode, Balance) |
-| `03_copytrading.md` | CopyTrading Asset-Endpunkte (Sub-Account-Transfers) |
-| `04_market.md` | Market-Daten (Depth, Funding Rate, Kline, Ticker, Trading Pairs) |
-| `05_position.md` | Positions-Endpunkte (History, Pending, Tiers) |
-| `06_tp_sl.md` | Take-Profit/Stop-Loss-Endpunkte |
-| `07_trade.md` | Order-Endpunkte (Place, Modify, Cancel, Batch, History) |
-| `08_websocket.md` | WebSocket-Verbindung, Login, alle Private- & Public-Channels |
-| `09_error_codes.md` | Vollständige Fehlercode-Tabelle |
-| `10_change_log.md` | Änderungsprotokoll der offiziellen Doku |
-| `INTEGRATION_STATUS.md` | Abgleich: welche Endpunkte/Channels Cachy bereits nutzt, was fehlt |
+| `00_common.md` | Introduction, auth headers, interaction model, standards |
+| `01_sign.md` | REST & WebSocket signature procedure (incl. Go/Python code) |
+| `02_account.md` | Account endpoints (leverage, margin, position mode, balance) |
+| `03_copytrading.md` | CopyTrading asset endpoints (sub-account transfers) |
+| `04_market.md` | Market data (depth, funding rate, kline, ticker, trading pairs) |
+| `05_position.md` | Position endpoints (history, pending, tiers) |
+| `06_tp_sl.md` | Take-profit / stop-loss endpoints |
+| `07_trade.md` | Order endpoints (place, modify, cancel, batch, history) |
+| `08_websocket.md` | WebSocket connection, login, all private & public channels |
+| `09_error_codes.md` | Complete error code table |
+| `10_change_log.md` | Changelog of the official documentation |
+| `INTEGRATION_STATUS.md` | Reconciliation: which endpoints/channels Cachy already uses, what is missing |
 
-## Kurzüberblick über die API-Struktur
+## Quick overview of the API structure
 
-### Interface-Typen
-- **Public**: Keine Authentifizierung nötig (Marktdaten, Konfiguration)
-- **Private**: Erfordert Signatur via `api-key`, `nonce`, `timestamp`, `sign`
+### Interface types
+
+- **Public**: no authentication needed (market data, configuration)
+- **Private**: requires a signature via `api-key`, `nonce`, `timestamp`, `sign`
 
 ### Private WS channels (wire names)
 
-Cachy subscribes `position`, `order`, `wallet` (balance), `tp_sl` — see `08_websocket.md`. `depth_books/book1/book15`, `tickers` batch, funding history, tiers, `trading_pairs`, batch/plan-order verbs are intentionally unwired — see `INTEGRATION_STATUS.md` and the adapter verb table in `unsupportedVerbs.test.ts`.
+Cachy subscribes `position`, `order`, `wallet` (balance), `tp_sl` — see
+`08_websocket.md`. `depth_books/book1/book15`, `tickers` batch, funding
+history, tiers, `trading_pairs`, batch/plan-order verbs are intentionally
+unwired — see `INTEGRATION_STATUS.md` and the adapter verb table in
+`unsupportedVerbs.test.ts`.
 
-### Pflicht-Header für alle REST-Requests
-| Header | Beschreibung |
+### Mandatory headers for all REST requests
+
+| Header | Description |
 |---|---|
-| `api-key` | API-Key des Requests |
+| `api-key` | API key of the request |
 | `nonce` | 32-char hex string (128-bit random) |
-| `timestamp` | Aktueller Timestamp in Millisekunden |
-| `sign` | Signatur-String (siehe `01_sign.md`) |
-| `Content-Type` | Immer `application/json` |
+| `timestamp` | Current timestamp in milliseconds |
+| `sign` | Signature string (see `01_sign.md`) |
+| `Content-Type` | Always `application/json` |
 
-### Grundlegendes Signaturverfahren (REST)
+### Basic signature procedure (REST)
+
 ```
 digest = SHA256(nonce + timestamp + api-key + queryParams + body)
 sign   = SHA256(digest + secretKey)
 ```
 
-> **Cachy-Abweichung (seit 1.6.0, FEAT-0405):** Die Signatur wird
-> client-seitig im Browser per WebCrypto berechnet — der Secret verlässt
-> das Gerät nie, der Proxy leitet nur die fertige Signatur weiter. Das
-> Verfahren oben ist dadurch unverändert (Vendor-Referenz), nur der Ort hat
-> sich verlagert. Siehe
+> **Cachy divergence (since 1.6.0, FEAT-0405):** the signature is computed
+> client-side in the browser via WebCrypto — the secret never leaves the device
+> and the proxy only forwards the finished signature. The procedure above is
+> therefore unchanged (vendor reference); only its location moved. See
 > [`adr/0013-client-side-exchange-signing.md`](../adr/0013-client-side-exchange-signing.md).
 
-### HTTP-Statuscodes
-- `200` – Erfolg (auch bei Business-Fehlern; siehe `errorCode` im Body)
-- `400` – Bad Request
-- `403` – Forbidden
-- `404` – Not Found
-- `500` – Internal Server Error
+### HTTP status codes
 
-## Endpunkt-Übersicht (Kurzreferenz)
+- `200` – success (also for business errors; see `errorCode` in the body)
+- `400` – bad request
+- `403` – forbidden
+- `404` – not found
+- `500` – internal server error
+
+## Endpoint overview (quick reference)
 
 ### Account
+
 - `POST /api/v1/futures/account/adjust_position_margin`
 - `POST /api/v1/futures/account/change_leverage`
 - `POST /api/v1/futures/account/change_margin_mode`
@@ -77,11 +85,13 @@ sign   = SHA256(digest + secretKey)
 - `GET  /api/v1/futures/account`
 
 ### CopyTrading
+
 - `GET  /api/v1/cp/asset/query`
 - `POST /api/v1/cp/asset/transfer-to-sub-account`
 - `POST /api/v1/cp/asset/transfer-to-main-account`
 
 ### Market
+
 - `GET /api/v1/futures/market/depth`
 - `GET /api/v1/futures/market/funding_rate/batch`
 - `GET /api/v1/futures/market/get_funding_rate_history`
@@ -90,21 +100,23 @@ sign   = SHA256(digest + secretKey)
 - `GET /api/v1/futures/market/tickers`
 - `GET /api/v1/futures/market/trading_pairs`
 
-**Funding Rate (siehe `04_market.md` für vollständiges Schema):** die Docs
-beschreiben `fundingRate` als Bruch (Beispiel `"0.0005"`), Live-Wire-Daten
-bestätigen aber, dass Bitunix es tatsächlich bereits als **Prozentwert**
-zurückgibt (z. B. `"-0.005776"` entsprach live `-0.0057 %` bei Bitunix, nicht
-`-0.5776 %`). Cachy normalisiert das bei der Ingestion in
-`apiService.fetchBitunixFundingRates()` — siehe Kommentar dort. Außerdem
-enthält der Batch-Endpoint auch coin-/USDC-margined Varianten (`BTCUSD`,
-`BTCUSDC`, …), die Cachy nicht braucht; nur `...USDT`-Paare werden verarbeitet.
+**Funding rate (see `04_market.md` for the full schema):** the docs describe
+`fundingRate` as a fraction (example `"0.0005"`), but live wire data confirms
+that Bitunix actually returns it already as a **percentage** (e.g. `"-0.005776"`
+corresponded to `-0.0057 %` at Bitunix, not `-0.5776 %`). Cachy normalises this
+on ingestion in `apiService.fetchBitunixFundingRates()` — see the comment
+there. In addition, the batch endpoint also contains coin-/USDC-margined
+variants (`BTCUSD`, `BTCUSDC`, …) that Cachy does not need; only `...USDT`
+pairs are processed.
 
 ### Position
+
 - `GET /api/v1/futures/position/get_history_positions`
 - `GET /api/v1/futures/position/get_pending_positions`
 - `GET /api/v1/futures/position/get_position_tiers`
 
 ### TP/SL
+
 - `POST /api/v1/futures/tpsl/cancel_order`
 - `GET  /api/v1/futures/tpsl/get_history_orders`
 - `GET  /api/v1/futures/tpsl/get_pending_orders`
@@ -114,6 +126,7 @@ enthält der Batch-Endpoint auch coin-/USDC-margined Varianten (`BTCUSD`,
 - `POST /api/v1/futures/tpsl/place_order`
 
 ### Trade
+
 - `POST /api/v1/futures/trade/batch_order`
 - `POST /api/v1/futures/trade/cancel_all_orders`
 - `POST /api/v1/futures/trade/cancel_orders`
@@ -127,12 +140,14 @@ enthält der Batch-Endpoint auch coin-/USDC-margined Varianten (`BTCUSD`,
 - `POST /api/v1/futures/trade/place_order`
 
 ### WebSocket – Private Channels
+
 - Balance Channel
 - Order Channel
 - Position Channel
 - Tp Sl Channel
 
 ### WebSocket – Public Channels
+
 - Depth Channel (`depth_books`, `depth_book1`, `depth_book5`, `depth_book15`)
 - Kline Channel (`market_kline_*`, `mark_kline_*`)
 - MarketPrice Channel (`price`) — `fr` field is documented as "Funding Rate"

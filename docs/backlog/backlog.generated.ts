@@ -7563,6 +7563,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0545-duck-companion-settings-with-master-toggle.md"
   },
   {
+    "id": "FEAT-0577",
+    "title": "The Bitunix mirror was translated into German while its source is English",
+    "type": "feature",
+    "status": "done",
+    "branch": "docs/bitunix-api-english",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "docs",
+    "data_class": "none",
+    "adr": "none",
+    "assignee": "opencode",
+    "depends_on": [],
+    "file": "features/FEAT-0577-bitunix-mirror-english.md"
+  },
+  {
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",

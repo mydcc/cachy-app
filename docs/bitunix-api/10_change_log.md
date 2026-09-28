@@ -2,9 +2,9 @@
 
 > Upstream crawl log, frozen at crawl date 2026-08-08. Cachy-side amendments live in `INTEGRATION_STATUS.md`, not here.
 
-Quelle: https://www.bitunix.com/api-docs/futures/log/change_log.html
+Source: https://www.bitunix.com/api-docs/futures/log/change_log.html
 
-Diese Seite dokumentiert Updates an der OpenAPI-Dokumentation.
+This page documents updates to the OpenAPI documentation.
 
 ## Cachy amendments (since crawl)
 
@@ -14,12 +14,12 @@ Diese Seite dokumentiert Updates an der OpenAPI-Dokumentation.
 
 ### WebSocket Connection Limits
 
-WebSocket-Connection-Rate-Limit-Dokumentation unter [WebSocket Preparing for
-Access](08_websocket.md) hinzugefügt.
+WebSocket connection rate limit documentation added under [WebSocket Preparing for
+Access](08_websocket.md).
 
-- Der WebSocket-Server akzeptiert maximal **5 Nachrichten pro Sekunde**
-- Nachrichten umfassen PING-Frames, PONG-Frames und JSON-formatierte
-  Nachrichten (z.B. Subscribe-/Unsubscribe-Requests)
-- Überschreitet die Nachrichtenrate dieses Limit, wird die Verbindung
-  getrennt
-- IPs, die wiederholt getrennt werden, können vom Server blockiert werden
+- The WebSocket server accepts at most **5 messages per second**
+- Messages include PING frames, PONG frames and JSON-formatted
+  messages (e.g. subscribe/unsubscribe requests)
+- If the message rate exceeds this limit, the connection
+  is disconnected
+- IPs that are disconnected repeatedly may be blocked by the server

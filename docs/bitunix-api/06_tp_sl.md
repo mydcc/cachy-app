@@ -1,22 +1,22 @@
 # TP/SL (Take Profit / Stop Loss) Endpoints
 
-Alle Endpunkte sind **private** Interfaces und erfordern Signatur (siehe `01_sign.md`).
+All endpoints are **private** interfaces and require a signature (see `01_sign.md`).
 
-> ⚠️ **Wichtig**: Bei ordermodifizierenden/-erstellenden/-löschenden Interfaces
-> gilt: Eine erfolgreiche Interface-Antwort bedeutet nicht zwangsläufig, dass
-> die Operation erfolgreich war. Nutze die WebSocket-Push-Nachricht als
-> verlässliche Bestätigung.
+> ⚠️ **Important**: For interfaces that modify, create or delete orders
+> the following applies: A successful interface response does not necessarily
+> mean that the operation succeeded. Use the WebSocket push message as
+> reliable confirmation.
 
 ---
 
 ## Cancel TP/SL Order
 
-Quelle: https://www.bitunix.com/api-docs/futures/tp_sl/cancel_tp_sl_order.html
+Source: https://www.bitunix.com/api-docs/futures/tp_sl/cancel_tp_sl_order.html
 
 **Rate Limit**: 10 req/sec/UID
 
 ### Description
-Storniert eine TP/SL-Order.
+Cancels a TP/SL order.
 
 ### HTTP Request
 `POST /api/v1/futures/tpsl/cancel_order`
@@ -53,12 +53,12 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/cancel_o
 
 ## Get History TP/SL Order
 
-Quelle: https://www.bitunix.com/api-docs/futures/tp_sl/get_history_tp_sl_order.html
+Source: https://www.bitunix.com/api-docs/futures/tp_sl/get_history_tp_sl_order.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Ruft historische TP/SL-Orders ab.
+Retrieves historical TP/SL orders.
 
 ### HTTP Request
 `GET /api/v1/futures/tpsl/get_history_orders`
@@ -69,10 +69,10 @@ Ruft historische TP/SL-Orders ab.
 | symbol        | string | false    | Trading Pair |
 | side          | int32  | false    | Order Side (as documented; unconfirmed) |
 | positionMode  | int32  | false    | Order Position Mode (as documented; unconfirmed) |
-| startTime     | int64  | false    | Start-Timestamp, Unix ms, z.B. 1597026383085 |
-| endTime       | int64  | false    | End-Timestamp, Unix ms, z.B. 1597026683085 |
-| skip          | int64  | false    | Anzahl übersprungener Orders, Default: 0 |
-| limit         | int64  | false    | Max. Abfragen: 100, Default: 10 |
+| startTime     | int64  | false    | Start timestamp, Unix ms, e.g. 1597026383085 |
+| endTime       | int64  | false    | End timestamp, Unix ms, e.g. 1597026683085 |
+| skip          | int64  | false    | Number of skipped orders, Default: 0 |
+| limit         | int64  | false    | Max. queries: 100, Default: 10 |
 
 ### Request Example
 ```bash
@@ -88,26 +88,26 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/get_histo
 ### Response Parameters
 | Parameter        | Type   | Description |
 |-------------------|--------|-------------|
-| orderList         | list   | TP/SL Order-Liste |
+| orderList         | list   | TP/SL Order list |
 | > id              | string | Order ID |
 | > positionId      | string | Position ID |
 | > symbol          | string | Coin Pair |
-| > base            | string | Base-Coin |
-| > quote           | string | Quote-Coin |
-| > tpPrice         | string | Take-Profit-Trigger-Preis |
-| > tpStopType      | string | Take-Profit-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` |
-| > slPrice         | string | Stop-Loss-Trigger-Preis |
-| > slStopType      | string | Stop-Loss-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` |
-| > tpOrderType     | string | Take-Profit-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| > tpOrderPrice    | string | Take-Profit-Order-Preis |
-| > slOrderType     | string | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| > slOrderPrice    | string | Stop-Loss-Order-Preis |
-| > tpQty           | string | Take-Profit-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| > slQty           | string | Stop-Loss-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| > status          | string | TP/SL Order-Status |
-| > ctime           | int64  | Erstell-Timestamp |
-| > triggerTime     | int64  | Trigger-Zeit-Timestamp |
-| total             | int64  | Gesamtanzahl |
+| > base            | string | Base coin |
+| > quote           | string | Quote coin |
+| > tpPrice         | string | Take-profit trigger price |
+| > tpStopType      | string | Take-profit trigger type: `LAST_PRICE` / `MARK_PRICE` |
+| > slPrice         | string | Stop-loss trigger price |
+| > slStopType      | string | Stop-loss trigger type: `LAST_PRICE` / `MARK_PRICE` |
+| > tpOrderType     | string | Take-profit order type: `LIMIT` / `MARKET` (Default: Market) |
+| > tpOrderPrice    | string | Take-profit order price |
+| > slOrderType     | string | Stop-loss order type: `LIMIT` / `MARKET` (Default: Market) |
+| > slOrderPrice    | string | Stop-loss order price |
+| > tpQty           | string | Take-profit order quantity (base coin). At least one of `tpQty`/`slQty` required |
+| > slQty           | string | Stop-loss order quantity (base coin). At least one of `tpQty`/`slQty` required |
+| > status          | string | TP/SL order status |
+| > ctime           | int64  | Creation timestamp |
+| > triggerTime     | int64  | Trigger time timestamp |
+| total             | int64  | Total count |
 
 ### Response Example
 ```json
@@ -124,12 +124,12 @@ One venue row carries both legs; the app splits it into `${id}-tp` / `${id}-sl` 
 
 ## Get Pending TP/SL Order
 
-Quelle: https://www.bitunix.com/api-docs/futures/tp_sl/get_pending_tp_sl_order.html
+Source: https://www.bitunix.com/api-docs/futures/tp_sl/get_pending_tp_sl_order.html
 
 **Rate Limit**: 10 req/sec/uid
 
 ### Description
-Ruft offene (pending) TP/SL-Orders ab.
+Retrieves open (pending) TP/SL orders.
 
 ### HTTP Request
 `GET /api/v1/futures/tpsl/get_pending_orders`
@@ -141,8 +141,8 @@ Ruft offene (pending) TP/SL-Orders ab.
 | positionId    | string | false    | Position ID |
 | side          | int32  | false    | Order Side |
 | positionMode  | int32  | false    | Order Position Mode |
-| skip          | int64  | false    | Anzahl übersprungener Orders, Default: 0 |
-| limit         | int64  | false    | Max. Abfragen: 100, Default: 10 |
+| skip          | int64  | false    | Number of skipped orders, Default: 0 |
+| limit         | int64  | false    | Max. queries: 100, Default: 10 |
 
 ### Request Example
 ```bash
@@ -161,18 +161,18 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/get_pendi
 | id             | string | Order ID |
 | positionId     | string | Position ID |
 | symbol         | string | Coin Pair |
-| base           | string | Base-Coin |
-| quote          | string | Quote-Coin |
-| tpPrice        | string | Take-Profit-Trigger-Preis |
-| tpStopType     | string | Take-Profit-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` |
-| slPrice        | string | Stop-Loss-Trigger-Preis |
-| slStopType     | string | Stop-Loss-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` |
-| tpOrderType    | string | Take-Profit-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| tpOrderPrice   | string | Take-Profit-Order-Preis |
-| slOrderType    | string | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| slOrderPrice   | string | Stop-Loss-Order-Preis |
-| tpQty          | string | Take-Profit-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| slQty          | string | Stop-Loss-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
+| base           | string | Base coin |
+| quote          | string | Quote coin |
+| tpPrice        | string | Take-profit trigger price |
+| tpStopType     | string | Take-profit trigger type: `LAST_PRICE` / `MARK_PRICE` |
+| slPrice        | string | Stop-loss trigger price |
+| slStopType     | string | Stop-loss trigger type: `LAST_PRICE` / `MARK_PRICE` |
+| tpOrderType    | string | Take-profit order type: `LIMIT` / `MARKET` (Default: Market) |
+| tpOrderPrice   | string | Take-profit order price |
+| slOrderType    | string | Stop-loss order type: `LIMIT` / `MARKET` (Default: Market) |
+| slOrderPrice   | string | Stop-loss order price |
+| tpQty          | string | Take-profit order quantity (base coin). At least one of `tpQty`/`slQty` required |
+| slQty          | string | Stop-loss order quantity (base coin). At least one of `tpQty`/`slQty` required |
 
 ### Response Example
 ```json
@@ -183,12 +183,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/get_pendi
 
 ## Modify Position TP/SL Order
 
-Quelle: https://www.bitunix.com/api-docs/futures/tp_sl/modify_position_tp_sl_order.html
+Source: https://www.bitunix.com/api-docs/futures/tp_sl/modify_position_tp_sl_order.html
 
 **Rate Limit**: 10 req/sec/UID
 
 ### Description
-Modifiziert eine Position-TP/SL-Order.
+Modifies a position TP/SL order.
 
 ### HTTP Request
 `POST /api/v1/futures/tpsl/position/modify_order`
@@ -197,11 +197,11 @@ Modifiziert eine Position-TP/SL-Order.
 | Parameter   | Type   | Required | Description |
 |-------------|--------|----------|-------------|
 | symbol      | string | true     | Trading Pair |
-| positionId  | string | true     | Position ID, verknüpft mit Take-Profit und Stop-Loss |
-| tpPrice     | string | false    | Take-Profit-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| tpStopType  | string | false    | Take-Profit-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
-| slPrice     | string | false    | Stop-Loss-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| slStopType  | string | false    | Stop-Loss-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| positionId  | string | true     | Position ID, linked to take-profit and stop-loss |
+| tpPrice     | string | false    | Take-profit trigger price. At least one of `tpPrice`/`slPrice` required |
+| tpStopType  | string | false    | Take-profit trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| slPrice     | string | false    | Stop-loss trigger price. At least one of `tpPrice`/`slPrice` required |
+| slStopType  | string | false    | Stop-loss trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
 
 ### Request Example
 ```bash
@@ -229,12 +229,12 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/position
 
 ## Modify TP/SL Order
 
-Quelle: https://www.bitunix.com/api-docs/futures/tp_sl/modify_tp_sl_order.html
+Source: https://www.bitunix.com/api-docs/futures/tp_sl/modify_tp_sl_order.html
 
 **Rate Limit**: 10 req/sec/UID
 
 ### Description
-Modifiziert eine TP/SL-Order.
+Modifies a TP/SL order.
 
 ### HTTP Request
 `POST /api/v1/futures/tpsl/modify_order`
@@ -243,16 +243,16 @@ Modifiziert eine TP/SL-Order.
 | Parameter      | Type   | Required | Description |
 |----------------|--------|----------|-------------|
 | orderId        | string | true     | TP/SL Order ID |
-| tpPrice        | string | false    | Take-Profit-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| tpStopType     | string | false    | Take-Profit-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
-| slPrice        | string | false    | Stop-Loss-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| slStopType     | string | false    | Stop-Loss-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
-| tpOrderType    | string | false    | Take-Profit-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| tpOrderPrice   | string | false    | Take-Profit-Order-Preis |
-| slOrderType    | string | false    | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| slOrderPrice   | string | false    | Stop-Loss-Order-Preis |
-| tpQty          | string | false    | Take-Profit-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| slQty          | string | false    | Stop-Loss-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
+| tpPrice        | string | false    | Take-profit trigger price. At least one of `tpPrice`/`slPrice` required |
+| tpStopType     | string | false    | Take-profit trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| slPrice        | string | false    | Stop-loss trigger price. At least one of `tpPrice`/`slPrice` required |
+| slStopType     | string | false    | Stop-loss trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| tpOrderType    | string | false    | Take-profit order type: `LIMIT` / `MARKET` (Default: Market) |
+| tpOrderPrice   | string | false    | Take-profit order price |
+| slOrderType    | string | false    | Stop-loss order type: `LIMIT` / `MARKET` (Default: Market) |
+| slOrderPrice   | string | false    | Stop-loss order price |
+| tpQty          | string | false    | Take-profit order quantity (base coin). At least one of `tpQty`/`slQty` required |
+| slQty          | string | false    | Stop-loss order quantity (base coin). At least one of `tpQty`/`slQty` required |
 
 ### Request Example
 ```bash
@@ -280,14 +280,14 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/modify_o
 
 ## Place Position TP/SL Order
 
-Quelle: https://www.bitunix.com/api-docs/futures/tp_sl/place_position_tp_sl_order.html
+Source: https://www.bitunix.com/api-docs/futures/tp_sl/place_position_tp_sl_order.html
 
 **Rate Limit**: 10 req/sec/UID
 
 ### Description
-Platziert eine Position-TP/SL-Order. Bei Trigger wird die Position zum
-Marktpreis basierend auf der zu diesem Zeitpunkt aktuellen Positionsmenge
-geschlossen. **Jede Position kann nur eine Position-TP/SL-Order haben.**
+Places a position TP/SL order. On trigger the position is closed at the
+market price based on the position quantity current at that point in time.
+**Each position can only have one position TP/SL order.**
 
 ### HTTP Request
 `POST /api/v1/futures/tpsl/position/place_order`
@@ -296,11 +296,11 @@ geschlossen. **Jede Position kann nur eine Position-TP/SL-Order haben.**
 | Parameter   | Type   | Required | Description |
 |-------------|--------|----------|-------------|
 | symbol      | string | true     | Trading Pair |
-| positionId  | string | true     | Position ID, verknüpft mit Take-Profit und Stop-Loss |
-| tpPrice     | string | false    | Take-Profit-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| tpStopType  | string | false    | Take-Profit-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
-| slPrice     | string | false    | Stop-Loss-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| slStopType  | string | false    | Stop-Loss-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| positionId  | string | true     | Position ID, linked to take-profit and stop-loss |
+| tpPrice     | string | false    | Take-profit trigger price. At least one of `tpPrice`/`slPrice` required |
+| tpStopType  | string | false    | Take-profit trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| slPrice     | string | false    | Stop-loss trigger price. At least one of `tpPrice`/`slPrice` required |
+| slStopType  | string | false    | Stop-loss trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
 
 ### Request Example
 ```bash
@@ -328,13 +328,13 @@ curl -X 'POST' --location 'https://fapi.bitunix.com/api/v1/futures/tpsl/position
 
 ## Place TP/SL Order
 
-Quelle: https://www.bitunix.com/api-docs/futures/tp_sl/place_tp_sl_order.html
+Source: https://www.bitunix.com/api-docs/futures/tp_sl/place_tp_sl_order.html
 
 **Rate Limit**: 10 req/sec/UID
 
 ### Description
-Platziert eine TP/SL-Order (mit fester Menge, unabhängig von der
-Position-TP/SL-Order).
+Places a TP/SL order (with a fixed quantity, independent of the
+position TP/SL order).
 
 ### HTTP Request
 `POST /api/v1/futures/tpsl/place_order`
@@ -343,17 +343,17 @@ Position-TP/SL-Order).
 | Parameter      | Type   | Required | Description |
 |----------------|--------|----------|-------------|
 | symbol         | string | true     | Trading Pair |
-| positionId     | string | true     | Position ID, verknüpft mit Take-Profit und Stop-Loss |
-| tpPrice        | string | false    | Take-Profit-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| tpStopType     | string | false    | Take-Profit-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
-| slPrice        | string | false    | Stop-Loss-Trigger-Preis. Mind. eines von `tpPrice`/`slPrice` erforderlich |
-| slStopType     | string | false    | Stop-Loss-Trigger-Typ: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
-| tpOrderType    | string | false    | Take-Profit-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| tpOrderPrice   | string | false    | Take-Profit-Order-Preis |
-| slOrderType    | string | false    | Stop-Loss-Order-Typ: `LIMIT` / `MARKET` (Default: Market) |
-| slOrderPrice   | string | false    | Stop-Loss-Order-Preis |
-| tpQty          | string | false    | Take-Profit-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
-| slQty          | string | false    | Stop-Loss-Order-Menge (Base-Coin). Mind. eines von `tpQty`/`slQty` erforderlich |
+| positionId     | string | true     | Position ID, linked to take-profit and stop-loss |
+| tpPrice        | string | false    | Take-profit trigger price. At least one of `tpPrice`/`slPrice` required |
+| tpStopType     | string | false    | Take-profit trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| slPrice        | string | false    | Stop-loss trigger price. At least one of `tpPrice`/`slPrice` required |
+| slStopType     | string | false    | Stop-loss trigger type: `LAST_PRICE` / `MARK_PRICE` (Default: Market Price) |
+| tpOrderType    | string | false    | Take-profit order type: `LIMIT` / `MARKET` (Default: Market) |
+| tpOrderPrice   | string | false    | Take-profit order price |
+| slOrderType    | string | false    | Stop-loss order type: `LIMIT` / `MARKET` (Default: Market) |
+| slOrderPrice   | string | false    | Stop-loss order price |
+| tpQty          | string | false    | Take-profit order quantity (base coin). At least one of `tpQty`/`slQty` required |
+| slQty          | string | false    | Stop-loss order quantity (base coin). At least one of `tpQty`/`slQty` required |
 
 ### Request Example
 ```bash

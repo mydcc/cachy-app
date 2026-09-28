@@ -1,17 +1,17 @@
 # Market Endpoints
 
-Alle Endpunkte sind **public** Interfaces (keine Authentifizierung nötig).
+All endpoints are **public** interfaces (no authentication required).
 
 ---
 
 ## Get Depth
 
-Quelle: https://www.bitunix.com/api-docs/futures/market/get_depth.html
+Source: https://www.bitunix.com/api-docs/futures/market/get_depth.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Interface zum Abrufen des Futures-Orderbuchs.
+Interface for retrieving the futures order book.
 
 ### HTTP Request
 `GET /api/v1/futures/market/depth`
@@ -19,8 +19,8 @@ Interface zum Abrufen des Futures-Orderbuchs.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| symbol    | string | true     | Trading Pair, basierend auf symbolName, z.B. BTCUSDT |
-| limit     | string | false    | Feste Gear-Enum: `1`/`5`/`15`/`50`/`max`. `max` liefert die maximale Gear-Tiefe des Trading Pairs. Wenn die tatsächliche Tiefe das Limit nicht erfüllt, wird gemäß tatsächlicher Gear zurückgegeben |
+| symbol    | string | true     | Trading pair, based on symbolName, e.g. BTCUSDT |
+| limit     | string | false    | Fixed gear enum: `1`/`5`/`15`/`50`/`max`. `max` returns the maximum gear depth of the trading pair. If the actual depth does not meet the limit, the response follows the actual gear |
 
 ### Request Example
 ```bash
@@ -30,10 +30,10 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/depth?s
 ### Response Parameters
 | Parameter      | Type   | Description |
 |----------------|--------|-------------|
-| asks.index[0]  | string | Ask-Preis |
-| asks.index[1]  | string | Ask-Menge |
-| bids.index[0]  | string | Bid-Preis |
-| bids.index[1]  | string | Bid-Menge |
+| asks.index[0]  | string | Ask price |
+| asks.index[1]  | string | Ask quantity |
+| bids.index[0]  | string | Bid price |
+| bids.index[1]  | string | Bid quantity |
 
 ### Response Example
 ```json
@@ -44,12 +44,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/depth?s
 
 ## Get Funding Rate (Batch)
 
-Quelle: https://www.bitunix.com/api-docs/futures/market/get_funding_rate_batch.html
+Source: https://www.bitunix.com/api-docs/futures/market/get_funding_rate_batch.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Ruft die aktuelle Funding Rate für alle Kontrakte ab (Batch).
+Retrieves the current funding rate for all contracts (batch).
 
 ### HTTP Request
 `GET /api/v1/futures/market/funding_rate/batch`
@@ -62,15 +62,15 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/funding
 ### Response Parameters
 | Parameter        | Type    | Description |
 |------------------|---------|-------------|
-| symbol           | string  | Coin Pair |
-| markPrice        | decimal | Mark Price |
-| lastPrice        | decimal | Last Price |
-| indexPrice       | decimal | Index Price |
-| fundingRate      | decimal | Aktuelle Funding Rate |
-| nextFundingTime  | int64   | Nächste Funding-Abrechnung (ms) |
-| fundingInterval  | int32   | Funding-Abrechnungsintervall (Stunden) |
-| maxFundingRate   | decimal | Maximale aktuelle Funding Rate |
-| minFundingRate   | decimal | Minimale aktuelle Funding Rate |
+| symbol           | string  | Coin pair |
+| markPrice        | decimal | Mark price |
+| lastPrice        | decimal | Last price |
+| indexPrice       | decimal | Index price |
+| fundingRate      | decimal | Current funding rate |
+| nextFundingTime  | int64   | Next funding settlement (ms) |
+| fundingInterval  | int32   | Funding settlement interval (hours) |
+| maxFundingRate   | decimal | Maximum current funding rate |
+| minFundingRate   | decimal | Minimum current funding rate |
 
 ### Response Example
 ```json
@@ -81,12 +81,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/funding
 
 ## Get Funding Rate History
 
-Quelle: https://www.bitunix.com/api-docs/futures/market/get_funding_rate_history.html
+Source: https://www.bitunix.com/api-docs/futures/market/get_funding_rate_history.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Ruft die historische Funding Rate eines Kontrakts ab.
+Retrieves the historical funding rate of a contract.
 
 ### HTTP Request
 `GET /api/v1/futures/market/get_funding_rate_history`
@@ -94,9 +94,9 @@ Ruft die historische Funding Rate eines Kontrakts ab.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| symbol    | string | true     | Trading Pair, basierend auf symbolName, z.B. BTCUSDT |
-| starTime  | int64  | false    | Start-Timestamp (Funding Settle Time), Unix ms, z.B. 1597026383085 |
-| endTime   | int64  | false    | End-Timestamp (Funding Settle Time), Unix ms, z.B. 1597026383085 |
+| symbol    | string | true     | Trading pair, based on symbolName, e.g. BTCUSDT |
+| starTime  | int64  | false    | Start timestamp (funding settle time), Unix ms, e.g. 1597026383085 |
+| endTime   | int64  | false    | End timestamp (funding settle time), Unix ms, e.g. 1597026383085 |
 | limit     | int32  | false    | Default: 100, Maximum: 200 |
 
 ### Request Example
@@ -107,9 +107,9 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/get_fun
 ### Response Parameters
 | Parameter    | Type   | Description |
 |--------------|--------|-------------|
-| markPrice    | string | Mark Price |
-| fundingRate  | string | Funding Rate (already a fraction, do NOT divide by 100 — unlike the batch endpoint) |
-| fundingTime  | int64  | Funding Timestamp |
+| markPrice    | string | Mark price |
+| fundingRate  | string | Funding rate (already a fraction, do NOT divide by 100 — unlike the batch endpoint) |
+| fundingTime  | int64  | Funding timestamp |
 
 ### Response Example
 ```json
@@ -120,12 +120,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/get_fun
 
 ## Get Funding Rate (Single)
 
-Quelle: https://www.bitunix.com/api-docs/futures/market/get_funding_rate.html
+Source: https://www.bitunix.com/api-docs/futures/market/get_funding_rate.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Ruft die aktuelle Funding Rate eines einzelnen Kontrakts ab.
+Retrieves the current funding rate of a single contract.
 
 ### HTTP Request
 `GET /api/v1/futures/market/funding_rate`
@@ -133,7 +133,7 @@ Ruft die aktuelle Funding Rate eines einzelnen Kontrakts ab.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| symbol    | string | true     | Trading Pair, basierend auf symbolName, z.B. BTCUSDT |
+| symbol    | string | true     | Trading pair, based on symbolName, e.g. BTCUSDT |
 
 ### Request Example
 ```bash
@@ -143,15 +143,15 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/funding
 ### Response Parameters
 | Parameter        | Type    | Description |
 |------------------|---------|-------------|
-| symbol           | string  | Coin Pair |
-| markPrice        | decimal | Mark Price |
-| lastPrice        | decimal | Last Price |
-| indexPrice       | decimal | Index Price |
-| fundingRate      | decimal | Aktuelle Funding Rate |
-| nextFundingTime  | int64   | Nächste Funding-Abrechnung (ms) |
-| fundingInterval  | int32   | Funding-Abrechnungsintervall (Stunden) |
-| maxFundingRate   | decimal | Maximale aktuelle Funding Rate |
-| minFundingRate   | decimal | Minimale aktuelle Funding Rate |
+| symbol           | string  | Coin pair |
+| markPrice        | decimal | Mark price |
+| lastPrice        | decimal | Last price |
+| indexPrice       | decimal | Index price |
+| fundingRate      | decimal | Current funding rate |
+| nextFundingTime  | int64   | Next funding settlement (ms) |
+| fundingInterval  | int32   | Funding settlement interval (hours) |
+| maxFundingRate   | decimal | Maximum current funding rate |
+| minFundingRate   | decimal | Minimum current funding rate |
 
 ### Response Example
 ```json
@@ -162,12 +162,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/funding
 
 ## Get Kline
 
-Quelle: https://www.bitunix.com/api-docs/futures/market/get_kline.html
+Source: https://www.bitunix.com/api-docs/futures/market/get_kline.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Interface zum Abrufen der historischen Futures-Kline-Daten.
+Interface for retrieving historical futures kline data.
 
 ### HTTP Request
 `GET /api/v1/futures/market/kline`
@@ -175,12 +175,12 @@ Interface zum Abrufen der historischen Futures-Kline-Daten.
 ### Request Parameters
 | Parameter  | Type   | Required | Description |
 |------------|--------|----------|-------------|
-| symbol     | string | true     | Trading Pair, basierend auf symbolName, z.B. BTCUSDT |
-| startTime  | int64  | false    | Startzeit: Klines nach diesem Zeitpunkt, Unix ms, z.B. 1672410780000 |
-| endTime    | int64  | false    | Endzeit: Klines vor diesem Zeitpunkt, Unix ms, z.B. 1672410780000 |
-| interval   | string | true     | Kline-Intervall (venue lists): `1m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M`. Cachy natively requests `1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M` and synthesizes the rest (see `timeframes.md`). |
+| symbol     | string | true     | Trading pair, based on symbolName, e.g. BTCUSDT |
+| startTime  | int64  | false    | Start time: klines after this point in time, Unix ms, e.g. 1672410780000 |
+| endTime    | int64  | false    | End time: klines before this point in time, Unix ms, e.g. 1672410780000 |
+| interval   | string | true     | Kline interval (venue lists): `1m 5m 15m 30m 1h 2h 4h 6h 8h 12h 1d 3d 1w 1M`. Cachy natively requests `1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M` and synthesizes the rest (see `timeframes.md`). |
 | limit      | int    | false    | Default: 100, Maximum: 200 |
-| type       | string | false    | Kline-Typ: `LAST_PRICE`, `MARK_PRICE`; Default: `LAST_PRICE` |
+| type       | string | false    | Kline type: `LAST_PRICE`, `MARK_PRICE`; Default: `LAST_PRICE` |
 
 ### Request Example
 ```bash
@@ -190,12 +190,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/kline?s
 ### Response Parameters
 | Parameter | Type    | Description |
 |-----------|---------|-------------|
-| open      | decimal | Eröffnungspreis |
-| high      | decimal | Höchstpreis |
-| low       | decimal | Tiefstpreis |
-| close     | decimal | Schlusspreis |
-| quoteVol  | decimal / string | Handelsvolumen (letzte 24h, in Quote-Coin) |
-| baseVol   | string  | Handelsvolumen (letzte 24h, in Base-Coin) |
+| open      | decimal | Opening price |
+| high      | decimal | Highest price |
+| low       | decimal | Lowest price |
+| close     | decimal | Closing price |
+| quoteVol  | decimal / string | Trading volume (last 24h, in quote coin) |
+| baseVol   | string  | Trading volume (last 24h, in base coin) |
 
 ### Response Example
 ```json
@@ -206,12 +206,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/kline?s
 
 ## Get Tickers
 
-Quelle: https://www.bitunix.com/api-docs/futures/market/get_tickers.html
+Source: https://www.bitunix.com/api-docs/futures/market/get_tickers.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Interface zum Abrufen der Futures Trading Pair Tickers.
+Interface for retrieving the futures trading pair tickers.
 
 ### HTTP Request
 `GET /api/v1/futures/market/tickers`
@@ -219,7 +219,7 @@ Interface zum Abrufen der Futures Trading Pair Tickers.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| symbols   | string | false    | Trading Pairs, basierend auf symbolName, z.B. BTCUSDT,ETHUSDT,XRPUSDT |
+| symbols   | string | false    | Trading pairs, based on symbolName, e.g. BTCUSDT,ETHUSDT,XRPUSDT |
 
 ### Request Example
 ```bash
@@ -229,15 +229,15 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/tickers
 ### Response Parameters
 | Parameter  | Type   | Description |
 |------------|--------|-------------|
-| symbol     | string | Coin Pair Name, z.B. BTCUSDT |
-| markPrice  | string | Mark Price |
-| lastPrice  | string | Last Price |
-| open       | string | Eröffnungspreis der letzten 24h |
-| last       | string | Last Price |
-| quoteVol   | string | Handelsvolumen des Coins (letzte 24h) |
-| baseVol    | string | Handelsvolumen (letzte 24h) |
-| high       | string | 24h Hoch |
-| low        | string | 24h Tief |
+| symbol     | string | Coin pair name, e.g. BTCUSDT |
+| markPrice  | string | Mark price |
+| lastPrice  | string | Last price |
+| open       | string | Opening price of the last 24h |
+| last       | string | Last price |
+| quoteVol   | string | Trading volume of the coin (last 24h) |
+| baseVol    | string | Trading volume (last 24h) |
+| high       | string | 24h high |
+| low        | string | 24h low |
 
 ### Response Example
 ```json
@@ -248,12 +248,12 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/tickers
 
 ## Get Trading Pairs
 
-Quelle: https://www.bitunix.com/api-docs/futures/market/get_trading_pairs.html
+Source: https://www.bitunix.com/api-docs/futures/market/get_trading_pairs.html
 
 **Rate Limit**: 10 req/sec/ip
 
 ### Description
-Interface zum Abrufen der Futures Trading Pair Details.
+Interface for retrieving the futures trading pair details.
 
 ### HTTP Request
 `GET /api/v1/futures/market/trading_pairs`
@@ -261,7 +261,7 @@ Interface zum Abrufen der Futures Trading Pair Details.
 ### Request Parameters
 | Parameter | Type   | Required | Description |
 |-----------|--------|----------|-------------|
-| symbols   | string | false    | Trading Pairs, basierend auf symbolName, z.B. BTCUSDT,ETHUSDT,XRPUSDT |
+| symbols   | string | false    | Trading pairs, based on symbolName, e.g. BTCUSDT,ETHUSDT,XRPUSDT |
 
 ### Request Example
 ```bash
@@ -271,25 +271,25 @@ curl -X 'GET' --location 'https://fapi.bitunix.com/api/v1/futures/market/trading
 ### Response Parameters
 | Parameter             | Type    | Description |
 |-----------------------|---------|-------------|
-| symbol                | string  | Coin Pair Name, z.B. BTCUSDT |
-| base                  | string  | Basiswährung, z.B. ETH bei ETHUSDT |
-| quote                 | string  | Quote-Währung, z.B. USDT bei ETHUSDT |
-| minTradeVolume        | string  | Minimaler Eröffnungsbetrag (Base-Coin) |
-| minBuyPriceOffset     | string  | Minimaler Preis-Offset für Buy-Orders |
-| maxSellPriceOffset    | string  | Maximaler Preis-Offset für Sell-Orders |
-| maxLimitOrderVolume   | string  | Maximaler Limit-Order-Betrag (Base-Coin) |
-| maxMarketOrderVolume  | string  | Maximaler Market-Order-Betrag (Base-Coin) |
-| basePrecision         | int     | Max. Präzision des Eröffnungsbetrags |
-| quotePrecision        | int     | Max. Präzision des Orderpreises |
-| maxLeverage           | int     | Max. Leverage |
-| minLeverage           | int     | Min. Leverage |
-| defaultLeverage       | int     | Standard-Leverage |
-| defaultMarginMode     | string  | Standard Margin Mode: `Isolation` / `Cross` (observed as int in example; treat as opaque until confirmed) |
-| priceProtectScope     | string  | Preis-Schutzbereich. Beispiel: Mark Price = 10000, priceProtectScope=0.02 → min. Sell-Order-Preis = 10000*(1-0.02)=9800; max. Buy-Order-Preis = 10000*(1+0.02)=10200 |
-| symbolStatus          | string  | `OPEN`: normaler Handel; `CANCEL_ONLY`: nur Stornierung; `STOP`: keine Positionseröffnung/-schließung möglich |
-| isApiSupported        | bool    | `true`: API-Trading aktiviert; `false`: API-Trading deaktiviert |
-| maxFundingRate        | decimal | Maximale aktuelle Funding Rate |
-| minFundingRate        | decimal | Minimale aktuelle Funding Rate |
+| symbol                | string  | Coin pair name, e.g. BTCUSDT |
+| base                  | string  | Base currency, e.g. ETH for ETHUSDT |
+| quote                 | string  | Quote currency, e.g. USDT for ETHUSDT |
+| minTradeVolume        | string  | Minimum opening amount (base coin) |
+| minBuyPriceOffset     | string  | Minimum price offset for buy orders |
+| maxSellPriceOffset    | string  | Maximum price offset for sell orders |
+| maxLimitOrderVolume   | string  | Maximum limit order amount (base coin) |
+| maxMarketOrderVolume  | string  | Maximum market order amount (base coin) |
+| basePrecision         | int     | Max. precision of the opening amount |
+| quotePrecision        | int     | Max. precision of the order price |
+| maxLeverage           | int     | Max. leverage |
+| minLeverage           | int     | Min. leverage |
+| defaultLeverage       | int     | Default leverage |
+| defaultMarginMode     | string  | Default margin mode: `Isolation` / `Cross` (observed as int in example; treat as opaque until confirmed) |
+| priceProtectScope     | string  | Price protection range. Example: mark price = 10000, priceProtectScope=0.02 → min. sell order price = 10000*(1-0.02)=9800; max. buy order price = 10000*(1+0.02)=10200 |
+| symbolStatus          | string  | `OPEN`: normal trading; `CANCEL_ONLY`: cancellation only; `STOP`: no position opening/closing possible |
+| isApiSupported        | bool    | `true`: API trading enabled; `false`: API trading disabled |
+| maxFundingRate        | decimal | Maximum current funding rate |
+| minFundingRate        | decimal | Minimum current funding rate |
 
 ### Response Example
 ```json
