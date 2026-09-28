@@ -1495,6 +1495,15 @@ class TradeService {
                     typeof err === "object" && err !== null && ("status" in err || "code" in err);
 
                 const isTerminalError =
+                    // BUG-0586: a refusal is raised *before* the bytes leave —
+                    // the gate's own checks, and the dispatch guard's
+                    // `beforeAttempt` hook, both run ahead of `fetch`. So this
+                    // is not an unknown outcome to be reconciled later; the
+                    // venue never saw it. Classifying it as indeterminate
+                    // parked the close in the OMS as `_isUnconfirmed`, which
+                    // reads as "a close is out there we cannot see" for a
+                    // request that provably did not go out.
+                    (e instanceof OrderRefusedError) ||
                     (e instanceof BitunixApiError) ||
                     (e instanceof Error && (
                         e.message.includes("400") ||
