@@ -1201,6 +1201,15 @@
    */
   const canAddToPosition = $derived(activeExchange().capabilities.addToPosition);
 
+  /**
+   * FEAT-0017: whether a stop and target can be placed as a standalone request
+   * after the entry. Bitget answers false, and every TP/SL verb on that adapter
+   * is refused on `supports.tpSl: false` — so the row must not offer the
+   * control at all (FEAT-0023), the same call already made for `addToPosition`
+   * below.
+   */
+  const canPlaceStandaloneTpSl = $derived(activeExchange().capabilities.tpSlStandalone);
+
   /** FEAT-0334: opens the scale-in dialog for a position. */
   function handleAdd(pos: OMSPosition) {
     addingPositionId = pos.positionId ?? null;
@@ -1355,7 +1364,7 @@
           onclose={handleClosePosition}
           onflashClose={handleFlashClose}
           oncloseAll={closingAll ? undefined : handleCloseAll}
-          ontpSl={handleTpSl}
+          ontpSl={canPlaceStandaloneTpSl ? handleTpSl : undefined}
           onadjustMargin={handleAdjustMargin}
           onadd={canAddToPosition ? handleAdd : undefined}
         />

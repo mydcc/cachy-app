@@ -83,8 +83,18 @@ vi.mock("../../stores/tpsl.svelte", () => ({
     tpSlState: { ensureFresh: vi.fn(), invalidate: vi.fn() },
 }));
 
+/**
+ * The venue's own declaration of what it takes (FEAT-0017), mutable so a test
+ * can state which venue it is looking at. Defaults keep the fixture this file
+ * was written against: a venue that cannot scale in and cannot take a
+ * standalone plan.
+ */
+const venue = vi.hoisted(() => ({
+    capabilities: { addToPosition: false, tpSlStandalone: false },
+}));
+
 vi.mock("../../services/exchange", () => ({
-    activeExchange: () => ({ capabilities: { addToPosition: false }, supports: {} }),
+    activeExchange: () => ({ capabilities: venue.capabilities, supports: {} }),
 }));
 
 vi.mock("../../lib/appAuth", () => ({ appFetch: vi.fn() }));
@@ -224,6 +234,8 @@ function text(testid: string): string {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    venue.capabilities.addToPosition = false;
+    venue.capabilities.tpSlStandalone = false;
     resetAccountFetchSingleflightForTest();
     accountState.reset();
     host = document.createElement("div");
@@ -234,6 +246,64 @@ afterEach(() => {
     for (const component of mounted) unmount(component as never);
     mounted = [];
     host.remove();
+});
+
+
+/*
+ * FEAT-0023 — the epic's last checkable acceptance criterion: an action the
+ * venue cannot take must be absent, not offered and refused.
+ *
+ * `PositionsList` pins the rendering rule; this pins the half above it — that
+ * the venue's own `tpSlStandalone` declaration is what decides. On a venue
+ * that answers false, `TpSlCreateModal` is unreachable from a position row,
+ * so there is no form to fill in and no submission to be refused after the
+ * trader committed.
+ */
+describe("FEAT-0023 — capability flags decide which position controls exist", () => {
+    async function renderWithPosition() {
+        routeFetch();
+        mounted.push(
+            mount(PositionsSidebar, {
+                target: host,
+                props: { activeAccountId: "acc-1" },
+            }) as never,
+        );
+        await settleUntil(() => host.querySelector('[data-testid="open-close"]') !== null);
+    }
+
+    it("offers no TP/SL control where the venue takes no standalone plan", async () => {
+        venue.capabilities.tpSlStandalone = false;
+        await renderWithPosition();
+
+        expect(host.querySelector('[data-testid="open-close"]')).not.toBeNull();
+        expect(host.querySelector('[data-testid="open-tp-sl"]')).toBeNull();
+    });
+
+    it("offers the TP/SL control where the venue does, and it opens the dialog", async () => {
+        venue.capabilities.tpSlStandalone = true;
+        await renderWithPosition();
+
+        const control = host.querySelector<HTMLButtonElement>('[data-testid="open-tp-sl"]');
+        expect(control).not.toBeNull();
+
+        control!.click();
+        flushSync();
+        // The modal itself is stubbed out here; reaching it is the claim.
+        expect(control!.dataset.positionId).toBe("id-BTCUSDT");
+    });
+
+    it("applies the same rule to add-to-position", async () => {
+        venue.capabilities.addToPosition = false;
+        await renderWithPosition();
+        expect(host.querySelector('[data-testid="open-add"]')).toBeNull();
+
+        unmount(mounted.pop() as never);
+        mounted = [];
+
+        venue.capabilities.addToPosition = true;
+        await renderWithPosition();
+        expect(host.querySelector('[data-testid="open-add"]')).not.toBeNull();
+    });
 });
 
 describe("BUG-0347 — the open dialog follows the live position", () => {
