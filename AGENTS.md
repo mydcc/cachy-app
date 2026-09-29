@@ -31,9 +31,9 @@ The dev/build process uses the WASM module in `technicals-wasm/` (`scripts/build
 
 **Verification: targeted, not banned.** Implement first, then verify — no test loops mid-task. Test the behavior you changed with the cheapest run that covers it, always through `scripts/run-lowpri.sh` (CPU affinity clamping to at most half cores via `taskset`, idle I/O via `ionice -c 3`, `nice -n 19`; local Vitest worker count defaults to max 2 in `vite.config.ts`):
 
-- **One test file:** `bash scripts/run-lowpri.sh vitest run --project=unit src/services/tradeService.test.ts` (~1–3s)
-- **One component test:** `bash scripts/run-lowpri.sh vitest run src/components/<path>/<name>.component.test.ts`
-- **A folder/pattern:** `bash scripts/run-lowpri.sh vitest run --project=unit src/services/tradeService`
+- **One test file:** `bash scripts/run-lowpri.sh npx vitest run --project=unit src/services/tradeService_placeOrder.test.ts` (~10s cold, transform dominates)
+- **One component test:** `bash scripts/run-lowpri.sh npx vitest run src/components/<path>/<name>.component.test.ts`
+- **A folder/pattern:** `bash scripts/run-lowpri.sh npx vitest run --project=unit src/services/tradeService`
 - **Changed files only (git-based):** `npm run test:changed`
 - **Pure-logic `unit` project only:** `npm run test:unit`
 - **WebGPU shaders or `webGpuCalculator.ts`:** `npm run test:gpu` (~10s). It holds every GPU indicator to the JS path in headless Chromium, which provides a software WebGPU adapter, so no GPU is needed. No CI workflow runs Playwright, so this suite is a local and pre-release gate: a green CI run says nothing about it.
@@ -91,7 +91,7 @@ Architecture overview: `docs/architecture/cachy-architecture.dataflow.html` (sou
 - `<slot>` → Snippets `{#snippet …}`
 - Every `$effect` that registers listeners/subscriptions MUST return a cleanup function.
 
-**Financial Data:** `decimal.js` for ALL prices, amounts, balances. Native `number` is strictly forbidden for financial values.
+**Financial Data:** `decimal.js` for ALL prices, amounts, balances. Native `number` is strictly forbidden for financial values. The boundary and its rationale — why indicator and display math stays f64 — is in [`docs/adr/0021-decimal-money-boundary-display-stays-f64.md`](docs/adr/0021-decimal-money-boundary-display-stays-f64.md).
 
 **Theming:** No hardcoded colors (`#ffffff`, etc.). Use CSS variables (`var(--bg-primary)`, ...) or paired classes from `src/themes.css` (`.bg-accent-paired`, `.bg-success-paired`, `.bg-danger-paired`, `.bg-warning-paired`, `.hover-bg-accent-paired`).
 

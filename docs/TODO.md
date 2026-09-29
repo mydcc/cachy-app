@@ -96,12 +96,22 @@ second is more honest about what the store actually holds; the first keeps the
 comparisons simple. Both are better than the current state, where the type says
 one thing and three callers do another.
 
-## 3. Bitget WS order/position sync sends field names the account store never reads
+## 3. ✅ Bitget WS order/position sync sends field names the account store never reads
+
+**RESOLVED.** Tracked as
+[`BUG-0001`](backlog/bugs/BUG-0001-bitget-ws-field-mismatch.md), fixed in
+`1.0.0-beta.11` (PR #1607/#1609). **Decision:** `bitgetWs.ts` normalizes before
+the store call — `normalizeOrderData()` / `normalizePositionData()` return the
+shared `RawWsOrder` / `RawWsPosition` shape, so the Bitunix field names the
+store reads are produced on the Bitget path too, and positions key on `symbol`
+because Bitget's WS payload never sends a `positionId`. Covered by
+`src/services/bitgetWs.test.ts`. The analysis below is kept as the record of
+what the mismatch was.
 
 **Roadmap item 21.** Found while typing the `any`-cast payloads in
-`bitgetWs.ts`'s `handleMessage()`. Not fixed here — it is a live-trading
-correctness bug, not a typing nit, and needs its own verified fix with a
-test, not a drive-by inside a lint pass.
+`bitgetWs.ts`'s `handleMessage()`. It was deliberately *not* fixed inside that
+lint pass — a live-trading correctness bug needs its own verified fix with a
+test, which is what BUG-0001 became.
 
 `accountState.updatePositionFromWs(data)` and `.updateOrderFromWs(data)`
 (`src/stores/account.svelte.ts:68` and `:157`) are shared between the
@@ -772,7 +782,7 @@ Confluence would just be a synced copy.
 > **Reopen this when it stops being true** — specifically, when a
 > non-technical stakeholder needs to read planning docs without repo
 > access. The natural trigger is [M5](MILESTONES.md#m5--community--whitelabel-edition)
-> or [M6](MILESTONES.md#m6--pro-modules--plugins): a whitelabel customer or
+> or [M6](MILESTONES.md#m6--extensions--pro-modules): a whitelabel customer or
 > a plugin buyer who needs visibility without a GitHub account. Until
 > then, `docs/` and `docs/backlog/` are the only copy.
 
@@ -797,7 +807,7 @@ validated in CI (`npm run backlog:check`).
 >
 > **Reopen together with item 19** when non-repo people need to interact
 > with planned work — a whitelabel customer's support tickets ([M5](MILESTONES.md#m5--community--whitelabel-edition)),
-> or a plugin vendor's issues ([M6](MILESTONES.md#m6--pro-modules--plugins)).
+> or a plugin vendor's issues ([M6](MILESTONES.md#m6--extensions--pro-modules)).
 > When that day comes, GitHub Issues is the cheaper first step before
 > Jira: already available, natively linked to PRs — used for bug reports
 > from outside the repo, with `backlog/` staying the single source for
