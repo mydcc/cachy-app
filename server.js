@@ -59,6 +59,29 @@ function getMimeType(filePath) {
   }
 }
 
+// Index pre-compressed static assets (.br, .gz) at startup in memory.
+// Doing an in-memory Set lookup instead of per-request fs.existsSync calls
+// avoids I/O latency and eliminates CodeQL un-rate-limited file system alerts.
+const precompressedAssets = new Set();
+function indexPrecompressedAssets(dir, baseDir = dir) {
+  try {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        indexPrecompressedAssets(fullPath, baseDir);
+      } else if (entry.isFile() && (entry.name.endsWith('.br') || entry.name.endsWith('.gz'))) {
+        const relPath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
+        precompressedAssets.add('/' + relPath);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to index precompressed assets:', err);
+  }
+}
+indexPrecompressedAssets('build/client');
+
 // Serve pre-compressed Brotli (.br) or Gzip (.gz) static assets when available.
 // Vite generates pre-compressed files in build/client/_app/immutable/. Serving
 // them directly avoids on-the-fly CPU compression in Node, lowering TTFB and
@@ -73,16 +96,17 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const relativePath = path.join('build/client', path.normalize(urlPath).replace(/^(\.\.[/\\])+/, ''));
+  const brPath = urlPath + '.br';
+  const gzPath = urlPath + '.gz';
 
-  if (acceptEncoding.includes('br') && fs.existsSync(relativePath + '.br')) {
+  if (acceptEncoding.includes('br') && precompressedAssets.has(brPath)) {
     req.url = req.url + '.br';
     res.setHeader('Content-Encoding', 'br');
     res.setHeader('Vary', 'Accept-Encoding');
     const mimeType = getMimeType(urlPath);
     if (mimeType) res.setHeader('Content-Type', mimeType);
     applySecurityHeaders(res);
-  } else if (acceptEncoding.includes('gzip') && fs.existsSync(relativePath + '.gz')) {
+  } else if (acceptEncoding.includes('gzip') && precompressedAssets.has(gzPath)) {
     req.url = req.url + '.gz';
     res.setHeader('Content-Encoding', 'gzip');
     res.setHeader('Vary', 'Accept-Encoding');
