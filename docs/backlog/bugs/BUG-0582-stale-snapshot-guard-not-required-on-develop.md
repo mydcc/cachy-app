@@ -2,7 +2,7 @@
 id: BUG-0582
 title: The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway
 type: bug
-status: done
+status: in-progress
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,9 @@ area: repo
 data_class: none
 adr: none
 depends_on: []
-shipped: 2026-09-28
+assignee: opencode
+branch: audit/last-2-days-review
+applied: 2026-09-28
 ---
 
 # BUG-0582 — The stale-snapshot revert guard is not a required check
@@ -78,10 +80,10 @@ the three damaging merges; BUG-0583 is what stops the third.
 
 ## Acceptance criteria
 
-- [ ] "Stale Snapshot Revert Guard" appears in the required status checks for `develop`
+- [x] "Stale Snapshot Revert Guard" appears in the required status checks for `develop`
 - [ ] A test or a recorded check proves the guard now blocks: a PR that deletes
       a base-added file is refused at merge time, not merely reported red
-- [ ] The `allow-base-revert` escape hatch is documented as the only way past it
+- [x] The `allow-base-revert` escape hatch is documented as the only way past it
 
 ## Shipped
 
@@ -92,8 +94,17 @@ protection object confirms nothing else moved — `strict` still `true`,
 `enforce_admins` still `false`, `required_conversation_resolution` still
 `true`, and every other section byte-identical.
 
-Verified: PR #3724 reports `mergeStateStatus: BLOCKED` with the guard in its
-check rollup, so the required set is live.
+AC1 is satisfied: the required set is live, and the guard appears in the check
+rollup of every open PR.
+
+**AC2 is not satisfied.** "PR #3724 reports `mergeStateStatus: BLOCKED`" is not
+proof that the guard blocks — `BLOCKED` is what *any* unmet required check
+produces, and #3724 has other failing checks. What is actually proven is that
+the check *runs and is required*. The behavioural proof still owed is a
+throwaway PR that deletes a base-added file and is refused at merge.
+
+AC3 is satisfied: the `allow-base-revert` label escape hatch is documented in
+the guard's own output.
 
 Two notes for whoever picks this up next:
 

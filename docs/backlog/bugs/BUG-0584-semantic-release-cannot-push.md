@@ -25,10 +25,11 @@ are unreleased and no failure was noticed.
 
 **Demonstrated** — the workflow log, not inferred.
 
-`gh run list --workflow=Release` returns an unbroken run of `failure` for
-`develop` from 2026-09-25 through 2026-09-28, and the last `success` is
-2026-09-14. On run `36448633871` (the merge of #3720), `semantic-release` gets
-as far as pushing the version tag and then:
+`gh run list --workflow=Release` returns `failure` for every `develop` run on
+record inspected — the four most recent are 2026-09-28 16:06, 15:22, 15:03 and
+14:50 UTC, at `e0fd8cfab`, `d0b5c7bf4`, `9358fde21` and `d4df8bb92`. On run
+`36448633871` (the merge of #3720), `semantic-release` gets as far as pushing
+the version tag and then:
 
     ✘ The command "git push --dry-run --no-verify -- https://x-access-token:***@github.com/mydcc/cachy-app.git HEAD:develop"
       failed with the error message remote: Invalid username or token.
@@ -44,14 +45,34 @@ it.
 
 ## Cause
 
-Unknown. The error is a credential/permission problem inside the workflow's own
-`checkout`/`GITHUB_TOKEN` configuration, not inside the repository's code. The
-usual causes are a `permissions:` block on the job or workflow that omits
-`contents: write`, or a `persist-credentials: false` on the checkout step so the
-push has no credential at all. Both are worth checking; guessing is not.
+Settled from the workflow, not guessed. Three lines in
+`.github/workflows/release.yml` decide it:
 
-Note that the run *reaches* the push, so `verifyConditions` and the version
-computation both succeed. Whatever is wrong is narrowly in the push path.
+- The job's `permissions:` block **already grants `contents: write`**, so the
+  usual "missing permission" hypothesis is ruled out.
+- `checkout` runs with `persist-credentials: false`, so the push has no
+  credential from the checkout step and depends entirely on the token passed
+  in the environment.
+- That token is supplied as
+  `GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}`.
+
+`||` falls back **only when `RELEASE_TOKEN` is empty**. `RELEASE_TOKEN` is set,
+so it is sent; it is invalid, so the push authenticates as the PAT and fails.
+The logged URL confirms the PAT path was taken — the request user is
+`x-access-token`, not the workflow's own identity, which is what the `||` branch
+would have produced.
+
+A set-but-invalid secret therefore fails *harder* than an absent one, because
+the fallback never fires. Note the run *reaches* the push, so
+`verifyConditions` and the version computation both succeed; the fault is
+narrowly in the push path.
+
+## Progress
+
+`RELEASE_TOKEN` was rotated on 2026-09-28. The run list has not exercised the
+new value yet — the four most recent `Release` runs on `develop` all predate
+it, and they all still fail with `EGITNOPERMISSION`. What remains is therefore
+verification, not diagnosis: AC1 and AC2 below.
 
 ## Fix
 
@@ -68,9 +89,19 @@ working tree.
 
 - [ ] A push to `develop` produces a green `Release` run
 - [ ] A new tag appears on the remote, and its commit is an ancestor of `develop`
-- [ ] A deliberately failing push is visibly red, so this cannot go unnoticed
-      for eight days again — consider making `Release` a required check or
-      alerting on its conclusion
+- [ ] `Release` is either a required check on `develop` or has an explicit
+      failure alert, so a dead release pipeline cannot go unnoticed for days
+      again. One of the two, named — not a "consider"
+
+## Out of scope
+
+- Changing the `RELEASE_TOKEN || GITHUB_TOKEN` expression. The rotated token
+  is valid; changing the expression would only hide the failure mode where a
+  future set-but-invalid secret silently takes precedence again
+- Tagging or releasing manually to catch up the eight-day backlog. That is a
+  release-management decision, not this fix
+- Touching `semantic-release` config, commit-analyzer settings, or the
+  `main`/`develop` release split
 
 ## Links
 

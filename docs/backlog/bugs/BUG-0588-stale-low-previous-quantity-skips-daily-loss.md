@@ -28,7 +28,7 @@ The claim was that a partially filled order makes `previousQuantity` read
 `checkDailyLoss()` is skipped.
 
 `previousQuantity` comes from `liveOrder.amount`
-(`tradeService.ts:2538-2560`), and `isQuantityIncreasingModify`
+(`tradeService.ts:2538-2561`, the assignment itself at 2561), and `isQuantityIncreasingModify`
 (`rmsService.ts:635-643`) trusts any finite, positive value. The argument was
 that a partial fill lowers the resting size.
 
@@ -101,12 +101,25 @@ No behaviour change. Do not "harden" the baseline.
 ## Acceptance criteria
 
 - [ ] The comment no longer claims a partial fill makes `previousQuantity` stale
-- [ ] The rewritten comment cites `qty`/`size` vs `tradeQty`/`filledQty` and
-      links BUG-0580 for the Bitget caveat
+- [ ] The rewritten comment cites `qty`/`size` vs `tradeQty`/`filledQty`, states
+      the Bitunix half as verified, and puts the Bitget half in the
+      not-verified paragraph alongside BUG-0580
 - [ ] `rmsService.isQuantityIncreasingModify` is **unchanged**, and the reason it
       is unchanged is written down where the next reader will look
 - [ ] No test is added: there is no behaviour to pin, and a test asserting the
       absence of a bug would be theatre
+
+## Out of scope
+
+- **No behaviour change of any kind.** The gate is correct as written
+- **No hardening of the baseline.** `amount + filled` is named and rejected in
+  the comment specifically so a later reader does not try it
+- No test — see the last acceptance criterion
+- No change to `isQuantityIncreasingModify` or to how `rmsService` treats
+  corrupt `previousQuantity` values. Those were checked and are already
+  fail-closed on `undefined`, `null`, `NaN`, infinite, zero and negative
+- No work on the partially filled **order-detail** path or on fill tracking.
+  BUG-0589 owns the Bitget `filled` field; this item does not
 
 ## Links
 
@@ -114,6 +127,11 @@ No behaviour change. Do not "harden" the baseline.
 - BUG-0567, BUG-0568 — the two fixes that widened the branch to be measured
 - BUG-0580 — Bitget wire format already flagged unverified; the reason this
   item's premise could not be confirmed for Bitget from the mirror alone
+- BUG-0589 — the concrete instance, found while correcting this item. The
+  Bitget normaliser reads `filledQty`, which the mirror never documents. **These
+  two are not independent confirmations:** BUG-0589 shows the Bitget wire format
+  is unreconciled in a sibling field, so this item's remaining Bitget premise
+  rests on exactly what BUG-0589 exists to settle
 - `docs/bitunix-api/07_trade.md:331` — the half-filled example the correction
   rests on
 

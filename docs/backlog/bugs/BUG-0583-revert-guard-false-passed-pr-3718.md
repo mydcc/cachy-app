@@ -108,13 +108,6 @@ Do **not** try to fix this by walking first-parents to the first
 base-reachable ancestor: for #3718 that value already *is* `9358fde2`, so it
 changes nothing. That approach was tried against these refs and is a no-op.
 
-## Fix
-
-See Cause — the mechanism is established, and the shape of the fix is decided
-there. Summary: decide staleness by content era (`git log --find-object`) rather
-than by the fork-point anchor, which collapses onto the merge-base whenever the
-branch has not merged base.
-
 ## Acceptance criteria
 
 - [ ] A fixture reproduces the defect — a branch that has **not** merged base,

@@ -29,9 +29,14 @@ function, not by observing a user.
 In `src/lib/journalSort.ts` the date branch parses without a `NaN` guard:
 
     // lines 76-78
-    if (field === "date" || field === "exitDate") {
-        return parseDateish(row.date) ?? parseDateish(row.exitDate);
+    if ((field === "date" || field === "exitDate") && typeof val === "string") {
+        val = Date.parse(val);
     }
+
+The shape matters: this is a decorator inside a `.map()`, so it **assigns**
+`val` rather than returning from a comparator, and it calls `Date.parse`
+directly. The `typeof val === "string"` guard is load-bearing — a value that is
+already a number skips parsing entirely.
 
 `Date.parse` returns `NaN` for an unparseable string, and in the three-way
 comparator at lines 91-92 every comparison against `NaN` is `false`, so the

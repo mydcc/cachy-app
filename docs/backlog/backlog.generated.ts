@@ -548,7 +548,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0582",
     "title": "The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway",
     "type": "bug",
-    "status": "done",
+    "status": "in-progress",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -560,7 +560,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "shipped": "2026-09-28",
+    "assignee": "opencode",
+    "branch": "audit/last-2-days-review",
+    "applied": "2026-09-28",
     "file": "bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md"
   },
   {
@@ -2629,6 +2631,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0589",
     "title": "Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always \"0",
     "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0590"
+    ],
+    "file": "bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md"
+  },
+  {
+    "id": "BUG-0590",
+    "title": "Capture a real Bitget order response and settle which field carries the traded amount",
+    "type": "bug",
     "status": "ready",
     "priority": "P1",
     "milestone": "none",
@@ -2641,7 +2663,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "file": "bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md"
+    "assignee": "opencode",
+    "branch": "audit/last-2-days-review",
+    "file": "bugs/BUG-0590-capture-bitget-order-response-fixture.md"
   },
   {
     "id": "FEAT-0014",

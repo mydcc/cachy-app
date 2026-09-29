@@ -2,21 +2,22 @@
 id: BUG-0589
 title: Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0"
 type: bug
-status: ready
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
 area: exchange
 data_class: none
 adr: none
-depends_on: []
+depends_on: [BUG-0590]
 ---
 
-<!-- Not `depends_on: [BUG-0580]` on purpose. 0580 is the umbrella "Bitget
-     wire format unverified" flag and is still `specced`; a hard dependency
-     would bury a concrete, reproducible defect behind an abstract item. The
-     capture below is self-contained, and completing it settles part of 0580
-     rather than waiting on it. -->
+<!-- Specced, not ready: AC1 ("a captured Bitget response... and the traded-amount
+     field is named from it") is an open question, not a criterion — the item
+     does not know whether the venue sends baseVolume, filledQty, or both, which
+     is the entire point. BUG-0590 exists to produce that evidence and is the
+     hard blocker. Not `depends_on: [BUG-0580]`: 0580 is the umbrella flag, and
+     waiting on it would bury a concrete defect behind an abstract item. -->
 
 # BUG-0589 — Bitget order `filled` reads `filledQty`, which the mirror never documents
 
@@ -59,8 +60,10 @@ User-visible, on the Bitget side only:
 - `OpenOrdersList.svelte:346` — the filled row is gated on
   `Number(order.filled) > 0`, so it never renders for Bitget
 - `OrderHistoryList.svelte:375` — shows `0` filled
-- `PositionsSidebar.svelte:902` — filters history to `Number(o.filled || 0) > 0`,
-  which drops **every** Bitget history order from that view
+- `PositionsSidebar.svelte:900-903` — filters history to
+  `Number(o.filled || 0) > 0`, which drops **every** Bitget history order from
+  that view — but only while `settingsState.hideUnfilledOrders` is on, so the
+  filter is a deliberate user setting rather than always-on
 
 Not a money-path gate. `rmsService.isQuantityIncreasingModify` reads
 `previousQuantity`, which comes from `amount`, not `filled` — which is also why
@@ -107,8 +110,19 @@ paper would replace a silent zero with a second silent zero.
       and `BitgetRawOrder` stops declaring a field no response is known to carry
 - [ ] BUG-0580 is updated with whatever the capture settles about the V1/V2 split
 
+## Out of scope
+
+- Renaming the field on the strength of the mirror.  may be right, but
+  renaming without a capture replaces a silent zero with a second silent zero
+- The WebSocket normaliser. The three call sites above are REST; the WS path is
+  a separate adapter and a separate question
+- Venue-capability work, or any new Bitget endpoint support
+- Backfilling historical orders. Past data is what the capture will supply
+
 ## Links
 
+- BUG-0590 — the capture that settles which field the venue actually sends; the
+  hard blocker for this item
 - BUG-0580 — Bitget wire format already flagged unverified; the standing
   reminder not to guess an exchange's payload
 - BUG-0581 — the sibling entry-exchange wire-format finding
