@@ -10,6 +10,8 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0586-flash-close-session
 ---
 
 # BUG-0586 — Flash close strips protection before the session guard refuses
@@ -86,11 +88,23 @@ Re-check whether the same shape exists in `closePosition` and
 ## Acceptance criteria
 
 - [ ] A test reproduces the defect: a session change between the cancel and the
-      dispatch leaves the position open, and fails without the fix
-- [ ] The test passes with the fix
-- [ ] A refused flash close no longer leaves a `_isUnconfirmed` order behind
-- [ ] The existing BUG-0331 regression test still passes, and BUG-0331 is
+      dispatch leaves the position open, and fails without the fix — **still
+      open**, this is the ordering half and no fix has been chosen (see Open
+      question)
+- [ ] The test passes with the fix — **still open**, same reason
+- [x] A refused flash close no longer leaves a `_isUnconfirmed` order behind
+- [x] The existing BUG-0331 regression test still passes, and BUG-0331 is
       re-linked from this item rather than left silently `done`
+
+The two met criteria are verified. `tradeService_flashClose_hardening.test.ts`
+4/4, and the four surrounding close suites (`flashClose`, `hedgeClose`,
+`closeSingleBitget`, `closeAllBitget`) 16/16. The first hardening test is the one
+that matters — it was vacuous before this PR, because `getOrder` was mocked only
+in the second test, so the indeterminate branch's `if (order)` was false,
+`updateOrder` never ran, and the assertion held with or without the fix. With
+the mock added it goes red when the fix is removed.
+
+The two open criteria are the reason this item is still `specced`.
 
 ## Open question
 
@@ -114,6 +128,11 @@ item does not close until the second half is decided.
 
 `docs/TODO.md` is where `docs/backlog/README.md` says an open decision belongs;
 this section is the pointer, and the decision itself needs a human.
+
+**Status: still `specced`, deliberately.** PR #3728 lands the ghost-order half
+and nothing else. Two of the four acceptance criteria above stay unticked, so
+this item must not be flipped to `done` and the issue it mirrors must not be
+closed by that PR.
 
 ## Out of scope
 
