@@ -2,9 +2,9 @@
 
 # Backlog index
 
-458 items. How to read and add them: [README.md](README.md).
+467 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 18 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 406 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 11 · 🟡 in-progress 2 · ✅ done 408 · ⛔ dropped 1
 
 ---
 
@@ -220,6 +220,7 @@ Counts by status: 💡 idea 23 · 📋 specced 18 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | execution |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | execution |
 | [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | exchange |
+| [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | 🟡 in-progress | repo |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -290,6 +291,14 @@ Counts by status: 💡 idea 23 · 📋 specced 18 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | execution |
 | [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | exchange |
 | [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | exchange |
+| [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | 📋 specced | repo |
+| [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | 📋 specced | ci |
+| [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | journal |
+| [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | trade-panel |
+| [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | execution |
+| [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | 🟢 ready | execution |
+| [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | exchange |
+| [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -554,6 +563,7 @@ Counts by status: 💡 idea 23 · 📋 specced 18 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -648,6 +658,14 @@ Counts by status: 💡 idea 23 · 📋 specced 18 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
 | [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |
+| [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -990,4 +1008,4 @@ Counts by status: 💡 idea 23 · 📋 specced 18 · 🟢 ready 9 · 🟡 in-pro
 
 ---
 
-Next free number: **0582**
+Next free number: **0591**

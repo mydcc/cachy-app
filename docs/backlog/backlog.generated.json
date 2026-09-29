@@ -516,6 +516,27 @@
       "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
     },
     {
+      "id": "BUG-0582",
+      "title": "The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway",
+      "type": "bug",
+      "status": "in-progress",
+      "priority": "P0",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "branch": "audit/last-2-days-review",
+      "applied": "2026-09-28",
+      "file": "bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md"
+    },
+    {
       "id": "FEAT-0011",
       "title": "Verify every order against displayed state before it leaves the client",
       "type": "feature",
@@ -2468,6 +2489,158 @@
       "adr": "none",
       "depends_on": [],
       "file": "bugs/BUG-0580-bitget-query-param-ordering-unverified.md"
+    },
+    {
+      "id": "BUG-0583",
+      "title": "The stale-snapshot revert guard reported success on a PR that did revert develop",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "repo",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0583-revert-guard-false-passed-pr-3718.md"
+    },
+    {
+      "id": "BUG-0584",
+      "title": "semantic-release cannot push, so no release has shipped since 2026-09-20",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ci",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0584-semantic-release-cannot-push.md"
+    },
+    {
+      "id": "BUG-0585",
+      "title": "A row with an unparseable date silently freezes the whole journal sort column",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "journal",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "branch": "fix/bug-0585-journalsort-nan",
+      "file": "bugs/BUG-0585-journalsort-nan-date-freezes-column.md"
+    },
+    {
+      "id": "BUG-0586",
+      "title": "A flash close that the new session guard refuses still leaves the position open with its stops cancelled",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "trade-panel",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md"
+    },
+    {
+      "id": "BUG-0587",
+      "title": "Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "branch": "fix/bug-0587-unticketed-reads",
+      "file": "bugs/BUG-0587-unticketed-store-writing-reads.md"
+    },
+    {
+      "id": "BUG-0588",
+      "title": "A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "execution",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md"
+    },
+    {
+      "id": "BUG-0589",
+      "title": "Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always \"0",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [
+        "BUG-0590"
+      ],
+      "file": "bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md"
+    },
+    {
+      "id": "BUG-0590",
+      "title": "Capture a real Bitget order response and settle which field carries the traded amount",
+      "type": "bug",
+      "status": "ready",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "branch": "audit/last-2-days-review",
+      "file": "bugs/BUG-0590-capture-bitget-order-response-fixture.md"
     },
     {
       "id": "FEAT-0014",
@@ -9767,5 +9940,5 @@
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
     }
   ],
-  "count": 458
+  "count": 467
 }

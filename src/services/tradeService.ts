@@ -56,7 +56,7 @@ import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountEpoch, type AccountSession } from "./accountEpoch.svelte";
-import { accountReadOrder, leverageReadOrder } from "./accountReadOrder";
+import { accountReadOrder, leverageReadOrder, positionsReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
 import {
@@ -2155,6 +2155,14 @@ class TradeService {
      * verify a flatten that just ran.
      */
     private async readFreshPositions(provider: Venue): Promise<NormalizedPosition[] | null> {
+        // BUG-0587: taken before the first await. This read hydrates the store
+        // on the close-all verification path and used to take no ticket, so a
+        // response landing after an account or mode switch re-stamped the
+        // snapshot under the new session. The list it returns is still used
+        // for the verification itself — only the *write* is gated, so a stale
+        // response still fails the caller's check rather than passing it.
+        const ticket = positionsReadOrder.begin();
+
         const paper = paperAccountFeed();
         if (paper) return paper.positions();
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
@@ -2171,8 +2179,10 @@ class TradeService {
         const json = await response.json();
         const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
         if (data === null || !data.positions) throw new Error(TRADE_ERRORS.FETCH_FAILED);
-        accountState.hydratePositions(data.positions, "live");
-        if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
+        if (positionsReadOrder.mayApply(ticket)) {
+            accountState.hydratePositions(data.positions, "live");
+            if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
+        }
         return data.positions;
     }
 
