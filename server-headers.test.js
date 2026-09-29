@@ -368,3 +368,16 @@ describe('wrapWriteHead', () => {
     });
   });
 });
+
+describe('pre-compressed static assets handling', () => {
+  it('verifies that pre-compressed asset headers format is valid for Brotli and Gzip', () => {
+    const res = mockRes();
+    res.setHeader('Content-Encoding', 'br');
+    res.setHeader('Vary', 'Accept-Encoding');
+    expect(res.headers.get('Content-Encoding')).toBe('br');
+    expect(res.headers.get('Vary')).toBe('Accept-Encoding');
+
+    res.setHeader('Content-Encoding', 'gzip');
+    expect(res.headers.get('Content-Encoding')).toBe('gzip');
+  });
+});

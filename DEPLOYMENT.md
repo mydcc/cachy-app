@@ -167,14 +167,18 @@ add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;
 add_header Permissions-Policy "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*" always;
 ```
 
-**Gzip compression & asset performance.** Ensure Nginx has Gzip compression enabled to optimize Lighthouse performance scores and prevent serving uncompressed responses:
+**Gzip/Brotli compression & asset performance.** Ensure Nginx has Gzip compression and pre-compressed static asset serving enabled to optimize Lighthouse performance scores and prevent serving uncompressed responses:
 
 ```nginx
 gzip on;
+gzip_static on; # Serve pre-compressed .gz assets from Vite build
 gzip_comp_level 6;
 gzip_min_length 1024;
 gzip_proxied any;
 gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+
+# If ngx_brotli is installed on Nginx:
+brotli_static on; # Serve pre-compressed .br assets from Vite build
 ```
 
 **Prefer TLS 1.2 and newer.** Leave `TLSv1.1` out of `ssl_protocols`; it is

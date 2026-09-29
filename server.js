@@ -18,6 +18,8 @@
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
+import fs from 'node:fs';
+import path from 'node:path';
 import { applySecurityHeaders, cacheControlFor, wrapWriteHead } from './server-headers.js';
 
 const app = express();
@@ -36,6 +38,59 @@ app.use(compression({ level: 6 }));
 app.use((req, res, next) => {
   wrapWriteHead(res);
   applySecurityHeaders(res);
+  next();
+});
+
+function getMimeType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case '.js': return 'application/javascript; charset=UTF-8';
+    case '.css': return 'text/css; charset=UTF-8';
+    case '.svg': return 'image/svg+xml';
+    case '.json': return 'application/json; charset=UTF-8';
+    case '.wasm': return 'application/wasm';
+    case '.ttf': return 'font/ttf';
+    case '.ico': return 'image/x-icon';
+    case '.png': return 'image/png';
+    case '.jpg':
+    case '.jpeg': return 'image/jpeg';
+    case '.txt': return 'text/plain; charset=UTF-8';
+    default: return undefined;
+  }
+}
+
+// Serve pre-compressed Brotli (.br) or Gzip (.gz) static assets when available.
+// Vite generates pre-compressed files in build/client/_app/immutable/. Serving
+// them directly avoids on-the-fly CPU compression in Node, lowering TTFB and
+// boosting Lighthouse Performance scores.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  const urlPath = req.path;
+
+  if (!urlPath.match(/\.(js|css|svg|json|wasm|ttf|ico|png|jpg|jpeg|txt)$/i)) {
+    return next();
+  }
+
+  const relativePath = path.join('build/client', path.normalize(urlPath).replace(/^(\.\.[/\\])+/, ''));
+
+  if (acceptEncoding.includes('br') && fs.existsSync(relativePath + '.br')) {
+    req.url = req.url + '.br';
+    res.setHeader('Content-Encoding', 'br');
+    res.setHeader('Vary', 'Accept-Encoding');
+    const mimeType = getMimeType(urlPath);
+    if (mimeType) res.setHeader('Content-Type', mimeType);
+    applySecurityHeaders(res);
+  } else if (acceptEncoding.includes('gzip') && fs.existsSync(relativePath + '.gz')) {
+    req.url = req.url + '.gz';
+    res.setHeader('Content-Encoding', 'gzip');
+    res.setHeader('Vary', 'Accept-Encoding');
+    const mimeType = getMimeType(urlPath);
+    if (mimeType) res.setHeader('Content-Type', mimeType);
+    applySecurityHeaders(res);
+  }
+
   next();
 });
 
