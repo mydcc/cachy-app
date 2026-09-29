@@ -7808,6 +7808,87 @@
       "file": "features/FEAT-0578-bitunix-mirror-fidelity-audit.md"
     },
     {
+      "id": "FEAT-0591",
+      "title": "Serve confirmed-closed bar ranges from an HTTP cache",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "market-data",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "agent_eligible": "true",
+      "size": "XS",
+      "file": "features/FEAT-0591-http-cache-for-closed-bars.md"
+    },
+    {
+      "id": "FEAT-0592",
+      "title": "Populate a shared closed-bar cache from one venue socket per exchange",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M6",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "exchange",
+      "data_class": "C",
+      "adr": "ADR-0022",
+      "depends_on": [],
+      "agent_eligible": "false",
+      "size": "L",
+      "file": "features/FEAT-0592-server-side-kline-ingestor.md"
+    },
+    {
+      "id": "FEAT-0593",
+      "title": "Reach closed-bar history through a cache port that no-ops offline",
+      "type": "feature",
+      "status": "ready",
+      "priority": "P2",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "market-data",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "agent_eligible": "true",
+      "size": "S",
+      "file": "features/FEAT-0593-market-history-cache-port.md"
+    },
+    {
+      "id": "FEAT-0594",
+      "title": "Read closed bars from the shared cache without changing what a live price means",
+      "type": "feature",
+      "status": "specced",
+      "priority": "P2",
+      "milestone": "M6",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "market-data",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [
+        "FEAT-0592",
+        "FEAT-0593"
+      ],
+      "agent_eligible": "false",
+      "size": "M",
+      "file": "features/FEAT-0594-read-closed-bars-from-the-shared-cache.md"
+    },
+    {
       "id": "IDEA-0563",
       "title": "Decide what an open with unmeasured balance should do",
       "type": "idea",
@@ -9944,5 +10025,5 @@
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
     }
   ],
-  "count": 467
+  "count": 471
 }

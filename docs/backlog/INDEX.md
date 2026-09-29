@@ -2,9 +2,9 @@
 
 # Backlog index
 
-467 items. How to read and add them: [README.md](README.md).
+471 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-progress 2 · ✅ done 409 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 24 · 🟢 ready 12 · 🟡 in-progress 2 · ✅ done 409 · ⛔ dropped 1
 
 ---
 
@@ -170,6 +170,8 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-pr
 | --- | --- | --- | --- | --- |
 | [FEAT-0032](features/FEAT-0032-plugin-contract.md) | A plugin contract for paid modules | P2 | 💡 idea | extensions |
 | [FEAT-0040](features/FEAT-0040-computation-extensions.md) | Run user-written indicators in an isolated worker | P2 | 💡 idea | extensions |
+| [FEAT-0592](features/FEAT-0592-server-side-kline-ingestor.md) | Populate a shared closed-bar cache from one venue socket per exchange | P2 | 📋 specced | exchange |
+| [FEAT-0594](features/FEAT-0594-read-closed-bars-from-the-shared-cache.md) | Read closed bars from the shared cache without changing what a live price means | P2 | 📋 specced | market-data |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | alerts |
 | [IDEA-0188](ideas/IDEA-0188-payment-rails-licensing.md) | Payment rails that issue entitlements — BTCPayServer, Stripe, or token-gated | P3 | 💡 idea | extensions |
 
@@ -441,6 +443,8 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-pr
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | ui |
 | [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | docs |
 | [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | docs |
+| [FEAT-0591](features/FEAT-0591-http-cache-for-closed-bars.md) | Serve confirmed-closed bar ranges from an HTTP cache | P2 | 🟢 ready | market-data |
+| [FEAT-0593](features/FEAT-0593-market-history-cache-port.md) | Reach closed-bar history through a cache port that no-ops offline | P2 | 🟢 ready | market-data |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
@@ -902,6 +906,10 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-pr
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | none | community | none | none | — |
+| [FEAT-0591](features/FEAT-0591-http-cache-for-closed-bars.md) | Serve confirmed-closed bar ranges from an HTTP cache | P2 | 🟢 ready | none | community, pro, private | C | none | — |
+| [FEAT-0592](features/FEAT-0592-server-side-kline-ingestor.md) | Populate a shared closed-bar cache from one venue socket per exchange | P2 | 📋 specced | M6 | pro, private | C | ADR-0022 | — |
+| [FEAT-0593](features/FEAT-0593-market-history-cache-port.md) | Reach closed-bar history through a cache port that no-ops offline | P2 | 🟢 ready | none | community, pro, private | C | none | — |
+| [FEAT-0594](features/FEAT-0594-read-closed-bars-from-the-shared-cache.md) | Read closed bars from the shared cache without changing what a live price means | P2 | 📋 specced | M6 | pro, private | C | none | [FEAT-0592](features/FEAT-0592-server-side-kline-ingestor.md), [FEAT-0593](features/FEAT-0593-market-history-cache-port.md) |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -1008,4 +1016,4 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-pr
 
 ---
 
-Next free number: **0591**
+Next free number: **0595**
