@@ -46,9 +46,15 @@ function parseDateish(value: SortableValue): number {
 
 /**
  * Fields holding a single point in time, so they sort as milliseconds rather
- * than as text. `entryDate` belongs here: it is a `keyof JournalEntry`, so it
- * is a reachable sort field, and as a plain string "2026-01-02T00:00:00+02:00"
- * sorted after "2026-01-01T23:00:00Z" despite being an hour earlier.
+ * than as text.
+ *
+ * `entryDate` is here for correctness, not because a column offers it today:
+ * no sortable header in `JournalTable` emits it, and `sortField` only ever
+ * takes the values those headers produce. It is included because as a plain
+ * string "2026-01-02T00:00:00+02:00" sorts *after* "2026-01-01T23:00:00Z"
+ * despite being an hour earlier, so any future column that offers it would
+ * reintroduce the text-compare bug without this. It is also read here for
+ * `duration`, below, which is why the field is touched at all.
  */
 const DATE_FIELDS = new Set(["date", "entryDate", "exitDate"]);
 

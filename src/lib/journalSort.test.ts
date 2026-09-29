@@ -122,11 +122,12 @@ describe("sortJournalRows", () => {
     });
 
     it("orders entryDate chronologically rather than as text", () => {
-        // `entryDate` is a `keyof JournalEntry`, so it is a reachable sort
-        // field. It was missing from the date-parsing branch and fell through to
-        // a string compare, where "2026-01-02…" sorts after "2026-01-01…" no
-        // matter what the clock says. These two rows are 23:00Z and 22:00Z; only
-        // the offset makes the two orders disagree.
+        // Not a claim that a column offers this today -- none does. The point is
+        // that `entryDate` was missing from the date-parsing branch and fell
+        // through to a string compare, where "2026-01-02…" sorts after
+        // "2026-01-01…" no matter what the clock says, so the first column to
+        // offer it would have inherited the bug. These two rows are 23:00Z and
+        // 22:00Z; only the offset makes the two orders disagree.
         const rows: Row[] = [
             { id: "late-utc", entryDate: "2026-01-01T23:00:00.000Z" },
             { id: "early-offset", entryDate: "2026-01-02T00:00:00+02:00" },
