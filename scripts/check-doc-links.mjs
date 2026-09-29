@@ -107,12 +107,15 @@ function collect(dir, out) {
  * because that is the text GitHub slugifies.
  *
  * CodeQL flags the tag-strip as `js/incomplete-multi-character-sanitization`
- * (PR #3744). That is a pattern match, not a finding: this function's result is
- * only compared with `Set.has()` and used to name a file on the terminal. There
- * is no HTML sink in this script — nothing is rendered, written, or served — so
- * there is no injection surface for the incomplete strip to reach. The alert
- * was dismissed on that basis; if an HTML sink is ever added here, the dismissal
- * no longer holds and the strip should become a real parser.
+ * (PR #3744, alerts 117 and 118 — it reported again with a new line number
+ * after the link-collapse above was added, on the same expression). That is a
+ * pattern match, not a finding: this function's result is only compared with
+ * `Set.has()` and used to name a file on the terminal. There is no HTML sink in
+ * this script — nothing is rendered, written, or served — so there is no
+ * injection surface for the incomplete strip to reach. Both alerts were
+ * dismissed on that basis. Expect a third when this function's line numbers
+ * shift again; the reasoning below still applies. If an HTML sink is ever added
+ * here, the dismissals no longer hold and the strip should become a real parser.
  */
 function slugify(text) {
   return text
