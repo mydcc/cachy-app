@@ -4,7 +4,7 @@
 
 467 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 11 · 🟡 in-progress 2 · ✅ done 408 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-progress 2 · ✅ done 409 · ⛔ dropped 1
 
 ---
 
@@ -296,7 +296,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 11 · 🟡 in-pr
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | journal |
 | [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | trade-panel |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | execution |
-| [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | 🟢 ready | execution |
+| [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | execution |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | exchange |
 | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -663,7 +663,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 11 · 🟡 in-pr
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |
 | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
