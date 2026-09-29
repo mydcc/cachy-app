@@ -83,6 +83,21 @@ function collect(dir, out) {
  * hyphen. Note the last step is per-space, not per-run, so an em dash
  * surrounded by spaces yields a double hyphen — which is why anchors like
  * `#m0--stable-10` exist in this repository.
+ *
+ * The inline-HTML strip is not optional decoration. GitHub removes tags before
+ * slugging, so `## Hello <b>world</b>` is `hello-world` there and would be
+ * `hello-bworldb` if only the allowlist filter ran — a false "no such heading"
+ * failure. No heading in this repository contains inline HTML today, so the
+ * strip is currently equivalent to dropping it; it is kept so the checker stays
+ * right for the next heading that does.
+ *
+ * CodeQL flags the tag-strip as `js/incomplete-multi-character-sanitization`
+ * (PR #3744). That is a pattern match, not a finding: this function's result is
+ * only compared with `Set.has()` and used to name a file on the terminal. There
+ * is no HTML sink in this script — nothing is rendered, written, or served — so
+ * there is no injection surface for the incomplete strip to reach. The alert
+ * was dismissed on that basis; if an HTML sink is ever added here, the dismissal
+ * no longer holds and the strip should become a real parser.
  */
 function slugify(text) {
   return text
