@@ -56,7 +56,7 @@ import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountEpoch, type AccountSession } from "./accountEpoch.svelte";
-import { accountReadOrder, leverageReadOrder } from "./accountReadOrder";
+import { accountReadOrder, leverageReadOrder, positionsReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
 import {
@@ -1458,6 +1458,20 @@ class TradeService {
              * the user already agreed to when they confirmed the close. The
              * refusal is caught below, so the symptom would have been silent —
              * the position closes with its stops still resting.
+             *
+             * What this ordering does NOT cover, and why the fix stops here
+             * rather than reordering: by the time a session refusal is raised,
+             * these stops are already gone and the position is still open, so
+             * the trader is left unprotected. The obvious repair — close first,
+             * cancel after — closes that hole but introduces a worse one. The
+             * resting stop this line just cancelled can no longer be the one
+             * that fills, but a stop placed *after* the cancel and *before* the
+             * close would be, and in hedge mode that fill opens a reverse
+             * position rather than flattening one. Trading a known-unprotected
+             * position for a possible unintended reverse is a product call,
+             * not a mechanical one, so BUG-0586 stays `specced` with both
+             * orderings and their trade-offs written down rather than having
+             * one picked silently inside a catch block.
              */
             try {
                 await this.cancelAllOrders(symbol, true, {
@@ -1495,6 +1509,15 @@ class TradeService {
                     typeof err === "object" && err !== null && ("status" in err || "code" in err);
 
                 const isTerminalError =
+                    // BUG-0586: a refusal is raised *before* the bytes leave —
+                    // the gate's own checks, and the dispatch guard's
+                    // `beforeAttempt` hook, both run ahead of `fetch`. So this
+                    // is not an unknown outcome to be reconciled later; the
+                    // venue never saw it. Classifying it as indeterminate
+                    // parked the close in the OMS as `_isUnconfirmed`, which
+                    // reads as "a close is out there we cannot see" for a
+                    // request that provably did not go out.
+                    (e instanceof OrderRefusedError) ||
                     (e instanceof BitunixApiError) ||
                     (e instanceof Error && (
                         e.message.includes("400") ||
@@ -2132,6 +2155,14 @@ class TradeService {
      * verify a flatten that just ran.
      */
     private async readFreshPositions(provider: Venue): Promise<NormalizedPosition[] | null> {
+        // BUG-0587: taken before the first await. This read hydrates the store
+        // on the close-all verification path and used to take no ticket, so a
+        // response landing after an account or mode switch re-stamped the
+        // snapshot under the new session. The list it returns is still used
+        // for the verification itself — only the *write* is gated, so a stale
+        // response still fails the caller's check rather than passing it.
+        const ticket = positionsReadOrder.begin();
+
         const paper = paperAccountFeed();
         if (paper) return paper.positions();
         const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
@@ -2148,8 +2179,10 @@ class TradeService {
         const json = await response.json();
         const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
         if (data === null || !data.positions) throw new Error(TRADE_ERRORS.FETCH_FAILED);
-        accountState.hydratePositions(data.positions, "live");
-        if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
+        if (positionsReadOrder.mayApply(ticket)) {
+            accountState.hydratePositions(data.positions, "live");
+            if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
+        }
         return data.positions;
     }
 

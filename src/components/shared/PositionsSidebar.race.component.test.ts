@@ -118,6 +118,7 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 import PositionsSidebar from "./PositionsSidebar.svelte";
+import { accountEpoch } from "../../services/accountEpoch.svelte";
 import { webcrypto } from "node:crypto";
 
 // happy-dom ships no `crypto.subtle`, and `signCachyRequest` refuses to run
@@ -337,5 +338,85 @@ describe("BUG-0421 — overlapping position reads", () => {
         // The stale read lands last. A closed position must stay closed.
         await resolvePositions((p) => p.symbols.length > 0);
         expect(accountState.positions.map((p) => p.symbol)).toEqual([]);
+    });
+});
+
+/*
+ * BUG-0587 — `fetchPendingOrders` is the one store-writing read in this panel
+ * that takes no ticket.
+ *
+ * `fetchPositions` guards itself with `positionsReadOrder.begin()` /
+ * `mayApply()` (BUG-0421, directly above). This sibling hydrates the same store
+ * and checks nothing, so a pending-orders response that lands after the trader
+ * switched account is written into the new session's store. BUG-0565 stamped a
+ * provenance mode on every write; nothing on this path consults it, so the
+ * stamp is set and then ignored.
+ */
+
+type PendingOrders = { orders: unknown[]; resolve: (body: unknown) => void };
+let pendingOrders: PendingOrders[] = [];
+
+const orderBody = (orders: unknown[]) => ({ orders });
+
+function routePendingOrders(orders: unknown[]) {
+    pendingOrders = [];
+    appFetchMock.mockImplementation(async (url: string) => {
+        if (String(url).includes("/api/orders")) {
+            const json = await new Promise<unknown>((resolve) => {
+                pendingOrders.push({ orders, resolve });
+            });
+            return { ok: true, json: async () => json };
+        }
+        if (String(url) === "/api/account") {
+            return {
+                ok: true,
+                json: async () => ({
+                    success: true,
+                    data: { positionMode: "ONE_WAY", available: "0", margin: "0", frozen: "0" },
+                }),
+            };
+        }
+        return { ok: true, json: async () => ({ success: true, data: { positions: [] } }) };
+    });
+}
+
+async function resolvePendingOrders() {
+    const matching = pendingOrders;
+    pendingOrders = [];
+    for (const p of matching) p.resolve(orderBody(p.orders));
+    await settle();
+}
+
+describe("BUG-0587 — a pending-orders read that lands after an account switch", () => {
+    it("control: without a session rotation the live snapshot is applied", async () => {
+        routePendingOrders([{ orderId: "o-1" }]);
+        await mountSidebar();
+        await settleUntil(() => pendingOrders.length >= 1);
+        await resolvePendingOrders();
+
+        expect(accountState.openOrders.length).toBe(1);
+        expect(accountState.snapshotMode).toBe("live");
+    });
+
+    it("must not stamp a stale live snapshot over the session that replaced it", async () => {
+        routePendingOrders([{ orderId: "stale-live-order" }]);
+        await mountSidebar();
+        await settleUntil(() => pendingOrders.length >= 1);
+
+        // The trader switches account mid-flight, which rotates the session.
+        accountEpoch.rotate("account-switch");
+
+        // The response now belongs to the previous session. It must be dropped:
+        // applying it would put the old account's resting orders under the new
+        // one.
+        //
+        // Asserted on the list, not on `snapshotMode`: the panel's *account*
+        // read is a different lane that resolves immediately here and stamps
+        // the mode on its own, so the mode says nothing about this write. The
+        // control above is what makes an empty list meaningful — without a
+        // rotation the same response does land.
+        await resolvePendingOrders();
+
+        expect(accountState.openOrders.map((o) => o.orderId)).toEqual([]);
     });
 });
