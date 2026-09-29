@@ -2597,7 +2597,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0587",
     "title": "Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2609,6 +2609,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0587-unticketed-reads",
     "file": "bugs/BUG-0587-unticketed-store-writing-reads.md"
   },
   {
