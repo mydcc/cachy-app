@@ -2,7 +2,7 @@
 id: BUG-0585
 title: A row with an unparseable date silently freezes the whole journal sort column
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: journal
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0585-journalsort-nan
 ---
 
 # BUG-0585 — An unparseable date silently freezes the journal sort column
@@ -81,11 +83,35 @@ separate, already-noted inconsistency, not part of this fix.
 
 ## Acceptance criteria
 
-- [ ] A test sorts a list containing one unparseable date and fails without the fix
-- [ ] The test passes with the fix, and pins where the bad row lands
-- [ ] `entryDate` sorts chronologically, not lexicographically, and is either
+- [x] A test sorts a list containing one unparseable date and fails without the fix
+- [x] The test passes with the fix, and pins where the bad row lands
+- [x] `entryDate` sorts chronologically, not lexicographically, and is either
       covered by a test or explicitly excluded
-- [ ] `sortJournalRows` and the `duration` branch agree on what a missing value means
+- [x] `sortJournalRows` and the `duration` branch agree on what a missing value means
+
+All four are met in `src/lib/journalSort.ts` with `src/lib/journalSort.test.ts`
+at 14/14. The unparseable-date test was verified to go red by removing the
+`NaN` guard, and the `entryDate` test by dropping `entryDate` from
+`DATE_FIELDS` — in each case only the matching test fails.
+
+On AC3: `entryDate` is **covered by a test**, and the choice is deliberate. No
+sortable column in `JournalTable` emits the field today, so excluding it would
+have been defensible; it is parsed instead because as a plain string
+`2026-01-02T00:00:00+02:00` sorts after `2026-01-01T23:00:00Z` despite being an
+hour earlier, and the first column to offer it would inherit that. The earlier
+version of this item called the field "reachable" because it is a
+`keyof JournalEntry`; that was type admissibility, not reachability, and the
+comment in the code has been corrected.
+
+## Out of scope
+
+- **No change to the `duration` column.** It already treated a missing value as
+  `-Infinity`; the two branches now agree without the column moving
+- No validation of user-entered dates at entry time. The fix makes the sort
+  total; it does not make the input good
+- No change to the sort *UI* — no new column, no reordering of headers
+- The `symbol`/`status` blank convention, which is `""` rather than `-Infinity`
+  by design and is covered by its own test
 
 ## Links
 
