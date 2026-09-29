@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET } from './+server';
 import { clearKlineCache } from '../../../lib/server/klineCache';
 // Mock fetch
@@ -292,10 +292,18 @@ describe('GET /api/klines', () => {
     /** A real 1d candle boundary. */
     const BAR_1D = 1_700_006_400_000;
 
+    afterEach(() => {
+      // A failing expect must not leak fake timers into the next test.
+      vi.useRealTimers();
+    });
+
     it('serves a second request in the same candle without a second upstream call', async () => {
       okKlines();
       vi.useFakeTimers();
-      vi.setSystemTime(BAR_1D + 3_600_000);
+      // `now` sits inside the forming 1m candle, and both ends floor to its
+      // open — this is the rolling branch (TTL = the bar's remaining
+      // lifetime), which is what `endTime = Date.now()` produces in production.
+      vi.setSystemTime(BAR_1D + 30_000);
 
       const first = await GET({
         url: new URL(
@@ -306,7 +314,7 @@ describe('GET /api/klines', () => {
       const second = await GET({
         url: new URL(
           'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&interval=1m&limit=200&endTime=' +
-            (BAR_1D + 59_000),
+            (BAR_1D + 29_000),
         ),
       } as unknown as Parameters<typeof GET>[0]);
 
@@ -314,8 +322,6 @@ describe('GET /api/klines', () => {
       expect(second.status).toBe(200);
       expect(await second.json()).toEqual(await first.json());
       expect(global.fetch).toHaveBeenCalledTimes(1);
-
-      vi.useRealTimers();
     });
 
     it('reaches the venue again once the candle has closed', async () => {
@@ -339,8 +345,6 @@ describe('GET /api/klines', () => {
         ),
       } as unknown as Parameters<typeof GET>[0]);
       expect(global.fetch).toHaveBeenCalledTimes(2);
-
-      vi.useRealTimers();
     });
   });
 
