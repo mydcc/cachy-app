@@ -57,8 +57,11 @@ Concretely:
 - `end` floors down to the candle boundary for the requested interval. A
   request with no `end`, or one inside the forming candle, resolves to the
   candle currently in progress.
-- `start` floors the same way, so two callers a few seconds apart asking for
-  the same page share one key.
+- `start` goes in raw, never floored: the venue is called with the caller's
+  value verbatim, so two requests with the same `end` but different `start`
+  ask for different windows and must not share a key. (Flooring it once let
+  the second caller be served the first caller's answer.) The backfill always
+  sends `start=1`, so real traffic still shares keys.
 - Every field that changes the answer is in the key, `priceSource` included.
   A mark-price series and a last-price series for one symbol are different
   answers, and serving one for the other is the bug BUG-0558 is about.
