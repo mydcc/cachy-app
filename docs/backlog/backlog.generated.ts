@@ -5700,7 +5700,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
   },
   {
     "id": "BUG-0591",
-    "title": "The SpacetimeDB module does not typecheck, and no CI job ever looked at it",
+    "title": "The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails",
     "type": "bug",
     "status": "specced",
     "priority": "P2",
@@ -5714,7 +5714,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "file": "bugs/BUG-0591-spacetimedb-module-does-not-typecheck.md"
+    "file": "bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md"
   },
   {
     "id": "FEAT-0019",
