@@ -55,6 +55,13 @@ then force-deleted the branch with `-D`.
 
 ## Links
 
+> **Note (2026-09-29):** neither `scripts/worktree-cleanup.sh` nor
+> `scripts/worktree-cleanup.squash.test.ts` is in the repository any more. They
+> were removed in `a671d459` (PR #3325, 2026-09-15), which retired the
+> hand-written worktree guidance along with the other agent helper scripts.
+> Gortex discovers linked worktrees from `git worktree list` on its own. The
+> links below therefore point at files that existed when this was fixed.
+
 - `scripts/worktree-cleanup.sh` (`check()`, `is_unworked`, `is_pr_merged`)
 - `scripts/worktree-cleanup.squash.test.ts`
 - [BUG-0427](BUG-0427-worktree-cleanup-misses-squash-merges.md) (squash-merge detection)

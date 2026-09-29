@@ -326,7 +326,9 @@ lint-pass finding rather than fixed inline because it adds a new rejection
 branch to a live external-AI call path, which needs its own test rather
 than a drive-by change.
 
-## 8. ~~`src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable~~ — resolved: deleted
+## 8. ✅ `src/lib/windows/implementations/ContentWindow.svelte.ts` appears to be unreachable
+
+**RESOLVED.** Resolved: deleted.
 
 **Roadmap item 21.** Found while typing this file's `any` casts during a
 lint pass — the same shape of finding as item 5
@@ -722,7 +724,9 @@ Template:
 What has to happen, and what the options are.
 -->
 
-## 18. ~~Broader SpacetimeDB use beyond chat needs its own ADR~~ — RESOLVED
+## 18. ✅ Broader SpacetimeDB use beyond chat needs its own ADR
+
+**RESOLVED.**
 
 **Roadmap item 25** (`## Later`). Not a bug or a gap — a standing
 guardrail for the next time someone proposes a server-side feature.
@@ -763,7 +767,9 @@ not folded into this item.
 > remains, so a TODO entry adds nothing the ADR set doesn't enforce.
 > The item was closed as documentation-only: no code change.
 
-## 19. ~~Publish `/docs` to Confluence as a read-only mirror~~ — dropped
+## 19. ✅ Publish `/docs` to Confluence as a read-only mirror
+
+**RESOLVED.** Dropped.
 
 **Roadmap item 26** (`## Later`). Infrastructure/tooling work, not a
 code change.
@@ -786,7 +792,9 @@ Confluence would just be a synced copy.
 > a plugin buyer who needs visibility without a GitHub account. Until
 > then, `docs/` and `docs/backlog/` are the only copy.
 
-## 20. ~~Mirror this roadmap as Jira epics for tracking~~ — dropped
+## 20. ✅ Mirror this roadmap as Jira epics for tracking
+
+**RESOLVED.** Dropped.
 
 **Roadmap item 27** (`## Later`). Same shape as item 19 — project-
 management tooling, not code.
@@ -875,7 +883,9 @@ claim but explicitly left open whether it's a real commitment.
 > [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md). Not
 > urgent — nothing here blocks M0–M3.
 
-## 22. ~~Institutional features~~ — resolved: self-hosted, not hosted
+## 22. ✅ Institutional features
+
+**RESOLVED.** Resolved: self-hosted, not hosted.
 
 **Roadmap item 29** (`## Later`). Same shape and same source as item 21
 above — a whitepaper "Phase 3" promise that item 9's audit flagged but
@@ -916,7 +926,9 @@ No feature list, no target customer definition, nothing scoped.
 > push, which ADR-0004 forbids — and now matches
 > [`IDEA-0037`](backlog/ideas/IDEA-0037-android-alert-companion.md).
 
-## 23. ~~Orphaned Render.com integration still auto-deploys and fails~~ — done
+## 23. ✅ Orphaned Render.com integration still auto-deploys and fails
+
+**RESOLVED.**
 
 **Roadmap item 24**'s scripts audit already flagged half of this
 (`docs/archive/engineering-log-2026-h1.md`: *"`render_build.sh` targets Render.com, while the
@@ -935,7 +947,9 @@ The Render service itself (on the Render dashboard) still needs to be
 disconnected/deleted by whoever owns that account — that step is not
 reachable from this repo or GitHub alone.
 
-## 24. ~~PWA manifest — splash screen and long-press shortcuts broken on Android~~ — resolved: device-side ad blocker
+## 24. ✅ PWA manifest — splash screen and long-press shortcuts broken on Android
+
+**RESOLVED.** Resolved: device-side ad blocker.
 
 **Raised by the maintainer**, August 2026: the installed Android PWA lost its
 splash-screen background, its install-dialog screenshots and its long-press

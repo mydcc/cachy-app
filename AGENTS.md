@@ -69,7 +69,7 @@ Before marking a task completed: targeted tests for changed code must pass; CI c
 ## Architecture boundaries
 
 **Local-First Data Classes** (see `docs/adr/0001-local-first-boundary.md`):
-- **Class A (never leaves device):** Journal, Settings, API Keys/Secrets, Presets, private notes, trade drafts. `localStorage` only. Never send to a server — not even telemetry, crash reports, or debug logs. (Exception: API Keys as credential of user-initiated exchange requests via proxy.)
+- **Class A (never leaves device):** Journal, Settings, API Keys/Secrets, Presets, private notes, trade drafts. `localStorage`, plus IndexedDB for the device key and the credentials encrypted with it — both are on the device, so the boundary is unchanged, but writing "localStorage only" would be false about where the secrets actually sit. Never send to a server — not even telemetry, crash reports, or debug logs. (Exception: API Keys as credential of user-initiated exchange requests via proxy.)
 - **Class B (may reside server-side):** Currently only Global Chat (SpacetimeDB, `server/spacetimedb/`). Only under all four conditions: opt-in and default off, authenticated (no anonymous access), minimal (no Class A data, not even as metadata), non-essential (Calculator, Journal, Risk Management work completely without server).
 - **Class C (public market data & derived analytics):** Prices, klines, news, sentiment. Can reside anywhere but **never next to a user identity.** What symbols someone watches is user data. See `docs/adr/0004-spacetimedb-data-scope.md`.
 - Every new Class B feature requires its own ADR. Moving a field from Class A to B is a `BREAKING CHANGE:`.
