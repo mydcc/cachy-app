@@ -179,11 +179,11 @@ listed in the policy table above and not treated as a transient.
 
 ### What still needs a machine this repository does not have
 
-Both reducers are written against the generated bindings, but note that
+All three reducers are written against the generated bindings, but note that
 **`npm run check` does not cover them**: the root `tsconfig.json` includes only
 `src/**`, and `server/spacetimedb/` has its own `tsconfig.json` that no script
 invokes. Typecheck it explicitly with
-`npx tsc -p server/spacetimedb/tsconfig.json` before relying on either. The
+`npx tsc -p server/spacetimedb/tsconfig.json` before relying on any of them. The
 committed bindings do include `delete_my_messages` (`src/lib/spacetimedb/index.ts:52`),
 though `tablesSchema` (line 47) is empty, so `cloudService.ts:183` is already on
 a runtime `as any` fallback and incoming messages do not render until

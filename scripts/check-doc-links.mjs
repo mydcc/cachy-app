@@ -40,7 +40,9 @@
  *      `http-request`, the second `http-request-1`. `### HTTP Request`
  *      repeats many times across the API mirrors.
  *   3. Headings inside fenced code blocks are not headings.
- *   4. Only links whose target is a `.md` file are anchor-checked; a fragment
+ *   4. A heading is slugged as GitHub renders it, so `[label](url.md)` becomes
+ *      `label` and not `labelurlmd`. One heading here contains a link.
+ *   5. Only links whose target is a `.md` file are anchor-checked; a fragment
  *      into any other file type is left alone rather than guessed at.
  *
  * Escape hatch: an anchor that this heuristic gets wrong can be silenced for
@@ -91,6 +93,19 @@ function collect(dir, out) {
  * strip is currently equivalent to dropping it; it is kept so the checker stays
  * right for the next heading that does.
  *
+ * The same argument applies to Markdown links, and here the repository is not
+ * hypothetical: `docs/backlog/features/FEAT-0393-rule-trigger-method-and-lifecycle.md`
+ * has the heading
+ *
+ *     ## Blockers — resolved by [`FEAT-0440`](FEAT-0440-real-firing-sink.md) (2026-09-11)
+ *
+ * whose GitHub anchor is `blockers--resolved-by-feat-0440-2026-09-11`. Slugging
+ * the raw source instead yields
+ * `blockers--resolved-by-feat-0440feat-0440-real-firing-sinkmd-2026-09-11`, and
+ * any link to the real anchor would then be reported broken. So link and image
+ * syntax is collapsed to its label first, and code spans to their content,
+ * because that is the text GitHub slugifies.
+ *
  * CodeQL flags the tag-strip as `js/incomplete-multi-character-sanitization`
  * (PR #3744). That is a pattern match, not a finding: this function's result is
  * only compared with `Set.has()` and used to name a file on the terminal. There
@@ -103,6 +118,8 @@ function slugify(text) {
   return text
     .trim()
     .toLowerCase()
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1") // link/image -> its label
+    .replace(/`+([^`]*)`+/g, "$1") // code span -> its content
     .replace(/<[^>]*>/g, "")
     .replace(/[^\p{L}\p{N}\s_-]/gu, "")
     .replace(/ /g, "-");
@@ -180,7 +197,18 @@ for (const file of files) {
 
     const hashAt = raw.indexOf("#");
     const pathPart = hashAt === -1 ? raw : raw.slice(0, hashAt);
-    const fragment = hashAt === -1 ? "" : decodeURIComponent(raw.slice(hashAt + 1));
+    // A malformed percent-escape is a broken link, not a reason to abort the
+    // whole run: report it with the other failures instead of throwing.
+    let fragment = "";
+    if (hashAt !== -1) {
+      const encoded = raw.slice(hashAt + 1);
+      try {
+        fragment = decodeURIComponent(encoded);
+      } catch {
+        broken.push(`${file} -> ${raw} (malformed percent-escape in the fragment)`);
+        continue;
+      }
+    }
     if (!pathPart) continue;
 
     checked++;
