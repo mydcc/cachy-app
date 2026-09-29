@@ -135,3 +135,18 @@ export const leverageReadOrder = new AccountReadOrder();
  * account race in BUG-0412, on the data a position size is checked against.
  */
 export const positionsReadOrder = new AccountReadOrder();
+
+/**
+ * The `/api/orders?action=pending` lane — resting (unfilled) orders.
+ *
+ * A fourth counter for the same reason the other three have their own: the
+ * pending-orders list is a different field from the position list, so a slow
+ * pending read must not be able to discard a position read issued after it,
+ * nor the reverse.
+ *
+ * Added in BUG-0587. `fetchPendingOrders` and `CandleChartView`'s
+ * `hydrateOpenOrdersIfEmpty` were the only store-writing reads left with no
+ * ticket at all, so a response landing after an account or mode switch was
+ * written into the new session's store.
+ */
+export const pendingOrdersReadOrder = new AccountReadOrder();
