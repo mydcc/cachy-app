@@ -98,13 +98,31 @@ describe("klineCacheKey", () => {
     expect(rolling).not.toBe(past);
   });
 
-  it("floors a start to its candle so near-identical ranges share a key", () => {
+  it("keeps requests with different starts apart, even in one candle", () => {
+    // H1: the venue is called with `start` verbatim, so the key must carry
+    // it verbatim. Same `end`, starts 17s apart inside one bar — flooring
+    // would merge them and serve the first caller's window to the second.
     const a = klineCacheKey(
-      request({ start: BAR_1M - 120_000 + 17, end: BAR_1M - 60_000 }),
+      request({ start: BAR_1M - 120_000, end: BAR_1M - 60_000 }),
       BAR_1M,
     );
     const b = klineCacheKey(
-      request({ start: BAR_1M - 120_000, end: BAR_1M - 60_000 + 17 }),
+      request({ start: BAR_1M - 120_000 + 17_000, end: BAR_1M - 60_000 }),
+      BAR_1M,
+    );
+    expect(a).not.toBe(b);
+  });
+
+  it("shares one key for identical backfill batches", () => {
+    // The backfill always sends `start=1` with a varying `end`; identical
+    // batches must still hit. `floorToBar(1) === 0`, so the raw value is
+    // stable by construction, not by flooring.
+    const a = klineCacheKey(
+      request({ start: 1, end: BAR_1M - 60_000 }),
+      BAR_1M,
+    );
+    const b = klineCacheKey(
+      request({ start: 1, end: BAR_1M - 60_000 }),
       BAR_1M,
     );
     expect(a).toBe(b);
@@ -139,6 +157,16 @@ describe("klineCacheTtlMs", () => {
         BAR_1M + 30_000,
       ),
     ).toBe(30_000);
+  });
+
+  it("resolves key and TTL from one derivation at the bar boundary", () => {
+    // M1: `end` exactly at the forming bar's start. The key must name the
+    // forming bar and the TTL must be rolling — never a historical entry
+    // pointing at the open bar, which would freeze a live value for minutes.
+    const req = { end: BAR_1M, interval: "1m" };
+    const key = klineCacheKey(request(req), BAR_1M + 10_000);
+    expect(key.endsWith(`:${BAR_1M}:last`)).toBe(true);
+    expect(klineCacheTtlMs(req, BAR_1M + 10_000)).toBe(50_000);
   });
 });
 

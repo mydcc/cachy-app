@@ -51,6 +51,11 @@ export type KlineFetcher = () => Promise<unknown>;
  * newest forming bar it carries is therefore at most one bar old — and a
  * forming bar's close is not a settled value in the first place. The live
  * price never comes from here; it arrives over the venue's WebSocket.
+ *
+ * `now` is a parameter so the tests can place two requests inside one candle,
+ * or across a boundary, without waiting for the wall clock. Production
+ * callers leave it alone; passing it asserts about a specific moment, which is
+ * a test-shaped thing to do.
  */
 export async function getCachedKlines(
   request: NormalizedKlineRequest,
@@ -64,7 +69,13 @@ export async function getCachedKlines(
   );
 }
 
-/** Test-only: drops every cached kline response. */
+/**
+ * Drops every cached kline response.
+ *
+ * Exists for the tests, which need it between cases. Nothing in the request
+ * path should call it: a route that did would empty the cache in production,
+ * and the awkward name is here to make that greppable.
+ */
 export function clearKlineCache(): void {
   klineCache.clear();
 }

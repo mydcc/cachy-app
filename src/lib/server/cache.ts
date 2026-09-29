@@ -95,6 +95,10 @@ export class MemoryCache {
    * Insertion order is the eviction order, so the entry that leaves is the
    * oldest one stored rather than the least recently read. For the existing
    * callers, whose keys repeat continuously, the two are the same entry.
+   *
+   * Refreshing a key that is already present evicts nothing: `Map.set` on an
+   * existing key keeps its position in the iteration order, so the store is at
+   * the bound both before and after and no entry is owed a slot.
    */
   private store(key: string, value: unknown, ttlMs: number) {
     if (!this.cache.has(key) && this.cache.size >= this.maxEntries) {
@@ -120,7 +124,9 @@ export class MemoryCache {
   /**
    * Number of entries currently held, live and expired alike.
    *
-   * Exposed for the bound's test, not for callers.
+   * Read by the bound's tests. `clientToken.ts` and `rateLimit.ts` expose the
+   * same getter for the same reason: an eviction bound that cannot be
+   * observed cannot be tested.
    */
   get size(): number {
     return this.cache.size;

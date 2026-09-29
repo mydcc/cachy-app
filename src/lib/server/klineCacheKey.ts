@@ -75,14 +75,40 @@ export function currentBarStart(interval: string, now: number): number {
  * changes again. A missing `end` — or one inside the forming candle —
  * resolves to the candle in progress, which changes every bar.
  */
-export function effectiveBarStart(
+/**
+ * The candle a request resolves to, and how long that answer holds.
+ *
+ * Both come from one derivation on purpose. When the key and the TTL each
+ * worked out the candle from their own comparison, they agreed by luck rather
+ * than by construction — a window ending exactly at the current bar's start
+ * clamped to `open` for the key while the TTL read it as "not strictly
+ * before". One function, no way for the two to drift.
+ */
+export function resolveBar(
   request: Pick<NormalizedKlineRequest, "end" | "interval">,
   now: number,
-): number {
+): { start: number; ttlMs: number } {
+  const intervalMs = safeTfToMs(request.interval);
   const open = currentBarStart(request.interval, now);
-  if (request.end === null) return open;
+
+  if (request.end === null) {
+    return { start: open, ttlMs: rollingTtl(open, intervalMs, now) };
+  }
+
   const floored = floorToBar(request.end, request.interval);
-  return floored > open ? open : floored;
+  // Strictly before the forming candle, or the answer still moves. A window
+  // ending inside the current bar carries a bar the venue is still writing, so
+  // freezing it for minutes would pin a value that has not settled — and that
+  // is the shape historyFetcher sends on every cold start, because it asks
+  // with endTime = Date.now().
+  if (floored < open) {
+    return { start: floored, ttlMs: HISTORICAL_TTL_MS };
+  }
+  return { start: open, ttlMs: rollingTtl(open, intervalMs, now) };
+}
+
+function rollingTtl(open: number, intervalMs: number, now: number): number {
+  return Math.max(MIN_TTL_MS, open + intervalMs - now);
 }
 
 /**
@@ -103,10 +129,13 @@ export function klineCacheKey(
     request.symbol,
     request.interval,
     String(request.limit),
-    request.start === null
-      ? "-"
-      : String(floorToBar(request.start, request.interval)),
-    String(effectiveBarStart(request, now)),
+    // `start` goes in raw, never floored: the venue is called with the
+    // caller's value verbatim, and two requests with the same `end` but
+    // different `start` ask for different windows. Flooring it here once let
+    // the second caller be served the first caller's answer (H1). The backfill
+    // always sends `start=1`, so real traffic still shares keys.
+    request.start === null ? "-" : String(request.start),
+    String(resolveBar(request, now).start),
     request.priceSource,
   ];
   return parts.join(":");
@@ -123,19 +152,7 @@ export function klineCacheTtlMs(
   request: Pick<NormalizedKlineRequest, "end" | "interval">,
   now: number,
 ): number {
-  const intervalMs = safeTfToMs(request.interval);
-  const open = currentBarStart(request.interval, now);
-  // Strictly before the forming candle, or the answer still moves. A window
-  // ending inside the current bar carries a bar the venue is still writing,
-  // so freezing it for minutes would pin a value that has not settled — and
-  // that is the shape historyFetcher sends on every cold start, because it
-  // asks with endTime = Date.now().
-  const pinned =
-    request.end !== null && floorToBar(request.end, request.interval) < open;
-  if (pinned) {
-    return HISTORICAL_TTL_MS;
-  }
-  return Math.max(MIN_TTL_MS, open + intervalMs - now);
+  return resolveBar(request, now).ttlMs;
 }
 
 /**
@@ -143,6 +160,11 @@ export function klineCacheTtlMs(
  * `limit` larger than anything a caller can legitimately use is capped rather
  * than forwarded. A caller asking for a million rows gets the ceiling the
  * venue itself serves, not a request the venue has to reject.
+ *
+ * The ceiling is the largest value any caller asks for today, which is the
+ * WebSocket gap-fill at `historyFetcher.ts:387`; the analyst asks for 600 and
+ * the backfill for 200. Above it the venue truncates at
+ * `BITUNIX_MAX_ROWS_PER_REQUEST` anyway.
  */
 export const MAX_KLINE_LIMIT = 1000;
 
