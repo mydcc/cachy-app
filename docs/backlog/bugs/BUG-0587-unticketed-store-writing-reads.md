@@ -2,7 +2,7 @@
 id: BUG-0587
 title: Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0587-unticketed-reads
 ---
 
 # BUG-0587 — Two store-writing reads have no session or ordering guard
@@ -101,13 +103,37 @@ a review comment.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces a late response landing after an account switch and
+- [x] A test reproduces a late response landing after an account switch and
       fails without the fix
-- [ ] A second test covers the mode-switch case
-- [ ] Every `hydratePositions` / `hydrateOpenOrders` / `hydrateBalance` call
+- [x] A second test covers the mode-switch case
+- [x] Every `hydratePositions` / `hydrateOpenOrders` / `hydrateBalance` call
       site in `src/` is enumerated, and each is either guarded or has a written
       reason it does not need to be
-- [ ] `tradeService.readFreshPositions` is guarded, being the money path
+- [x] `tradeService.readFreshPositions` is guarded, being the money path
+
+All four are met. `PositionsSidebar.race.component.test.ts` 5/5, `accountReadOrder`
+6/6, `tradeService` 200/200, `account.test.ts` green. The race test is the one
+that matters and it has a real control — "without a session rotation the live
+snapshot is applied", asserting `length === 1` — so the empty-list assertion
+cannot pass because the rotation cleared the store. `accountEpoch.rotate()`
+increments a counter and does not clear the store, so the test is not vacuous.
+
+The 14 `hydrate*` call sites are inventoried in the fix's own commit message;
+each is either behind a read ticket or has a written reason it does not need one.
+
+## Out of scope
+
+- **No lock, no abort, no cancellation.** A late response is dropped, not
+  applied-then-corrected. Nothing waits on a read
+- No change to `hydratePositions` itself or to how the store decides which
+  snapshot is newer. The ticket decides *whether to apply*, not what to apply
+- **The `evictMirroredGhosts` gap is real and stays open.** `verifyFlat` hands
+  the possibly-stale list to a second store mutation outside the gate this fix
+  adds. The gate covers the `leftover` verdict, not the eviction. Not closed
+  here because narrowing it changes what a close-all can prove
+- No work on BUG-0565's incomplete provenance stamping, which this fix depends
+  on but does not finish
+- No i18n or UI change
 
 ## Links
 
