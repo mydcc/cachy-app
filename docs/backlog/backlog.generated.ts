@@ -2559,7 +2559,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0585",
     "title": "A row with an unparseable date silently freezes the whole journal sort column",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2571,6 +2571,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0585-journalsort-nan",
     "file": "bugs/BUG-0585-journalsort-nan-date-freezes-column.md"
   },
   {
