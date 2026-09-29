@@ -15,13 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * Default ceiling on stored entries.
+ *
+ * The five existing callers (`/api/tickers`, `/api/funding-rate`,
+ * `/api/trading-pairs`, `/api/position-tiers`,
+ * `/api/bitget/contracts`) use a handful of long-lived keys with high
+ * repetition, so they never come near this. A caller whose keys rotate —
+ * see `klineCacheKey`, where the key carries the current candle's open time
+ * — is expected to pass its own bound.
+ */
+const DEFAULT_MAX_ENTRIES = 500;
+
 export class MemoryCache {
   private cache: Map<string, { value: unknown; expiry: number }>;
   private inflight: Map<string, Promise<unknown>>;
+  private readonly maxEntries: number;
 
-  constructor() {
+  constructor(maxEntries: number = DEFAULT_MAX_ENTRIES) {
     this.cache = new Map();
     this.inflight = new Map();
+    this.maxEntries = maxEntries;
   }
 
   /**
@@ -58,11 +72,8 @@ export class MemoryCache {
     // 3. Fetch new data
     const promise = fetchFn()
       .then((data) => {
-        // Store in cache
-        this.cache.set(key, {
-          value: data,
-          expiry: Date.now() + ttlMs,
-        });
+        // Store in cache, staying within the bound
+        this.store(key, data, ttlMs);
         return data;
       })
       .catch((err) => {
@@ -76,6 +87,43 @@ export class MemoryCache {
 
     this.inflight.set(key, promise);
     return promise;
+  }
+
+  /**
+   * Stores a value, evicting first if the cache is at its bound.
+   *
+   * Insertion order is the eviction order, so the entry that leaves is the
+   * oldest one stored rather than the least recently read. For the existing
+   * callers, whose keys repeat continuously, the two are the same entry.
+   */
+  private store(key: string, value: unknown, ttlMs: number) {
+    if (!this.cache.has(key) && this.cache.size >= this.maxEntries) {
+      this.evictOldest();
+    }
+    this.cache.set(key, { value, expiry: Date.now() + ttlMs });
+  }
+
+  /**
+   * Drops the oldest stored entry.
+   *
+   * An entry is only otherwise removed when its own key is read again after
+   * expiry, so a caller whose keys never repeat would grow this map without
+   * limit. maxEntries is the backstop for that.
+   */
+  private evictOldest() {
+    const oldest = this.cache.keys().next();
+    if (!oldest.done) {
+      this.cache.delete(oldest.value);
+    }
+  }
+
+  /**
+   * Number of entries currently held, live and expired alike.
+   *
+   * Exposed for the bound's test, not for callers.
+   */
+  get size(): number {
+    return this.cache.size;
   }
 
   /**

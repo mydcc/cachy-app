@@ -17,11 +17,16 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './+server';
+import { clearKlineCache } from '../../../lib/server/klineCache';
 // Mock fetch
 global.fetch = vi.fn();
 describe('GET /api/klines', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The route caches per candle, so state survives between tests unless it
+    // is dropped here — without this, the second test asking for BTCUSDT/1d
+    // is served the first test's response and asserts against stale data.
+    clearKlineCache();
   });
   it('should return klines with string properties from Bitunix', async () => {
     const mockKlines = {
@@ -275,5 +280,78 @@ describe('GET /api/klines', () => {
 
     expect(response.status).toBe(400);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The client asks for the newest candles with endTime = Date.now(), so two
+   * callers a second apart send two different URLs. These two tests are the
+   * reason the key exists: without flooring the window to the candle it falls
+   * in, the second call reaches the venue again.
+   */
+  describe('caching a rolling window', () => {
+    /** A real 1d candle boundary. */
+    const BAR_1D = 1_700_006_400_000;
+
+    it('serves a second request in the same candle without a second upstream call', async () => {
+      okKlines();
+      vi.useFakeTimers();
+      vi.setSystemTime(BAR_1D + 3_600_000);
+
+      const first = await GET({
+        url: new URL(
+          'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&interval=1m&limit=200&endTime=' +
+            (BAR_1D + 1_000),
+        ),
+      } as unknown as Parameters<typeof GET>[0]);
+      const second = await GET({
+        url: new URL(
+          'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&interval=1m&limit=200&endTime=' +
+            (BAR_1D + 59_000),
+        ),
+      } as unknown as Parameters<typeof GET>[0]);
+
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(await second.json()).toEqual(await first.json());
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it('reaches the venue again once the candle has closed', async () => {
+      okKlines();
+      vi.useFakeTimers();
+
+      vi.setSystemTime(BAR_1D + 1_000);
+      await GET({
+        url: new URL(
+          'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&interval=1m&limit=200&endTime=' +
+            (BAR_1D + 1_000),
+        ),
+      } as unknown as Parameters<typeof GET>[0]);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      vi.setSystemTime(BAR_1D + 60_000);
+      await GET({
+        url: new URL(
+          'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&interval=1m&limit=200&endTime=' +
+            (BAR_1D + 60_000),
+        ),
+      } as unknown as Parameters<typeof GET>[0]);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+
+      vi.useRealTimers();
+    });
+  });
+
+  it('clamps a limit larger than any caller can use', async () => {
+    okKlines();
+    const url = new URL(
+      'http://localhost/api/klines?symbol=BTCUSDT&provider=bitunix&limit=1000000',
+    );
+    await GET({ url } as unknown as Parameters<typeof GET>[0]);
+
+    const upstream = new URL(vi.mocked(global.fetch).mock.calls[0][0] as string);
+    expect(upstream.searchParams.get("limit")).toBe("1000");
   });
 });
