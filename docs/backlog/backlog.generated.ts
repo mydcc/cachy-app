@@ -5699,6 +5699,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0581-bitget-ws-login-success-code-unverified.md"
   },
   {
+    "id": "BUG-0591",
+    "title": "The SpacetimeDB module does not typecheck, and no CI job ever looked at it",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "tooling",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0591-spacetimedb-module-does-not-typecheck.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-467 items. How to read and add them: [README.md](README.md).
+468 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-progress 2 · ✅ done 409 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-progress 2 · ✅ done 409 · ⛔ dropped 1
 
 ---
 
@@ -391,6 +391,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-pr
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | execution |
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | execution |
 | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 📋 specced | exchange |
+| [BUG-0591](bugs/BUG-0591-spacetimedb-module-does-not-typecheck.md) | The SpacetimeDB module does not typecheck, and no CI job ever looked at it | P2 | 📋 specced | tooling |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -807,6 +808,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-pr
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) |
 | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0591](bugs/BUG-0591-spacetimedb-module-does-not-typecheck.md) | The SpacetimeDB module does not typecheck, and no CI job ever looked at it | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -1008,4 +1010,4 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 10 · 🟡 in-pr
 
 ---
 
-Next free number: **0591**
+Next free number: **0592**
