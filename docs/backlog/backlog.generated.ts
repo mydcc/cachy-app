@@ -2591,6 +2591,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0586-flash-close-session",
     "file": "bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md"
   },
   {

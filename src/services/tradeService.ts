@@ -1458,6 +1458,20 @@ class TradeService {
              * the user already agreed to when they confirmed the close. The
              * refusal is caught below, so the symptom would have been silent —
              * the position closes with its stops still resting.
+             *
+             * What this ordering does NOT cover, and why the fix stops here
+             * rather than reordering: by the time a session refusal is raised,
+             * these stops are already gone and the position is still open, so
+             * the trader is left unprotected. The obvious repair — close first,
+             * cancel after — closes that hole but introduces a worse one. The
+             * resting stop this line just cancelled can no longer be the one
+             * that fills, but a stop placed *after* the cancel and *before* the
+             * close would be, and in hedge mode that fill opens a reverse
+             * position rather than flattening one. Trading a known-unprotected
+             * position for a possible unintended reverse is a product call,
+             * not a mechanical one, so BUG-0586 stays `specced` with both
+             * orderings and their trade-offs written down rather than having
+             * one picked silently inside a catch block.
              */
             try {
                 await this.cancelAllOrders(symbol, true, {
@@ -1495,6 +1509,15 @@ class TradeService {
                     typeof err === "object" && err !== null && ("status" in err || "code" in err);
 
                 const isTerminalError =
+                    // BUG-0586: a refusal is raised *before* the bytes leave —
+                    // the gate's own checks, and the dispatch guard's
+                    // `beforeAttempt` hook, both run ahead of `fetch`. So this
+                    // is not an unknown outcome to be reconciled later; the
+                    // venue never saw it. Classifying it as indeterminate
+                    // parked the close in the OMS as `_isUnconfirmed`, which
+                    // reads as "a close is out there we cannot see" for a
+                    // request that provably did not go out.
+                    (e instanceof OrderRefusedError) ||
                     (e instanceof BitunixApiError) ||
                     (e instanceof Error && (
                         e.message.includes("400") ||
