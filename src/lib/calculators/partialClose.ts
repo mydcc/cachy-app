@@ -60,6 +60,8 @@ export interface PartialCloseContext {
     side: PositionSide;
     /** Smallest quantity increment the instrument accepts. */
     stepSize: Decimal;
+    /** Whether the markPrice was derived from unrealized PnL rather than reported directly. */
+    isDerivedMarkPrice?: boolean;
     /**
      * Smallest order the venue accepts (BUG-0509). When known, a partial
      * below it snaps up to it — the gate refuses sub-minimum partials, so
