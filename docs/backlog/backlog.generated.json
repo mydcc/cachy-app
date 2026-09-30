@@ -2647,6 +2647,78 @@
       "file": "bugs/BUG-0590-capture-bitget-order-response-fixture.md"
     },
     {
+      "id": "BUG-0592",
+      "title": "Native number arithmetic used for financial values in journalSort.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ui",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0592-native-number-arithmetic-journalSort.md"
+    },
+    {
+      "id": "BUG-0593",
+      "title": "Native number arithmetic used for financial values in ai.svelte.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "ai",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0593-native-number-arithmetic-ai-store.md"
+    },
+    {
+      "id": "BUG-0594",
+      "title": "Native number arithmetic used for financial values in stats.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "core",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0594-native-number-arithmetic-stats.md"
+    },
+    {
+      "id": "BUG-0595",
+      "title": "Native number arithmetic used for financial values in charts.ts",
+      "type": "bug",
+      "status": "specced",
+      "priority": "P1",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "core",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "bugs/BUG-0595-native-number-arithmetic-charts.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -9962,5 +10034,5 @@
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
     }
   ],
-  "count": 468
+  "count": 472
 }
