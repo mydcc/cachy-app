@@ -176,12 +176,12 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.netPnl"),
-                data: [dirData.longPnl || 0, dirData.shortPnl || 0],
+                data: [toChartNum(dirData.longPnl), toChartNum(dirData.shortPnl)],
                 backgroundColor: [
-                    (dirData.longPnl || 0) >= 0
+                    toChartNum(dirData.longPnl) >= 0
                         ? themeColors.success
                         : themeColors.danger,
-                    (dirData.shortPnl || 0) >= 0
+                    toChartNum(dirData.shortPnl) >= 0
                         ? themeColors.success
                         : themeColors.danger,
                 ],
@@ -193,7 +193,7 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: dirData.topSymbols?.data || [],
+                data: (dirData.topSymbols?.data || []).map(toChartNum),
                 backgroundColor: themeColors.success,
             },
         ],
@@ -203,7 +203,7 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: dirData.bottomSymbols?.data || [],
+                data: (dirData.bottomSymbols?.data || []).map(toChartNum),
                 backgroundColor: themeColors.danger,
             },
         ],
@@ -272,10 +272,10 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: [costData.gross || 0, costData.net || 0],
+                data: [toChartNum(costData.gross), toChartNum(costData.net)],
                 backgroundColor: [
                     themeColors.accent,
-                    (costData.net || 0) >= 0
+                    toChartNum(costData.net) >= 0
                         ? themeColors.success
                         : themeColors.danger,
                 ],
@@ -304,8 +304,8 @@
         datasets: [
             {
                 data: [
-                    costData.feeStructure?.trading || 0,
-                    costData.feeStructure?.funding || 0,
+                    toChartNum(costData.feeStructure?.trading),
+                    toChartNum(costData.feeStructure?.funding),
                 ],
                 backgroundColor: [
                     themeColors.textSecondary,
@@ -488,10 +488,10 @@
                         )}</span
                     >
                     <span
-                        class="font-mono font-bold {qualData?.detailedStats
-                            ?.profitFactor >= 1.5
+                        class="font-mono font-bold {toChartNum(qualData?.detailedStats
+                            ?.profitFactor) >= 1.5
                             ? 'text-[var(--success-color)]'
-                            : qualData?.detailedStats?.profitFactor >= 1
+                            : toChartNum(qualData?.detailedStats?.profitFactor) >= 1
                               ? 'text-[var(--warning-color)]'
                               : 'text-[var(--danger-color)]'}"
                     >
@@ -509,8 +509,8 @@
                         >{$_("journal.deepDive.charts.labels.expectancy")}</span
                     >
                     <span
-                        class="font-mono font-bold {(qualData?.detailedStats
-                            ?.expectancy || 0) > 0
+                        class="font-mono font-bold {(toChartNum(qualData?.detailedStats
+                            ?.expectancy) > 0)
                             ? 'text-[var(--success-color)]'
                             : 'text-[var(--danger-color)]'}"
                     >
