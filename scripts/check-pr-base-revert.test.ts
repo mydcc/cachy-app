@@ -201,4 +201,81 @@ describe("check-pr-base-revert.mjs", () => {
         expect(result.status).toBe(1);
         expect(result.output).toContain("src/notes.md");
     });
+
+    /**
+     * BUG-0583: the branch never merged base, so the fork anchor and the
+     * merge-base collapse onto each other and every removed line is excused.
+     * The tip is a full-tree snapshot of pre-fork content — the Jules-hygiene
+     * shape from PR #3718. The guard must fail it anyway.
+     */
+    it("fails when a branch that never merged base snapshots a pre-fork tree (BUG-0583)", () => {
+        const preFork = git(root, "rev-parse", "HEAD");
+        commitFile(root, "common.txt", "base v1\nbase v2 line\n", "base work");
+        commitFile(root, "merged.ts", "merged\n", "more base work");
+        git(root, "checkout", "-b", "feat");
+        commitFile(root, "intended.txt", "intended\n", "fix(ui): intended change");
+        // No merge of develop into feat: the branch never sees the base tip.
+        const stale = pushStaleSnapshot(preFork);
+
+        const result = runScript(root, git(root, "rev-parse", "develop"), stale);
+
+        expect(result.status).toBe(1);
+        expect(result.output).toContain("merged.ts");
+        expect(result.output).toContain("common.txt");
+        expect(result.output).toContain("allow-base-revert");
+    });
+
+    /**
+     * The same collapse across a base-side rename: the base renamed and
+     * extended the file after the fork, the snapshot still carries the old
+     * name. Both sides must resolve with a rename fallback. Note the common.txt
+     * sibling: a lone rename-deletion carries no datable content, so the era
+     * can only be established from a modified stale sibling — snapshots
+     * revert broadly, and the guard dates the snapshot, not each deletion.
+     */
+    it("catches a stale snapshot across a base-side rename (BUG-0583)", () => {
+        commitFile(root, "notes.txt", "hello\n", "seed file");
+        const preFork = git(root, "rev-parse", "HEAD");
+        commitFile(root, "common.txt", "base v1\nbase v2 line\n", "base work");
+        git(root, "mv", "notes.txt", "renamed.txt");
+        commitFile(root, "renamed.txt", "hello\nbase addition\n", "base renames and extends the file");
+        git(root, "checkout", "-b", "feat");
+        commitFile(root, "intended.txt", "intended\n", "fix(ui): intended change");
+        const stale = pushStaleSnapshot(preFork);
+
+        const result = runScript(root, git(root, "rev-parse", "develop"), stale);
+
+        expect(result.status).toBe(1);
+        expect(result.output).toContain("renamed.txt");
+        expect(result.output).toContain("common.txt");
+    });
+
+    /**
+     * A branch refining its own file across commits is not reported — the
+     * regression the rejected #3725 fix introduced.
+     */
+    it("passes when a branch refines its own file without merging base", () => {
+        git(root, "checkout", "-b", "feat");
+        commitFile(root, "feature.txt", "one\n", "feat: first cut");
+        commitFile(root, "feature.txt", "one\ntwo\n", "feat: refine");
+
+        const result = runScript(root, git(root, "rev-parse", "develop"), git(root, "rev-parse", "feat"));
+
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("keeps base-branch work intact");
+    });
+
+    it("passes when the branch rewrites lines it could see at fork time", () => {
+        commitFile(root, "shared.txt", "alpha\nbeta\n", "seed");
+        git(root, "checkout", "-b", "feat");
+        commitFile(root, "shared.txt", "alpha\nBETA\n", "branch rewrites a line");
+        git(root, "checkout", "develop");
+        commitFile(root, "other.txt", "other\n", "unrelated base work");
+        git(root, "checkout", "feat");
+
+        const result = runScript(root, git(root, "rev-parse", "develop"), git(root, "rev-parse", "feat"));
+
+        expect(result.status).toBe(0);
+        expect(result.output).toContain("keeps base-branch work intact");
+    });
 });
