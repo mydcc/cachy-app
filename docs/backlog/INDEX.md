@@ -4,7 +4,7 @@
 
 468 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-progress 2 · ✅ done 409 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-progress 1 · ✅ done 410 · ⛔ dropped 1
 
 ---
 
@@ -220,7 +220,7 @@ Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-pr
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | execution |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | execution |
 | [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | exchange |
-| [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | 🟡 in-progress | repo |
+| [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | repo |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -564,7 +564,7 @@ Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 10 · 🟡 in-pr
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |

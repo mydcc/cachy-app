@@ -548,7 +548,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0582",
     "title": "The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -561,7 +561,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "assignee": "opencode",
-    "branch": "audit/last-2-days-review",
+    "branch": "docs/bug-0582-enforce-admins",
     "applied": "2026-09-28",
     "file": "bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md"
   },

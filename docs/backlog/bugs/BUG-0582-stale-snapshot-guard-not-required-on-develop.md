@@ -2,7 +2,7 @@
 id: BUG-0582
 title: The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway
 type: bug
-status: in-progress
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -11,7 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: audit/last-2-days-review
+branch: docs/bug-0582-enforce-admins
 applied: 2026-09-28
 ---
 
@@ -94,13 +94,17 @@ the three damaging merges; BUG-0583 is what stops the third.
 ## Acceptance criteria
 
 - [x] "Stale Snapshot Revert Guard" appears in the required status checks for `develop`
-- [x] A test or a recorded check proves the guard now blocks: a PR that deletes
-      a base-added file is refused at merge time, not merely reported red
-      — **refuted, see below**: the guard reported `FAILURE` and the merge
-      succeeded, because `enforce_admins` is `false` and an admin token bypasses
-      required checks. The required *setting* is live; the guard still has no veto.
-- [ ] `enforce_admins` is enabled on `develop`, so the required set binds the
-      people most likely to merge a stale snapshot
+- [x] A test or a recorded check proves the guard now blocks: throwaway PR
+      #3750 reverted exactly one base-added file (53 lines of this very item)
+      plus one proof file; the guard reported `FAILURE` in CI, the other nine
+      required checks were `SUCCESS`, `mergeStateStatus` was `BLOCKED`, and
+      `gh pr merge --squash` was refused with "the base branch policy
+      prohibits the merge". The PR was closed unmerged; `develop` never moved
+- [x] `enforce_admins` is enabled on `develop`, so the required set binds the
+      people most likely to merge a stale snapshot — applied 2026-09-30 via
+      `POST …/protection/enforce_admins`; a before/after diff of the full
+      protection object shows exactly one line changed (`enabled: false` →
+      `true`), everything else byte-identical
 - [x] The `allow-base-revert` escape hatch is documented as the only way past it
 
 ## Shipped
@@ -117,6 +121,36 @@ rollup of every open PR.
 
 AC3 is satisfied: the `allow-base-revert` label escape hatch is documented in
 the guard's own output.
+
+## Closed 2026-09-30: `enforce_admins` on, block proven, item done
+
+Two things happened after the AC2 section was written:
+
+1. `enforce_admins` was enabled with `POST
+   repos/mydcc/cachy-app/branches/develop/protection/enforce_admins` — the
+   dedicated sub-resource, not a full-object `PUT`, so nothing else in the
+   protection object could move. Verified: the before/after diff is exactly one
+   line (`enforce_admins.enabled: false` → `true`); `strict` still `true`,
+   all ten contexts still listed, `required_conversation_resolution` still
+   `true`, everything else byte-identical.
+2. The behavioural proof was re-run with a minimal window as throwaway PR
+   #3750: branched from `c3f6e5a9` (the parent of the then-tip `a915d243`),
+   committed one proof file, merged the current `develop` (which brought
+   exactly one commit: this item's own update), then pushed a full-tree
+   snapshot of the pre-merge tree as the branch tip (`3c93e168`). The payload
+   reverted exactly one base-added file — 53 lines of this very item — plus
+   the proof file. The guard reported `FAILURE` locally and in CI.
+   `mergeStateStatus` was `BLOCKED` with the other nine required checks at
+   `SUCCESS`, so the block is attributable to the guard alone. `gh pr merge
+   --squash` answered "the base branch policy prohibits the merge" — refused
+   through the normal path, which is the path `enforce_admins` now binds.
+   The PR was closed unmerged; `origin/develop` never moved during the proof
+   (still `a915d243` before and after).
+
+Deliberate consequence, recorded so nobody re-discovers it: `enforce_admins`
+binds the repo owner too. The `allow-base-revert` label remains the only way
+past a guard failure — a visible opt-in on the PR, not a privilege of the
+merger.
 
 ## AC2 measured 2026-09-30: the guard reports red and the merge goes through
 
@@ -156,17 +190,22 @@ decide deliberately whether that is acceptable, because it binds the repo owner
 too. The alternative to `enforce_admins` is not "leave it off": a required check
 that the likely merger can bypass is a check that reads as protection and is not.
 
+(The above was written before the fix was completed; the "Closed 2026-09-30"
+section records how both remaining points were resolved.)
+
 Two notes for whoever picks this up next:
 
 - The sub-resource endpoint `PUT …/protection/required_status_checks` returns
   404 on this repo; the working call is `PUT …/protection` with the **full**
   object. `required_pull_request_reviews` and `restrictions` must both be
-  present (`null` when unset) or the API answers 422.
-- This closes two of the three damaging merges (#3680, #3692) **for
-  non-admin merges only** — see the AC2 section for the admin bypass that was
-  measured on 2026-09-30 and is still open. The third damaging merge, #3718, is
-  BUG-0583 — a structural blind spot in the guard, not a settings gap. Do not
-  treat this item as closing the incident class.
+  present (`null` when unset) or the API answers 422. For `enforce_admins`
+  alone, prefer `POST …/protection/enforce_admins` — no object to keep in
+  sync, nothing else can move.
+- This closes two of the three damaging merges (#3680, #3692) for every merge
+  path, admin merges included — the #3750 proof ran under `enforce_admins`.
+  The third damaging merge, #3718, is BUG-0583 — a structural blind spot in
+  the guard, not a settings gap. Do not treat this item as closing the
+  incident class.
 
 ## Links
 
@@ -177,3 +216,5 @@ Two notes for whoever picks this up next:
 - PR #3747 — the throwaway guard-proof PR, merged by admin despite a
   `FAILURE`; the measurement behind the AC2 section
 - PR #3748 — the restore of the damage #3747 caused (`c3f6e5a9`)
+- PR #3750 — the minimal-window guard-proof PR (one reverted file, guard
+  `FAILURE`, merge refused through the normal path, closed unmerged)
