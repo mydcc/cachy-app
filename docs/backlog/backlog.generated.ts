@@ -2809,7 +2809,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0598",
     "title": "The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P1",
     "milestone": "none",
     "created": "2026-09-30",
@@ -2824,6 +2824,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0581"
     ],
+    "assignee": "opencode",
+    "branch": "fix/bug-0598-ws-public-v2",
     "file": "bugs/BUG-0598-bitget-websocket-is-on-the-v1-stream.md"
   },
   {

@@ -44,23 +44,51 @@ export const BitgetWSMessageSchema = z.object({
 
 /**
  * Schema for Bitget Ticker Data (WS)
+ *
+ * BUG-0598. The V2 ticker renamed the fields this schema was written against:
+ * `last` became `lastPr`, `bestAsk`/`bestBid` became `askPr`/`bidPr`, and the
+ * `volume24h`/`usdtVolume` aliases are gone in favour of `baseVolume` and
+ * `quoteVolume`. Accepting only the V1 spellings made every V2 push fail
+ * validation, so a live socket updated nothing at all.
+ *
+ * Both spellings stay accepted on purpose. The V1 names are the only ones a
+ * socket that has not yet finished reconnecting can still deliver, and a
+ * half-migrated transport should show a stale price rather than a blank chart.
+ * `lastPrice` resolution happens at the call site, not here — this describes the
+ * vendor payload, not our internal ticker.
  */
 export const BitgetWSTickerSchema = z.object({
   instId: z.string(),
-  last: z.string(),
+  // V1 name. Optional so a V2 push parses; the refine below keeps a ticker
+  // without any last price from reaching the store.
+  last: z.string().optional(),
+  // V2 name.
+  lastPr: z.string().optional(),
   bestAsk: z.string().optional(),
   bestBid: z.string().optional(),
+  askPr: z.string().optional(),
+  bidPr: z.string().optional(),
   high24h: z.string().optional(),
   low24h: z.string().optional(),
-  volume24h: z.string().optional(), // base volume
-  baseVolume: z.string().optional(), // alias
+  volume24h: z.string().optional(), // V1 base volume
+  baseVolume: z.string().optional(), // V2 base volume
   quoteVolume: z.string().optional(),
-  usdtVolume: z.string().optional(), // alias
+  usdtVolume: z.string().optional(), // V1 alias
   open24h: z.string().optional(),
+  // V2 sends this as a fraction of the open, not a percentage. The vendor does
+  // not document the unit, and REST has been observed speaking fractions, so
+  // `priceChangePercent` is derived from `lastPr` and `open24h` instead of read
+  // off this field.
+  change24h: z.string().optional(),
+  markPrice: z.string().optional(),
+  indexPrice: z.string().optional(),
   ts: z.union([z.string(), z.number()]).optional(),
   fundingRate: MoneyString.optional(),
   nextFundingTime: z.union([z.string(), z.number()]).optional(),
-});
+}).refine(
+  (t) => t.last !== undefined || t.lastPr !== undefined,
+  "Ticker must carry a last price (lastPr on V2, last on V1)",
+);
 
 /**
  * Allowed Channels whitelist

@@ -71,3 +71,19 @@ export function formatSymbolForDisplay(symbol: string): string {
   if (!symbol) return "";
   return symbol.replace("USDT", "").replace("P", "").replace("_UMCBL", "");
 }
+
+/**
+ * The inverse of `normalizeSymbol` for Bitget: turns a store key back into the
+ * pair a Bitget endpoint expects.
+ *
+ * BUG-0598. The `_UMCBL` suffix is this app's internal bookkeeping — the key
+ * `marketState` and the chart look up. Bitget V2 speaks the bare pair in both
+ * directions, so the suffix has to come off before anything reaches the wire.
+ * `formatSymbolForDisplay` cannot do this job: it also strips `USDT`, which
+ * would turn `BTCUSDT` into `BTC` and ask the venue about a contract that does
+ * not exist.
+ */
+export function bitgetWireSymbol(symbol: string): string {
+  if (!symbol) return "";
+  return symbol.replace(/_UMCBL$/, "");
+}

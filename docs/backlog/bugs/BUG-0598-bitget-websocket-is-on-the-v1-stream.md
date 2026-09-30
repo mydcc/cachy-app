@@ -2,7 +2,7 @@
 id: BUG-0598
 title: "The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles"
 type: bug
-status: specced
+status: in-progress
 priority: P1
 milestone: none
 created: "2026-09-30"
@@ -11,6 +11,8 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [BUG-0581]
+assignee: opencode
+branch: fix/bug-0598-ws-public-v2
 ---
 
 # Migrate the Bitget WebSocket from the V1 stream to the V2 public/private pair
@@ -80,17 +82,56 @@ against V2 without doing it risks reintroducing the mismatch.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect and fails without the fix — the module opens
+- [x] A test reproduces the defect and fails without the fix — the module opens
       no `/mix/v1/stream` socket
-- [ ] The public socket connects to `/v2/ws/public` and sends
+- [x] The public socket connects to `/v2/ws/public` and sends
       `instType: "USDT-FUTURES"`
 - [ ] The private socket connects to `/v2/ws/private` with the same `instType`
 - [ ] The connection survives the venue's 24-hour forced disconnect
 - [ ] The subscription refcount ledger is preserved **per socket**
-- [ ] Ping (25 s), watchdog (35 s) and disconnect grace (2 min) are unchanged
+- [x] Ping (25 s), watchdog (35 s) and disconnect grace (2 min) are unchanged
 - [ ] The field-name mismatch recorded in `docs/TODO.md` is resolved or
       re-confirmed against V2
-- [ ] The test passes with the fix
+- [x] The test passes with the fix
+
+## State — public half landed, private half open
+
+Branch `fix/bug-0598-ws-public-v2`. Credential-free and live-verifiable, so it
+was split from the authenticated half rather than waiting on it.
+
+**Done.** Endpoint moved to `/v2/ws/public`; `instType` is `USDT-FUTURES`; the
+`_UMCBL` suffix is stripped at the wire boundary and re-applied on the way in,
+so a live socket writes the store key the chart actually reads; the ticker
+schema speaks V2 (`lastPr`, `baseVolume`, `quoteVolume`) with the V1 spellings
+kept as a fallback for a socket that has not finished reconnecting; no login is
+sent, because V2's public endpoint drops a connection that tries. 24 tests in
+`src/services/bitgetWs.v2.test.ts`, plus the two guards this added to
+`adapterConformance.test.ts`.
+
+**Open, and why.** Everything below needs the private socket or a venue
+observation, so none of it is claimed here:
+
+- the private socket, its login, and `orders`/`positions`/`account`. These are
+  now **refused with a `logger.warn`** instead of being sent to a socket that
+  would ignore them. The account panel has no live stream and the log says so —
+  strictly better than the previous silence, not a fix.
+- the refcount ledger still exists once, not per socket. Its semantics are now
+  pinned by four tests so the split cannot break them quietly, and `login()` is
+  kept (and its signature pinned) rather than deleted, because the private
+  socket needs exactly that signing input.
+- the 24 h forced disconnect. Unverifiable without holding a socket open for a
+  day; the reconnect path it would hit is the same one
+  `adapterConformance.test.ts` now covers.
+- the `docs/TODO.md` order/position field mismatch. The market-data side
+  (ticker, depth, candle) is re-confirmed against V2 and pinned; the account
+  side cannot be, because nothing delivers a private push yet.
+
+**Two decisions worth a reviewer's attention.** `books` (all levels) is now
+refused: V2 sends one snapshot and then incremental deltas, and the depth
+handler writes whatever arrives as the complete book, so subscribing would
+replace a correct book with a partial one on every push. `books5` and `books15`
+always arrive whole and stay available — the adapter already maps depth to
+`books5`.
 
 ## Links
 
