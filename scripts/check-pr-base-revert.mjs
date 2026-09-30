@@ -429,6 +429,8 @@ the PR title. Fetch the base branch and rebase or merge before pushing again.
 
 If the revert is deliberate, a maintainer can add the \`${ALLOW_LABEL}\`
 label to this PR (a visible opt-in, not a commit-message token) and re-run.
+That includes emergency restores: a restore is a deliberate revert, so label
+it before merging.
 `);
     process.exit(1);
 }
