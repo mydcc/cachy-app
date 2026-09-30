@@ -203,18 +203,18 @@
                       {
                           label: $_("journal.deepDive.charts.labels.pnl"),
                           data: [
-                              marketCtx.low?.pnl || 0,
-                              marketCtx.normal?.pnl || 0,
-                              marketCtx.high?.pnl || 0,
+                              toChartNum(marketCtx.low?.pnl),
+                              toChartNum(marketCtx.normal?.pnl),
+                              toChartNum(marketCtx.high?.pnl),
                           ],
                           backgroundColor: [
-                              (marketCtx.low?.pnl || 0) >= 0
+                              toChartNum(marketCtx.low?.pnl) >= 0
                                   ? themeColors.success
                                   : themeColors.danger,
-                              (marketCtx.normal?.pnl || 0) >= 0
+                              toChartNum(marketCtx.normal?.pnl) >= 0
                                   ? themeColors.success
                                   : themeColors.danger,
-                              (marketCtx.high?.pnl || 0) >= 0
+                              toChartNum(marketCtx.high?.pnl) >= 0
                                   ? themeColors.success
                                   : themeColors.danger,
                           ],
