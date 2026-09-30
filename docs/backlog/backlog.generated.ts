@@ -529,7 +529,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0576",
     "title": "Bitget integration calls the decommissioned V1 API, so every signed REST call fails",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P0",
     "area": "exchange",
     "created": "2026-09-28",
@@ -542,6 +542,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bitget-v2-market-data",
     "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
   },
   {
@@ -564,6 +566,50 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "branch": "docs/bug-0582-enforce-admins",
     "applied": "2026-09-28",
     "file": "bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md"
+  },
+  {
+    "id": "BUG-0596",
+    "title": "Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "created": "2026-09-30",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0580",
+      "BUG-0590"
+    ],
+    "file": "bugs/BUG-0596-bitget-signed-read-paths-need-v2.md"
+  },
+  {
+    "id": "BUG-0597",
+    "title": "Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "created": "2026-09-30",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0596",
+      "BUG-0580"
+    ],
+    "file": "bugs/BUG-0597-bitget-order-write-paths-need-v2.md"
   },
   {
     "id": "FEAT-0011",
@@ -2758,6 +2804,46 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0595-native-number-arithmetic-charts.md"
+  },
+  {
+    "id": "BUG-0598",
+    "title": "The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "created": "2026-09-30",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0581"
+    ],
+    "file": "bugs/BUG-0598-bitget-websocket-is-on-the-v1-stream.md"
+  },
+  {
+    "id": "BUG-0599",
+    "title": "`normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "created": "2026-09-30",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md"
   },
   {
     "id": "FEAT-0014",
@@ -9745,6 +9831,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "ADR-0010",
     "depends_on": [],
     "file": "features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md"
+  },
+  {
+    "id": "FEAT-0600",
+    "title": "Serve Bitget mark-price candles from the V2 kline endpoint",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "created": "2026-09-30",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0600-bitget-mark-klines-on-v2.md"
   },
   {
     "id": "IDEA-0036",

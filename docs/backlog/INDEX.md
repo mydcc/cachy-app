@@ -2,9 +2,9 @@
 
 # Backlog index
 
-472 items. How to read and add them: [README.md](README.md).
+477 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-progress 3 · ✅ done 416 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 24 · 🟢 ready 9 · 🟡 in-progress 4 · ✅ done 416 · ⛔ dropped 1
 
 ---
 
@@ -219,8 +219,10 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | execution |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | execution |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | execution |
-| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | exchange |
+| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 🟡 in-progress | exchange |
 | [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | repo |
+| [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md) | Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty | P0 | 📋 specced | exchange |
+| [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 📋 specced | exchange |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -303,6 +305,8 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | ✅ done | ai |
 | [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | ✅ done | core |
 | [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | ✅ done | core |
+| [BUG-0598](bugs/BUG-0598-bitget-websocket-is-on-the-v1-stream.md) | The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles | P1 | 📋 specced | exchange |
+| [BUG-0599](bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md) | `normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects | P1 | 📋 specced | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -527,6 +531,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | exchange |
 | [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | ui |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | ui |
+| [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | exchange |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -567,8 +572,10 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0503](bugs/BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md) | On Bitget every entry carrying a stop opens an unprotected position, because the deferral the gate grants is fulfilled by nothing | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0524](bugs/BUG-0524-hedge-plans-need-position-scoping.md) | Protection check cannot tell hedge sides apart because venue plans carry no usable side | P0 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0550](bugs/BUG-0550-tpsl-direction-not-validated.md) | TP/SL trigger prices are not validated against position direction | P0 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md) | Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty | P0 | 📋 specced | none | community, pro, private | none | none | [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md), [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |
+| [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 📋 specced | none | community, pro, private | none | none | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md), [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -675,6 +682,8 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0598](bugs/BUG-0598-bitget-websocket-is-on-the-v1-stream.md) | The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) |
+| [BUG-0599](bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md) | `normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -999,6 +1008,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0546](features/FEAT-0546-bitget-contracts-isstatuserror.md) | Migrate bitget/contracts route to shared isStatusError | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | none | community, pro, private | none | ADR-0010 | — |
+| [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -1018,4 +1028,4 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 
 ---
 
-Next free number: **0596**
+Next free number: **0601**
