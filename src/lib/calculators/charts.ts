@@ -579,7 +579,8 @@ export function getTagEvolution(journal: JournalEntry[], context?: JournalContex
   // Identify Top 5 Tags by Abs PnL
   const tagStats = getTagData(closedTrades, context);
   const topTags = tagStats.labels
-    .map((label, i) => ({ label, pnl: Math.abs(tagStats.pnlData[i]) }))
+    // PR2 (BUG-0595): Decimal-native when charts convert; edge conversion keeps this compiling
+    .map((label, i) => ({ label, pnl: Math.abs(tagStats.pnlData[i].toNumber()) }))
     .sort((a, b) => b.pnl - a.pnl)
     .slice(0, 5)
     .map((t) => t.label);
