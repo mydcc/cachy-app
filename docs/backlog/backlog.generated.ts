@@ -2619,7 +2619,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0588",
     "title": "A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits",
     "type": "bug",
-    "status": "done",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2631,8 +2631,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
-    "branch": "docs/bug-0588-previous-quantity-comment",
     "file": "bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md"
   },
   {
@@ -5697,24 +5695,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0581-bitget-ws-login-success-code-unverified.md"
-  },
-  {
-    "id": "BUG-0591",
-    "title": "The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "tooling",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md"
   },
   {
     "id": "FEAT-0019",

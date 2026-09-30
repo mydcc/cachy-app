@@ -57,10 +57,9 @@ device, model-proposed rules included. See
 |---|---|
 | `schema_version` | Migrated on read, refused if unreadable |
 | `symbol`, `trigger_timeframe` | The market and the evaluation anchor |
-| `conditions` | A tree: `Compare`, `Cross`, `Pattern`, `Group{all\|any\|none}`, `Position`, `Account`, `ExternalFeed` |
+| `conditions` | A tree: `Compare`, `Cross`, `Group{all\|any\|none}`, `Position`, `Account`, `ExternalFeed` |
 | `veto` | Optional suppression. The only place a third-party feed is legal |
-| `action` | `consequence_level` and, above `notify`, an `OrderIntent`: side, size, size basis, an optional `reduce_only`, and the `stop` distance the size is measured against |
-| `id`, `name`, `enabled` | Local identity, display name, arm state. None hashed, none affecting what the rule means |
+| `action` | `consequence_level` and, above `notify`, an `OrderIntent`: side, size, size basis, and the `stop` distance the size is measured against |
 | `provenance` | `human` or `model`, a caller-supplied timestamp, and `derived_from_hash` when the document was promoted from another. Excluded from the content hash |
 
 Two rules that mean the same thing have the same **content hash**. Renaming a rule,
@@ -150,7 +149,7 @@ adjustment.
 | Templates | A ready `RuleDocument` from a named strategy, editable before arming |
 | Combo | Up to five conditions joined with AND/OR |
 | Price | Rises above / falls below / rise reaches / fall reaches, last or mark price |
-| Indicators | Indicator, trigger object, rule (Threshold or Crossing), the comparison operand (a value, the price, another indicator, or its own window high/low), parameters |
+| Indicators | Indicator, trigger object, rule (cross, threshold, divergence), parameters |
 | Candlesticks | Single, multiple and structural patterns |
 | Manage | Armed rules and history |
 

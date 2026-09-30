@@ -25,15 +25,10 @@ unwritten exception to a stated rule is exactly the failure mode ADR-0001's own
 
 | Table | Fields | Class |
 | --- | --- | --- |
-| `global_message` | `sender` (full identity hex, BUG-0373), `text`, `sent_at` | B |
+| `global_message` | `sender` (shortened connection identity), `text`, `sent_at` | B |
 | `message_cleanup_schedule` | scheduling row for the 90-day retention sweep | — (no user data) |
-| `sender_activity` | `sender` (full identity hex), `window_start`, `count`, `last_sent_at` — the 5-per-10s rate-limit window | B |
 
-That is the whole schema: three tables, seven fields of user data. `sender_activity`
-is identity-keyed and persistent, so it is Class B on the same terms as the
-messages — same retention sweep, same erasure reducer. It is not metadata about
-a message; it is user data about a person, and it would be a Class B violation to
-add anything else here.
+That is the whole schema. Three fields of user data.
 
 **The three proposals**, and why none of them is obviously fine:
 

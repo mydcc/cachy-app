@@ -1,7 +1,7 @@
 # Architecture
 
 Where things are and what they are for. Written from the tree as it stands on
-2026-09-28; it replaces `module-overview.md`, which described the layout before
+2026-09-23; it replaces `module-overview.md`, which described the layout before
 the folder refactor and pointed at files that no longer exist.
 
 If this document and the code disagree, the code is right and this is a bug —
@@ -15,20 +15,18 @@ say so in the backlog rather than working around it.
 ## Shape
 
 A SvelteKit application (Svelte 5, runes only) with a small server side. The
-server exists for three reasons and no others: proxying exchange, AI and
-external-data requests that cannot be made from the browser, issuing client
-tokens, and serving the app. It holds no user data — see
-[ADR-0001](adr/0001-local-first-boundary.md). Its own code lives in
-`src/routes/api/` plus the server-only helpers under `src/utils/server/`.
+server exists for two reasons and no others: proxying exchange and AI requests
+that cannot be made from the browser, and serving the app. It holds no user
+data — see [ADR-0001](adr/0001-local-first-boundary.md).
 
 ```
-browser                                                 server (SvelteKit node adapter)
-├─ components/   UI                                     └─ routes/api/   proxy routes only
-├─ stores/       rune state                                ├─ exchange: klines, tickers,
-├─ services/     logic, I/O, calculation                │   orders, positions, balance,
-├─ lib/          calculator core, windows               │   account, tpsl, sync/*
-├─ workers/      off-main-thread compute                ├─ ai: openai, gemini, anthropic
-└─ localStorage + IndexedDB   ALL user data (Class A)   └─ external: cmc, news, rss
+browser                                      server (SvelteKit node adapter)
+├─ components/   UI                          └─ routes/api/   proxy routes only
+├─ stores/       rune state                       ├─ exchange: klines, tickers,
+├─ services/     logic, I/O, calculation          │   orders, positions, balance,
+├─ lib/          calculator core, windows          │   account, tpsl, sync/*
+├─ workers/      off-main-thread compute          ├─ ai: openai, gemini, anthropic
+└─ localStorage  ALL user data (Class A)          └─ external: cmc, news, rss
 
                     optional, off by default
                     └─ SpacetimeDB (server/spacetimedb/) — Global Chat only
@@ -49,24 +47,15 @@ browser                                                 server (SvelteKit node a
 - **`calculators/`** — `core.ts`, `stats.ts`, `charts.ts`, `aggregator.ts`:
   the pieces `calculator.ts` composes.
 - **`windows/`** — the floating-window system. `WindowBase.svelte.ts` is the
-  abstract base for 13 window types, `WindowManager` and `WindowRegistry`
-  orchestrate them, and `implementations/` holds the concrete windows (academy,
-  alert panel, assistant, channel, chart, chat, dialog, iframe, markdown, modal,
-  modal frame, news frame, symbol picker).
+  abstract base for ~15 window types, `WindowManager` and `WindowRegistry`
+  orchestrate them, and `implementations/` holds the concrete windows (chart,
+  chat, assistant, markdown, dialog, symbol picker, iframe).
 - **`spacetimedb/`** — generated client bindings. **Never hand-edited**; see
   [`server/.cursor/rules/spacetimedb-typescript.mdc`](../server/.cursor/rules/spacetimedb-typescript.mdc).
-- **`server/`** — code imported only by `src/routes/api/**` server routes:
-  `logger.ts` (with key redaction), `clientToken.ts`, `aiEndpoint.ts`,
-  `urlValidator.ts`, `sanitizer.ts`, `rateLimit.ts`, `cache.ts`,
-  `ollamaBaseUrl.ts`. Note that `appAuth.ts` is **not** here — it sits at
-  `src/lib/appAuth.ts` and is client-shared (imported by `PortfolioInputs.svelte`,
-  `PositionsSidebar.svelte` and the chart/iframe windows), so treat it as
-  client code, not as a server boundary.
+- **`server/`** — code that runs server-side only: `logger.ts` (with key
+  redaction), `appAuth.ts`.
 - **`physics/`, `pets/`** — the 3D/visual layer.
-- `presets.ts`, `constants.ts`, `version.ts`, `chartSetup.ts`, plus the Svelte
-  action directories `actions/` (click-outside, input enhancements, portal,
-  tooltip) and `src/actions/` (burn, markdown, tracking, viewport) — there is no
-  flat `actions.ts`.
+- `presets.ts`, `constants.ts`, `version.ts`, `chartSetup.ts`, `actions.ts`.
 
 ### `src/stores/` — Svelte 5 rune state
 
@@ -85,12 +74,11 @@ detects a lost key instead of decrypting to garbage).
 
 ### `src/services/` — logic and I/O
 
-After `components/`, the largest module directory — 138 non-test `.ts` modules
-with tests alongside. The groups that matter:
+The largest directory, ~50 modules with tests alongside. The groups that matter:
 
 | Group | Modules | Note |
 | --- | --- | --- |
-| **Exchange boundary** | `src/services/exchange/` (`types.ts`, `bitunixAdapter.ts`, `bitgetAdapter.ts`, `registry.ts`, `errors.ts`) | The one interface every venue sits behind. Components, stores and calculations import `services/exchange` and nothing venue-specific — enforced by `src/tests/architecture/exchange_boundary.test.ts`. A verb the venue cannot perform is refused here before it travels: reads resolve empty, writes throw `ExchangeUnsupportedError` — [ADR-0008](adr/0008-refuse-unsupported-verbs-before-they-travel.md), enforced verb by verb in `src/services/exchange/unsupportedVerbs.test.ts`. [FEAT-0016](backlog/features/FEAT-0016-exchange-adapter-interface.md), [ADR-0007](adr/0007-exchange-adapter-boundary.md) |
+| **Exchange boundary** | `src/services/exchange/` (`types.ts`, `bitunixAdapter.ts`, `bitgetAdapter.ts`, `registry.ts`, `errors.ts`) | The one interface every venue sits behind. Components, stores and calculations import `services/exchange` and nothing venue-specific — enforced by `tests/architecture/exchange_boundary.test.ts`. A verb the venue cannot perform is refused here before it travels: reads resolve empty, writes throw `ExchangeUnsupportedError` — [ADR-0008](adr/0008-refuse-unsupported-verbs-before-they-travel.md), enforced verb by verb in `src/services/exchange/unsupportedVerbs.test.ts`. [FEAT-0016](backlog/features/FEAT-0016-exchange-adapter-interface.md), [ADR-0007](adr/0007-exchange-adapter-boundary.md) |
 | **Exchange implementations** | `bitunixWs.ts`, `bitgetWs.ts`, `tradeService.ts`, `syncService.ts`, `apiService.ts`, `connectionManager.ts` | What the adapters delegate to. `connectionManager` keeps the connection lifecycle; moving each socket behind its own adapter is [FEAT-0227](backlog/features/FEAT-0227-adapter-owns-its-socket.md) |
 | **Order state** | `omsService.ts`, `rmsService.ts` | Order and risk management. `rmsService` holds the risk limits and the kill switch and reports them to the gate — [FEAT-0013](backlog/features/FEAT-0013-risk-limits-and-kill-switch.md) |
 | **Order audit** | `orderAuditService.ts` | Append-only local record of every submission attempt, refusals included. Class A, redacted before writing — [FEAT-0015](backlog/features/FEAT-0015-order-audit-trail.md) |
@@ -99,30 +87,12 @@ with tests alongside. The groups that matter:
 | **Order placement** | `orderPlacementService.ts`, `exchangeCapabilities.ts` | Entry plus its protection as one unit, then verified separately — an attached stop that was dropped looks like a success until someone looks. Never auto-closes an unprotected entry — [FEAT-0021](backlog/features/FEAT-0021-order-types.md) |
 | **Calculation** | `calculatorService.ts`, `calculationStrategy.ts`, `tradeCalculator.svelte.ts` | Orchestrates `lib/calculator.ts` |
 | **Technicals** | `technicalsService.ts`, `wasmCalculator.ts`, `webGpuCalculator.ts`, `activeTechnicalsManager.svelte.ts` | Three engines behind one service: WASM, WebGPU, JS |
-| **Rule engine** | `src/services/alertEngine/` (`armRule.ts`, `botStore.ts`, `botOrders.ts`), `src/lib/rules/` (schema, types) | `RuleDocument` evaluation on candle close, firing into the sink in `src/stores/alerts.svelte.ts`; plus the Automation envelope: alerts promote to `simulate` bots, bot orders submit through `orderPlacementService` into the same gate — [ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md), [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md) |
+| **Rule engine** | `src/services/alertEngine/` (`armRule.ts`, `botStore.ts`, `botOrders.ts`, firing sink), `src/lib/rules/` (schema, types) | `RuleDocument` evaluation on candle close plus the Automation envelope: alerts promote to `simulate` bots, bot orders submit through `orderPlacementService` into the same gate — [ADR-0012](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md), [ADR-0020](adr/0020-automation-envelope-promotion-and-simulate-bots.md) |
 | **Analysis** | `marketWatcher.ts`, `marketAnalyst.ts`, `patternDetection.ts`, `chartPatterns.ts`, `candlestickPatterns.ts`, `mdaService.ts`, `smc/` | |
 | **Data** | `storageService.ts`, `dbService.ts`, `backupService.ts`, `csvService.ts`, `serializationService.ts`, `dataRepairService.ts` | `localStorage` and IndexedDB |
 | **External** | `newsService.ts`, `cmcService.ts`, `rssParserService.ts`, `imgbbService.ts`, `discordService.ts` | |
 | **Cloud** | `cloudService.ts` | The **only** SpacetimeDB client. Optional, off by default |
 | **Security** | `cryptoService.ts` | Web Crypto, AES-GCM, PBKDF2 |
-
-### `src/utils/` — helpers, and the server-side venue transport
-
-55 non-test modules. Two things here are load-bearing and easy to miss:
-
-- **`server/`** — the outbound transport to the venues, imported only by
-  `src/routes/api/**`: `venues/` (`bitget`, `bitunix`, `types`, `upstreamRetry`,
-  `index`), the per-venue builders `bitget.ts` and `bitunix.ts`,
-  `presignedEnvelope.ts`, `fetchWithTimeout.ts`, `requestUtils.ts`,
-  `httpErrors.ts`, and `exchangeResponse.ts` (which owns `readExchangeJson`, the
-  19-digit-ID-safe reader).
-- **`technicalsCalculator.ts` / `statefulTechnicalsCalculator.ts` /
-  `indicators.ts`** — the JS indicator path, next to `../shaders/*.wgsl` for
-  the WebGPU engine.
-
-`crypto/`, `exchange/` and `safeJson.ts` (the 19-digit-ID guard) round it out.
-There is a second logger at `src/services/logger.ts`, distinct from
-`src/lib/server/logger.ts`.
 
 ### `src/components/` — UI
 
@@ -138,10 +108,8 @@ Cloud, Connections, System, Trading, Visuals, plus indicator configuration),
   `(seo)/` holds academy, changelog, guide, privacy and whitepaper pages.
 - **`api/`** — server routes. Exchange proxies (`klines`, `tickers`, `orders`,
   `positions`, `position-tiers`, `trading-pairs`, `funding-rate`, `balance`,
-  `account`, `account-settings`, `leverage-margin-mode`, `tpsl`, `bitget/contracts`,
-  `sync/*`), AI proxies
-  (`ai/{openai,gemini,anthropic,ollama,openrouter}` plus `openai-responses`,
-  each venue with its own `models` sub-route, and `sentiment`), external data
+  `account`, `account-settings`, `leverage-margin-mode`, `tpsl`, `sync/*`), AI proxies
+  (`ai/{openai,gemini,anthropic,ollama,openrouter}`, `sentiment`), external data
   (`external/{cmc,news,article-content,check-frame-support}`, `rss-fetch`), auth
   (`auth/token`), plus `health` and `stream-logs`.
 
@@ -171,10 +139,8 @@ disagree, that is a bug rather than a style question — see
 
 ### `server/spacetimedb/`
 
-The optional server module. Two tables of user data — `global_message` with
-`sender`, `text`, `sent_at`, and `sender_activity` (`sender`, `window_start`,
-`count`, `last_sent_at`), which is the identity-keyed rate-limit window and is
-therefore user data too — plus a scheduled retention sweep. Its own rules
+The optional server module. One table of user data — `global_message` with
+`sender`, `text`, `sent_at` — plus a scheduled retention sweep. Its own rules
 live in [`server/.cursor/rules/spacetimedb-typescript.mdc`](../server/.cursor/rules/spacetimedb-typescript.mdc); generated bindings are never
 hand-edited.
 
@@ -186,7 +152,7 @@ The single most important thing to understand before changing anything.
 
 | Class | What | Where it may live |
 | --- | --- | --- |
-| **A** | Journal, settings, credentials, presets, notes, trade drafts | `localStorage`, plus IndexedDB for the device key and the credentials encrypted with it. Never on a Cachy-operated server — not as telemetry, not in a crash report, not in a debug log |
+| **A** | Journal, settings, credentials, presets, notes, trade drafts | `localStorage` only. Never on a Cachy-operated server — not as telemetry, not in a crash report, not in a debug log |
 | **B** | Currently only Global Chat message content | A Cachy-operated server, under four conditions: opt-in and off by default, authenticated, minimal, non-essential |
 | **C** | Public market data and derived analysis | Anywhere — but never joined to a user identity |
 
@@ -214,7 +180,7 @@ Each of these is enforced by something, not just written down.
 | Svelte 5 runes only — no `export let`, `$:`, `createEventDispatcher`, `<slot>` | Review, `npm run check` |
 | `decimal.js` for every price, amount and balance | Review. Native `number` here is a rounding error waiting to become a loss |
 | No hardcoded colours — CSS variables only, paired classes from `themes.css` | 20+ themes break visibly otherwise |
-| Every `$effect` registering a listener returns a cleanup | Review only. `scripts/detect_leaks.cjs` exists but is wired into neither `package.json` nor CI, only warns (never fails) and inspects `setInterval`/`clearInterval` — not listener registration |
+| Every `$effect` registering a listener returns a cleanup | `scripts/detect_leaks.cjs` checks timer cleanup specifically |
 | No `any`, no unused vars | ESLint, both at `error`, backlog at zero |
 | New UI text exists in German **and** English | `scripts/lint-i18n.js` in CI |
 | Every env var read is in `.env.example` | `src/tests/env_documentation.test.ts` |
