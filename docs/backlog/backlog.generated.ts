@@ -2523,7 +2523,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0583",
     "title": "The stale-snapshot revert guard reported success on a PR that did revert develop",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2535,6 +2535,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0583-era-anchoring",
     "file": "bugs/BUG-0583-revert-guard-false-passed-pr-3718.md"
   },
   {
