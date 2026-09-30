@@ -5763,7 +5763,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0581",
     "title": "Bitget WebSocket login success may never be detected because the vendor documents code \\\"0\\\" but Cachy tests \\\"00000\\\"",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "area": "exchange",
     "created": "2026-09-28",
@@ -5776,6 +5776,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0581-ws-login-tolerance",
     "file": "bugs/BUG-0581-bitget-ws-login-success-code-unverified.md"
   },
   {
