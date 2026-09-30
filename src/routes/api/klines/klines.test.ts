@@ -148,11 +148,21 @@ describe('GET /api/klines', () => {
   });
 
   it('should handle Bitget array format', async () => {
-    // [[timestamp, open, high, low, close, volume, quoteVol], ...]
-    const mockKlines = [
-      ["1600000000000", "100.5", "101.0", "99.0", "100.0", "1000", "100000"],
-      ["1600000060000", "100.0", "100.5", "99.5", "99.8", "500", "50000"]
-    ];
+    // BUG-0576: the *tuples* are array-of-arrays — [[timestamp, open, high,
+    // low, close, volume, quoteVol], ...] — but they arrive inside Bitget's
+    // response envelope, as `data`. This fixture used to be a bare array,
+    // which is what the venue never sent: the venue module's parser read the
+    // envelope as if it were the array, and that is why every Bitget kline
+    // call returned [] before V2 was reached at all.
+    const mockKlines = {
+      code: "00000",
+      msg: "success",
+      requestTime: 1600000000000,
+      data: [
+        ["1600000000000", "100.5", "101.0", "99.0", "100.0", "1000", "100000"],
+        ["1600000060000", "100.0", "100.5", "99.5", "99.8", "500", "50000"]
+      ],
+    };
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       text: async () => JSON.stringify(mockKlines),
