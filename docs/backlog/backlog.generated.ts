@@ -2543,7 +2543,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0584",
     "title": "semantic-release cannot push, so no release has shipped since 2026-09-20",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2555,6 +2555,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0584-release-push",
     "file": "bugs/BUG-0584-semantic-release-cannot-push.md"
   },
   {
