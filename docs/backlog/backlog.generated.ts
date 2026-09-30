@@ -2743,7 +2743,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0595",
     "title": "Native number arithmetic used for financial values in charts.ts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0595-decimal-charts",
     "priority": "P1",
     "milestone": "none",
     "editions": [
