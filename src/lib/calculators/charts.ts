@@ -44,7 +44,8 @@ export function getPerformanceData(journal: JournalEntry[], context?: JournalCon
   const equityCurve = closedTrades.map((t) => {
     const pnl = getTradePnL(t);
     cumulative = cumulative.plus(pnl);
-    return { x: t.date, y: new Decimal(cumulative).toNumber() };
+    // chart edge (f64 per ADR-0021): LineChart takes numbers
+    return { x: t.date, y: cumulative.toNumber() };
   });
 
   // 2. Drawdown Series
@@ -56,7 +57,8 @@ export function getPerformanceData(journal: JournalEntry[], context?: JournalCon
     runningPnl = runningPnl.plus(pnl);
     if (runningPnl.gt(peak)) peak = runningPnl;
     currentDrawdown = runningPnl.minus(peak); // Should be negative or zero
-    return { x: t.date, y: new Decimal(currentDrawdown).toNumber() };
+    // chart edge (f64 per ADR-0021)
+    return { x: t.date, y: currentDrawdown.toNumber() };
   });
 
   // 3. Monthly Stats
@@ -72,7 +74,8 @@ export function getPerformanceData(journal: JournalEntry[], context?: JournalCon
     );
   });
   const monthlyLabels = Object.keys(monthlyStats).sort();
-  const monthlyData = monthlyLabels.map((k) => new Decimal(monthlyStats[k]).toNumber());
+  // chart edge (f64 per ADR-0021)
+  const monthlyData = monthlyLabels.map((k) => monthlyStats[k].toNumber());
 
   return { equityCurve, drawdownSeries, monthlyLabels, monthlyData };
 }
@@ -162,6 +165,7 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
     let rDec = new Decimal(0);
     if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
       rDec = pnl.div(t.riskAmount);
+      // audit: R-multiple bucketing is dimensionless ratio logic, not money
       const rVal = rDec.toNumber();
 
       // Bucket Logic
@@ -174,6 +178,7 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
     }
 
     cumulativeR = cumulativeR.plus(rDec);
+    // chart edge (f64 per ADR-0021)
     cumulativeRCurve.push({ x: t.date, y: cumulativeR.toNumber() });
   });
 
@@ -206,10 +211,10 @@ export function getQualityData(journal: JournalEntry[], context?: JournalContext
   const winRateShort = countShort > 0 ? (countShortWin / countShort) * 100 : 0;
 
   const detailedStats = {
-    profitFactor: new Decimal(profitFactor).toNumber(),
-    avgWin: new Decimal(avgWin).toNumber(),
-    avgLoss: new Decimal(avgLoss).toNumber(),
-    expectancy: new Decimal(expectancy).toNumber(),
+    profitFactor,
+    avgWin,
+    avgLoss,
+    expectancy,
     winRateLong,
     winRateShort,
   };
@@ -252,7 +257,7 @@ export function getDirectionData(journal: JournalEntry[], context?: JournalConte
   });
 
   const sortedSymbols = Object.entries(symbolMap).sort((a, b) =>
-    b[1].minus(a[1]).toNumber(),
+    b[1].cmp(a[1]),
   );
   const topSymbols = sortedSymbols.slice(0, 5);
   const bottomSymbols = sortedSymbols.slice(-5).reverse(); // Worst first
@@ -277,20 +282,20 @@ export function getDirectionData(journal: JournalEntry[], context?: JournalConte
     } else {
       cumShort = cumShort.plus(pnl);
     }
-    longCurve.push({ x: t.date, y: new Decimal(cumLong).toNumber() });
-    shortCurve.push({ x: t.date, y: new Decimal(cumShort).toNumber() });
+    longCurve.push({ x: t.date, y: cumLong.toNumber() }); // chart edge (f64 per ADR-0021)
+    shortCurve.push({ x: t.date, y: cumShort.toNumber() }); // chart edge (f64 per ADR-0021)
   });
 
   return {
-    longPnl: new Decimal(longPnl).toNumber(),
-    shortPnl: new Decimal(shortPnl).toNumber(),
+    longPnl,
+    shortPnl,
     topSymbols: {
       labels: topSymbols.map((s) => s[0]),
-      data: topSymbols.map((s) => new Decimal(s[1]).toNumber()),
+      data: topSymbols.map((s) => s[1]),
     },
     bottomSymbols: {
       labels: bottomSymbols.map((s) => s[0]),
-      data: bottomSymbols.map((s) => new Decimal(s[1]).toNumber()),
+      data: bottomSymbols.map((s) => s[1]),
     },
     longCurve,
     shortCurve,
@@ -330,7 +335,8 @@ export function getCostData(journal: JournalEntry[], context?: JournalContext) {
       const funding = t.fundingFee || new Decimal(0);
       const trading = t.tradingFee || new Decimal(0);
       cumFees = cumFees.plus(fees).plus(funding).plus(trading);
-      return { x: t.date, y: new Decimal(cumFees).toNumber() };
+      // chart edge (f64 per ADR-0021)
+      return { x: t.date, y: cumFees.toNumber() };
     });
 
   // 3. Fee Structure
@@ -342,12 +348,12 @@ export function getCostData(journal: JournalEntry[], context?: JournalContext) {
   });
 
   return {
-    gross: new Decimal(totalGross).toNumber(),
-    net: new Decimal(totalNet).toNumber(),
+    gross: totalGross,
+    net: totalNet,
     feeCurve,
     feeStructure: {
-      trading: new Decimal(sumTrading).toNumber(),
-      funding: new Decimal(sumFunding).toNumber(),
+      trading: sumTrading,
+      funding: sumFunding,
     },
   };
 }
@@ -381,11 +387,13 @@ export function getDurationData(journal: JournalEntry[], context?: JournalContex
         if (diff > 0) {
           const durationMinutes = diff / 1000 / 60;
           const pnl = getTradePnL(t);
+          // chart edge (f64 per ADR-0021): scatter takes numbers
+          const y = pnl.toNumber();
           return {
             x: durationMinutes,
-            y: new Decimal(pnl).toNumber(),
+            y,
             r: 6,
-            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${new Decimal(pnl ?? 0).toFixed(2)}`,
+            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(2)}`,
           };
         }
       }
@@ -428,11 +436,12 @@ export function getAssetData(journal: JournalEntry[], context?: JournalContext) 
     const winRate = s.count > 0 ? (s.win / s.count) * 100 : 0;
     return {
       x: winRate,
+      // chart edge (f64 per ADR-0021)
       y: s.pnl.toNumber(),
       r: Math.min(Math.max(s.count * 2, 5), 30), // Scale radius
       l: `${sym}: ${s.count} Trades, ${(winRate ?? 0).toFixed(
         1,
-      )}% Win, $${(s.pnl ?? new Decimal(0)).toFixed(2)}`, // Label for tooltip
+      )}% Win, $${s.pnl.toFixed(2)}`, // Label for tooltip
     };
   });
 
@@ -450,11 +459,13 @@ export function getRiskData(journal: JournalEntry[], context?: JournalContext) {
     .filter((t) => t.riskAmount && t.riskAmount.gt(0))
     .map((t) => {
       const pnl = getTradePnL(t);
+      const risk = t.riskAmount;
+      // chart edge (f64 per ADR-0021): scatter takes numbers
       return {
-        x: t.riskAmount.toNumber(),
-        y: new Decimal(pnl).toNumber(),
+        x: risk.toNumber(),
+        y: pnl.toNumber(),
         r: 6,
-        l: `${t.symbol} (${t.status}): Risk $${new Decimal(t.riskAmount ?? 0).toFixed(2)} -> PnL $${new Decimal(pnl ?? 0).toFixed(2)}`,
+        l: `${t.symbol} (${t.status}): Risk $${risk.toFixed(2)} -> PnL $${pnl.toFixed(2)}`,
       };
     });
 
@@ -489,6 +500,7 @@ export function getMarketData(journal: JournalEntry[], context?: JournalContext)
       if (t.status === "Won") shortWin++;
     }
 
+    // audit: leverage is a config multiplier (1-50x), not money
     const lev = t.leverage ? t.leverage.toNumber() : 1;
     if (lev <= 5) leverageBuckets["1-5x"]++;
     else if (lev <= 10) leverageBuckets["6-10x"]++;
@@ -579,20 +591,21 @@ export function getTagEvolution(journal: JournalEntry[], context?: JournalContex
   // Identify Top 5 Tags by Abs PnL
   const tagStats = getTagData(closedTrades, context);
   const topTags = tagStats.labels
-    .map((label, i) => ({ label, pnl: Math.abs(tagStats.pnlData[i]) }))
-    .sort((a, b) => b.pnl - a.pnl)
+    .map((label, i) => ({ label, pnl: tagStats.pnlData[i].abs() }))
+    .sort((a, b) => b.pnl.cmp(a.pnl))
     .slice(0, 5)
     .map((t) => t.label);
 
   const datasets = topTags.map((tag) => {
-    let cumulative = 0;
+    let cumulative = new Decimal(0);
     const data: { x: string; y: number }[] = [];
 
     closedTrades.forEach((t) => {
       const tags = t.tags && t.tags.length > 0 ? t.tags : ["No Tag"];
       if (tags.includes(tag)) {
-        cumulative += getTradePnL(t).toNumber();
-        data.push({ x: t.date, y: cumulative });
+        cumulative = cumulative.plus(getTradePnL(t));
+        // chart edge (f64 per ADR-0021)
+        data.push({ x: t.date, y: cumulative.toNumber() });
       }
     });
     return { label: tag, data };
@@ -646,7 +659,7 @@ export function getConfluenceData(journal: JournalEntry[], context?: JournalCont
     day: row.day,
     hours: row.hours.map((h) => ({
       hour: h.hour,
-      pnl: h.pnl.toNumber(),
+      pnl: h.pnl,
       count: h.count,
     })),
   }));
@@ -663,6 +676,7 @@ export function getMonteCarloData(
     journal.filter(
       (t) => t.status === "Won" || t.status === "Lost",
     );
+  // audit: Monte Carlo resampling is stochastic indicator math — f64 per ADR-0021
   const pnlDistribution = closedTrades.map((t) => getTradePnL(t).toNumber());
 
   if (pnlDistribution.length < 5) return null; // Need enough data
@@ -728,6 +742,7 @@ export function getExecutionEfficiencyData(journal: JournalEntry[], context?: Jo
       // We need MFE and MAE
       if (!t.mfe || !t.mae) return null;
 
+      // audit: efficiency ratios feed the scatter directly — f64 edge per ADR-0021
       const mfe = new Decimal(t.mfe).toNumber();
       const mae = new Decimal(t.mae).toNumber();
       const pnl = new Decimal(getTradePnL(t)).toNumber();
@@ -763,9 +778,10 @@ export function getVisualRiskRadarData(journal: JournalEntry[], context?: Journa
   // Need metrics normalized to 0-100 (or close) for Radar chart
   // Dimensions: Win Rate, Profit Factor, R-Ratio, Drawdown Score, Expectancy Score
 
-  const winRate = stats.winRate.toNumber(); // 0-100
+  const winRate = stats.winRate.toNumber(); // 0-100, display score
 
   // Profit Factor: Benchmark 3.0 = 100%
+  // audit: radar scores are 0-100 display values — f64 per ADR-0021
   const pf = stats.profitFactor.isFinite() ? stats.profitFactor.toNumber() : 10;
   const pfScore = (Math.min(pf, 5) / 5) * 100; // Cap at 5 for score
 
@@ -792,6 +808,7 @@ export function getVisualRiskRadarData(journal: JournalEntry[], context?: Journa
 
   // Expectancy (in R). perf.expectancy itself is per-trade in $, not R, so
   // avgRMultiple is used below instead.
+  // audit: radar scores are 0-100 display values — f64 per ADR-0021
   const avgR = perf?.avgRMultiple.toNumber() || 0;
   // Benchmark 0.5R per trade = 100?
   const expScore = Math.min(Math.max(avgR, 0), 1) * 100;
@@ -829,9 +846,9 @@ export function getVolatilityMatrixData(journal: JournalEntry[], context?: Journ
 
   if (tradesWithAtr.length === 0) return null;
 
-  const atrs = tradesWithAtr.map((t) => t.atrValue!.toNumber());
-  const sumAtr = atrs.reduce((a, b) => a + b, 0);
-  const avgAtr = sumAtr / atrs.length;
+  const atrs = tradesWithAtr.map((t) => new Decimal(t.atrValue!));
+  const sumAtr = atrs.reduce((a, b) => a.plus(b), new Decimal(0));
+  const avgAtr = sumAtr.div(atrs.length);
 
   const buckets = {
     low: { count: 0, pnl: new Decimal(0), win: 0 },
@@ -840,12 +857,12 @@ export function getVolatilityMatrixData(journal: JournalEntry[], context?: Journ
   };
 
   tradesWithAtr.forEach((t) => {
-    const val = t.atrValue!.toNumber();
+    const val = new Decimal(t.atrValue!);
     const pnl = getTradePnL(t);
     let bucketKey: "low" | "normal" | "high" = "normal";
 
-    if (val < avgAtr * 0.8) bucketKey = "low";
-    else if (val > avgAtr * 1.2) bucketKey = "high";
+    if (val.lt(avgAtr.times(0.8))) bucketKey = "low";
+    else if (val.gt(avgAtr.times(1.2))) bucketKey = "high";
 
     buckets[bucketKey].count++;
     buckets[bucketKey].pnl = buckets[bucketKey].pnl.plus(pnl);
@@ -854,7 +871,7 @@ export function getVolatilityMatrixData(journal: JournalEntry[], context?: Journ
 
   const mapData = (k: "low" | "normal" | "high") => ({
     count: buckets[k].count,
-    pnl: buckets[k].pnl.toNumber(),
+    pnl: buckets[k].pnl,
     winRate:
       buckets[k].count > 0 ? (buckets[k].win / buckets[k].count) * 100 : 0,
   });
@@ -882,6 +899,7 @@ export function getSystemQualityData(journal: JournalEntry[], context?: JournalC
   const rMultiples: number[] = [];
   closedTrades.forEach((t) => {
     if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
+      // audit: SQN is indicator math — f64 per ADR-0021, converted at the edge
       rMultiples.push(getTradePnL(t).div(t.riskAmount).toNumber());
     }
   });

@@ -373,9 +373,7 @@ export function getTagData(trades: JournalEntry[], context?: JournalContext) {
 
   // Convert to array for sorting/display
   const labels = Object.keys(tagStats);
-  const pnlData = labels.map((l) =>
-    new Decimal(tagStats[l].pnl || 0).toNumber(),
-  );
+  const pnlData = labels.map((l) => tagStats[l].pnl);
   const winRateData = labels.map(
     (l) => (tagStats[l].win / tagStats[l].count) * 100,
   );
@@ -462,14 +460,14 @@ export function getCalendarData(trades: JournalEntry[], context?: JournalContext
 
   return Object.entries(dailyMap).map(([date, data]) => ({
     date,
-    pnl: new Decimal(data.pnl || 0).toNumber(),
+    pnl: data.pnl,
     count: data.count,
     winCount: data.winCount,
     lossCount: data.lossCount,
     bestSymbol: data.bestSymbol,
     bestSymbolPnl: data.bestSymbolPnl.isFinite()
-      ? new Decimal(data.bestSymbolPnl).toNumber()
-      : 0,
+      ? data.bestSymbolPnl
+      : new Decimal(0),
   }));
 }
 
@@ -491,7 +489,7 @@ export function getRollingData(
 
   const labels: string[] = [];
   const winRates: number[] = [];
-  const profitFactors: number[] = [];
+  const profitFactors: Decimal[] = [];
   const sqnValues: number[] = [];
 
   // Pre-calculate expensive operations (O(N))
@@ -500,9 +498,9 @@ export function getRollingData(
     const riskAmount = (t.riskAmount && new Decimal(t.riskAmount).gt(0))
       ? new Decimal(t.riskAmount)
       : null;
-    let rMultiple = 0;
+    let rMultiple = new Decimal(0);
     if (riskAmount) {
-      rMultiple = pnl.div(riskAmount).toNumber();
+      rMultiple = pnl.div(riskAmount);
     }
     return {
       date: new Date(t.date),
@@ -546,8 +544,10 @@ export function getRollingData(
 
       // SQN
       if (t.hasRisk) {
-        sumR += t.rMultiple;
-        sumRSq += t.rMultiple * t.rMultiple;
+        // audit: SQN is indicator math — f64 per ADR-0021, converted at the edge
+        const rNum = t.rMultiple.toNumber();
+        sumR += rNum;
+        sumRSq += rNum * rNum;
         rCount++;
       }
     }
@@ -558,11 +558,11 @@ export function getRollingData(
     winRates.push((wins / windowSize) * 100);
 
     // 2. Profit Factor
-    let pf: number;
+    let pf: Decimal;
     if (grossLoss.isZero()) {
-      pf = grossWin.gt(0) ? 10 : 0; // Cap at 10
+      pf = grossWin.gt(0) ? new Decimal(10) : new Decimal(0); // Cap at 10
     } else {
-      pf = new Decimal(grossWin.div(grossLoss)).toNumber();
+      pf = grossWin.div(grossLoss);
     }
     profitFactors.push(pf);
 
@@ -621,49 +621,49 @@ export function getLeakageData(journal: JournalEntry[], context?: JournalContext
     .minus(totalGrossLoss)
     .minus(totalFees);
   const profitRetention = totalGrossProfit.gt(0)
-    ? new Decimal(totalNetProfit.div(totalGrossProfit).times(100)).toNumber()
-    : 0;
+    ? totalNetProfit.div(totalGrossProfit).times(100)
+    : new Decimal(0);
 
   const feeImpact = totalGrossProfit.gt(0)
-    ? new Decimal(totalFees.div(totalGrossProfit).times(100)).toNumber()
-    : 0;
+    ? totalFees.div(totalGrossProfit).times(100)
+    : new Decimal(0);
 
   const waterfallData = {
-    grossProfit: new Decimal(totalGrossProfit).toNumber(),
-    fees: new Decimal(totalFees.negated()).toNumber(),
-    grossLoss: new Decimal(totalGrossLoss.negated()).toNumber(),
-    netResult: new Decimal(totalNetProfit).toNumber(),
+    grossProfit: totalGrossProfit,
+    fees: totalFees.negated(),
+    grossLoss: totalGrossLoss.negated(),
+    netResult: totalNetProfit,
   };
 
   const tagStats = getTagData(closedTrades, context);
   const worstTags = tagStats.labels
     .map((label, i) => ({ label, pnl: tagStats.pnlData[i] }))
-    .filter((item) => item.pnl < 0)
-    .sort((a, b) => a.pnl - b.pnl)
+    .filter((item) => item.pnl.lt(0))
+    .sort((a, b) => a.pnl.cmp(b.pnl))
     .slice(0, 5);
 
   const timingStats = getTimingData(closedTrades, context);
 
   const worstHours = timingStats.hourlyGrossLoss
-    .map((loss, hour) => ({ hour, loss: Math.abs(loss) }))
-    .filter((h) => h.loss > 0)
-    .sort((a, b) => b.loss - a.loss)
+    .map((loss, hour) => ({ hour, loss: loss.abs() }))
+    .filter((h) => h.loss.gt(0))
+    .sort((a, b) => b.loss.cmp(a.loss))
     .slice(0, 5);
 
   const worstDays = timingStats.dayLabels
     .map((day, i) => ({
       day,
-      loss: Math.abs(timingStats.dayOfWeekGrossLoss[i]),
+      loss: timingStats.dayOfWeekGrossLoss[i].abs(),
     }))
-    .filter((d) => d.loss > 0)
-    .sort((a, b) => b.loss - a.loss)
+    .filter((d) => d.loss.gt(0))
+    .sort((a, b) => b.loss.cmp(a.loss))
     .slice(0, 3);
 
   return {
     profitRetention,
     feeImpact,
     waterfallData,
-    totalFees: new Decimal(totalFees).toNumber(),
+    totalFees,
     worstTags,
     worstHours,
     worstDays,
@@ -731,7 +731,7 @@ export function getDurationStats(journal: JournalEntry[], context?: JournalConte
   });
 
   const labels = buckets.map((b) => b.label);
-  const pnlData = buckets.map((b) => new Decimal(b.pnl || 0).toNumber());
+  const pnlData = buckets.map((b) => b.pnl);
   const winRateData = buckets.map((b) =>
     b.count > 0 ? (b.win / b.count) * 100 : 0,
   );
@@ -778,16 +778,12 @@ export function getTimingData(trades: JournalEntry[], context?: JournalContext) 
   ];
 
   return {
-    hourlyPnl: hourlyNetPnl.map((d) => new Decimal(d).toNumber()),
-    hourlyGrossProfit: hourlyGrossProfit.map((d) => new Decimal(d).toNumber()),
-    hourlyGrossLoss: hourlyGrossLoss.map((d) => new Decimal(d).toNumber()),
-    dayOfWeekPnl: reorder(dayNetPnl).map((d) => new Decimal(d).toNumber()),
-    dayOfWeekGrossProfit: reorder(dayGrossProfit).map((d) =>
-      new Decimal(d).toNumber(),
-    ),
-    dayOfWeekGrossLoss: reorder(dayGrossLoss).map((d) =>
-      new Decimal(d).toNumber(),
-    ),
+    hourlyPnl: hourlyNetPnl,
+    hourlyGrossProfit,
+    hourlyGrossLoss,
+    dayOfWeekPnl: reorder(dayNetPnl),
+    dayOfWeekGrossProfit: reorder(dayGrossProfit),
+    dayOfWeekGrossLoss: reorder(dayGrossLoss),
     dayLabels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   };
 }
@@ -824,27 +820,28 @@ export function getDisciplineData(journal: JournalEntry[], context?: JournalCont
   const riskBuckets: { [key: string]: number } = {};
   const risks = sortedTrades
     .filter((t) => t.riskAmount && new Decimal(t.riskAmount).gt(0))
-    .map((t) => new Decimal(t.riskAmount!).toNumber());
+    .map((t) => new Decimal(t.riskAmount!));
 
   if (risks.length > 0) {
-    const minRisk = Math.min(...risks);
-    const maxRisk = Math.max(...risks);
+    const minRisk = Decimal.min(...risks);
+    const maxRisk = Decimal.max(...risks);
 
-    if (Math.abs(maxRisk - minRisk) < 0.01) {
-      riskBuckets[`$${(maxRisk ?? 0).toFixed(2)}`] = risks.length;
+    if (maxRisk.minus(minRisk).abs().lt(0.01)) {
+      riskBuckets[`$${maxRisk.toFixed(2)}`] = risks.length;
     } else {
       const binCount = 5;
-      const range = maxRisk - minRisk;
-      const step = range / binCount;
+      const range = maxRisk.minus(minRisk);
+      const step = range.div(binCount);
 
       risks.forEach((r) => {
-        let idx = Math.floor((r - minRisk) / step);
+        // audit: histogram binning is display bucketing — f64 per ADR-0021, converted at the edge
+        let idx = Math.floor(r.minus(minRisk).div(step).toNumber());
         if (idx >= binCount) idx = binCount - 1;
 
-        const low = minRisk + idx * step;
-        const high = minRisk + (idx + 1) * step;
+        const low = minRisk.plus(step.times(idx));
+        const high = minRisk.plus(step.times(idx + 1));
 
-        const label = `$${(low ?? 0).toFixed(0)} - $${(high ?? 0).toFixed(0)}`;
+        const label = `$${low.toFixed(0)} - $${high.toFixed(0)}`;
         riskBuckets[label] = (riskBuckets[label] || 0) + 1;
       });
     }

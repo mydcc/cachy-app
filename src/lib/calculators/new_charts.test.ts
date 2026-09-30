@@ -22,6 +22,9 @@ import {
   getExecutionEfficiencyData,
   getVisualRiskRadarData,
   getVolatilityMatrixData,
+  getDirectionData,
+  getCostData,
+  getConfluenceData,
 } from "./charts";
 import type { JournalEntry } from "../../stores/types";
 
@@ -130,17 +133,18 @@ describe("New Deep Dive Charts", () => {
 
       const data = getVolatilityMatrixData(trades);
       expect(data).not.toBeNull();
+      if (!data) return;
 
-      expect(data?.low.count).toBe(1);
-      expect(data?.low.pnl).toBe(100);
-      expect(data?.low.winRate).toBe(100);
+      expect(data.low.count).toBe(1);
+      expect(data.low.pnl.toNumber()).toBe(100);
+      expect(data.low.winRate).toBe(100);
 
-      expect(data?.normal.count).toBe(1);
-      expect(data?.normal.pnl).toBe(200);
+      expect(data.normal.count).toBe(1);
+      expect(data.normal.pnl.toNumber()).toBe(200);
 
-      expect(data?.high.count).toBe(1);
-      expect(data?.high.pnl).toBe(-50);
-      expect(data?.high.winRate).toBe(0);
+      expect(data.high.count).toBe(1);
+      expect(data.high.pnl.toNumber()).toBe(-50);
+      expect(data.high.winRate).toBe(0);
     });
 
     it("should return null if no trades have ATR", () => {
@@ -182,4 +186,44 @@ describe("New Deep Dive Charts", () => {
       expect(data.data[1]).toBe(40);
     });
   });
+});
+
+describe("Decimal precision (BUG-0595)", () => {
+    it("keeps direction totals exact past float64 range", () => {
+        const trades = [
+            createTrade({ status: "Won", tradeType: "Long", totalNetProfit: new Decimal("9007199254740993") }),
+        ];
+
+        const data = getDirectionData(trades);
+
+        expect(data.longPnl).toBeInstanceOf(Decimal);
+        expect((data.longPnl as Decimal).toString()).toBe("9007199254740993");
+        expect(data.topSymbols.data[0]).toBeInstanceOf(Decimal);
+    });
+
+    it("keeps cost totals exact past float64 range", () => {
+        const trades = [
+            createTrade({ status: "Won", totalNetProfit: new Decimal("9007199254740993") }),
+        ];
+
+        const data = getCostData(trades);
+
+        // gross = net + fees (fixture carries totalFees 5): exact, no float step
+        expect(data.gross).toBeInstanceOf(Decimal);
+        expect((data.gross as Decimal).toString()).toBe("9007199254740998");
+    });
+
+    it("keeps confluence matrix cells Decimal", () => {
+        const trades = [
+            createTrade({ status: "Won", date: "2026-01-05T14:00:00.000Z" }),
+        ];
+
+        const matrix = getConfluenceData(trades);
+        const cells = matrix.flatMap((row) => row.hours);
+
+        expect(cells.some((c) => c.count > 0)).toBe(true);
+        for (const cell of cells) {
+            expect(cell.pnl).toBeInstanceOf(Decimal);
+        }
+    });
 });

@@ -466,10 +466,20 @@ export class BitgetWebSocketService {
 
     const msg = validated.data;
 
-    if (msg.event === "login" && msg.code === "00000") {
-      this.isAuthenticated = true;
-      if (settingsState.enableNetworkLogs) logger.log("network", "[WS-Bitget] Login success");
-      this.subscribePrivate();
+    // BUG-0581: the vendor documents the WS login success code inconsistently
+    // ("0" on the WS page, 0 as a number in best-practices, "00000" by REST
+    // convention), so accept every documented spelling instead of one exact
+    // string. Normalize before comparing; an exact match here failed closed
+    // and silently (no private streams, healthy-looking socket).
+    if (msg.event === "login") {
+      const code = msg.code === undefined ? "" : String(msg.code);
+      if (code === "00000" || code === "0") {
+        this.isAuthenticated = true;
+        if (settingsState.enableNetworkLogs) logger.log("network", "[WS-Bitget] Login success");
+        this.subscribePrivate();
+        return;
+      }
+      logger.warn("network", `[WS-Bitget] Unrecognized login code: ${code}`, msg);
       return;
     }
 

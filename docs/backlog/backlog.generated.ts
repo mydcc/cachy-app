@@ -2523,7 +2523,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0583",
     "title": "The stale-snapshot revert guard reported success on a PR that did revert develop",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2535,13 +2535,15 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0583-era-anchoring",
     "file": "bugs/BUG-0583-revert-guard-false-passed-pr-3718.md"
   },
   {
     "id": "BUG-0584",
     "title": "semantic-release cannot push, so no release has shipped since 2026-09-20",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2553,6 +2555,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0584-release-push",
     "file": "bugs/BUG-0584-semantic-release-cannot-push.md"
   },
   {
@@ -2679,7 +2683,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0592",
     "title": "Native number arithmetic used for financial values in journalSort.ts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0592-0593-decimal-sort-ai",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2697,7 +2703,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0593",
     "title": "Native number arithmetic used for financial values in ai.svelte.ts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0592-0593-decimal-sort-ai",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2715,7 +2723,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0594",
     "title": "Native number arithmetic used for financial values in stats.ts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0594-decimal-stats",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2733,7 +2743,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0595",
     "title": "Native number arithmetic used for financial values in charts.ts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0595-decimal-charts",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -5755,7 +5767,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0581",
     "title": "Bitget WebSocket login success may never be detected because the vendor documents code \\\"0\\\" but Cachy tests \\\"00000\\\"",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P2",
     "area": "exchange",
     "created": "2026-09-28",
@@ -5768,6 +5780,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0581-ws-login-tolerance",
     "file": "bugs/BUG-0581-bitget-ws-login-success-code-unverified.md"
   },
   {
