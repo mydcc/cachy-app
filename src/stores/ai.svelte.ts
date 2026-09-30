@@ -134,6 +134,32 @@ function estimateCostUsd(
   return inputCost + outputCost;
 }
 
+/** One journal trade as seen by the AI prompt: money stays an exact string. */
+export interface RecentTradeEntry {
+    symbol: string;
+    entry: string;
+    exit: string;
+    pnl: string;
+    won: boolean;
+}
+
+/**
+ * Maps a journal entry to its AI prompt row without a lossy float step.
+ * `pnl` stays the exact decimal string — the neighbors in the same payload
+ * (`openPositions`, `REAL_TIME_PRICE`) already serialize money with
+ * `.toString()` — and `won` uses `Decimal.gt`.
+ */
+export function toRecentTradeEntry(t: JournalEntry): RecentTradeEntry {
+    const pnl = new Decimal(t.totalNetProfit || 0);
+    return {
+        symbol: t.symbol,
+        entry: t.entryDate,
+        exit: t.exitDate,
+        pnl: pnl.toString(),
+        won: pnl.gt(0),
+    };
+}
+
 class AiManager {
   messages = $state<AiMessage[]>([]);
   isStreaming = $state(false);
@@ -900,16 +926,7 @@ class AiManager {
       : null;
 
     const recentTrades = Array.isArray(journal)
-      ? journal.slice(0, limit).map((t: JournalEntry) => {
-        const pnlNum = new Decimal(t.totalNetProfit || 0).toNumber();
-        return {
-          symbol: t.symbol,
-          entry: t.entryDate,
-          exit: t.exitDate,
-          pnl: pnlNum,
-          won: pnlNum > 0,
-        };
-      })
+      ? journal.slice(0, limit).map(toRecentTradeEntry)
       : [];
 
     // Technicals Data (New Addition)
