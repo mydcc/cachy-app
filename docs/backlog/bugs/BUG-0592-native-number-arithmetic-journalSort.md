@@ -2,7 +2,9 @@
 id: BUG-0592
 title: Native number arithmetic used for financial values in journalSort.ts
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/bug-0592-0593-decimal-sort-ai
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -37,6 +39,6 @@ Replace the `.toNumber()` conversion and the subsequent native number sorting wi
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect and fails without the fix
-- [ ] The test passes with the fix
-- [ ] No `toNumber()` or other native number conversions are used for financial calculations/comparisons in this file
+- [x] A test reproduces the defect and fails without the fix
+- [x] The test passes with the fix
+- [x] No `toNumber()` or other native number conversions are used for financial calculations/comparisons in this file
