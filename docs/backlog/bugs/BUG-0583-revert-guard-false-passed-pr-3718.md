@@ -108,6 +108,51 @@ Do **not** try to fix this by walking first-parents to the first
 base-reachable ancestor: for #3718 that value already *is* `9358fde2`, so it
 changes nothing. That approach was tried against these refs and is a no-op.
 
+## What was tried and rejected (PR #3725, closed unmerged)
+
+A fix that added a **self-pass** over the branch's own first-parent commits,
+judging each removed line against both the fork-era tree and the **base tree**
+(so that a branch refining its own work is not read as a revert). That second
+anchor was necessary and correct — without it the guard rejected a pure-docs PR
+that rewrites its own backlog prose. It was not sufficient.
+
+Measured on the real refs (`base` = `9358fde2`, `head` = `d6e58dec`):
+
+    payload damage   187 files, 1717 deletions
+    the fix reports  removed 1 base-added line(s):
+                      src/components/shared/journal/JournalTable.svelte
+                        -             } else {
+
+The one line it finds is itself a **false positive** — a branch-owned duplicate
+of `} else {` misattributed to the base. Reason: `forkRev == mergeBase` here,
+so the fork anchor still governs and the self-pass inherits exactly the blind
+spot it was added to remove. The base-tree anchor is consulted but cannot
+rescue a case where every removed line is present at the fork anchor.
+
+Worse, the fixture it shipped with modelled a **different mechanism**: a
+`git checkout develop -- <file>` sync without merging. That can happen
+(`auto-update-prs.yml`, a stash pop, an agent syncing its tree) but it is *not*
+what #3718 did — the real branch chain is `d9ec403e → ea116d72 → d6e58dec` with
+no sync commit. The test was load-bearing for a case that does not reproduce the
+incident, which is the same reasoning error that produced this bug twice.
+
+Shipping it would have been worse than shipping nothing: a required check on
+`develop` that goes green reads as protection that is not there. **Nothing from
+#3725 landed.**
+
+Two findings from that review survive and belong to any future attempt:
+
+- **A confirmed false negative, independent of the above.** `baseCounts` is
+  read at `oldPath` only. If the base has since **renamed** the file, the base's
+  copy is never consulted, every removed line is skipped as "not base work", and
+  a real revert passes. Fall back to the new path, or merge both.
+- **The base-only anchoring is uncalibrated.** Anchoring the self-pass on the
+  base tree alone yields 115 findings on the real refs — including real ones
+  (`deleted file with 71 base-added line(s): OPENCODE.md`) but with noisy sample
+  lines (blank lines, `}`). It stays green on 5 legitimate branches. **Measure it
+  against the last ~20 merged PRs before trusting it**: if it flags ordinary
+  work, it is unusable as a required check.
+
 ## Acceptance criteria
 
 - [ ] A fixture reproduces the defect — a branch that has **not** merged base,
@@ -119,6 +164,24 @@ changes nothing. That approach was tried against these refs and is a no-op.
       than passed silently
 - [ ] The check stays within a bounded time on a large PR
 - [ ] The other two fixtures (#3296, #3297) still pass
+- [ ] The new fixture is verified to fail **against the real refs** and not only
+      in a synthetic repo. #3725's fixture passed while the real damage went
+      uncaught; a synthetic pass is not evidence for this item
+- [ ] The fix is calibrated: run against the last ~20 merged PRs on `develop` and
+      it flags **none** of them, while flagging #3718. A guard that fires on
+      ordinary work cannot be a required check
+- [ ] A branch that refines its own work across commits is not reported — the
+      regression #3725 introduced and had to be re-anchored to avoid
+
+## Out of scope
+
+- The `allow-base-revert` label and the `GENERATED_BACKLOG_PATHS` exemption.
+  Both are reasoned, tested, and deliberately kept
+- `bug0447` (branch *has* merged base), which the guard already catches. This
+  item is the inverse shape
+- Re-litigating BUG-0582's branch-protection setting. Applied and live
+- Timing or performance work. The check runs in single-digit seconds on the
+  187-file #3718 payload and ~0.2s on an ordinary branch
 
 ## Links
 
@@ -126,3 +189,6 @@ changes nothing. That approach was tried against these refs and is a no-op.
 - BUG-0447 — the original incident class
 - Recovered head: `git fetch origin pull/3718/head:refs/audit/pr3718` reproduces
   the exact tree the guard cleared (`d6e58dec`, tree `f4fb2108…`)
+- PR #3725 — the rejected self-pass fix, closed unmerged. Its review is the
+  source of the measured numbers above; the branch is preserved on `origin` as
+  `fix/bug-0583-revert-guard-era` for anyone comparing approaches

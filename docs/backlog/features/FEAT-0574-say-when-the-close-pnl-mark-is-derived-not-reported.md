@@ -66,7 +66,7 @@ informing.
 ## Out of scope
 
 - Hiding the PnL line when the venue is silent. Decided in
-  [`TODO.md` 30](../../TODO.md#30-how-should-the-panel-behave-when-the-venue-does-not-report-a-mark-price):
+  [`TODO.md` 30](../../TODO.md#30--how-should-the-panel-behave-when-the-venue-does-not-report-a-mark-price):
   it never shows a wrong figure, but it removes the one number a trader most wants during
   a panic close, and it makes the dialog inconsistent across venues for no reason the
   trader can see. A visible qualifier gets the honesty without the loss.
@@ -81,7 +81,7 @@ informing.
 
 ## Links
 
-- [`TODO.md` 30](../../TODO.md#30-how-should-the-panel-behave-when-the-venue-does-not-report-a-mark-price) — the decision and its full reasoning
+- [`TODO.md` 30](../../TODO.md#30--how-should-the-panel-behave-when-the-venue-does-not-report-a-mark-price) — the decision and its full reasoning
 - `src/components/shared/ClosePositionModal.svelte` — the `markPrice` derivation
 - `src/lib/calculators/partialClose.ts` — `realizedPnlOnClose`, which drives nothing
 - [`ADR-0010`](../../adr/0010-estimates-inform-but-never-determine-what-is-sent.md) — estimates inform, never determine

@@ -2,31 +2,36 @@
 
 ## Overview
 
-Cachy uses a **static multi-engine architecture** to calculate technical indicators. It selects the fastest available engine based on fixed dataset size thresholds and hardware detection.
+Cachy uses a **static multi-engine architecture** to calculate technical indicators.
+In Auto mode it picks one engine per session and sticks with it. There are no
+dataset-size thresholds: routing by candle count was removed on purpose, because
+it silently flipped every threshold-edge signal whenever the loaded history
+crossed the boundary.
 
 ## Engines
 
 | Engine | Best For | Requirements |
 |--------|----------|-------------|
-| **TypeScript** | Small datasets, universal fallback | Always available |
-| **WebAssembly** | >300 candles (degrades to TS if last WASM run > 500ms) | WebAssembly global present (note: the availability flag is optimistic — true before the module finishes loading) |
-| **WebGPU** | Large datasets (>5000 candles) | A browser with WebGPU (`navigator.gpu` + adapter; e.g. recent Chrome/Edge with hardware GPU). No version pin is enforced in code. |
+| **TypeScript** | Universal fallback, and the degradation target | Always available |
+| **WebAssembly** | The default in Auto mode whenever WASM is available | WebAssembly global present (note: the availability flag is optimistic — true before the module finishes loading) |
+| **WebGPU** | Explicit opt-in only | A browser with WebGPU (`navigator.gpu` + adapter; e.g. recent Chrome/Edge with hardware GPU). No version pin is enforced in code. |
 
-> The GPU branch only triggers when History Scope exceeds 5000 (default 750 keeps all calculations on TS/WASM).
+> The GPU engine is reachable **only** through Preferred Engine = GPU. Auto mode
+> never selects it, at any dataset size.
 
 ## How Engine Selection Works
 
 1. **Device Detection**: At startup (lazily, via a cached singleton prefetched by the strategy), Cachy detects which engines the browser supports (WASM, SIMD, WebGPU).
-2. **Static Thresholds**: The engine is selected based on the number of candles (>5000 → GPU, >300 → WASM, else TS).
-3. **Preferred Engine Override**: Users can force a specific engine (TS, WASM, WebGPU) via settings (Technicals settings → Preferred Engine: Auto/TS/WASM/GPU).
-4. **Basic Degradation**: If the last WASM run exceeds 500ms (tracked as `lastMedian`, currently the latest single sample rather than a true median), the system falls back to TypeScript. Consequence: a single WASM run above 500ms degrades `selectEngine` to `ts` for the rest of the session — the degraded engine is never re-selected, so no new WASM sample can clear the flag and there is no automatic recovery (re-probing). Only a page reload or the Preferred Engine override resets this.
+2. **Pinning**: Auto mode picks WASM when capability detection reports it, TypeScript otherwise, and then keeps that engine for the session. `selectEngine` never sees a candle count.
+3. **Preferred Engine Override**: Users can force a specific engine (TS, WASM, WebGPU) via settings (Technicals settings → Preferred Engine: Auto/TS/WASM/GPU). An explicit choice short-circuits the pinning.
+4. **Degradation and recovery**: If **3 consecutive live runs** of the pinned engine exceed 500ms, `selectEngine` serves `ts` instead. The counter resets on any successful run, and only live runs count — benchmark runs are excluded. After a **5-minute degradation window** elapses the pinned engine is re-probed automatically, so recovery needs neither a page reload nor a settings change. The `lastMedian` field is telemetry-only (it holds the latest single sample, not a median) and does not drive the rule. Degradation is derived in [`calculation-engine-dev.md`](calculation-engine-dev.md).
 
 ## Calculation Settings
 
 Two independent concepts — do not conflate them:
 
 - **Analysis presets** (Settings → System → Performance → Calculation Settings): **Light** / **Balanced** (default) / **Pro**. They control market-analysis refresh interval, cache size and news analysis — not the math engine.
-- **Engine controls** (Technicals settings): **Preferred Engine** (Auto/TS/WASM/GPU) and **Performance Mode** (Speed/Balanced/Quality; default Balanced; currently only switches buffer-pool reuse).
+- **Engine controls** (Technicals settings): **Preferred Engine** (Auto/TS/WASM/GPU) and **History Limit**. There is no Performance Mode control — buffer-pool reuse is unconditional (`BufferPool`, with no settings gate), so there is nothing to switch.
 
 ## Current Engine Behavior
 
@@ -35,9 +40,9 @@ Two independent concepts — do not conflate them:
 ## Planned Features (Backlog)
 
 Planned features:
-- **Adaptive Learning** (partial): Benchmark infrastructure exists (`src/services/engineBenchmark.ts`) and benchmarks feed `recordMetrics`, but `selectEngine` still uses only static thresholds + the WASM timing rule.
-- **Circuit Breaker** (derived, not enforced): `exportTelemetry()` reports healthy/degraded per engine from the >500ms rule; selection reapplies the timing rule on the next call.
-- **Dynamic Quality Modes**: No precision-driven engine switching exists; Performance Mode (Speed/Balanced/Quality) currently only toggles buffer-pool reuse.
+- **Adaptive Learning** (partial): Benchmark infrastructure exists (`src/services/engineBenchmark.ts`) and benchmarks feed `recordMetrics`, but `selectEngine` still only pins an engine and applies the WASM timing rule.
+- **Circuit Breaker** (derived, not enforced): `exportTelemetry()` reports healthy/degraded per engine from the 3-slow-run rule; selection reapplies the timing rule on the next call.
+- **Dynamic Quality Modes**: No precision-driven engine switching exists.
 
 ## Debug Panel
 

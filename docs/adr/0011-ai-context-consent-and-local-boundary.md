@@ -32,13 +32,16 @@ During the identity and security audit on 2026-08-23 ([`BUG-0282`](../backlog/bu
 
 ## Consequences
 
-### Positive
+### What this enables
 - Strict adherence to ADR-0001 data classification: Class A data never leaves the device without explicit, informed user consent.
 - Users who choose local inference (Ollama) have guaranteed local containment.
 - Users who use cloud AI models have transparent control over what personal trading information is shared.
 
-### Negative / Trade-offs
+### What this costs
 - Without consent enabled, AI responses will be based only on market-wide data and user chat input, requiring users to explicitly enable context sharing if they want personalized journal/portfolio analysis.
+
+### What is now forbidden
+- No code path may send journal, portfolio, open-position or trade-setup content to an AI provider while consent is at its default. The gate is default-off and the payload is omitted, not the request: local-inference mode fails closed and never calls the server proxy when the local endpoint is unreachable. Enforced by `src/tests/ai/aiEgressConsent.test.ts` (BUG-0282).
 
 ## References
 - [`ADR-0001: Local-First boundary and optional server features`](0001-local-first-boundary.md)

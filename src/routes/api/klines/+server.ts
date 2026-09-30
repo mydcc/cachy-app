@@ -20,6 +20,8 @@ import type { RequestHandler } from "./$types";
 import type { UpstreamApiError } from "../../../utils/server/fetchWithTimeout";
 import { VENUES, DEFAULT_VENUE_ID, resolveVenue } from "../../../utils/server/venues";
 import type { KlinePriceSource } from "../../../utils/server/venues/types";
+import { getCachedKlines } from "../../../lib/server/klineCache";
+import { clampKlineLimit } from "../../../lib/server/klineCacheKey";
 
 type ApiError = UpstreamApiError;
 
@@ -33,7 +35,10 @@ export const GET: RequestHandler = async ({ url }) => {
     url.searchParams.get("endTime") || url.searchParams.get("end");
   const provider = url.searchParams.get("provider") || "bitunix";
   const priceSourceParam = url.searchParams.get("priceSource");
-  const limit = limitParam ? parseInt(limitParam) : 50;
+  // Read at the boundary: this is untrusted input, and a NaN reaching the
+  // venue produces a request the venue can only reject — an upstream call
+  // spent learning nothing.
+  const limit = clampKlineLimit(limitParam ? parseInt(limitParam) : 50);
   const start = startParam ? parseInt(startParam) : undefined;
   const end = endParam ? parseInt(endParam) : undefined;
 
@@ -66,14 +71,32 @@ export const GET: RequestHandler = async ({ url }) => {
   }
 
   try {
-    const klines = await venue.fetchKlines({
-      symbol,
-      interval,
-      limit,
-      start,
-      end,
-      priceSource,
-    });
+    // The client asks for the newest candles with endTime = Date.now(), so
+    // every request is a distinct URL and a cache keyed on the raw request can
+    // never hit. The key floors the window to the candle it falls in, which
+    // makes every request made during the same candle share one upstream call.
+    // The cache derives the key only — the venue below is asked exactly what
+    // the caller asked for, unchanged.
+    const klines = await getCachedKlines(
+      {
+        provider: venue.id,
+        symbol,
+        interval,
+        limit,
+        start: start ?? null,
+        end: end ?? null,
+        priceSource,
+      },
+      () =>
+        venue.fetchKlines({
+          symbol,
+          interval,
+          limit,
+          start,
+          end,
+          priceSource,
+        }),
+    );
     return json(klines);
   } catch (e: unknown) {
     console.error(`Error fetching klines from ${provider}:`, e);

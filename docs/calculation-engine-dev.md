@@ -1,5 +1,15 @@
 # Calculation Engine – Developer Guide
 
+## Numeric boundary
+
+Every engine here is **analysis-grade and operates in f64** — `Float64Array`
+scratch buffers, and `Decimal.toNumber()` at the input edge in
+`technicalsCalculator.ts`. That is deliberate and matches
+[ADR-0021](adr/0021-decimal-money-boundary-display-stays-f64.md). Indicator values
+produced here must never be fed back into calculator, risk, journal or order
+logic, which is `decimal.js` territory — `statefulTechnicalsCalculator.ts` is the
+documented display-only f64 boundary.
+
 ## Architecture
 
 ```
@@ -22,7 +32,8 @@ Edit `src/utils/technicalsCalculator.ts` → `calculateIndicatorsFromArrays()`:
 // Add after existing indicator blocks
 if (shouldCalculate('myIndicator')) {
   const values = JSIndicators.myIndicator(closes, settings.myIndicator.period);
-  // Push to result.oscillators or result.movingAverages
+  // Push to the `oscillators` / `movingAverages` locals, which are assembled
+  // into the returned `TechnicalsData` at the end of the function
 }
 ```
 
@@ -70,21 +81,21 @@ const myResult = await this.compute('myIndicator', myShader, [inputData], [perio
 
 | Method | Purpose |
 |--------|---------|
-| `selectEngine(klineCount, settings)` | Choose optimal engine |
+| `selectEngine(settings)` | Pin one engine for the session (WASM when available, TS otherwise); honors an explicit `preferredEngine` and the 5-minute re-probe window after degradation. It never receives a candle count. |
 | `exportTelemetry()` | Full debug snapshot |
 
 ### `technicalsService.ts`
 
 | Method | Purpose |
 |--------|---------|
-| `calculateTechnicals(klines, settings)` | Main entry: routes to engine, caches, records perf |
+| `calculateTechnicals(klinesInput, settings?)` | Main entry: enforces `historyLimit` (default 750), routes to the selected engine, caches, records perf |
 | `calculateTechnicalsInline(klines, settings)` | Sync TS calculation (no worker) |
 
 ### Circuit Breaker (derived, not enforced)
 
-- **Status**: Health is derived from the >500ms timing rule via `exportTelemetry()`; selection reapplies the timing rule on the next call. Consequence: a single WASM run above 500ms degrades `selectEngine` to `ts` for the rest of the session (no automatic recovery); only a page reload or the Preferred Engine override resets it.
+- **Status**: Health is derived from the timing rule via `exportTelemetry()`; selection reapplies the timing rule on the next call. Consequence: **3 consecutive** live runs of the pinned engine above 500ms degrade `selectEngine` to `ts` for the rest of a 5-minute degradation window. Only `context === 'live'` counts, so benchmark runs never degrade anything. When the window elapses the pinned engine is re-probed automatically, and a successful run resets `slowRuns`.
 - Do not confuse this with the worker crash guard (`technicalsService.ts` disables the worker after >2 consecutive failures) — that protects the worker, not the engine selection.
-- **Planned behavior**: 3 consecutive failures → engine disabled for 5 minutes → half-open (retries once) → successful calculation resets failure count.
+- **Planned behavior**: 3 consecutive failures → engine disabled for 5 minutes → half-open (retries once) → successful calculation resets failure count. Of these, only the 5-minute window exists today. The engine-level breaker is timing-derived and has no failure count and no half-open state; the only real failure counter is the worker crash guard, and its disable is permanent.
 
 ### Performance History
 

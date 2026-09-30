@@ -59,6 +59,12 @@ fallback. Refusal reasons for truly unmerged branches stay untouched, no
 
 - `--all --apply` behaviour; Gortex untrack logic; anything outside `check()`
 
+> **Note (2026-09-29):** `scripts/worktree-cleanup.sh` is no longer in the
+> repository. It was removed in `a671d459` (PR #3325, 2026-09-15), which retired
+> the hand-written worktree guidance along with the other agent helper scripts —
+> Gortex discovers linked worktrees from `git worktree list` on its own. The
+> links below therefore point at a file that existed when this was fixed.
+
 ## Links
 
 - `scripts/worktree-cleanup.sh` (`check()`, ~line 76)
