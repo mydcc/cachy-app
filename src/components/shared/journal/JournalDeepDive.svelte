@@ -36,6 +36,12 @@
     import RadarChart from "../charts/RadarChart.svelte";
     import CalendarHeatmap from "../charts/CalendarHeatmap.svelte";
 
+    // PR1 edge (BUG-0594): stats return Decimal, charts take number.
+    // PR2 (BUG-0595) converts these call sites properly.
+    const toChartNum = (
+        v: number | { toNumber(): number } | null | undefined,
+    ): number => (typeof v === "number" ? v : (v?.toNumber() ?? 0));
+
     interface ThemeColors {
         success: string;
         danger: string;
@@ -271,18 +277,18 @@
             {
                 label: $_("journal.deepDive.charts.labels.pnlBreakdown"),
                 data: [
-                    leakageData.waterfallData?.grossProfit || 0,
-                    leakageData.waterfallData?.fees || 0,
-                    leakageData.waterfallData?.grossLoss || 0,
-                    leakageData.waterfallData?.netResult || 0,
+                    toChartNum(leakageData.waterfallData?.grossProfit),
+                    toChartNum(leakageData.waterfallData?.fees),
+                    toChartNum(leakageData.waterfallData?.grossLoss),
+                    toChartNum(leakageData.waterfallData?.netResult),
                 ],
                 backgroundColor: [
                     themeColors.success,
                     themeColors.warning,
                     themeColors.danger,
-                    (leakageData.waterfallData?.netResult || 0) >= 0
+                    (toChartNum(leakageData.waterfallData?.netResult) >= 0
                         ? themeColors.success
-                        : themeColors.danger,
+                        : themeColors.danger),
                 ],
             },
         ],
@@ -296,7 +302,7 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: (leakageData.worstTags || []).map((t) => t.pnl),
+                data: (leakageData.worstTags || []).map((t) => toChartNum(t.pnl)),
                 backgroundColor: themeColors.danger,
             },
         ],
@@ -337,9 +343,9 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: tagData.pnlData || [],
+                data: (tagData.pnlData || []).map(toChartNum),
                 backgroundColor: (tagData.pnlData || []).map((d) =>
-                    d >= 0 ? themeColors.success : themeColors.danger,
+                    toChartNum(d) >= 0 ? themeColors.success : themeColors.danger,
                 ),
             },
         ],
@@ -735,7 +741,11 @@
                 </div>
                 <div class="w-full">
                     <CalendarHeatmap
-                        data={calendarData}
+                        data={(calendarData || []).map((d) => ({
+                            ...d,
+                            pnl: toChartNum(d.pnl),
+                            bestSymbolPnl: toChartNum(d.bestSymbolPnl),
+                        }))}
                         year={selectedYear}
                         onclick={handleCalendarClick}
                     />
@@ -868,8 +878,9 @@
                             {$_("journal.labels.mostProfitableStrategy")}
                         </div>
                         {#if tagData.labels.length > 0 && tagData.pnlData.length > 0}
-                            {@const maxVal = Math.max(...tagData.pnlData)}
-                            {@const bestIdx = tagData.pnlData.indexOf(maxVal)}
+                            {@const pnlNums = tagData.pnlData.map(toChartNum)}
+                            {@const maxVal = Math.max(...pnlNums)}
+                            {@const bestIdx = pnlNums.indexOf(maxVal)}
                             {#if bestIdx !== -1 && tagData.labels[bestIdx]}
                                 <div
                                     class="text-2xl font-bold text-[var(--success-color)]"
