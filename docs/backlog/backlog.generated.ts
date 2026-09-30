@@ -2681,7 +2681,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0592",
     "title": "Native number arithmetic used for financial values in journalSort.ts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0592-0593-decimal-sort-ai",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2699,7 +2701,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0593",
     "title": "Native number arithmetic used for financial values in ai.svelte.ts",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/bug-0592-0593-decimal-sort-ai",
     "priority": "P1",
     "milestone": "none",
     "editions": [
