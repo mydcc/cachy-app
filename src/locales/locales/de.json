@@ -4239,6 +4239,7 @@
     "addSubmitted": "Nachkauf-Order gesendet.",
     "remainingAfter": "Verbleibt",
     "realizesPnl": "Realisiert",
+    "realizesPnlDerived": "Realisiert (gesch.)",
     "minimumTradeVolume": "Minimum: {min}",
     "invalidQuantity": "Bitte eine gültige Menge größer als null eingeben.",
     "quantityMustBePositive": "Die Menge muss größer als null sein.",
