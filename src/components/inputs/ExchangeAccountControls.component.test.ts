@@ -210,8 +210,10 @@ async function render() {
     await settle();
 }
 
-function button(trackId: string): HTMLButtonElement | null {
-    return host.querySelector(`[data-track-id="${trackId}"]`);
+function button(trackId: string): HTMLButtonElement {
+    const el = host.querySelector<HTMLButtonElement>(`[data-track-id="${trackId}"]`);
+    if (!el) throw new Error(`button [data-track-id="${trackId}"] not found`);
+    return el;
 }
 
 function draftInput(): HTMLInputElement | null {
@@ -220,7 +222,7 @@ function draftInput(): HTMLInputElement | null {
 
 /** Open the leverage dialog and type a value into it. */
 async function openLeverageAndType(value: string) {
-    button("btn-leverage-chip")?.click();
+    button("btn-leverage-chip").click();
     await settle();
     const input = draftInput();
     if (!input) throw new Error("leverage dialog did not open");
@@ -231,7 +233,7 @@ async function openLeverageAndType(value: string) {
 
 /** Open the shared margin/position-mode dialog. */
 async function openModeModal() {
-    button("btn-mode-chip")?.click();
+    button("btn-mode-chip").click();
     await settle();
 }
 
@@ -240,11 +242,11 @@ describe("FEAT-0328 — nothing travels without a confirmation", () => {
         await render();
         await openModeModal();
 
-        button("btn-margin-mode-cross")?.click();
+        button("btn-margin-mode-cross").click();
         await settle();
         expect(accountPort.changeMarginMode).not.toHaveBeenCalled();
 
-        button("btn-mode-confirm")?.click();
+        button("btn-mode-confirm").click();
         await settle();
         expect(accountPort.changeMarginMode).toHaveBeenCalledWith("BTCUSDT", "CROSS");
     });
@@ -253,11 +255,11 @@ describe("FEAT-0328 — nothing travels without a confirmation", () => {
         await render();
         await openModeModal();
 
-        button("btn-position-mode-hedge")?.click();
+        button("btn-position-mode-hedge").click();
         await settle();
         expect(accountPort.changePositionMode).not.toHaveBeenCalled();
 
-        button("btn-mode-confirm")?.click();
+        button("btn-mode-confirm").click();
         await settle();
         expect(accountPort.changePositionMode).toHaveBeenCalledWith("HEDGE");
     });
@@ -266,11 +268,11 @@ describe("FEAT-0328 — nothing travels without a confirmation", () => {
         await render();
         await openModeModal();
 
-        button("btn-margin-mode-cross")?.click();
-        button("btn-position-mode-hedge")?.click();
+        button("btn-margin-mode-cross").click();
+        button("btn-position-mode-hedge").click();
         await settle();
 
-        button("btn-mode-cancel")?.click();
+        button("btn-mode-cancel").click();
         await settle();
 
         expect(accountPort.changeMarginMode).not.toHaveBeenCalled();
@@ -282,16 +284,16 @@ describe("FEAT-0328 — nothing travels without a confirmation", () => {
         await render();
         await openModeModal();
 
-        expect(button("btn-mode-confirm")?.disabled).toBe(true);
+        expect(button("btn-mode-confirm").disabled).toBe(true);
     });
 
     it("sends only what actually differs, not the mode already set", async () => {
         await render();
         await openModeModal();
 
-        button("btn-position-mode-hedge")?.click();
+        button("btn-position-mode-hedge").click();
         await settle();
-        button("btn-mode-confirm")?.click();
+        button("btn-mode-confirm").click();
         await settle();
 
         expect(accountPort.changePositionMode).toHaveBeenCalledTimes(1);
@@ -308,20 +310,20 @@ describe("FEAT-0328 — nothing travels without a confirmation", () => {
         await render();
         await openModeModal();
 
-        button("btn-margin-mode-cross")?.click();
-        button("btn-position-mode-hedge")?.click();
+        button("btn-margin-mode-cross").click();
+        button("btn-position-mode-hedge").click();
         await settle();
-        button("btn-mode-confirm")?.click();
+        button("btn-mode-confirm").click();
         await settle();
 
         expect(accountPort.changeMarginMode).toHaveBeenCalledTimes(1);
         expect(toastMock.error).toHaveBeenCalled();
-        expect(button("btn-mode-confirm")).not.toBeNull();
+        expect(host.querySelector('[data-track-id="btn-mode-confirm"]')).not.toBeNull();
     });
 
     it("moving the leverage slider sends nothing until Confirm", async () => {
         await render();
-        button("btn-leverage-chip")?.click();
+        button("btn-leverage-chip").click();
         await settle();
 
         const slider = host.querySelector(
@@ -331,10 +333,10 @@ describe("FEAT-0328 — nothing travels without a confirmation", () => {
         slider.dispatchEvent(new Event("input", { bubbles: true }));
         await settle();
 
-        expect(draftInput()?.value).toBe("30");
+        expect(draftInput()!.value).toBe("30");
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
         expect(accountPort.changeLeverage).toHaveBeenCalledTimes(1);
     });
@@ -343,20 +345,20 @@ describe("FEAT-0328 — nothing travels without a confirmation", () => {
 describe("FEAT-0328 — leverage is set from its chip, not from the calculator", () => {
     it("opens a dialog seeded with the value the exchange reports", async () => {
         await render();
-        button("btn-leverage-chip")?.click();
+        button("btn-leverage-chip").click();
         await settle();
 
-        expect(draftInput()?.value).toBe("10");
+        expect(draftInput()!.value).toBe("10");
     });
 
     it("states plainly that leverage may be changed with an open position", async () => {
         // A verified fact from the venue's own docs, not reassurance.
         await render();
-        button("btn-leverage-chip")?.click();
+        button("btn-leverage-chip").click();
         await settle();
 
         expect(
-            host.querySelector('[data-track-id="note-leverage-anytime"]')?.textContent,
+            host.querySelector('[data-track-id="note-leverage-anytime"]')!.textContent,
         ).toContain("any time");
     });
 
@@ -365,7 +367,7 @@ describe("FEAT-0328 — leverage is set from its chip, not from the calculator",
         await render();
         await openLeverageAndType("20");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         expect(accountPort.changeLeverage).toHaveBeenCalledTimes(1);
@@ -382,10 +384,10 @@ describe("FEAT-0328 — leverage is set from its chip, not from the calculator",
         await openLeverageAndType("100"); // pair tops out at 50
 
         const apply = button("btn-leverage-apply");
-        expect(apply?.disabled).toBe(true);
-        expect(apply?.title).toContain("50");
+        expect(apply.disabled).toBe(true);
+        expect(apply.title).toContain("50");
 
-        apply?.click();
+        apply.click();
         await settle();
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
     });
@@ -397,8 +399,8 @@ describe("FEAT-0328 — leverage is set from its chip, not from the calculator",
         await render();
         await openLeverageAndType("2");
 
-        expect(button("btn-leverage-apply")?.disabled).toBe(true);
-        button("btn-leverage-apply")?.click();
+        expect(button("btn-leverage-apply").disabled).toBe(true);
+        button("btn-leverage-apply").click();
         await settle();
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
     });
@@ -407,8 +409,8 @@ describe("FEAT-0328 — leverage is set from its chip, not from the calculator",
         await render();
         await openLeverageAndType("12.5");
 
-        expect(button("btn-leverage-apply")?.disabled).toBe(true);
-        button("btn-leverage-apply")?.click();
+        expect(button("btn-leverage-apply").disabled).toBe(true);
+        button("btn-leverage-apply").click();
         await settle();
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
     });
@@ -417,24 +419,24 @@ describe("FEAT-0328 — leverage is set from its chip, not from the calculator",
         await render();
         await openLeverageAndType("50"); // at the pair's maximum
 
-        button("btn-leverage-plus")?.click();
+        button("btn-leverage-plus").click();
         await settle();
-        expect(draftInput()?.value).toBe("50");
+        expect(draftInput()!.value).toBe("50");
 
-        button("btn-leverage-minus")?.click();
+        button("btn-leverage-minus").click();
         await settle();
-        expect(draftInput()?.value).toBe("49");
+        expect(draftInput()!.value).toBe("49");
     });
 
     it("re-seeds from the exchange on each open, so a stale draft cannot survive", async () => {
         await render();
         await openLeverageAndType("35");
-        button("btn-leverage-cancel")?.click();
+        button("btn-leverage-cancel").click();
         await settle();
 
-        button("btn-leverage-chip")?.click();
+        button("btn-leverage-chip").click();
         await settle();
-        expect(draftInput()?.value).toBe("10");
+        expect(draftInput()!.value).toBe("10");
     });
 });
 
@@ -445,7 +447,7 @@ describe("FEAT-0328 — with no broker value the chip edits locally and sends no
         await render();
         await openLeverageAndType("15");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
@@ -458,7 +460,7 @@ describe("FEAT-0328 — with no broker value the chip edits locally and sends no
         await render();
         await openLeverageAndType("15");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
@@ -471,14 +473,14 @@ describe("FEAT-0328 — the three writes stay gated differently", () => {
         accountStateMock.positions = [position()];
         await render();
 
-        expect(button("btn-leverage-chip")?.disabled).toBe(false);
+        expect(button("btn-leverage-chip").disabled).toBe(false);
     });
 
     it("leaves leverage operable while a resting order sits on the symbol", async () => {
         accountStateMock.openOrders = [{ symbol: "BTCUSDT" }];
         await render();
 
-        expect(button("btn-leverage-chip")?.disabled).toBe(false);
+        expect(button("btn-leverage-chip").disabled).toBe(false);
     });
 
     it("gates the three differently for one open position on this symbol", async () => {
@@ -486,9 +488,9 @@ describe("FEAT-0328 — the three writes stay gated differently", () => {
         await render();
         await openModeModal();
 
-        expect(button("btn-leverage-chip")?.disabled).toBe(false);
-        expect(button("btn-margin-mode-isolated")?.disabled).toBe(true);
-        expect(button("btn-position-mode-hedge")?.disabled).toBe(true);
+        expect(button("btn-leverage-chip").disabled).toBe(false);
+        expect(button("btn-margin-mode-isolated").disabled).toBe(true);
+        expect(button("btn-position-mode-hedge").disabled).toBe(true);
     });
 
     it("gates them differently again for a position on another symbol", async () => {
@@ -498,9 +500,9 @@ describe("FEAT-0328 — the three writes stay gated differently", () => {
         await render();
         await openModeModal();
 
-        expect(button("btn-leverage-chip")?.disabled).toBe(false);
-        expect(button("btn-margin-mode-cross")?.disabled).toBe(false);
-        expect(button("btn-position-mode-hedge")?.disabled).toBe(true);
+        expect(button("btn-leverage-chip").disabled).toBe(false);
+        expect(button("btn-margin-mode-cross").disabled).toBe(false);
+        expect(button("btn-position-mode-hedge").disabled).toBe(true);
     });
 
     it("shows each blocked section its own reason, inside the shared dialog", async () => {
@@ -509,10 +511,10 @@ describe("FEAT-0328 — the three writes stay gated differently", () => {
         await openModeModal();
 
         expect(
-            host.querySelector('[data-track-id="reason-margin-mode"]')?.textContent,
+            host.querySelector('[data-track-id="reason-margin-mode"]')!.textContent,
         ).toContain("BTCUSDT");
         expect(
-            host.querySelector('[data-track-id="reason-position-mode"]')?.textContent,
+            host.querySelector('[data-track-id="reason-position-mode"]')!.textContent,
         ).toContain("any position");
     });
 
@@ -521,8 +523,8 @@ describe("FEAT-0328 — the three writes stay gated differently", () => {
         await render();
         await openModeModal();
 
-        expect(button("btn-margin-mode-cross")?.disabled).toBe(true);
-        expect(button("btn-position-mode-hedge")?.disabled).toBe(true);
+        expect(button("btn-margin-mode-cross").disabled).toBe(true);
+        expect(button("btn-position-mode-hedge").disabled).toBe(true);
     });
 });
 
@@ -532,7 +534,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await render();
         await openLeverageAndType("20");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         expect(modalMock.show).toHaveBeenCalledTimes(1);
@@ -545,7 +547,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await render();
         await openLeverageAndType("20");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         expect(accountPort.changeLeverage).not.toHaveBeenCalled();
@@ -565,7 +567,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await render();
         await openLeverageAndType("20");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         expect(modalMock.show).toHaveBeenCalledTimes(1);
@@ -577,7 +579,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await render();
         await openLeverageAndType("20");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         expect(modalMock.show).not.toHaveBeenCalled();
@@ -602,8 +604,8 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await openLeverageAndType("20");
 
         const live = host.querySelector('[data-track-id="leverage-liquidation"]');
-        expect(live?.textContent).toContain("91");
-        expect(live?.textContent).toContain("96");
+        expect(live!.textContent).toContain("91");
+        expect(live!.textContent).toContain("96");
     });
 
     it("repeats that shift in the confirmation, as the last thing read before sending", async () => {
@@ -617,7 +619,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await render();
         await openLeverageAndType("20");
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
 
         const [, message] = modalMock.show.mock.calls[0] as unknown as [string, string];
@@ -633,7 +635,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
 
         expect(host.querySelector('[data-track-id="leverage-liquidation"]')).toBeNull();
 
-        button("btn-leverage-apply")?.click();
+        button("btn-leverage-apply").click();
         await settle();
         const [, message] = modalMock.show.mock.calls[0] as unknown as [string, string];
         expect(message).not.toContain("estimate");
@@ -647,11 +649,11 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await openModeModal();
 
         // Change both: margin ISOLATION → CROSS, position ONE_WAY → HEDGE
-        button("btn-margin-mode-cross")?.click();
-        button("btn-position-mode-hedge")?.click();
+        button("btn-margin-mode-cross").click();
+        button("btn-position-mode-hedge").click();
         await settle();
 
-        button("btn-mode-confirm")?.click();
+        button("btn-mode-confirm").click();
         await settle();
 
         // Both services called exactly once each with correct mode
@@ -662,7 +664,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         expect(accountPort.changePositionMode).toHaveBeenCalledWith("HEDGE");
 
         // Dialog closes on success
-        expect(button("btn-mode-confirm")).toBeNull();
+        expect(host.querySelector('[data-track-id="btn-mode-confirm"]')).toBeNull();
     });
 
     it("half-applied: margin succeeds, position fails → dialog stays open, error shown", async () => {
@@ -674,11 +676,11 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         await render();
         await openModeModal();
 
-        button("btn-margin-mode-cross")?.click();
-        button("btn-position-mode-hedge")?.click();
+        button("btn-margin-mode-cross").click();
+        button("btn-position-mode-hedge").click();
         await settle();
 
-        button("btn-mode-confirm")?.click();
+        button("btn-mode-confirm").click();
         await settle();
 
         // Margin call succeeded
@@ -689,7 +691,7 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
         expect(accountPort.changePositionMode).toHaveBeenCalledTimes(1);
 
         // Dialog stays open (button still visible)
-        expect(button("btn-mode-confirm")).not.toBeNull();
+        expect(host.querySelector('[data-track-id="btn-mode-confirm"]')).not.toBeNull();
 
         // Error is visible
         expect(toastMock.error).toHaveBeenCalled();
@@ -705,18 +707,18 @@ describe("FEAT-0068 — a venue without these endpoints offers no controls", () 
         supportsMock.accountSettings = false;
         await render();
 
-        expect(button("btn-leverage-chip")).toBeNull();
-        expect(button("btn-mode-chip")).toBeNull();
-        expect(host.textContent?.trim()).toBe("");
+        expect(host.querySelector('[data-track-id="btn-leverage-chip"]')).toBeNull();
+        expect(host.querySelector('[data-track-id="btn-mode-chip"]')).toBeNull();
+        expect(host.textContent ?? "").toBe("");
     });
 });
 
 /** Open the modes dialog, pick a margin mode, and commit it. */
 async function chooseMarginMode(mode: "CROSS" | "ISOLATION") {
     await openModeModal();
-    button(mode === "CROSS" ? "btn-margin-mode-cross" : "btn-margin-mode-isolated")?.click();
+    button(mode === "CROSS" ? "btn-margin-mode-cross" : "btn-margin-mode-isolated").click();
     await settle();
-    button("btn-mode-confirm")?.click();
+    button("btn-mode-confirm").click();
     await settle();
 }
 
@@ -770,7 +772,7 @@ describe("FEAT-0020 — the mode writes ask before they change the account", () 
         await render();
         await openModeModal();
 
-        expect(button("btn-margin-mode-cross")?.disabled).toBe(true);
+        expect(button("btn-margin-mode-cross").disabled).toBe(true);
         expect(modalMock.show).not.toHaveBeenCalled();
         expect(accountPort.changeMarginMode).not.toHaveBeenCalled();
     });
@@ -784,8 +786,8 @@ describe("BUG-1 — margin mode has an initial read", () => {
 
     it("shows both modes in the chip title once the broker answered", async () => {
         await render();
-        const chip = button("btn-mode-chip")?.querySelector("span[title]");
-        expect(chip?.getAttribute("title")).toContain("\u2022");
+        const chip = button("btn-mode-chip").querySelector("span[title]");
+        expect(chip!.getAttribute("title")).toContain("\u2022");
     });
 });
 
@@ -855,7 +857,7 @@ describe("BUG-1b — the chip fills its right half on its own", () => {
 describe("BUG-0409 — halves from different eras are not paired", () => {
     /** Text of the chip, halves and separator included. */
     function chipText(): string {
-        return button("btn-mode-chip")?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+        return button("btn-mode-chip").textContent!.replace(/\s+/g, " ").trim() ?? "";
     }
 
     it("shows both halves while their stamps are close together", async () => {
@@ -899,8 +901,8 @@ describe("BUG-0409 — halves from different eras are not paired", () => {
 
         await render();
 
-        const title = button("btn-mode-chip")?.querySelector("span[title]")
-            ?.getAttribute("title") ?? "";
+        const title = button("btn-mode-chip").querySelector("span[title]")!
+            .getAttribute("title") ?? "";
         // Both values still named — hiding the pairing is the point, hiding
         // the reason is not.
         expect(title).toContain("Isolated");

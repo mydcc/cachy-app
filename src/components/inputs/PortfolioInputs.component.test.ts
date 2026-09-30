@@ -158,7 +158,7 @@ describe("FEAT-0346 — PortfolioInputs keeps user input and store value apart",
         const ontoggleriskamountlock = vi.fn();
         render({ ontoggleriskamountlock });
 
-        host.querySelector<HTMLButtonElement>("button.btn-lock-icon")?.click();
+        host.querySelector<HTMLButtonElement>("button.btn-lock-icon")!.click();
 
         expect(ontoggleriskamountlock).toHaveBeenCalledTimes(1);
     });

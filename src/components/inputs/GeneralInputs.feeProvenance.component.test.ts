@@ -133,7 +133,7 @@ function summary(): { text: string; provenance: string | undefined } {
     const line = host.querySelector<HTMLElement>(".fee-summary");
     const text = line?.textContent?.replace(/\s+/g, " ").trim() ?? "";
     const provenance =
-        feeColumn().querySelector<HTMLElement>(".fee-badge")?.dataset
+        feeColumn().querySelector<HTMLElement>(".fee-badge")!.dataset
             .provenance;
     return { text, provenance };
 }
