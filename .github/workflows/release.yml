@@ -63,11 +63,10 @@ jobs:
       - name: Run semantic-release
         env:
           # RELEASE_TOKEN (when present) is the repo owner's fine-grained PAT.
-          # develop's classic branch protection has enforce_admins disabled,
-          # so a push by the owner identity may land the release commit
-          # directly -- the default GITHUB_TOKEN (github-actions[bot]) is not
-          # an admin and gets rejected with GH006. Falls back to GITHUB_TOKEN
-          # so forks and local dry-runs keep working without the secret.
+          # It must be valid: a set-but-invalid value fails harder than an
+          # absent one, because the `||` fallback never fires (BUG-0584).
+          # Falls back to GITHUB_TOKEN so forks and local dry-runs keep
+          # working without the secret.
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: npx semantic-release
 
