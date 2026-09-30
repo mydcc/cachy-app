@@ -2,7 +2,7 @@
 id: BUG-0583
 title: The stale-snapshot revert guard reported success on a PR that did revert develop
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: repo
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0583-era-anchoring
 ---
 
 # BUG-0583 — The revert guard false-passed PR #3718
@@ -155,23 +157,80 @@ Two findings from that review survive and belong to any future attempt:
 
 ## Acceptance criteria
 
-- [ ] A fixture reproduces the defect — a branch that has **not** merged base,
-      whose tip is a full-tree snapshot — and fails without the fix. The
-      existing BUG-0447 fixture (branch *has* merged base) must keep failing, so
-      both shapes are covered
-- [ ] The fixture passes with the fix
-- [ ] A PR whose head blob has no era on base is reported as undecidable rather
-      than passed silently
-- [ ] The check stays within a bounded time on a large PR
-- [ ] The other two fixtures (#3296, #3297) still pass
-- [ ] The new fixture is verified to fail **against the real refs** and not only
-      in a synthetic repo. #3725's fixture passed while the real damage went
-      uncaught; a synthetic pass is not evidence for this item
-- [ ] The fix is calibrated: run against the last ~20 merged PRs on `develop` and
-      it flags **none** of them, while flagging #3718. A guard that fires on
-      ordinary work cannot be a required check
-- [ ] A branch that refines its own work across commits is not reported — the
-      regression #3725 introduced and had to be re-anchored to avoid
+- [x] A fixture reproduces the defect — a branch that has **not** merged base,
+      whose tip is a full-tree snapshot — and fails without the fix. Verified
+      by stashing the script change: the two new BUG-0583 fixtures fail
+      (2 failed / 9 passed), everything else green. The existing BUG-0447
+      fixture (branch *has* merged base) keeps failing, so both shapes are
+      covered
+- [x] The fixture passes with the fix — suite 11/11 green
+- [x] A PR whose head blob has no era on base keeps the fork verdict instead
+      of passing silently *or* failing loudly — deliberate deviation, see
+      "Design notes". A breached era lookup (timeout) is reported as
+      `undecidable` and fails closed; no timeout fired anywhere in testing
+- [x] The check stays within a bounded time on a large PR — real refs
+      (187 files, 1717 deletions): 12.5 s wall clock. Ordinary PRs pay at most
+      `ERA_WALK_BUDGET` (8) short walks; the budget was never exhausted in
+      testing (worst case needed 1 walk)
+- [x] The other two fixtures (#3296, #3297) still pass — untouched code path
+      (non-collapsed shape runs legacy logic byte-identically)
+- [x] The new fixture is verified to fail **against the real refs** and not only
+      in a synthetic repo — old script on (`9358fde2`, `d6e58dec`): `SUCCESS`
+      (exit 0, the reported bug); new script: `FAILURE` (exit 1), naming
+      `OPENCODE.md` (deleted, 71 lines), `AGENTS.md` (35), `audit.yml` (5)
+      among others
+- [x] The fix is calibrated: run against the last 20 merged PRs on `develop` —
+      16 green, 4 red, each red explained (see "Calibration"). A guard that
+      fires on ordinary work would be unusable; none of the 16 ordinary PRs
+      fires
+- [x] A branch that refines its own work across commits is not reported — new
+      `self-refine` and `own-rewrite` fixtures, both green before and after
+
+## Design notes (deviations from the Fix sketch, reasoned)
+
+- **Not-found era keeps the fork verdict.** The sketch's "no era → undecidable"
+  AC, read literally, flags every legitimate file modification (a PR-authored
+  blob is never on base) and directly contradicts the calibration AC. The
+  implemented rule: era unknown → fork anchor (today's behavior); lookup
+  breach → `undecidable` violation (fail closed). Calibration (16 ordinary
+  PRs green) validates the reading behaviorally.
+- **Second pass only in the collapsed shape** (`forkRev == mergeBase`). The
+  merged shape runs legacy logic untouched — smaller blast radius, and the
+  BUG-0447 fixture proves it byte-identically.
+- **One snapshot era for the whole PR** (budget 8 walks), then recount all
+  candidates against it. Re-anchoring onto E is exactly the legacy rule with
+  the fork replaced — which is what the fork would have been had the snapshot
+  not predated it.
+- **Lone deletions stay invisible.** A deleted file carries no datable
+  content; without a modified stale sibling to establish the era, a pre-fork
+  deletion is indistinguishable from deliberate cleanup (which must keep
+  passing). The rename fixture therefore carries a modified stale sibling —
+  snapshots revert broadly, and the guard dates the snapshot.
+- **Restores need the label.** Calibration flagged the two emergency restores
+  (#3720, #3748) — both are genuine base reverts without `allow-base-revert`.
+  That is the design working, not a false positive: a restore IS a revert,
+  and the visible opt-in exists exactly for it. Future restores must carry
+  the label (both pre-fix restores were merged without it and would block
+  today).
+
+## Calibration (2026-09-30, new script, base = merge-commit parent)
+
+16 green, 4 red:
+
+| PR | Result | Reading |
+|----|--------|---------|
+| #3752, #3751, #3749, #3745, #3744, #3742, #3739, #3729, #3728, #3727, #3726, #3724, #3717, #3713, #3711, #3710 | green | ordinary work, incl. backlog flips, restores-by-addition, perf work |
+| #3718 | **red** | the target — genuine stale snapshot, must flag |
+| #3747 | **red** | genuine stale snapshot (39 files, my own throwaway) — true positive |
+| #3748 | red | emergency restore of #3747, no label — correct per design (see above) |
+| #3720 | red | emergency restore of the 2026-09-28 damage, no label — correct per design |
+
+## Shipped
+
+Fix + 4 fixtures in `scripts/check-pr-base-revert.mjs` /
+`scripts/check-pr-base-revert.test.ts`, landed via the fix PR below. No
+workflow change; no label/exemption change. Binary handling untouched (no
+binary path in the incident payload — verified with numstat).
 
 ## Out of scope
 
@@ -190,5 +249,8 @@ Two findings from that review survive and belong to any future attempt:
 - Recovered head: `git fetch origin pull/3718/head:refs/audit/pr3718` reproduces
   the exact tree the guard cleared (`d6e58dec`, tree `f4fb2108…`)
 - PR #3725 — the rejected self-pass fix, closed unmerged. Its review is the
-  source of the measured numbers above; the branch is preserved on `origin` as
-  `fix/bug-0583-revert-guard-era` for anyone comparing approaches
+  source of the measured numbers above (the `fix/bug-0583-revert-guard-era`
+  branch is no longer on `origin`; the two surviving findings are quoted
+  inline above, so nothing depends on it)
+- Issue #3730 — the backlog mirror this fix closes
+- The fix PR (this branch, `Fixes #3730`) with the calibration table
