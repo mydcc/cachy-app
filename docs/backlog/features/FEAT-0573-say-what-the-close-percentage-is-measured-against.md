@@ -74,7 +74,7 @@ the fix costs no second copy of the position size.
 ## Out of scope
 
 - Anchoring the percentage to the size the position had when the dialog opened. Decided
-  in [`TODO.md` 29](../../TODO.md#29--does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left):
+  in [`TODO.md` 29](../../TODO.md#29-does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left):
   it reintroduces a second copy of a value that goes stale the moment the position moves
   under the dialog, which is exactly the class of bug the current design avoids.
 - A toggle between the two bases, for the same reason [`FEAT-0526`](FEAT-0526-kill-switch-explained-and-configurable-in-settings.md)
@@ -88,7 +88,7 @@ the fix costs no second copy of the position size.
 
 ## Links
 
-- [`TODO.md` 29](../../TODO.md#29--does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left) — the decision and its full reasoning
+- [`TODO.md` 29](../../TODO.md#29-does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left) — the decision and its full reasoning
 - `src/lib/calculators/partialClose.ts` — `quantityFromPercent`, `percentFromQuantity`
 - `src/components/shared/PartialCloseInput.svelte` — the slider and the typed field
 - `src/components/shared/ClosePositionModal.svelte` — the dialog that mounts the input
@@ -137,7 +137,7 @@ hold on the coarse fixture (50 % of 0.7 rounds down to 0.3) nor with a
 0.5, i.e. 25 %). Both are the documented rules doing their job, so neither
 fixture is used, and the header says so.
 
-Also fixed in [`TODO.md` 29](../../TODO.md#29--does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left),
+Also fixed in [`TODO.md` 29](../../TODO.md#29-does-a-close-percentage-mean-a-share-of-the-original-position-or-of-what-is-left),
 whose worked example said a second 50 % of a 2-contract position is "not a
 quarter of the original" — in that example it *is* a quarter of the original.
 The item and the entry now read identically.

@@ -2,7 +2,7 @@
 
 Reconciliation of the official Bitunix Futures API (crawled 08.08.2026, see
 [README.md](README.md)) against the actual integration state in the code.
-Reconciled on: **2026-09-28**.
+Reconciled on: **2026-09-05**.
 
 Purpose: basis for the trade panel UI rework and the planned trade execution
 (Bitunix first, then Bitget). Not a plan document — what gets built when is in

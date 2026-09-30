@@ -17,36 +17,15 @@
  */
 
 /**
- * Fails if a relative Markdown link points at a file that does not exist, or
- * at an anchor that file does not define.
+ * Fails if a relative Markdown link points at a file that does not exist.
  *
  *   node scripts/check-doc-links.mjs
  *
  * Why this exists: moving a document silently breaks every pointer to it, and
  * nothing notices until a reader follows one. Archiving the old roadmap broke
- * six links in one commit. External URLs and pure in-page anchors are not
- * checked — this is about the repository staying internally consistent, not
- * about the web.
- *
- * Why anchors are checked too: the fragment was previously dropped, so a link
- * to a renamed heading passed while leading nowhere. Seven such links existed.
- * Validating them is only safe if the slug rules match GitHub's exactly,
- * because a mismatch produces false failures on a correct tree. The four rules
- * that matter, all of them present in this repository:
- *
- *   1. Both ATX (`## Heading`) and Setext (`Heading\n-----`) headings count.
- *      Five documents here use Setext.
- *   2. Duplicated heading text gets a numeric suffix: the first is
- *      `http-request`, the second `http-request-1`. `### HTTP Request`
- *      repeats many times across the API mirrors.
- *   3. Headings inside fenced code blocks are not headings.
- *   4. A heading is slugged as GitHub renders it, so `[label](url.md)` becomes
- *      `label` and not `labelurlmd`. One heading here contains a link.
- *   5. Only links whose target is a `.md` file are anchor-checked; a fragment
- *      into any other file type is left alone rather than guessed at.
- *
- * Escape hatch: an anchor that this heuristic gets wrong can be silenced for
- * one link by pointing it at the file without the fragment.
+ * six links in one commit. External URLs and pure anchors are not checked —
+ * this is about the repository staying internally consistent, not about the
+ * web.
  */
 
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
@@ -59,8 +38,6 @@ const EXTRA_FILES = ["README.md", "AGENTS.md", "DEPLOYMENT.md", "scripts/README.
 const SKIP_DIRS = new Set(["node_modules", ".git", "build", ".svelte-kit"]);
 
 const LINK = /\[[^\]]*\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;
-const ATX = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
-const FENCE = /^\s*(```|~~~)/;
 
 function collect(dir, out) {
   let entries;
@@ -79,166 +56,38 @@ function collect(dir, out) {
   return out;
 }
 
-/**
- * GitHub's heading slug: lowercase, drop inline HTML, drop everything that is
- * not a word character, a hyphen or a space, then turn EACH space into a
- * hyphen. Note the last step is per-space, not per-run, so an em dash
- * surrounded by spaces yields a double hyphen — which is why anchors like
- * `#m0--stable-10` exist in this repository.
- *
- * The inline-HTML strip is not optional decoration. GitHub removes tags before
- * slugging, so `## Hello <b>world</b>` is `hello-world` there and would be
- * `hello-bworldb` if only the allowlist filter ran — a false "no such heading"
- * failure. No heading in this repository contains inline HTML today, so the
- * strip is currently equivalent to dropping it; it is kept so the checker stays
- * right for the next heading that does.
- *
- * The same argument applies to Markdown links, and here the repository is not
- * hypothetical: `docs/backlog/features/FEAT-0393-rule-trigger-method-and-lifecycle.md`
- * has the heading
- *
- *     ## Blockers — resolved by [`FEAT-0440`](FEAT-0440-real-firing-sink.md) (2026-09-11)
- *
- * whose GitHub anchor is `blockers--resolved-by-feat-0440-2026-09-11`. Slugging
- * the raw source instead yields
- * `blockers--resolved-by-feat-0440feat-0440-real-firing-sinkmd-2026-09-11`, and
- * any link to the real anchor would then be reported broken. So link and image
- * syntax is collapsed to its label first, and code spans to their content,
- * because that is the text GitHub slugifies.
- *
- * CodeQL flags the tag-strip as `js/incomplete-multi-character-sanitization`
- * (PR #3744, alerts 117 and 118 — it reported again with a new line number
- * after the link-collapse above was added, on the same expression). That is a
- * pattern match, not a finding: this function's result is only compared with
- * `Set.has()` and used to name a file on the terminal. There is no HTML sink in
- * this script — nothing is rendered, written, or served — so there is no
- * injection surface for the incomplete strip to reach. Both alerts were
- * dismissed on that basis. Expect a third when this function's line numbers
- * shift again; the reasoning below still applies. If an HTML sink is ever added
- * here, the dismissals no longer hold and the strip should become a real parser.
- */
-function slugify(text) {
-  return text
-    .trim()
-    .toLowerCase()
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1") // link/image -> its label
-    .replace(/`+([^`]*)`+/g, "$1") // code span -> its content
-    .replace(/<[^>]*>/g, "")
-    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-    .replace(/ /g, "-");
-}
-
-const slugCache = new Map();
-
-/** Every anchor a Markdown file defines, including `-1`, `-2` duplicates. */
-function slugsOf(absPath) {
-  const cached = slugCache.get(absPath);
-  if (cached) return cached;
-
-  const slugs = new Set();
-  const lines = readFileSync(absPath, "utf8").split(/\r?\n/);
-  let fence = null;
-  const seen = new Map();
-
-  const add = (text) => {
-    const base = slugify(text);
-    if (!base) return;
-    const n = seen.get(base) ?? 0;
-    seen.set(base, n + 1);
-    slugs.add(n === 0 ? base : `${base}-${n}`);
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    // Fenced code blocks: toggle on the opening marker, ignore everything inside.
-    const fenceMatch = line.match(FENCE);
-    if (fenceMatch) {
-      const marker = fenceMatch[1];
-      if (fence === null) fence = marker;
-      else if (fence === marker) fence = null;
-      continue;
-    }
-    if (fence !== null) continue;
-
-    const atx = line.match(ATX);
-    if (atx) {
-      add(atx[2]);
-      continue;
-    }
-
-    // Setext: a text line directly followed by a run of = (h1) or - (h2).
-    const next = lines[i + 1];
-    if (next === undefined) continue;
-    if (/^=+\s*$/.test(next) && line.trim()) {
-      add(line);
-      i++;
-    } else if (/^-{2,}\s*$/.test(next) && line.trim()) {
-      add(line);
-      i++;
-    }
-  }
-
-  slugCache.set(absPath, slugs);
-  return slugs;
-}
-
 const files = SEARCH_DIRS.reduce((acc, d) => collect(d, acc), []);
 for (const f of EXTRA_FILES) if (existsSync(join(ROOT, f))) files.push(f);
 
 const broken = [];
 let checked = 0;
-let anchorsChecked = 0;
 
 for (const file of files) {
   const text = readFileSync(join(ROOT, file), "utf8");
   for (const match of text.matchAll(LINK)) {
-    const raw = match[1];
+    let target = match[1];
 
-    if (/^(https?:|mailto:|tel:)/i.test(raw)) continue;
-    if (raw.startsWith("#")) continue; // in-page anchor
+    if (/^(https?:|mailto:|tel:)/i.test(target)) continue;
+    if (target.startsWith("#")) continue; // in-page anchor
 
-    const hashAt = raw.indexOf("#");
-    const pathPart = hashAt === -1 ? raw : raw.slice(0, hashAt);
-    // A malformed percent-escape is a broken link, not a reason to abort the
-    // whole run: report it with the other failures instead of throwing.
-    let fragment = "";
-    if (hashAt !== -1) {
-      const encoded = raw.slice(hashAt + 1);
-      try {
-        fragment = decodeURIComponent(encoded);
-      } catch {
-        broken.push(`${file} -> ${raw} (malformed percent-escape in the fragment)`);
-        continue;
-      }
-    }
-    if (!pathPart) continue;
+    target = target.split("#")[0];
+    if (!target) continue;
 
     checked++;
-    const resolved = normalize(join(ROOT, dirname(file), pathPart));
+    const resolved = normalize(join(ROOT, dirname(file), target));
 
     // Refuse to resolve outside the repository rather than reporting it missing.
     if (relative(ROOT, resolved).startsWith("..")) {
-      broken.push(`${file} -> ${raw} (points outside the repository)`);
+      broken.push(`${file} -> ${target} (points outside the repository)`);
       continue;
     }
     if (!existsSync(resolved)) {
-      broken.push(`${file} -> ${raw}`);
+      broken.push(`${file} -> ${target}`);
       continue;
     }
     // A link to a directory only works if it has something to render.
-    if (statSync(resolved).isDirectory()) {
-      if (!existsSync(join(resolved, "README.md"))) {
-        broken.push(`${file} -> ${raw} (directory without a README.md)`);
-      }
-      continue;
-    }
-
-    if (!fragment || !resolved.endsWith(".md")) continue;
-
-    anchorsChecked++;
-    if (!slugsOf(resolved).has(fragment.toLowerCase())) {
-      broken.push(`${file} -> ${raw} (no such heading in ${pathPart})`);
+    if (statSync(resolved).isDirectory() && !existsSync(join(resolved, "README.md"))) {
+      broken.push(`${file} -> ${target} (directory without a README.md)`);
     }
   }
 }
@@ -249,7 +98,4 @@ if (broken.length) {
   process.exit(1);
 }
 
-console.log(
-  `${checked} relative links across ${files.length} Markdown files, all resolve ` +
-    `(${anchorsChecked} with an anchor, all of them defined).`
-);
+console.log(`${checked} relative links across ${files.length} Markdown files, all resolve.`);

@@ -16,35 +16,20 @@ gets a token, and what happens to messages over time.
 
 ## 1. What is stored, and what is not
 
-The server-side schema is three tables, not one
-(`server/spacetimedb/src/index.ts:38-65`):
+The entire server-side schema is three fields
+(`server/spacetimedb/src/index.ts`):
 
 ```ts
-table({ name: 'sender_activity' }, {
-  sender:       t.string().primaryKey(),  // full identity hex — user data
-  window_start: t.number(),
-  count:        t.number(),
-  last_sent_at: t.number(),
-})
-
 table({ name: 'global_message' }, {
   sender:  t.string(),   // full SpacetimeDB identity hex (BUG-0373 collision fix); UI abbreviates to 8 chars for display
   text:    t.string(),   // the message, max 1000 characters
   sent_at: t.number(),   // timestamp
 })
-
-table({ name: 'message_cleanup_schedule', scheduled: 'delete_expired_messages' }, {
-  scheduledId: t.u64().primaryKey().autoInc(),   // scheduling state, no user data
-  scheduledAt: t.scheduleAt(),
-})
 ```
 
-So there are **seven fields of user data, not three**. `sender_activity` is
-identity-keyed and persistent: it is the rate-limit window, and a user who
-sends five messages and then stops still has a row. It is in scope for the same
-retention sweep and the same erasure reducer as the messages. No journal entry,
-setting, preset, note or API key appears in the schema or in any reducer —
-Class B condition 3 requires that they not appear even as metadata.
+That is the whole record. No journal entry, setting, preset, note or API key
+appears in the schema or in any reducer — Class B condition 3 requires that they
+not appear even as metadata.
 
 **Class A data never goes here.** Journal, settings, API keys, presets and notes
 stay in `localStorage` on the device. If a feature ever needs one of them on the
@@ -148,7 +133,7 @@ implementation is expected to meet.
 
 | | |
 | --- | --- |
-| **What is stored** | Message text, the full sender identity hex, a timestamp, and a per-sender rate-limit counter (`sender_activity`: `window_start`, `count`, `last_sent_at`). Nothing else. |
+| **What is stored** | Message text, the full sender identity hex, a timestamp. Nothing else. |
 | **Legal basis** | Consent. The feature is off until the user turns it on, and the settings tab states what leaves the device before they do. |
 | **Retention** | Messages are deleted **90 days** after they are sent. A chat is a conversation, not an archive; nothing in the product reads messages older than the visible history. |
 | **Deletion on request** | Self-service: `delete_my_messages` deletes every message belonging to the caller, identified from `ctx.sender` rather than from an argument. No operator involvement, and no way to erase someone else's messages. |
@@ -170,24 +155,9 @@ The sender ID is derived from `ctx.sender`, never taken as an argument, so one
 caller cannot erase another's messages. This makes the right to erasure
 self-service: a user exercises it directly, without going through the operator.
 
-**Rate limiting** — `server/spacetimedb/src/rateLimit.ts:28-29` allows 5
-messages per fixed 10-second window per sender. Every send writes an
-identity-keyed `sender_activity` row, which the retention sweep prunes at 90
-days and `delete_my_messages` erases together with the messages. The window
-counter is user data for exactly as long as the messages are, which is why it is
-listed in the policy table above and not treated as a transient.
-
 ### What still needs a machine this repository does not have
 
-All three reducers are written against the generated bindings, but note that
-**`npm run check` does not cover them**: the root `tsconfig.json` includes only
-`src/**`, and `server/spacetimedb/` has its own `tsconfig.json` that no script
-invokes. Typecheck it explicitly with
-`npx tsc -p server/spacetimedb/tsconfig.json` before relying on any of them. The
-committed bindings do include `delete_my_messages` (`src/lib/spacetimedb/index.ts:52`),
-though `tablesSchema` (line 47) is empty, so `cloudService.ts:183` is already on
-a runtime `as any` fallback and incoming messages do not render until
-`spacetime generate` regenerates the table bindings. Before relying on the policy:
+Both reducers typecheck (`npm run check` covers `server/spacetimedb`), and the committed bindings include `delete_my_messages`. Before relying on the policy:
 
 1. `spacetime publish` the module against a live SpacetimeDB instance — publishing needs the SpacetimeDB CLI, which is not vendored here. The retention sweep is armed in `init`, so a module published before this change keeps its old messages until republished.
 2. If the bindings ever lag behind the module, `spacetime generate` to regenerate `src/lib/spacetimedb/`.

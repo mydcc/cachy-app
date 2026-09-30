@@ -113,7 +113,7 @@ caller that the deployment is misconfigured, and the existing tests specify 401.
 
 ## Amendment (2026-08-07): self-service tokens replace the shared secret (BUG-0052)
 
-- **Amendment status:** Accepted
+- **Status:** Accepted
 - **Deciders:** @mydcc
 
 ### Context

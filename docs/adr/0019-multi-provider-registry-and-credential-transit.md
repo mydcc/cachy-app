@@ -70,7 +70,7 @@ Three facts constrain the design:
 
 ## Consequences
 
-### What this enables
+### Positive
 
 - Any OpenAI-, Anthropic- or Google-compatible provider works, including the
   free tiers of aggregators such as OpenCode Zen.
@@ -81,7 +81,7 @@ Three facts constrain the design:
 - Consumption (tokens, and cost when prices are known) can be surfaced from the
   usage each provider already returns.
 
-### What this costs
+### Negative / Trade-offs
 
 - Browser-direct requests require the provider to send permissive CORS headers;
   providers that do not need the explicit relay opt-in to function at all.

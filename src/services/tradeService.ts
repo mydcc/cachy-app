@@ -2557,42 +2557,16 @@ class TradeService {
             }
         }
         //
-        // The size the order carried before this amendment — the gate only
-        // knows an amendment enlarges exposure by comparing the new quantity
-        // against this one (BUG-0548). A corrupt live reading must not throw
-        // raw past the gate: undefined feeds the fail-closed increase path
-        // instead.
-        //
-        // `amount` is the order's TOTAL size, not its resting remainder, and a
-        // partial fill does not shrink it. Bitunix is verified: the mirror
-        // documents `qty` as "Quantity (base coin)" and `tradeQty` as the
-        // filled amount, and both examples hold `qty` at 1 while `tradeQty` is
-        // 0.5 — one of them explicitly `PART_FILLED`
-        // (docs/bitunix-api/07_trade.md). So `previousQuantity` is the
-        // pre-amendment total either way.
-        //
-        // Which means the baseline must NOT be "hardened" by adding `filled`:
-        // that would double-count the executed portion and push the baseline
-        // above the real order size, making a genuine increase read as a
-        // shrink more often than before, not less.
-        //
-        // Not verified, and deliberately not claimed: for Bitget this reads
-        // `size` as the total, which the mirror does document — but the mirror
-        // has no partial-fill example, so that Bitget keeps `size` across one
-        // is read off the normalised payload, not off a spec. Bitget's wire
-        // format is already flagged unverified in BUG-0580, and BUG-0589
-        // records what the same gap costs on the sibling field: the Bitget
-        // normaliser reads `filledQty`, which the mirror never mentions (it
-        // documents `baseVolume`), so `NormalizedOrder.filled` is most likely
-        // always "0" there. That does not reach this gate, which reads `amount`
-        // and not `filled` — but it is why nothing above leans on `filled`.
-        //
-        // The live read still races the gate by construction — one round trip,
-        // no user action in between — so the residual is accepted rather than
-        // locked, and a stale-high reading fails toward the increase path. The
-        // corrupt cases are handled rather than assumed: undefined, null, NaN,
-        // infinite, zero and negative all route to the increase path in
-        // `isQuantityIncreasingModify`.
+        // The size the resting order had before this amendment — the gate
+        // only knows an amendment enlarges exposure by comparing the new
+        // quantity against this one (BUG-0548). A corrupt live reading must
+        // not throw raw past the gate: undefined feeds the fail-closed
+        // increase path instead. (The live read itself races the gate by
+        // construction — one synchronous round trip, no user action in
+        // between — so the window is minimal by design. A partial fill
+        // landing inside it leaves a stale previousQuantity; a stale-high
+        // reading fails toward the increase path, so the residual is
+        // minimal by construction rather than by locking.)
         let liveAmount: Decimal | undefined;
         try {
             liveAmount = new Decimal(liveOrder.amount);
