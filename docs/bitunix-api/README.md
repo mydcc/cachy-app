@@ -4,7 +4,7 @@ This documentation is a complete crawl of the official Bitunix Futures OpenAPI
 documentation at:
 
 - Source: https://www.bitunix.com/api-docs/futures/common/introduction.html
-- Crawled on: 08.08.2026
+- Crawled on: 08.08.2026, re-audited against the live sidebar on 2026-09-28 (54 of 54 pages)
 - Base domain REST API: `https://fapi.bitunix.com`
 - Base domain WebSocket: `wss://fapi.bitunix.com/public/` (public) and
   `wss://fapi.bitunix.com/private/` (private)
@@ -167,6 +167,8 @@ sign   = SHA256(digest + secretKey)
 - `POST /api/v1/futures/account/change_margin_mode`
 - `POST /api/v1/futures/account/change_position_mode`
 - `GET  /api/v1/futures/account/get_leverage_margin_mode`
+- `GET  /api/v1/futures/account/position_mode`
+- `GET  /api/v1/futures/account/trading_settings`
 - `GET  /api/v1/futures/account`
 
 ### CopyTrading
