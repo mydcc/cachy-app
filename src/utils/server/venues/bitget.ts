@@ -296,6 +296,39 @@ async function fetchBitgetBalance(
 // [timestamp, open, high, low, close, volume, quoteVol]
 type BitgetCandleTuple = [string | number, string | number, string | number, string | number, string | number, string | number, (string | number)?];
 
+/**
+ * V2 market endpoints and the USDT-M product name.
+ *
+ * BUG-0576 — Bitget decommissioned the `/api/mix/v1/…` generation and answers
+ * `30032 "The V1 API has been decommissioned"` before it looks at anything
+ * else, which took out tickers and every kline. V2 changes three things at
+ * once, all confirmed against the live API on 2026-09-30:
+ *
+ *   - the contract is the bare pair (`BTCUSDT`, no `_UMCBL`); sending the
+ *     suffixed form answers `40034 "Parameter … does not exist"`
+ *   - `productType` is required even on a single-symbol ticker and has to
+ *     read `USDT-FUTURES` rather than V1's `umcbl`; without it the venue
+ *     answers `400172 "Parameter verification failed"`
+ *   - the paths sit under `/api/v2/mix/…`
+ */
+const BITGET_V2_BASE_URL = "https://api.bitget.com";
+const BITGET_V2_PRODUCT_TYPE = "USDT-FUTURES";
+const BITGET_V2_CANDLES_PATH = "/api/v2/mix/market/candles";
+const BITGET_V2_TICKER_PATH = "/api/v2/mix/market/ticker";
+const BITGET_V2_TICKERS_PATH = "/api/v2/mix/market/tickers";
+
+/**
+ * Reduces a symbol Cachy is holding to the bare contract V2 addresses.
+ *
+ * `normalizeSymbol(symbol, "bitget")` still appends the V1 `_UMCBL` suffix and
+ * has thirty callers, so the venue receives the suffixed form from the klines
+ * and tickers routes. Stripping it here is what makes the request valid;
+ * merely not appending it would leave those callers broken.
+ */
+function bitgetV2Symbol(symbol: string): string {
+  return symbol.trim().toUpperCase().replace(/_UMCBL$/, "");
+}
+
 async function fetchBitgetKlines(
   symbol: string,
   interval: string,
@@ -303,10 +336,9 @@ async function fetchBitgetKlines(
   start?: number,
   end?: number,
 ) {
-  const baseUrl = "https://api.bitget.com";
-  const path = "/api/mix/v1/market/candles";
-
   // Bitget Granularity: 1m, 5m, 15m, 30m, 1H, 4H, 12H, 1D, 1W
+  // V2 takes the same names and rejects the lowercase spellings with 400171,
+  // so this mapping carries over unchanged from V1.
   const map: Record<string, string> = {
     "1m": "1m",
     "5m": "5m",
@@ -319,18 +351,19 @@ async function fetchBitgetKlines(
   };
   const mappedInterval = map[interval] || interval;
 
-  // Bitget requires _UMCBL suffix usually for Mix
-  let bitgetSymbol = symbol.toUpperCase();
-  if (!bitgetSymbol.includes("_")) {
-      bitgetSymbol += "_UMCBL";
-  }
-
   const params: Record<string, string> = {
-    symbol: bitgetSymbol,
+    symbol: bitgetV2Symbol(symbol),
+    productType: BITGET_V2_PRODUCT_TYPE,
     granularity: mappedInterval,
-    // limit? Bitget doesn't explicitly support 'limit' param in some docs, but we can try.
-    // Usually it relies on startTime/endTime.
   };
+  // V2 honours `limit` here (checked up to 500 rows on 2026-09-30). V1's
+  // documentation was ambiguous about it, which is why `limit` used to arrive
+  // as a parameter and then go unused, leaving the row count to Bitget's
+  // default. Guarded so a missing or nonsensical limit leaves the venue's own
+  // default in place rather than sending `limit=NaN`.
+  if (Number.isFinite(limit) && limit > 0) {
+    params.limit = String(limit);
+  }
   if (start) params.startTime = start.toString();
   if (end) params.endTime = end.toString();
 
@@ -338,31 +371,35 @@ async function fetchBitgetKlines(
 
   const queryString = new URLSearchParams(params).toString();
 
-  const response = await fetchWithTimeout(`${baseUrl}${path}?${queryString}`, {}, DEFAULT_UPSTREAM_TIMEOUT_MS);
+  const response = await fetchWithTimeout(`${BITGET_V2_BASE_URL}${BITGET_V2_CANDLES_PATH}?${queryString}`, {}, DEFAULT_UPSTREAM_TIMEOUT_MS);
 
   if (!response.ok) {
     throw new Error(`Bitget API error: ${response.status}`);
   }
 
   const text = await response.text();
-  const data = safeJsonParse(text);
+  const res = safeJsonParse(text);
   // [[timestamp, open, high, low, close, volume, quoteVol], ...]
   // timestamp is string or number? usually string in response.
 
-  // Hardening: Check if data is actually an array (success) or error object
-  if (!Array.isArray(data)) {
-      if (data && data.code && data.code !== "00000") {
-          throw new Error(`Bitget Error: ${data.msg || data.code}`);
-      }
-      // If valid empty result or unknown structure
-      if (!data) return [];
-      // Fallback if structure is unexpected but not explicit error
-      console.warn("[Klines] Unexpected Bitget response format", data);
-      return [];
+  // Bitget wraps every V2 response in `{code, msg, requestTime, data}`, and
+  // the candle array sits in `data`. This used to test the envelope itself for
+  // being an array, which is never true — so a perfectly good 200 was reported
+  // as "no candles" and every chart stayed empty regardless of the endpoint.
+  if (res && res.code !== undefined && res.code !== "00000") {
+    throw new Error(`Bitget Error: ${res.msg || res.code}`);
+  }
+
+  const rows = res ? res.data : undefined;
+  if (!Array.isArray(rows)) {
+    // An explicitly empty `data` is a real answer and lands in the branch
+    // above the map; anything else here is a shape this parser does not know.
+    console.warn("[Klines] Unexpected Bitget response format", res);
+    return [];
   }
 
   // Optimize: Return plain strings
-  return data
+  return rows
     .map((k: BitgetCandleTuple) => ({
       timestamp: parseInt(String(k[0])),
       open: k[1],
@@ -431,14 +468,16 @@ async function fetchBitgetPositions(
 // --- Tickers ---
 
 function bitgetTickersUrl(query: TickersQuery): string {
-  // Bitget Futures API
+  // BUG-0576 — V2 needs `productType` on the single-symbol form too, not just
+  // on the list form; without it the venue answers 400172.
   if (query.symbols) {
-    let sym = query.symbols.toUpperCase();
-    if (!sym.includes("_")) sym += "_UMCBL";
-    return `https://api.bitget.com/api/mix/v1/market/ticker?symbol=${sym}`;
+    const params = new URLSearchParams({
+      symbol: bitgetV2Symbol(query.symbols),
+      productType: BITGET_V2_PRODUCT_TYPE,
+    });
+    return `${BITGET_V2_BASE_URL}${BITGET_V2_TICKER_PATH}?${params.toString()}`;
   }
-  // All tickers
-  return `https://api.bitget.com/api/mix/v1/market/tickers?productType=umcbl`;
+  return `${BITGET_V2_BASE_URL}${BITGET_V2_TICKERS_PATH}?productType=${BITGET_V2_PRODUCT_TYPE}`;
 }
 
 /**
@@ -524,10 +563,10 @@ export const bitgetVenue: VenueModule = {
     return fetchBitgetBalance(envelope);
   },
 
-  // `/api/mix/v1/market/candles` serves the last-price series only. Bitget
-  // does have a separate mark-candles endpoint, but wiring it is its own
-  // change; until then a mark request is refused rather than answered with
-  // last-price candles wearing a mark label.
+  // `/api/v2/mix/market/candles` serves the last-price series only. V2 can
+  // serve mark candles on the same path via `kLineType=mark` (verified
+  // 2026-09-30), but wiring it is its own change; until then a mark request is
+  // refused rather than answered with last-price candles wearing a mark label.
   supportsMarkKlines: false,
 
   fetchKlines(query: KlineQuery): Promise<VenueKline[]> {

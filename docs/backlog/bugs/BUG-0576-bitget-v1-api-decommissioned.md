@@ -2,7 +2,7 @@
 id: BUG-0576
 title: "Bitget integration calls the decommissioned V1 API, so every signed REST call fails"
 type: bug
-status: specced
+status: in-progress
 priority: P0
 area: exchange
 created: "2026-09-28"
@@ -11,9 +11,37 @@ editions: ["community", "pro", "private"]
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bitget-v2-market-data
 ---
 
 # Migrate the Bitget integration from the decommissioned V1 API to V2
+
+## Progress
+
+**Row 7–9 of the mapping table are done** (branch `fix/bitget-v2-market-data`,
+2026-09-30): `market/candles`, `market/ticker` and `market/tickers` run on
+`/api/v2/mix/…`. Verified against live unauthenticated V2 responses, recorded
+in [`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md). Three
+findings that the vendor docs do not state: `productType` is required on the
+single-symbol ticker as well (`400172` without it); the `_UMCBL` suffix has to
+be *stripped* rather than merely not appended, because
+`normalizeSymbol(s, "bitget")` still adds it for thirty callers; and the ticker
+row renames (`last`→`lastPr`, `volume24h`→`baseVolume`, no
+`priceChangePercent` — V2's `change24h` is a fraction) also had to be fixed in
+`src/services/api/marketData.ts`, since `routes/api/tickers` forwards Bitget's
+payload unparsed.
+
+Two latent bugs in the same code went with it: `fetchBitgetKlines` received a
+`limit` argument and never sent it, and its parser tested the Bitget response
+*envelope* for being an array, so every successful call reported "no candles"
+regardless of endpoint version.
+
+**Rows 1–6 are untouched and still on V1**, deliberately. They need credentials
+this pass did not have: the ordering question (BUG-0580) is unanswered, the V2
+response shapes for orders/positions cannot be observed without a key, and the
+order-schema split must be verified against a real hedge-mode account. Row 1 in
+particular must not be ported on a guess — see below.
 
 ## Symptom
 

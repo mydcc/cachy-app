@@ -72,16 +72,74 @@ interface BitunixRawTicker {
   quoteVol?: string | number;
 }
 
+/**
+ * One row of Bitget's V2 ticker payload, recorded from the live endpoint on
+ * 2026-09-30 (BUG-0576). The list (`market/tickers`) and the single-symbol
+ * form (`market/ticker`) return the same field set.
+ *
+ * V2 renamed three of the fields this used to read, and the V1 names are gone:
+ * `last` → `lastPr`, `volume24h` → `baseVolume`, and there is no
+ * `priceChangePercent` counterpart at all. Reading the old names off a V2
+ * payload yields `undefined`, which the callers below turn into a Decimal 0 —
+ * a ticker view showing every price as zero rather than an error.
+ */
 interface BitgetRawTicker {
-  instId?: string;
   symbol?: string;
-  last?: string | number;
+  lastPr?: string | number;
+  open24h?: string | number;
   high24h?: string | number;
   low24h?: string | number;
-  volume24h?: string | number;
+  baseVolume?: string | number;
   quoteVolume?: string | number;
   usdtVolume?: string | number;
-  priceChangePercent?: string | number;
+  markPrice?: string | number;
+}
+
+/**
+ * Maps one V2 ticker row onto the shape the app renders.
+ *
+ * The 24h change is derived from `lastPr` and `open24h` rather than read from
+ * V2's `change24h`, because that field is a fraction (0.01309 for +1.31%)
+ * while `priceChangePercent` is a percent. Carrying it across unchanged would
+ * understate every move by a factor of 100, and the market picker sorts and
+ * filters on this number. The Bitunix branch of both callers below already
+ * derives its change the same way.
+ *
+ * `markPrice` is parsed defensively (BUG-0512): an unparseable optional field
+ * must never take the required last/high/low down with it.
+ *
+ * `symbol` is passed in rather than taken from the row, because the two
+ * callers key the result differently — the snapshot keys on the bare contract
+ * the symbol picker looks up with, the single-ticker call keys on the
+ * normalized symbol the rest of the market state is stored under.
+ */
+function bitgetTicker24h(ticker: BitgetRawTicker, symbol: string): Ticker24h {
+  const lastPrice = new Decimal(ticker.lastPr || 0);
+  const open = new Decimal(ticker.open24h || 0);
+
+  let markPrice: Decimal | undefined;
+  const rawMark = ticker.markPrice;
+  if (rawMark !== undefined && rawMark !== null && rawMark !== "") {
+    try {
+      markPrice = new Decimal(rawMark);
+    } catch {
+      markPrice = undefined;
+    }
+  }
+
+  return {
+    provider: "bitget",
+    symbol,
+    lastPrice,
+    markPrice,
+    highPrice: new Decimal(ticker.high24h || 0),
+    lowPrice: new Decimal(ticker.low24h || 0),
+    volume: new Decimal(ticker.baseVolume || 0),
+    quoteVolume: new Decimal(ticker.quoteVolume || ticker.usdtVolume || 0),
+    priceChangePercent: open.isZero()
+      ? new Decimal(0)
+      : lastPrice.minus(open).dividedBy(open).times(100),
+  };
 }
 
 /**
@@ -608,16 +666,11 @@ export async function fetchMarketSnapshot(
             const data = res.data || [];
             if (!Array.isArray(data)) throw new Error("apiErrors.invalidResponse");
 
-            return data.map((t: BitgetRawTicker) => ({
-              provider: "bitget",
-              symbol: t.instId || t.symbol,
-              lastPrice: new Decimal(t.last || 0),
-              highPrice: new Decimal(t.high24h || 0),
-              lowPrice: new Decimal(t.low24h || 0),
-              volume: new Decimal(t.volume24h || 0),
-              quoteVolume: new Decimal(t.quoteVolume || t.usdtVolume || 0),
-              priceChangePercent: new Decimal(t.priceChangePercent || 0) // Or calculate
-            }));
+            // V2's `symbol` is the bare contract, which is exactly what the
+            // symbol picker indexes this snapshot by.
+            return (data as BitgetRawTicker[]).map((t) =>
+              bitgetTicker24h(t, t.symbol || ""),
+            );
           }
         } catch (e: unknown) {
           logger.error("network", "Snapshot Fetch Error", e);
@@ -699,30 +752,7 @@ export async function fetchTicker24h(
             const ticker = (data.data && data.data[0]) || data;
             if (!ticker) throw new Error("apiErrors.invalidResponse");
 
-            // BUG-0512: Bitget tickers carry markPrice too. Parsed
-            // defensively — an unparseable optional field must never take
-            // down the required last/high/low alongside it.
-            let bitgetMark: Decimal | undefined;
-            const rawMark = ticker.markPrice;
-            if (rawMark !== undefined && rawMark !== null && rawMark !== "") {
-              try {
-                bitgetMark = new Decimal(rawMark);
-              } catch {
-                bitgetMark = undefined;
-              }
-            }
-
-            return {
-              provider,
-              symbol: normalized,
-              lastPrice: new Decimal(ticker.last || 0),
-              markPrice: bitgetMark,
-              highPrice: new Decimal(ticker.high24h || 0),
-              lowPrice: new Decimal(ticker.low24h || 0),
-              volume: new Decimal(ticker.volume24h || 0),
-              quoteVolume: new Decimal(ticker.quoteVolume || ticker.usdtVolume || 0),
-              priceChangePercent: new Decimal(ticker.priceChangePercent || 0)
-            };
+            return bitgetTicker24h(ticker as BitgetRawTicker, normalized);
           }
         } catch (e: unknown) {
           logger.error("network", "fetchTicker24h error", e);

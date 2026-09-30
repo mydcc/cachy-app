@@ -529,7 +529,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0576",
     "title": "Bitget integration calls the decommissioned V1 API, so every signed REST call fails",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P0",
     "area": "exchange",
     "created": "2026-09-28",
@@ -542,6 +542,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bitget-v2-market-data",
     "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
   },
   {

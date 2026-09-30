@@ -53,11 +53,11 @@ it.
 | Endpoint | Status | Code / Note |
 |---|---|---|
 | `GET …/market/contracts` | ✅ | `src/routes/api/bitget/contracts/+server.ts:42` — the one V2 call, 60 s cache |
-| `GET …/market/ticker` | ☠️ | [`src/utils/server/venues/bitget.ts:438`](../../src/utils/server/venues/bitget.ts) |
-| `GET …/market/tickers` | ☠️ | [`src/utils/server/venues/bitget.ts:441`](../../src/utils/server/venues/bitget.ts) |
-| `GET …/market/candles` | ☠️ | [`src/utils/server/venues/bitget.ts:341`](../../src/utils/server/venues/bitget.ts) — V1 is the only source of every kline |
+| `GET …/market/ticker` | ✅ | [[`src/utils/server/venues/bitget.ts:317`](../../src/utils/server/venues/bitget.ts) — V2 as of BUG-0576. `productType` is **required** even here (`400172` without it); bare symbol, `40034` on `_UMCBL` |
+| `GET …/market/tickers` | ✅ | [[`src/utils/server/venues/bitget.ts:318`](../../src/utils/server/venues/bitget.ts) — V2 as of BUG-0576. Same field set as the single-symbol form, verified across all 812 contracts |
+| `GET …/market/candles` | ✅ | [[`src/utils/server/venues/bitget.ts:316`](../../src/utils/server/venues/bitget.ts) — V2 as of BUG-0576, and the only source of every kline. Array-of-arrays unchanged from V1; `limit` is now actually sent (it used to arrive as a parameter and be dropped) |
 | `GET …/market/merge-depth` | ❌ | Not called. `books5` covers the UI's needs |
-| `GET …/market/candles` with `kLineType: mark` | ❌ | Declared `supportsMarkKlines: false` at [[`src/utils/server/venues/bitget.ts:519`](../../src/utils/server/venues/bitget.ts) — a mark request is **refused**, not answered with last-price candles |
+| `GET …/market/candles` with `kLineType: mark` | ❌ | Declared `supportsMarkKlines: false` at [[`src/utils/server/venues/bitget.ts:570`](../../src/utils/server/venues/bitget.ts) — a mark request is **refused**, not answered with last-price candles. V2 serves it on the same path (`kLineType=mark` verified 2026-09-30), so this is now a one-line change rather than an unknown endpoint |
 | `GET …/market/history-mark-candles` | ❌ | The dedicated mark-candle endpoint, unused |
 | `GET …/market/symbol-price` | ❌ | Not called |
 | All funding-rate endpoints | ❌ | Not called. Bitget-specific, not part of the shared calculator path |
