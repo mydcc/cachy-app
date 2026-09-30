@@ -46,7 +46,7 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   title: TITLE,
-                  labels: ["bug", "area:ci"],
+                  labels: ["bug", "ci"],
                   body: [
                     "The Release workflow failed. No release ships while this is red —",
                     "see BUG-0584 for the diagnosis history.",
