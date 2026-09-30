@@ -131,6 +131,7 @@
       markPrice,
       side: position.side === "long" ? "LONG" : "SHORT",
       stepSize,
+      isDerivedMarkPrice: !position.markPrice || position.markPrice.lte(0),
       minTradeVolume,
     };
   });

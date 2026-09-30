@@ -2399,6 +2399,7 @@ export type TranslationKey =
   | "positionsList.addSubmitted"
   | "positionsList.remainingAfter"
   | "positionsList.realizesPnl"
+  | "positionsList.realizesPnlDerived"
   | "positionsList.minimumTradeVolume"
   | "positionsList.invalidQuantity"
   | "positionsList.quantityMustBePositive"

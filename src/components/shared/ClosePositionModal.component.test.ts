@@ -399,3 +399,56 @@ describe("FEAT-0573 — the close dialog resolves the percentage against the liv
         expect(range.value).toBe("25");
     });
 });
+
+describe("FEAT-0574 — Say when the close dialog's PnL mark is derived", () => {
+    it("uses the normal label when markPrice is reported by the exchange", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION }, // POSITION has markPrice = 100
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain(lookup("positionsList.realizesPnl"));
+        expect(host.textContent).not.toContain(lookup("positionsList.realizesPnlDerived"));
+    });
+
+    it("uses the derived label when markPrice is missing and must be derived", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: { ...POSITION, markPrice: undefined } },
+        }) as never;
+        settle();
+
+        expect(host.textContent).toContain(lookup("positionsList.realizesPnlDerived"));
+        expect(host.textContent).not.toContain(lookup("positionsList.realizesPnl") + ":");
+    });
+
+    it("submits the same quantity whether the mark was derived or reported", () => {
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: POSITION }, // reported mark
+        }) as never;
+        settle();
+
+        submitButton().click();
+        flushSync();
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+        const quantityReported = (closeSpy.mock.calls[0][0] as { amount: Decimal }).amount.toString();
+        closeSpy.mockClear();
+        unmount(component);
+        host.innerHTML = "";
+
+        component = mount(ClosePositionLiveWrapper, {
+            target: host,
+            props: { initialPosition: { ...POSITION, markPrice: undefined } }, // derived mark
+        }) as never;
+        settle();
+
+        submitButton().click();
+        flushSync();
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+        const quantityDerived = (closeSpy.mock.calls[0][0] as { amount: Decimal }).amount.toString();
+
+        expect(quantityDerived).toBe(quantityReported);
+    });
+});

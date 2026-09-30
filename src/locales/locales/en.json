@@ -2758,6 +2758,7 @@
     "addSubmitted": "Add order sent.",
     "remainingAfter": "Remaining",
     "realizesPnl": "Realizes",
+    "realizesPnlDerived": "Realizes (est.)",
     "minimumTradeVolume": "Minimum: {min}",
     "invalidQuantity": "Enter a valid quantity greater than zero.",
     "quantityMustBePositive": "Quantity must be greater than zero.",

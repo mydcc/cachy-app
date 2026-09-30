@@ -243,7 +243,7 @@
       {$_("positionsList.remainingAfter")}: {remainingText}
     </p>
     <p class={pnlTone}>
-      {$_("positionsList.realizesPnl")}: {pnlText}
+      {ctx.isDerivedMarkPrice ? $_("positionsList.realizesPnlDerived") : $_("positionsList.realizesPnl")}: {pnlText}
     </p>
     {#if ctx.minTradeVolume !== undefined}
       <p class="text-[var(--text-secondary)]">
