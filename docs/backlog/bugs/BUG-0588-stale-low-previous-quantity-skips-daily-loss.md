@@ -2,7 +2,7 @@
 id: BUG-0588
 title: A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: docs/bug-0588-previous-quantity-comment
 ---
 
 # BUG-0588 — Stale-low `previousQuantity` skips the daily-loss limit
@@ -100,14 +102,22 @@ No behaviour change. Do not "harden" the baseline.
 
 ## Acceptance criteria
 
-- [ ] The comment no longer claims a partial fill makes `previousQuantity` stale
-- [ ] The rewritten comment cites `qty`/`size` vs `tradeQty`/`filledQty`, states
+- [x] The comment no longer claims a partial fill makes `previousQuantity` stale
+- [x] The rewritten comment cites `qty`/`size` vs `tradeQty`/`filledQty`, states
       the Bitunix half as verified, and puts the Bitget half in the
       not-verified paragraph alongside BUG-0580
-- [ ] `rmsService.isQuantityIncreasingModify` is **unchanged**, and the reason it
+- [x] `rmsService.isQuantityIncreasingModify` is **unchanged**, and the reason it
       is unchanged is written down where the next reader will look
-- [ ] No test is added: there is no behaviour to pin, and a test asserting the
+- [x] No test is added: there is no behaviour to pin, and a test asserting the
       absence of a bug would be theatre
+
+All four are met by PR #3729, which is comment-only — verified mechanically,
+since a money path is involved. `tradeService` 200/200, ESLint and the decimal
+audit clean.
+
+The two criteria that are *not* ticks are the point of this item: the fix is a
+comment, and the comment is the defect. `rmsService` was not touched, so there
+is nothing to test and nothing that could be.
 
 ## Out of scope
 

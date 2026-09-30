@@ -34,9 +34,11 @@ export interface CloudStatus {
   /**
    * The caller's own sender ID, or null while disconnected.
    *
-   * The module publishes `identity.toHexString().substring(0, 8)` as the sender
-   * of each message, so deriving it the same way here is what lets the UI tell
-   * "me" from everyone else without the server having to say so.
+   * The module publishes the full `identity.toHexString()` as the sender of
+   * each message (BUG-0373 dropped the truncation because 8 hex chars
+   * collided), so deriving it the same way here is what lets the UI tell "me"
+   * from everyone else without the server having to say so. The UI abbreviates
+   * to 8 characters for display only.
    */
   mySenderId: string | null;
 }
