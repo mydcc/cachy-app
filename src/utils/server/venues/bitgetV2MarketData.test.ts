@@ -116,6 +116,72 @@ describe("Bitget market data on the V2 API (BUG-0576)", () => {
       expect(requestedUrl().searchParams.get("limit")).toBe("137");
     });
 
+    it("caps the limit at the venue's own ceiling", async () => {
+      fetchMock.mockResolvedValue(okResponse({ code: "00000", data: [] }));
+
+      // `limit=1000` answers 00000 with 1000 rows; `limit=1001` answers
+      // `40053 "Value range verification failed: limit should be between
+      // (0, 1000]"`. The route clamps to MAX_KLINE_LIMIT = 1000 too, but that
+      // constant is documented as Bitunix's ceiling and Bitunix truncates
+      // where Bitget rejects — the two agreeing today is a coincidence, not a
+      // contract, so the venue layer clamps against its own.
+      await bitgetVenue.fetchKlines({
+        symbol: "BTCUSDT",
+        interval: "1m",
+        limit: 100000,
+      });
+
+      expect(requestedUrl().searchParams.get("limit")).toBe("1000");
+    });
+
+    it("omits the limit rather than sending a nonsensical one", async () => {
+      fetchMock.mockResolvedValue(okResponse({ code: "00000", data: [] }));
+
+      await bitgetVenue.fetchKlines({
+        symbol: "BTCUSDT",
+        interval: "1m",
+        limit: Number.NaN,
+      });
+
+      // Bitget's own default applies, which is what a missing limit means.
+      expect(requestedUrl().searchParams.has("limit")).toBe(false);
+    });
+
+    it("surfaces the vendor's code and message from a 400 body", async () => {
+      // Bitget pairs every business error with a 4xx status *and* a code in the
+      // body. Judging the status before reading the envelope — which this used
+      // to do — discarded `msg` on every one of them and reduced a precise
+      // diagnosis to "Bitget API error: 400".
+      fetchMock.mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            code: "40053",
+            msg: "Value range verification failed: limit should be between (0, 1000]",
+            data: null,
+          }),
+      });
+
+      await expect(
+        bitgetVenue.fetchKlines({ symbol: "BTCUSDT", interval: "1m", limit: 50 }),
+      ).rejects.toThrow("Bitget Error: 40053 Value range verification failed");
+    });
+
+    it("falls back to the status when the error body is not JSON", async () => {
+      // An upstream that answers an HTML error page must not surface as a parse
+      // error — the status is the useful diagnosis there.
+      fetchMock.mockResolvedValue({
+        ok: false,
+        status: 502,
+        text: async () => "<html><body>Bad Gateway</body></html>",
+      });
+
+      await expect(
+        bitgetVenue.fetchKlines({ symbol: "BTCUSDT", interval: "1m", limit: 50 }),
+      ).rejects.toThrow("Bitget API error: 502");
+    });
+
     it("keeps translating Cachy intervals onto Bitget's granularity names", async () => {
       fetchMock.mockResolvedValue(okResponse({ code: "00000", data: [] }));
 

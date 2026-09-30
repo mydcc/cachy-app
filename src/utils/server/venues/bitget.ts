@@ -318,6 +318,42 @@ const BITGET_V2_TICKER_PATH = "/api/v2/mix/market/ticker";
 const BITGET_V2_TICKERS_PATH = "/api/v2/mix/market/tickers";
 
 /**
+ * Bitget's own ceiling for one candles request, in rows.
+ *
+ * Above it the venue rejects the request rather than truncating it:
+ * `limit=1000` answers `00000` with 1000 rows, `limit=1001` answers
+ * `40053 "Value range verification failed: limit should be between (0, 1000]"`
+ * (both verified 2026-09-30).
+ *
+ * The klines route clamps as well, and both ceilings happen to be 1000 today —
+ * but that coincidence is not a contract. `MAX_KLINE_LIMIT` in
+ * `lib/server/klineCacheKey.ts` is documented as *Bitunix's*: the largest value
+ * a caller currently asks for, above which Bitunix truncates rather than
+ * rejects. Clamping here is what keeps Bitget's ceiling from moving under us
+ * when that unrelated constant changes.
+ */
+const BITGET_V2_MAX_CANDLES = 1000;
+
+/**
+ * Reads Bitget's `{code, msg, requestTime, data}` envelope without throwing.
+ *
+ * `safeJsonParse` raises on anything that is not JSON, and an upstream that
+ * answers an HTML error page must not surface as a parse error: the HTTP status
+ * is the useful diagnosis there, and the caller still checks it. `null` means
+ * "no envelope to read", not "a good response".
+ */
+function parseBitgetEnvelope(
+  text: string,
+): { code?: string; msg?: string; data?: unknown } | null {
+  try {
+    const parsed = safeJsonParse(text);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reduces a symbol Cachy is holding to the bare contract V2 addresses.
  *
  * `normalizeSymbol(symbol, "bitget")` still appends the V1 `_UMCBL` suffix and
@@ -356,13 +392,14 @@ async function fetchBitgetKlines(
     productType: BITGET_V2_PRODUCT_TYPE,
     granularity: mappedInterval,
   };
-  // V2 honours `limit` here (checked up to 500 rows on 2026-09-30). V1's
-  // documentation was ambiguous about it, which is why `limit` used to arrive
-  // as a parameter and then go unused, leaving the row count to Bitget's
-  // default. Guarded so a missing or nonsensical limit leaves the venue's own
-  // default in place rather than sending `limit=NaN`.
+  // V2 honours `limit` here. V1's documentation was ambiguous about it, which
+  // is why `limit` used to arrive as a parameter and then go unused, leaving
+  // the row count to Bitget's default. Guarded so a missing or nonsensical
+  // limit leaves the venue's own default in place rather than sending
+  // `limit=NaN`, and capped at the venue's ceiling rather than relying on the
+  // route's clamp happening to match it.
   if (Number.isFinite(limit) && limit > 0) {
-    params.limit = String(limit);
+    params.limit = String(Math.min(Math.floor(limit), BITGET_V2_MAX_CANDLES));
   }
   if (start) params.startTime = start.toString();
   if (end) params.endTime = end.toString();
@@ -373,28 +410,38 @@ async function fetchBitgetKlines(
 
   const response = await fetchWithTimeout(`${BITGET_V2_BASE_URL}${BITGET_V2_CANDLES_PATH}?${queryString}`, {}, DEFAULT_UPSTREAM_TIMEOUT_MS);
 
-  if (!response.ok) {
-    throw new Error(`Bitget API error: ${response.status}`);
-  }
-
-  const text = await response.text();
-  const res = safeJsonParse(text);
   // [[timestamp, open, high, low, close, volume, quoteVol], ...]
   // timestamp is string or number? usually string in response.
+
+  const text = await response.text();
+  const envelope = parseBitgetEnvelope(text);
 
   // Bitget wraps every V2 response in `{code, msg, requestTime, data}`, and
   // the candle array sits in `data`. This used to test the envelope itself for
   // being an array, which is never true — so a perfectly good 200 was reported
   // as "no candles" and every chart stayed empty regardless of the endpoint.
-  if (res && res.code !== undefined && res.code !== "00000") {
-    throw new Error(`Bitget Error: ${res.msg || res.code}`);
+  //
+  // The envelope is read before the status is judged, because Bitget pairs
+  // every business error with a 4xx: `40034` unknown symbol, `400172` missing
+  // productType, `400171` bad granularity and `40053` limit out of range all
+  // arrive as HTTP 400 (verified 2026-09-30). Checking `response.ok` first
+  // therefore discarded `msg` on every one of them and reduced a precise vendor
+  // diagnosis to "Bitget API error: 400". The status check stays as the
+  // fallback for an upstream that answers with no readable envelope at all.
+  if (envelope && envelope.code !== undefined && envelope.code !== "00000") {
+    throw new Error(
+      `Bitget Error: ${envelope.code} ${envelope.msg || ""}`.trim(),
+    );
+  }
+  if (!response.ok) {
+    throw new Error(`Bitget API error: ${response.status}`);
   }
 
-  const rows = res ? res.data : undefined;
+  const rows = envelope ? envelope.data : undefined;
   if (!Array.isArray(rows)) {
     // An explicitly empty `data` is a real answer and lands in the branch
     // above the map; anything else here is a shape this parser does not know.
-    console.warn("[Klines] Unexpected Bitget response format", res);
+    console.warn("[Klines] Unexpected Bitget response format", envelope);
     return [];
   }
 
