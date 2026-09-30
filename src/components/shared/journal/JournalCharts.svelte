@@ -26,6 +26,12 @@
     import { journalState } from "../../../stores/journal.svelte";
     import { calculator } from "../../../lib/calculator";
 
+    // PR1 edge (BUG-0594): stats return Decimal, charts take number.
+    // PR2 (BUG-0595) converts these call sites properly.
+    const toChartNum = (
+        v: number | { toNumber(): number } | null | undefined,
+    ): number => (typeof v === "number" ? v : (v?.toNumber() ?? 0));
+
     interface ThemeColors {
         success: string;
         danger: string;
@@ -241,9 +247,9 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: discData.hourlyPnl || [],
+                data: (discData.hourlyPnl || []).map(toChartNum),
                 backgroundColor: (discData.hourlyPnl || []).map((d) =>
-                    d >= 0 ? themeColors.success : themeColors.danger,
+                    toChartNum(d) >= 0 ? themeColors.success : themeColors.danger,
                 ),
             },
         ],
