@@ -56,6 +56,18 @@ export const BitgetWSMessageSchema = z.object({
  * half-migrated transport should show a stale price rather than a blank chart.
  * `lastPrice` resolution happens at the call site, not here — this describes the
  * vendor payload, not our internal ticker.
+ *
+ * Only the fields the client actually reads are declared. Zod strips undeclared
+ * keys, so an undeclared field costs nothing, while a *declared* one becomes a
+ * veto: if the vendor ever sends it unquoted, `safeParse` fails and the entire
+ * push is discarded — the last price included. That is the failure this item
+ * exists to end, so nothing earns a place here without a reader.
+ *
+ * `change24h` is deliberately absent for that reason, not because its spelling
+ * is in doubt. It is the field a reader would reach for, and it is exactly the
+ * one not to use: the vendor does not document its unit, and REST has been
+ * observed sending a fraction where the UI shows a percentage.
+ * `priceChangePercent` is derived from `lastPr` and `open24h` instead.
  */
 export const BitgetWSTickerSchema = z.object({
   instId: z.string(),
@@ -66,8 +78,6 @@ export const BitgetWSTickerSchema = z.object({
   lastPr: z.string().optional(),
   bestAsk: z.string().optional(),
   bestBid: z.string().optional(),
-  askPr: z.string().optional(),
-  bidPr: z.string().optional(),
   high24h: z.string().optional(),
   low24h: z.string().optional(),
   volume24h: z.string().optional(), // V1 base volume
@@ -75,13 +85,6 @@ export const BitgetWSTickerSchema = z.object({
   quoteVolume: z.string().optional(),
   usdtVolume: z.string().optional(), // V1 alias
   open24h: z.string().optional(),
-  // V2 sends this as a fraction of the open, not a percentage. The vendor does
-  // not document the unit, and REST has been observed speaking fractions, so
-  // `priceChangePercent` is derived from `lastPr` and `open24h` instead of read
-  // off this field.
-  change24h: z.string().optional(),
-  markPrice: z.string().optional(),
-  indexPrice: z.string().optional(),
   ts: z.union([z.string(), z.number()]).optional(),
   fundingRate: MoneyString.optional(),
   nextFundingTime: z.union([z.string(), z.number()]).optional(),

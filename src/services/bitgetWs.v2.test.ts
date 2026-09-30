@@ -124,7 +124,7 @@ afterEach(() => {
 });
 
 /** A V2 ticker push exactly as `docs/bitget-api/07_websocket.md` documents it. */
-function v2TickerFrame(overrides: Record<string, string> = {}) {
+function v2TickerFrame(overrides: Record<string, string | number> = {}) {
   return {
     action: "snapshot",
     arg: { instType: "USDT-FUTURES", channel: "ticker", instId: BTC_WIRE },
@@ -290,6 +290,21 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       internals.handleMessage(v2TickerFrame());
 
       expect(price).toHaveBeenCalledWith(BTC_STORE_KEY, { price: "110" });
+    });
+
+    it("does not drop the whole push over a field the client never reads", () => {
+      const update = vi.spyOn(marketState, "updateTicker").mockImplementation(() => {});
+
+      // `change24h` and `markPrice` arrive unquoted here. This client reads
+      // neither, and it must not pay for that: declaring them in the schema
+      // would make their type a veto over the last price, which is the exact
+      // failure this item is about — a healthy socket that updates nothing.
+      // Zod strips undeclared keys, so staying undeclared is the whole defence.
+      internals.handleMessage(v2TickerFrame({ change24h: 0.1, markPrice: 50123.4 }));
+
+      expect(update).toHaveBeenCalledTimes(1);
+      const payload = update.mock.calls[0][1] as Record<string, unknown>;
+      expect(payload.lastPrice).toBe("110");
     });
 
     it("still answers a V1-shaped ticker so a mid-flight socket is not silently blind", () => {

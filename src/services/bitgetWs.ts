@@ -466,8 +466,14 @@ export class BitgetWebSocketService {
 
   private handleMessage(message: BitgetWSMessage) {
     // We can do a fast-path throttle check for high frequency channels if we extract channel and instId directly.
-    const rawArg = message.arg as { channel?: string, instId?: string } | undefined;
-    if (rawArg && rawArg.channel && rawArg.instId) {
+    // Both fields are still unvalidated here — `safeParse` runs below — so the
+    // symbol is only normalized when it really is a string. A non-string would
+    // throw inside `normalizeSymbol`, and that throw would be swallowed by the
+    // `try/catch` in `onmessage`: the frame would be discarded through a path
+    // that reads like a crash, instead of the plain return the schema below
+    // would have given it.
+    const rawArg = message.arg as { channel?: string, instId?: unknown } | undefined;
+    if (rawArg && rawArg.channel && typeof rawArg.instId === "string") {
        const channel = rawArg.channel;
        // Same normalization as the handler below, so this dry-run probes the
        // key the handler actually commits to. With the raw wire spelling the two
