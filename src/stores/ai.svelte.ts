@@ -137,10 +137,11 @@ function estimateCostUsd(
 /** One journal trade as seen by the AI prompt: money stays an exact string. */
 export interface RecentTradeEntry {
     symbol: string;
-    entry: string;
-    exit: string;
+    entry: string | undefined;
+    exit: string | undefined;
     pnl: string;
     won: boolean;
+    [key: string]: unknown;
 }
 
 /**
