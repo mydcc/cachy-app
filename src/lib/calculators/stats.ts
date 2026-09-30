@@ -489,7 +489,7 @@ export function getRollingData(
 
   const labels: string[] = [];
   const winRates: number[] = [];
-  const profitFactors: number[] = [];
+  const profitFactors: Decimal[] = [];
   const sqnValues: number[] = [];
 
   // Pre-calculate expensive operations (O(N))
@@ -558,7 +558,7 @@ export function getRollingData(
     winRates.push((wins / windowSize) * 100);
 
     // 2. Profit Factor
-    let pf = new Decimal(0);
+    let pf: Decimal;
     if (grossLoss.isZero()) {
       pf = grossWin.gt(0) ? new Decimal(10) : new Decimal(0); // Cap at 10
     } else {
