@@ -2,7 +2,7 @@
 id: BUG-0584
 title: semantic-release cannot push, so no release has shipped since 2026-09-20
 type: bug
-status: in-progress
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,6 @@ area: ci
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: fix/bug-0584-release-push
 ---
 
 # BUG-0584 — semantic-release cannot push; no release since 2026-09-20
@@ -75,31 +73,6 @@ narrowly in the push path.
 new value yet — the four most recent `Release` runs on `develop` all predate
 it, and they all still fail with `EGITNOPERMISSION`. What remains is therefore
 verification, not diagnosis: AC1 and AC2 below.
-
-## Progress 2026-09-30: still the same auth error, rotation did not take
-
-The 11:00 UTC run (`36705838742`) fails identically: `git push --dry-run …
-HEAD:develop` → "Invalid username or token" → `EGITNOPERMISSION`. The error is
-authentication, not permission — a valid token with insufficient scope would
-fail differently — so `RELEASE_TOKEN` is still set-but-invalid. The 2026-09-28
-rotation did not take effect (wrong value stored, or stored under conditions
-that do not reach the workflow). **Human action: re-verify the secret value in
-the repo settings** (fine-grained PAT with contents access); agents cannot see
-or mint it.
-
-A local `git push --dry-run origin HEAD:develop` with a real diff is accepted,
-so ref permission for an admin identity is fine. Whether the *real* push then
-clears the required status checks under `enforce_admins` (on since BUG-0582,
-2026-09-30 — the old "disabled" comment in `release.yml` was stale and is
-corrected in this PR) is deliberately left to the next real run instead of
-rebuilding the flow on a hypothesis: if it goes green, only the token was bad;
-if it answers GH006, the release flow must become PR-based.
-
-This PR's scope, therefore: the AC3 alert (a `workflow_run`-triggered watcher
-that opens/bumps/closes a tracking issue — no checkout, no code), the stale
-comments, and this item update. No change to the `||` expression, no
-semantic-release config change, no flow rebuild. AC1/AC2 verify when this PR
-itself merges — that merge triggers the next `Release` run.
 
 ## Fix
 

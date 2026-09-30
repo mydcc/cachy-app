@@ -127,8 +127,8 @@ describe("Calculator - Deep Dive & Dashboard Charts", () => {
       ];
 
       const data = calculator.getTimingData(trades);
-      expect(data.hourlyPnl[hour].toNumber()).toBe(50);
-      expect(data.hourlyPnl[(hour + 1) % 24].toNumber()).toBe(0);
+      expect(data.hourlyPnl[hour]).toBe(50);
+      expect(data.hourlyPnl[(hour + 1) % 24]).toBe(0);
     });
 
     it("should handle invalid dates gracefully", () => {
@@ -144,7 +144,7 @@ describe("Calculator - Deep Dive & Dashboard Charts", () => {
       const data = calculator.getTimingData(trades);
 
       // Should simply return zeros as the trade is skipped
-      expect(data.hourlyPnl.every((p) => p.isZero())).toBe(true);
+      expect(data.hourlyPnl.every((p) => p === 0)).toBe(true);
     });
   });
 

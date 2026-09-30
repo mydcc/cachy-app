@@ -96,8 +96,8 @@ describe("getRollingData", () => {
     if (!result) return;
 
     expect(result.profitFactors.length).toBe(2);
-    expect(result.profitFactors[0].toNumber()).toBe(2.0);
-    expect(result.profitFactors[1].toNumber()).toBe(4.0);
+    expect(result.profitFactors[0]).toBe(2.0);
+    expect(result.profitFactors[1]).toBe(4.0);
   });
 
   it("calculates rolling SQN correctly", () => {

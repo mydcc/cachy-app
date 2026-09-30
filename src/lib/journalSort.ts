@@ -45,33 +45,6 @@ function parseDateish(value: SortableValue): number {
 }
 
 /**
- * Total order over sort keys without a lossy float step.
- *
- * `Decimal` keys stay `Decimal`: converting through `.toNumber()` collapses
- * distinct high-precision amounts (anything past 2^53) into one double, so
- * rows that should order stop ordering. Plain numbers (durations, epoch
- * millis, the -1/-Infinity sentinels) compare exactly as before, and the
- * string fast-path keeps locale ordering for symbol/status.
- */
-function compareKeys(valA: SortableValue, valB: SortableValue): number {
-    if (typeof valA === "string" && typeof valB === "string") {
-        return valA.localeCompare(valB);
-    }
-    if (valA instanceof Decimal || valB instanceof Decimal) {
-        // Legacy Decimal-vs-string comparisons always answered "equal"
-        // (number-vs-string `<`/`>` are both false); preserve that instead of
-        // throwing in the Decimal constructor on non-numeric text.
-        if (typeof valA === "string" || typeof valB === "string") {
-            return 0;
-        }
-        const a = valA instanceof Decimal ? valA : new Decimal(valA as number);
-        const b = valB instanceof Decimal ? valB : new Decimal(valB as number);
-        return a.cmp(b);
-    }
-    return (valA as number) < (valB as number) ? -1 : (valA as number) > (valB as number) ? 1 : 0;
-}
-
-/**
  * Fields holding a single point in time, so they sort as milliseconds rather
  * than as text.
  *
@@ -106,6 +79,7 @@ export function sortJournalRows<T>(rows: T[], field: string, direction: SortDire
                 const end = parseDateish(endValue);
                 val = isNaN(start) || isNaN(end) ? 0 : Math.max(0, end - start);
             } else {
+                if (val instanceof Decimal) val = val.toNumber();
                 if (val === undefined || val === null) {
                     val = field === "symbol" || field === "status" ? "" : -Infinity;
                 }
@@ -128,9 +102,16 @@ export function sortJournalRows<T>(rows: T[], field: string, direction: SortDire
             return { row, val };
         })
         .sort((a, b) => {
-            const comparison = compareKeys(a.val, b.val);
+            const valA = a.val;
+            const valB = b.val;
 
-            return direction === "asc" ? comparison : -comparison;
+            if (typeof valA === "string" && typeof valB === "string") {
+                return direction === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+
+            if ((valA as number) < (valB as number)) return direction === "asc" ? -1 : 1;
+            if ((valA as number) > (valB as number)) return direction === "asc" ? 1 : -1;
+            return 0;
         })
         .map(entry => entry.row);
 }
@@ -168,8 +149,10 @@ export function sortJournalEntries<T extends SlAtrInput>(
                     const entryPrice = new Decimal(entry.entryPrice);
                     const stopLoss = new Decimal(entry.stopLossPrice);
                     const atr = new Decimal(entry.atrValue);
-                    val = atr.isZero() ? -1 : entryPrice.minus(stopLoss).abs().div(atr);
+                    val = atr.isZero() ? -1 : entryPrice.minus(stopLoss).abs().div(atr).toNumber();
                 }
+            } else if (val instanceof Decimal) {
+                val = val.toNumber();
             }
 
             return { entry, val };
@@ -182,7 +165,17 @@ export function sortJournalEntries<T extends SlAtrInput>(
             if (valA == null) return 1;
             if (valB == null) return -1;
 
-            const comparison = compareKeys(valA, valB);
+            let comparison: number;
+            if (typeof valA === "string" && typeof valB === "string") {
+                comparison = valA.localeCompare(valB);
+            } else {
+                comparison =
+                    (valA as number) < (valB as number)
+                        ? -1
+                        : (valA as number) > (valB as number)
+                          ? 1
+                          : 0;
+            }
 
             return direction === "asc" ? comparison : -comparison;
         })

@@ -2,9 +2,7 @@
 id: BUG-0594
 title: Native number arithmetic used for financial values in stats.ts
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0594-decimal-stats
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -56,8 +54,6 @@ Change the return types of these structures to contain `Decimal` instances (or s
 
 ## Acceptance criteria
 
-- [x] A test reproduces the defect and fails without the fix
-- [x] The test passes with the fix
-- [x] No `toNumber()` or other native number conversions are used for financial calculations/comparisons in this file
-  (two `.toNumber()` remain, both sanctioned display edges with audit comments:
-  SQN accumulation and histogram binning, f64 per ADR-0021)
+- [ ] A test reproduces the defect and fails without the fix
+- [ ] The test passes with the fix
+- [ ] No `toNumber()` or other native number conversions are used for financial calculations/comparisons in this file

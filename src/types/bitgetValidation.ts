@@ -34,9 +34,7 @@ export const BitgetWSMessageSchema = z.object({
   data: z.array(z.any()).optional(),
   ts: z.number().optional(),
   event: z.string().optional(),
-  // BUG-0581: the vendor sends the login code as "0", 0, or "00000"
-  // depending on the source — accept string and number, normalize at use.
-  code: z.union([z.string(), z.number()]).optional(),
+  code: z.string().optional(),
 }).refine(
   (msg) => msg.action || msg.event,
   "Message must have either 'action' or 'event' field"

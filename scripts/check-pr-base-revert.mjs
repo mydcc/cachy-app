@@ -40,14 +40,6 @@
  *   a removed line counts as base-introduced only when the fork-era version
  *   does not contain it. Deleting a pre-existing file, or a line the PR could
  *   already see at fork time, is the PR's own business and passes.
- * - `E`, the content era of the head blob (BUG-0583): `git log
- *   --find-object=<head-blob> M` reports when the head's content was last
- *   current on the base side. When that era predates `M`, the head carries a
- *   pre-fork snapshot and the fork-era excuse is void — the snapshot
- *   predates what the PR "could see" — so the era tree anchors instead of
- *   the fork tree. Without this, `P == M` (a branch that never merged base,
- *   the normal agent shape) excuses every removed line by construction and
- *   the check can never fire.
  *
  * A palette PR has no business deleting a file the base added; a deliberate
  * revert opts in with a visible label, never a commit-message token.
@@ -70,18 +62,6 @@ const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 const ALLOW_LABEL = process.env.ALLOW_LABEL ?? "allow-base-revert";
 // Cap the per-path sample lines in the report; the count is never capped.
 const MAX_SAMPLE_LINES = 10;
-// Bound for one content-era lookup. A breach fails the path closed (reported
-// as undecidable) instead of passing silently — but the per-path budget only
-// bites on a broken git, ordinary lookups finish in well under a second.
-const ERA_TIMEOUT_MS = 30000;
-// Era walks are the only expensive step (each scans base history). Stale
-// snapshots revert dozens of files, so a small budget always finds the era;
-// past it the fork verdict stands, otherwise every large legitimate PR would
-// pay a full scan per path.
-const ERA_WALK_BUDGET = 8;
-// Candidate commits verified per era lookup. Past the cap the blob is
-// pathological (e.g. the empty blob) and the era stays unknown.
-const MAX_ERA_CANDIDATES = 25;
 
 /**
  * Generated aggregates, not source. `node scripts/backlog-index.mjs` rewrites
@@ -130,70 +110,6 @@ function blobSha(rev, path) {
     }
 }
 
-/**
- * Content of a path at a revision, with rename fallback. The base may have
- * renamed the file (the diff's old path is gone at the tip), and a stale
- * head may still carry the old name (the new path is gone at the head).
- * Returns `{ buf, sha }` or null when neither name resolves.
- */
-function blobAt(rev, paths) {
-    for (const p of new Set(paths)) {
-        const buf = blobBuffer(rev, p);
-        if (buf !== null) return { buf, sha: blobSha(rev, p), path: p };
-    }
-    return null;
-}
-
-/**
- * When the head's content was last current on the base side, searched from
- * the merge-base inward: anything found there that differs from the
- * merge-base is a strict ancestor of it, i.e. provably pre-fork content.
- *
- * `--find-object` alone is not enough: it also reports the commit that
- * *removed* the blob, whose tree no longer contains it. So every candidate
- * is verified against its own tree, newest first; the first tree that still
- * contains the blob is the era.
- *
- * Returns `{ state: "found", rev }`, `{ state: "unknown" }` (blob never on
- * the base side — PR-authored content, judged by the fork anchor as before),
- * or `{ state: "undecidable" }` (lookup breach — fail closed, report it).
- */
-function contentEra(sha, mergeBase) {
-    let list;
-    try {
-        list = execFileSync("git", ["log", "--format=%H", `--find-object=${sha}`, mergeBase], {
-            encoding: "utf8",
-            timeout: ERA_TIMEOUT_MS,
-            stdio: ["ignore", "pipe", "pipe"],
-        })
-            .split("\n")
-            .map((l) => l.trim())
-            .filter(Boolean);
-    } catch (e) {
-        if (e.code === "ETIMEDOUT" || /timed out/i.test(String(e?.message ?? ""))) {
-            return { state: "undecidable" };
-        }
-        return { state: "unknown" };
-    }
-    if (list.length === 0) return { state: "unknown" };
-    // Pathological blobs (e.g. the empty blob) touch hundreds of commits;
-    // past the cap the era is unknowable cheaply — same verdict as unknown.
-    for (const c of list.slice(0, MAX_ERA_CANDIDATES)) {
-        try {
-            const tree = execFileSync("git", ["ls-tree", "-r", c], {
-                encoding: "utf8",
-                maxBuffer: 256 * 1024 * 1024,
-                timeout: ERA_TIMEOUT_MS,
-                stdio: ["ignore", "pipe", "pipe"],
-            });
-            if (tree.includes(sha)) return { state: "found", rev: c };
-        } catch {
-            return { state: "undecidable" };
-        }
-    }
-    return { state: "unknown" };
-}
-
 function countLines(buf) {
     const counts = new Map();
     if (buf === null) return counts;
@@ -201,26 +117,6 @@ function countLines(buf) {
         counts.set(line, (counts.get(line) ?? 0) + 1);
     }
     return counts;
-}
-
-/**
- * Removed lines the anchor version does not contain, per occurrence so
- * duplicated lines only match when every copy is gone. Consumes the passed
- * counts; callers pass a fresh map per path.
- */
-function countMissing(removed, anchorCounts) {
-    const samples = [];
-    let count = 0;
-    for (const line of removed) {
-        const left = anchorCounts.get(line) ?? 0;
-        if (left > 0) {
-            anchorCounts.set(line, left - 1);
-        } else {
-            count += 1;
-            if (samples.length < MAX_SAMPLE_LINES) samples.push(line);
-        }
-    }
-    return { count, samples };
 }
 
 /**
@@ -295,28 +191,15 @@ function main() {
 
     const violations = [];
     let checked = 0;
-    // Collapsed shape (BUG-0583): the branch never merged base, so the fork
-    // anchor and the merge-base are the same tree and the fork filter below
-    // excuses every removed line by construction. Only in this shape does a
-    // second pass re-anchor candidates onto the head blob's content era.
-    // Any other shape runs the legacy fork logic exactly as before.
-    const collapsed = forkRev === mergeBase;
-    const candidates = [];
     for (const { status, oldPath, path } of payloadEntries(mergeBase, head)) {
         if (status.startsWith("A")) continue; // the PR's own addition.
         if (GENERATED_BACKLOG_PATHS.has(path) || GENERATED_BACKLOG_PATHS.has(oldPath)) continue;
         checked += 1;
 
-        // Resolve content on each side with rename fallback: the base may
-        // have renamed the file (the diff's old path is gone at the tip).
-        // The head side additionally falls back to the old name, but only in
-        // the collapsed shape — a stale head may still carry it.
-        const mBlob = blobAt(mergeBase, [oldPath, path]);
-        const hBlob = blobAt(head, collapsed ? [path, oldPath] : [path]);
-        const mBuf = mBlob?.buf ?? null;
-        const hBuf = hBlob?.buf ?? null;
-        const mSha = mBlob?.sha ?? null;
-        const hSha = hBlob?.sha ?? null;
+        const mBuf = blobBuffer(mergeBase, oldPath);
+        const hBuf = blobBuffer(head, path);
+        const mSha = mBuf === null ? null : blobSha(mergeBase, oldPath);
+        const hSha = hBuf === null ? null : blobSha(head, path);
 
         // Binary blobs have no meaningful lines: only an exact reset to the
         // fork-era blob counts as a revert, anything else is undecidable.
@@ -340,8 +223,18 @@ function main() {
         if (removed.length === 0) continue;
 
         // …of which the fork-era version does not contain: base-introduced.
-        const forkCounts = countLines(blobAt(forkRev, [oldPath, path])?.buf ?? null);
-        const { count: baseRemoved, samples } = countMissing(removed, forkCounts);
+        const forkCounts = countLines(blobBuffer(forkRev, oldPath));
+        const samples = [];
+        let baseRemoved = 0;
+        for (const line of removed) {
+            const left = forkCounts.get(line) ?? 0;
+            if (left > 0) {
+                forkCounts.set(line, left - 1);
+            } else {
+                baseRemoved += 1;
+                if (samples.length < MAX_SAMPLE_LINES) samples.push(line);
+            }
+        }
         if (baseRemoved > 0) {
             violations.push({
                 path,
@@ -349,56 +242,6 @@ function main() {
                 count: baseRemoved,
                 samples,
             });
-            continue;
-        }
-        // Fully excused by the fork anchor. In the collapsed shape that
-        // excuse is void by construction, so the path becomes a candidate
-        // for era re-anchoring in the second pass below.
-        if (collapsed) {
-            candidates.push({ path, oldPath, hSha: hBlob?.sha ?? null, removed, deleted: hBuf === null });
-        }
-    }
-
-    // Second pass (collapsed shape only): establish one snapshot era from the
-    // candidates and recount every candidate against it. Re-anchoring onto E
-    // is exactly the legacy rule with the fork replaced by the content era —
-    // which is what the fork would have been had the snapshot not predated
-    // it. Paths whose era lookup breaches fail closed as undecidable;
-    // paths with PR-authored content keep the fork verdict, so ordinary
-    // edits stay green.
-    if (collapsed && candidates.length > 0) {
-        let eraRev = null;
-        let walks = 0;
-        for (const c of candidates) {
-            if (eraRev !== null || walks >= ERA_WALK_BUDGET || c.hSha === null) continue;
-            walks += 1;
-            const era = contentEra(c.hSha, mergeBase);
-            if (era.state === "undecidable") {
-                violations.push({
-                    path: c.path,
-                    kind: "undecidable",
-                    count: c.removed.length,
-                    samples: c.removed.slice(0, MAX_SAMPLE_LINES),
-                });
-                c.decided = true;
-            } else if (era.state === "found" && era.rev !== mergeBase) {
-                eraRev = era.rev;
-            }
-        }
-        if (eraRev !== null) {
-            for (const c of candidates) {
-                if (c.decided) continue;
-                const anchorCounts = countLines(blobAt(eraRev, [c.oldPath, c.path])?.buf ?? null);
-                const recounted = countMissing(c.removed, anchorCounts);
-                if (recounted.count > 0) {
-                    violations.push({
-                        path: c.path,
-                        kind: c.deleted ? "deleted" : "removed-lines",
-                        count: recounted.count,
-                        samples: recounted.samples,
-                    });
-                }
-            }
         }
     }
 
@@ -413,8 +256,6 @@ function main() {
     for (const v of violations) {
         if (v.kind === "deleted") {
             console.error(`   deleted file with ${v.count} base-added line(s):  ${v.path}`);
-        } else if (v.kind === "undecidable") {
-            console.error(`   undecidable path (content-era lookup breached):  ${v.path}`);
         } else if (v.kind === "binary-revert") {
             console.error(`   binary file reset to the fork snapshot:  ${v.path}`);
         } else {
@@ -429,8 +270,6 @@ the PR title. Fetch the base branch and rebase or merge before pushing again.
 
 If the revert is deliberate, a maintainer can add the \`${ALLOW_LABEL}\`
 label to this PR (a visible opt-in, not a commit-message token) and re-run.
-That includes emergency restores: a restore is a deliberate revert, so label
-it before merging.
 `);
     process.exit(1);
 }

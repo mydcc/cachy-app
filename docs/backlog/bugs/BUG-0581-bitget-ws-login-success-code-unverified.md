@@ -2,7 +2,7 @@
 id: BUG-0581
 title: "Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\""
 type: bug
-status: in-progress
+status: specced
 priority: P2
 area: exchange
 created: "2026-09-28"
@@ -11,8 +11,6 @@ editions: ["community", "pro", "private"]
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: fix/bug-0581-ws-login-tolerance
 ---
 
 # Verify the Bitget WebSocket login success code before trusting private streams
@@ -159,34 +157,19 @@ Fold the verification into that work rather than doing it twice.
 
 - [ ] Bitget support has confirmed the login success code, **or** one
       authenticated login frame has been observed and its `code` recorded
-      verbatim — **open**: needs one authenticated connection (demo host
-      `wss://wspap.bitget.com/v2/ws/private` suffices, no funded key).
-      The tolerance below makes the code correct under every documented
-      spelling; the observation decides which one is real.
-- [x] The success check accepts every spelling the venue or the best-practices
-      guidance actually uses, rather than one exact string — `"00000"`, `"0"`,
-      numeric `0` (normalized via `String()`; schema widened to
-      `string | number` so the numeric frame reaches the check)
-- [x] A test asserts that a non-success `login` code leaves `isAuthenticated`
+      verbatim
+- [ ] The success check accepts every spelling the venue or the best-practices
+      guidance actually uses, rather than one exact string
+- [ ] A test asserts that a non-success `login` code leaves `isAuthenticated`
       false and does not trigger `subscribePrivate`
-- [x] An unrecognised `login` code produces a visible log or state rather than
-      falling through silently — `logger.warn` with the code, plus explicit
-      `return` so the frame can never slide into channel parsing
-- [x] `src/services/bitgetWs.ts:469` no longer relies on a single hard-coded
+- [ ] An unrecognised `login` code produces a visible log or state rather than
+      falling through silently
+- [ ] `src/services/bitgetWs.ts:469` no longer relies on a single hard-coded
       string without a recorded source
 - [ ] [`docs/bitget-api/01_sign.md`](../../bitget-api/01_sign.md) records the
-      answer in place of the current unresolved marking — **open**, with AC1
+      answer in place of the current unresolved marking
 - [ ] The V2 WebSocket migration in BUG-0576 reuses this check rather than
-      reimplementing it — pending that migration; the normalized block is
-      written to be moved verbatim
-
-## Progress 2026-09-30 (code half, no venue)
-
-Tests first: the two tolerance tests and the loud-log test fail on the old
-code (3 failed / 3 passed), suite 12/12 green with the fix
-(`src/services/bitgetWs.test.ts` + `bitgetWs.leak.test.ts`), plus 6/6 in
-`apiSchemas.money.test.ts` (only other consumer of the validation module).
-No venue was contacted — nothing here asserts which spelling the venue sends.
+      reimplementing it
 
 ## Links
 

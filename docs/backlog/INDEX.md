@@ -4,7 +4,7 @@
 
 472 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-progress 3 · ✅ done 416 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 27 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 411 · ⛔ dropped 1
 
 ---
 
@@ -291,18 +291,18 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | execution |
 | [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | exchange |
 | [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | exchange |
-| [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | ✅ done | repo |
-| [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | 🟡 in-progress | ci |
+| [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | 📋 specced | repo |
+| [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | 📋 specced | ci |
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | journal |
 | [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | trade-panel |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | execution |
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | execution |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | exchange |
 | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | exchange |
-| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | ✅ done | ui |
-| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | ✅ done | ai |
-| [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | ✅ done | core |
-| [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | ✅ done | core |
+| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | 📋 specced | ui |
+| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | 📋 specced | ai |
+| [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | 📋 specced | core |
+| [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | 📋 specced | core |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -394,7 +394,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | ui |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | execution |
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | execution |
-| [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 🟡 in-progress | exchange |
+| [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 📋 specced | exchange |
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | 📋 specced | tooling |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
@@ -663,18 +663,18 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
 | [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |
 | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -815,7 +815,7 @@ Counts by status: 💡 idea 23 · 📋 specced 20 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0562](bugs/BUG-0562-financial-details-hover-only.md) | Critical account and pending-order financial details are hover-only | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0565](bugs/BUG-0565-paper-live-balance-confusion.md) | Live balance pushes and paper hydration share one store without a mode guard | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) |
-| [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |

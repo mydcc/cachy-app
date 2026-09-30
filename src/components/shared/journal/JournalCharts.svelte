@@ -26,12 +26,6 @@
     import { journalState } from "../../../stores/journal.svelte";
     import { calculator } from "../../../lib/calculator";
 
-    // PR1 edge (BUG-0594): stats return Decimal, charts take number.
-    // PR2 (BUG-0595) converts these call sites properly.
-    const toChartNum = (
-        v: number | { toNumber(): number } | null | undefined,
-    ): number => (typeof v === "number" ? v : (v?.toNumber() ?? 0));
-
     interface ThemeColors {
         success: string;
         danger: string;
@@ -176,12 +170,12 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.netPnl"),
-                data: [toChartNum(dirData.longPnl), toChartNum(dirData.shortPnl)],
+                data: [dirData.longPnl || 0, dirData.shortPnl || 0],
                 backgroundColor: [
-                    toChartNum(dirData.longPnl) >= 0
+                    (dirData.longPnl || 0) >= 0
                         ? themeColors.success
                         : themeColors.danger,
-                    toChartNum(dirData.shortPnl) >= 0
+                    (dirData.shortPnl || 0) >= 0
                         ? themeColors.success
                         : themeColors.danger,
                 ],
@@ -193,7 +187,7 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: (dirData.topSymbols?.data || []).map(toChartNum),
+                data: dirData.topSymbols?.data || [],
                 backgroundColor: themeColors.success,
             },
         ],
@@ -203,7 +197,7 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: (dirData.bottomSymbols?.data || []).map(toChartNum),
+                data: dirData.bottomSymbols?.data || [],
                 backgroundColor: themeColors.danger,
             },
         ],
@@ -247,9 +241,9 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: (discData.hourlyPnl || []).map(toChartNum),
+                data: discData.hourlyPnl || [],
                 backgroundColor: (discData.hourlyPnl || []).map((d) =>
-                    toChartNum(d) >= 0 ? themeColors.success : themeColors.danger,
+                    d >= 0 ? themeColors.success : themeColors.danger,
                 ),
             },
         ],
@@ -272,10 +266,10 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: [toChartNum(costData.gross), toChartNum(costData.net)],
+                data: [costData.gross || 0, costData.net || 0],
                 backgroundColor: [
                     themeColors.accent,
-                    toChartNum(costData.net) >= 0
+                    (costData.net || 0) >= 0
                         ? themeColors.success
                         : themeColors.danger,
                 ],
@@ -304,8 +298,8 @@
         datasets: [
             {
                 data: [
-                    toChartNum(costData.feeStructure?.trading),
-                    toChartNum(costData.feeStructure?.funding),
+                    costData.feeStructure?.trading || 0,
+                    costData.feeStructure?.funding || 0,
                 ],
                 backgroundColor: [
                     themeColors.textSecondary,
@@ -488,10 +482,10 @@
                         )}</span
                     >
                     <span
-                        class="font-mono font-bold {toChartNum(qualData?.detailedStats
-                            ?.profitFactor) >= 1.5
+                        class="font-mono font-bold {qualData?.detailedStats
+                            ?.profitFactor >= 1.5
                             ? 'text-[var(--success-color)]'
-                            : toChartNum(qualData?.detailedStats?.profitFactor) >= 1
+                            : qualData?.detailedStats?.profitFactor >= 1
                               ? 'text-[var(--warning-color)]'
                               : 'text-[var(--danger-color)]'}"
                     >
@@ -509,8 +503,8 @@
                         >{$_("journal.deepDive.charts.labels.expectancy")}</span
                     >
                     <span
-                        class="font-mono font-bold {(toChartNum(qualData?.detailedStats
-                            ?.expectancy) > 0)
+                        class="font-mono font-bold {(qualData?.detailedStats
+                            ?.expectancy || 0) > 0
                             ? 'text-[var(--success-color)]'
                             : 'text-[var(--danger-color)]'}"
                     >

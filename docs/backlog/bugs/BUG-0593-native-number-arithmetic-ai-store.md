@@ -2,9 +2,7 @@
 id: BUG-0593
 title: Native number arithmetic used for financial values in ai.svelte.ts
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0592-0593-decimal-sort-ai
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -39,8 +37,6 @@ Keep the value as a `Decimal` or convert it to a string for serialization/displa
 
 ## Acceptance criteria
 
-- [x] A test reproduces the defect and fails without the fix
-- [x] The test passes with the fix
+- [ ] A test reproduces the defect and fails without the fix
+- [ ] The test passes with the fix
 - [ ] No `toNumber()` or other native number conversions are used for financial calculations/comparisons in this file
-  (one `.toNumber()` remains at the bidRatio display formatter — the ticket's
-  own carve-out: percentage/ratio percent-string, not a financial value)

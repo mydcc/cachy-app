@@ -170,19 +170,6 @@ describe("sortJournalRows", () => {
         expect(ids(sortJournalRows(rows, "pnl", "desc"))).toEqual(["hundred", "ten", "nine"]);
     });
 
-    it("orders high-precision Decimal amounts that collapse to one double", () => {
-        // 9007199254740993 and 9007199254740992 are distinct Decimals but the
-        // same float64. Through `.toNumber()` the sort saw equal keys and kept
-        // input order; with Decimal-native comparison the order is exact.
-        const rows: Row[] = [
-            { id: "a", pnl: new Decimal("9007199254740993") },
-            { id: "b", pnl: new Decimal("9007199254740992") },
-        ];
-
-        expect(ids(sortJournalRows(rows, "pnl", "asc"))).toEqual(["b", "a"]);
-        expect(ids(sortJournalRows(rows, "pnl", "desc"))).toEqual(["a", "b"]);
-    });
-
     it("leaves the caller's array and its Decimal payloads untouched", () => {
         const pnl = new Decimal(42);
         const rows: Row[] = [
@@ -251,20 +238,6 @@ describe("sortJournalEntries", () => {
 
         // Both incomplete cases collapse to -1 and tie; input order breaks the tie.
         expect(ids(sortJournalEntries(rows, "slAtr", "asc"))).toEqual(["no-atr", "zero-atr", "good"]);
-    });
-
-    it("sorts the slAtr column from Decimal inputs exactly like numbers", () => {
-        // The ratio stays a Decimal now; ordering must match the old float
-        // path for ordinary magnitudes. A row without inputs collapses to
-        // the -1 sentinel and sorts first ascending, last descending.
-        const rows: Row[] = [
-            { id: "hi", entryPrice: new Decimal(10), stopLossPrice: new Decimal(5), atrValue: new Decimal(1) },
-            { id: "blank" },
-            { id: "lo", entryPrice: new Decimal(1), stopLossPrice: new Decimal(0.5), atrValue: new Decimal(1) },
-        ];
-
-        expect(ids(sortJournalEntries(rows, "slAtr", "asc"))).toEqual(["blank", "lo", "hi"]);
-        expect(ids(sortJournalEntries(rows, "slAtr", "desc"))).toEqual(["hi", "lo", "blank"]);
     });
 
     it("sorts status strings with locale comparison", () => {

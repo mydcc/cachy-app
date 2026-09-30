@@ -2,9 +2,7 @@
 id: BUG-0595
 title: Native number arithmetic used for financial values in charts.ts
 type: bug
-status: done
-assignee: opencode
-branch: fix/bug-0595-decimal-charts
+status: specced
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -81,8 +79,6 @@ Change the return types of these structures to contain `Decimal` instances (or s
 
 ## Acceptance criteria
 
-- [x] A test reproduces the defect and fails without the fix
-- [x] The test passes with the fix
-- [x] No `toNumber()` or other native number conversions are used for financial calculations/comparisons in this file
-  (remaining `.toNumber()` calls are chart-point edges, dimensionless ratios,
-  indicator math or display scores — each with an audit comment citing ADR-0021)
+- [ ] A test reproduces the defect and fails without the fix
+- [ ] The test passes with the fix
+- [ ] No `toNumber()` or other native number conversions are used for financial calculations/comparisons in this file
