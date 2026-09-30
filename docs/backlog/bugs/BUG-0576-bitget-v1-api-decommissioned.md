@@ -35,7 +35,34 @@ payload unparsed.
 Two latent bugs in the same code went with it: `fetchBitgetKlines` received a
 `limit` argument and never sent it, and its parser tested the Bitget response
 *envelope* for being an array, so every successful call reported "no candles"
-regardless of endpoint version.
+regardless of endpoint version. The parser also judged `response.ok` before
+reading the envelope, which discarded Bitget's error message on every failure —
+Bitget pairs each business error with a 400, so every rejection degraded to
+"Bitget API error: 400".
+
+**Row 7 is migrated but still not complete.** Two gaps the migration surfaced,
+neither of which it caused — both are acceptance criteria below rather than
+separate items, because they live in the same function:
+
+- **Thirteen of the twenty timeframes the chart offers fail on Bitget with
+  `400171`.** `fetchBitgetKlines` maps eight of them and passes everything else
+  through verbatim, and there is no aggregation layer for Bitget:
+  `nativeTimeframes` has exactly one consumer, `bitunixNatives` in
+  `fetchBitunixKlines`. Verified live against V2 on 2026-09-30: `2m`, `6m`,
+  `9m`, `10m`, `12m`, `24m`, `27m`, `45m`, `2h`, `6h`, `8h`, `12h` and `3d` all
+  answer `400171 Parameter verification failed k-line time range should be
+  [1m,3m,5m,15m,30m,1H,4H,6H,12H,1D,1W,1M,6Hutc,12Hutc,1Dutc,3Dutc,1Wutc,1Mutc]`.
+  So this is a live defect, not a missing feature. Two parts of it:
+  `bitget.nativeTimeframes` in `src/config/brokerCapabilities.ts` omits
+  granularities V2 *does* serve (`3m`, `6H`, `1M`), and the passthrough fails
+  on the lowercase H-spellings (`6h`) that the chart uses.
+- **A short candle series is indistinguishable from a complete one.** Not
+  demonstrated — `limit=1000` on `1m` returns 1000 rows, so the venue fills the
+  request and no truncation was reproducible. It is recorded because the
+  Bitunix path already treats the opposite as a defect worth a log line
+  (`marketData.ts:161`: "a truncated fetch that reports full success is how the
+  original defect stayed invisible for so long"), and this path has no such
+  signal.
 
 **Rows 1–6 are untouched and still on V1**, deliberately. They need credentials
 this pass did not have: the ordering question (BUG-0580) is unanswered, the V2
@@ -236,6 +263,18 @@ risks reintroducing it.
       no longer contains a ☠️ row
 - [ ] The WebSocket field-name mismatch in `docs/TODO.md` is resolved or
       re-confirmed
+- [ ] Every timeframe the chart offers resolves on Bitget — mapped onto a
+      granularity V2 serves, aggregated from one it does (the way
+      `fetchBitunixKlines` uses `bitunixNatives`), or refused explicitly rather
+      than letting `400171` escape as a chart error. `bitget.nativeTimeframes`
+      names what Bitget really serves: `3m`, `6H` and `1M` are absent from it
+      today although V2 answers `00000` for each
+- [ ] A test covers a non-mapped timeframe on the Bitget path, and the list in
+      [`CandleChartView.svelte:109`](../../../src/lib/windows/implementations/CandleChartView.svelte)
+      is reconciled with what Bitget can serve
+- [ ] A short candle series is observable rather than silent: when the venue
+      returns fewer rows than requested, that is logged the way the Bitunix
+      path logs it, instead of being reported as a complete fetch
 
 ## Links
 
