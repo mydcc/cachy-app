@@ -1,0 +1,33 @@
+feat(ui): 🎨 Palette: Say when the close dialog's PnL mark is derived
+
+💡 What:
+Appends "(est.)" / "(gesch.)" to the realized PnL readout in the Close Position modal
+when the mark price was derived from unrealized PnL instead of being explicitly
+reported by the venue.
+
+🎯 Why:
+Bitget and other exchanges occasionally omit the mark price. While the app correctly
+derives it as a fallback to keep the PnL line functional, the UI did not inform the
+user that this figure is a derived estimate. This prevents confusion between a live
+price and a stale/derived one during a fast-moving market.
+
+♿ Accessibility:
+No significant changes to the accessible tree other than the string change itself;
+screen readers will announce "Realizes (est.)" / "Realisiert (gesch.)".
+
+🌍 i18n:
+Added `positionsList.realizesPnlDerived` to `en.json` and `de.json`.
+
+🎨 Theming:
+No hardcoded colors were introduced. Uses existing `pnlTone` styling.
+
+📸 Before/After:
+Before: "Realizes: +10.50" (indistinguishable whether mark was live or derived).
+After: "Realizes (est.): +10.50" (if missing), or "Realizes: +10.50" (if reported).
+
+✅ Verification:
+- Added `FEAT-0574` test suite to `ClosePositionModal.component.test.ts`.
+- Verified UI strings update correctly without affecting submitted amount.
+- `npm run check`, `npm run lint`, and `npm test` are green.
+
+Fixes #FEAT-0574

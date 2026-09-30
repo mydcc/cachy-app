@@ -9718,7 +9718,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0574",
     "title": "Say when the close dialog's PnL mark is derived, not reported",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
