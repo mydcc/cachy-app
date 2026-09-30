@@ -4,7 +4,7 @@
 
 472 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 26 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 412 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 24 · 🟢 ready 9 · 🟡 in-progress 1 · ✅ done 414 · ⛔ dropped 1
 
 ---
 
@@ -299,8 +299,8 @@ Counts by status: 💡 idea 23 · 📋 specced 26 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | execution |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | exchange |
 | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | exchange |
-| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | 📋 specced | ui |
-| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | 📋 specced | ai |
+| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | ✅ done | ui |
+| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | ✅ done | ai |
 | [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | 📋 specced | core |
 | [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | 📋 specced | core |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -671,8 +671,8 @@ Counts by status: 💡 idea 23 · 📋 specced 26 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |
 | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) | Capture a real Bitget order response and settle which field carries the traded amount | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0592](bugs/BUG-0592-native-number-arithmetic-journalSort.md) | Native number arithmetic used for financial values in journalSort.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0593](bugs/BUG-0593-native-number-arithmetic-ai-store.md) | Native number arithmetic used for financial values in ai.svelte.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0594](bugs/BUG-0594-native-number-arithmetic-stats.md) | Native number arithmetic used for financial values in stats.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
