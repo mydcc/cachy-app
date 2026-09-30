@@ -16,7 +16,7 @@ depends_on: [BUG-0596, BUG-0580]
 # Migrate the Bitget order write paths to V2
 
 Row 1 and 4 of the mapping table in
-[`docs/bitget-api/09_v1_vs_v2.md`](../bitget-api/09_v1_vs_v2.md), split out of
+[`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md), split out of
 [BUG-0576](BUG-0576-bitget-v1-api-decommissioned.md) because this is the one
 part of the migration that can **quietly move money the wrong way**.
 
@@ -42,10 +42,10 @@ curl -s -X POST 'https://api.bitget.com/api/mix/v1/order/placeOrder' \
 ```
 
 Verified 2026-09-30. Cachy builds that body in
-[`src/utils/exchange/bitgetBodies.ts:64`](../../src/utils/exchange/bitgetBodies.ts)
-and sends it via [`src/utils/server/venues/bitget.ts:68`](../../src/utils/server/venues/bitget.ts);
+[`src/utils/exchange/bitgetBodies.ts:64`](../../../src/utils/exchange/bitgetBodies.ts)
+and sends it via [`src/utils/server/venues/bitget.ts:68`](../../../src/utils/server/venues/bitget.ts);
 the path comes from
-[`src/utils/exchange/restSigningPlan.ts:288`](../../src/utils/exchange/restSigningPlan.ts)
+[`src/utils/exchange/restSigningPlan.ts:288`](../../../src/utils/exchange/restSigningPlan.ts)
 and `:289` (`close-position` — **the same path serves both order placement and
 every close**).
 
@@ -55,7 +55,7 @@ V1 and V2 model the intent of an order differently.
 
 In V1 a single `side` field carries direction *and* open-versus-close:
 `open_long`, `open_short`, `close_long`, `close_short`, built by `bitgetSide()`
-at [`src/utils/exchange/bitgetBodies.ts:42`](../../src/utils/exchange/bitgetBodies.ts).
+at [`src/utils/exchange/bitgetBodies.ts:42`](../../../src/utils/exchange/bitgetBodies.ts).
 
 In V2 `side` carries **direction only** (`buy` | `sell`) and a new `tradeSide`
 field carries the close. The correct port decomposes the V1 value losslessly —
@@ -71,7 +71,7 @@ request returned 200".
 Two more required fields, neither of which Cachy sends today: `place-order`
 requires `productType` **and** `marginMode` (`isolated` | `crossed`). And V1's
 misspelled `timInForceValue`
-([`src/utils/exchange/bitgetBodies.ts:84`](../../src/utils/exchange/bitgetBodies.ts))
+([`src/utils/exchange/bitgetBodies.ts:84`](../../../src/utils/exchange/bitgetBodies.ts))
 becomes `force` with a different value set.
 
 ## Fix
@@ -89,7 +89,7 @@ Against a **real hedge-mode account**, in this order:
    derived from the order itself.
 4. `cancel-order` → `cancel-order` (kebab-case) — a rename only.
 5. Re-evaluate `bitgetCapabilities.tpSlAtEntry`
-   ([`:40`](../../src/services/exchange/bitgetCapabilities.ts)) against V2's
+   ([`:40`](../../../src/services/exchange/bitgetCapabilities.ts)) against V2's
    `presetStop*` fields on `place-order`, with a test added *before* the value
    is flipped. This answers [BUG-0503](BUG-0503-bitget-entry-opens-a-position-that-can-never-be-protected.md).
 
@@ -126,4 +126,4 @@ field a verified shape.
 - BUG-0503 — the unprotected window that `presetStop*` closes
 - BUG-0514 — bulk close; the native endpoint is V1 and unreachable until this
   is fixed
-- [`docs/bitget-api/09_v1_vs_v2.md`](../bitget-api/09_v1_vs_v2.md)
+- [`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md)

@@ -16,13 +16,13 @@ depends_on: []
 # Serve Bitget mark-price candles from V2's `kLineType: mark`
 
 Found while migrating the market-data paths in
-[BUG-0576](BUG-0576-bitget-v1-api-decommissioned.md): the capability Bitget
+[BUG-0576](../bugs/BUG-0576-bitget-v1-api-decommissioned.md): the capability Bitget
 refuses today became a one-line change once the endpoint is on V2.
 
 ## Symptom
 
 A mark-price chart request for Bitget is **refused** rather than answered.
-[`src/utils/server/venues/bitget.ts:570`](../../src/utils/server/venues/bitget.ts)
+[`src/utils/server/venues/bitget.ts:570`](../../../src/utils/server/venues/bitget.ts)
 declares `supportsMarkKlines: false`, so the klines route turns the request into
 an error instead of returning last-price candles wearing a mark label.
 
@@ -64,7 +64,7 @@ refusal, because nothing downstream can tell them apart.
 - [ ] The mark request sends `kLineType: mark` on `/api/v2/mix/market/candles`
 - [ ] `supportsMarkKlines` is `true` and a mark chart request returns candles
 - [ ] A test asserts a mark series is not silently answered with last-price data
-- [ ] [`docs/bitget-api/INTEGRATION_STATUS.md`](../bitget-api/INTEGRATION_STATUS.md)
+- [ ] [`docs/bitget-api/INTEGRATION_STATUS.md`](../../bitget-api/INTEGRATION_STATUS.md)
       moves the `kLineType: mark` row from ❌ to ✅
 - [ ] The test passes with the fix
 
@@ -73,4 +73,4 @@ refusal, because nothing downstream can tell them apart.
 - BUG-0576 — the parent migration; rows 7–9 landed in PR #3771 and revealed this
 - BUG-0512 — stale mark price outranking a fresh REST price, the reason mark
   candles matter here
-- [`docs/bitget-api/INTEGRATION_STATUS.md`](../bitget-api/INTEGRATION_STATUS.md)
+- [`docs/bitget-api/INTEGRATION_STATUS.md`](../../bitget-api/INTEGRATION_STATUS.md)

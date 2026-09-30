@@ -27,7 +27,7 @@ paths, since PR #3771) or is broken anyway (the signed paths, see
 [BUG-0596](BUG-0596-bitget-signed-read-paths-need-v2.md)).
 
 The bug is that the helper still hands out a symbol no current Bitget endpoint
-accepts. [`src/utils/symbolUtils.ts:60`](../../src/utils/symbolUtils.ts):
+accepts. [`src/utils/symbolUtils.ts:60`](../../../src/utils/symbolUtils.ts):
 
 ```ts
 if (provider === "bitget" && !s.includes("_UMCBL")) {
@@ -106,4 +106,4 @@ plain normalization, so there is one place that decides a wire symbol.
 
 - BUG-0576 — the parent migration
 - BUG-0596, BUG-0597 — the signed paths that need the bare contract
-- [`docs/bitget-api/09_v1_vs_v2.md`](../bitget-api/09_v1_vs_v2.md)
+- [`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md)

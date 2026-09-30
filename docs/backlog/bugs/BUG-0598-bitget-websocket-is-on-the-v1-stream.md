@@ -29,7 +29,7 @@ immediately.
 
 **Demonstrated** for the endpoint, **derived** for the consequence.
 
-[`src/services/bitgetWs.ts:56`](../../src/services/bitgetWs.ts):
+[`src/services/bitgetWs.ts:56`](../../../src/services/bitgetWs.ts):
 
 ```ts
 const WS_URL = "wss://ws.bitget.com/mix/v1/stream";
@@ -99,5 +99,5 @@ against V2 without doing it risks reintroducing the mismatch.
   blocks the private half from being called verified
 - BUG-0001 — WS field-name mismatch, closed but with the analysis kept as the
   record in `docs/TODO.md`
-- [`docs/bitget-api/07_websocket.md`](../bitget-api/07_websocket.md),
-  [`07_websocket_private.md`](../bitget-api/07_websocket_private.md)
+- [`docs/bitget-api/07_websocket.md`](../../bitget-api/07_websocket.md),
+  [`07_websocket_private.md`](../../bitget-api/07_websocket_private.md)

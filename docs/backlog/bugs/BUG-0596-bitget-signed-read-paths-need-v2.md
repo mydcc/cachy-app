@@ -16,7 +16,7 @@ depends_on: [BUG-0580, BUG-0590]
 # Migrate the Bitget signed read endpoints to V2
 
 Row 2, 3, 5 and 6 of the mapping table in
-[`docs/bitget-api/09_v1_vs_v2.md`](../bitget-api/09_v1_vs_v2.md), split out of
+[`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md), split out of
 [BUG-0576](BUG-0576-bitget-v1-api-decommissioned.md) so the read half can be
 reviewed and merged without the write half. Rows 7–9 (market data) already
 migrated in PR #3771; rows 1 and 4 are [BUG-0597](BUG-0597-bitget-order-write-paths-need-v2.md).
@@ -45,14 +45,14 @@ Verified 2026-09-30. Cachy sends that path from four call sites:
 
 | Call | Cachy path | Call site |
 |---|---|---|
-| `/api/account` | `/api/mix/v1/account/account` | [`src/utils/exchange/restSigningPlan.ts:273`](../../src/utils/exchange/restSigningPlan.ts) |
-| `/api/balance` | `/api/mix/v1/account/account` | [`src/utils/exchange/restSigningPlan.ts:276`](../../src/utils/exchange/restSigningPlan.ts) |
-| `/api/positions` | `/api/mix/v1/position/allPosition` | [`src/utils/exchange/restSigningPlan.ts:277`](../../src/utils/exchange/restSigningPlan.ts) |
-| `/api/orders` pending | `/api/mix/v1/order/current` | [`src/utils/exchange/restSigningPlan.ts:295`](../../src/utils/exchange/restSigningPlan.ts) |
-| `/api/orders` history | `/api/mix/v1/order/history` | [`src/utils/exchange/restSigningPlan.ts:296`](../../src/utils/exchange/restSigningPlan.ts) |
+| `/api/account` | `/api/mix/v1/account/account` | [`src/utils/exchange/restSigningPlan.ts:273`](../../../src/utils/exchange/restSigningPlan.ts) |
+| `/api/balance` | `/api/mix/v1/account/account` | [`src/utils/exchange/restSigningPlan.ts:276`](../../../src/utils/exchange/restSigningPlan.ts) |
+| `/api/positions` | `/api/mix/v1/position/allPosition` | [`src/utils/exchange/restSigningPlan.ts:277`](../../../src/utils/exchange/restSigningPlan.ts) |
+| `/api/orders` pending | `/api/mix/v1/order/current` | [`src/utils/exchange/restSigningPlan.ts:295`](../../../src/utils/exchange/restSigningPlan.ts) |
+| `/api/orders` history | `/api/mix/v1/order/history` | [`src/utils/exchange/restSigningPlan.ts:296`](../../../src/utils/exchange/restSigningPlan.ts) |
 
 The query parameters are V1's too: `productType: "umcbl"` at four sites in
-[`src/utils/exchange/venueQueries.ts:172`](../../src/utils/exchange/venueQueries.ts),
+[`src/utils/exchange/venueQueries.ts:172`](../../../src/utils/exchange/venueQueries.ts),
 `:209`, `:260`, `:282`.
 
 `30032` is returned before signature validation, so the credential path is
@@ -70,7 +70,7 @@ The migration is more than a path rewrite:
    `order/orders-pending`, `order/history` → `order/orders-history`,
    `productType: "umcbl"` → `"USDT-FUTURES"`.
 2. **Response shapes are unknown.** V1 is no longer documented, so the parsers
-   at [`src/utils/server/venues/bitget.ts:101`](../../src/utils/server/venues/bitget.ts)
+   at [`src/utils/server/venues/bitget.ts:101`](../../../src/utils/server/venues/bitget.ts)
    (pending), `:139` (history), `:235` (account), `:269` (balance) and `:430`
    (positions) iterate `res.data` directly and were written against a shape
    nobody can now observe. V2's list endpoints return `entrustedList` with
@@ -89,7 +89,7 @@ The migration is more than a path rewrite:
    the parser.
 2. Add `posMode` to the parsed account data and declare
    `positionModes: ["one_way", "hedge"]` in
-   [`src/services/exchange/bitgetCapabilities.ts:62`](../../src/services/exchange/bitgetCapabilities.ts),
+   [`src/services/exchange/bitgetCapabilities.ts:62`](../../../src/services/exchange/bitgetCapabilities.ts),
    carrying it to the UI through the existing `accountState.positionMode` path
    the way Bitunix already does.
 
@@ -116,7 +116,7 @@ window the client signed — keep that reasoning intact when the endpoint moves.
 - [ ] No request query contains `productType=umcbl`
 - [ ] Every response parser is written against a shape observed in a live V2
       call, with the observed payloads recorded in
-      [`docs/bitget-api/INTEGRATION_STATUS.md`](../bitget-api/INTEGRATION_STATUS.md)
+      [`docs/bitget-api/INTEGRATION_STATUS.md`](../../bitget-api/INTEGRATION_STATUS.md)
 - [ ] `fetchBitgetAccount` parses `posMode`; `bitgetCapabilities.positionModes`
       declares `["one_way", "hedge"]`; the mode reaches the UI through
       `accountState.positionMode`
@@ -132,4 +132,4 @@ window the client signed — keep that reasoning intact when the endpoint moves.
   confirmed without it
 - BUG-0589 — `filled` reads a field the mirror never documents; it changes what
   the history parser must read
-- [`docs/bitget-api/09_v1_vs_v2.md`](../bitget-api/09_v1_vs_v2.md)
+- [`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md)
