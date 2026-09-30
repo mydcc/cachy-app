@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { calculatePerformanceStats } from "./stats";
+import { calculatePerformanceStats, getTagData, getCalendarData } from "./stats";
 import { Decimal } from "decimal.js";
 import type { JournalEntry } from "../../stores/types";
 
@@ -136,5 +136,32 @@ describe("calculatePerformanceStats (Summary)", () => {
 
         expect(stats.longestWinningStreak).toBe(2);
         expect(stats.currentStreakText).toBe("W1");
+    });
+});
+
+describe("Decimal precision (BUG-0594)", () => {
+    it("keeps tag PnL exact past float64 range instead of collapsing to one double", () => {
+        // 9007199254740993 is not representable as a double; `.toNumber()`
+        // silently rounded it to 9007199254740992 before the UI saw it.
+        const trades = [
+            createTrade({ id: 1, status: "Won", totalNetProfit: new Decimal("9007199254740993"), tags: ["scalp"] }),
+        ];
+
+        const tagData = getTagData(trades);
+
+        expect(tagData.pnlData[0]).toBeInstanceOf(Decimal);
+        expect((tagData.pnlData[0] as Decimal).toString()).toBe("9007199254740993");
+    });
+
+    it("keeps calendar PnL exact past float64 range", () => {
+        const trades = [
+            createTrade({ id: 1, status: "Won", totalNetProfit: new Decimal("9007199254740993"), date: "2026-01-02T12:00:00.000Z" }),
+        ];
+
+        const calendar = getCalendarData(trades);
+
+        expect(calendar).toHaveLength(1);
+        expect(calendar[0].pnl).toBeInstanceOf(Decimal);
+        expect((calendar[0].pnl as Decimal).toString()).toBe("9007199254740993");
     });
 });
