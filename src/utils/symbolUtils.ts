@@ -82,6 +82,10 @@ export function formatSymbolForDisplay(symbol: string): string {
  * `formatSymbolForDisplay` cannot do this job: it also strips `USDT`, which
  * would turn `BTCUSDT` into `BTC` and ask the venue about a contract that does
  * not exist.
+ *
+ * Precondition: the input is already a store key, i.e. it came out of
+ * `normalizeSymbol`. This neither trims nor upper-cases, so a raw user- or
+ * API-supplied string would pass through as-is. Keep it on the wire boundary.
  */
 export function bitgetWireSymbol(symbol: string): string {
   if (!symbol) return "";

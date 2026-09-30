@@ -115,6 +115,10 @@ observation, so none of it is claimed here:
   now **refused with a `logger.warn`** instead of being sent to a socket that
   would ignore them. The account panel has no live stream and the log says so —
   strictly better than the previous silence, not a fix.
+  One trap for whoever builds it: the private channels subscribe with
+  `instId: "default"`, and the inbound `normalizeSymbol` that maps pushes onto
+  store keys would turn that into `DEFAULT_UMCBL`. `"default"` is a selector,
+  not a symbol, and has to be excluded from that mapping.
 - the refcount ledger still exists once, not per socket. Its semantics are now
   pinned by four tests so the split cannot break them quietly, and `login()` is
   kept (and its signature pinned) rather than deleted, because the private

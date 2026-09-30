@@ -509,6 +509,12 @@ export class BitgetWebSocketService {
 
     if (!msg.arg || !msg.data) return;
 
+    // Inbound stays deliberately wider than outbound. `getBitgetChannel` refuses
+    // the private and all-levels-`books` channels on the subscribe path, but a
+    // push for one of them can still be in flight from before a reconnect, and
+    // dropping it silently would be the same failure this whole change is about.
+    // The branches below therefore keep handling what the socket delivers; what
+    // we refuse is asking for more of it.
     const channel = msg.arg.channel;
     // BUG-0598: V2 pushes are keyed by the bare pair (`BTCUSDT`), while
     // `marketState`, the subscription ledger and every consumer address the
@@ -651,21 +657,27 @@ export class BitgetWebSocketService {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitget");
 
-    const bitgetChannel = this.getBitgetChannel(channel);
-    if (!bitgetChannel) return;
-
     const subKey = `${channel}:${normalizedSymbol}`;
     const currentCount = this.subscriptions.get(subKey) || 0;
 
-    if (currentCount > 0) {
-        if (currentCount === 1) {
-            this.subscriptions.delete(subKey);
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.sendUnsubscribe(this.ws, normalizedSymbol, bitgetChannel);
-            }
-        } else {
-            this.subscriptions.set(subKey, currentCount - 1);
+    // Nothing was ever issued for this channel, so there is nothing to release.
+    // This returns before `getBitgetChannel`, which keeps the refusal warnings
+    // it logs for the private and incremental channels off the teardown path:
+    // unsubscribing something that was never subscribed is a no-op, not a
+    // misconfiguration, and a second warning at the end of a teardown sweep
+    // buries the one that mattered.
+    if (currentCount === 0) return;
+
+    const bitgetChannel = this.getBitgetChannel(channel);
+    if (!bitgetChannel) return;
+
+    if (currentCount === 1) {
+        this.subscriptions.delete(subKey);
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.sendUnsubscribe(this.ws, normalizedSymbol, bitgetChannel);
         }
+    } else {
+        this.subscriptions.set(subKey, currentCount - 1);
     }
   }
 

@@ -452,5 +452,31 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
 
       expect(socket.frames()).toHaveLength(0);
     });
+
+    it("stays quiet when a refused channel is unsubscribed without ever subscribing", () => {
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+      // Releasing something that was never issued is a no-op, not a
+      // misconfiguration. The refusal warnings belong on the subscribe path;
+      // repeating them on teardown buries the real one during a debug session.
+      service.unsubscribe(BTC_WIRE, "positions");
+
+      expect(socket.frames()).toHaveLength(0);
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    it("still releases a held channel with one unsubscribe frame", () => {
+      // The counterpart: a channel that *is* held must not be released silently
+      // just because the mapping is refused.
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+      service.subscribe(BTC_WIRE, "books5");
+      warn.mockClear();
+      socket.sent.length = 0;
+
+      service.unsubscribe(BTC_WIRE, "books5");
+
+      expect(socket.frames()).toHaveLength(1);
+      expect(warn).not.toHaveBeenCalled();
+    });
   });
 });
