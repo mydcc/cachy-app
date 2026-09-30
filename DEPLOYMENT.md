@@ -606,9 +606,9 @@ If `./scripts/jules/monitor-production.sh` or the daily automated production mon
      ```
 
 2. **Node Process Running Polka / Bare adapter-node:**
-   - Confirm that aaPanel's Node project Run Command is set to `node --env-file=.env server.js` (or executing `node build` which delegates to `server.js` via `scripts/postbuild.mjs`). A bare `node build/index.js` skips Express compression and security header middleware.
+   - Confirm that aaPanel's Node project Run Command is set to `node --env-file=.env server.js` (or `node build/index.js`, which delegates to `server.js` via `scripts/postbuild.mjs`). A bare unpatched `node build/index.js` (or any direct adapter-node entry) skips Express compression and security header middleware.
 
-3. **Lighthouse Performance Score Below Schwelle:**
+3. **Lighthouse Performance Score Below Threshold:**
    - Ensure Gzip compression is enabled in Nginx `location /` or `server` block:
      ```nginx
      gzip on;
