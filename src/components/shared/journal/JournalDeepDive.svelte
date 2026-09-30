@@ -319,7 +319,12 @@
     });
 
     // 6. TIME
-    let confluenceData = $derived(journalState.confluenceMetrics || []);
+    let confluenceData = $derived(
+        (journalState.confluenceMetrics || []).map((row) => ({
+            ...row,
+            hours: row.hours.map((h) => ({ ...h, pnl: toChartNum(h.pnl) })),
+        })),
+    );
     let calendarData = $derived(journalState.calendarMetrics || []);
     let availableYears = $derived(
         (() => {
