@@ -132,12 +132,20 @@ info/
 # sweeps the file into the branch and a squash-merge carries it onto develop.
 .github/review-output.md
 
-# Generated skill mirrors. The shared skills live outside the repo
-# (~/.agents/skills for essentials, ~/Dokumente/GitHub/.agents/skills for the
-# pool) and are wired in via `skills.paths` in ~/.config/opencode/opencode.jsonc.
-# These directories used to hold absolute symlinks into that pool, which broke
-# every clone the moment the pool moved. Project-specific skills — the
-# gortex-*-dirs ones describing this codebase — live as real files in
-# .agents/skills/ and stay tracked.
-.opencode/skills/
-.claude/skills/generated/
+# Local agent and editor tooling. None of this belongs in the repository:
+# the skills are machine-local (regenerate with `gortex track`), the
+# harness configs are per-machine, and the whole set is reproducible from
+# opencode.json / ~/.claude. Untracked with `git rm --cached`, so the files
+# stay on disk and stop appearing on GitHub.
+.agents/skills/
+.claude/skills/
+.claude/commands/
+.claude/hooks/
+.claude/settings.json
+.claude/launch.json
+.jules/
+.gemini/
+.opencode/
+.vscode/
+.pi/
+
