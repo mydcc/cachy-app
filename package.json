@@ -90,7 +90,7 @@
     "compression": "^1.8.2",
     "crypto-js": "^4.2.0",
     "decimal.js": "^10.6.0",
-    "dompurify": "^3.4.15",
+    "dompurify": "^3.4.16",
     "express": "^5.2.1",
     "intl-messageformat": "^11.2.15",
     "jsdom": "^29.1.1",
