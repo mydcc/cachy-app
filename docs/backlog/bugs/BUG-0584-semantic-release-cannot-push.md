@@ -105,10 +105,28 @@ itself merges — that merge triggers the next `Release` run.
 
 **The token was reminted, not repaired.** A second fine-grained PAT was created
 2026-10-01 against this one repository with **Contents: Read and write** and
-**Metadata: Read-only** — the minimum for the push, and enough for it. It must
-be stored as the `RELEASE_TOKEN` secret; agents cannot see or mint it, so that
-step is the human's. What remains is AC1 and AC2, verified by the next merge to
-`develop`.
+**Metadata: Read-only** — the minimum for the push, and enough for it. It has
+since been stored as the `RELEASE_TOKEN` secret. What remains is AC1 and AC2.
+
+**The docs PR that recorded the rotation did not exercise the new token, and
+could not have.** `release.yml` carries `paths-ignore: ['docs/**', '**/*.md']`
+(`:13–18`), so a docs-only merge produces no `Release` run at all — by design,
+since semantic-release acts on `feat`/`fix`/`perf` commits only. The merge of
+#3779 therefore left the pipeline exactly as broken as it was: the newest
+`develop` Release run on record is still `36820921235` at `17b2a699` (2026-10-01
+05:40 UTC), which predates the rotation and fails with the same
+`EGITNOPERMISSION`. **AC1 and AC2 have still never been exercised against a
+valid token**, and the tracking issue `#3767` remains open for that reason.
+
+Two consequences worth keeping:
+
+- **The verification trigger is the next non-docs push to `develop`**, not the
+  next merge. That is also why `workflow_dispatch` on `Release` exists
+  (`release.yml:19`) — it is the honest way to verify on demand, because it
+  reads the current `develop` tip rather than a stale commit.
+- **A green `Release` run also closes `#3767` automatically**, via the AC3
+  watcher. So the alert issue is a second, independent signal that AC1 is met —
+  one to watch while waiting, not two things to do.
 
 **AC3 is met by the alert, not by a required check.** The AC demanded one of
 the two, named. The named answer is the explicit failure alert:
@@ -149,7 +167,8 @@ action and because it is not this bug: no `develop` run reaches that code.
 would read the new secret, but semantic-release would compute the version from
 that old commit and push `HEAD:develop` from it — a non-fast-forward against
 everything `develop` has gained since, which fails with an unrelated error and
-makes the diagnosis worse. The next real merge is the trigger.
+makes the diagnosis worse. Use `workflow_dispatch` on `Release` instead, or
+wait for the next non-docs push.
 
 ## Fix
 
@@ -164,11 +183,15 @@ working tree.
 
 ## Acceptance criteria
 
-- [ ] A push to `develop` produces a green `Release` run — **open**: verifies
-      when the 2026-10-01 PAT is stored as `RELEASE_TOKEN` and the next merge
-      to `develop` runs
+- [ ] A push to `develop` produces a green `Release` run — **open**: the PAT is
+      stored, but no run has exercised it yet. `paths-ignore` skips docs-only
+      pushes, so #3779's merge did not trigger one. Verify on the next non-docs
+      push, or via `workflow_dispatch`. Tracking issue `#3767` closes itself
+      when it goes green
 - [ ] A new tag appears on the remote, and its commit is an ancestor of
-      `develop` — **open**, same trigger as above
+      `develop` — **open**, same trigger as above. The eight days of merged
+      work since 2026-09-20 will land as a single beta bump; the commits are
+      already on `develop`, only untagged
 - [x] `Release` is either a required check on `develop` or has an explicit
       failure alert, so a dead release pipeline cannot go unnoticed for days
       again. One of the two, named — not a "consider" — **met by the explicit
