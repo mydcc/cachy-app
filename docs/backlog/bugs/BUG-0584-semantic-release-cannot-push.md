@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
+branch: docs/bug-0584-release-token-scope
 ---
 
 # BUG-0584 — semantic-release cannot push; no release since 2026-09-20
@@ -100,6 +101,56 @@ comments, and this item update. No change to the `||` expression, no
 semantic-release config change, no flow rebuild. AC1/AC2 verify when this PR
 itself merges — that merge triggers the next `Release` run.
 
+## Progress 2026-10-01: a new fine-grained PAT is minted; AC3 is met
+
+**The token was reminted, not repaired.** A second fine-grained PAT was created
+2026-10-01 against this one repository with **Contents: Read and write** and
+**Metadata: Read-only** — the minimum for the push, and enough for it. It must
+be stored as the `RELEASE_TOKEN` secret; agents cannot see or mint it, so that
+step is the human's. What remains is AC1 and AC2, verified by the next merge to
+`develop`.
+
+**AC3 is met by the alert, not by a required check.** The AC demanded one of
+the two, named. The named answer is the explicit failure alert:
+`.github/workflows/release-failure-alert.yml` (merged in #3762), a
+`workflow_run` watcher on `Release` that opens or bumps a tracking issue on
+failure and closes it on recovery, with `issues: write` and no checkout.
+`Release` is deliberately **not** on the required-checks list for `develop` —
+the current list is `Conventional Commits`, `Closing References`,
+`Decimal.js Enforcement`, `i18n String Compliance`, `Unit Tests`,
+`TypeScript Type Check`, `ESLint`, `Backlog & Documentation Links`,
+`check-translations`, `Stale Snapshot Revert Guard`. Making a beta-prerelease
+job required would block every push to `develop` on release plumbing, which is
+the wrong trade; the alert is the cheaper instrument and it is the one that
+answers the actual failure mode here — a pipeline that fails quietly for days.
+
+**The reminted PAT is scoped for `develop` only, and the next stable release
+will need more.** `@semantic-release/github` is loaded on `main` alone
+(`release.config.js:118`), and semantic-release authenticates its GitHub API
+calls with the same `GITHUB_TOKEN` it pushes with. Since that environment
+variable is the PAT, the job-level `permissions:` block — which grants
+`issues: write` and `pull-requests: write` to the *workflow* token — does not
+reach those calls. So on `develop` the gap is invisible (prerelease, plugin not
+loaded), and the first release on `main` that tries to comment on its released
+issues and pull requests would fail on the same shape as this bug: a valid
+token missing a scope. Before that release, the PAT needs, in addition to
+contents:
+
+- **Issues: Write** and **Pull requests: Write** — for the released-issue and
+  released-PR comments `@semantic-release/github` posts
+- **Workflows: Write** — only if a release commit ever touches
+  `.github/workflows/**`; GitHub rejects such a push outright otherwise.
+  Unlikely, and the failure would be confusing rather than obvious.
+
+This is recorded here rather than fixed, because widening the PAT is a human
+action and because it is not this bug: no `develop` run reaches that code.
+
+**Do not re-run the old failed runs to verify.** Re-running e.g. `36705838742`
+would read the new secret, but semantic-release would compute the version from
+that old commit and push `HEAD:develop` from it — a non-fast-forward against
+everything `develop` has gained since, which fails with an unrelated error and
+makes the diagnosis worse. The next real merge is the trigger.
+
 ## Fix
 
 Read `.github/workflows/release.yml` and compare its job-level `permissions:`
@@ -113,17 +164,30 @@ working tree.
 
 ## Acceptance criteria
 
-- [ ] A push to `develop` produces a green `Release` run
-- [ ] A new tag appears on the remote, and its commit is an ancestor of `develop`
-- [ ] `Release` is either a required check on `develop` or has an explicit
+- [ ] A push to `develop` produces a green `Release` run — **open**: verifies
+      when the 2026-10-01 PAT is stored as `RELEASE_TOKEN` and the next merge
+      to `develop` runs
+- [ ] A new tag appears on the remote, and its commit is an ancestor of
+      `develop` — **open**, same trigger as above
+- [x] `Release` is either a required check on `develop` or has an explicit
       failure alert, so a dead release pipeline cannot go unnoticed for days
-      again. One of the two, named — not a "consider"
+      again. One of the two, named — not a "consider" — **met by the explicit
+      failure alert**: `.github/workflows/release-failure-alert.yml`, merged in
+      #3762
+- [ ] Before the next stable release on `main`, `RELEASE_TOKEN` also carries
+      Issues: Write and Pull requests: Write, because
+      `@semantic-release/github` authenticates with the PAT rather than the
+      workflow token — see *Progress 2026-10-01*
 
 ## Out of scope
 
-- Changing the `RELEASE_TOKEN || GITHUB_TOKEN` expression. The rotated token
-  is valid; changing the expression would only hide the failure mode where a
-  future set-but-invalid secret silently takes precedence again
+- Changing the `RELEASE_TOKEN || GITHUB_TOKEN` expression. The token is valid;
+  changing the expression would only hide the failure mode where a future
+  set-but-invalid secret silently takes precedence again
+- Widening the PAT's scopes now. Two of the three scopes AC4 names
+  (`Issues: Write`, `Pull requests: Write`) are only reachable from the stable
+  release path on `main`, which no `develop` run enters; the PAT cannot be
+  changed by an agent in any case
 - Tagging or releasing manually to catch up the eight-day backlog. That is a
   release-management decision, not this fix
 - Touching `semantic-release` config, commit-analyzer settings, or the
