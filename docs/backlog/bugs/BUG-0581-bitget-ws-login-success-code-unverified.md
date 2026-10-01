@@ -12,7 +12,6 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: fix/bug-0581-ws-login-tolerance
 ---
 
 # Verify the Bitget WebSocket login success code before trusting private streams

@@ -11,7 +11,6 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: fix/bug-0584-release-push
 ---
 
 # BUG-0584 — semantic-release cannot push; no release since 2026-09-20

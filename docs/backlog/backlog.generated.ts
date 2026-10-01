@@ -2602,7 +2602,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "assignee": "opencode",
-    "branch": "fix/bug-0584-release-push",
     "file": "bugs/BUG-0584-semantic-release-cannot-push.md"
   },
   {
@@ -5869,7 +5868,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "assignee": "opencode",
-    "branch": "fix/bug-0581-ws-login-tolerance",
     "file": "bugs/BUG-0581-bitget-ws-login-success-code-unverified.md"
   },
   {
