@@ -10,8 +10,7 @@
 import { marketState } from "../stores/market.svelte";
 import { accountState, type RawWsOrder, type RawWsPosition } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
-import { keysForActiveAccount } from "../stores/settings/accounts";
-import { normalizeSymbol } from "../utils/symbolUtils";
+import { normalizeSymbol, bitgetWireSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { logger } from "./logger";
 import { safeJsonParse } from "../utils/safeJson";
@@ -53,7 +52,25 @@ interface BitgetWSPositionData {
   holdSide?: string;
 }
 
-const WS_URL = "wss://ws.bitget.com/mix/v1/stream";
+// BUG-0598. V1 mixed streams are decommissioned. V2 splits the socket by role
+// and there is no combined endpoint, so this is the public half only: it serves
+// ticker, depth and candles. Private streams (orders, positions, account) need
+// `wss://ws.bitget.com/v2/ws/private` plus a login, which is tracked separately —
+// see `subscribePrivate`, which refuses loudly rather than dropping the request.
+const WS_URL = "wss://ws.bitget.com/v2/ws/public";
+
+/**
+ * V2 replaced V1's `instType: "mc"` with an explicit product type. Public market
+ * data is subscribed as USDT futures, which is the product this app quotes.
+ */
+const WS_INST_TYPE = "USDT-FUTURES";
+
+/**
+ * Channels that V2 only serves on the authenticated private socket. The public
+ * endpoint rejects them, so subscribing here would trade a loud failure for a
+ * silent one.
+ */
+const PRIVATE_CHANNELS = ["orders", "positions", "account"] as const;
 
 const PING_INTERVAL = 25000; // Bitget requires ping every 30s
 const WATCHDOG_TIMEOUT = 35000;
@@ -267,20 +284,10 @@ export class BitgetWebSocketService {
         this.startHeartbeat(ws);
         this.resetWatchdog(ws);
 
-        // Attempt login if keys available
-        const bitgetKeys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, "bitget");
-        if (
-          bitgetKeys.key &&
-          bitgetKeys.secret &&
-          bitgetKeys.passphrase
-        ) {
-          this.login(
-            bitgetKeys.key,
-            bitgetKeys.secret,
-            bitgetKeys.passphrase
-          );
-        }
-
+        // BUG-0598: no login here. V2's public endpoint has no login to perform
+        // and disconnects a socket that tries — which would cost the working
+        // public streams. Private streams move to their own socket, see
+        // `subscribePrivate`.
         this.resubscribe();
       };
 
@@ -418,6 +425,16 @@ export class BitgetWebSocketService {
     accountState.markBalanceUnmeasured();
   }
 
+  /**
+   * Builds the V2 private-socket login frame.
+   *
+   * BUG-0598: no caller on this socket. The public endpoint has no login to
+   * perform and drops a connection that tries, so the public half never calls
+   * this. It is kept, and pinned by `bitgetWs.v2.test.ts`, because the private
+   * socket needs exactly this signature and BUG-0581 already settled the
+   * matching response handling — deleting it would mean re-deriving the signing
+   * input later, with no test to catch a wrong guess.
+   */
   private login(apiKey: string, apiSecret: string, passphrase: string) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     if (!CryptoJS || !CryptoJS.SHA256) return;
@@ -425,6 +442,9 @@ export class BitgetWebSocketService {
     try {
       const timestamp = Math.floor(Date.now() / 1000).toString();
       // Bitget V1 WS Login Sign: base64(hmac(timestamp + 'GET' + '/user/verify', secret))
+      // BUG-0598: the sign input is unchanged in V2, but the *endpoint* it
+      // authenticates is not. This is called out rather than rewritten because
+      // there is no private socket to verify against yet — see the note above.
       const signInput = timestamp + "GET" + "/user/verify";
       const sign = CryptoJS.HmacSHA256(signInput, apiSecret).toString(CryptoJS.enc.Base64);
 
@@ -446,10 +466,20 @@ export class BitgetWebSocketService {
 
   private handleMessage(message: BitgetWSMessage) {
     // We can do a fast-path throttle check for high frequency channels if we extract channel and instId directly.
-    const rawArg = message.arg as { channel?: string, instId?: string } | undefined;
-    if (rawArg && rawArg.channel && rawArg.instId) {
+    // Both fields are still unvalidated here — `safeParse` runs below — so the
+    // symbol is only normalized when it really is a string. A non-string would
+    // throw inside `normalizeSymbol`, and that throw would be swallowed by the
+    // `try/catch` in `onmessage`: the frame would be discarded through a path
+    // that reads like a crash, instead of the plain return the schema below
+    // would have given it.
+    const rawArg = message.arg as { channel?: string, instId?: unknown } | undefined;
+    if (rawArg && rawArg.channel && typeof rawArg.instId === "string") {
        const channel = rawArg.channel;
-       const instId = rawArg.instId;
+       // Same normalization as the handler below, so this dry-run probes the
+       // key the handler actually commits to. With the raw wire spelling the two
+       // would disagree and the throttle would never engage — the dry-run would
+       // keep reporting "not throttled" for a key nothing ever writes.
+       const instId = normalizeSymbol(rawArg.instId, "bitget");
 
        if (channel === "ticker") {
            const throttleTicker = this.shouldThrottle(`${instId}:ticker`, false);
@@ -485,13 +515,21 @@ export class BitgetWebSocketService {
 
     if (!msg.arg || !msg.data) return;
 
+    // Inbound stays deliberately wider than outbound. `getBitgetChannel` refuses
+    // the private and all-levels-`books` channels on the subscribe path, but a
+    // push for one of them can still be in flight from before a reconnect, and
+    // dropping it silently would be the same failure this whole change is about.
+    // The branches below therefore keep handling what the socket delivers; what
+    // we refuse is asking for more of it.
     const channel = msg.arg.channel;
-    const instId = msg.arg.instId; // e.g. BTCUSDT_UMCBL
-
-    // Normalize symbol back to app format (usually same or strip suffix for lookup)
-    // But normalizedSymbol in store uses suffix for bitget.
-    // Wait, normalizeSymbol(BTCUSDT, bitget) -> BTCUSDT_UMCBL.
-    // So instId IS the symbol key we use in marketState.
+    // BUG-0598: V2 pushes are keyed by the bare pair (`BTCUSDT`), while
+    // `marketState`, the subscription ledger and every consumer address the
+    // store by the suffixed key (`BTCUSDT_UMCBL`). Writing under the wire
+    // spelling would leave a live socket feeding a key nothing reads — a chart
+    // that stays empty with no error anywhere. `normalizeSymbol` is idempotent,
+    // so a V1-shaped push that still carries the suffix passes through
+    // unchanged.
+    const instId = normalizeSymbol(msg.arg.instId, "bitget");
 
     // Ticker
     if (channel === "ticker") {
@@ -499,18 +537,26 @@ export class BitgetWebSocketService {
       const tickerVal = BitgetWSTickerSchema.safeParse(data);
       if (tickerVal.success) {
         const t = tickerVal.data;
+        // V2 renamed the last price to `lastPr`; V1's `last` is kept as a
+        // fallback so a socket that has not finished reconnecting shows a stale
+        // price rather than a blank chart. The schema guarantees one of them.
+        const lastPrice = t.lastPr ?? t.last;
         // Update market
         const update: Record<string, unknown> = {};
-        if (t.last) update.lastPrice = t.last;
+        if (lastPrice) update.lastPrice = lastPrice;
         if (t.high24h) update.highPrice = t.high24h;
         if (t.low24h) update.lowPrice = t.low24h;
-        if (t.volume24h || t.baseVolume) update.volume = t.volume24h || t.baseVolume;
+        if (t.baseVolume || t.volume24h) update.volume = t.baseVolume || t.volume24h;
         if (t.quoteVolume || t.usdtVolume) update.quoteVolume = t.quoteVolume || t.usdtVolume;
         if (t.open24h) update.open = t.open24h;
 
-        // Calc change if possible
-        if (t.last && t.open24h) {
-          const l = new Decimal(t.last);
+        // Calc change if possible. Derived from the last price and the open
+        // rather than read off V2's `change24h`: the vendor does not document
+        // that field's unit, and REST has been observed sending a fraction where
+        // the UI shows a percentage. Guessing there would put a wrong sign or
+        // wrong magnitude on every percentage on the screen.
+        if (lastPrice && t.open24h) {
+          const l = new Decimal(lastPrice);
           const o = new Decimal(t.open24h);
           if (!o.isZero()) {
             update.priceChangePercent = l.minus(o).div(o).times(100);
@@ -525,8 +571,8 @@ export class BitgetWebSocketService {
         }
 
         // Also update price (for fast price)
-        if (t.last && !this.shouldThrottle(`${instId}:price`)) {
-          marketState.updatePrice(instId, { price: t.last });
+        if (lastPrice && !this.shouldThrottle(`${instId}:price`)) {
+          marketState.updatePrice(instId, { price: lastPrice });
         }
       }
     }
@@ -617,28 +663,61 @@ export class BitgetWebSocketService {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitget");
 
-    const bitgetChannel = this.getBitgetChannel(channel);
-    if (!bitgetChannel) return;
-
     const subKey = `${channel}:${normalizedSymbol}`;
     const currentCount = this.subscriptions.get(subKey) || 0;
 
-    if (currentCount > 0) {
-        if (currentCount === 1) {
-            this.subscriptions.delete(subKey);
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.sendUnsubscribe(this.ws, normalizedSymbol, bitgetChannel);
-            }
-        } else {
-            this.subscriptions.set(subKey, currentCount - 1);
+    // Nothing was ever issued for this channel, so there is nothing to release.
+    // This returns before `getBitgetChannel`, which keeps the refusal warnings
+    // it logs for the private and incremental channels off the teardown path:
+    // unsubscribing something that was never subscribed is a no-op, not a
+    // misconfiguration, and a second warning at the end of a teardown sweep
+    // buries the one that mattered.
+    if (currentCount === 0) return;
+
+    const bitgetChannel = this.getBitgetChannel(channel);
+    if (!bitgetChannel) return;
+
+    if (currentCount === 1) {
+        this.subscriptions.delete(subKey);
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.sendUnsubscribe(this.ws, normalizedSymbol, bitgetChannel);
         }
+    } else {
+        this.subscriptions.set(subKey, currentCount - 1);
     }
   }
 
   // [FIX] Helper to map internal channels to Bitget wire format
   private getBitgetChannel(internalChannel: string): string | null {
+      // BUG-0598: V2 serves these on the authenticated private socket only. The
+      // public endpoint rejects them, so this refuses them explicitly. Returning
+      // the name unchanged used to mean a frame the venue silently ignored —
+      // the account panel then showed no orders with nothing in the log to
+      // explain why.
+      if ((PRIVATE_CHANNELS as readonly string[]).includes(internalChannel)) {
+          logger.warn(
+              "network",
+              `[WS-Bitget] Refusing to subscribe to the private channel "${internalChannel}" on the public V2 socket; it needs wss://ws.bitget.com/v2/ws/private plus a login (BUG-0598, tracked separately)`,
+              { channel: internalChannel },
+          );
+          return null;
+      }
+
+      // `books` is the all-levels book, and on V2 it is one snapshot followed by
+      // incremental deltas. The depth branch below writes whatever arrives as the
+      // complete book, so subscribing here would replace a correct book with a
+      // partial one on every push. `books5` and `books15` always arrive whole.
+      if (internalChannel === "books") {
+          logger.warn(
+              "network",
+              '[WS-Bitget] Refusing to subscribe to "books" on V2: it streams incremental updates after the first snapshot, which this client would mistake for a full order book. Use books5 or books15 (BUG-0598)',
+              { channel: internalChannel },
+          );
+          return null;
+      }
+
       // Pass through standard channels
-      if (["ticker", "orders", "positions", "account", "books", "books5", "books15"].includes(internalChannel)) {
+      if (["ticker", "books5", "books15"].includes(internalChannel)) {
           return internalChannel;
       }
 
@@ -661,13 +740,16 @@ export class BitgetWebSocketService {
   }
 
   private sendSubscribe(ws: WebSocket, symbol: string, channel: string) {
-    // Args: instType: 'mc' (Futures Mix), channel, instId
+    // BUG-0598: V2 takes an explicit product type and the bare pair as `instId`.
+    // `symbol` is the store key throughout the service — the ledger and
+    // `resubscribe` both speak it — so the suffix is stripped here, at the last
+    // moment before the wire, rather than at each call site.
     const payload = {
       op: "subscribe",
       args: [{
-        instType: "mc",
+        instType: WS_INST_TYPE,
         channel: channel,
-        instId: symbol
+        instId: bitgetWireSymbol(symbol)
       }]
     };
     try {
@@ -682,9 +764,9 @@ export class BitgetWebSocketService {
     const payload = {
       op: "unsubscribe",
       args: [{
-        instType: "mc",
+        instType: WS_INST_TYPE,
         channel: channel,
-        instId: symbol
+        instId: bitgetWireSymbol(symbol)
       }]
     };
     try {
@@ -705,26 +787,27 @@ export class BitgetWebSocketService {
     }
   }
 
+  /**
+   * BUG-0598: refused, deliberately.
+   *
+   * On V1 one socket carried both roles, so private channels rode along after a
+   * login. V2 has no combined endpoint: `orders`, `positions` and `account` are
+   * served by `wss://ws.bitget.com/v2/ws/private` and require their own login,
+   * and the vendor disconnects a socket whose login fails. Pointing this at the
+   * public socket would therefore take the working public streams down with it.
+   *
+   * The public half landed first because it is verifiable without credentials.
+   * The private socket — with its own reference-counted ledger, since the two
+   * roles no longer share one — is the follow-up. Until it exists, refusing
+   * loudly is the honest behaviour: the account panel has no live stream, and
+   * the log says so instead of the request vanishing.
+   */
   private subscribePrivate() {
-    if (!this.isAuthenticated || !this.ws) return;
-    // Subscribe to all private channels usually for 'default' symbol?
-    // Bitget private channels (positions, orders) usually require 'instType' but 'instId' can be 'default' for all symbols?
-    // Docs: instId: 'default' for all symbols in product type.
-
-    const channels = ["orders", "positions", "account"];
-    const args = channels.map(ch => ({
-      instType: "mc",
-      channel: ch,
-      instId: "default"
-    }));
-
-    const payload = { op: "subscribe", args };
-    try {
-      this.ws.send(JSON.stringify(payload));
-    } catch {
-      // Best effort subscribe/unsubscribe. If the socket is not writable
-      // the reconnect handler replays subscriptions.
-    }
+    logger.warn(
+        "network",
+        "[WS-Bitget] Private streams are unavailable: this is the V2 public socket. orders/positions/account need wss://ws.bitget.com/v2/ws/private with a login, tracked as the private half of BUG-0598",
+        { channels: [...PRIVATE_CHANNELS] },
+    );
   }
 
   private normalizeOrderData(order: BitgetWSOrderData): RawWsOrder {

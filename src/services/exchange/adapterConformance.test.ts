@@ -149,8 +149,20 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
 
             it("should resubscribe to channels on reconnect", async () => {
                 const harness = adapterTestHarnesses[adapter.id];
+
+                // Hold a public subscription so there is something to replay.
+                //
+                // BUG-0598: this assertion used to be `expect(newSocket.send)
+                // .toHaveBeenCalled()`, which on the Bitget adapter was satisfied
+                // by the login request that `onopen` sent before any replay could
+                // happen. The reconnect path was never actually exercised. Now
+                // the assertion names the frame it means: a subscribe for the
+                // channel that is being held.
+                adapter.marketData.subscribe("BTCUSDT", "ticker");
+                expect(harness.getSubscriptionCount()).toBeGreaterThan(0);
+
                 const initialSocket = wsInstances[wsInstances.length - 1];
-                initialSocket.send.mockClear();
+                const socketsBefore = wsInstances.length;
 
                 // Make navigator online so it actually reconnects instead of waiting
                 vi.stubGlobal('navigator', { onLine: true });
@@ -161,18 +173,33 @@ describe("FEAT-0018: Exchange Adapter Conformance Suite", () => {
                 // Fast-forward past the reconnect backoff (harness-owned constant)
                 await vi.advanceTimersByTimeAsync(harness.reconnectBackoffMs);
 
-                // The harness returns the adapter's new private socket after reconnect
-                const newSocket = harness.getPrivateSocket();
+                // Whatever the adapter opened on reconnect, the held channel has
+                // to be re-requested on it. Scanned across the new sockets rather
+                // than one named socket, because the two adapters put public
+                // channels on different ones and the suite must not branch.
+                // The replay is driven from `onopen`, so that has to fire first.
+                wsInstances.slice(socketsBefore).forEach((ws) => {
+                    if (ws.onopen) ws.onopen();
+                });
 
-                expect(newSocket).not.toBe(initialSocket);
+                // Let any rate-limited send queue drain before looking at the wire.
+                // The two adapters use different subscribe vocabularies on purpose
+                // (`channelVocabulary.test.ts` owns that), so the assertion names
+                // the held symbol rather than a field name.
+                await vi.advanceTimersByTimeAsync(1000);
 
-                if (newSocket?.onopen) newSocket.onopen();
+                const replayed = wsInstances
+                    .slice(socketsBefore)
+                    .flatMap((ws) => ws.send.mock.calls)
+                    .map((call) => {
+                        try { return JSON.parse(String(call[0])); } catch { return null; }
+                    })
+                    .filter((frame) => frame !== null && (frame as { op?: string }).op === "subscribe");
 
-                // Simulate login success so it subscribes to private channels
-                injectWsMessageString(JSON.stringify({ event: "login", code: "00000", msg: "success" }));
-
-                // Check that subscriptions were replayed
-                expect(newSocket!.send).toHaveBeenCalled();
+                expect(replayed.length).toBeGreaterThan(0);
+                expect(
+                    replayed.some((frame) => JSON.stringify(frame).includes("BTCUSDT")),
+                ).toBe(true);
             });
 
             it("should clear held subscriptions when connection is destroyed", () => {
