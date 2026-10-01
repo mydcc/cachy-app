@@ -118,6 +118,15 @@ export default {
     {
       name: "release/beta",
       prerelease: "beta",
+      // The beta tags predate this branch and were published while the
+      // prerelease ran on `develop`, so they carry channel `develop`.
+      // semantic-release selects a branch's previous release through the
+      // channel, not through ancestry: a branch without this line finds none of
+      // the 464 `1.6.0-beta.*` tags, falls back to the newest channel-less tag
+      // (v1.5.0) and restarts the counter at 1 — the observed symptom was a
+      // release of 1.6.0-beta.1 against a 1.6.0-beta.364 develop.
+      // See `get-tags.js`: `channels = tagsNotesMap.get(tag).channels`.
+      channel: "develop",
     },
   ],
   plugins: [
