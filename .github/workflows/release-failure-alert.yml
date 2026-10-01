@@ -12,7 +12,10 @@ on:
   workflow_run:
     workflows: ["Release"]
     types: [completed]
-    branches: [develop, main]
+    # R4: the prerelease runs on release/beta, not on develop — watching only
+    # the first two meant a failing prerelease produced no comment at all,
+    # which is the same silence BUG-0584 was filed about.
+    branches: [develop, main, release/beta]
 
 jobs:
   alert:
