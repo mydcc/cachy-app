@@ -131,3 +131,13 @@ info/
 # belong in the PR thread, not in the tree — without this the agent's `git add`
 # sweeps the file into the branch and a squash-merge carries it onto develop.
 .github/review-output.md
+
+# Generated skill mirrors. The shared skills live outside the repo
+# (~/.agents/skills for essentials, ~/Dokumente/GitHub/.agents/skills for the
+# pool) and are wired in via `skills.paths` in ~/.config/opencode/opencode.jsonc.
+# These directories used to hold absolute symlinks into that pool, which broke
+# every clone the moment the pool moved. Project-specific skills — the
+# gortex-*-dirs ones describing this codebase — live as real files in
+# .agents/skills/ and stay tracked.
+.opencode/skills/
+.claude/skills/generated/

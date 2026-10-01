@@ -41,6 +41,6 @@ guess it from this file.
 ## Relationship to Cachy
 
 GCX1 appears only in the generated gortex skill documentation
-(`.github/skills/gortex-*/SKILL.md`, `.agents/skills/`, `.claude/skills/generated/`).
+(`.agents/skills/gortex-*/SKILL.md`).
 Application code in `src/`, `server/`, and the WASM technicals module never
 produce or consume it.
