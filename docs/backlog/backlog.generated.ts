@@ -2602,7 +2602,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "assignee": "opencode",
-    "branch": "docs/bug-0584-release-token-scope",
+    "branch": "fix/bug-0584-release-via-pr",
     "file": "bugs/BUG-0584-semantic-release-cannot-push.md"
   },
   {
