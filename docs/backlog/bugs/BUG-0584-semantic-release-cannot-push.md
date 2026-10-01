@@ -11,7 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: docs/bug-0584-release-token-scope
+branch: fix/bug-0584-release-via-pr
 ---
 
 # BUG-0584 — semantic-release cannot push; no release since 2026-09-20
@@ -170,6 +170,31 @@ everything `develop` has gained since, which fails with an unrelated error and
 makes the diagnosis worse. Use `workflow_dispatch` on `Release` instead, or
 wait for the next non-docs push.
 
+## Progress 2026-10-01, 11:29 UTC: the token works. The block is `enforce_admins`.
+
+The second PAT is valid. A `workflow_dispatch` of `Release` on `ded30410`
+authenticated, reached the branch protection, and was refused there:
+
+```
+git push --tags https://x-access-token:[secure]@github.com/mydcc/cachy-app.git HEAD:develop
+remote: error: GH006: Protected branch update failed for refs/heads/develop.
+```
+
+That is the second outcome this item predicted, and it is not the first: the
+auth failure is gone, so `RELEASE_TOKEN` is no longer the problem. The
+protection settings on `develop` are `enforce_admins: true`,
+`required_status_checks: 10`, `strict: true`, and no required reviews. An admin
+credential pushing directly therefore has to satisfy ten checks that have never
+run for that commit — the `permissions:` block does not help, because that block
+governs the workflow token's own API scopes, not branch protection.
+
+**AC1 and AC2 are unreachable until the release lands by pull request** — not by
+relaxing the protection. BUG-0582 enabled `enforce_admins` on 2026-09-28 after
+four bot pull requests had replayed stale trees over `develop` and deleted 23
+files; turning it back off would undo exactly that. `main` is unaffected by this
+part: its `enforce_admins` is `false`, so the back-merge step there is a
+separate question and not part of the prerelease failure.
+
 ## Fix
 
 Read `.github/workflows/release.yml` and compare its job-level `permissions:`
@@ -184,14 +209,15 @@ working tree.
 ## Acceptance criteria
 
 - [ ] A push to `develop` produces a green `Release` run — **open**: the PAT is
-      stored, but no run has exercised it yet. `paths-ignore` skips docs-only
-      pushes, so #3779's merge did not trigger one. Verify on the next non-docs
-      push, or via `workflow_dispatch`. Tracking issue `#3767` closes itself
-      when it goes green
+      valid, so the auth half is settled. What is left is `GH006`: the release
+      must reach `develop` as a pull request. Tracking issue `#3767` closes
+      itself when it goes green
 - [ ] A new tag appears on the remote, and its commit is an ancestor of
-      `develop` — **open**, same trigger as above. The eight days of merged
-      work since 2026-09-20 will land as a single beta bump; the commits are
-      already on `develop`, only untagged
+      `develop` — **open**, same trigger. The prerelease branch carries the tag;
+      the pull request must **merge, not squash**, or the tag names a commit
+      that is not an ancestor of `develop`. The eight days of merged work since
+      2026-09-20 will land as a single beta bump; the commits are already on
+      `develop`, only untagged
 - [x] `Release` is either a required check on `develop` or has an explicit
       failure alert, so a dead release pipeline cannot go unnoticed for days
       again. One of the two, named — not a "consider" — **met by the explicit
@@ -201,6 +227,10 @@ working tree.
       Issues: Write and Pull requests: Write, because
       `@semantic-release/github` authenticates with the PAT rather than the
       workflow token — see *Progress 2026-10-01*
+- [ ] The prerelease reaches `develop` as a pull request that the ten required
+      checks actually run on, rather than as a direct push refused with `GH006`
+      — the pull request this change implements. It merges rather than squashes,
+      so the tag keeps naming an ancestor of `develop`
 
 ## Out of scope
 

@@ -1,0 +1,67 @@
+name: Sync Release Branch
+
+on:
+  push:
+    # A change on develop has to reach the branch semantic-release actually
+    # pushes to, or it never sees the commits it is meant to version.
+    branches: [develop]
+    # Same filter as the Release workflow: docs-only pushes cannot produce a
+    # release, so they must not churn the release branch either. A docs-plus-code
+    # push syncs normally.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+
+jobs:
+  sync:
+    name: mirror develop onto release/beta
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Point release/beta at develop
+        env:
+          # GITHUB_TOKEN is not enough here: a push made with it does not
+          # trigger other workflows, so the Release run this push exists to
+          # cause would never start. The PAT is a normal user credential and
+          # does trigger them.
+          #
+          # It must be valid — a set-but-invalid secret fails harder than an
+          # absent one (BUG-0584).
+          SYNC_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${SYNC_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          git fetch origin develop
+          if ! git rev-parse --verify --quiet origin/release/beta; then
+            echo "release/beta does not exist yet; creating it at develop."
+            git push origin origin/develop:refs/heads/release/beta
+            exit 0
+          fi
+
+          # A release commit is waiting on develop. Moving the branch now would
+          # discard it and lose the version bump, so leave it alone: the Release
+          # workflow owns the branch until its pull request lands.
+          open=$(gh pr list --head release/beta --base develop --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            echo "Release pull request #$open is still open; leaving release/beta untouched."
+            exit 0
+          fi
+
+          if git diff --quiet origin/release/beta origin/develop; then
+            echo "release/beta is already at develop."
+            exit 0
+          fi
+
+          echo "Moving release/beta to develop (force-with-lease, so a concurrent release push wins over this one)."
+          git push --force-with-lease origin origin/develop:refs/heads/release/beta

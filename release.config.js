@@ -12,17 +12,31 @@
  *   type filter at all, which is how CI plumbing and fixup commits once ended
  *   up in front of users.
  *
- * Prereleases on `develop` exist for exactly one reason — to give dev.cachy.app
- * a version string that differs from cachy.app. (Both sites once showed the same
- * number because develop's tags were unreachable from main; the `-beta.N` suffix
- * is what keeps them distinguishable.) That job only requires the version to land
+ * Prereleases exist for exactly one reason — to give dev.cachy.app a version
+ * string that differs from cachy.app. (Both sites once showed the same number
+ * because develop's tags were unreachable from main; the `-beta.N` suffix is
+ * what keeps them distinguishable.) That job only requires the version to land
  * in package.json and the commit to be tagged.
  *
  * What it does NOT require is a GitHub Release per prerelease. At the observed
  * rate — hundreds of prereleases per stable release — those artifacts bury the
  * handful of real releases they are supposed to advertise. So the github plugin
- * runs on `main` only; `develop` still gets its version and its tag, and the
- * back-merge from main brings the stable state back over.
+ * runs on `main` only; the prerelease branch still gets its version and its tag,
+ * and the back-merge from main brings the stable state back over.
+ *
+ * ## Why the prerelease branch is not `develop`
+ *
+ * `develop` is protected with `enforce_admins: true` plus ten required status
+ * checks, so semantic-release cannot push the release commit there at all: the
+ * push authenticates and is then refused with `GH006` (BUG-0584). The
+ * prerelease therefore runs on `release/beta`, a mirror of `develop` that no
+ * protection touches, and the release commit reaches `develop` through a pull
+ * request that satisfies the same checks as every other change. This mirrors
+ * the split semantic-release documents for exactly this case.
+ *
+ * `sync-release-branch.yml` keeps `release/beta` pointed at `develop`. Both
+ * branch names below are what semantic-release matches its CI-detected branch
+ * against, so changing either name means changing the sync workflow too.
  *
  * Branch detection uses GITHUB_REF_NAME, which Actions sets to the pushed branch
  * name. Outside CI the value is absent and we fall back to the full stable plugin
@@ -34,8 +48,15 @@ const isStableBranch = (process.env.GITHUB_REF_NAME ?? "main") === "main";
 
 // Note: these are plain string literals, not template literals — the `${...}`
 // placeholders are interpolated by semantic-release, not by JavaScript.
+//
+// No `[skip ci]` marker here, deliberately. The release commit travels to
+// `develop` inside a pull request, and GitHub reads `[skip ci]` on a pull
+// request's head commit as "do not run CI for this pull request" — which leaves
+// the required status checks unreported and therefore unsatisfiable, so the
+// merge waits forever on a check that was never started. The Release workflow's
+// own `if:` guard skips the re-triggering run instead; see release.yml.
 const gitCommitMessage =
-  "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}";
+  "chore(release): ${nextRelease.version}\n\n${nextRelease.notes}";
 
 /**
  * Conventional scopes that never describe a user-visible change. A `feat` or
@@ -95,7 +116,7 @@ export default {
   branches: [
     "main",
     {
-      name: "develop",
+      name: "release/beta",
       prerelease: "beta",
     },
   ],
