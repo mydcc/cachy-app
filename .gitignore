@@ -137,10 +137,13 @@ info/
 # harness configs are per-machine, and the whole set is reproducible from
 # opencode.json / ~/.claude. Untracked with `git rm --cached`, so the files
 # stay on disk and stop appearing on GitHub.
+#
+# .claude/hooks/ is the exception: evals/hook-guard.eval.test.ts loads
+# pre-tool-use-guard.mjs through a relative path, so it is source code
+# under test, not machine config.
 .agents/skills/
 .claude/skills/
 .claude/commands/
-.claude/hooks/
 .claude/settings.json
 .claude/launch.json
 .jules/
