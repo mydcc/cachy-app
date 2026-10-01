@@ -125,7 +125,10 @@ jobs:
             --json number --jq '.[0].number // empty')
           if [ -z "$number" ]; then
             version=$(node -p "require('./package.json').version")
-            number=$(gh pr create \
+            # `gh pr create` prints the URL on stdout and has no `--json` flag,
+            # unlike `gh pr list`. The number is the last path segment of the
+            # URL it prints.
+            url=$(gh pr create \
               --base develop \
               --head release/beta \
               --title "chore(release): $version" \
@@ -137,9 +140,9 @@ jobs:
           The tag was pushed by semantic-release. This pull request carries the
           commit that tag points at, merged as a **merge commit** — a squash
           would put an equal-but-different commit on \`develop\` and leave the
-          tag naming something that is not an ancestor of the branch." \
-              --json number --jq '.number')
-            echo "Opened release pull request #$number."
+          tag naming something that is not an ancestor of the branch.")
+            number="${url##*/}"
+            echo "Opened release pull request #$number ($url)."
           else
             echo "Release pull request #$number is already open."
           fi
@@ -203,16 +206,19 @@ jobs:
           number=$(gh pr list --head "$branch" --base develop --state open \
             --json number --jq '.[0].number // empty')
           if [ -z "$number" ]; then
-            number=$(gh pr create \
+            # `gh pr create` prints the URL on stdout and has no `--json` flag,
+            # unlike `gh pr list`. The number is the last path segment of the
+            # URL it prints.
+            url=$(gh pr create \
               --base develop \
               --head "$branch" \
               --title "chore(release): back-merge main into develop" \
               --body "[no issue]
 
           Automated back-merge of \`main\` into \`develop\` after a stable
-          release." \
-              --json number --jq '.number')
-            echo "Opened back-merge pull request #$number."
+          release.")
+            number="${url##*/}"
+            echo "Opened back-merge pull request #$number ($url)."
           else
             echo "Back-merge pull request #$number is already open."
           fi
