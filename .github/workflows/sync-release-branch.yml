@@ -11,6 +11,19 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
+  # Manual: the release reads its configuration from release/beta, not from
+  # develop, so a fix merged into develop only takes effect once this branch
+  # carries it. A release run against a stale branch silently versions the old
+  # configuration — that is how a channel fix merged to develop kept computing
+  # 1.6.0-beta.1. Run this by hand after merging a release fix.
+  workflow_dispatch:
+
+# R2: without this, two syncs racing on the same ref make the second
+# --force-with-lease fail and the release then runs against a half-moved
+# branch. Same shape as deploy-build.yml's group.
+concurrency:
+  group: sync-release-branch
+  cancel-in-progress: false
 
 jobs:
   sync:
