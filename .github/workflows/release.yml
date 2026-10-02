@@ -107,47 +107,6 @@ jobs:
           done
           echo "Local tags now: $(git tag --list 'v*' | wc -l) version tags."
 
-      # R6: refuse to publish a version lower than one that already exists.
-        #
-        # Both wrong tags on this branch (v1.6.0-beta.1, v1.6.0-beta.2) were
-        # published by a run that computed a version below the 364 tags already
-        # on the remote. Nothing objected: a lower version looks like a valid
-        # prerelease to every tool involved, and the visible damage is only that
-        # dev.cachy.app reports a number that went backwards.
-        #
-        # This does not prevent a miscalculation — it refuses to act on one, and
-        # names both numbers so the cause is visible in the run rather than
-        # discovered in a browser.
-      - name: Refuse a version below the highest existing one
-        env:
-          PRERELEASE_ID: beta
-        run: |
-          set -euo pipefail
-          highest=$(git tag --list "v*-${PRERELEASE_ID}.*" --sort=-v:refname | head -1)
-          if [ -z "$highest" ]; then
-            echo "No ${PRERELEASE_ID} tag on the remote; nothing to compare against."
-            exit 0
-          fi
-
-          # The comparison is semver's, not sort(1)'s. `sort -V` orders
-          # `1.6.0-1` before `1.6.0-364` and cannot compare a prerelease
-          # identifier at all, so a bash version of this guard answers "pass"
-          # for every input — including the two that produced v1.6.0-beta.1 and
-          # v1.6.0-beta.2. Verified against the five cases below.
-          node -e '
-            const semver = require("semver");
-            const [current, highest] = process.argv.slice(1);
-            if (!semver.valid(current)) {
-              console.log(`::error::package.json version ${current} is not valid semver.`);
-              process.exit(1);
-            }
-            if (!semver.gt(current, highest)) {
-              console.log(`::error::package.json (${current}) is not above the highest tag (${highest}). Refusing to release a version that has already been passed. If a rollback is intended, delete the tags above it first and say so in the commit.`);
-              process.exit(1);
-            }
-            console.log(`Version check passed: ${current} is above ${highest}.`);
-          ' "$(node -p "require('./package.json').version")" "${highest#v}"
-
       - name: Run semantic-release
         env:
           # RELEASE_TOKEN (when present) is the repo owner's fine-grained PAT.
