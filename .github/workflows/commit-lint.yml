@@ -6,6 +6,10 @@ on:
 
 # Least-privilege default: this workflow only reads the PR's commits to lint
 # them, it never writes to the repo or the GitHub API.
+
+# Same release-bot guard as audit.yml — the rationale, and why skipping it
+# loses no coverage, is written out there. Not repeated here on purpose.
+
 permissions:
   contents: read
 
@@ -13,6 +17,7 @@ jobs:
   commitlint:
     name: Conventional Commits
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
         with:
