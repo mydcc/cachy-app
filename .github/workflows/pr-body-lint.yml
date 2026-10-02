@@ -7,6 +7,10 @@ on:
 
 # Permissions: reads repo contents and issues, writes pull-request description
 # to automatically repair missing closing references or stray links.
+
+# Same release-bot guard as audit.yml — the rationale, and why skipping it
+# loses no coverage, is written out there. Not repeated here on purpose.
+
 permissions:
   contents: read
   pull-requests: write
@@ -16,6 +20,7 @@ jobs:
   check-pr-body:
     name: Closing References
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
         with:

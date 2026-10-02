@@ -9,6 +9,26 @@ on:
 # Least-privilege default: every job here only checks out the repo to lint,
 # type-check, test or benchmark — none of them write to the repo or the
 # GitHub API.
+
+# Release-bot guard.
+#
+# The prerelease pull request that `release.yml` opens is authored by
+# `github-actions[bot]`. This repo's Actions setting
+# `approval_policy: first_time_contributors` makes GitHub hold every
+# `pull_request` run from that actor in `action_required` instead of running
+# it, and it waits for a human to approve. A skipped required check never
+# reports a conclusion, so `mergeable_state` stays `blocked`, the auto-merge
+# that `release.yml` arms can never be satisfied, and the release PR can only
+# ever be closed by hand — once per release, forever.
+#
+# These jobs therefore skip that one pull request. Nothing is lost: the release
+# commit is still audited in full by this file's `push` trigger the moment it
+# lands on `develop`, so the version bump is checked exactly like any other
+# commit — just once, after the merge, instead of twice with a manual gate in
+# between.
+#
+# Every other author, and every push, runs unchanged.
+
 permissions:
   contents: read
 
@@ -19,6 +39,7 @@ jobs:
   i18n-lint:
     name: i18n String Compliance
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
 
@@ -33,6 +54,7 @@ jobs:
   decimal-check:
     name: Decimal.js Enforcement
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
 
@@ -87,6 +109,7 @@ jobs:
   account-state-check:
     name: Account State Write Guard
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
 
@@ -110,6 +133,7 @@ jobs:
   docs-check:
     name: Backlog & Documentation Links
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -158,6 +182,7 @@ jobs:
   node-version:
     name: Node.js Version Pin
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
 
@@ -171,6 +196,7 @@ jobs:
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
 
@@ -193,6 +219,7 @@ jobs:
   performance:
     name: Performance Benchmarks (non-blocking)
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     # Informational only. These assert wall-clock time and heap growth, which on a
     # shared runner is dominated by noise — the scaling check compares a ~5ms
     # measurement against a ~24ms one. A red run here is a hint to look, never a
@@ -216,6 +243,7 @@ jobs:
   type-check:
     name: TypeScript Type Check
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
 
@@ -234,6 +262,7 @@ jobs:
   lint:
     name: ESLint
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v6
 

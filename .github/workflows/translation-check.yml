@@ -10,9 +10,13 @@ on:
         # Jeden Tag um 9:00 UTC
         - cron: "0 9 * * *"
 
+# Same release-bot guard as audit.yml — the rationale, and why skipping it
+# loses no coverage, is written out there. Not repeated here on purpose.
+
 jobs:
     check-translations:
         runs-on: ubuntu-latest
+        if: github.event_name != 'pull_request' || github.event.pull_request.user.login != 'github-actions[bot]'
         permissions:
             contents: read
             pull-requests: write
