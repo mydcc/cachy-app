@@ -433,6 +433,47 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
  * reached through the exchange adapter (FEAT-0016), not tradeService
  * directly.
  */
+/*
+ * Price-line titles are user-visible, so they must be observed under a locale
+ * where they differ from their English source text. Resolving against the real
+ * German dictionary keeps the expectation tied to the actual translation
+ * instead of a literal copied into the test — and makes an implementation that
+ * hardcodes "Entry" fail here rather than pass by coincidence. Every other key
+ * falls through to itself: no test in this file asserts on translated chrome,
+ * only on prices and mode indices.
+ */
+vi.mock("../../../locales/i18n", async () => {
+    const de = (await import("../../../locales/locales/de.json")).default;
+    const translate = (key: string, vars?: Record<string, unknown>) => {
+        const hit = key
+            .split(".")
+            .reduce<unknown>((acc, part) => (acc as Record<string, unknown> | undefined)?.[part], de);
+        // Fallback is the key itself, so interpolate `{…}` the way svelte-i18n
+        // would — the context-menu tests assert on resolved placeholder values.
+        // svelte-i18n nests them under `values`; accept both shapes.
+        const values = (vars?.values ?? vars) as Record<string, unknown> | undefined;
+        return (typeof hit === "string" ? hit : key).replace(/\{(\w+)\}/g, (whole, name: string) =>
+            values && name in values ? String(values[name]) : whole,
+        );
+    };
+    return {
+        _: {
+            subscribe: (fn: (val: typeof translate) => void) => {
+                fn(translate);
+                return () => {};
+            },
+        },
+        locale: {
+            subscribe: (fn: (val: string) => void) => {
+                fn("de");
+                return () => {};
+            },
+        },
+        setLocale: vi.fn(),
+        i18nReady: Promise.resolve(),
+    };
+});
+
 describe("FEAT-0247 — dragging a chart TP/SL line", () => {
     function seedPositionAndPlans(unrealizedPnl: Decimal = new Decimal(0)) {
         accountState.positions = [
@@ -480,6 +521,25 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         expect(prices).toEqual([80, 90, 100, 100, 120]); // Liq, SL, Entry, B/E, TP
     });
 
+    it("titles the position lines with the translated labels, not English literals", async () => {
+        seedPositionAndPlans();
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const titles = vi.mocked(chart.candleSeries.createPriceLine).mock.calls.map(([opts]) => opts.title);
+        // German differs from English for `entry`; `liq`/`breakEven` stay the
+        // domain abbreviations German trading UIs use, so they cannot carry
+        // this assertion — `entry` is what proves the title is translated
+        // rather than hardcoded, and a hardcoded "Entry" fails here.
+        expect(titles).toContain("Einstieg");
+        expect(titles).toContain("Liq.");
+        expect(titles).toContain("B/E");
+        expect(titles).not.toContain("Entry");
+    });
+
     it("colors the Entry line red when the position is underwater, green when in profit", async () => {
         seedPositionAndPlans(new Decimal(-5));
         component = mount(CandleChartView, {
@@ -489,7 +549,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         await settle();
 
         const entryCallLoss = vi.mocked(chart.candleSeries.createPriceLine).mock.calls.find(
-            ([opts]) => opts.title === "Entry",
+            ([opts]) => opts.title === "Einstieg",
         );
         expect(entryCallLoss?.[0].color).toBe("#ef5350");
 
@@ -506,7 +566,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         await settle();
 
         const entryCallProfit = vi.mocked(chart.candleSeries.createPriceLine).mock.calls.find(
-            ([opts]) => opts.title === "Entry",
+            ([opts]) => opts.title === "Einstieg",
         );
         expect(entryCallProfit?.[0].color).toBe("#26a69a");
     });

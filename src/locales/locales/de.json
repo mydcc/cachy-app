@@ -4495,6 +4495,11 @@
     }
   },
   "chart": {
+    "lines": {
+      "entry": "Einstieg",
+      "liq": "Liq.",
+      "breakEven": "B/E"
+    },
     "pane": {
       "collapse": "Pane einklappen",
       "expand": "Pane ausklappen"

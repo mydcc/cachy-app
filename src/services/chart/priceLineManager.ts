@@ -98,6 +98,18 @@ export interface PriceLineUpdateInput {
     tickSize: Decimal;
     /** `supports.tpSl === false` on the active exchange — lines are shown but not draggable. */
     readOnly: boolean;
+    /**
+     * Localized titles for the position lines. Required rather than defaulted:
+     * this module stays framework-agnostic (no Svelte imports), so the host
+     * component resolves the strings and passes them in. That keeps the
+     * English fallbacks out of the service entirely instead of hiding them
+     * behind a `?? "Entry"` the i18n linter cannot see.
+     */
+    labels: {
+        entry: string;
+        liquidation: string;
+        breakEven: string;
+    };
     /** Theme-aware colors from the host (CandleChartView). If omitted, uses fallback hex values. */
     colors?: {
         entry: string;
@@ -253,17 +265,17 @@ export class PriceLineManager {
 
         this.syncLine(
             "entryLine",
-            input.position ? { price: input.position.entryPrice, title: "Entry" } : null,
+            input.position ? { price: input.position.entryPrice, title: input.labels.entry } : null,
             colors.entry,
         );
         this.syncLine(
             "liquidationLine",
-            input.position ? { price: input.position.liquidationPrice, title: "Liq." } : null,
+            input.position ? { price: input.position.liquidationPrice, title: input.labels.liquidation } : null,
             colors.liquidation,
         );
         this.syncLine(
             "breakEvenLine",
-            input.position ? { price: input.position.breakEvenPrice, title: "B/E" } : null,
+            input.position ? { price: input.position.breakEvenPrice, title: input.labels.breakEven } : null,
             colors.breakEven,
         );
 
