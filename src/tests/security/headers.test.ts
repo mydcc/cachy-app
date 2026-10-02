@@ -44,7 +44,9 @@ describe('Security Headers', () => {
     expect(headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin-allow-popups');
     expect(headers.get('Cross-Origin-Embedder-Policy')).toBeNull();
 
-    // Security headers
+    // Security headers (validates all 5 headers checked by production-monitor)
+    expect(headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains; preload');
+    expect(headers.get('Content-Security-Policy')).toBeDefined();
     expect(headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
