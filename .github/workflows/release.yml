@@ -124,10 +124,26 @@ jobs:
       # this the version bump would exist only on release/beta, and the tag
       # would name a commit that is not an ancestor of the branch dev.cachy.app
       # is built from.
+      #
+      # The PAT, not GITHUB_TOKEN, and not for permissions. GitHub keys its
+      # workflow-approval gate on the actor that created the pull request: a PR
+      # opened with the default GITHUB_TOKEN is authored by github-actions[bot],
+      # which this repo's `approval_policy: first_time_contributors` treats as a
+      # first-time contributor even though the branch is in the same repository.
+      # Every run on the PR then sits in `action_required` until a human
+      # approves, the required checks never report a conclusion, and the
+      # auto-merge armed below can never be satisfied — so every release needs a
+      # human click. Opened with the PAT, the author is the repo owner, and the
+      # gate does not apply.
+      #
+      # This needs `pull-requests: write` on RELEASE_TOKEN. If the secret is
+      # absent the fallback keeps today's behaviour; if it is present but
+      # lacks the scope, `gh pr create` fails loudly here, which is the better
+      # of the two failure modes (BUG-0584).
       - name: Propose the prerelease pull request
         if: github.ref == 'refs/heads/release/beta'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -202,10 +218,15 @@ jobs:
       # If main and develop have diverged in a way that actually conflicts, the
       # merge step fails loudly instead of proposing a broken merge — that case
       # needs a human, and CI turning red is the signal for it.
+      #
+      # Same PAT, same reason as the prerelease step above: with the default
+      # GITHUB_TOKEN the pull request is authored by github-actions[bot] and
+      # every workflow on it waits for a human approval, so the back-merge
+      # would need the same click after each stable release.
       - name: Propose the back-merge of main into develop
         if: github.ref == 'refs/heads/main'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           branch="backmerge/main-into-develop"
