@@ -78,12 +78,34 @@ jobs:
         run: npm ci
 
       - name: Sync moving deploy tags
-        # deploy-build.yml force-recreates the rolling tags deploy-beta and
-        # deploy-stable on every build. Those moving tags make the plain
-        # `git fetch --tags` that semantic-release performs fail with
-        # "would clobber existing tag". Force-fetch all tags to update the
-        # local tags first so semantic-release's own fetch is a no-op.
+        # deploy-build.yml force-recreates the rolling tags deploy-beta,
+        # deploy-beta-previous and deploy-stable on every build. Those moving
+        # tags make the plain `git fetch --tags` that semantic-release performs
+        # fail with "would clobber existing tag". Force-fetch all tags to update
+        # the local tags first so semantic-release's own fetch is a no-op.
         run: git fetch --tags --force
+
+      # R1: semantic-release's push is hard-coded to `git push --tags`
+      # (lib/git.js: `execa("git", ["push", "--tags", "--", repositoryUrl])`),
+      # which offers no way to restrict it to the version tag. It therefore also
+      # pushes the moving deploy tags, and rejects the run when they moved on
+      # the remote in between — observed as
+      # `! [rejected] deploy-beta-previous -> deploy-beta-previous (already
+      # exists)`, which is what kept the first release on this branch failing.
+        #
+        # Deleting them locally removes them from that push. The remote copies
+        # are untouched: `deploy-beta-previous` is the rollback artifact
+        # deploy-build.yml recreates on every build, and nothing here writes to
+        # the remote.
+      - name: Drop moving deploy tags from the local repository
+        run: |
+          for tag in deploy-beta deploy-beta-previous deploy-stable; do
+            if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+              git tag -d "$tag"
+              echo "Removed local $tag so the release push does not carry it."
+            fi
+          done
+          echo "Local tags now: $(git tag --list 'v*' | wc -l) version tags."
 
       - name: Run semantic-release
         env:
@@ -125,7 +147,10 @@ jobs:
             --json number --jq '.[0].number // empty')
           if [ -z "$number" ]; then
             version=$(node -p "require('./package.json').version")
-            number=$(gh pr create \
+            # `gh pr create` prints the URL on stdout and has no `--json` flag,
+            # unlike `gh pr list`. The number is the last path segment of the
+            # URL it prints.
+            url=$(gh pr create \
               --base develop \
               --head release/beta \
               --title "chore(release): $version" \
@@ -137,9 +162,9 @@ jobs:
           The tag was pushed by semantic-release. This pull request carries the
           commit that tag points at, merged as a **merge commit** — a squash
           would put an equal-but-different commit on \`develop\` and leave the
-          tag naming something that is not an ancestor of the branch." \
-              --json number --jq '.number')
-            echo "Opened release pull request #$number."
+          tag naming something that is not an ancestor of the branch.")
+            number="${url##*/}"
+            echo "Opened release pull request #$number ($url)."
           else
             echo "Release pull request #$number is already open."
           fi
@@ -203,16 +228,19 @@ jobs:
           number=$(gh pr list --head "$branch" --base develop --state open \
             --json number --jq '.[0].number // empty')
           if [ -z "$number" ]; then
-            number=$(gh pr create \
+            # `gh pr create` prints the URL on stdout and has no `--json` flag,
+            # unlike `gh pr list`. The number is the last path segment of the
+            # URL it prints.
+            url=$(gh pr create \
               --base develop \
               --head "$branch" \
               --title "chore(release): back-merge main into develop" \
               --body "[no issue]
 
           Automated back-merge of \`main\` into \`develop\` after a stable
-          release." \
-              --json number --jq '.number')
-            echo "Opened back-merge pull request #$number."
+          release.")
+            number="${url##*/}"
+            echo "Opened back-merge pull request #$number ($url)."
           else
             echo "Back-merge pull request #$number is already open."
           fi

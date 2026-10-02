@@ -173,7 +173,7 @@ item 15b.
 a two-click confirmation. The interesting part is what it does when it cannot
 work: the reducer is only callable through bindings that `spacetime generate`
 produces, and the ones committed here predate it. Hand-editing generated files is
-forbidden by `server/.cursor/rules/spacetimedb-typescript.mdc`, and there is no SpacetimeDB CLI in this
+forbidden, and there is no SpacetimeDB CLI in this
 environment to regenerate them — so the client asks at runtime whether the
 reducer exists, disables the button when it does not, and names the missing step
 and who has to take it. `cloudService.erasure.test.ts` covers both states plus

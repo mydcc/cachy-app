@@ -131,3 +131,23 @@ info/
 # belong in the PR thread, not in the tree — without this the agent's `git add`
 # sweeps the file into the branch and a squash-merge carries it onto develop.
 .github/review-output.md
+
+# Local agent and editor tooling. None of this belongs in the repository:
+# the skills are machine-local (regenerate with `gortex track`), the
+# harness configs are per-machine, and the whole set is reproducible from
+# opencode.json / ~/.claude. Untracked with `git rm --cached`, so the files
+# stay on disk and stop appearing on GitHub.
+#
+# .claude/hooks/ is the exception: evals/hook-guard.eval.test.ts loads
+# pre-tool-use-guard.mjs through a relative path, so it is source code
+# under test, not machine config.
+.agents/skills/
+.claude/skills/
+.claude/commands/
+.claude/settings.json
+.claude/launch.json
+.jules/
+.gemini/
+.opencode/
+.vscode/
+.pi/
