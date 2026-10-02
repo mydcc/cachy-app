@@ -71,6 +71,11 @@ function baseInput(overrides: Partial<Parameters<PriceLineManager["update"]>[0]>
         stopLoss: { orderId: "sl-1", triggerPrice: new Decimal(90) },
         tickSize: new Decimal(1),
         readOnly: false,
+        labels: {
+            entry: "Entry",
+            liquidation: "Liq.",
+            breakEven: "B/E",
+        },
         colors: {
             entry: "#787b86",
             liquidation: "#ef5350",
@@ -106,6 +111,40 @@ describe("PriceLineManager — rendering", () => {
 
         const beLine = [...lines.values()].find((l) => l.title === "B/E");
         expect(beLine?.price).toBe(101);
+    });
+
+    it("titles the position lines from the labels the host passes, not from hardcoded English", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        manager.update(
+            baseInput({
+                labels: { entry: "Einstieg", liquidation: "Liquidierung", breakEven: "Break-even" },
+            }),
+        );
+
+        const titles = [...lines.values()].map((l) => l.title);
+        expect(titles).toContain("Einstieg");
+        expect(titles).toContain("Liquidierung");
+        expect(titles).toContain("Break-even");
+        expect(titles).not.toContain("Entry");
+        expect(titles).not.toContain("Liq.");
+        expect(titles).not.toContain("B/E");
+    });
+
+    it("relabels an existing position line in place when the locale changes", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        manager.update(baseInput());
+        const before = lines.size;
+
+        manager.update(baseInput({ labels: { entry: "Einstieg", liquidation: "Liq.", breakEven: "B/E" } }));
+
+        // No new line objects: the title is patched through applyOptions.
+        expect(lines.size).toBe(before);
+        expect([...lines.values()].map((l) => l.title)).toContain("Einstieg");
+        expect([...lines.values()].map((l) => l.title)).not.toContain("Entry");
     });
 
     it("puts price, percentage distance and projected PnL in the TP/SL titles", () => {

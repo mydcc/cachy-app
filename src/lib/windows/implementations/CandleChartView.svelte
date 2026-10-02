@@ -1399,6 +1399,16 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                 : deriveTickSizeFromPrice(lastClose) ?? new Decimal("0.01");
         const readOnly = activeExchange().supports.tpSl === false;
 
+        // Resolved OUTSIDE the untrack below: the price lines are chart
+        // primitives, so this effect is what re-runs on a locale change and
+        // relabels them. Reading the store inside untrack would drop that
+        // dependency and leave the old title on screen after a switch.
+        const labels = {
+            entry: $_("chart.lines.entry"),
+            liquidation: $_("chart.lines.liq"),
+            breakEven: $_("chart.lines.breakEven"),
+        };
+
         untrack(() => {
             void tpSlState.ensureFresh();
             priceLineManager?.update({
@@ -1420,6 +1430,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                 pendingOrders,
                 tickSize,
                 readOnly,
+                labels,
                 colors: {
                     // Entry line tracks unrealizedPnl (live via WS), not a
                     // fixed neutral color: red means the position is
