@@ -135,21 +135,21 @@ Zum Abschalten (z. B. um den Diff zu sehen, bevor er zum PR wird):
 Jules-Doku bereits standardmäßig auto-approved; das war nie der blockierende
 Schritt.
 
-## Wiederkehrende Agenten-Prompts (`prompts/`)
+## Wiederkehrende Agenten-Prompts (in der Jules-UI gepflegt)
 
 Vier spezialisierte Prompts für wiederkehrende Jules-Tasks, die **in der
 Jules-UI** als eigene Scheduled Tasks eingerichtet werden (nicht über eines
 der Scripts hier — die UI kennt kein Aufrufen einer Datei als Prompt). Die
-Dateien in `prompts/` sind die versionierte Quelle der Wahrheit; bei einer
-Änderung den Inhalt hier committen und anschließend den Prompt-Text im
-jeweiligen Jules-Task in der UI aktualisieren.
+Prompt-Texte liegen ausschließlich in den Jules-Tasks selbst; dieses
+Repository enthält bewusst keine Kopie, damit die UI-Fassung die einzige
+gültige ist.
 
 | Prompt | Rolle | Kadenz | Schreibzugriff |
 | --- | --- | --- | --- |
-| `prompts/bolt.md` | Performance — eine gemessene Optimierung pro Lauf | täglich | Produktionscode, PR gegen `develop` |
-| `prompts/palette.md` | UX & Accessibility — ein Micro-Fix pro Lauf | täglich | Produktionscode, PR gegen `develop` |
-| `prompts/sentinel.md` | Security — ein Fix im autonomen Rahmen pro Lauf | täglich | Produktionscode, PR gegen `develop` |
-| `prompts/ledger.md` | Korrektheits-Audit — ein Subsystem pro Lauf, reiner Auditor | wöchentlich (freitags, vor dem montäglichen Backlog-Dispatch) | nur `docs/backlog/**` + eigenes Journal, kein Produktionscode |
+| bolt | Performance — eine gemessene Optimierung pro Lauf | täglich | Produktionscode, PR gegen `develop` |
+| palette | UX & Accessibility — ein Micro-Fix pro Lauf | täglich | Produktionscode, PR gegen `develop` |
+| sentinel | Security — ein Fix im autonomen Rahmen pro Lauf | täglich | Produktionscode, PR gegen `develop` |
+| ledger | Korrektheits-Audit — ein Subsystem pro Lauf, reiner Auditor | wöchentlich (freitags, vor dem montäglichen Backlog-Dispatch) | nur `docs/backlog/**` + eigenes Journal, kein Produktionscode |
 
 Alle vier zeigen auf `AGENTS.md` als einzige Regelquelle (Svelte-5-Runes,
 `decimal.js`, Local-First-Grenze, Branch-Workflow) und duplizieren sie
