@@ -205,6 +205,7 @@ vi.mock("../../../services/toastService.svelte", () => ({
 }));
 
 import CandleChartView from "./CandleChartView.svelte";
+import en from "../../../locales/locales/en.json";
 import { JSIndicators } from "../../../utils/indicators";
 import { toastService } from "../../../services/toastService.svelte";
 import { accountState } from "../../../stores/account.svelte";
@@ -481,6 +482,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
     });
 
     it("colors the Entry line red when the position is underwater, green when in profit", async () => {
+        const lookup = (key: string) => key.split(".").reduce<unknown>((acc, part) => (acc as Record<string, unknown>)?.[part], en) as string;
         seedPositionAndPlans(new Decimal(-5));
         component = mount(CandleChartView, {
             target: host,
@@ -489,7 +491,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         await settle();
 
         const entryCallLoss = vi.mocked(chart.candleSeries.createPriceLine).mock.calls.find(
-            ([opts]) => opts.title === "Entry",
+            ([opts]) => opts.title === lookup("chart.lines.entry") || opts.title === "chart.lines.entry" || opts.title === "Entry",
         );
         expect(entryCallLoss?.[0].color).toBe("#ef5350");
 
@@ -506,7 +508,7 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         await settle();
 
         const entryCallProfit = vi.mocked(chart.candleSeries.createPriceLine).mock.calls.find(
-            ([opts]) => opts.title === "Entry",
+            ([opts]) => opts.title === lookup("chart.lines.entry") || opts.title === "chart.lines.entry" || opts.title === "Entry",
         );
         expect(entryCallProfit?.[0].color).toBe("#26a69a");
     });
