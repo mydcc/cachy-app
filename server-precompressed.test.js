@@ -73,8 +73,11 @@ beforeAll(async () => {
   app.use(express.static(root, { index: false }));
   // Anything express.static did not resolve must reach this fallback, so a
   // mis-rewritten URL shows up as a distinct 404 instead of a silent success.
+  // The URL is JSON-encoded, never reflected raw: untrusted request input in a
+  // response body is the pattern CodeQL flags as reflected XSS, and a test
+  // helper is still code that ships.
   app.use((req, res) => {
-    res.status(404).type('text/plain').send(`UNRESOLVED:${req.url}`);
+    res.status(404).json({ unresolved: req.url });
   });
 
   server = app.listen(0, '127.0.0.1');
@@ -264,7 +267,8 @@ describe('precompressedAssets middleware', () => {
     });
     expect(response.status).toBe(200);
     expect(response.headers.get('content-encoding')).toBe('br');
-    expect(body.toString()).not.toContain('UNRESOLVED');
+    // A rewritten URL that missed the index would fall through to the 404
+    // fallback and decode as a JSON error body instead of the asset.
     assertDecodesTo(body, 'br', JS_BODY);
   });
 
