@@ -259,13 +259,16 @@ describe('cacheControlFor', () => {
     expect(cacheControlFor('build/client/wasm/technicals_wasm_bg.wasm')).toBe(
       'public, max-age=3600, must-revalidate',
     );
+    expect(cacheControlFor('build/client/wasm/technicals_wasm_bg.wasm.br')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
     expect(cacheControlFor('build/client/wasm/technicals_wasm.js')).toBe(
       'public, max-age=3600, must-revalidate',
     );
     expect(cacheControlFor('build/client/ammo/ammo.wasm.wasm')).toBe(
       'public, max-age=3600, must-revalidate',
     );
-    expect(cacheControlFor('build/client/ammo/ammo.wasm.js')).toBe(
+    expect(cacheControlFor('build/client/ammo/ammo.wasm.js.gz')).toBe(
       'public, max-age=3600, must-revalidate',
     );
   });

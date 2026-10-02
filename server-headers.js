@@ -217,7 +217,7 @@ export function isImmutableAsset(filePath) {
  * @returns {boolean}
  */
 export function isVersionedBinary(filePath) {
-  const normalized = filePath.split(path.sep).join("/");
+  const normalized = filePath.split(path.sep).join("/").replace(/\.(br|gz)$/i, "");
   return (
     (normalized.includes("/wasm/") || normalized.includes("/ammo/")) &&
     /\.(wasm|js)$/i.test(normalized)

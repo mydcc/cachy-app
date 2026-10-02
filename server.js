@@ -15,12 +15,66 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
 import { applySecurityHeaders, cacheControlFor, wrapWriteHead } from './server-headers.js';
 
 const app = express();
+
+// Index pre-compressed static assets (.br, .gz) in memory at startup rather
+// than checking per-request via fs.existsSync to lower response TTFB and
+// improve Lighthouse Performance Score.
+const CLIENT_DIR = path.resolve('build/client');
+const precompressedAssets = new Set();
+
+function indexPrecompressed(dir, prefix = '') {
+  if (!fs.existsSync(dir)) return;
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const relPath = prefix + '/' + entry.name;
+    if (entry.isDirectory()) {
+      indexPrecompressed(path.join(dir, entry.name), relPath);
+    } else if (entry.isFile() && (entry.name.endsWith('.br') || entry.name.endsWith('.gz'))) {
+      precompressedAssets.add(relPath);
+    }
+  }
+}
+indexPrecompressed(CLIENT_DIR);
+
+function getMimeType(filePath) {
+  const cleanPath = filePath.replace(/\.(br|gz)$/i, '');
+  const ext = path.extname(cleanPath).toLowerCase();
+  switch (ext) {
+    case '.js':
+    case '.mjs':
+      return 'application/javascript; charset=utf-8';
+    case '.css':
+      return 'text/css; charset=utf-8';
+    case '.html':
+      return 'text/html; charset=utf-8';
+    case '.json':
+      return 'application/json; charset=utf-8';
+    case '.svg':
+      return 'image/svg+xml';
+    case '.wasm':
+      return 'application/wasm';
+    case '.ttf':
+      return 'font/ttf';
+    case '.woff':
+      return 'font/woff';
+    case '.woff2':
+      return 'font/woff2';
+    case '.xml':
+      return 'application/xml; charset=utf-8';
+    case '.txt':
+      return 'text/plain; charset=utf-8';
+    default:
+      return null;
+  }
+}
 
 // Level 6 compression improves the Lighthouse Performance Score. The default
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
@@ -32,10 +86,30 @@ app.use(compression({ level: 6 }));
 // wrapWriteHead re-applies our headers right before the flush and overlays them
 // onto any explicit headers argument (object, flat-array or pairs-array form).
 // Cache-Control is not part of SECURITY_HEADERS, so per-asset cache policies
-// from setHeaders survive untouched.
+// from setHeaders survive untouched. Pre-compressed assets (.br, .gz) indexed
+// in memory are routed directly to minimize TTFB and CPU overhead.
 app.use((req, res, next) => {
   wrapWriteHead(res);
   applySecurityHeaders(res);
+
+  if ((req.method === 'GET' || req.method === 'HEAD') && req.path) {
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    const rawPath = req.path;
+    if (acceptEncoding.includes('br') && precompressedAssets.has(rawPath + '.br')) {
+      req.url = req.url + '.br';
+      res.setHeader('Content-Encoding', 'br');
+      res.setHeader('Vary', 'Accept-Encoding');
+      const mime = getMimeType(rawPath);
+      if (mime) res.setHeader('Content-Type', mime);
+    } else if (acceptEncoding.includes('gzip') && precompressedAssets.has(rawPath + '.gz')) {
+      req.url = req.url + '.gz';
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Vary', 'Accept-Encoding');
+      const mime = getMimeType(rawPath);
+      if (mime) res.setHeader('Content-Type', mime);
+    }
+  }
+
   next();
 });
 
