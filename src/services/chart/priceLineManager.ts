@@ -88,6 +88,26 @@ export interface PendingOrderLineInput {
     kind?: "entry" | "takeProfit" | "stopLoss";
 }
 
+/**
+ * Localized titles for every line this manager draws. Required rather than
+ * defaulted: this module stays framework-agnostic (no Svelte imports), so the
+ * host component resolves the strings and passes them in. That keeps the
+ * English fallbacks out of the service entirely instead of hiding them behind
+ * a `?? "Entry"` the i18n linter cannot see.
+ */
+export interface PriceLineLabels {
+    entry: string;
+    liquidation: string;
+    breakEven: string;
+    /** "TP" in both locales — kept short because the label box already overlaps the Entry line. */
+    takeProfit: string;
+    /** "SL" in both locales, for the same reason. */
+    stopLoss: string;
+    /** Side word for a resting entry order, e.g. "Buy Limit" (en) / "Kauf" (de). */
+    buyLimit: string;
+    sellLimit: string;
+}
+
 export interface PriceLineUpdateInput {
     position: PositionLinesInput | null;
     takeProfit: TpSlLineInput | null;
