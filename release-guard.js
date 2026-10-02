@@ -145,7 +145,14 @@ export function listTags(cwd) {
 export default {
   name: "release-version-guard",
 
-  verifyRelease({ nextRelease, cwd, logger = { log() {} } }) {
+  // The signature is `(pluginConfig, context)`, not `(context)`.
+  // `normalize.js:26` binds the plugin options as the first argument —
+  // `func = plugin[type].bind(null, cloneDeep({ ...options, ...config }))` — so
+  // a hook that destructures its first argument gets the options, where
+  // `nextRelease` is undefined. That is not a theory: the first release attempt
+  // died on exactly it, with
+  // `TypeError: Cannot read properties of undefined (reading 'version')`.
+  verifyRelease(_pluginConfig, { nextRelease, cwd, logger = { log() {} } }) {
     const tags = parseTags(listTags(cwd));
     const rawId = semver.prerelease(nextRelease.version)?.[0];
     const prereleaseId = rawId === undefined ? undefined : String(rawId);

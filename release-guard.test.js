@@ -31,10 +31,14 @@ function gitHasTags(...tags) {
 
 const logger = { log: vi.fn() };
 
-/** Runs the guard the way semantic-release does, from verifyRelease. */
-function verifyRelease(tags, version) {
+/**
+ * Runs the guard the way semantic-release does: `pluginConfig` first, context
+ * second. normalize.js:26 binds the options into argument one, so a hook that
+ * reads its first argument as the context never sees nextRelease.
+ */
+function verifyRelease(tags, version, cwd) {
   gitHasTags(...tags);
-  return guard.verifyRelease({ nextRelease: { version }, logger });
+  return guard.verifyRelease({}, { nextRelease: { version }, cwd, logger });
 }
 
 describe("release-version-guard", () => {
@@ -99,10 +103,30 @@ describe("release-version-guard", () => {
       expect(Object.keys(guard)).not.toContain("success");
     });
 
+    // Regression guard. semantic-release binds the plugin options into the first
+    // argument (normalize.js:26), so the hook signature is
+    // `(pluginConfig, context)`. Reading the first argument as the context is
+    // plausible, compiles, and dies at runtime with
+    // `Cannot read properties of undefined (reading 'version')` — which is how
+    // the first release attempt failed.
+    it("takes (pluginConfig, context), the order semantic-release calls it in", () => {
+      expect(guard.verifyRelease).toHaveLength(2);
+    });
+
+    it("finds nextRelease in the second argument, not the first", () => {
+      gitHasTags("v1.6.0-beta.364");
+      expect(() =>
+        guard.verifyRelease({ dryRun: false, repositoryUrl: "…" }, {
+          nextRelease: { version: "1.6.0-beta.365" },
+          logger,
+        }),
+      ).not.toThrow();
+    });
+
     it("does not throw when the caller passes no logger", () => {
       gitHasTags("v1.6.0-beta.364");
       expect(() =>
-        guard.verifyRelease({ nextRelease: { version: "1.6.0-beta.365" } }),
+        guard.verifyRelease({}, { nextRelease: { version: "1.6.0-beta.365" } }),
       ).not.toThrow();
     });
   });
@@ -185,11 +209,14 @@ describe("release-version-guard", () => {
 
     it("carries context.cwd through from verifyRelease", () => {
       gitHasTags("v1.6.0-beta.364");
-      guard.verifyRelease({
-        nextRelease: { version: "1.6.0-beta.365" },
-        cwd: "/some/other/checkout",
-        logger,
-      });
+      guard.verifyRelease(
+        {},
+        {
+          nextRelease: { version: "1.6.0-beta.365" },
+          cwd: "/some/other/checkout",
+          logger,
+        },
+      );
       expect(execFileSync).toHaveBeenCalledWith(
         "git",
         ["tag", "--list", "v*"],
