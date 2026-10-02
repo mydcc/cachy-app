@@ -15,16 +15,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import path from 'node:path';
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
 import { applySecurityHeaders, cacheControlFor, wrapWriteHead } from './server-headers.js';
+import { buildPrecompressedIndex, precompressedAssets } from './server-precompressed.js';
 
 const app = express();
+
+// adapter-node ships a precompressed sibling next to every asset above its
+// size threshold ("start.js" plus "start.js.br" and "start.js.gz"). Without
+// this, `compression()` re-compresses each of those on every single request.
+// Index the variants once at startup and serve them straight from disk.
+//
+// express.static({ compress: true }) is the documented way to do this, but
+// the `send` version in this tree (1.2.1) has no `compress` option, so that
+// option is accepted and silently does nothing. Verified in this tree.
+const CLIENT_DIR = path.resolve('build/client');
+const precompressedIndex = buildPrecompressedIndex(CLIENT_DIR);
+if (precompressedIndex.size === 0) {
+  // Not fatal: express.static plus compression() still serve every asset, just
+  // re-compressed per request. Worth a line, because the silent case is a
+  // missing or relocated build/ directory and that is otherwise invisible.
+  console.warn(
+    `No precompressed assets found under ${CLIENT_DIR} — serving uncompressed. ` +
+      'Did the build run, and does the server start from the repository root?',
+  );
+}
 
 // Level 6 compression improves the Lighthouse Performance Score. The default
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
+
+// Route requests for a precompressed asset to its on-disk variant before
+// express.static resolves the (larger) original. This sets Content-Encoding
+// and Content-Type; Cache-Control is not set here, because express.static's
+// setHeaders hook below is the single source of truth for cache policy and
+// runs for the variant file. Registered after compression() on purpose:
+// compression() checks Content-Encoding at header-flush time and skips
+// transforming a response that is already encoded.
+app.use(precompressedAssets(precompressedIndex));
 
 // Guarantee security headers on every response, including SvelteKit fallback
 // and static responses. setHeader() alone is not enough: Node lets headers
@@ -42,7 +73,10 @@ app.use((req, res, next) => {
 // Let SvelteKit serve static assets with correct caching headers. Security
 // headers are explicitly applied via applySecurityHeaders(res) in setHeaders
 // because express.static sets its own response headers and does not inherit
-// from preceding middleware. path is a filesystem path (backslashes on Windows).
+// from preceding middleware. path is a filesystem path (backslashes on
+// Windows) and, for a precompressed variant, ends in ".br"/".gz";
+// cacheControlFor() strips that suffix so both representations of one asset
+// share a single policy.
 app.use(express.static('build/client', {
   index: false,
   setHeaders: (res, path) => {
