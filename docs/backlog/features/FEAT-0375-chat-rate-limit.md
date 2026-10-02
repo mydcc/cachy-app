@@ -71,4 +71,4 @@ the style of the existing `RETENTION_DAYS`.
 ## Links
 
 - Related audit findings: BUG-0372, BUG-0373 (same file), FEAT-0376
-- SpacetimeDB reducer rules (regenerate with `spacetime generate`, never hand-edit)
+- [server/.cursor/rules/spacetimedb-typescript.mdc](../../../server/.cursor/rules/spacetimedb-typescript.mdc) — reducer rules

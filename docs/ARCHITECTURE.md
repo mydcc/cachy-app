@@ -53,8 +53,8 @@ browser                                                 server (SvelteKit node a
   orchestrate them, and `implementations/` holds the concrete windows (academy,
   alert panel, assistant, channel, chart, chat, dialog, iframe, markdown, modal,
   modal frame, news frame, symbol picker).
-- **`spacetimedb/`** — generated client bindings. **Never hand-edited**; regenerate
-  with `spacetime generate` instead.
+- **`spacetimedb/`** — generated client bindings. **Never hand-edited**; see
+  [`server/.cursor/rules/spacetimedb-typescript.mdc`](../server/.cursor/rules/spacetimedb-typescript.mdc).
 - **`server/`** — code imported only by `src/routes/api/**` server routes:
   `logger.ts` (with key redaction), `clientToken.ts`, `aiEndpoint.ts`,
   `urlValidator.ts`, `sanitizer.ts`, `rateLimit.ts`, `cache.ts`,
@@ -174,8 +174,9 @@ disagree, that is a bug rather than a style question — see
 The optional server module. Two tables of user data — `global_message` with
 `sender`, `text`, `sent_at`, and `sender_activity` (`sender`, `window_start`,
 `count`, `last_sent_at`), which is the identity-keyed rate-limit window and is
-therefore user data too — plus a scheduled retention sweep. Its own generated
-bindings are never hand-edited.
+therefore user data too — plus a scheduled retention sweep. Its own rules
+live in [`server/.cursor/rules/spacetimedb-typescript.mdc`](../server/.cursor/rules/spacetimedb-typescript.mdc); generated bindings are never
+hand-edited.
 
 ---
 

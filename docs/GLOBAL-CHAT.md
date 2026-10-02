@@ -198,8 +198,8 @@ bindings at runtime whether the reducer exists — `cloudService.canDeleteMyMess
 — and when it does not, it disables the button and says exactly what is missing
 and who has to fix it, rather than failing with an opaque "not a function".
 
-Generated bindings are never edited by hand — they are regenerated from the
-schema, which is why the client asks instead of assuming. Once
+Generated bindings are never edited by hand (`server/.cursor/rules/spacetimedb-typescript.mdc`, hard
+requirement 1), which is why the client asks instead of assuming. Once
 `spacetime generate` has run, the button works with no further change.
 
 **Export** is not a reducer. Reducers are transactional and return nothing, so an

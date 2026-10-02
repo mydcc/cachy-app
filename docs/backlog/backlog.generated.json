@@ -2560,7 +2560,7 @@
       "id": "BUG-0584",
       "title": "semantic-release cannot push, so no release has shipped since 2026-09-20",
       "type": "bug",
-      "status": "done",
+      "status": "in-progress",
       "priority": "P1",
       "milestone": "none",
       "editions": [
@@ -2573,8 +2573,7 @@
       "adr": "none",
       "depends_on": [],
       "assignee": "opencode",
-      "branch": "docs/bug-0584-close",
-      "shipped": "1.6.0-beta.365",
+      "branch": "fix/bug-0584-release-via-pr",
       "file": "bugs/BUG-0584-semantic-release-cannot-push.md"
     },
     {

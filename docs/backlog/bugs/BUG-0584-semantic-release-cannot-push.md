@@ -2,7 +2,7 @@
 id: BUG-0584
 title: semantic-release cannot push, so no release has shipped since 2026-09-20
 type: bug
-status: done
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -11,8 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: docs/bug-0584-close
-shipped: 1.6.0-beta.365
+branch: fix/bug-0584-release-via-pr
 ---
 
 # BUG-0584 — semantic-release cannot push; no release since 2026-09-20
@@ -209,17 +208,16 @@ working tree.
 
 ## Acceptance criteria
 
-- [x] A push to `develop` produces a green `Release` run — **met 2026-10-02**:
-      run `36978404735` went green on `release/beta` after the sync carried the
-      fixes there, and tracking issue `#3767` closed itself via the AC3 watcher.
-      The pipeline had been re-plumbed by then: the prerelease runs on
-      `release/beta` (a mirror of `develop` no protection touches) and reaches
-      `develop` as a pull request
-- [x] A new tag appears on the remote, and its commit is an ancestor of
-      `develop` — **met 2026-10-02**: `v1.6.0-beta.365` (`6fde285d6`) was
-      published and merged to `develop` as #3793 (merge, not squash;
-      `git merge-base --is-ancestor` confirmed). The eight-day backlog landed
-      as a single beta bump
+- [ ] A push to `develop` produces a green `Release` run — **open**: the PAT is
+      valid, so the auth half is settled. What is left is `GH006`: the release
+      must reach `develop` as a pull request. Tracking issue `#3767` closes
+      itself when it goes green
+- [ ] A new tag appears on the remote, and its commit is an ancestor of
+      `develop` — **open**, same trigger. The prerelease branch carries the tag;
+      the pull request must **merge, not squash**, or the tag names a commit
+      that is not an ancestor of `develop`. The eight days of merged work since
+      2026-09-20 will land as a single beta bump; the commits are already on
+      `develop`, only untagged
 - [x] `Release` is either a required check on `develop` or has an explicit
       failure alert, so a dead release pipeline cannot go unnoticed for days
       again. One of the two, named — not a "consider" — **met by the explicit
@@ -228,13 +226,11 @@ working tree.
 - [ ] Before the next stable release on `main`, `RELEASE_TOKEN` also carries
       Issues: Write and Pull requests: Write, because
       `@semantic-release/github` authenticates with the PAT rather than the
-      workflow token — see *Progress 2026-10-01*. **Still open, human action**:
-      carried to `docs/TODO.md` so it survives this item closing
-- [x] The prerelease reaches `develop` as a pull request that the ten required
+      workflow token — see *Progress 2026-10-01*
+- [ ] The prerelease reaches `develop` as a pull request that the ten required
       checks actually run on, rather than as a direct push refused with `GH006`
-      — **met 2026-10-02**: #3793 ran all ten required checks green and merged
-      via auto-merge (`MERGE`, not squash, so the tag keeps naming an ancestor
-      of `develop`)
+      — the pull request this change implements. It merges rather than squashes,
+      so the tag keeps naming an ancestor of `develop`
 
 ## Out of scope
 
@@ -249,40 +245,6 @@ working tree.
   release-management decision, not this fix
 - Touching `semantic-release` config, commit-analyzer settings, or the
   `main`/`develop` release split
-
-## Progress 2026-10-02: shipped as 1.6.0-beta.365, item done
-
-Three stacked defects each sufficed to keep the pipeline broken; all three were
-found by running the pipeline, not by reading it:
-
-1. `sync-release-branch.yml` carried the Release workflow's `paths-ignore`, so
-   a push whose only code was under `.github/workflows/` never reached
-   `release/beta` — every release-pipeline fix sat on `develop` while the next
-   release versioned the old configuration (#3789: filter removed, docs-only
-   case answered in the job instead).
-2. The sync step exported the secret as `SYNC_TOKEN`, which `gh` does not read
-   (`gh` authenticates from `GH_TOKEN`/`GITHUB_TOKEN` only). Four consecutive
-   syncs died at `gh pr list` with exit 4, including the pushes that carried
-   the channel fix, the `gh pr create` fix and the tag fix (#3790).
-3. The version guard from #3788 compared `package.json` against the highest tag
-   — the value committed by the previous release, equal to the highest tag by
-   definition, so it refused every release including the ones it protected
-   (#3791: replaced by `release-guard.js`, a `verifyRelease` plugin checking
-   `nextRelease.version`; #3792: the hook signature is `(pluginConfig,
-   context)`, not `(context)` — `normalize.js:26` binds options first).
-
-Plus the channel fix itself (#3786: `channel: "develop"` so the counter resumes
-at `.365` instead of restarting at `.1`), the `gh pr create --json` fix (#3783),
-and the tag hygiene (`git push --tags` carries deploy tags along; the release
-drops them locally first, #3788).
-
-Verified end to end, not by assertion: run `36978404735` computed
-`1.6.0-beta.365`, the guard passed it against the 465 tags in the checkout,
-the tag was published, and #3793 merged it to `develop` (merge, tag confirmed
-an ancestor). First release since 2026-09-20.
-
-AC4 (PAT scopes for the stable path on `main`) is deliberately left open and
-carried to `docs/TODO.md` — it is a human action no agent can perform.
 
 ## Links
 

@@ -747,8 +747,8 @@ The interface for erasure is in place regardless (item 15b): Settings → Cloud 
 a "delete my messages" control behind a two-click confirmation. The awkward part
 is a deployment state rather than a defect — the reducer is only callable through
 bindings that `spacetime generate` produces, and the committed ones predate it.
-Hand-writing a generated file would have broken the regeneration invariant and,
-worse, could not have been verified here: there is no local
+Hand-writing a generated file would have violated `server/.cursor/rules/spacetimedb-typescript.mdc` hard
+requirement 1 and, worse, could not have been verified here: there is no local
 instance to connect to. So the client asks at runtime
 (`cloudService.canDeleteMyMessages()`), disables the button when the answer is
 no, and names the missing step and who has to take it, rather than failing with

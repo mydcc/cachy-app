@@ -1249,21 +1249,3 @@ derived mark in a journal entry, a risk calculation or a
 summary would make an estimate load-bearing, which is a different decision and
 is listed under Out of scope in
 [`FEAT-0574`](backlog/features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md).
-
-## 31. Widen RELEASE_TOKEN before the next stable release on `main`
-
-**From:** [`BUG-0584`](backlog/bugs/BUG-0584-semantic-release-cannot-push.md) (AC4, closed 2026-10-02 with this carried over).
-
-`@semantic-release/github` loads on `main` only, and it authenticates its GitHub
-API calls with the same `GITHUB_TOKEN` the workflow sets from
-`secrets.RELEASE_TOKEN` — the job-level `permissions:` block (which grants
-`issues: write` and `pull-requests: write` to the workflow token) does not reach
-those calls. The prerelease path on `release/beta` never loads the plugin, so
-the gap is invisible there; the first stable release that tries to comment on
-its released issues and pull requests would fail the same way this bug did.
-
-**Action (human — no agent can mint or edit the secret):** add **Issues: Write**
-and **Pull requests: Write** to the fine-grained PAT stored as `RELEASE_TOKEN`
-(the current minimum is Contents: Read and write, Metadata: Read-only).
-**Workflows: Write** only if a release commit ever touches
-`.github/workflows/**`; unlikely, recorded for the confusion it would cause.
