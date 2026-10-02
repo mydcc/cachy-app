@@ -259,15 +259,40 @@ describe('cacheControlFor', () => {
     expect(cacheControlFor('build/client/wasm/technicals_wasm_bg.wasm')).toBe(
       'public, max-age=3600, must-revalidate',
     );
+    expect(cacheControlFor('build/client/wasm/technicals_wasm_bg.wasm.br')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
     expect(cacheControlFor('build/client/wasm/technicals_wasm.js')).toBe(
       'public, max-age=3600, must-revalidate',
     );
     expect(cacheControlFor('build/client/ammo/ammo.wasm.wasm')).toBe(
       'public, max-age=3600, must-revalidate',
     );
+    expect(cacheControlFor('build/client/ammo/ammo.wasm.js.gz')).toBe(
+      'public, max-age=3600, must-revalidate',
+    );
+    // The uncompressed name stays covered too: a variant-specific assertion
+    // that replaces its sibling drops the case that has no suffix at all.
     expect(cacheControlFor('build/client/ammo/ammo.wasm.js')).toBe(
       'public, max-age=3600, must-revalidate',
     );
+  });
+
+  // A precompressed asset is the same resource as its uncompressed name, so
+  // both must resolve to one policy. Normalizing only inside
+  // isVersionedBinary() left hashed binaries and fonts losing `immutable` and
+  // dropping to a short window or no-cache whenever a .br sibling existed.
+  it('gives a compression variant the same cache policy as its original', () => {
+    for (const asset of [
+      'build/client/_app/immutable/foo.abc123.js',
+      'build/client/fonts/Inter/Inter-VariableFont_opsz,wght.woff2',
+      'build/client/fonts/Inter/Inter-VariableFont_opsz,wght.ttf',
+      'build/client/wasm/technicals_wasm_bg.abc12345.wasm',
+    ]) {
+      const expected = cacheControlFor(asset);
+      expect(cacheControlFor(`${asset}.br`), `${asset}.br`).toBe(expected);
+      expect(cacheControlFor(`${asset}.gz`), `${asset}.gz`).toBe(expected);
+    }
   });
 
   it('forces revalidation for WASM sidecar files', () => {

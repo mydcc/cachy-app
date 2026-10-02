@@ -42,6 +42,14 @@
  * name. Outside CI the value is absent and we fall back to the full stable plugin
  * set, so a local `npx semantic-release --dry-run` reports what main would do
  * rather than silently omitting steps.
+ *
+ * One caveat to that: release-guard.js runs from `verifyRelease`, whose definition
+ * carries `dryRun: true`, so `--dry-run` checks the version for real instead of
+ * skipping it (prepare and publish have `dryRun: false` and would be skipped).
+ * A dry-run therefore needs the tags in the checkout — `git clone` brings them,
+ * a tag-less or shallow one does not, and the guard refuses rather than reporting
+ * a version it cannot prove is new. In CI the release job checks out with
+ * `fetch-depth: 0`, which is why this has never bitten there.
  */
 
 const isStableBranch = (process.env.GITHUB_REF_NAME ?? "main") === "main";
@@ -118,20 +126,41 @@ export default {
     {
       name: "release/beta",
       prerelease: "beta",
-      // The beta tags predate this branch and were published while the
-      // prerelease ran on `develop`, so they carry channel `develop`.
-      // semantic-release selects a branch's previous release through the
-      // channel, not through ancestry: a branch without this line finds none of
-      // the 464 `1.6.0-beta.*` tags, falls back to the newest channel-less tag
-      // (v1.5.0) and restarts the counter at 1 — the observed symptom was a
-      // release of 1.6.0-beta.1 against a 1.6.0-beta.364 develop.
-      // See `get-tags.js`: `channels = tagsNotesMap.get(tag).channels`.
+      // The beta tags predate this branch: they were published while the
+      // prerelease ran on `develop`, so they belong to the `develop` channel.
+      // Without this line the branch cannot find them and the counter
+      // restarts — the observed symptom was a release of 1.6.0-beta.1
+      // against a 1.6.0-beta.364 develop, twice.
+      //
+      // How a tag is bound to a channel (semantic-release v25):
+      //
+      //   index.js:209   addNote({channels: [nextRelease.channel]}, gitTag)
+      //   git.js:252     pushes refs/notes/semantic-release-<tag>
+      //   get-tags.js:29 channels = map.has(tag) ? map.get(tag).channels : [null]
+      //
+      // All 364 `1.6.0-beta.*` tags carry `{"channels":["develop"]}`. A branch
+      // configured `channel: "develop"` therefore matches them; without the
+      // line its own channel does not, and the newest tag matching `[null]` —
+      // v1.5.0 — becomes the starting point.
+      //
+      // Note the ref is PER TAG. `git notes --ref=refs/notes/semantic-release`
+      // is always empty and looks like "the tags carry no channel", which is
+      // how this was misdiagnosed once. Read one instead:
+      //
+      //   git notes --ref=refs/notes/semantic-release-v1.6.0-beta.364 show v1.6.0-beta.364
+      //
+      // release-guard.js refuses the run if the computed version is ever not
+      // above the highest tag again, so a silent reset cannot ship again.
       channel: "develop",
     },
   ],
   plugins: [
     "@semantic-release/commit-analyzer",
     releaseNotesGeneratorPlugin,
+    // Hook position, not array position, is what matters: this one runs from
+    // verifyRelease, which is before prepare, the release commit and the tag
+    // push. See the phase table in release-guard.js before moving it.
+    "./release-guard.js",
     [
       "@semantic-release/npm",
       {

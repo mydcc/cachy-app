@@ -174,6 +174,26 @@ export function wrapWriteHead(res) {
 // the ".wasm" in ammo.wasm.wasm never match.
 /** @type {RegExp} */
 const HASHED_FILENAME = /\.[0-9a-f]{8,}\.[a-z0-9]+$/i;
+
+// Compression variants written by adapter-node (`precompress: true`). An asset
+// is served from "<name>.br" / "<name>.gz" but is one and the same resource:
+// "<name>.br" and "<name>" must get byte-identical cache policy, otherwise a
+// client that once received the compressed variant revalidates far more often
+// (or pins a stale body) than the same client on the uncompressed one.
+/** @type {RegExp} */
+const COMPRESSION_SUFFIX = /\.(br|gz)$/i;
+
+/**
+ * Normalize an asset path for cache-policy decisions: platform separators to
+ * "/", any compression variant suffix removed. Applied once in
+ * cacheControlFor() so isImmutableAsset() and isVersionedBinary() can never
+ * disagree about whether two paths describe the same asset.
+ * @param {string} filePath
+ * @returns {string}
+ */
+function normalizeAssetPath(filePath) {
+  return filePath.split(path.sep).join("/").replace(COMPRESSION_SUFFIX, "");
+}
 /**
  * Fingerprinted SvelteKit assets live under /_app/immutable/ and static fonts
  * under /fonts/ are safe to cache forever (immutable content/versioned assets).
@@ -185,13 +205,13 @@ const HASHED_FILENAME = /\.[0-9a-f]{8,}\.[a-z0-9]+$/i;
  * cacheControlFor() instead; hashing the filenames at build time would allow
  * promoting them to immutable (open improvement, not done here).
  * Everything else — index.html, favicon.ico, non-hashed files — must revalidate.
- * Normalize path separators first: the callback receives a filesystem path,
- * which uses backslashes on Windows.
+ * Compression variants (".br", ".gz") are stripped first, so an asset keeps one
+ * policy across both representations; see normalizeAssetPath().
  * @param {string} filePath
  * @returns {boolean}
  */
 export function isImmutableAsset(filePath) {
-  const normalized = filePath.split(path.sep).join("/");
+  const normalized = normalizeAssetPath(filePath);
   if (normalized.includes("/_app/immutable/")) {
     return true;
   }
@@ -212,12 +232,13 @@ export function isImmutableAsset(filePath) {
  * Their content changes without the URL changing, so they must never be
  * `immutable` — they get a short bounded cache window with mandatory
  * revalidation instead. Restricted to the loader-relevant extensions; sidecar
- * files (.d.ts, .map, READMEs) stay on no-cache.
+ * files (.d.ts, .map, READMEs) stay on no-cache. Compression variants are
+ * stripped first; see normalizeAssetPath().
  * @param {string} filePath
  * @returns {boolean}
  */
 export function isVersionedBinary(filePath) {
-  const normalized = filePath.split(path.sep).join("/");
+  const normalized = normalizeAssetPath(filePath);
   return (
     (normalized.includes("/wasm/") || normalized.includes("/ammo/")) &&
     /\.(wasm|js)$/i.test(normalized)
@@ -229,10 +250,11 @@ export function isVersionedBinary(filePath) {
  * @returns {string}
  */
 export function cacheControlFor(filePath) {
-  if (isImmutableAsset(filePath)) {
+  const normalized = normalizeAssetPath(filePath);
+  if (isImmutableAsset(normalized)) {
     return "public, max-age=31536000, immutable";
   }
-  if (isVersionedBinary(filePath)) {
+  if (isVersionedBinary(normalized)) {
     return "public, max-age=3600, must-revalidate";
   }
   return "no-cache";

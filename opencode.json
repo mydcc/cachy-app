@@ -2,10 +2,8 @@
   "$schema": "https://opencode.ai/config.json",
   "lsp": {},
   "instructions": [
-    "OPENCODE.md",
     "AGENTS.md",
-    ".agents/skills/backlog-groom/SKILL.md",
-    ".agents/skills/backlog-review/SKILL.md"
+    ".claude/commands/backlog-groom.md"
   ],
   "mcp": {
     "gortex": {
