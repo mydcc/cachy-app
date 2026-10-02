@@ -9006,6 +9006,60 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0575-tpsl-refusal-doubled-article.md"
   },
   {
+    "id": "BUG-0601",
+    "title": "Hardcoded duration bucket labels in stats calculator",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "i18n",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0601-hardcoded-duration-bucket-labels.md"
+  },
+  {
+    "id": "BUG-0602",
+    "title": "Hardcoded dataset labels in CandlestickChart component",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "i18n",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0602-hardcoded-dataset-labels.md"
+  },
+  {
+    "id": "BUG-0603",
+    "title": "TP/SL and pending-order chart line titles stay English in German",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "i18n",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
