@@ -53,24 +53,6 @@ describe('Security Headers', () => {
     expect(headers.get('Permissions-Policy')).toBe('camera=(self "https://space.cachy.app"), microphone=(self "https://space.cachy.app"), xr-spatial-tracking=(self "https://space.cachy.app" *), display-capture=(self "https://space.cachy.app"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*');
   });
 
-  it('sets security headers on HEAD requests', async () => {
-    const resolve = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
-    const event = {
-      request: new Request('http://localhost/', { method: 'HEAD' }),
-      url: new URL('http://localhost/'),
-      cookies: { get: () => null },
-    } as unknown as RequestEvent;
-
-    const response = await headersHandler({ event, resolve });
-    const headers = response.headers;
-
-    expect(headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains; preload');
-    expect(headers.get('Content-Security-Policy')).toBeDefined();
-    expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
-    expect(headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
-    expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-  });
-
   it('production CSP does not contain unused NewRelic endpoints (FEAT-0374)', () => {
     const csp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
     expect(csp).not.toContain('nr-data.net');

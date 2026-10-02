@@ -15,70 +15,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { handler } from './build/handler.js';
 import express from 'express';
 import compression from 'compression';
 import { applySecurityHeaders, cacheControlFor, wrapWriteHead } from './server-headers.js';
+import { buildPrecompressedIndex, precompressedAssets } from './server-precompressed.js';
 
 const app = express();
 
-// Index pre-compressed static assets (.br, .gz) in memory at startup rather
-// than checking per-request via fs.existsSync to lower response TTFB and
-// improve Lighthouse Performance Score.
+// adapter-node ships a precompressed sibling next to every asset above its
+// size threshold ("start.js" plus "start.js.br" and "start.js.gz"). Without
+// this, `compression()` re-compresses each of those on every single request.
+// Index the variants once at startup and serve them straight from disk.
+//
+// express.static({ compress: true }) is the documented way to do this, but
+// the `send` version in this tree (1.2.1) has no `compress` option, so that
+// option is accepted and silently does nothing. Verified in this tree.
 const CLIENT_DIR = path.resolve('build/client');
-const precompressedAssets = new Set();
-
-function indexPrecompressed(dir, prefix = '') {
-  if (!fs.existsSync(dir)) return;
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const relPath = prefix + '/' + entry.name;
-    if (entry.isDirectory()) {
-      indexPrecompressed(path.join(dir, entry.name), relPath);
-    } else if (entry.isFile() && (entry.name.endsWith('.br') || entry.name.endsWith('.gz'))) {
-      precompressedAssets.add(relPath);
-    }
-  }
-}
-indexPrecompressed(CLIENT_DIR);
-
-function getMimeType(filePath) {
-  const cleanPath = filePath.replace(/\.(br|gz)$/i, '');
-  const ext = path.extname(cleanPath).toLowerCase();
-  switch (ext) {
-    case '.js':
-    case '.mjs':
-      return 'application/javascript; charset=utf-8';
-    case '.css':
-      return 'text/css; charset=utf-8';
-    case '.html':
-      return 'text/html; charset=utf-8';
-    case '.json':
-      return 'application/json; charset=utf-8';
-    case '.svg':
-      return 'image/svg+xml';
-    case '.wasm':
-      return 'application/wasm';
-    case '.ttf':
-      return 'font/ttf';
-    case '.woff':
-      return 'font/woff';
-    case '.woff2':
-      return 'font/woff2';
-    case '.xml':
-      return 'application/xml; charset=utf-8';
-    case '.txt':
-      return 'text/plain; charset=utf-8';
-    default:
-      return null;
-  }
+const precompressedIndex = buildPrecompressedIndex(CLIENT_DIR);
+if (precompressedIndex.size === 0) {
+  // Not fatal: express.static plus compression() still serve every asset, just
+  // re-compressed per request. Worth a line, because the silent case is a
+  // missing or relocated build/ directory and that is otherwise invisible.
+  console.warn(
+    `No precompressed assets found under ${CLIENT_DIR} — serving uncompressed. ` +
+      'Did the build run, and does the server start from the repository root?',
+  );
 }
 
 // Level 6 compression improves the Lighthouse Performance Score. The default
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
+
+// Route requests for a precompressed asset to its on-disk variant before
+// express.static resolves the (larger) original. This sets Content-Encoding
+// and Content-Type; Cache-Control is not set here, because express.static's
+// setHeaders hook below is the single source of truth for cache policy and
+// runs for the variant file. Registered after compression() on purpose:
+// compression() checks Content-Encoding at header-flush time and skips
+// transforming a response that is already encoded.
+app.use(precompressedAssets(precompressedIndex));
 
 // Guarantee security headers on every response, including SvelteKit fallback
 // and static responses. setHeader() alone is not enough: Node lets headers
@@ -86,37 +63,20 @@ app.use(compression({ level: 6 }));
 // wrapWriteHead re-applies our headers right before the flush and overlays them
 // onto any explicit headers argument (object, flat-array or pairs-array form).
 // Cache-Control is not part of SECURITY_HEADERS, so per-asset cache policies
-// from setHeaders survive untouched. Pre-compressed assets (.br, .gz) indexed
-// in memory are routed directly to minimize TTFB and CPU overhead.
+// from setHeaders survive untouched.
 app.use((req, res, next) => {
   wrapWriteHead(res);
   applySecurityHeaders(res);
-
-  if ((req.method === 'GET' || req.method === 'HEAD') && req.path) {
-    const acceptEncoding = req.headers['accept-encoding'] || '';
-    const rawPath = req.path;
-    if (acceptEncoding.includes('br') && precompressedAssets.has(rawPath + '.br')) {
-      req.url = req.url + '.br';
-      res.setHeader('Content-Encoding', 'br');
-      res.setHeader('Vary', 'Accept-Encoding');
-      const mime = getMimeType(rawPath);
-      if (mime) res.setHeader('Content-Type', mime);
-    } else if (acceptEncoding.includes('gzip') && precompressedAssets.has(rawPath + '.gz')) {
-      req.url = req.url + '.gz';
-      res.setHeader('Content-Encoding', 'gzip');
-      res.setHeader('Vary', 'Accept-Encoding');
-      const mime = getMimeType(rawPath);
-      if (mime) res.setHeader('Content-Type', mime);
-    }
-  }
-
   next();
 });
 
 // Let SvelteKit serve static assets with correct caching headers. Security
 // headers are explicitly applied via applySecurityHeaders(res) in setHeaders
 // because express.static sets its own response headers and does not inherit
-// from preceding middleware. path is a filesystem path (backslashes on Windows).
+// from preceding middleware. path is a filesystem path (backslashes on
+// Windows) and, for a precompressed variant, ends in ".br"/".gz";
+// cacheControlFor() strips that suffix so both representations of one asset
+// share a single policy.
 app.use(express.static('build/client', {
   index: false,
   setHeaders: (res, path) => {
