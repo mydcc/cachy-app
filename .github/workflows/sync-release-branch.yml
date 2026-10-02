@@ -5,12 +5,13 @@ on:
     # A change on develop has to reach the branch semantic-release actually
     # pushes to, or it never sees the commits it is meant to version.
     branches: [develop]
-    # Same filter as the Release workflow: docs-only pushes cannot produce a
-    # release, so they must not churn the release branch either. A docs-plus-code
-    # push syncs normally.
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+    # No `paths-ignore` here, deliberately. The Release workflow uses one to skip
+    # docs-only pushes, and copying it here meant a pull request whose only code
+    # was under `.github/workflows/` never reached release/beta — so every fix to
+    # the release pipeline sat on develop and the next release versioned the old
+    # configuration. That is how a channel fix merged to develop still computed
+    # 1.6.0-beta.1. The docs-only case is cheap to skip in the job instead, and
+    # it can be skipped correctly: see "Skip a docs-only push" below.
   # Manual: the release reads its configuration from release/beta, not from
   # develop, so a fix merged into develop only takes effect once this branch
   # carries it. A release run against a stale branch silently versions the old
@@ -37,7 +38,34 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # The docs-only case that `paths-ignore` used to handle, done where it can
+      # be done correctly. A push that touches nothing but docs and markdown
+      # cannot produce a release, so it must not move release/beta — but a push
+      # that touches release.yml is code, and skipping it is what broke the
+      # pipeline twice. `git diff` over the pushed commit's first parent is the
+      # same question the trigger filter used to answer, and the answer is kept.
+      - name: Skip a docs-only push
+        id: docs-only
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only "HEAD^" HEAD)
+          if [ -z "$changed" ]; then
+            echo "no parent to compare against; syncing"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          non_docs=$(printf '%s\n' "$changed" | grep -vE '^(docs/.*|\.github/.*\.md|.*\.md)$' || true)
+          if [ -z "$non_docs" ]; then
+            echo "Docs-only push ($(printf '%s\n' "$changed" | wc -l) files); leaving release/beta alone."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Code present:"
+            printf '%s\n' "$non_docs" | head -10 | sed 's/^/    /'
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Point release/beta at develop
+        if: steps.docs-only.outputs.skip != 'true'
         env:
           # GITHUB_TOKEN is not enough here: a push made with it does not
           # trigger other workflows, so the Release run this push exists to
