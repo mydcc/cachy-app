@@ -95,7 +95,7 @@ export interface PendingOrderLineInput {
  * English fallbacks out of the service entirely instead of hiding them behind
  * a `?? "Entry"` the i18n linter cannot see.
  */
-export interface PriceLineLabels {
+interface PriceLineLabels {
     entry: string;
     liquidation: string;
     breakEven: string;

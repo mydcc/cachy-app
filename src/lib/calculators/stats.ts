@@ -680,37 +680,44 @@ export function getDurationStats(journal: JournalEntry[], context?: JournalConte
   // no access to the i18n runtime, so the host resolves them. Typing the field
   // as TranslationKey makes a wrong key a compile error rather than a raw
   // "journal.…" string on a chart axis.
-  const buckets: { labelKey: TranslationKey; maxMs: number; count: number; win: number; pnl: Decimal }[] = [
+  //
+  // The property stays named `label` on purpose. scripts/lint-i18n.js matches
+  // the literal names `label|title|description`, and `\b` needs a non-word
+  // character after `label` — so renaming this to `labelKey` would silently
+  // drop it out of the linter's vocabulary and let a hardcoded `labelKey:
+  // "< 30m"` through. A key-valued string still passes the TRANSLATION_KEY
+  // check, so keeping the name costs no false positive.
+  const buckets: { label: TranslationKey; maxMs: number; count: number; win: number; pnl: Decimal }[] = [
     {
-      labelKey: "journal.deepDive.charts.labels.durationUnder15m",
+      label: "journal.deepDive.charts.labels.durationUnder15m",
       maxMs: 15 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
     {
-      labelKey: "journal.deepDive.charts.labels.durationM15to1h",
+      label: "journal.deepDive.charts.labels.durationM15to1h",
       maxMs: 60 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
     {
-      labelKey: "journal.deepDive.charts.labels.durationH1to4h",
+      label: "journal.deepDive.charts.labels.durationH1to4h",
       maxMs: 4 * 60 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
     {
-      labelKey: "journal.deepDive.charts.labels.durationH4to24h",
+      label: "journal.deepDive.charts.labels.durationH4to24h",
       maxMs: 24 * 60 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
     {
-      labelKey: "journal.deepDive.charts.labels.durationOver24h",
+      label: "journal.deepDive.charts.labels.durationOver24h",
       maxMs: Infinity,
       count: 0,
       win: 0,
@@ -741,7 +748,7 @@ export function getDurationStats(journal: JournalEntry[], context?: JournalConte
     }
   });
 
-  const labelKeys = buckets.map((b) => b.labelKey);
+  const labelKeys = buckets.map((b) => b.label);
   const pnlData = buckets.map((b) => b.pnl);
   const winRateData = buckets.map((b) =>
     b.count > 0 ? (b.win / b.count) * 100 : 0,

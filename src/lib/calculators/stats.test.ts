@@ -176,6 +176,13 @@ describe("getDurationStats (BUG-0601)", () => {
         expect(pnlData[2]?.toString()).toBe("-20");
         expect(winRateData[0]).toBe(100);
         expect(winRateData[2]).toBe(0);
+        // The three empty buckets stay empty rather than inheriting a neighbour.
+        expect(pnlData[1]?.toString()).toBe("0");
+        expect(pnlData[3]?.toString()).toBe("0");
+        expect(pnlData[4]?.toString()).toBe("0");
+        expect(winRateData[1]).toBe(0);
+        expect(winRateData[3]).toBe(0);
+        expect(winRateData[4]).toBe(0);
     });
 });
 

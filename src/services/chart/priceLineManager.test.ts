@@ -271,6 +271,39 @@ describe("PriceLineManager — rendering", () => {
 
         expect(lines.size).toBe(0);
     });
+
+    it("clears pending-order lines on destroy, which needs the labels update() supplied", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        // destroy() reads the labels off lastInput instead of taking its own
+        // parameter, so it has to be exercised with pending-order lines
+        // actually present — otherwise the branch is never reached.
+        manager.update(
+            baseInput({
+                pendingOrders: [
+                    { orderId: "o-buy", price: new Decimal(98), side: "buy" },
+                    { orderId: "o-sell", price: new Decimal(102), side: "sell" },
+                ],
+            }),
+        );
+        expect(lines.size).toBe(7);
+
+        manager.destroy();
+
+        expect(lines.size).toBe(0);
+    });
+
+    it("tears down cleanly when destroy() runs before any update()", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        // No update() means no lastInput, so the guarded sync is skipped.
+        // Nothing was ever created, so nothing must be left behind.
+        manager.destroy();
+
+        expect(lines.size).toBe(0);
+    });
 });
 
 describe("PriceLineManager — hover and drag", () => {
