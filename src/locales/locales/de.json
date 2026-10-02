@@ -1124,6 +1124,11 @@
           "topAsset": "Top Asset",
           "mostProfitableStrategy": "Beste Strategie",
           "durationAnalysis": "Dauer Analyse",
+          "durationUnder15m": "< 15 Min.",
+          "durationM15to1h": "15 Min. - 1 Std.",
+          "durationH1to4h": "1 - 4 Std.",
+          "durationH4to24h": "4 - 24 Std.",
+          "durationOver24h": "> 24 Std.",
           "confluence": "Konfluenz Matrix",
           "simBest": "90. Perzentil (Best)",
           "simMedian": "Median",
@@ -4074,6 +4079,10 @@
       "interpretation": "### Regeln\n* Widerstand ist massiv. Shorten.",
       "indicatorCombination": "Das Signal ist stärker, wenn die Docht-Kerzen bei hohem Volumen auftreten. Eine bärische Divergenz bei Oszillatoren (RSI, MACD) erhöht die Signifikanz."
     },
+    "chart": {
+      "wicks": "Schatten",
+      "bodies": "Kerzen"
+    },
     "advancing_wicks": {
       "name": "Advancing Wicks",
       "description": "Mehrere Kerzen mit langen unteren Dochten am Support.\n\n### Mathematische Kriterien\n\n  $$ \\text{Low}_{1} \\approx \\text{Low}_{2} \\text{ m/ Dochten} $$",
@@ -4498,7 +4507,11 @@
     "lines": {
       "entry": "Einstieg",
       "liq": "Liq.",
-      "breakEven": "B/E"
+      "breakEven": "B/E",
+      "takeProfit": "TP",
+      "stopLoss": "SL",
+      "buyLimit": "Kauf",
+      "sellLimit": "Verkauf"
     },
     "pane": {
       "collapse": "Pane einklappen",

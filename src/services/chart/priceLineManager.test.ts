@@ -75,6 +75,10 @@ function baseInput(overrides: Partial<Parameters<PriceLineManager["update"]>[0]>
             entry: "Entry",
             liquidation: "Liq.",
             breakEven: "B/E",
+            takeProfit: "TP",
+            stopLoss: "SL",
+            buyLimit: "Buy Limit",
+            sellLimit: "Sell Limit",
         },
         colors: {
             entry: "#787b86",
@@ -119,7 +123,15 @@ describe("PriceLineManager — rendering", () => {
 
         manager.update(
             baseInput({
-                labels: { entry: "Einstieg", liquidation: "Liquidierung", breakEven: "Break-even" },
+                labels: {
+                    entry: "Einstieg",
+                    liquidation: "Liquidierung",
+                    breakEven: "Break-even",
+                    takeProfit: "TP",
+                    stopLoss: "SL",
+                    buyLimit: "Kauf",
+                    sellLimit: "Verkauf",
+                },
             }),
         );
 
@@ -139,7 +151,19 @@ describe("PriceLineManager — rendering", () => {
         manager.update(baseInput());
         const before = lines.size;
 
-        manager.update(baseInput({ labels: { entry: "Einstieg", liquidation: "Liq.", breakEven: "B/E" } }));
+        manager.update(
+            baseInput({
+                labels: {
+                    entry: "Einstieg",
+                    liquidation: "Liq.",
+                    breakEven: "B/E",
+                    takeProfit: "TP",
+                    stopLoss: "SL",
+                    buyLimit: "Kauf",
+                    sellLimit: "Verkauf",
+                },
+            }),
+        );
 
         // No new line objects: the title is patched through applyOptions.
         expect(lines.size).toBe(before);
@@ -158,6 +182,47 @@ describe("PriceLineManager — rendering", () => {
         expect(titles.some((t) => t.includes("TP") && t.includes("+20.00%") && t.includes("+20.00"))).toBe(true);
         // -10 from a 100 entry, long, size 1 → -10.00% / -10.00
         expect(titles.some((t) => t.includes("SL") && t.includes("-10.00%") && t.includes("-10.00"))).toBe(true);
+    });
+
+    it("titles the TP/SL and pending-order lines from the labels the host passes", () => {
+        const { series, lines } = makeFakeSeries();
+        const manager = new PriceLineManager(series);
+
+        manager.update(
+            baseInput({
+                labels: {
+                    entry: "Einstieg",
+                    liquidation: "Liq.",
+                    breakEven: "B/E",
+                    takeProfit: "TP-Gewinn",
+                    stopLoss: "SL-Verlust",
+                    buyLimit: "Kauf",
+                    sellLimit: "Verkauf",
+                },
+                pendingOrders: [
+                    { orderId: "o-buy", price: new Decimal(98), side: "buy" },
+                    { orderId: "o-sell", price: new Decimal(102), side: "sell" },
+                    { orderId: "o-tp", price: new Decimal(130), side: "sell", kind: "takeProfit" },
+                    { orderId: "o-sl", price: new Decimal(70), side: "buy", kind: "stopLoss" },
+                ],
+            }),
+        );
+
+        const titles = [...lines.values()].map((l) => l.title);
+
+        // The singleton TP/SL lines and the bracket on a resting order both
+        // read the label the host supplied, not a baked-in "TP"/"SL".
+        expect(titles).toContain("TP-Gewinn: 120 (+20.00% / +20.00)");
+        expect(titles).toContain("SL-Verlust: 90 (-10.00% / -10.00)");
+        expect(titles).toContain("TP-Gewinn: 130");
+        expect(titles).toContain("SL-Verlust: 70");
+
+        // Resting entry orders: the side word comes from the host too.
+        expect(titles).toContain("Kauf: 98");
+        expect(titles).toContain("Verkauf: 102");
+
+        expect(titles.some((t) => t.startsWith("TP: ") || t.startsWith("SL: "))).toBe(false);
+        expect(titles.some((t) => t.startsWith("Buy") || t.startsWith("Sell"))).toBe(false);
     });
 
     it("extends label precision instead of reading '+0.00%' on micro distances", () => {

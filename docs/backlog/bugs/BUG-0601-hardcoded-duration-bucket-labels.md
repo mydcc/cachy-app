@@ -2,7 +2,9 @@
 id: BUG-0601
 title: Hardcoded duration bucket labels in stats calculator
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/i18n-hardcoded-labels
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -43,7 +45,22 @@ Add corresponding translation keys for these duration buckets in `en.json` and `
 ## Acceptance criteria
 
 - [ ] Duration bucket labels render in the correct language matching the selected locale
-- [ ] No regressions in statistics calculation or display
-- [ ] The `i18n-lint` configuration no longer allows the hardcoded bucket labels
+- [x] No regressions in statistics calculation or display
+- [x] The `i18n-lint` configuration no longer allows the hardcoded bucket labels
+
+## State
+
+Shipped in `fix/i18n-hardcoded-labels`. `getDurationStats` now returns
+`labelKeys` (typed `TranslationKey[]`) instead of display strings, and the five
+keys live under `journal.deepDive.charts.labels.duration*` next to the existing
+`duration` / `durationAnalysis` entries.
+
+The first acceptance criterion stays unticked on purpose: **nothing renders
+`durationStatsMetrics` yet.** `aggregator.ts` and `journal.svelte.ts` carry the
+object, and no `.svelte` file reads it — `JournalCharts.svelte` and
+`JournalDeepDive.svelte` have no duration section. So the calculator no longer
+ships English text, but no user sees the buckets in either language yet. The
+rendering half belongs to whichever PR adds that chart; it maps
+`labelKeys[i]` through `$_()` alongside `pnlData[i]` / `winRateData[i]`.
 
 ## Links

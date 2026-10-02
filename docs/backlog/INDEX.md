@@ -4,7 +4,7 @@
 
 480 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 26 · 🟢 ready 9 · 🟡 in-progress 4 · ✅ done 417 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 23 · 🟢 ready 9 · 🟡 in-progress 4 · ✅ done 420 · ⛔ dropped 1
 
 ---
 
@@ -497,9 +497,9 @@ Counts by status: 💡 idea 23 · 📋 specced 26 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | ui |
 | [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | ui |
 | [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | ui |
-| [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | 📋 specced | i18n |
-| [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | 📋 specced | i18n |
-| [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | 📋 specced | i18n |
+| [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | ✅ done | i18n |
+| [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | i18n |
+| [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | i18n |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -972,9 +972,9 @@ Counts by status: 💡 idea 23 · 📋 specced 26 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0571](bugs/BUG-0571-decimal-audit-misses-reference-passing.md) | The decimal audit cannot see a conversion passed by reference | P3 | ✅ done | none | community, pro, private | none | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
 | [BUG-0572](bugs/BUG-0572-alert-seed-float-before-decimal.md) | A native float seeds price-alert rules before decimal.js sees it | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0534](bugs/BUG-0534-svelte-outside-decimal-enforcement.md) |
 | [BUG-0575](bugs/BUG-0575-tpsl-refusal-doubled-article.md) | TP/SL refusal message renders a doubled article in both locales | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |

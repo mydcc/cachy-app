@@ -2,7 +2,9 @@
 id: BUG-0602
 title: Hardcoded dataset labels in CandlestickChart component
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/i18n-hardcoded-labels
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -44,7 +46,24 @@ Add corresponding translation keys for `Wicks` and `Bodies` to `en.json` and `de
 
 ## Acceptance criteria
 
-- [ ] Chart dataset labels are populated using translated strings
-- [ ] The `i18n-lint` configuration no longer masks `Wicks` and `Bodies`
+- [x] Chart dataset labels are populated using translated strings
+- [x] The `i18n-lint` configuration no longer masks `Wicks` and `Bodies`
+
+## State
+
+Shipped in `fix/i18n-hardcoded-labels`. The dataset labels read
+`$_("candlestickPatterns.chart.wicks")` / `.bodies` inside `prepareChartData()`,
+under the existing `candlestickPatterns` namespace rather than a new top-level
+one. `prepareChartData()` runs from the chart `$effect` and from the theme
+`MutationObserver`; a locale read there re-enters the effect, which destroys the
+old chart before rebuilding it (`chart.destroy()` guards the path), so there is
+no leak.
+
+German values are `Schatten` / `Kerzen` — the pair a German chart UI reads
+naturally, with the English `Wicks` / `Bodies` unchanged.
+
+No component test covers this: the label lives inside Chart.js dataset config,
+and jsdom has no canvas. `scripts/lint-i18n.js` is the guard — it fails now that
+the two allowlist entries are gone.
 
 ## Links

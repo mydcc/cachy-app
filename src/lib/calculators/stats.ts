@@ -19,6 +19,7 @@ import { Decimal } from "decimal.js";
 import { CONSTANTS } from "../constants";
 import { parseTimestamp, isUnsafeObjectKey } from "../../utils/utils";
 import type { JournalEntry } from "../../stores/types";
+import type { TranslationKey } from "../../locales/schema";
 import type { Kline } from "../../services/apiService";
 import { getTradePnL } from "./core";
 import type { JournalContext, JournalStats, PerformanceStats } from "./types";
@@ -675,36 +676,46 @@ export function getDurationStats(journal: JournalEntry[], context?: JournalConte
     context?.closedTrades ??
     journal.filter((t) => t.status === "Won" || t.status === "Lost");
 
-  const buckets = [
+  // Labels are keys, not display text: this module is a pure calculator with
+  // no access to the i18n runtime, so the host resolves them. Typing the field
+  // as TranslationKey makes a wrong key a compile error rather than a raw
+  // "journal.…" string on a chart axis.
+  const buckets: { labelKey: TranslationKey; maxMs: number; count: number; win: number; pnl: Decimal }[] = [
     {
-      label: "< 15m",
+      labelKey: "journal.deepDive.charts.labels.durationUnder15m",
       maxMs: 15 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
     {
-      label: "15m - 1h",
+      labelKey: "journal.deepDive.charts.labels.durationM15to1h",
       maxMs: 60 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
     {
-      label: "1h - 4h",
+      labelKey: "journal.deepDive.charts.labels.durationH1to4h",
       maxMs: 4 * 60 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
     {
-      label: "4h - 24h",
+      labelKey: "journal.deepDive.charts.labels.durationH4to24h",
       maxMs: 24 * 60 * 60 * 1000,
       count: 0,
       win: 0,
       pnl: new Decimal(0),
     },
-    { label: "> 24h", maxMs: Infinity, count: 0, win: 0, pnl: new Decimal(0) },
+    {
+      labelKey: "journal.deepDive.charts.labels.durationOver24h",
+      maxMs: Infinity,
+      count: 0,
+      win: 0,
+      pnl: new Decimal(0),
+    },
   ];
 
   closedTrades.forEach((t) => {
@@ -730,13 +741,13 @@ export function getDurationStats(journal: JournalEntry[], context?: JournalConte
     }
   });
 
-  const labels = buckets.map((b) => b.label);
+  const labelKeys = buckets.map((b) => b.labelKey);
   const pnlData = buckets.map((b) => b.pnl);
   const winRateData = buckets.map((b) =>
     b.count > 0 ? (b.win / b.count) * 100 : 0,
   );
 
-  return { labels, pnlData, winRateData };
+  return { labelKeys, pnlData, winRateData };
 }
 
 export function getTimingData(trades: JournalEntry[], context?: JournalContext) {

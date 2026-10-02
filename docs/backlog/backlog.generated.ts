@@ -9009,7 +9009,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0601",
     "title": "Hardcoded duration bucket labels in stats calculator",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/i18n-hardcoded-labels",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -9027,7 +9029,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0602",
     "title": "Hardcoded dataset labels in CandlestickChart component",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/i18n-hardcoded-labels",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -9045,7 +9049,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0603",
     "title": "TP/SL and pending-order chart line titles stay English in German",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
+    "assignee": "opencode",
+    "branch": "fix/i18n-hardcoded-labels",
     "priority": "P3",
     "milestone": "none",
     "editions": [

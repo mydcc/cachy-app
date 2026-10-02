@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { calculatePerformanceStats, getTagData, getCalendarData } from "./stats";
+import { calculatePerformanceStats, getTagData, getCalendarData, getDurationStats } from "./stats";
 import { Decimal } from "decimal.js";
 import type { JournalEntry } from "../../stores/types";
 
@@ -136,6 +136,46 @@ describe("calculatePerformanceStats (Summary)", () => {
 
         expect(stats.longestWinningStreak).toBe(2);
         expect(stats.currentStreakText).toBe("W1");
+    });
+});
+
+describe("getDurationStats (BUG-0601)", () => {
+    it("returns localization keys for the duration buckets instead of hardcoded English labels", () => {
+        // 10 minutes and 2 hours open — one trade per bucket, the rest empty.
+        const trades = [
+            createTrade({
+                id: 1,
+                status: "Won",
+                totalNetProfit: new Decimal(50),
+                entryDate: "2026-01-01T00:00:00.000Z",
+                exitDate: "2026-01-01T00:10:00.000Z",
+            }),
+            createTrade({
+                id: 2,
+                status: "Lost",
+                totalNetProfit: new Decimal(-20),
+                entryDate: "2026-01-02T00:00:00.000Z",
+                exitDate: "2026-01-02T02:00:00.000Z",
+            }),
+        ];
+
+        const { labelKeys, pnlData, winRateData } = getDurationStats(trades);
+
+        // The calculator hands the host keys, not display text: only the UI
+        // boundary can translate them, and a wrong key is a type error.
+        expect(labelKeys).toEqual([
+            "journal.deepDive.charts.labels.durationUnder15m",
+            "journal.deepDive.charts.labels.durationM15to1h",
+            "journal.deepDive.charts.labels.durationH1to4h",
+            "journal.deepDive.charts.labels.durationH4to24h",
+            "journal.deepDive.charts.labels.durationOver24h",
+        ]);
+
+        // Bucket math must be untouched by the label change.
+        expect(pnlData[0]?.toString()).toBe("50");
+        expect(pnlData[2]?.toString()).toBe("-20");
+        expect(winRateData[0]).toBe(100);
+        expect(winRateData[2]).toBe(0);
     });
 });
 
