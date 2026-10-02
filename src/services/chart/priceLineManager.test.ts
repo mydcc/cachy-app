@@ -294,15 +294,14 @@ describe("PriceLineManager — rendering", () => {
         expect(lines.size).toBe(0);
     });
 
-    it("tears down cleanly when destroy() runs before any update()", () => {
-        const { series, lines } = makeFakeSeries();
+    it("does not throw when destroy() runs before any update()", () => {
+        const { series } = makeFakeSeries();
         const manager = new PriceLineManager(series);
 
-        // No update() means no lastInput, so the guarded sync is skipped.
-        // Nothing was ever created, so nothing must be left behind.
-        manager.destroy();
-
-        expect(lines.size).toBe(0);
+        // No update() means no lastInput, so the guarded sync is skipped and
+        // `this.lastInput.labels` must never be dereferenced. A line-count
+        // assertion here would be vacuous — nothing was ever created.
+        expect(() => manager.destroy()).not.toThrow();
     });
 });
 

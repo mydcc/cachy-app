@@ -81,7 +81,7 @@ the (nearly coincident) Entry and Break-Even lines.
 ## State
 
 Shipped in `fix/i18n-hardcoded-labels`. The three-field `labels` object grew
-into an exported `PriceLineLabels` (seven fields), which keeps the input type
+into a file-local `PriceLineLabels` (seven fields), which keeps the input type
 and the new `syncPendingOrders(orders, colors, labels)` parameter in sync
 without duplicating the shape. `destroy()` passes `this.lastInput.labels` while
 `lastInput` is still set; a null `lastInput` means `update()` never ran, so
