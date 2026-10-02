@@ -67,20 +67,27 @@ jobs:
       - name: Point release/beta at develop
         if: steps.docs-only.outputs.skip != 'true'
         env:
-          # GITHUB_TOKEN is not enough here: a push made with it does not
-          # trigger other workflows, so the Release run this push exists to
-          # cause would never start. The PAT is a normal user credential and
-          # does trigger them.
+          # The name matters. `gh` authenticates from GH_TOKEN or GITHUB_TOKEN
+          # and from nothing else — a step that exports the secret under its own
+          # name has no working `gh`, and the run dies at the first `gh` call
+          # with "To use GitHub CLI in a GitHub Actions workflow, set the
+          # GH_TOKEN environment variable". This step called `gh pr list` under
+          # SYNC_TOKEN, so it failed on every push, including the ones that
+          # carried the release-pipeline fixes.
+          #
+          # The PAT rather than the automatic token, because a push made with
+          # GITHUB_TOKEN does not trigger other workflows: the Release run this
+          # push exists to cause would never start.
           #
           # It must be valid — a set-but-invalid secret fails harder than an
           # absent one (BUG-0584).
-          SYNC_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${SYNC_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
           git fetch origin develop
           if ! git rev-parse --verify --quiet origin/release/beta; then
