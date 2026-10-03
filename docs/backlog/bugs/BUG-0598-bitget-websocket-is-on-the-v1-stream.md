@@ -117,7 +117,7 @@ observation, so none of it is claimed here:
   strictly better than the previous silence, not a fix.
   One trap for whoever builds it: the private channels subscribe with
   `instId: "default"`, and the inbound `normalizeSymbol` that maps pushes onto
-  store keys would turn that into `DEFAULT_UMCBL`. `"default"` is a selector,
+  store keys would turn that into `DEFAULTUSDT`. `"default"` is a selector,
   not a symbol, and has to be excluded from that mapping.
 - the refcount ledger still exists once, not per socket. Its semantics are now
   pinned by four tests so the split cannot break them quietly, and `login()` is
@@ -146,3 +146,7 @@ always arrive whole and stay available — the adapter already maps depth to
   record in `docs/TODO.md`
 - [`docs/bitget-api/07_websocket.md`](../../bitget-api/07_websocket.md),
   [`07_websocket_private.md`](../../bitget-api/07_websocket_private.md)
+- the `"default"` hazard above is sharper after BUG-0599 than the text first
+  suggested: the suffix is gone, but `normalizeSymbol`'s bare-pair heuristic
+  still infers a quote asset from a short non-symbol, so `"default"` produces a
+  plausible-looking key either way. Excluding it stays a requirement.

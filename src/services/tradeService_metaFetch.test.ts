@@ -171,7 +171,10 @@ describe("fetchTradingPairInfo — Bitget (BUG-0501)", () => {
         expect(appFetch).toHaveBeenCalledWith(
             expect.stringContaining("/api/bitget/contracts"),
         );
-        const meta = marketState.symbolMeta["BTCUSDT_UMCBL"];
+        // BUG-0599: metadata is written under the bare pair. It used to be
+        // `BTCUSDT_UMCBL`, reachable only because normalizeSymbol appended the
+        // V1 suffix for Bitget.
+        const meta = marketState.symbolMeta["BTCUSDT"];
         expect(meta?.basePrecision).toBe(4);
         expect(meta?.quotePrecision).toBe(1);
         expect(meta?.minTradeVolume?.toString()).toBe("0.0001");
@@ -181,8 +184,12 @@ describe("fetchTradingPairInfo — Bitget (BUG-0501)", () => {
         expect(meta?.maxLeverage).toBe(150);
         // V2 "normal" speaks Bitunix downstream: OPEN, or the gate refuses.
         expect(meta?.symbolStatus).toBe("OPEN");
-        // No Bitunix entry is written for a Bitget symbol.
-        expect(marketState.symbolMeta["BTCUSDT"]).toBeUndefined();
+        // The "no Bitunix entry is written for a Bitget symbol" assertion that
+        // used to close this test is gone with BUG-0599: it asserted that a
+        // Bitget fetch does not touch the Bitunix-shaped key, which was only
+        // true while the two venues used different keys. There is one canonical
+        // key now, so a Bitget fetch writes exactly that key — the claim became
+        // unsatisfiable rather than merely redundant.
     });
 
     it("picks the matching row from a multi-row response", async () => {
@@ -193,18 +200,18 @@ describe("fetchTradingPairInfo — Bitget (BUG-0501)", () => {
 
         await tradeService.fetchTradingPairInfo("btcusdt");
 
-        expect(marketState.symbolMeta["BTCUSDT_UMCBL"]?.symbol).toBe("BTCUSDT");
-        expect(marketState.symbolMeta["ETHUSDT_UMCBL"]).toBeUndefined();
+        expect(marketState.symbolMeta["BTCUSDT"]?.symbol).toBe("BTCUSDT");
+        expect(marketState.symbolMeta["ETHUSDT"]).toBeUndefined();
     });
 
     it("writes nothing when no row matches or the venue reports an error", async () => {
         appFetch.mockResolvedValue(okJson({ code: "00000", data: [bitgetRow("ETHUSDT")] }));
         await tradeService.fetchTradingPairInfo("BTCUSDT");
-        expect(marketState.symbolMeta["BTCUSDT_UMCBL"]).toBeUndefined();
+        expect(marketState.symbolMeta["BTCUSDT"]).toBeUndefined();
 
         marketState.reset();
         appFetch.mockResolvedValue(okJson({ code: "40001", msg: "error", data: null }));
         await tradeService.fetchTradingPairInfo("BTCUSDT");
-        expect(marketState.symbolMeta["BTCUSDT_UMCBL"]).toBeUndefined();
+        expect(marketState.symbolMeta["BTCUSDT"]).toBeUndefined();
     });
 });

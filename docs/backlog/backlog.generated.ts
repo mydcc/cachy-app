@@ -2833,7 +2833,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0599",
     "title": "`normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "created": "2026-09-30",
@@ -2846,6 +2846,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0599-drop-umcbl-wire-suffix",
     "file": "bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md"
   },
   {

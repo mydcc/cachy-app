@@ -134,12 +134,15 @@ describe("Bitget ticker mapping on V2 field names (BUG-0576)", () => {
     expect(ticker.markPrice?.toString()).toBe("84347.1");
   });
 
-  it("keys a single ticker on the normalized symbol, as before", async () => {
+  it("keys a single ticker on the canonical bare contract", async () => {
+    // BUG-0599: the key used to be `BTCUSDT_UMCBL`. `normalizeSymbol` no longer
+    // appends the V1 suffix, so the ticker, the store and the wire now all agree
+    // on the bare pair — which is also the only form V2 accepts.
     fetchMock.mockResolvedValue(envelope([LIVE_V2_TICKER_ROW]));
 
     const ticker = await fetchTicker24h("BTCUSDT", "bitget");
 
-    expect(ticker.symbol).toBe("BTCUSDT_UMCBL");
+    expect(ticker.symbol).toBe("BTCUSDT");
   });
 
   it("keys a snapshot row on the bare contract the symbol picker indexes with", async () => {

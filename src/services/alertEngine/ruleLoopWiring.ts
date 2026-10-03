@@ -54,6 +54,7 @@ import { readDrawingAnchorLedger } from "./drawingAnchors";
 import { resolveDrawingThreshold } from "./drawingThreshold";
 import { readDrawingStoreSnapshot } from "./reconcileDrawingRules";
 import { safeLocalStorage } from "../../utils/storageWrapper";
+import { stripLegacyVenueSuffix } from "../../utils/symbolUtils";
 
 /**
  * The closed candles of one series, oldest first.
@@ -287,7 +288,20 @@ export function readStoredRules(): RuleDocument[] {
   }
   if (raw === cachedRuleStoreRaw) return cachedRuleStore;
   cachedRuleStoreRaw = raw;
-  cachedRuleStore = parseRuleStore(raw);
+  // BUG-0599 — the alert panel seeds its draft from `tradeState.symbol`
+  // (AlertPanel.svelte), which used to carry the V1 `_UMCBL` suffix, and
+  // `rulesFor` matches rules by strict equality against the market store's
+  // canonical key. Every rule armed before that change therefore stops matching
+  // the moment the key becomes bare — and a rule that does not match is
+  // indistinguishable from one that has not triggered. Silently inert alerts
+  // are the exact failure this engine exists to make impossible, so the symbol
+  // is converged onto the canonical form here, at the one place that owns the
+  // read. Free: this runs once per distinct payload, not per evaluation.
+  cachedRuleStore = parseRuleStore(raw).map((rule) =>
+    typeof rule.symbol === "string"
+      ? { ...rule, symbol: stripLegacyVenueSuffix(rule.symbol) }
+      : rule,
+  );
   return cachedRuleStore;
 }
 

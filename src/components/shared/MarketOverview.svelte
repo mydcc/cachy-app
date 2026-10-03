@@ -84,12 +84,11 @@
 
   // Market Data Access
   //
-  // marketState.data is always keyed by the canonical (Bitunix-style,
-  // unsuffixed) symbol - that's what MarketWatcher/apiService write under
-  // regardless of the active provider (see marketWatcher.ts's register()).
-  // Normalizing with the active `provider` here would key Bitget lookups by
-  // e.g. "BTCUSDT_UMCBL", which nothing ever writes to, leaving the tile
-  // stuck on its loading state.
+  // marketState.data is keyed by the canonical bare pair. BUG-0599 removed the
+  // V1 `_UMCBL` suffix from `normalizeSymbol`, so the provider argument no
+  // longer decides the key and this lookup cannot diverge from what the watcher
+  // writes. The explicit "bitunix" is kept only because it reads as intent;
+  // either provider now yields the same key.
   let wsData = $derived.by(() => {
     if (!symbol) return null;
     const key = normalizeSymbol(symbol, "bitunix");
@@ -494,9 +493,10 @@
     }
   }
 
-  let isFavorite = $derived(
-    symbol ? favoritesState.items.includes(symbol) : false,
-  );
+  // BUG-0599 — through the store, which matches across the legacy `_UMCBL`
+  // suffix. A plain `items.includes` here reported an existing favourite as
+  // absent for every Bitget symbol saved before that change.
+  let isFavorite = $derived(symbol ? favoritesState.has(symbol) : false);
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
