@@ -2851,6 +2851,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md"
   },
   {
+    "id": "BUG-0604",
+    "title": "A Bitget refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "area": "exchange",
+    "created": "2026-10-03",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bitget-venue-error-propagation",
+    "file": "bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
