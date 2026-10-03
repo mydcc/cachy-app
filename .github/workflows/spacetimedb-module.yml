@@ -21,6 +21,13 @@
 # Without it the job would typecheck against the wrong SDK and report six
 # mis-resolutions as if they were broken reducer declarations.
 #
+# Path note: the filter includes the root manifests and `.node-version`, not
+# just `server/spacetimedb/`. The gate resolves `tsc` from the repository root
+# and runs on a pinned Node, so a TypeScript bump or a Node pin change moves the
+# ground under this job without touching a single file it owns — and a filter
+# scoped only to the module would let that land unverified, which is the same
+# failure this workflow exists to close.
+#
 # Scope note: this job typechecks. It does not run `spacetime build` or
 # `spacetime publish` — the SpacetimeDB CLI is not vendored here and installing
 # a third-party binary to prove something `tsc` already proves would add supply
@@ -33,11 +40,17 @@ on:
     branches: [main, develop]
     paths:
       - "server/spacetimedb/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".node-version"
       - ".github/workflows/spacetimedb-module.yml"
   pull_request:
     branches: [main, develop]
     paths:
       - "server/spacetimedb/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".node-version"
       - ".github/workflows/spacetimedb-module.yml"
 
 permissions:
