@@ -36,6 +36,9 @@ const REST = "https://api.bitget.com";
 let env;
 try {
   env = Object.fromEntries(
+    // codeql[js/path-injection] ENV_PATH comes from the operator's own shell (BITGET_ENV),
+    // never from a request, a file on disk or any network input. This is a local script whose
+    // whole purpose is to read a path the operator names; there is no untrusted source to guard.
     readFileSync(ENV_PATH, "utf8")
       .split("\n")
       .filter((line) => line.startsWith("BITGET_"))
