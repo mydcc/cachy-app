@@ -10,7 +10,7 @@
 import { marketState } from "../stores/market.svelte";
 import { accountState, type RawWsOrder, type RawWsPosition } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
-import { normalizeSymbol, bitgetWireSymbol } from "../utils/symbolUtils";
+import { normalizeSymbol, stripLegacyVenueSuffix } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { logger } from "./logger";
 import { safeJsonParse } from "../utils/safeJson";
@@ -752,7 +752,7 @@ export class BitgetWebSocketService {
       args: [{
         instType: WS_INST_TYPE,
         channel: channel,
-        instId: bitgetWireSymbol(symbol)
+        instId: stripLegacyVenueSuffix(symbol)
       }]
     };
     try {
@@ -769,7 +769,7 @@ export class BitgetWebSocketService {
       args: [{
         instType: WS_INST_TYPE,
         channel: channel,
-        instId: bitgetWireSymbol(symbol)
+        instId: stripLegacyVenueSuffix(symbol)
       }]
     };
     try {

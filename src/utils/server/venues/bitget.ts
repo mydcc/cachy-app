@@ -366,7 +366,7 @@ function parseBitgetEnvelope(
  * `normalizeSymbol`. Without the strip that reaches the venue and comes back
  * `40034`, with nothing in the app to explain it.
  *
- * Keeping it here rather than relying on `bitgetWireSymbol` alone is deliberate:
+ * Keeping it here rather than relying on `stripLegacyVenueSuffix` alone is deliberate:
  * this is the last point before the query string is built, so the guarantee does
  * not depend on every caller upstream having normalized.
  */

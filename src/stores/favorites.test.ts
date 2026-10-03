@@ -56,6 +56,29 @@ describe('favoritesState', () => {
     expect(await settingsFavourites()).toEqual(['XRPUSDT']);
   });
 
+  it('BUG-0599: matches a favourite saved under the legacy suffix', async () => {
+    // Favourites added while Bitget symbols carried the V1 `_UMCBL` suffix are
+    // still in the settings list, while the symbols arriving from the UI no
+    // longer carry it. A plain `includes` reports the existing favourite as
+    // absent, and toggling would then append a second entry rather than remove
+    // the first, leaving the original unreachable.
+    const { favoritesState } = await import('./favorites.svelte');
+    favoritesState.items = ['BTCUSDT_UMCBL', 'ETHUSDT'];
+
+    expect(favoritesState.has('BTCUSDT')).toBe(true);
+    expect(favoritesState.has('btcusdt')).toBe(true);
+    expect(favoritesState.has('SOLUSDT')).toBe(false);
+  });
+
+  it('BUG-0599: toggles off a legacy-suffixed favourite instead of duplicating it', async () => {
+    const { favoritesState } = await import('./favorites.svelte');
+    favoritesState.items = ['BTCUSDT_UMCBL', 'ETHUSDT'];
+
+    favoritesState.toggleFavorite('BTCUSDT');
+
+    expect(favoritesState.items).toEqual(['ETHUSDT']);
+  });
+
   it('should remove a symbol if already present', async () => {
     const { favoritesState } = await import('./favorites.svelte');
     favoritesState.items = ['BTCUSDT', 'ETHUSDT'];

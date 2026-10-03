@@ -256,6 +256,24 @@ describe("rule loop wiring", () => {
       expect(readStoredRules().map((r) => r.id)).toEqual(["r1"]);
     });
 
+    it("BUG-0599: matches a rule stored under the legacy suffix against the canonical key", () => {
+      // The alert panel seeds its draft from `tradeState.symbol`, which carried
+      // the V1 `_UMCBL` suffix before BUG-0599, so this is the symbol every
+      // Bitget rule was armed with. `rulesFor` compares by strict equality
+      // against the market store's canonical key, so an un-canonicalized read
+      // leaves every such rule unmatched — a silently inert alert, which is
+      // indistinguishable from one that has not triggered.
+      localStorage.setItem(
+        RULES_STORAGE_KEY,
+        JSON.stringify([
+          { id: "r1", symbol: "BTCUSDT_UMCBL", enabled: true, trigger_timeframe: "1h" },
+          { id: "r2", symbol: "BTCUSDT", enabled: true, trigger_timeframe: "1h" },
+        ]),
+      );
+
+      expect(readStoredRules().map((r) => r.symbol)).toEqual(["BTCUSDT", "BTCUSDT"]);
+    });
+
     it("returns nothing when the store is absent or unusable", () => {
       expect(readStoredRules()).toEqual([]);
 

@@ -19,7 +19,7 @@ import { describe, it, expect } from "vitest";
 import {
   normalizeSymbol,
   formatSymbolForDisplay,
-  bitgetWireSymbol,
+  stripLegacyVenueSuffix,
 } from "./symbolUtils";
 
 /**
@@ -78,14 +78,14 @@ describe("formatSymbolForDisplay", () => {
   });
 });
 
-describe("bitgetWireSymbol", () => {
+describe("stripLegacyVenueSuffix", () => {
   it("strips a suffixed key back to the contract", () => {
-    // Still the wire-boundary guarantee for anything that reached a store
-    // before BUG-0599. `formatSymbolForDisplay` cannot do this job: it also
-    // strips `USDT`, which would ask the venue about a contract that does not
-    // exist.
-    expect(bitgetWireSymbol("BTCUSDT_UMCBL")).toBe("BTCUSDT");
-    expect(bitgetWireSymbol("BTCUSDT")).toBe("BTCUSDT");
-    expect(bitgetWireSymbol("")).toBe("");
+    // The boundary guarantee for anything that reached a store before
+    // BUG-0599 — the wire, and the three stores that persisted under it.
+    // `formatSymbolForDisplay` cannot do this job: it also strips `USDT`, which
+    // would ask the venue about a contract that does not exist.
+    expect(stripLegacyVenueSuffix("BTCUSDT_UMCBL")).toBe("BTCUSDT");
+    expect(stripLegacyVenueSuffix("BTCUSDT")).toBe("BTCUSDT");
+    expect(stripLegacyVenueSuffix("")).toBe("");
   });
 });

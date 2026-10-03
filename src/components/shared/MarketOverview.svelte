@@ -493,9 +493,10 @@
     }
   }
 
-  let isFavorite = $derived(
-    symbol ? favoritesState.items.includes(symbol) : false,
-  );
+  // BUG-0599 — through the store, which matches across the legacy `_UMCBL`
+  // suffix. A plain `items.includes` here reported an existing favourite as
+  // absent for every Bitget symbol saved before that change.
+  let isFavorite = $derived(symbol ? favoritesState.has(symbol) : false);
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->

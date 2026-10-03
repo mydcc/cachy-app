@@ -135,6 +135,27 @@ that is now unsatisfiable. They are replaced by a test that pins what replaced
 them — one seeded entry serves both venues, which fails if anyone reintroduces
 per-venue key shapes.
 
+**Three more orphaned stores found in review, all from the same cause.** The
+first pass fixed the producer and one consumer, and assumed the rest followed.
+That assumption was wrong, and the three that did not are the ones that match a
+persisted record by *strict equality* rather than by normalized key:
+
+| Store | Symptom after the producer change |
+|---|---|
+| `stores/drawings.svelte.ts` | `forSymbol` is `d.symbol === symbol` — every pre-existing Bitget drawing becomes unreachable, so the chart looks empty |
+| `stores/favorites.svelte.ts` | `items.includes(symbol)` reports an existing favourite as absent, and toggling *appends* a duplicate instead of removing the original |
+| `alertEngine/ruleLoopWiring.ts` | `rulesFor` is `rule.symbol === symbol`, and the alert panel seeds its draft from `tradeState.symbol` — so **every pre-existing Bitget alert stops firing silently**, which is the exact failure the alert engine documents itself as existing to prevent |
+
+All three converge the symbol at the read boundary rather than at each
+comparison: drawings and rules on load, favourites in a `has()` the store owns.
+One point per store, and a new call site cannot forget. The rule read is behind
+an existing raw-string cache, so the convergence runs once per payload rather
+than per evaluation.
+
+`bitgetWireSymbol` is renamed `stripLegacyVenueSuffix`: it is no longer only a
+wire concern, and a name that says "wire" would have invited the next reader to
+assume the persisted stores were already handled.
+
 **Boundary strips deliberately kept.** `bitgetV2Symbol` and `bitgetWireSymbol`
 both still strip. They are no longer compensating for this app's own helper;
 they are the last-point guarantee for symbols that arrive from outside the store
