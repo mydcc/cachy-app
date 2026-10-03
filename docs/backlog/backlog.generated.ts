@@ -2833,7 +2833,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0599",
     "title": "`normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "created": "2026-09-30",

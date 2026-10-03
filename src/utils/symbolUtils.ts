@@ -21,13 +21,18 @@
 
 /**
  * Normalizes a trading symbol for a specific provider.
+ *
  * @param symbol The raw symbol (e.g., "BTC", "BTCUSDT", "btcusdt")
- * @param provider The API provider ("bitunix", "bitget", etc.)
- * @returns The normalized symbol string in uppercase and provider-specific format.
+ * @param _provider The API provider ("bitunix", "bitget", etc.) — retained
+ *   because every caller passes it and the distinction is worth reading at the
+ *   call site, but no longer consulted. BUG-0599 removed the last venue-specific
+ *   behaviour (Bitget's `_UMCBL` suffix), so normalization is now the same
+ *   canonical bare pair for every provider.
+ * @returns The normalized symbol string in uppercase, without any venue suffix.
  */
 export function normalizeSymbol(
   symbol: string,
-  provider: "bitunix" | "bitget" | string,
+  _provider: "bitunix" | "bitget" | string,
 ): string {
   if (!symbol) return "";
 
@@ -36,7 +41,15 @@ export function normalizeSymbol(
     .toUpperCase()
     .replace(".P", "")
     .replace(":USDT", "")
-    .replace("-P", "");
+    .replace("-P", "")
+    // BUG-0599 — strip the V1 suffix, never append it. `_UMCBL` was the wire
+    // format Bitget's decommissioned `/api/v1/mix/` generation used; V2
+    // addresses contracts by the bare pair and answers `40034 "Parameter
+    // BTCUSDT_UMCBL does not exist"` for the suffixed form. Stripping rather
+    // than merely not-appending also converges symbols that arrive already
+    // suffixed from a payload written before this change, which is what keeps
+    // there being exactly one canonical key per contract.
+    .replace(/_UMCBL$/, "");
 
   // If it's just "BTC", make it "BTCUSDT"
   // Heuristic: If length <= 5 and not containing USDT/USDC, append USDT.
@@ -54,11 +67,6 @@ export function normalizeSymbol(
   s = s.replace("-USDT", "USDT");
   if (s.endsWith("USDTP")) {
     s = s.substring(0, s.length - 1);
-  }
-
-  // Bitget specific suffixing (for Futures)
-  if (provider === "bitget" && !s.includes("_UMCBL")) {
-    s = s + "_UMCBL";
   }
 
   return s;

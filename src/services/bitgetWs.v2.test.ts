@@ -27,8 +27,11 @@
  *     V2 endpoints. There is no combined V2 socket, so the public half moves
  *     to `/v2/ws/public` and the private half needs a socket of its own.
  *   - `instType` is `USDT-FUTURES`, not V1's `mc`.
- *   - `instId` is the bare pair (`BTCUSDT`), not the `_UMCBL` store key. The
- *     suffix is this app's internal bookkeeping and is never sent to a venue.
+ *   - `instId` is the bare pair (`BTCUSDT`). The V1 `_UMCBL` suffix is never
+ *     sent to a venue, and since BUG-0599 it is no longer produced internally
+ *     either — the wire spelling and the store key are the same string. A
+ *     suffixed input is still stripped at the boundary, so a symbol arriving
+ *     from a payload written before BUG-0599 cannot leak onto the wire.
  *   - the ticker field is `lastPr`; V1's `last` is gone. A V1-shaped ticker
  *     schema therefore rejects every V2 push, and the chart sits empty on a
  *     socket that looks perfectly healthy.
@@ -51,7 +54,7 @@ const V2_PUBLIC_URL = "wss://ws.bitget.com/v2/ws/public";
 const V1_MIX_URL = "wss://ws.bitget.com/mix/v1/stream";
 
 /** The store key for BTCUSDT. What every consumer of marketState looks up. */
-const BTC_STORE_KEY = "BTCUSDT_UMCBL";
+const BTC_STORE_KEY = "BTCUSDT";
 /** The wire symbol. What the venue expects in `instId`. */
 const BTC_WIRE = "BTCUSDT";
 
@@ -216,7 +219,7 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       expect(frame.args?.[0]?.instType).not.toBe("mc");
     });
 
-    it("sends the bare pair as instId, not the internal _UMCBL store key", () => {
+    it("sends the bare pair as instId, never the V1 suffix", () => {
       service.subscribe(BTC_WIRE, "ticker");
 
       const [frame] = socket.frames();
@@ -224,13 +227,17 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       expect(frame.args?.[0]?.instId).not.toContain("_UMCBL");
     });
 
-    it("strips the store-key suffix even when the caller passes a suffixed symbol", () => {
-      // The subscription ledger keys on the store key, so internal callers and
-      // resubscribe() may hand us either spelling. The wire always gets the pair.
-      service.subscribe(BTC_STORE_KEY, "ticker");
+    it("strips a suffix the caller passes, so pre-BUG-0599 input cannot reach the wire", () => {
+      // Since BUG-0599 the store key and the wire spelling are the same string,
+      // so `BTC_STORE_KEY` can no longer stand in for a suffixed input — it has
+      // to be spelled out. This is the boundary guarantee rather than a
+      // convenience: `subscribe` is reachable from `resubscribe()`, and a symbol
+      // restored from a payload written before the change is still suffixed.
+      service.subscribe("BTCUSDT_UMCBL", "ticker");
 
       const [frame] = socket.frames();
       expect(frame.args?.[0]?.instId).toBe(BTC_WIRE);
+      expect(frame.args?.[0]?.instId).not.toContain("_UMCBL");
     });
 
     it("uses the same V2 payload shape for unsubscribe", () => {

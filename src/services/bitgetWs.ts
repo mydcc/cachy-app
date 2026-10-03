@@ -522,13 +522,16 @@ export class BitgetWebSocketService {
     // The branches below therefore keep handling what the socket delivers; what
     // we refuse is asking for more of it.
     const channel = msg.arg.channel;
-    // BUG-0598: V2 pushes are keyed by the bare pair (`BTCUSDT`), while
-    // `marketState`, the subscription ledger and every consumer address the
-    // store by the suffixed key (`BTCUSDT_UMCBL`). Writing under the wire
-    // spelling would leave a live socket feeding a key nothing reads — a chart
-    // that stays empty with no error anywhere. `normalizeSymbol` is idempotent,
-    // so a V1-shaped push that still carries the suffix passes through
-    // unchanged.
+    // BUG-0598: V2 pushes are keyed by the bare pair (`BTCUSDT`), and since
+    // BUG-0599 `normalizeSymbol` produces exactly that, so the wire spelling and
+    // the store key are the same string. Writing under the wire spelling can no
+    // longer leave a live socket feeding a key nothing reads.
+    //
+    // BUG-0599 changed the fallback rather than removing it: a V1-shaped push
+    // that still carries the suffix is now canonicalized to the bare pair, where
+    // before it passed through unchanged. That is the behaviour we want, but it
+    // is a behaviour change on this line, so it is named here rather than left
+    // to be rediscovered.
     const instId = normalizeSymbol(msg.arg.instId, "bitget");
 
     // Ticker
