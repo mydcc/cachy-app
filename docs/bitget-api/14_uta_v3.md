@@ -45,7 +45,7 @@ The 40085 gate is REST-only.
 | `GET` | `/api/v3/account/fee-rate?category=SPOT&symbol=BTCUSDT` | `00000`, object |
 | `GET` | `/api/v3/trade/unfilled-orders?category=USDT-FUTURES` | `00000`, `{list: [], cursor: null}` |
 | `GET` | `/api/v3/trade/fills?category=USDT-FUTURES` | `00000`, `{list: null, cursor: null}` |
-| `GET` | `/api/v3/position/current-position?category=USDT-FUTURES` | **HTTP 200, empty body** |
+| `GET` | `/api/v3/position/current-position?category=USDT-FUTURES` | `00000`, `{list: null}`, no `cursor` — but see trap 3 |
 
 Confirmed absent (`40404 Request URL NOT FOUND`) — these are V2-shaped guesses
 that do not exist, recorded so nobody repeats them:
@@ -80,16 +80,33 @@ equally empty case. A parser that does `data.list.map(...)` without a null guard
 throws on the fills endpoint and works on the other. Verified once, on an empty
 account — recorded as observed, not as a general rule.
 
-### 3. An empty body is a success
+### 3. A 200 can arrive with no body at all
 
-`/api/v3/position/current-position` with a valid `category` returned **HTTP 200
-with a zero-byte body** on an account holding no positions. The same path with no
-parameters returned `400172 Parameter verification failed`, so the path exists and
-`category` is required.
+`/api/v3/position/current-position` with a valid `category` usually answers like
+any other endpoint:
 
-A client that parses first and checks `code` will not find `code` in an empty
-string. This is the same failure shape BUG-0576 records for the V1 parser, and it
-is the reason `marketData.ts` logs truncated fetches.
+```json
+{"code":"00000","msg":"success","requestTime":1791032984524,"data":{"list":null}}
+```
+
+Note it carries **no `cursor` key** — unlike the two trade endpoints. But twice,
+the same request on the same unchanged account answered **HTTP 200 with a
+zero-byte body**. With no parameters it returns `400172 Parameter verification
+failed`, so the path exists and `category` is required.
+
+Both empty answers came early in one session, and six consecutive calls
+afterwards returned the normal 81-byte body. Whether this is a rate or a
+transient server-side window is **unknown** — recorded as observed, not
+characterised.
+
+An empty body on a 200 is rarer and more dangerous than a stable alternative
+shape: a parser cannot branch on it, because the next identical call succeeds.
+Cachy's Bitget path reads `res.code` after parsing, so this surfaces as
+`Bitget Error: undefined` rather than as an empty position list. A client has to
+treat an unparseable 200 as "no data" and retry, not as an error to surface.
+
+This is the same failure shape BUG-0576 records for the V1 parser, and it is why
+`marketData.ts` logs truncated fetches.
 
 ## Where the traded amount actually lives
 

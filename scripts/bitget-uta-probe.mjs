@@ -2,15 +2,16 @@
 /**
  * Reproduces the live evidence recorded in `docs/bitget-api/14_uta_v3.md`.
  *
- * Reads credentials from an env file OUTSIDE the repository and never prints
- * them, the passphrase, or any signature. Everything it prints is already
- * public: HTTP status, Bitget business code, message, and response field names.
+ * Reads credentials from the environment and never prints them, the passphrase,
+ * or any signature. Everything it prints is already public: HTTP status, Bitget
+ * business code, message, and response field names.
  *
  * Usage:
- *   BITGET_ENV=/path/to/bitget.env node scripts/bitget-uta-probe.mjs
+ *   set -a; . /path/to/bitget.env; set +a; node scripts/bitget-uta-probe.mjs
  *
- * The env file needs three variables:
- *   BITGET_AKEY, BITGET_SECRET, BITGET_PASSPHRASE
+ * Three variables are required: BITGET_AKEY, BITGET_SECRET, BITGET_PASSPHRASE.
+ * Keep the file that exports them outside the repository. Sourcing it keeps the
+ * values out of argv, so they do not appear in `ps` for this command.
  *
  * Every request below is read-only. There is no place-order call in this file:
  * the write path is BUG-0597's acceptance test, and it belongs in a test with
@@ -23,42 +24,26 @@
  *      neither "0" nor "00000" as a string matches.
  *   3. Query ordering: insertion and sorted both succeed, control at 40009.
  *   4. /api/v3/trade/fills returns "list":null where unfilled-orders returns [].
- *   5. /api/v3/position/current-position answers HTTP 200 with an empty body
- *      when the account holds no position.
+ *   5. /api/v3/position/current-position carries no "cursor" key, and twice
+ *      answered HTTP 200 with a zero-byte body instead of the usual
+ *      {"code":"00000","data":{"list":null}} on an unchanged account. Both were
+ *      early in one session and neither reproduced afterwards, so whether it is a
+ *      rate or a transient server-side window is unknown.
  */
 
 import { createHmac } from "node:crypto";
-import { readFileSync } from "node:fs";
 
-const ENV_PATH = process.env.BITGET_ENV ?? "/tmp/opencode/bitget.env";
 const REST = "https://api.bitget.com";
 
-let env;
-try {
-  env = Object.fromEntries(
-    // ENV_PATH comes from the operator's own shell (BITGET_ENV), never from a request,
-    // a file on disk or any network input. This is a local script whose whole purpose
-    // is to read a path the operator names; there is no untrusted source to guard.
-    // codeql[js/path-injection]
-    readFileSync(ENV_PATH, "utf8")
-      .split("\n")
-      .filter((line) => line.startsWith("BITGET_"))
-      .map((line) => {
-        const eq = line.indexOf("=");
-        return [line.slice(0, eq), line.slice(eq + 1)];
-      }),
-  );
-} catch {
-  console.error(`cannot read credentials from ${ENV_PATH}`);
-  console.error("set BITGET_ENV to a file containing BITGET_AKEY, BITGET_SECRET, BITGET_PASSPHRASE");
+const REQUIRED = ["BITGET_AKEY", "BITGET_SECRET", "BITGET_PASSPHRASE"];
+const missing = REQUIRED.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  console.error(`missing environment variable(s): ${missing.join(", ")}`);
+  console.error("load them from a file kept outside the repository, e.g.");
+  console.error("  set -a; . /path/to/bitget.env; set +a; node scripts/bitget-uta-probe.mjs");
   process.exit(1);
 }
-for (const key of ["BITGET_AKEY", "BITGET_SECRET", "BITGET_PASSPHRASE"]) {
-  if (!env[key]) {
-    console.error(`${key} missing from ${ENV_PATH}`);
-    process.exit(1);
-  }
-}
+const env = process.env;
 
 function signHeaders(method, path, query, secret = env.BITGET_SECRET) {
   const timestamp = Date.now().toString();
