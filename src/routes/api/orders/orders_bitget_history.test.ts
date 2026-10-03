@@ -32,6 +32,11 @@ beforeEach(() => {
 });
 
 describe("Bitget History Error Handling", () => {
+    // BUG-0604 changed what these two assert. Both used to pin a blanket 500
+    // with a generic or code-less message, which is the defect: Bitget pairs a
+    // business error with a non-2xx status, so the venue's own `code` and `msg`
+    // were discarded before anyone could read them. A 401 from the exchange is
+    // not a fault in Cachy, so it now answers 502 and names what Bitget said.
     it("throws an error on non-ok response instead of silently returning empty list", async () => {
         fetchMock.mockResolvedValueOnce({
             ok: false,
@@ -49,9 +54,9 @@ describe("Bitget History Error Handling", () => {
         const data = await res.json();
 
         // Ensure error is returned (caught in outer try-catch)
-        expect(res.status).toBe(500);
+        expect(res.status).toBe(502);
         expect(data).toHaveProperty("error");
-        expect(data.error).toBe("bitunixErrors.BITGET_API_ERROR"); // Yes, the constant is bitunixErrors.BITGET_API_ERROR
+        expect(data.error).toBe("Bitget Error: 401 Unauthorized");
         expect(data.orders).toBeUndefined();
     });
 
@@ -71,9 +76,12 @@ describe("Bitget History Error Handling", () => {
 
         const data = await res.json();
 
-        expect(res.status).toBe(500);
+        // Bitget reports business errors on a 200 as well. Relaying that status
+        // would answer the browser with 200 and an error body, so a refusal is
+        // always 502 and the venue's code travels in the message.
+        expect(res.status).toBe(502);
         expect(data).toHaveProperty("error");
-        expect(data.error).toBe("Bitget Error: Invalid Request");
+        expect(data.error).toBe("Bitget Error: 40001 Invalid Request");
         expect(data.orders).toBeUndefined();
     });
 

@@ -2,9 +2,9 @@
 
 # Backlog index
 
-480 items. How to read and add them: [README.md](README.md).
+481 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-progress 4 · ✅ done 422 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-progress 4 · ✅ done 423 · ⛔ dropped 1
 
 ---
 
@@ -307,6 +307,7 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | ✅ done | core |
 | [BUG-0598](bugs/BUG-0598-bitget-websocket-is-on-the-v1-stream.md) | The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles | P1 | 🟡 in-progress | exchange |
 | [BUG-0599](bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md) | `normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects | P1 | ✅ done | exchange |
+| [BUG-0604](bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md) | A Bitget refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | exchange |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -687,6 +688,7 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [BUG-0595](bugs/BUG-0595-native-number-arithmetic-charts.md) | Native number arithmetic used for financial values in charts.ts | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0598](bugs/BUG-0598-bitget-websocket-is-on-the-v1-stream.md) | The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles | P1 | 🟡 in-progress | none | community, pro, private | none | none | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) |
 | [BUG-0599](bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md) | `normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0604](bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md) | A Bitget refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -1034,4 +1036,4 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 
 ---
 
-Next free number: **0604**
+Next free number: **0605**

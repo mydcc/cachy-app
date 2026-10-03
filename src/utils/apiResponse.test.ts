@@ -132,7 +132,49 @@ describe('apiResponse', () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
-    it('maps unknown error to 500 INTERNAL_ERROR', async () => {
+    // BUG-0604: a venue refusal is not an internal fault. Before this branch,
+    // every Bitget refusal — `30032` V1 decommissioned, `40085` wrong account
+    // family, `400172` bad parameters — arrived as a bare string and became an
+    // opaque 500, indistinguishable from a bug in Cachy.
+    it('maps a venue refusal to 502 UPSTREAM_REJECTED, not 500', async () => {
+      const error = Object.assign(new Error('Bitget Error: 30032 The V1 API has been decommissioned.'), {
+        venueCode: '30032',
+        venueMessage: 'The V1 API has been decommissioned. Please migrate to a newer version.',
+        venueHttpStatus: 400,
+        status: 502,
+      });
+      const response = handleApiError(error);
+
+      expect(response.status).toBe(502);
+      const body = await response.json();
+      expect(body.error.code).toBe('UPSTREAM_REJECTED');
+      expect(body.error.message).toContain('30032');
+      expect(body.error.details).toEqual({
+        venueCode: '30032',
+        venueMessage: 'The V1 API has been decommissioned. Please migrate to a newer version.',
+      });
+      // A refusal is a known, reported outcome — it must not also be logged as
+      // an unexpected internal fault.
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('prefers the venue branch over the upstream-status branch', async () => {
+      // The venue error also carries `status`, so without the ordering this
+      // would fall into the UPSTREAM_ERROR branch and hand a browser the
+      // exchange's own 4xx for a request Cachy got wrong at the exchange.
+      const error = Object.assign(new Error('Bitget Error: 40085 Unified Account mode'), {
+        venueCode: '40085',
+        venueMessage: 'You are in Unified Account mode, and the Classic Account API is not supported at this time',
+        status: 502,
+      });
+      const response = handleApiError(error);
+
+      expect(response.status).toBe(502);
+      const body = await response.json();
+      expect(body.error.code).toBe('UPSTREAM_REJECTED');
+    });
+
+    it('still maps a plain error to 500 INTERNAL_ERROR', async () => {
       const error = new Error('Database connection failed');
       const response = handleApiError(error);
 
