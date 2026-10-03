@@ -181,10 +181,35 @@ listed in the policy table above and not treated as a transient.
 
 All three reducers are written against the generated bindings, but note that
 **`npm run check` does not cover them**: the root `tsconfig.json` includes only
-`src/**`, and `server/spacetimedb/` has its own `tsconfig.json` that no script
-invokes. Typecheck it explicitly with
-`npx tsc -p server/spacetimedb/tsconfig.json` before relying on any of them. The
-committed bindings do include `delete_my_messages` (`src/lib/spacetimedb/index.ts:52`),
+`src/**`, and `server/spacetimedb/` has its own `tsconfig.json`. Typecheck the
+module explicitly, with its dependencies installed first:
+
+```bash
+npm ci --prefix server/spacetimedb     # once — the module is its own package
+npm run typecheck --prefix server/spacetimedb
+```
+
+Both halves are required. `server/spacetimedb/` is a separate package with its
+own committed lockfile and the repository-wide `npm ci` does not install it.
+Without that install `tsc` walks up, finds no local `node_modules`, and
+resolves `spacetimedb` from the repository root — 2.x, pinned there for the
+browser bindings — while this module is written against 1.x. The six errors that
+follow are entirely a symptom of that mis-resolution and the source is clean
+against 1.x. `npm run typecheck` therefore runs
+`scripts/require-module-deps.mjs` first and fails with the install command,
+rather than reporting six mis-resolutions as if they were broken reducers.
+
+The 1.x/2.x split is deliberate and documented in
+`server/spacetimedb/tsconfig.json`: the root depends on the SDK for
+`src/lib/spacetimedb/`, this module for the server runtime, and they are not
+required to agree. Upgrading this module to the 2.x SDK is separate work.
+
+`.github/workflows/spacetimedb-module.yml` runs the same command on every push
+that touches `server/spacetimedb/`, so this is enforced rather than remembered.
+It covers the typecheck only — the CLI steps below stay a manual gate, because
+the SpacetimeDB CLI is not vendored here.
+
+The committed bindings do include `delete_my_messages` (`src/lib/spacetimedb/index.ts:52`),
 though `tablesSchema` (line 47) is empty, so `cloudService.ts:183` is already on
 a runtime `as any` fallback and incoming messages do not render until
 `spacetime generate` regenerates the table bindings. Before relying on the policy:

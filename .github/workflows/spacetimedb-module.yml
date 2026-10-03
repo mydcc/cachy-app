@@ -1,0 +1,87 @@
+# The SpacetimeDB module's own typecheck.
+#
+# Until this workflow existed, nothing in CI compiled `server/spacetimedb/`.
+# The root `tsconfig.json` includes only `src/**` and `npm run check` runs
+# `svelte-check` against that same tsconfig, so the one file that writes all
+# Class B data was never compiled by anything. This is the same gap
+# `rust-core.yml` closes for the evaluation core.
+#
+# The catch is that a plain `tsc -p server/spacetimedb/tsconfig.json` fails on
+# a clean checkout, and the six errors it reports are all artefacts of module
+# resolution rather than defects in the source. `server/spacetimedb/` is its own
+# package with its own committed lockfile, and nothing installs it, so `tsc`
+# walks up, finds no local `node_modules`, and resolves `spacetimedb` from the
+# repository root — which pins the 2.x major for the browser bindings while this
+# module is written against 1.x. With the module's own dependencies installed
+# the same command is clean. So the install is not optional setup here; it is
+# the precondition that makes the gate meaningful.
+#
+# `npm run typecheck` in that directory runs `scripts/require-module-deps.mjs`
+# first, which fails with the install command when `node_modules` is absent.
+# Without it the job would typecheck against the wrong SDK and report six
+# mis-resolutions as if they were broken reducer declarations.
+#
+# Path note: the filter includes the root manifests and `.node-version`, not
+# just `server/spacetimedb/`. The gate resolves `tsc` from the repository root
+# and runs on a pinned Node, so a TypeScript bump or a Node pin change moves the
+# ground under this job without touching a single file it owns — and a filter
+# scoped only to the module would let that land unverified, which is the same
+# failure this workflow exists to close.
+#
+# Scope note: this job typechecks. It does not run `spacetime build` or
+# `spacetime publish` — the SpacetimeDB CLI is not vendored here and installing
+# a third-party binary to prove something `tsc` already proves would add supply
+# chain surface for no signal. `docs/GLOBAL-CHAT.md` records the publish step
+# as the separate manual gate it is.
+name: SpacetimeDB Module
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "server/spacetimedb/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".node-version"
+      - ".github/workflows/spacetimedb-module.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "server/spacetimedb/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".node-version"
+      - ".github/workflows/spacetimedb-module.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    name: tsc -p server/spacetimedb
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          # Two lockfiles: the root one for `tsc`, the module's own for the
+          # 1.x SDK that `tsc` must resolve instead of the root's 2.x.
+          cache-dependency-path: |
+            package-lock.json
+            server/spacetimedb/package-lock.json
+
+      # The root install exists only to provide `tsc`, at the version the
+      # repository pins — a different compiler would be a different gate from
+      # the one developers run. --ignore-scripts skips the esbuild/puppeteer
+      # postinstalls, which nothing in a typecheck needs.
+      - name: Install root dependencies (for tsc)
+        run: npm ci --ignore-scripts
+
+      - name: Install module dependencies (for the 1.x SDK)
+        run: npm ci --prefix server/spacetimedb
+
+      - name: Typecheck the module
+        run: npm run typecheck --prefix server/spacetimedb

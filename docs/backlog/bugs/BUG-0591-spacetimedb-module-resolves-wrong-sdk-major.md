@@ -2,7 +2,7 @@
 id: BUG-0591
 title: The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: tooling
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0591-spacetimedb-sdk-resolution
 ---
 
 # BUG-0591 — The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails
@@ -103,16 +105,16 @@ mis-resolution behind a green build.
 
 ## Acceptance criteria
 
-- [ ] A CI job runs `npm ci --prefix server/spacetimedb` and then
+- [x] A CI job runs `npm ci --prefix server/spacetimedb` and then
       `npx tsc -p server/spacetimedb/tsconfig.json`, and both succeed
-- [ ] The gate fails if `server/spacetimedb/node_modules` is absent, rather than
+- [x] The gate fails if `server/spacetimedb/node_modules` is absent, rather than
       silently typechecking against the root's 2.x
-- [ ] No `@ts-expect-error` or `@ts-ignore` was added to `server/spacetimedb/`
-- [ ] The 1.x/2.x split is either removed or documented as intentional, with the
+- [x] No `@ts-expect-error` or `@ts-ignore` was added to `server/spacetimedb/`
+- [x] The 1.x/2.x split is either removed or documented as intentional, with the
       reason
-- [ ] `docs/GLOBAL-CHAT.md` names the command that typechecks the module,
+- [x] `docs/GLOBAL-CHAT.md` names the command that typechecks the module,
       including the install it needs
-- [ ] The SpacetimeDB CLI is available in that job, or the job is documented as
+- [x] The SpacetimeDB CLI is available in that job, or the job is documented as
       a separate manual gate — a `spacetime build` that CI cannot run is not
       verification
 
@@ -122,6 +124,38 @@ mis-resolution behind a green build.
   `false`, so no user reaches this code without opting in, and that decision is
   separate from whether it compiles.
 - Upgrading the module to the 2.x SDK.
+
+## State
+
+Shipped in `fix/bug-0591-spacetimedb-sdk-resolution`. The source was never
+wrong; only the resolution and the absence of a gate were.
+
+- `server/spacetimedb/scripts/require-module-deps.mjs` (new) fails with the
+  install command when `node_modules/spacetimedb` is absent.
+- `server/spacetimedb/package.json` gains `typecheck`, which runs that guard
+  before `tsc`. The `&&` matters: with the install missing, `tsc` never runs, so
+  zero misleading TS errors leak past the guard (verified — the absent-install
+  run reports exit 1 and no `error TS` lines at all).
+- `.github/workflows/spacetimedb-module.yml` (new) runs the two installs and the
+  typecheck on any push or PR touching `server/spacetimedb/`. The root install
+  exists only to supply `tsc` at the pinned version, with `--ignore-scripts` to
+  skip the esbuild/puppeteer postinstalls a typecheck does not need.
+- `server/spacetimedb/tsconfig.json` and `docs/GLOBAL-CHAT.md` record the 1.x/2.x
+  split as intentional, with the reason.
+
+**A `paths` mapping cannot enforce the precondition — measured, not assumed.**
+Both majors expose an identical `exports` map (`./server` →
+`./dist/server/index.d.ts`), so pinning the path looks sufficient. It is not:
+with `paths` pointing at the module's own `dist` and `node_modules` removed,
+`tsc` still resolves the root's 2.x and reports the same six errors. TypeScript
+treats `paths` as substitutions to try first and falls back to standard
+resolution when none match. An explicit assertion is the only mechanism that
+turns a missing install into a named failure.
+
+**Left open deliberately:** the module still targets the 1.x SDK while the
+browser bindings target 2.x, and nothing in CI compiles the bindings against a
+running module. Upgrading the module is out of scope here; `spacetime build` and
+`spacetime publish` remain manual gates that need the CLI, which is not vendored.
 
 ## Links
 
