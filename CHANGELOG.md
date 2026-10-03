@@ -90,6 +90,10 @@ history remains available in git.
   whose anchor is lost refuses loudly instead of firing at an abandoned level.
 - The alert engine no longer reparses the rule store on every price tick, so
   watching many symbols no longer stutters the chart.
+- Bitget symbols resolve to the pair the venue accepts again. Chart drawings,
+  favourite symbols and price alerts saved before this change are reachable
+  once more — on Bitget they had become invisible, because the stored symbol
+  no longer matched the one the app looked them up by.
 
 ## [1.5.0](https://github.com/mydcc/cachy-app/compare/v1.4.0...v1.5.0) (2026-08-12)
 
