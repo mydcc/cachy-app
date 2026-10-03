@@ -2,9 +2,9 @@
 
 # Backlog index
 
-480 items. How to read and add them: [README.md](README.md).
+494 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-progress 4 · ✅ done 422 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 23 · 🟢 ready 20 · 🟡 in-progress 4 · ✅ done 422 · ⛔ dropped 1
 
 ---
 
@@ -450,6 +450,19 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | ui |
 | [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | docs |
 | [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | docs |
+| [FEAT-0604](features/FEAT-0604-ui-status-quo-audit.md) | Audit the UI status quo: windows, elements, control sizes, CSS debt | P2 | 🟢 ready | ui |
+| [FEAT-0605](features/FEAT-0605-button-placement-visibility-and-dependency-audit.md) | Audit button placement, visibility and enablement dependencies | P2 | 🟢 ready | ui |
+| [FEAT-0606](features/FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md) | Harmonize the settings hierarchy, tab naming and sub-tab pattern | P2 | 🟢 ready | ui |
+| [FEAT-0607](features/FEAT-0607-make-settingsgrid-the-only-grid-pattern-in-settings.md) | Make SettingsGrid the only grid pattern inside the settings window | P2 | 🟢 ready | ui |
+| [FEAT-0608](features/FEAT-0608-introduce-control-and-density-tokens.md) | Introduce control-geometry and density tokens | P2 | 🟢 ready | ui |
+| [FEAT-0609](features/FEAT-0609-extend-and-adopt-the-button-primitive.md) | Extend the button primitive and adopt it in the app shell header | P2 | 🟢 ready | ui |
+| [FEAT-0610](features/FEAT-0610-adopt-the-button-primitive-in-the-settings-tabs.md) | Adopt the button primitive across the settings tabs | P2 | 🟢 ready | ui |
+| [FEAT-0611](features/FEAT-0611-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md) | Adopt the button primitive in the calculator and trade panel | P2 | 🟢 ready | ui |
+| [FEAT-0612](features/FEAT-0612-adopt-the-button-primitive-in-journal-and-window-frames.md) | Adopt the button primitive in the journal and the window frames | P2 | 🟢 ready | ui |
+| [FEAT-0613](features/FEAT-0613-introduce-compact-default-and-wide-density-modes.md) | Introduce compact, default and wide density modes | P2 | 📋 specced | ui |
+| [FEAT-0614](features/FEAT-0614-consolidate-window-flags-and-resolve-the-double-click-drift.md) | Consolidate the window flags and resolve the double-click state drift | P2 | 🟢 ready | ui |
+| [FEAT-0615](features/FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md) | Add magnetic edge snapping and tiling to the window system | P2 | 📋 specced | ui |
+| [FEAT-0616](features/FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | ui |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
@@ -535,6 +548,7 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | ui |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | ui |
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | exchange |
+| [FEAT-0617](features/FEAT-0617-rethink-app-navigation-and-window-entry-points.md) | Rethink app navigation and window entry points | P3 | 💡 idea | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -924,6 +938,19 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0545](features/FEAT-0545-duck-companion-settings-with-master-toggle.md) | Duck companion settings with master toggle in Visuals | P2 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0577](features/FEAT-0577-bitunix-mirror-english.md) | The Bitunix mirror was translated into German while its source is English | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0578](features/FEAT-0578-bitunix-mirror-fidelity-audit.md) | Verify the Bitunix mirror against the live vendor pages and fix what it got wrong | P2 | ✅ done | none | community | none | none | — |
+| [FEAT-0604](features/FEAT-0604-ui-status-quo-audit.md) | Audit the UI status quo: windows, elements, control sizes, CSS debt | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0605](features/FEAT-0605-button-placement-visibility-and-dependency-audit.md) | Audit button placement, visibility and enablement dependencies | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0604](features/FEAT-0604-ui-status-quo-audit.md) |
+| [FEAT-0606](features/FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md) | Harmonize the settings hierarchy, tab naming and sub-tab pattern | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0604](features/FEAT-0604-ui-status-quo-audit.md) |
+| [FEAT-0607](features/FEAT-0607-make-settingsgrid-the-only-grid-pattern-in-settings.md) | Make SettingsGrid the only grid pattern inside the settings window | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0606](features/FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md) |
+| [FEAT-0608](features/FEAT-0608-introduce-control-and-density-tokens.md) | Introduce control-geometry and density tokens | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0604](features/FEAT-0604-ui-status-quo-audit.md) |
+| [FEAT-0609](features/FEAT-0609-extend-and-adopt-the-button-primitive.md) | Extend the button primitive and adopt it in the app shell header | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0604](features/FEAT-0604-ui-status-quo-audit.md), [FEAT-0605](features/FEAT-0605-button-placement-visibility-and-dependency-audit.md), [FEAT-0608](features/FEAT-0608-introduce-control-and-density-tokens.md) |
+| [FEAT-0610](features/FEAT-0610-adopt-the-button-primitive-in-the-settings-tabs.md) | Adopt the button primitive across the settings tabs | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0607](features/FEAT-0607-make-settingsgrid-the-only-grid-pattern-in-settings.md), [FEAT-0609](features/FEAT-0609-extend-and-adopt-the-button-primitive.md) |
+| [FEAT-0611](features/FEAT-0611-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md) | Adopt the button primitive in the calculator and trade panel | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0609](features/FEAT-0609-extend-and-adopt-the-button-primitive.md) |
+| [FEAT-0612](features/FEAT-0612-adopt-the-button-primitive-in-journal-and-window-frames.md) | Adopt the button primitive in the journal and the window frames | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0609](features/FEAT-0609-extend-and-adopt-the-button-primitive.md) |
+| [FEAT-0613](features/FEAT-0613-introduce-compact-default-and-wide-density-modes.md) | Introduce compact, default and wide density modes | P2 | 📋 specced | none | community, pro, private | none | none | [FEAT-0606](features/FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md), [FEAT-0608](features/FEAT-0608-introduce-control-and-density-tokens.md), [FEAT-0609](features/FEAT-0609-extend-and-adopt-the-button-primitive.md), [FEAT-0610](features/FEAT-0610-adopt-the-button-primitive-in-the-settings-tabs.md), [FEAT-0611](features/FEAT-0611-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md), [FEAT-0612](features/FEAT-0612-adopt-the-button-primitive-in-journal-and-window-frames.md) |
+| [FEAT-0614](features/FEAT-0614-consolidate-window-flags-and-resolve-the-double-click-drift.md) | Consolidate the window flags and resolve the double-click state drift | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0604](features/FEAT-0604-ui-status-quo-audit.md) |
+| [FEAT-0615](features/FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md) | Add magnetic edge snapping and tiling to the window system | P2 | 📋 specced | none | community, pro, private | none | none | [FEAT-0614](features/FEAT-0614-consolidate-window-flags-and-resolve-the-double-click-drift.md) |
+| [FEAT-0616](features/FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0608](features/FEAT-0608-introduce-control-and-density-tokens.md) |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -1015,6 +1042,7 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 | [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | none | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0617](features/FEAT-0617-rethink-app-navigation-and-window-entry-points.md) | Rethink app navigation and window entry points | P3 | 💡 idea | none | community, pro, private | none | none | [FEAT-0615](features/FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md), [FEAT-0616](features/FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -1034,4 +1062,4 @@ Counts by status: 💡 idea 23 · 📋 specced 21 · 🟢 ready 9 · 🟡 in-pro
 
 ---
 
-Next free number: **0604**
+Next free number: **0618**
