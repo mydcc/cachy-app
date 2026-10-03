@@ -48,6 +48,19 @@ if (precompressedIndex.size === 0) {
 // 1 KB threshold stays: gzipping tiny responses costs more CPU than it saves.
 app.use(compression({ level: 6 }));
 
+// Guarantee security headers on every response, including precompressed assets,
+// SvelteKit fallback, and static responses. setHeader() alone is not enough:
+// Node lets headers passed explicitly to res.writeHead() win over earlier
+// setHeader() calls, so wrapWriteHead re-applies our headers right before the
+// flush and overlays them onto any explicit headers argument (object, flat-array
+// or pairs-array form). Cache-Control is not part of SECURITY_HEADERS, so
+// per-asset cache policies from setHeaders survive untouched.
+app.use((req, res, next) => {
+  wrapWriteHead(res);
+  applySecurityHeaders(res);
+  next();
+});
+
 // Route requests for a precompressed asset to its on-disk variant before
 // express.static resolves the (larger) original. This sets Content-Encoding
 // and Content-Type; Cache-Control is not set here, because express.static's
@@ -56,19 +69,6 @@ app.use(compression({ level: 6 }));
 // compression() checks Content-Encoding at header-flush time and skips
 // transforming a response that is already encoded.
 app.use(precompressedAssets(precompressedIndex));
-
-// Guarantee security headers on every response, including SvelteKit fallback
-// and static responses. setHeader() alone is not enough: Node lets headers
-// passed explicitly to res.writeHead() win over earlier setHeader() calls, so
-// wrapWriteHead re-applies our headers right before the flush and overlays them
-// onto any explicit headers argument (object, flat-array or pairs-array form).
-// Cache-Control is not part of SECURITY_HEADERS, so per-asset cache policies
-// from setHeaders survive untouched.
-app.use((req, res, next) => {
-  wrapWriteHead(res);
-  applySecurityHeaders(res);
-  next();
-});
 
 // Let SvelteKit serve static assets with correct caching headers. Security
 // headers are explicitly applied via applySecurityHeaders(res) in setHeaders

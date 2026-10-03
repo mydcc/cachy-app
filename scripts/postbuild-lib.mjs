@@ -18,6 +18,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
 
 // The build output always lives at <repo-root>/build, regardless of the
 // directory the build was invoked from, so resolve it from this module's
@@ -86,4 +87,61 @@ export function patchBuildIndex(root = REPO_ROOT) {
   }
   fs.writeFileSync(buildIndexPath, DELEGATE_SHIM, 'utf-8');
   return buildIndexPath;
+}
+
+const FONT_EXTENSIONS = new Set(['.ttf', '.woff', '.woff2', '.otf', '.eot']);
+
+/**
+ * Precompress font assets under build/client with Brotli and Gzip if variants
+ * do not exist yet. adapter-node omits font extensions from default
+ * precompression, causing large variable TTF fonts (>500KB) to be served
+ * uncompressed or recompressed per request, degrading Lighthouse scores.
+ * @param {string} [root] repository root
+ * @returns {number} count of precompressed font files
+ */
+export function precompressFonts(root = REPO_ROOT) {
+  const clientDir = path.join(root, 'build', 'client');
+  if (!fs.existsSync(clientDir)) return 0;
+
+  let count = 0;
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile()) {
+        const ext = path.extname(entry.name).toLowerCase();
+        if (FONT_EXTENSIONS.has(ext) && !entry.name.endsWith('.br') && !entry.name.endsWith('.gz')) {
+          const content = fs.readFileSync(fullPath);
+          const brPath = `${fullPath}.br`;
+          const gzPath = `${fullPath}.gz`;
+
+          if (!fs.existsSync(brPath)) {
+            const brContent = zlib.brotliCompressSync(content, {
+              params: {
+                [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY,
+              },
+            });
+            fs.writeFileSync(brPath, brContent);
+          }
+
+          if (!fs.existsSync(gzPath)) {
+            const gzContent = zlib.gzipSync(content, { level: zlib.constants.Z_BEST_COMPRESSION });
+            fs.writeFileSync(gzPath, gzContent);
+          }
+
+          count += 1;
+        }
+      }
+    }
+  }
+
+  walk(clientDir);
+  return count;
 }

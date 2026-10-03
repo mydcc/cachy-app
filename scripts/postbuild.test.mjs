@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { patchBuildIndex, DELEGATE_SHIM } from './postbuild-lib.mjs';
+import { patchBuildIndex, precompressFonts, DELEGATE_SHIM } from './postbuild-lib.mjs';
 
 describe('patchBuildIndex', () => {
   /** @type {string} */
@@ -75,5 +75,52 @@ describe('patchBuildIndex', () => {
     expect(DELEGATE_SHIM).toContain('fs.realpathSync.native(entry)');
     expect(DELEGATE_SHIM).toContain('fs.realpathSync.native(self)');
     expect(DELEGATE_SHIM).toContain('fileURLToPath(import.meta.url)');
+  });
+});
+
+describe('precompressFonts', () => {
+  /** @type {string} */
+  let root;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'cachy-postbuild-font-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it('returns 0 when build/client directory does not exist', () => {
+    expect(precompressFonts(root)).toBe(0);
+  });
+
+  it('precompresses font files with .br and .gz variants', () => {
+    const fontsDir = path.join(root, 'build', 'client', 'fonts', 'Inter');
+    fs.mkdirSync(fontsDir, { recursive: true });
+
+    const fontFile = path.join(fontsDir, 'Inter-Variable.ttf');
+    fs.writeFileSync(fontFile, Buffer.from('mock font content '.repeat(100)));
+
+    const count = precompressFonts(root);
+
+    expect(count).toBe(1);
+    expect(fs.existsSync(`${fontFile}.br`)).toBe(true);
+    expect(fs.existsSync(`${fontFile}.gz`)).toBe(true);
+  });
+
+  it('skips recompressing font files that already have .br and .gz variants', () => {
+    const fontsDir = path.join(root, 'build', 'client', 'fonts', 'Inter');
+    fs.mkdirSync(fontsDir, { recursive: true });
+
+    const fontFile = path.join(fontsDir, 'Inter-Variable.ttf');
+    fs.writeFileSync(fontFile, Buffer.from('mock font content '.repeat(100)));
+    fs.writeFileSync(`${fontFile}.br`, Buffer.from('existing br'));
+    fs.writeFileSync(`${fontFile}.gz`, Buffer.from('existing gz'));
+
+    const count = precompressFonts(root);
+
+    expect(count).toBe(1);
+    expect(fs.readFileSync(`${fontFile}.br`, 'utf-8')).toBe('existing br');
+    expect(fs.readFileSync(`${fontFile}.gz`, 'utf-8')).toBe('existing gz');
   });
 });
