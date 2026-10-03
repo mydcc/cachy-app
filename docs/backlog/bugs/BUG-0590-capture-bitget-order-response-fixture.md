@@ -16,6 +16,42 @@ branch: audit/last-2-days-review
 
 # BUG-0590 — Capture a Bitget order response and name the traded-amount field
 
+## Partial resolution (2026-10-03, UTA half only)
+
+The capture ran against a UTA account. Two of the three cases in the Symptom
+below are settled for `/api/v3/*`; the Classic half is untouched, because a UTA
+account is refused by every `/api/v2/*` path with `40085` before the signature is
+even checked.
+
+**`filledQty` exists in no generation.** It is not that the endpoints send a
+differently-named field — the name was never real. UTA splits the quantity three
+ways, all observed on the wire:
+
+| Meaning | Field | Endpoint |
+|---|---|---|
+| Ordered size | `qty` | `/api/v3/trade/unfilled-orders` |
+| Cumulative filled size | `cumExecQty` | `/api/v3/trade/unfilled-orders` |
+| One execution | `execQty` | `/api/v3/trade/fills` |
+
+So this is **case 1**, not case 2 or 3: the current endpoints send neither name,
+and `filled` is always `"0"`.
+
+**The pending and history endpoints agree in shape.** Both answer
+`{"code":"00000","data":{"list":…,"cursor":…}}` — an object with a `list` and a
+cursor, not the bare array the current parsers expect. That retires the
+"do they use the same field name" question for UTA. One difference is real
+though: `unfilled-orders` returns `"list":[]` for an empty account and `fills`
+returns `"list":null`, so a parser needs a null guard on one path and not the
+other.
+
+**Not captured:** a *filled* order. The account is empty and nothing was placed,
+so the semantics of `cumExecQty` under a partial fill are inferred from the
+documented sample, not observed. Bitget's demo trading (`paptrading: 1` header,
+own demo keys) removes the need for a funded account if that capture is wanted.
+
+Acceptance criteria below stand for the Classic half. Full evidence with captured
+bytes: `docs/bitget-api/14_uta_v3.md`.
+
 ## Symptom
 
 Nothing is broken in the app. This is the missing evidence that BUG-0589's fix

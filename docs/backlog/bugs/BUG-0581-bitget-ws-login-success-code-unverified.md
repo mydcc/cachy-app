@@ -16,6 +16,42 @@ assignee: opencode
 
 # Verify the Bitget WebSocket login success code before trusting private streams
 
+## Resolution (2026-10-03, verified live)
+
+**Answer: neither hypothesis in this item is right.** Bitget sends `code` as the
+JSON **number** `0`:
+
+```json
+{"event":"login","code":0,"connId":"0621ccfffe50d3cd-000019e1-00e0283f-…"}
+```
+
+Four connections, both private hosts (`wss://ws.bitget.com/v3/ws/private` and
+`wss://ws.bitget.com/v2/ws/private`), identical answer. Consequences for the
+check at `src/services/bitgetWs.ts:469`:
+
+| Comparison | Result |
+|---|---|
+| `msg.code === "00000"` | fails — the bug this item predicted |
+| `msg.code === "0"` | **also fails** — strict equality against a number |
+| `msg.code === 0` | the only form that matches |
+
+So the fix is not "accept `"0"` instead of `"00000"`" — it is to stop
+string-comparing a field whose type varies by generation.
+
+Two side findings:
+
+- **Timestamp unit does not matter.** Milliseconds and seconds were each accepted
+  with a signature computed over the value sent, on both hosts. The doc
+  self-contradiction recorded in `docs/bitget-api/01_sign.md` (prose says ms,
+  Java sample and wire example say seconds) has no effect on the venue. Not
+  tested: whether a *wrong* WS signature is rejected.
+- **The 40085 UTA gate is REST-only.** A UTA account can open
+  `wss://ws.bitget.com/v2/ws/private` and log in successfully.
+
+Evidence and captures: `docs/bitget-api/14_uta_v3.md`. Remaining work on this
+item is the one-line check in `bitgetWs.ts`; the code change is not made yet, so
+the status stays `in-progress`.
+
 ## Symptom
 
 Cachy recognises a successful Bitget WebSocket login only when the venue

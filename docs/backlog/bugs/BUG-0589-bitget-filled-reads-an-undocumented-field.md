@@ -21,6 +21,31 @@ depends_on: [BUG-0590]
 
 # BUG-0589 — Bitget order `filled` reads `filledQty`, which the mirror never documents
 
+## Evidence found (2026-10-03) — the field name was never real
+
+`filledQty` appears in no Bitget generation. This is not a case of the docs
+documenting an older shape; the field does not exist. On `/api/v3/*`, observed
+live:
+
+| Meaning | Field | Endpoint |
+|---|---|---|
+| Ordered size | `qty` | `/api/v3/trade/unfilled-orders` |
+| Cumulative filled size | `cumExecQty` | `/api/v3/trade/unfilled-orders` |
+| One execution | `execQty` | `/api/v3/trade/fills` |
+
+`NormalizedOrder.filled` should therefore read `cumExecQty` for the aggregate and
+`execQty` for a single fill — different quantities at different granularities,
+neither named `filledQty`, and `baseVolume` (the name the Classic mirror
+documents) is a market-data field that does not appear on either order endpoint.
+
+Both read paths in `src/utils/server/venues/bitget.ts` (`:131`, `:171`) carry the
+same three lines, and both need the envelope change too: V3 answers
+`data: { list, cursor }`, not `data: [...]`.
+
+Evidence: `docs/bitget-api/14_uta_v3.md`. The blocker named in BUG-0590 is
+resolved for the UTA generation; the Classic half still needs a Classic-mode
+account.
+
 ## Symptom
 
 Every Bitget order reports **zero filled**, whatever actually executed. A
