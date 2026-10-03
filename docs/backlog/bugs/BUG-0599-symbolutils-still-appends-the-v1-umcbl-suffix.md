@@ -2,7 +2,7 @@
 id: BUG-0599
 title: "`normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects"
 type: bug
-status: specced
+status: in-progress
 priority: P1
 milestone: none
 created: "2026-09-30"
@@ -11,6 +11,8 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/bug-0599-drop-umcbl-wire-suffix
 ---
 
 # Remove the V1 `_UMCBL` suffix from `normalizeSymbol` and audit its consumers
@@ -101,6 +103,59 @@ plain normalization, so there is one place that decides a wire symbol.
       suites added in PR #3771)
 - [ ] A test reproduces the defect and fails without the fix — `normalizeSymbol`
       returns a symbol the live API accepts
+
+## State
+
+Investigation done, implementation not started. Branch
+`fix/bug-0599-drop-umcbl-wire-suffix`, claimed by `opencode`.
+
+**The two-line diff is the easy half; the persisted key is the real work.** The
+wire side is already solved: `bitgetWireSymbol()` (`src/utils/symbolUtils.ts:90`)
+strips the suffix, `toBitgetContract()` (`src/utils/server/venues/bitget.ts:365`)
+strips it, and `routes/api/bitget/contracts/+server.ts:34` strips it. Removing
+the append at `symbolUtils.ts:60-62` therefore closes the `40034` class, and
+`bitgetWireSymbol` stays useful as the defensive strip for data written before
+the change — it is not redundant.
+
+**AC 4 has a concrete orphan instance, verified.** `tradeState.symbol` is the
+normalized symbol and it is persisted: `src/stores/trade.svelte.ts:450` writes
+the snapshot to `LOCAL_STORAGE_TRADE_KEY`. On reload, line 337 restores it
+**raw** —
+
+```ts
+this.symbol = data.symbol;
+```
+
+— without passing through `normalizeSymbol`. So a user who had Bitget selected
+resumes with `BTCUSDT_UMCBL` in `tradeState.symbol`, while every subsequent
+`normalizeSymbol(sym, "bitget")` would yield `BTCUSDT`. Nothing reconciles the
+two. This is a Class A store (`localStorage`), so per ADR-0001 the data is the
+user's and the fix has to canonicalise it forward rather than drop it.
+
+**Call-site audit — only the `provider === "bitget"` paths are affected.** The
+majority of importers pass `"bitunix"` literally and are untouched. Affected:
+
+- *wire / adapter boundary* — `services/exchange/bitgetAdapter.ts:93`,
+  `services/api/marketData.ts:279` and `:696`, `services/bitgetWs.ts:482,532,638,664`
+- *store-key lookup* — `components/inputs/TradeSetupInputs.svelte:88`,
+  `services/app.ts:399`, `services/appEffects.svelte.ts:109,145`,
+  `services/tradeService.ts:1785,1932,2097`, `services/calculatorService.ts:279`
+- *store-key equality/precision* — `lib/calculators/tpsl.ts:332-333`,
+  `AddToPositionModal:82`, `ClosePositionModal:87,101`,
+  `TpSlCreateModal:118`, `TpSlEditModal:101`, `PlaceOrderPanel:134,153`,
+  `ExchangeAccountControls:88`, `services/dataRepairService.ts:99`,
+  `services/mdaService.ts:37`, `stores/trade.svelte.ts:474,499`
+- *persisted raw restore* — `stores/trade.svelte.ts:337` (the orphan above)
+
+In-memory stores (`marketState.data`, `symbolMeta`, `accountState`) need no
+migration: the same function writes and reads them, so both sides move together.
+Only persisted Class A data needs the forward canonicalisation.
+
+**Open decision, needs a human:** whether the fix canonicalises the restored
+symbol in place (`trade.svelte.ts:337`) or migrates the persisted payload on
+load. The first is a one-line change confined to one store; the second also
+rewrites what the user has on disk. `area: exchange` at P1, so this wants a
+decision rather than an agent's guess.
 
 ## Links
 
