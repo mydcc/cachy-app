@@ -1407,6 +1407,10 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             entry: $_("chart.lines.entry"),
             liquidation: $_("chart.lines.liq"),
             breakEven: $_("chart.lines.breakEven"),
+            takeProfit: $_("chart.lines.takeProfit"),
+            stopLoss: $_("chart.lines.stopLoss"),
+            buyLimit: $_("chart.lines.buyLimit"),
+            sellLimit: $_("chart.lines.sellLimit"),
         };
 
         untrack(() => {

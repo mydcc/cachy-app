@@ -20,6 +20,7 @@
   import { Chart, type ChartConfiguration, type Plugin } from "chart.js";
   import { browser } from "$app/environment";
   import "../../lib/chartSetup"; // Ensure Chart.js defaults are loaded
+  import { _ } from "../../locales/i18n";
   import type {
     PatternDefinition,
     CandleData,
@@ -101,7 +102,7 @@
     return {
       datasets: [
         {
-          label: "Wicks",
+          label: $_("candlestickPatterns.chart.wicks"),
           data: wickData,
           backgroundColor: colors,
           borderColor: colors,
@@ -110,7 +111,7 @@
           order: 1,
         },
         {
-          label: "Bodies",
+          label: $_("candlestickPatterns.chart.bodies"),
           data: bodyData,
           backgroundColor: colors,
           borderColor: colors,

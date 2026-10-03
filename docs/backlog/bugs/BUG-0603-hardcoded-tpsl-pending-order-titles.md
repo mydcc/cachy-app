@@ -2,7 +2,9 @@
 id: BUG-0603
 title: TP/SL and pending-order chart line titles stay English in German
 type: bug
-status: specced
+status: done
+assignee: opencode
+branch: fix/i18n-hardcoded-labels
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -69,11 +71,31 @@ the (nearly coincident) Entry and Break-Even lines.
 
 ## Acceptance criteria
 
-- [ ] A test fails without the fix: with the host passing German labels, the
+- [x] A test fails without the fix: with the host passing German labels, the
       titles of the TP/SL and pending-order lines are still English
-- [ ] The test passes with the fix
-- [ ] No regression in the distance format (`+1.20% / +200.00`) or in the
+- [x] The test passes with the fix
+- [x] No regression in the distance format (`+1.20% / +200.00`) or in the
       price text itself
-- [ ] The bare `"TP"` / `"SL"` literals are gone from the service
+- [x] The bare `"TP"` / `"SL"` literals are gone from the service
+
+## State
+
+Shipped in `fix/i18n-hardcoded-labels`. The three-field `labels` object grew
+into a file-local `PriceLineLabels` (seven fields), which keeps the input type
+and the new `syncPendingOrders(orders, colors, labels)` parameter in sync
+without duplicating the shape. `destroy()` passes `this.lastInput.labels` while
+`lastInput` is still set; a null `lastInput` means `update()` never ran, so
+there are no pending-order lines left to clear either.
+
+German values: `TP`, `SL`, `Kauf`, `Verkauf`. The short side words are the point
+— `Kauf: 61000.00` fits the label box that already overlaps the near-coincident
+Entry and B/E lines, where `Buy Limit: 61000.00` pushed past them. English keeps
+`Buy Limit` / `Sell Limit`; that width asymmetry is deliberate, and shortening
+the English copy is a separate call.
+
+RED was verified before the fix: the new test saw
+`['Einstieg', 'Liq.', 'B/E', …]` and failed on
+`toContain("TP-Gewinn: 120 (+20.00% / +20.00)")` — i.e. it failed on the title
+built in `update()`, not on a missing selector.
 
 ## Links

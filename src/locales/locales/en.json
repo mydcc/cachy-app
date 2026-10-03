@@ -1124,6 +1124,11 @@
           "topAsset": "Top Asset",
           "mostProfitableStrategy": "Most Profitable Strategy",
           "durationAnalysis": "Duration Analysis",
+          "durationUnder15m": "< 15m",
+          "durationM15to1h": "15m - 1h",
+          "durationH1to4h": "1h - 4h",
+          "durationH4to24h": "4h - 24h",
+          "durationOver24h": "> 24h",
           "confluence": "Confluence Matrix",
           "simBest": "90th Percentile (Best)",
           "simMedian": "Median",
@@ -4119,6 +4124,10 @@
       "interpretation": "### Rules\n* Resistance is solid. Short.",
       "indicatorCombination": "The signal is stronger if the wick candles occur on high volume. A bearish divergence on oscillators (RSI, MACD) increases the significance."
     },
+    "chart": {
+      "wicks": "Wicks",
+      "bodies": "Bodies"
+    },
     "advancing_wicks": {
       "name": "Advancing Wicks",
       "description": "Multiple candles with long lower wicks at support.\n\n### Mathematical Criteria\n\n  $$ \\text{Low}_{1} \\approx \\text{Low}_{2} \\text{ w/ Wicks} $$",
@@ -4498,7 +4507,11 @@
     "lines": {
       "entry": "Entry",
       "liq": "Liq.",
-      "breakEven": "B/E"
+      "breakEven": "B/E",
+      "takeProfit": "TP",
+      "stopLoss": "SL",
+      "buyLimit": "Buy Limit",
+      "sellLimit": "Sell Limit"
     },
     "pane": {
       "collapse": "Collapse pane",

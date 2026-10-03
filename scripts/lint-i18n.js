@@ -295,7 +295,12 @@ function scanAttributes(lines, filePath) {
 
 function scanObjectLabels(lines, filePath) {
     if (!OBJECT_LABEL_FILES.has(path.resolve(filePath))) return;
-    const re = /\b(label|title|description)\s*:\s*(?:"([^"{}]*)"|'([^'{}]*)')/g;
+    // `labelKey` belongs here for the same reason `label` does: several modules
+    // store a localization key in that field name rather than display text.
+    // Without it, a hardcoded `labelKey: "< 30m"` would pass unnoticed, because
+    // the alternation must be followed by `\s*:` — `K` matches neither.
+    // Longer alternatives come first so the match is not left to backtracking.
+    const re = /\b(labelKey|label|title|description)\s*:\s*(?:"([^"{}]*)"|'([^'{}]*)')/g;
     lines.forEach((line, index) => {
         if (hasIgnore(lines, index)) return;
         if (line.includes('$_(')) return;

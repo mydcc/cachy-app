@@ -88,6 +88,26 @@ export interface PendingOrderLineInput {
     kind?: "entry" | "takeProfit" | "stopLoss";
 }
 
+/**
+ * Localized titles for every line this manager draws. Required rather than
+ * defaulted: this module stays framework-agnostic (no Svelte imports), so the
+ * host component resolves the strings and passes them in. That keeps the
+ * English fallbacks out of the service entirely instead of hiding them behind
+ * a `?? "Entry"` the i18n linter cannot see.
+ */
+interface PriceLineLabels {
+    entry: string;
+    liquidation: string;
+    breakEven: string;
+    /** "TP" in both locales — kept short because the label box already overlaps the Entry line. */
+    takeProfit: string;
+    /** "SL" in both locales, for the same reason. */
+    stopLoss: string;
+    /** Side word for a resting entry order, e.g. "Buy Limit" (en) / "Kauf" (de). */
+    buyLimit: string;
+    sellLimit: string;
+}
+
 export interface PriceLineUpdateInput {
     position: PositionLinesInput | null;
     takeProfit: TpSlLineInput | null;
@@ -98,18 +118,8 @@ export interface PriceLineUpdateInput {
     tickSize: Decimal;
     /** `supports.tpSl === false` on the active exchange — lines are shown but not draggable. */
     readOnly: boolean;
-    /**
-     * Localized titles for the position lines. Required rather than defaulted:
-     * this module stays framework-agnostic (no Svelte imports), so the host
-     * component resolves the strings and passes them in. That keeps the
-     * English fallbacks out of the service entirely instead of hiding them
-     * behind a `?? "Entry"` the i18n linter cannot see.
-     */
-    labels: {
-        entry: string;
-        liquidation: string;
-        breakEven: string;
-    };
+    /** Localized titles for every line this manager draws. See `PriceLineLabels`. */
+    labels: PriceLineLabels;
     /** Theme-aware colors from the host (CandleChartView). If omitted, uses fallback hex values. */
     colors?: {
         entry: string;
@@ -281,8 +291,8 @@ export class PriceLineManager {
 
         const tpTitle =
             input.position && input.takeProfit
-                ? `TP: ${input.takeProfit.triggerPrice.toFixed()} (${formatDistance(input.position.entryPrice, input.takeProfit.triggerPrice, input.position.side, input.position.size)})`
-                : "TP";
+                ? `${input.labels.takeProfit}: ${input.takeProfit.triggerPrice.toFixed()} (${formatDistance(input.position.entryPrice, input.takeProfit.triggerPrice, input.position.side, input.position.size)})`
+                : input.labels.takeProfit;
         if (this.drag?.kind !== "takeProfit") {
             this.syncLine(
                 "takeProfitLine",
@@ -293,8 +303,8 @@ export class PriceLineManager {
 
         const slTitle =
             input.position && input.stopLoss
-                ? `SL: ${input.stopLoss.triggerPrice.toFixed()} (${formatDistance(input.position.entryPrice, input.stopLoss.triggerPrice, input.position.side, input.position.size)})`
-                : "SL";
+                ? `${input.labels.stopLoss}: ${input.stopLoss.triggerPrice.toFixed()} (${formatDistance(input.position.entryPrice, input.stopLoss.triggerPrice, input.position.side, input.position.size)})`
+                : input.labels.stopLoss;
         if (this.drag?.kind !== "stopLoss") {
             this.syncLine(
                 "stopLossLine",
@@ -303,13 +313,14 @@ export class PriceLineManager {
             );
         }
 
-        this.syncPendingOrders(input.pendingOrders ?? [], colors);
+        this.syncPendingOrders(input.pendingOrders ?? [], colors, input.labels);
     }
 
     /** Diffs the resting-order set against the previous render: creates new lines, updates moved ones, removes filled/cancelled ones. */
     private syncPendingOrders(
         orders: PendingOrderLineInput[],
         colors: { takeProfit: string; stopLoss: string; pendingOrder: string },
+        labels: PriceLineLabels,
     ): void {
         const seen = new Set<string>();
         for (const order of orders) {
@@ -317,10 +328,10 @@ export class PriceLineManager {
             const kind = order.kind ?? "entry";
             const title =
                 kind === "takeProfit"
-                    ? `TP: ${order.price.toFixed()}`
+                    ? `${labels.takeProfit}: ${order.price.toFixed()}`
                     : kind === "stopLoss"
-                      ? `SL: ${order.price.toFixed()}`
-                      : `${order.side === "buy" ? "Buy" : "Sell"} Limit: ${order.price.toFixed()}`;
+                      ? `${labels.stopLoss}: ${order.price.toFixed()}`
+                      : `${order.side === "buy" ? labels.buyLimit : labels.sellLimit}: ${order.price.toFixed()}`;
             const color =
                 kind === "takeProfit" ? colors.takeProfit : kind === "stopLoss" ? colors.stopLoss : colors.pendingOrder;
             const priceNum = order.price.toNumber();
@@ -356,7 +367,10 @@ export class PriceLineManager {
         this.syncLine("breakEvenLine", null, COLORS.breakEven);
         this.syncLine("takeProfitLine", null, COLORS.takeProfit);
         this.syncLine("stopLossLine", null, COLORS.stopLoss);
-        this.syncPendingOrders([], COLORS);
+        // lastInput is still set here (it is cleared below), so its labels are
+        // available. A null lastInput means update() never ran, which means
+        // there are no pending-order lines to clear either.
+        if (this.lastInput) this.syncPendingOrders([], COLORS, this.lastInput.labels);
         this.lastInput = null;
     }
 
