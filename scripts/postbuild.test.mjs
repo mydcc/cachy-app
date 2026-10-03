@@ -101,9 +101,9 @@ describe('precompressFonts', () => {
     const fontFile = path.join(fontsDir, 'Inter-Variable.ttf');
     fs.writeFileSync(fontFile, Buffer.from('mock font content '.repeat(100)));
 
-    const count = precompressFonts(root);
+    const written = precompressFonts(root);
 
-    expect(count).toBe(1);
+    expect(written).toBe(2);
     expect(fs.existsSync(`${fontFile}.br`)).toBe(true);
     expect(fs.existsSync(`${fontFile}.gz`)).toBe(true);
   });
@@ -117,9 +117,9 @@ describe('precompressFonts', () => {
     fs.writeFileSync(`${fontFile}.br`, Buffer.from('existing br'));
     fs.writeFileSync(`${fontFile}.gz`, Buffer.from('existing gz'));
 
-    const count = precompressFonts(root);
+    const written = precompressFonts(root);
 
-    expect(count).toBe(1);
+    expect(written).toBe(0);
     expect(fs.readFileSync(`${fontFile}.br`, 'utf-8')).toBe('existing br');
     expect(fs.readFileSync(`${fontFile}.gz`, 'utf-8')).toBe('existing gz');
   });

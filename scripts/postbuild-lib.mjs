@@ -103,7 +103,7 @@ export function precompressFonts(root = REPO_ROOT) {
   const clientDir = path.join(root, 'build', 'client');
   if (!fs.existsSync(clientDir)) return 0;
 
-  let count = 0;
+  let written = 0;
   function walk(dir) {
     let entries;
     try {
@@ -129,19 +129,19 @@ export function precompressFonts(root = REPO_ROOT) {
               },
             });
             fs.writeFileSync(brPath, brContent);
+            written += 1;
           }
 
           if (!fs.existsSync(gzPath)) {
             const gzContent = zlib.gzipSync(content, { level: zlib.constants.Z_BEST_COMPRESSION });
             fs.writeFileSync(gzPath, gzContent);
+            written += 1;
           }
-
-          count += 1;
         }
       }
     }
   }
 
   walk(clientDir);
-  return count;
+  return written;
 }

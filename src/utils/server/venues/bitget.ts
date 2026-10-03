@@ -356,19 +356,10 @@ function parseBitgetEnvelope(
 /**
  * Reduces a symbol Cachy is holding to the bare contract V2 addresses.
  *
- * BUG-0599 stopped `normalizeSymbol` from appending the V1 `_UMCBL` suffix, so
- * the strip below is no longer compensating for this app's own helper — it is
- * the wire-boundary guarantee, and it stays for that reason. Both callers take a
- * symbol from outside the store: `fetchBitgetKlines` is reached through the
- * chart's timeframe plumbing and `fetchBitgetTickers` through the query-string
- * route, so a raw `BTCUSDT_UMCBL` can arrive from a persisted payload, a
- * bookmark, or a hand-edited request without ever passing through
- * `normalizeSymbol`. Without the strip that reaches the venue and comes back
- * `40034`, with nothing in the app to explain it.
- *
- * Keeping it here rather than relying on `stripLegacyVenueSuffix` alone is deliberate:
- * this is the last point before the query string is built, so the guarantee does
- * not depend on every caller upstream having normalized.
+ * `normalizeSymbol(symbol, "bitget")` still appends the V1 `_UMCBL` suffix and
+ * has thirty callers, so the venue receives the suffixed form from the klines
+ * and tickers routes. Stripping it here is what makes the request valid;
+ * merely not appending it would leave those callers broken.
  */
 function bitgetV2Symbol(symbol: string): string {
   return symbol.trim().toUpperCase().replace(/_UMCBL$/, "");

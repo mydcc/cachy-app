@@ -21,18 +21,13 @@
 
 /**
  * Normalizes a trading symbol for a specific provider.
- *
  * @param symbol The raw symbol (e.g., "BTC", "BTCUSDT", "btcusdt")
- * @param _provider The API provider ("bitunix", "bitget", etc.) — retained
- *   because every caller passes it and the distinction is worth reading at the
- *   call site, but no longer consulted. BUG-0599 removed the last venue-specific
- *   behaviour (Bitget's `_UMCBL` suffix), so normalization is now the same
- *   canonical bare pair for every provider.
- * @returns The normalized symbol string in uppercase, without any venue suffix.
+ * @param provider The API provider ("bitunix", "bitget", etc.)
+ * @returns The normalized symbol string in uppercase and provider-specific format.
  */
 export function normalizeSymbol(
   symbol: string,
-  _provider: "bitunix" | "bitget" | string,
+  provider: "bitunix" | "bitget" | string,
 ): string {
   if (!symbol) return "";
 
@@ -41,15 +36,7 @@ export function normalizeSymbol(
     .toUpperCase()
     .replace(".P", "")
     .replace(":USDT", "")
-    .replace("-P", "")
-    // BUG-0599 — strip the V1 suffix, never append it. `_UMCBL` was the wire
-    // format Bitget's decommissioned `/api/v1/mix/` generation used; V2
-    // addresses contracts by the bare pair and answers `40034 "Parameter
-    // BTCUSDT_UMCBL does not exist"` for the suffixed form. Stripping rather
-    // than merely not-appending also converges symbols that arrive already
-    // suffixed from a payload written before this change, which is what keeps
-    // there being exactly one canonical key per contract.
-    .replace(/_UMCBL$/, "");
+    .replace("-P", "");
 
   // If it's just "BTC", make it "BTCUSDT"
   // Heuristic: If length <= 5 and not containing USDT/USDC, append USDT.
@@ -69,6 +56,11 @@ export function normalizeSymbol(
     s = s.substring(0, s.length - 1);
   }
 
+  // Bitget specific suffixing (for Futures)
+  if (provider === "bitget" && !s.includes("_UMCBL")) {
+    s = s + "_UMCBL";
+  }
+
   return s;
 }
 
@@ -81,24 +73,21 @@ export function formatSymbolForDisplay(symbol: string): string {
 }
 
 /**
- * Strips the legacy V1 `_UMCBL` suffix from a symbol Cachy is holding.
+ * The inverse of `normalizeSymbol` for Bitget: turns a store key back into the
+ * pair a Bitget endpoint expects.
  *
- * BUG-0599. The suffix is the V1 wire format, retired along with
- * `/api/v1/mix/`. It used to be this app's own store key, and three stores
- * persisted under it: chart drawings, favourite symbols and alert rules. Those
- * records are Class A data written before the change, so anything that matches a
- * persisted record by symbol has to compare on the stripped form or the record
- * becomes unreachable — silently, because a drawing that does not load and an
- * alert that does not fire look exactly like a chart with nothing on it.
+ * BUG-0598. The `_UMCBL` suffix is this app's internal bookkeeping — the key
+ * `marketState` and the chart look up. Bitget V2 speaks the bare pair in both
+ * directions, so the suffix has to come off before anything reaches the wire.
+ * `formatSymbolForDisplay` cannot do this job: it also strips `USDT`, which
+ * would turn `BTCUSDT` into `BTC` and ask the venue about a contract that does
+ * not exist.
  *
- * Deliberately narrower than `normalizeSymbol`: that one also trims,
- * upper-cases and infers a quote asset, so it is the function for raw input,
- * not for a key that is already canonical. This one is the identity on
- * already-normalized data, which makes it safe on a comparison path.
- *
- * Keep it on the boundary — the wire, and the reads of persisted records.
+ * Precondition: the input is already a store key, i.e. it came out of
+ * `normalizeSymbol`. This neither trims nor upper-cases, so a raw user- or
+ * API-supplied string would pass through as-is. Keep it on the wire boundary.
  */
-export function stripLegacyVenueSuffix(symbol: string): string {
+export function bitgetWireSymbol(symbol: string): string {
   if (!symbol) return "";
   return symbol.replace(/_UMCBL$/, "");
 }

@@ -334,17 +334,7 @@ class TradeManager {
           this.stopLossPrice = data.stopLossPrice;
           this.leverage = data.leverage;
           this.fees = data.fees;
-          // BUG-0599 — canonicalize on the way in. This snapshot is Class A
-          // data on the user's device and may have been written before the V1
-          // `_UMCBL` suffix stopped being produced, in which case `data.symbol`
-          // is `BTCUSDT_UMCBL` while every `normalizeSymbol` call from here on
-          // yields `BTCUSDT`. Restoring it raw would leave the resumed symbol
-          // unfindable in every store keyed by the canonical form. The empty
-          // provider is honest rather than a placeholder: no venue context is
-          // available here (the snapshot does not carry one, and pulling in
-          // settingsState would invert the store dependency), and since
-          // BUG-0599 normalization is venue-independent anyway.
-          this.symbol = normalizeSymbol(data.symbol, "");
+          this.symbol = data.symbol;
           this.atrValue = data.atrValue;
           this.atrMultiplier = data.atrMultiplier;
           this.useAtrSl = data.useAtrSl;

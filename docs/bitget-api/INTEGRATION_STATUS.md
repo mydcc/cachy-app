@@ -1,8 +1,6 @@
 # Bitget API — integration status in Cachy
 
-Reconciled on: **2026-09-28**. Vendor surface crawled 2026-09-28. Symbol-key
-state refreshed **2026-10-03** after BUG-0599 — see
-[Symbol keys](#symbol-keys-one-canonical-pair) below.
+Reconciled on: **2026-09-28**. Vendor surface crawled 2026-09-28.
 
 Purpose: state, per capability, whether **Bitget supports it natively** and
 whether **Cachy uses it** — and where the code that decides lives. This is not
@@ -10,10 +8,8 @@ a plan document. Anything that is out of scope is marked out of scope, not
 queued.
 
 **Status of the reconciliation as a whole: Cachy speaks a dead API generation.**
-The public market rows are V2 as of BUG-0576; the account, position, trade and
-WebSocket rows still point at `/api/mix/v1/…` paths that answer `30032`. Read
-`09_v1_vs_v2.md` before trusting any row marked ☠️, and read the umbrella item
-BUG-0576 for the order the remaining rows are migrated in.
+9 of the 10 REST call shapes below point at `/api/mix/v1/…` paths that answer
+`30032`. Read `09_v1_vs_v2.md` before trusting any row marked ☠️.
 
 **Legend**
 
@@ -28,30 +24,6 @@ BUG-0576 for the order the remaining rows are migrated in.
 code exists, is exercised by the test suite, and would work against a live V1
 API — it fails at the venue instead of at the boundary. Nothing in Cachy
 detects the difference, because the boundary never sees a request.
-
-## Symbol keys: one canonical pair
-
-Since BUG-0599 every normalized Bitget symbol is the bare pair V2 addresses —
-`BTCUSDT`, never `BTCUSDT_UMCBL`. `normalizeSymbol` strips the V1 suffix rather
-than appending it and no longer branches on the venue, so **one key per contract
-serves as both the store key and the wire symbol**. That is the state every row
-below assumes; the rows themselves are about endpoint generation, not symbols.
-
-Two consequences worth knowing before touching a call site:
-
-- `stripLegacyVenueSuffix` is the narrow helper for the two places that still
-  need the old spelling removed: the wire boundary
-  (`venues/bitget.ts`, `bitgetWs.ts`) and the reads of records persisted before
-  the change. `formatSymbolForDisplay` keeps its own strip for a different
-  reason — journal entries, presets and watchlists are the user's history and
-  must keep rendering.
-- **Three stores persisted under the old key** and converge it away on read:
-  chart drawings (`drawings.svelte.ts`), favourite symbols
-  (`favorites.svelte.ts`) and alert rules (`alertEngine/ruleLoopWiring.ts`).
-  All three are Class A records, so they are read forward rather than dropped.
-  A new symbol-keyed store must either strip on read or never have written the
-  suffix — matching a persisted record by strict equality is what made the three
-  above unreachable for one release.
 
 ## Architecture in brief
 

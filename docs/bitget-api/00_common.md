@@ -66,10 +66,7 @@ carries the same meaning; see `09_v1_vs_v2.md`.
 ### `symbol`
 
 V2 uses the bare pair: `BTCUSDT`, `ETHUSDT`. No product suffix. V1 required
-`_UMCBL`, which Cachy used to append in
-[`src/utils/symbolUtils.ts`](../../src/utils/symbolUtils.ts) — it now strips the
-suffix instead, so the same normalized symbol serves as both the store key and
-the wire symbol. See `09_v1_vs_v2.md`.
+`_UMCBL`, so Cachy appends it in [`src/utils/symbolUtils.ts:60`](../../src/utils/symbolUtils.ts).
 
 Coin-M **delivery** futures use a different format entirely — pair plus month
 code plus year, e.g. `BTCUSDH23` (March 2023). Month codes: `F` January, `G`

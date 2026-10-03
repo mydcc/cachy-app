@@ -57,7 +57,7 @@ describe("app.setupRealtimeUpdates - Bitget symbol-key parity", () => {
     marketState.data = {
       ...marketState.data,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      BTCUSDT: { ...marketState.data["BTCUSDT"], lastPrice: "65000" } as any,
+      BTCUSDT_UMCBL: { ...marketState.data["BTCUSDT_UMCBL"], lastPrice: "65000" } as any,
     };
     flushSync();
     await vi.waitFor(() => {

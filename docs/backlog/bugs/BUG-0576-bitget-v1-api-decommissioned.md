@@ -140,10 +140,8 @@ trap:
 1. **Paths and identifiers.** `placeOrder` → `place-order`,
    `allPosition` → `all-position`, `order/current` → `order/orders-pending`,
    `order/history` → `order/orders-history`. `symbol` drops the `_UMCBL`
-   suffix, and the helper that existed solely for V1 has since been removed
-   rather than extended — **done, see BUG-0599**: `normalizeSymbol` now strips
-   the suffix instead of appending it and no longer branches on the venue.
-   `productType`
+   suffix, so the helper at `src/utils/symbolUtils.ts:59` exists
+   solely for V1 and would be removed rather than extended. `productType`
    changes from `umcbl` to `USDT-FUTURES`. The V1 misspelling
    `timInForceValue` becomes `force` with a different value set.
 
@@ -243,7 +241,7 @@ risks reintroducing it.
       table, which fails today
 - [ ] Every REST call shape in `venues/bitget.ts` and `bitgetUpstreamPath`
       (`src/utils/exchange/restSigningPlan.ts:272`) is on `/api/v2/mix/…`
-- [x] `src/utils/symbolUtils.ts` no longer appends `_UMCBL` — shipped in BUG-0599
+- [ ] `src/utils/symbolUtils.ts` no longer appends `_UMCBL`
 - [ ] `place-order` sends `productType` and `marginMode`; no request body
       contains `timInForceValue`
 - [ ] `fetchBitgetAccount` parses `posMode` out of the account response, and

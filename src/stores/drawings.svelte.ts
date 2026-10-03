@@ -50,7 +50,6 @@ import {
 import { logger } from "../services/logger";
 import { safeLocalStorage } from "../utils/storageWrapper";
 import { generateId } from "../utils/utils";
-import { stripLegacyVenueSuffix } from "../utils/symbolUtils";
 
 /** A price accepted from the UI: whatever it is, it becomes an exact decimal string. */
 type PriceInput = Decimal | string | number;
@@ -114,19 +113,7 @@ class DrawingStore {
             const parsed: unknown = JSON.parse(raw);
             const list = (parsed as DrawingsDocument)?.drawings;
             if (!Array.isArray(list)) return;
-
-            // BUG-0599 — drawings were written under the V1 `_UMCBL` store key,
-            // and `forSymbol` matches by strict equality. Left as-is, every
-            // drawing a Bitget trader made before that change becomes
-            // unreachable: the chart asks for `BTCUSDT`, the record says
-            // `BTCUSDT_UMCBL`, and nothing reports a miss. These are Class A
-            // records of what the trader believes about a market, so they are
-            // converged onto the canonical key on read rather than dropped.
-            // The next persist() then writes the clean form forward.
-            this.drawings = list.filter(isDrawing).map((d) => ({
-                ...d,
-                symbol: stripLegacyVenueSuffix(d.symbol),
-            }));
+            this.drawings = list.filter(isDrawing);
         } catch (e) {
             // A corrupt file must not cost the trader their chart. Keep the
             // bad bytes on disk rather than overwriting them with `[]` — they

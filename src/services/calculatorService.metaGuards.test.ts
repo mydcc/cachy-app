@@ -163,10 +163,9 @@ describe("BUG-0501 — no metadata, no orderable size", () => {
 describe("BUG-0501 — venue-aware metadata", () => {
     it("rounds a Bitget symbol down to that venue's precision", () => {
         settingsState.apiProvider = "bitget";
-        // BUG-0599: the key is the bare pair now. It used to be seeded as
-        // `BTCUSDT_UMCBL`, reachable only because normalizeSymbol appended the
-        // V1 suffix for Bitget — nothing produces that key any more.
-        seedMeta("BTCUSDT", { basePrecision: 4 });
+        // Only the venue-normalized key exists — a Bitunix-shaped lookup
+        // would miss it and refuse (or, before the fix, skip the rounding).
+        seedMeta("BTCUSDT_UMCBL", { basePrecision: 4 });
         // 100 risk / 810 distance = 0.12345679… → 0.1234 down, never 0.1235.
         seedTrade({ entryPrice: "50000", stopLossPrice: "49190" });
         app.calculateAndDisplay();
@@ -175,27 +174,21 @@ describe("BUG-0501 — venue-aware metadata", () => {
         expect(showError()).not.toHaveBeenCalled();
     });
 
-    it("addresses metadata by one canonical key, so no venue-shaped key can be missed", () => {
-        // BUG-0599 replaced the two divergence tests this used to hold — "does
-        // not serve a Bitunix entry for a Bitget symbol" and its mirror — because
-        // both are now impossible by construction: with a single canonical key
-        // there is no venue-shaped entry to keep apart, and the suffixed key they
-        // relied on is unreachable. They are replaced rather than deleted because
-        // the thing worth pinning is the property that replaced them.
-        //
-        // One seeded entry serves both venues, which is the assertion that fails
-        // if anyone reintroduces per-venue key shapes.
-        seedMeta("BTCUSDT", { basePrecision: 4 });
-        seedTrade({ entryPrice: "50000", stopLossPrice: "49190" });
-
-        settingsState.apiProvider = "bitunix";
-        app.calculateAndDisplay();
-        expect(resultsState.positionSize).toBe("0.1234");
-
+    it("does not serve a Bitunix entry for a Bitget symbol", () => {
         settingsState.apiProvider = "bitget";
+        seedMeta("BTCUSDT");
         app.calculateAndDisplay();
-        expect(resultsState.positionSize).toBe("0.1234");
-        expect(showError()).not.toHaveBeenCalled();
+
+        expect(resultsState.positionSize).toBe("-");
+        expect(showError()).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not serve a Bitget entry for a Bitunix symbol", () => {
+        seedMeta("BTCUSDT_UMCBL");
+        app.calculateAndDisplay();
+
+        expect(resultsState.positionSize).toBe("-");
+        expect(showError()).toHaveBeenCalledTimes(1);
     });
 });
 

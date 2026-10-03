@@ -224,36 +224,6 @@ describe("reading a file it did not write", () => {
         expect(drawingStore.drawings.map((d) => d.id)).toEqual(["ok"]);
     });
 
-    it("BUG-0599: still finds a drawing written under the legacy suffix", () => {
-        // Drawings were persisted under the V1 `_UMCBL` store key and
-        // `forSymbol` matches by strict equality, so a record left as-is becomes
-        // unreachable: the chart asks for `BTCUSDT`, the record says
-        // `BTCUSDT_UMCBL`, and nothing reports a miss. These are Class A records
-        // of what the trader believes about a market, so the load converges them
-        // onto the canonical key instead of dropping them.
-        drawingStore.reset();
-        localStorage.setItem(
-            DRAWINGS_STORAGE_KEY,
-            JSON.stringify({
-                schema_version: 1,
-                drawings: [
-                    {
-                        id: "legacy",
-                        kind: "horizontal",
-                        symbol: "BTCUSDT_UMCBL",
-                        price: "50000",
-                        createdAt: 1,
-                    },
-                ],
-            }),
-        );
-
-        drawingStore.load();
-
-        expect(drawingStore.forSymbol("BTCUSDT")).toHaveLength(1);
-        expect(drawingStore.forSymbol("BTCUSDT")[0].id).toBe("legacy");
-    });
-
     it("survives bytes that are not JSON at all", () => {
         drawingStore.reset();
         localStorage.setItem(DRAWINGS_STORAGE_KEY, "{not json");

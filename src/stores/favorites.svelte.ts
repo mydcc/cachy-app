@@ -11,7 +11,6 @@ import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState, MAX_FAVORITE_SYMBOLS } from "./settings.svelte";
 import { safeLocalStorage } from "../utils/storageWrapper";
-import { stripLegacyVenueSuffix } from "../utils/symbolUtils";
 
 /**
  * Legacy storage key. Read once for migration, then left in place -- deleting a
@@ -113,33 +112,13 @@ class FavoritesManager {
     }
   }
 
-  /**
-   * Whether a symbol is favourited, matching across the legacy suffix.
-   *
-   * BUG-0599. Favourites written while Bitget symbols carried the V1 `_UMCBL`
-   * suffix are still in the settings list, and the symbols arriving from the UI
-   * no longer carry it. A plain `includes` therefore reports an existing
-   * favourite as absent — and `toggleFavorite` would then append a second
-   * entry instead of removing the first, leaving the original unreachable.
-   */
-  has(symbol: string): boolean {
-    if (!symbol) return false;
-    const wanted = stripLegacyVenueSuffix(symbol.toUpperCase());
-    return this.items.some((f) => stripLegacyVenueSuffix(f.toUpperCase()) === wanted);
-  }
-
   toggleFavorite(symbol: string) {
     if (!symbol) return;
     const upperSymbol = symbol.toUpperCase();
     const current = this.items;
 
-    // Compared through the same canonical form as `has`, so an entry stored
-    // under the legacy suffix toggles off instead of duplicating.
-    if (this.has(upperSymbol)) {
-      const wanted = stripLegacyVenueSuffix(upperSymbol);
-      this.items = current.filter(
-        (f) => stripLegacyVenueSuffix(f.toUpperCase()) !== wanted,
-      );
+    if (current.includes(upperSymbol)) {
+      this.items = current.filter((f) => f !== upperSymbol);
       return;
     }
 

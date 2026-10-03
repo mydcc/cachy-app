@@ -271,12 +271,10 @@ export class CalculatorService {
     }
 
     const venue = settingsState.apiProvider || "bitunix";
-    // Venue-normalized key only — BUG-0501. Metadata is addressed by the symbol
-    // key rather than by the raw user string, so a mismatch surfaces as missing
-    // metadata rather than as silently wrong rounding. BUG-0599 then removed the
-    // reason the venue argument existed: there is no longer a Bitget-shaped key
-    // that a Bitunix-shaped lookup could miss, so this is now simply the
-    // canonical key for either provider.
+    // Venue-normalized key only — BUG-0501. Bitunix normalization is the
+    // identity for standard symbols, so existing entries keep working; a
+    // Bitget entry (`BTCUSDT_UMCBL`) can neither be missed by a
+    // Bitunix-shaped lookup nor served for a Bitunix symbol.
     const rawSymbol = currentTradeState.symbol || "";
     const meta = marketState.symbolMeta[normalizeSymbol(rawSymbol, venue)];
     // BUG-0501: metadata is a precondition, not an optimisation. Without it

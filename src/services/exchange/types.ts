@@ -81,15 +81,7 @@ export interface AdapterStreams {
 
 /** Prices, candles and the public streams. */
 export interface MarketDataPort {
-    /**
-     * The venue's spelling of a symbol.
-     *
-     * BUG-0599: this used to differ per venue (`BTCUSDT` vs `BTCUSDT_UMCBL`).
-     * There is now one canonical bare pair for every venue, so an adapter's
-     * implementation is expected to return the same string either way — the
-     * method survives as the seam where a venue with a genuinely different
-     * spelling would be adapted.
-     */
+    /** The venue's spelling of a symbol (`BTCUSDT` vs `BTCUSDT_UMCBL`). */
     normalizeSymbol(symbol: string): string;
 
     fetchTicker(symbol: string, priority?: RequestPriority, timeout?: number): Promise<Ticker24h>;
