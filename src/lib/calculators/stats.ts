@@ -742,6 +742,9 @@ export function getDurationStats(journal: JournalEntry[], context?: JournalConte
     }
   });
 
+  // Renderer contract (BUG-0601): labelKeys are TranslationKeys, not display
+  // text — the future duration chart must resolve each via $_(). No .svelte
+  // file reads this field yet, so nothing renders in the wrong language.
   const labelKeys = buckets.map((b) => b.labelKey);
   const pnlData = buckets.map((b) => b.pnl);
   const winRateData = buckets.map((b) =>
