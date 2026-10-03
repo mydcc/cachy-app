@@ -180,4 +180,74 @@ describe("Trade Store Integration", () => {
 
         expect(tradeState.targets).toEqual(INITIAL_TRADE_STATE.targets);
     });
+
+    it("BUG-0599: canonicalizes a persisted symbol that still carries the V1 suffix", () => {
+        // A snapshot written before BUG-0599 holds `BTCUSDT_UMCBL`. Restoring it
+        // raw would leave the resumed symbol unfindable in every store keyed by
+        // the canonical form, because normalizeSymbol no longer produces the
+        // suffix — so the trade panel would come back on a symbol nothing else
+        // agrees on. Exercises the real hydration path, not a copy of its logic.
+        const stored = {
+            tradeType: "long",
+            accountSize: "1000",
+            riskPercentage: "1",
+            entryPrice: "50000",
+            stopLossPrice: "49000",
+            leverage: "10",
+            fees: "0.0140",
+            symbol: "BTCUSDT_UMCBL",
+            atrValue: null,
+            atrMultiplier: "1.2",
+            useAtrSl: false,
+            atrMode: "auto",
+            atrTimeframe: "5m",
+            tradeNotes: "",
+            tags: [],
+            targets: [{ price: "50000", percent: "100", isLocked: false }],
+            isPositionSizeLocked: false,
+            lockedPositionSize: null,
+            isRiskAmountLocked: false,
+            riskAmount: null,
+        };
+        localStorage.setItem("cachy_trade_store", JSON.stringify(stored));
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reaching the private load() is the point of this test
+        (tradeState as any).load();
+
+        expect(tradeState.symbol).toBe("BTCUSDT");
+    });
+
+    it("BUG-0599: leaves a canonical persisted symbol untouched on load()", () => {
+        // The canonicalization must not disturb the common case: a snapshot
+        // already written bare has to come back byte-identical, or the fix
+        // would be rewriting user data for no reason.
+        const stored = {
+            tradeType: "long",
+            accountSize: "1000",
+            riskPercentage: "1",
+            entryPrice: "50000",
+            stopLossPrice: "49000",
+            leverage: "10",
+            fees: "0.0140",
+            symbol: "ETHUSDT",
+            atrValue: null,
+            atrMultiplier: "1.2",
+            useAtrSl: false,
+            atrMode: "auto",
+            atrTimeframe: "5m",
+            tradeNotes: "",
+            tags: [],
+            targets: [{ price: "50000", percent: "100", isLocked: false }],
+            isPositionSizeLocked: false,
+            lockedPositionSize: null,
+            isRiskAmountLocked: false,
+            riskAmount: null,
+        };
+        localStorage.setItem("cachy_trade_store", JSON.stringify(stored));
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- reaching the private load() is the point of this test
+        (tradeState as any).load();
+
+        expect(tradeState.symbol).toBe("ETHUSDT");
+    });
 });
