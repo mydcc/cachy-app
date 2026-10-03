@@ -15,6 +15,29 @@ depends_on: []
 
 # Settle whether Bitget requires query parameters to be sorted before signing
 
+## Result (2026-10-03): no, on `/api/v3/*` — still unverified on `/api/v2/*`
+
+Settled live against a UTA account, with a control that proves the signature was
+actually checked on the endpoint under test:
+
+| Request | Result |
+|---|---|
+| wrong secret (control) | HTTP 400, `code=40009` |
+| valid secret, insertion order | HTTP 200, `code=00000` |
+| valid secret, sorted order | HTTP 200, `code=00000` |
+
+**Both orders are accepted.** The venue verifies against a canonicalised query,
+so Cachy signing in `URLSearchParams` insertion order is correct as written and
+needs no change. The control is the load-bearing part: an earlier run of this
+same test returned `40085` from both variants, which looked like "neither works"
+and meant nothing — `40085` is the UTA gate, and it fires *before* signature
+validation.
+
+**Not settled for `/api/v2/*`.** A UTA account is refused by every Classic path
+with `40085`, so the Classic signing question needs an account in Classic mode.
+Do not carry the V3 result across: that inference is what this item exists to
+prevent.
+
 ## Symptom
 
 If Bitget requires query parameters to be sorted alphabetically before the

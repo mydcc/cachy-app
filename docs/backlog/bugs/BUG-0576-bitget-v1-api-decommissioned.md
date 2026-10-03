@@ -17,7 +17,45 @@ branch: fix/bitget-v2-market-data
 
 # Migrate the Bitget integration from the decommissioned V1 API to V2
 
-## Progress
+## Progress — 2026-10-03: there is a third generation, and Cachy cannot reach it
+
+Credentials were available, and the first signed V2 call returned:
+
+```
+40085  You are in Unified Account mode, and the Classic Account API is not
+       supported at this time
+```
+
+The account is in **UTA** (Unified Trading Account), Bitget's recommended family,
+on `/api/v3/*`. UTA is not `/api/v2/mix/*` with a new number — it is regrouped
+into `/api/v3/account/*`, `/api/v3/trade/*` and `/api/v3/position/*`,
+parameterised by `category` instead of `productType`, with cursor pagination and
+a different order envelope.
+
+**This invalidates the premise that a V2 port is the destination.** Bitget marks
+UTA as recommended and Classic as the legacy line. A V2 port would be correct for
+Classic accounts and dead on arrival for UTA ones, and UTA is where new accounts
+land. The plan needs a decision about which generations Cachy supports, not just
+a path rewrite.
+
+Facts that survive the choice, verified live:
+
+- **Query ordering does not matter on V3** (BUG-0580). Both orders return
+  `00000`, control at `40009`.
+- **The WebSocket login code is the number `0`** (BUG-0581) — so `=== "00000"`
+  and `=== "0"` both fail.
+- **`filledQty` exists in no generation** (BUG-0589, BUG-0590). The fields are
+  `cumExecQty` for the aggregate and `execQty` per fill.
+- **The 40085 gate is REST-only.** A UTA account opens
+  `wss://ws.bitget.com/v2/ws/private` and logs in fine.
+- **The `tradeSide` split is not V2-specific.** UTA splits `side` (direction)
+  from `tradeSide` (open/close) exactly as V2 does, so BUG-0597's hazard
+  transfers — but the convention is mirrored: Classic closes a long with
+  `side=buy`, UTA with `side=sell`.
+
+Full evidence: `docs/bitget-api/14_uta_v3.md`.
+
+## Progress — 2026-09-30: market data
 
 **Row 7–9 of the mapping table are done** (branch `fix/bitget-v2-market-data`,
 2026-09-30): `market/candles`, `market/ticker` and `market/tickers` run on

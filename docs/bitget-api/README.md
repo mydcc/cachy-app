@@ -52,16 +52,20 @@ A crawl of the official Bitget **Classic** Futures API documentation at:
 | `11_public_endpoints.md` | Public and common endpoints: server time, notices, trade rates, funding assets, virtual sub-account |
 | `12_doc_defects.md` | Quarantine for defects in Bitget's own documentation |
 | `13_vendor_guidance.md` | Best practices, FAQ, UTA upgrade guide, demo trading |
+| `14_uta_v3.md` | The UTA account family on `/api/v3/*` — verified live, not a doc mirror |
 | `INTEGRATION_STATUS.md` | Reconciliation: which endpoints/channels Cachy already uses, what it emulates, what is missing |
 | `QUICK_REFERENCE.md` | Developer cheat sheet |
 
-This set mirrors `docs/bitunix-api/`. Four additions, none of which Bitunix
+This set mirrors `docs/bitunix-api/`. Five additions, none of which Bitunix
 needs: `07_websocket_private.md`, because Bitget splits public and private
 traffic across two endpoints; `08_error_codes.md`, `12_doc_defects.md` and
 `13_vendor_guidance.md`, because Bitget publishes an unusually large and
 unusually inconsistent body of prose that needs somewhere to live other than
 the endpoint reference; and `09_v1_vs_v2.md`, because Bitget runs two API
 generations side by side and Cachy speaks the dead one.
+
+`14_uta_v3.md` is different in kind: it covers a third generation, and it is
+built from signed live responses rather than transcribed from vendor pages.
 
 ## Coverage
 
@@ -104,7 +108,11 @@ Each of these is a product line Cachy does not integrate, not an oversight.
 | Copy Trading (16 pages) | No Cachy integration |
 | Earn / Shark Fin | No Cachy integration |
 | Tax, P2P, Affiliate, Broker, Inst Loan | No Cachy integration |
-| **UTA / `/api/v3/*`** | A separate account family Cachy does not use. `00_common.md` records the differences that matter for a future port, and `13_vendor_guidance.md` carries Bitget's own migration guide — but it is not mirrored, because a mirror of a family Cachy cannot authenticate against would be unverifiable |
+| ~~UTA / `/api/v3/*`~~ | **Was** listed here as "a family Cachy cannot authenticate against, therefore unverifiable". Removed 2026-10-03: a UTA account was obtained, and the assumption was backwards — the inability to authenticate was never a property of the API, it was the 40085 gate that blocks UTA accounts *from Classic paths*. See `14_uta_v3.md`. |
+
+UTA is not in the mirrored set above because it is **not** a product line Cachy
+declines to integrate — it is the generation Bitget marks as recommended, and it
+may well be the one that matters. It has its own file.
 
 If Cachy ever adds one of these product lines, that is a new backlog item and a
 new file, not an extension of this set.
@@ -129,6 +137,18 @@ because verifying it needs credentials and a sandbox:
 These are marked **Unresolved** in place rather than resolved by inference.
 `12_doc_defects.md` lists every documentation self-contradiction found and
 whether it could be settled.
+
+**Updated 2026-10-03**, with a UTA account (`14_uta_v3.md`):
+
+- Query ordering — **resolved for `/api/v3/*`**: both insertion and sorted order
+  return `00000`, with a wrong-secret control at `40009`. Still open for
+  `/api/v2/*`, which the 40085 gate blocks.
+- WebSocket login code — **resolved**: `code` is the number `0`, not `"0"` and
+  not `"00000"`.
+- Traded-amount field — **resolved**: `cumExecQty` for the aggregate, `execQty`
+  per fill. `filledQty` exists in no generation.
+- Still unverified, and now also blocked on a Classic-mode account: the V2
+  response shapes, and whether the write path behaves as documented.
 
 ## Quick overview of the API surface
 
@@ -176,7 +196,9 @@ sign    = Base64(HMAC-SHA256(prehash, secretKey))
 ```
 
 `requestPath` includes the query string, and query parameters are **not
-sorted** — they go on the wire in insertion order.
+sorted** — they go on the wire in insertion order. Verified harmless on
+`/api/v3/*` (both orders accepted, see `14_uta_v3.md`); still unverified on
+`/api/v2/*`.
 
 > **Cachy divergence (client-side signing):** the signature is computed in the
 > browser via WebCrypto, so the secret never leaves the device and the proxy
