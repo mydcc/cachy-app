@@ -3,6 +3,29 @@
  * This tsconfig is used for TypeScript projects created with `spacetimedb init
  * --lang typescript`. You can modify it as needed for your project, although
  * some options are required by SpacetimeDB.
+ *
+ * The 1.x/2.x split with the repository root is deliberate, not drift.
+ *
+ *   this module   spacetimedb ^1.11.2   locked 1.11.4   server runtime
+ *   repository    spacetimedb ^2.10.1   locked 2.10.1   browser bindings
+ *
+ * The root depends on the SDK for `src/lib/spacetimedb/`, this module for the
+ * server runtime, and the two are separate packages with separate lockfiles.
+ * Nothing in the repository reconciles them, and they are not required to
+ * agree — so treat the two majors as independent and keep both lockfiles.
+ *
+ * Upgrading this module to the 2.x SDK is a separate piece of work, not a
+ * side effect of making it compile. Until then the source is written against
+ * 1.x, and it resolves 1.x only when this directory has its own
+ * `node_modules`. A `paths` mapping cannot enforce that: TypeScript treats
+ * `paths` as substitutions to try first and falls back to standard resolution
+ * when none match, so pinning the path still picks up the root's 2.x when the
+ * install is missing. `npm run typecheck` therefore runs
+ * `scripts/require-module-deps.mjs` first, which fails with the install
+ * command instead of reporting six mis-resolutions as if they were defects in
+ * `src/index.ts`.
+ *
+ * See docs/GLOBAL-CHAT.md and BUG-0591.
  */
 {
   "compilerOptions": {

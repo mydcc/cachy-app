@@ -5876,7 +5876,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0591",
     "title": "The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -5888,6 +5888,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0591-spacetimedb-sdk-resolution",
     "file": "bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md"
   },
   {

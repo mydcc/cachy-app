@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "build": "spacetime build",
-    "publish": "spacetime publish"
+    "publish": "spacetime publish",
+    "typecheck": "node scripts/require-module-deps.mjs && tsc -p tsconfig.json"
   },
   "keywords": [],
   "author": "",
