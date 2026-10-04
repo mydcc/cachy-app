@@ -8054,6 +8054,297 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0578-bitunix-mirror-fidelity-audit.md"
   },
   {
+    "id": "FEAT-0605",
+    "title": "Audit the UI status quo: windows, elements, control sizes, CSS debt",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0605-ui-status-quo-audit.md"
+  },
+  {
+    "id": "FEAT-0606",
+    "title": "Audit button placement, visibility and enablement dependencies",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0605"
+    ],
+    "file": "features/FEAT-0606-button-placement-visibility-and-dependency-audit.md"
+  },
+  {
+    "id": "FEAT-0607",
+    "title": "Harmonize the settings hierarchy, tab naming and sub-tab pattern",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0605"
+    ],
+    "file": "features/FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md"
+  },
+  {
+    "id": "FEAT-0608",
+    "title": "Make SettingsGrid the only grid pattern inside the settings window",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0607"
+    ],
+    "file": "features/FEAT-0608-make-settingsgrid-the-only-grid-pattern-in-settings.md"
+  },
+  {
+    "id": "FEAT-0609",
+    "title": "Introduce control-geometry and density tokens",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0605"
+    ],
+    "file": "features/FEAT-0609-introduce-control-and-density-tokens.md"
+  },
+  {
+    "id": "FEAT-0610",
+    "title": "Extend the button primitive and adopt it in the app shell header",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0605",
+      "FEAT-0606",
+      "FEAT-0609"
+    ],
+    "file": "features/FEAT-0610-extend-and-adopt-the-button-primitive.md"
+  },
+  {
+    "id": "FEAT-0611",
+    "title": "Adopt the button primitive across the settings tabs",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0608",
+      "FEAT-0610"
+    ],
+    "file": "features/FEAT-0611-adopt-the-button-primitive-in-the-settings-tabs.md"
+  },
+  {
+    "id": "FEAT-0612",
+    "title": "Adopt the button primitive in the calculator and trade panel",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0610"
+    ],
+    "file": "features/FEAT-0612-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md"
+  },
+  {
+    "id": "FEAT-0613",
+    "title": "Adopt the button primitive in the journal and the window frames",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0610"
+    ],
+    "file": "features/FEAT-0613-adopt-the-button-primitive-in-journal-and-window-frames.md"
+  },
+  {
+    "id": "FEAT-0614",
+    "title": "Introduce compact, default and wide density modes",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0607",
+      "FEAT-0609",
+      "FEAT-0610",
+      "FEAT-0611",
+      "FEAT-0612",
+      "FEAT-0613"
+    ],
+    "file": "features/FEAT-0614-introduce-compact-default-and-wide-density-modes.md"
+  },
+  {
+    "id": "FEAT-0615",
+    "title": "Consolidate the window flags and resolve the double-click state drift",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0605"
+    ],
+    "file": "features/FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md"
+  },
+  {
+    "id": "FEAT-0616",
+    "title": "Add magnetic edge snapping and tiling to the window system",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0615"
+    ],
+    "file": "features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md"
+  },
+  {
+    "id": "FEAT-0617",
+    "title": "Turn the sidebar width into a token and allow resizing it",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0609"
+    ],
+    "file": "features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md"
+  },
+  {
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
@@ -9937,6 +10228,29 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0600-bitget-mark-klines-on-v2.md"
+  },
+  {
+    "id": "FEAT-0618",
+    "title": "Rethink app navigation and window entry points",
+    "type": "feature",
+    "status": "idea",
+    "priority": "P3",
+    "milestone": "none",
+    "created": "2026-10-03",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0616",
+      "FEAT-0617"
+    ],
+    "file": "features/FEAT-0618-rethink-app-navigation-and-window-entry-points.md"
   },
   {
     "id": "IDEA-0036",
