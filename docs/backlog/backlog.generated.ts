@@ -10278,9 +10278,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
   },
   {
     "id": "FEAT-0618",
-    "title": "Rethink app navigation and window entry points",
+    "title": "Define the entry-point registry and align the window manager scope with a reference",
     "type": "feature",
-    "status": "idea",
+    "status": "specced",
     "priority": "P3",
     "milestone": "none",
     "created": "2026-10-03",
@@ -10297,7 +10297,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0616",
       "FEAT-0617"
     ],
-    "file": "features/FEAT-0618-rethink-app-navigation-and-window-entry-points.md"
+    "file": "features/FEAT-0618-entry-point-registry-and-window-manager-scope.md"
   },
   {
     "id": "IDEA-0036",
