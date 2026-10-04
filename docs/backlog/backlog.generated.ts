@@ -595,7 +595,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0597",
     "title": "Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P0",
     "milestone": "none",
     "created": "2026-09-30",
@@ -611,6 +611,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0596",
       "BUG-0580"
     ],
+    "assignee": "opencode",
+    "branch": "fix/bug-0597-uta-writes-recon",
     "file": "bugs/BUG-0597-bitget-order-write-paths-need-v2.md"
   },
   {
