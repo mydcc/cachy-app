@@ -118,6 +118,31 @@ export function extractSnapshotMeta(backup: BackupFile): {
 }
 
 /**
+ * Detects a locally corrupted store: raw bytes exist in localStorage but the
+ * validated payload carries null for them, meaning JSON validation failed.
+ * Only validated stores are checked (theme is an unvalidated passthrough).
+ */
+function hasCorruptStore(payload: BackupFile): boolean {
+  const data = payload.data;
+  if (!data) return false;
+  const hasRawBytes = (key: string): boolean => {
+    const raw = safeLocalStorage.getItem(key);
+    return raw !== null && raw !== "";
+  };
+  const pairs: Array<[string | null | undefined, string]> = [
+    [data.settings, CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY],
+    [data.presets, CONSTANTS.LOCAL_STORAGE_PRESETS_KEY],
+    [data.journal, CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY],
+    [data.tradeState, CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store"],
+    [data.quizState, CONSTANTS.LOCAL_STORAGE_QUIZ_KEY],
+    [data.riskLimits, CONSTANTS.LOCAL_STORAGE_RISK_KEY],
+    [data.paperTrading, CONSTANTS.LOCAL_STORAGE_PAPER_KEY],
+    [data.orderAudit, CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY],
+  ];
+  return pairs.some(([field, key]) => field == null && hasRawBytes(key));
+}
+
+/**
  * Writes the current local data snapshot into OPFS silently.
  */
 export async function saveOpfsSnapshot(): Promise<boolean> {
@@ -126,6 +151,10 @@ export async function saveOpfsSnapshot(): Promise<boolean> {
   try {
     const payload = await getBackupPayload();
     if (!payload) return false;
+
+    // A corrupt local store must never truncate a healthy snapshot into a
+    // null hole: keep the previous file and skip this round (BUG-0622).
+    if (hasCorruptStore(payload)) return false;
 
     // Do not save a completely empty backup over a potentially valid previous snapshot
     const meta = extractSnapshotMeta(payload);
