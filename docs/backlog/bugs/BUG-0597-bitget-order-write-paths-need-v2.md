@@ -2,7 +2,7 @@
 id: BUG-0597
 title: "Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made"
 type: bug
-status: specced
+status: in-progress
 priority: P0
 milestone: none
 created: "2026-09-30"
@@ -11,6 +11,8 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [BUG-0596, BUG-0580]
+assignee: opencode
+branch: fix/bug-0597-uta-writes-recon
 ---
 
 # Migrate the Bitget order write paths to V2
@@ -19,6 +21,47 @@ Row 1 and 4 of the mapping table in
 [`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md), split out of
 [BUG-0576](BUG-0576-bitget-v1-api-decommissioned.md) because this is the one
 part of the migration that can **quietly move money the wrong way**.
+
+## Retargeting (2026-10-04, Phase A recon — no writes, no keys)
+
+This item was written for Classic V2 (`side` + `tradeSide`). Every current
+account is UTA, and **UTA has no `tradeSide` request field** — it appears only
+in responses, computed by the venue. The UTA split is **`side` + `posSide`**
+(`15_uta_writes.md`):
+
+| Intent (hedge) | `side` | `posSide` |
+|---|---|---|
+| open long | `buy` | `long` |
+| close long | `sell` | `long` |
+| open short | `sell` | `short` |
+| close short | `buy` | `short` |
+
+One-way: no `posSide`, close via `reduceOnly: "yes"`.
+
+This changes the hazard shape but not the acceptance: omitting `posSide` in
+hedge mode violates a documented requirement (fail-closed, unlike V2's
+`tradeSide` trap — unverified until a demo probe), while a *wrong* `posSide`
+still flips instead of flattening with a `00000` on the request. "Position
+returns to flat" stays the criterion; "request returned 200" proves nothing.
+
+What Phase A settled (docs only): UTA endpoint table (place `/api/v3/trade/
+place-order`, modify `/api/v3/trade/modify-order`, cancel `/api/v3/trade/
+cancel-order`, cancel-all `/api/v3/trade/cancel-symbol-order`, close-all
+`/api/v3/trade/close-positions`, status `/api/v3/trade/order-info`),
+place-order params (`category`, `qty` in base coin, `posSide` required in
+hedge, `marginMode` defaulting to `crossed`, `clientOid` regex, preset TP/SL
+fields for the BUG-0503 re-eval), live instrument minimums (BTCUSDT:
+minOrderQty 0.0001, minOrderAmount 5 USDT — verification costs cents, virtual
+on demo), per-order entries in cancel-all/close-all responses (envelope `00000`
+can carry a failed leg), and no documented `clientOid` idempotency (so no
+write retries until a duplicate is observed rejected).
+
+What stays demo-gated (asked, not inferred): posSide-omission behaviour,
+clientOid-resubmission behaviour, the one-way `holdMode` wire literal, demo
+funding, and whether the demo account's mode can be switched in futures
+settings (the UTA API has no set-position-mode endpoint — mode switches in
+app UI per vendor support). Plus two preconditions on the account holder:
+demo API keys, and the demo account's current holdMode.
 
 ## Symptom
 

@@ -4,7 +4,7 @@
 
 496 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 20 · 🟡 in-progress 3 · ✅ done 426 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 20 · 🟡 in-progress 4 · ✅ done 426 · ⛔ dropped 1
 
 ---
 
@@ -222,7 +222,7 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 🟡 in-progress | exchange |
 | [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | repo |
 | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md) | Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty | P0 | ✅ done | exchange |
-| [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 📋 specced | exchange |
+| [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 🟡 in-progress | exchange |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -594,7 +594,7 @@ Counts by status: 💡 idea 24 · 📋 specced 22 · 🟢 ready 20 · 🟡 in-pr
 | [BUG-0576](bugs/BUG-0576-bitget-v1-api-decommissioned.md) | Bitget integration calls the decommissioned V1 API, so every signed REST call fails | P0 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md) | Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty | P0 | ✅ done | none | community, pro, private | none | none | [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md), [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |
-| [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 📋 specced | none | community, pro, private | none | none | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md), [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) |
+| [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 🟡 in-progress | none | community, pro, private | none | none | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md), [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
