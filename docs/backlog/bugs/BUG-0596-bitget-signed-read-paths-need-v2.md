@@ -2,7 +2,7 @@
 id: BUG-0596
 title: "Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty"
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: none
 created: "2026-09-30"
@@ -11,6 +11,8 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [BUG-0580, BUG-0590]
+assignee: opencode
+branch: fix/bug-0596-uta-signed-reads
 ---
 
 # Migrate the Bitget signed read endpoints to V2
@@ -82,47 +84,64 @@ The migration is more than a path rewrite:
    same object. `fetchBitgetAccount` already parses five fields out of that
    payload and never reads it.
 
-## Fix
+## Fix (2026-10-04: retargeted from Classic V2 to UTA V3)
 
-1. Read paths: remap paths and `productType`, then establish each V2 response
-   shape with a live call and record what actually arrives **before** rewriting
-   the parser.
-2. Add `posMode` to the parsed account data and declare
-   `positionModes: ["one_way", "hedge"]` in
-   [`src/services/exchange/bitgetCapabilities.ts:62`](../../../src/services/exchange/bitgetCapabilities.ts),
-   carrying it to the UI through the existing `accountState.positionMode` path
-   the way Bitunix already does.
+The plan above was written for Classic V2. It does not survive contact with a
+real account: every current account is UTA, Classic paths answer `40085`
+before the signature is checked, and UTA is regrouped (`/api/v3/account|trade|
+position/*`, `category` instead of `productType`, cursor pagination). Evidence:
+`docs/bitget-api/14_uta_v3.md`. What was done instead:
 
-`posMode` is not optional and not cosmetic: the V2 **order** schema is
-mode-dependent, so [BUG-0597](BUG-0597-bitget-order-write-paths-need-v2.md)
-cannot choose a request shape without it. The error-code table makes the
-coupling concrete — `22042` rejects a reduce-only trigger order in one-way
-mode, `45021` requires the order type to match the position type in one-way
-mode, `45020` refuses liquidation outside two-way mode.
+1. Read paths remapped to UTA (`restSigningPlan.ts`): account+balance →
+   `/api/v3/account/assets`, positions → `/api/v3/position/current-position`,
+   pending → `/api/v3/trade/unfilled-orders`, history →
+   `/api/v3/trade/history-orders`. Writes stay on V1 until BUG-0597 ports them.
+2. Query builders emit `category: "USDT-FUTURES"`; history uses `limit`
+   (UTA's name; max 100, the existing clamp already holds 100) instead of
+   `pageSize`, keeping `symbol`/`startTime`/`endTime`.
+3. Parsers rewritten against live-observed envelopes (`data: {list, cursor}`
+   on orders, `data: {list}` with `list: null` on positions, bare object on
+   account) with populated entries from the vendor's documented samples. Order
+   fill reads `cumExecQty` (BUG-0589); fee reads `feeDetail[0].fee`.
+4. No `posMode` on the account — UTA has none. The mode arrives as `holdMode`
+   per position/order, is carried on `NormalizedPosition`, and reaches
+   `accountState.positionMode` through the positions lane (`hydratePositions`
+   normalises `hedge_mode` → `hedge`; unknown spellings set nothing).
+   `positionModes` declares `["one_way", "hedge"]`.
 
-**Leave alone.** The refusal design. No step may be completed against a guessed
-wire format (BUG-0001), and the history query's client-side `startTime`/
-`endTime` re-filtering exists because Bitget's own seven-day default is not the
-window the client signed — keep that reasoning intact when the endpoint moves.
+`holdMode` is not optional and not cosmetic: the UTA **order** schema is
+mode-dependent exactly as V2's was, so [BUG-0597](BUG-0597-bitget-order-write-paths-need-v2.md)
+cannot choose a request shape without it.
+
+**Leave alone.** The refusal design. No step was completed against a guessed
+wire format (BUG-0001): populated entries are transcribed from documented
+samples and labelled as such in the tests, and the history query's client-side
+`startTime`/`endTime` re-filtering stays — UTA's 90-day window with a 30-day
+max span is not the window the client signed either. The account-settings UI
+stays behind the adapter's `SUPPORTS.accountSettings` (false): declaring the
+modes changes what the order port may assume, not what the UI offers — the
+write formats are still unverified.
 
 ## Acceptance criteria
 
-- [ ] Query-parameter ordering settled first (BUG-0580) — of the four Bitget
-      query routes only `/api/positions` is order-sensitive, and an
-      insertion-order signature would fail every signed read
-- [ ] A test reproduces the defect and fails without the fix: no
-      `/api/mix/v1/` path in `BITGET_UPSTREAM_PATHS` / `BITGET_ORDER_PATHS` for
-      the read routes
-- [ ] No request query contains `productType=umcbl`
-- [ ] Every response parser is written against a shape observed in a live V2
-      call, with the observed payloads recorded in
-      [`docs/bitget-api/INTEGRATION_STATUS.md`](../../bitget-api/INTEGRATION_STATUS.md)
-- [ ] `fetchBitgetAccount` parses `posMode`; `bitgetCapabilities.positionModes`
-      declares `["one_way", "hedge"]`; the mode reaches the UI through
-      `accountState.positionMode`
-- [ ] The `⚠️ positionModes: []` note in `INTEGRATION_STATUS.md` is resolved
-- [ ] Account, balance and position reads return real data on a Bitget account
-- [ ] The test passes with the fix
+- [x] Query-parameter ordering settled first (BUG-0580) — for `/api/v3/*` both
+      orders are accepted (control at `40009`); Cachy signs correctly as
+      written. Still open for `/api/v2/*`, which no current account can reach
+- [x] A test reproduces the defect and fails without the fix: 11 of 12 new
+      cases fail against the pre-migration module (the 12th, the empty-body
+      guard, passes both ways — it documents venue behaviour)
+- [x] No `/api/mix/v1/` path in `BITGET_UPSTREAM_PATHS` / `BITGET_ORDER_PATHS`
+      for the read routes; no request query contains `productType=umcbl`
+- [x] Every response parser is written against a live-observed envelope, with
+      the evidence in [`docs/bitget-api/14_uta_v3.md`](../../bitget-api/14_uta_v3.md)
+      and the `positionModes: []` note in `INTEGRATION_STATUS.md` resolved
+- [x] `bitgetCapabilities.positionModes` declares `["one_way", "hedge"]`; the
+      mode reaches `accountState.positionMode` through the positions lane
+      (adapted: UTA has no `posMode` on the account)
+- [x] Account, balance and position reads return real data — verified live
+      against `api.bitget.com` from a UTA account before the parsers were
+      written
+- [x] The test passes with the fix (12/12)
 
 ## Links
 

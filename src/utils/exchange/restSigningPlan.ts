@@ -269,12 +269,23 @@ export function queryStringForVenue(venue: Venue, params: Record<string, string>
  * treats as "this request cannot be signed for Bitget" rather than as an empty
  * path.
  */
+/**
+ * UTA (`/api/v3/*`) read paths, verified live 2026-10-03 against
+ * `api.bitget.com` from a UTA account (`docs/bitget-api/14_uta_v3.md`).
+ *
+ * Classic (`/api/v2/mix/*`) is unreachable from a UTA account — the venue
+ * answers `40085` before it checks the signature — and every current account
+ * is UTA, so there is no Classic row to keep. A Classic row here would let an
+ * account sign a request the venue refuses; that refusal now surfaces as
+ * 502 `UPSTREAM_REJECTED` instead of a silent empty (BUG-0604), but the
+ * correct path is still the one the account can answer.
+ */
 const BITGET_UPSTREAM_PATHS: Record<string, string> = {
-  "/api/account": "/api/mix/v1/account/account",
+  "/api/account": "/api/v3/account/assets",
   // Bitget serves balance and account data from the same endpoint; the two
   // Cachy routes differ in how they map the answer, not in where they ask.
-  "/api/balance": "/api/mix/v1/account/account",
-  "/api/positions": "/api/mix/v1/position/allPosition",
+  "/api/balance": "/api/v3/account/assets",
+  "/api/positions": "/api/v3/position/current-position",
 };
 
 /**
@@ -285,15 +296,18 @@ const BITGET_UPSTREAM_PATHS: Record<string, string> = {
  * divergence between them belongs here, not behind a shared constant.
  */
 const BITGET_ORDER_PATHS: Record<string, string> = {
+  // Writes stay on V1 until BUG-0597 ports them — a deliberate split, not an
+  // oversight. Reads moved first because they are verifiable without funds.
   "place-order": "/api/mix/v1/order/placeOrder",
   "close-position": "/api/mix/v1/order/placeOrder",
   "cancel-order": "/api/mix/v1/order/cancel-order",
-  // The two query-signed reads. `order-detail` has no row on purpose: Bitget
+  // The two query-signed reads, on UTA paths (verified 2026-10-03).
+  // `order-detail` has no row on purpose: Bitget
   // wires none of that action (`venues/bitget.ts` answers `null`), and a row
   // here would let a Bitget account sign a request the venue module then
   // refuses — the refusal belongs at the signer, before an envelope exists.
-  pending: "/api/mix/v1/order/current",
-  history: "/api/mix/v1/order/history",
+  pending: "/api/v3/trade/unfilled-orders",
+  history: "/api/v3/trade/history-orders",
 };
 
 export function bitgetUpstreamPath(cachyPath: string, action?: string): string | null {

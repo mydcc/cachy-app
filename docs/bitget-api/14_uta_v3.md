@@ -47,6 +47,33 @@ The 40085 gate is REST-only.
 | `GET` | `/api/v3/trade/fills?category=USDT-FUTURES` | `00000`, `{list: null, cursor: null}` |
 | `GET` | `/api/v3/position/current-position?category=USDT-FUTURES` | `00000`, `{list: null}`, no `cursor` — but see trap 3 |
 
+### Account/assets top-level keys, observed live
+
+The `00000` above was verified with the full key list, transcribed from the
+response (values omitted — the account is empty, so they prove nothing):
+
+```
+accountEquity, usdtEquity, btcEquity, unrealisedPnl, usdtUnrealisedPnl,
+btcUnrealizedPnl, effEquity, mmr, imr, mgnRatio, positionMgnRatio,
+positionValue, leverage, ...
+```
+
+plus `assets[]` per coin (`coin`, `equity`, `usdValue`, `balance`,
+`balanceOriginal`, `available`, `debt`, `locked`, `bonus`, `interestBase` —
+from the vendor's documented sample, same page).
+
+Two things to read carefully here, because both are traps for a parser author:
+
+- The **spelling varies by field**: `unrealisedPnl` and `usdtUnrealisedPnl`
+  (with-s) sit beside `btcUnrealizedPnl` (with-z). Normalising to one spelling
+  reads two of the three as missing.
+- The semantics that matter for mapping: `accountEquity` is the USD total
+  (what a balance display wants), `effEquity` is documented as *"the net value
+  available for margin in spot and perpetual trades under cross-margin mode"*
+  (what an "available" display wants), `mmr` is the maintenance margin and
+  `imr` the initial margin requirement. There is no single margin-coin or
+  frozen total — UTA is multi-asset.
+
 Confirmed absent (`40404 Request URL NOT FOUND`) — these are V2-shaped guesses
 that do not exist, recorded so nobody repeats them:
 

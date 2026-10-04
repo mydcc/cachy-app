@@ -77,4 +77,11 @@ export interface NormalizedPosition {
   // not to guess an exchange's wire format.
   marginRate?: string;
   realizedPnl?: string;
+  /**
+   * UTA position mode as the venue sends it (`hedge_mode`, …). Carried so the
+   * order port can choose its request shape (BUG-0597) and the store can
+   * surface the mode (BUG-0596); interpreted at the boundary that uses it,
+   * not here. Bitunix positions leave this unset.
+   */
+  holdMode?: string;
 }

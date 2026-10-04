@@ -56,10 +56,16 @@ export const bitgetCapabilities: ExchangeCapabilities = Object.freeze({
     // alongside Bitunix's in routes/api/positions/+server.ts.
     marginModes: Object.freeze(["cross", "isolated"] as const),
 
-    // Unknown rather than one_way: no Bitget response Cachy reads carries a
-    // position mode, so there is nothing to declare. Empty means "do not
-    // offer the control", which is the safe reading of an unknown.
-    positionModes: Object.freeze([] as const),
+    // UTA supports both modes: `holdMode: "hedge_mode"` is verified live on
+    // positions and orders (`docs/bitget-api/14_uta_v3.md`), and one-way is
+    // the documented buy/sell mode — though no one-way `holdMode` literal has
+    // ever been observed on the wire, so the store only ever *sets* what it
+    // observes and this declaration covers what the venue *takes*. Declared
+    // so the order port can choose its request shape (BUG-0597) — this
+    // answers "what will the venue take", not "what may the UI offer": the
+    // account-settings UI stays behind the adapter's `SUPPORTS.accountSettings`,
+    // which is false until the write formats are verified.
+    positionModes: Object.freeze(["one_way", "hedge"] as const),
 
     trailingStop: false,
     addToPosition: true,

@@ -35,25 +35,75 @@ import type {
   VenueModule,
 } from "./types";
 
-// Raw fields read off Bitget's current/history order list responses. The
-// two endpoints use different field names for fill price and status
-// (priceAvg/state on history, unset on current) — both live here since
-// this is "whatever field either endpoint's raw order carries," not a
-// single canonical shape.
+// Raw fields read off Bitget's UTA order endpoints (`/api/v3/trade/*`).
+// Both list endpoints answer `data: {list, cursor}` with the same order shape
+// — verified live 2026-10-03 (`docs/bitget-api/14_uta_v3.md`), full field list
+// transcribed from the vendor's documented samples. The two differ in which
+// fields are populated, not in which exist: `cumExecQty` is "0" on a live
+// order, `avgPrice` is "0" until the first fill.
+//
+// `filledQty` appears here in no generation — BUG-0589/BUG-0590. The aggregate
+// fill is `cumExecQty`, one execution is `execQty` on `/fills` (not read here).
 interface BitgetRawOrder {
   orderId?: string;
+  clientOid?: string;
   symbol?: string;
   orderType?: string;
   side?: string;
   price?: string | number;
-  priceAvg?: string | number;
-  size?: string | number;
-  filledQty?: string | number;
-  status?: string;
-  state?: string;
-  cTime?: string | number;
-  fee?: string | number;
-  totalProfits?: string | number;
+  qty?: string | number;
+  cumExecQty?: string | number;
+  cumExecValue?: string | number;
+  avgPrice?: string | number;
+  orderStatus?: string;
+  posSide?: string;
+  holdMode?: string;
+  marginMode?: string;
+  feeDetail?: Array<{ feeCoin?: string; fee?: string | number }>;
+  createdTime?: string | number;
+  updatedTime?: string | number;
+}
+
+// Raw fields read off Bitget's UTA position endpoint
+// (`/api/v3/position/current-position`). Verified live 2026-10-03; full field
+// list from the vendor's documented sample. `data` is `{list}` with no cursor,
+// and `list` is `null` — not `[]` — when the account holds no position.
+interface BitgetRawPosition {
+  symbol?: string;
+  marginCoin?: string;
+  holdMode?: string;
+  posSide?: string;
+  marginMode?: string;
+  total?: string | number;
+  available?: string | number;
+  frozen?: string | number;
+  leverage?: string | number;
+  avgPrice?: string | number;
+  markPrice?: string | number;
+  liquidationPrice?: string | number;
+  unrealisedPnl?: string | number;
+  createdTime?: string | number;
+  updatedTime?: string | number;
+}
+
+// Raw fields read off Bitget's UTA account endpoint (`/api/v3/account/assets`).
+// Verified live 2026-10-03. `data` is a bare object, not a list. There is no
+// position mode on this endpoint — `holdMode` arrives per position and per
+// order instead, so the mode reaches the store through the positions lane.
+interface BitgetRawAccount {
+  accountEquity?: string | number;
+  effEquity?: string | number;
+  usdtEquity?: string | number;
+  unrealisedPnl?: string | number;
+  mmr?: string | number;
+  imr?: string | number;
+  assets?: Array<{
+    coin?: string;
+    equity?: string | number;
+    balance?: string | number;
+    available?: string | number;
+    locked?: string | number;
+  }>;
 }
 
 // --- Bitget Helpers ---
@@ -178,7 +228,7 @@ async function fetchBitgetPendingOrders(
 ): Promise<NormalizedOrder[]> {
     const baseUrl = "https://api.bitget.com";
     const path = bitgetPath("/api/orders", "pending");
-    // `productType: umcbl` (USDT-M) is one of the parameters the client signed,
+    // `category: USDT-FUTURES` is one of the parameters the client signed,
     // so it arrives in the envelope rather than being rebuilt here.
     const url = envelope.query
         ? `${baseUrl}${path}?${envelope.query}`
@@ -193,20 +243,28 @@ async function fetchBitgetPendingOrders(
     assertBitgetOk(response, text);
     const res = safeJsonParse(text);
 
-    const orders = res.data || [];
+    // UTA answers `data: {list, cursor}` — and `list` is `null`, not `[]`,
+    // on some endpoints when there is nothing to list. Either way there is
+    // nothing to map, and reaching for `.map` on it would throw.
+    const orders = res?.data?.list ?? [];
     return orders.map((o: BitgetRawOrder) => ({
         id: o.orderId,
         orderId: o.orderId,
+        clientId: o.clientOid,
         symbol: o.symbol,
         type: o.orderType,
-        side: o.side, // open_long etc
+        side: o.side,
         price: formatApiNum(o.price) || "0",
-        amount: formatApiNum(o.size) || "0",
-        filled: formatApiNum(o.filledQty) || "0",
-        status: o.status, // new, partial_fill
-        time: parseInt(String(o.cTime)),
-        fee: formatApiNum(o.fee) || "0",
-        realizedPNL: formatApiNum(o.totalProfits) || "0",
+        amount: formatApiNum(o.qty) || "0",
+        filled: formatApiNum(o.cumExecQty) || "0",
+        avgPrice: formatApiNum(o.avgPrice) || "0",
+        status: o.orderStatus,
+        time: Number(o.createdTime) || 0,
+        fee: formatApiNum(o.feeDetail?.[0]?.fee) || "0",
+        // UTA order endpoints carry no per-order realised PnL (fills carry
+        // `execPnl` per execution, which is not read here). Required field,
+        // so "0" explicitly rather than omitted.
+        realizedPNL: "0",
     }));
 }
 
@@ -232,21 +290,27 @@ async function fetchBitgetHistoryOrders(
     assertBitgetOk(response, text);
     const res = safeJsonParse(text);
 
-    const orders = res.data || [];
+    const orders = res?.data?.list ?? [];
     let mapped: NormalizedOrder[] = orders.map((o: BitgetRawOrder) => ({
         id: o.orderId,
         orderId: o.orderId,
+        clientId: o.clientOid,
         symbol: o.symbol,
         type: o.orderType,
         side: o.side,
         price: formatApiNum(o.price) || "0",
-        amount: formatApiNum(o.size) || "0",
-        filled: formatApiNum(o.filledQty) || "0",
-        avgPrice: formatApiNum(o.priceAvg) || "0",
-        status: o.state, // filled, canceled
-        time: parseInt(String(o.cTime)),
-        fee: formatApiNum(o.fee) || "0",
-        realizedPNL: formatApiNum(o.totalProfits) || "0",
+        amount: formatApiNum(o.qty) || "0",
+        filled: formatApiNum(o.cumExecQty) || "0",
+        avgPrice: formatApiNum(o.avgPrice) || "0",
+        status: o.orderStatus,
+        time: Number(o.createdTime) || 0,
+        // A live order has no fills yet, so no fee exists to read — the
+        // documented unfilled-orders sample carries no fee field at all.
+        // `feeDetail` is read where the venue sends it (history) and degrades
+        // to "0" here.
+        fee: formatApiNum(o.feeDetail?.[0]?.fee) || "0",
+        // As above: no per-order realised PnL on UTA order endpoints.
+        realizedPNL: "0",
     }));
 
     const { startTime, endTime } = payload;
@@ -316,16 +380,28 @@ async function fetchBitgetAccount(
     assertBitgetOk(response, text);
     const res = safeJsonParse(text);
 
-    const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+    const data = (res?.data ?? null) as BitgetRawAccount | null;
     if (!data) throw new Error("No account data found");
 
     return {
-        available: formatApiNum(data.available),
-        margin: formatApiNum(data.locked),
-        totalUnrealizedPnL: formatApiNum(data.unrealizedPL),
-        marginCoin: data.marginCoin,
-        frozen: formatApiNum(data.locked),
-        equity: formatApiNum(data.equity)
+        // `effEquity` is documented as the net value available for margin —
+        // that is what "available" means here. `accountEquity` is the total
+        // including unrealised PnL, which is what the balance lane shows.
+        available: formatApiNum(data.effEquity),
+        // `imr` is the account's initial margin *requirement*. The pre-UTA field
+        // was locked funds — a different quantity with the same label: locked
+        // is what the venue holds, requirement is what it demands. On an
+        // unleveraged empty account both are "0" and the difference is
+        // invisible; on a leveraged one the "Margin" display reads the
+        // requirement, not the lockup. Closest available, labelled here so
+        // the next reader does not mistake it for identical.
+        margin: formatApiNum(data.imr),
+        totalUnrealizedPnL: formatApiNum(data.unrealisedPnl),
+        // UTA is multi-asset: there is no single margin coin at account level,
+        // and no single frozen total either — `locked` exists per coin in
+        // `assets`, and summing across coins would be a meaningless number.
+        // Positions carry their own `marginCoin`.
+        equity: formatApiNum(data.accountEquity),
     };
 }
 
@@ -348,12 +424,12 @@ async function fetchBitgetBalance(
     assertBitgetOk(response, text);
     const res = safeJsonParse(text);
 
-    const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+    const data = (res?.data ?? null) as BitgetRawAccount | null;
     if (!data) return "0";
 
     // Return equity (total balance including unrealized PnL) or marginBalance (wallet balance + unrealized PnL)?
     // Usually equity is what users want to see as "Total Balance".
-    return formatApiNum(data.equity || data.marginBalance) || "0";
+    return formatApiNum(data.accountEquity) || "0";
 }
 
 // --- Klines ---
@@ -534,20 +610,6 @@ async function fetchBitgetKlines(
 
 // --- Positions ---
 
-// Raw Bitget position fields (/api/mix/v1/position/allPosition).
-interface BitgetRawPosition {
-  symbol: string;
-  holdSide?: string;
-  total?: string | number;
-  averageOpenPrice?: string | number;
-  markPrice?: string | number;
-  liquidationPrice?: string | number;
-  margin?: string | number;
-  unrealizedPL?: string | number;
-  leverage?: string | number;
-  marginMode?: string;
-}
-
 async function fetchBitgetPositions(
   envelope: PresignedEnvelope,
 ): Promise<NormalizedPosition[]> {
@@ -565,22 +627,33 @@ async function fetchBitgetPositions(
     assertBitgetOk(response, text);
     const res = safeJsonParse(text);
 
-    const data = res.data || [];
+    // `list` is `null` when the account holds no position — and the endpoint
+    // occasionally answers 200 with an empty body instead of the envelope
+    // (observed twice, `docs/bitget-api/14_uta_v3.md`), which parses to a
+    // non-object and lands here the same way: no positions, not an error.
+    const data = res?.data?.list ?? [];
 
     return data
         .filter((p: BitgetRawPosition) => parseFloat(String(p.total || "0")) !== 0) // Filter empty positions
         .map((p: BitgetRawPosition) => {
             return {
                 symbol: p.symbol,
-                side: (p.holdSide || "").toUpperCase(),
+                side: (p.posSide || "").toUpperCase(),
                 size: formatApiNum(p.total),
-                entryPrice: formatApiNum(p.averageOpenPrice),
+                entryPrice: formatApiNum(p.avgPrice),
                 markPrice: formatApiNum(p.markPrice),
                 liquidationPrice: formatApiNum(p.liquidationPrice),
-                margin: formatApiNum(p.margin),
-                unrealizedPnL: formatApiNum(p.unrealizedPL),
+                unrealizedPnL: formatApiNum(p.unrealisedPnl),
                 leverage: formatApiNum(p.leverage),
-                marginMode: p.marginMode || ""
+                // UTA says `crossed` / `isolated`; Cachy canonical is
+                // `cross` / `isolated` (capabilities + hydratePositions).
+                marginMode: (p.marginMode || "").toLowerCase() === "crossed" ? "cross" : (p.marginMode || ""),
+                // No verified single "margin" field: the UTA position carries
+                // notionals and PnL, not locked funds. Omitted rather than
+                // mapped from a lookalike (BUG-0001).
+                // `holdMode` (`hedge_mode`) is what the order port reads to
+                // choose its request shape — carried, not interpreted here.
+                holdMode: p.holdMode,
             };
         });
 }

@@ -272,6 +272,19 @@ through `accountState.positionMode`
 Bitunix's `Get Single Account` also carries `positionMode`. The Bitget gap is
 that Cachy never asked.
 
+**Resolved 2026-10-04 (BUG-0596), with a generation correction.** The note above
+was written for Classic V2, where the mode arrives as `posMode` on the account.
+Cachy targets UTA instead, where there is no mode on the account at all:
+`/api/v3/account/assets` carries balances only. The mode arrives per position
+and per order as `holdMode` (`hedge_mode`, verified live; one-way is the
+documented buy/sell mode). So `fetchBitgetAccount` does *not* parse a mode —
+there is none to parse — and the mode reaches `accountState.positionMode`
+through the positions lane (`hydratePositions` reads `holdMode` off
+`NormalizedPosition`). `bitgetCapabilities.positionModes` declares
+`["one_way", "hedge"]`. The account-settings UI stays behind the adapter's
+`SUPPORTS.accountSettings` (false until the write formats are verified), so
+this changes what the order port may assume, not what the UI offers.
+
 ### The bulk-close answer, in full
 
 This is the question that motivated FEAT-0525, so the answer is stated in full
