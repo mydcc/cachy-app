@@ -171,6 +171,19 @@ describe("buildVenueBody dispatches to the module that owns the body", () => {
     );
   });
 
+  // BUG-0597 Phase B: UTA cancel takes `{orderId, category}` — no symbol, no
+  // marginCoin. Either orderId or clientOid is required by the venue; Cachy
+  // cancels by orderId (the schema requires it), so the builder names exactly
+  // one identifier and the venue's "orderId wins if both" rule never triggers.
+  it("builds the Bitget cancel body for UTA, without V1 fields", () => {
+    const payload = cancelOrder();
+
+    expect(buildBitgetCancelOrderBody(payload)).toEqual({
+      orderId: "77",
+      category: "USDT-FUTURES",
+    });
+  });
+
   it("builds every account-settings body through bitunixBodies", () => {
     const payloads = [
       accountSetting({ type: "change-leverage", leverage: 10 }),
@@ -304,7 +317,10 @@ describe("the client and the server sign the bytes the builder produced", () => 
     ],
     ["bitget", "/api/mix/v1/order/placeOrder", placeOrder()],
     ["bitget", "/api/mix/v1/order/placeOrder", closePosition()],
-    ["bitget", "/api/mix/v1/order/cancel-order", cancelOrder()],
+    // UTA cancel path (BUG-0597 Phase B) — the literal here is only the
+    // prehash input for the string/object agreement check below, but it
+    // should still name a path Cachy actually signs.
+    ["bitget", "/api/v3/trade/cancel-order", cancelOrder()],
   ];
 
   it.each(cases)(
