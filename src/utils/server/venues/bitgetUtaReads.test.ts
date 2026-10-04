@@ -272,7 +272,7 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
         { exchange: "bitget", type: "history", limit: 10 } as never,
         "",
       )) as {
-        orders: Array<{ filled: string; status: string; fee: string; clientId: string }>;
+        orders: Array<{ filled: string; status: string; fee: string; clientId: string; realizedPNL: string }>;
       };
 
       expect(result.orders).toHaveLength(1);
@@ -280,6 +280,12 @@ describe("Bitget signed reads on UTA (BUG-0596)", () => {
       expect(result.orders[0].status).toBe("filled");
       expect(result.orders[0].fee).toBe("4.2500586");
       expect(result.orders[0].clientId).toBe("111111111111111111");
+      // UTA order endpoints carry no per-order realised PnL (fills carry
+      // `execPnl` per execution, which is not read here) — and the field is
+      // required on NormalizedOrder, so the mapper states "0" explicitly.
+      // `safeJsonParse` types as `any`, so the compiler cannot catch an
+      // omission; this assertion is the guard.
+      expect(result.orders[0].realizedPNL).toBe("0");
     });
 
     it("asks the UTA history endpoint for history reads", async () => {

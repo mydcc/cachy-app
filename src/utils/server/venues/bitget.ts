@@ -228,7 +228,7 @@ async function fetchBitgetPendingOrders(
 ): Promise<NormalizedOrder[]> {
     const baseUrl = "https://api.bitget.com";
     const path = bitgetPath("/api/orders", "pending");
-    // `productType: umcbl` (USDT-M) is one of the parameters the client signed,
+    // `category: USDT-FUTURES` is one of the parameters the client signed,
     // so it arrives in the envelope rather than being rebuilt here.
     const url = envelope.query
         ? `${baseUrl}${path}?${envelope.query}`
@@ -259,8 +259,12 @@ async function fetchBitgetPendingOrders(
         filled: formatApiNum(o.cumExecQty) || "0",
         avgPrice: formatApiNum(o.avgPrice) || "0",
         status: o.orderStatus,
-        time: parseInt(String(o.createdTime)),
+        time: Number(o.createdTime) || 0,
         fee: formatApiNum(o.feeDetail?.[0]?.fee) || "0",
+        // UTA order endpoints carry no per-order realised PnL (fills carry
+        // `execPnl` per execution, which is not read here). Required field,
+        // so "0" explicitly rather than omitted.
+        realizedPNL: "0",
     }));
 }
 
@@ -299,8 +303,14 @@ async function fetchBitgetHistoryOrders(
         filled: formatApiNum(o.cumExecQty) || "0",
         avgPrice: formatApiNum(o.avgPrice) || "0",
         status: o.orderStatus,
-        time: parseInt(String(o.createdTime)),
+        time: Number(o.createdTime) || 0,
+        // A live order has no fills yet, so no fee exists to read — the
+        // documented unfilled-orders sample carries no fee field at all.
+        // `feeDetail` is read where the venue sends it (history) and degrades
+        // to "0" here.
         fee: formatApiNum(o.feeDetail?.[0]?.fee) || "0",
+        // As above: no per-order realised PnL on UTA order endpoints.
+        realizedPNL: "0",
     }));
 
     const { startTime, endTime } = payload;
@@ -378,8 +388,13 @@ async function fetchBitgetAccount(
         // that is what "available" means here. `accountEquity` is the total
         // including unrealised PnL, which is what the balance lane shows.
         available: formatApiNum(data.effEquity),
-        // `imr` is the account's initial margin requirement. The pre-UTA field
-        // was locked funds — adjacent, not identical; closest available.
+        // `imr` is the account's initial margin *requirement*. The pre-UTA field
+        // was locked funds — a different quantity with the same label: locked
+        // is what the venue holds, requirement is what it demands. On an
+        // unleveraged empty account both are "0" and the difference is
+        // invisible; on a leveraged one the "Margin" display reads the
+        // requirement, not the lockup. Closest available, labelled here so
+        // the next reader does not mistake it for identical.
         margin: formatApiNum(data.imr),
         totalUnrealizedPnL: formatApiNum(data.unrealisedPnl),
         // UTA is multi-asset: there is no single margin coin at account level,

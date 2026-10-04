@@ -56,13 +56,15 @@ export const bitgetCapabilities: ExchangeCapabilities = Object.freeze({
     // alongside Bitunix's in routes/api/positions/+server.ts.
     marginModes: Object.freeze(["cross", "isolated"] as const),
 
-    // UTA supports both modes (verified: `holdMode: "hedge_mode"` on live
-    // positions and orders, `docs/bitget-api/14_uta_v3.md`; one-way is the
-    // documented buy/sell mode). Declared so the order port can choose its
-    // request shape (BUG-0597) — this answers "what will the venue take",
-    // not "what may the UI offer": the account-settings UI stays behind the
-    // adapter's `SUPPORTS.accountSettings`, which is false until the write
-    // formats are verified.
+    // UTA supports both modes: `holdMode: "hedge_mode"` is verified live on
+    // positions and orders (`docs/bitget-api/14_uta_v3.md`), and one-way is
+    // the documented buy/sell mode — though no one-way `holdMode` literal has
+    // ever been observed on the wire, so the store only ever *sets* what it
+    // observes and this declaration covers what the venue *takes*. Declared
+    // so the order port can choose its request shape (BUG-0597) — this
+    // answers "what will the venue take", not "what may the UI offer": the
+    // account-settings UI stays behind the adapter's `SUPPORTS.accountSettings`,
+    // which is false until the write formats are verified.
     positionModes: Object.freeze(["one_way", "hedge"] as const),
 
     trailingStop: false,

@@ -606,7 +606,13 @@ class AccountManager {
     // `holdMode` on positions and orders, not on the account. Only a spelling
     // the normaliser knows sets the store; anything else leaves the previous
     // value (and its stamp) alone, so an unverified mode never presents as
-    // known. Empty lists set nothing: no position, no mode to report.
+    // known. Empty lists set nothing: no position, no mode to report — which
+    // also means a mode set while positions existed survives their closing
+    // until the next mode-carrying read. That staleness is accepted: the
+    // account lane carries no mode to correct it with, and clearing on empty
+    // would fight the account lane's own reads on venues whose mode arrives
+    // elsewhere. The order port reads `holdMode` off live positions, not off
+    // this stamp, so a stale stamp cannot shape an order.
     const holdMode = raw.find((p) => p.holdMode)?.holdMode;
     if (holdMode) {
       const mode = holdMode.toLowerCase().replace(/_mode$/, "");
