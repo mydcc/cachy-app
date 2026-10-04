@@ -150,7 +150,8 @@ field a verified shape.
 - [ ] `place-order` sends `productType` and `marginMode`
 - [ ] A close on a **hedge-mode** account returns the position to flat,
       verified against a real position — not merely a 200 response
-- [ ] A test fails if a close is sent without `tradeSide`
+- [ ] A test fails if a close is sent without its close-carrying field
+      (`tradeSide` on Classic V2; on UTA hedge that field is `posSide`)
 - [ ] One-way mode is handled explicitly, on its own branch, since `tradeSide`
       is ignored there
 - [ ] The order response shape is observed in a live V2 call and recorded, not
