@@ -49,9 +49,8 @@ Two side findings:
 - **The 40085 UTA gate is REST-only.** A UTA account can open
   `wss://ws.bitget.com/v2/ws/private` and log in successfully.
 
-Evidence and captures: `docs/bitget-api/14_uta_v3.md`. Remaining work on this
-item is the one-line check in `bitgetWs.ts`; the code change is not made yet, so
-the status stays `in-progress`.
+Evidence and captures: `docs/bitget-api/14_uta_v3.md`. The one-line check in
+`bitgetWs.ts` landed separately (#3769), which is what closed the item.
 
 ## Symptom
 
