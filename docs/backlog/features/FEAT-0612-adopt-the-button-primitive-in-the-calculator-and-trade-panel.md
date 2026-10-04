@@ -1,5 +1,5 @@
 ---
-id: FEAT-0611
+id: FEAT-0612
 title: Adopt the button primitive in the calculator and trade panel
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0609]
+depends_on: [FEAT-0610]
 ---
 
-# FEAT-0611 — Adopt the button primitive in the calculator and trade panel
+# FEAT-0612 — Adopt the button primitive in the calculator and trade panel
 
 The calculator is where a user spends most of their time and where the density
 change will be judged. Its buttons are hand-styled today.
@@ -35,10 +35,10 @@ and this item should not undo that by accident.
 
 Migrate the calculator and trade-panel buttons to the primitive, and re-check
 the three-way action row's grouping and ordering against
-[FEAT-0605](FEAT-0605-button-placement-visibility-and-dependency-audit.md)'s
+[FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)'s
 findings.
 
-Anything FEAT-0605 filed as a `BUG` is a separate fix and stays out of this
+Anything FEAT-0606 filed as a `BUG` is a separate fix and stays out of this
 diff — a migration that also fixes behaviour makes the behaviour change
 invisible in review.
 
@@ -50,7 +50,7 @@ invisible in review.
 - [ ] Button heights in the calculator come from the control-geometry tokens
 - [ ] No `!important` is added by this item
 - [ ] The three-way action row's ordering and grouping are either confirmed
-      against FEAT-0605 and recorded, or a `BUG` is filed and the row is left
+      against FEAT-0606 and recorded, or a `BUG` is filed and the row is left
       as it is
 - [ ] The calculator's existing component tests pass unmodified; if a test needs
       changing because a selector moved, that is recorded rather than silently
@@ -64,18 +64,18 @@ invisible in review.
 - The calculation logic itself. Nothing here may change what a number is or how
       it is computed.
 - `decimal.js` usage.
-- The input fields. This item is buttons; inputs are FEAT-0608 and FEAT-0613.
+- The input fields. This item is buttons; inputs are FEAT-0609 and FEAT-0614.
 - The window layout around the calculator.
 
 ## Open questions
 
 - Does the three-way action row's symmetric layout reflect intent, or is it
-  left over? FEAT-0605 is the item that answers this; this item should not
+  left over? FEAT-0606 is the item that answers this; this item should not
   guess.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §1 and §5
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §1 and §5
 - [FEAT-0328](FEAT-0328-compact-account-controls-and-fee-display.md)
-- [FEAT-0605](FEAT-0605-button-placement-visibility-and-dependency-audit.md)
-- [FEAT-0609](FEAT-0609-extend-and-adopt-the-button-primitive.md)
+- [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)
+- [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md)

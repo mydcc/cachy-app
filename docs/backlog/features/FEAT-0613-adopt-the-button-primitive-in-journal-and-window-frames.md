@@ -1,5 +1,5 @@
 ---
-id: FEAT-0612
+id: FEAT-0613
 title: Adopt the button primitive in the journal and the window frames
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0609]
+depends_on: [FEAT-0610]
 ---
 
-# FEAT-0612 — Adopt the button primitive in the journal and the window frames
+# FEAT-0613 — Adopt the button primitive in the journal and the window frames
 
 The last adoption area: the journal, its tab strip, and the chrome every
 window shares.
@@ -35,7 +35,7 @@ standardised.
 
 Two notes. The `{@html}` icon path is a sanitisation boundary and must not
 change in a styling item. And the window frame buttons must stay compatible
-with whatever [FEAT-0615](FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md)
+with whatever [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md)
 adds — a snapping gesture is a pointer interaction on the same surface.
 
 ## Proposal
@@ -51,7 +51,7 @@ as it is.
 - [ ] Every `<button>` in the journal tree renders through `Button.svelte` or
       carries a naming comment
 - [ ] `DashboardNav`'s preset strip renders through the tab-bar component
-      decided in [FEAT-0606](FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md),
+      decided in [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md),
       or states why a journal-local strip may differ
 - [ ] The `DOMPurify.sanitize` icon path is unchanged; the sanitisation test
       that covers it still passes
@@ -68,9 +68,9 @@ as it is.
 
 ## Out of scope
 
-- Adding snapping, tiling or any new window control. That is FEAT-0615.
+- Adding snapping, tiling or any new window control. That is FEAT-0616.
 - Consolidating the window flags, which is
-      [FEAT-0614](FEAT-0614-consolidate-window-flags-and-resolve-the-double-click-drift.md).
+      [FEAT-0615](FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md).
 - Changing the icon set or the sanitiser.
 - Migrating buttons in the SEO pages.
 
@@ -82,9 +82,9 @@ as it is.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §2 and §5.1
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §2 and §5.1
 - `src/components/shared/windows/WindowFrame.svelte`
 - `src/components/shared/DashboardNav.svelte`
-- [FEAT-0609](FEAT-0609-extend-and-adopt-the-button-primitive.md)
-- [FEAT-0614](FEAT-0614-consolidate-window-flags-and-resolve-the-double-click-drift.md)
-- [FEAT-0615](FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md)
+- [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md)
+- [FEAT-0615](FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md)
+- [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md)

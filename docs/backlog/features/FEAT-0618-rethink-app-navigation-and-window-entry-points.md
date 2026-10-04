@@ -1,5 +1,5 @@
 ---
-id: FEAT-0617
+id: FEAT-0618
 title: Rethink app navigation and window entry points
 type: feature
 status: idea
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0615, FEAT-0616]
+depends_on: [FEAT-0616, FEAT-0617]
 ---
 
-# FEAT-0617 — Rethink app navigation and window entry points
+# FEAT-0618 — Rethink app navigation and window entry points
 
 There is no app navigation. What exists is four unrelated sets of buttons that
 happen to move the user between things.
@@ -70,9 +70,9 @@ grouping, and keyboard access.
 - Implementing a navigation component. This item produces the decision; the
       implementation is a new item.
 - Window snapping or tiling, which is
-      [FEAT-0615](FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md).
+      [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md).
 - Sidebar resizing, which is
-      [FEAT-0616](FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md).
+      [FEAT-0617](FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md).
 - Adding or removing features. This is about how existing ones are reached.
 - The SEO pages, which have their own navigation.
 
@@ -92,9 +92,9 @@ grouping, and keyboard access.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §1 and §5.1
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §1 and §5.1
 - `src/components/shared/LeftControlPanel.svelte`
 - `src/routes/+layout.svelte`
-- [FEAT-0605](FEAT-0605-button-placement-visibility-and-dependency-audit.md)
-- [FEAT-0615](FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md)
-- [FEAT-0616](FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md)
+- [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)
+- [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md)
+- [FEAT-0617](FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md)

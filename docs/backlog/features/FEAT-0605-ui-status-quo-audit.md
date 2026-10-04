@@ -1,5 +1,5 @@
 ---
-id: FEAT-0604
+id: FEAT-0605
 title: Audit the UI status quo: windows, elements, control sizes, CSS debt
 type: feature
 status: ready
@@ -13,7 +13,7 @@ adr: none
 depends_on: []
 ---
 
-# FEAT-0604 — Audit the UI status quo
+# FEAT-0605 — Audit the UI status quo
 
 The density work this unlocks cannot be planned against a guess. Cachy has
 accumulated its UI incrementally, and the parts that disagree with each other
@@ -44,14 +44,14 @@ counts and file references, and verify the three claims that reading the source
 cannot settle.
 
 A draft already exists at
-[`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md).
+[`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md).
 It covers the shell zones, the window system, settings, control sizes, buttons,
 ten named CSS debt categories and ten findings beyond the original brief. Three
 of its claims are still unverified and are the actual work left here.
 
 ## Acceptance criteria
 
-- [ ] `docs/backlog/assets/FEAT-0604/ui-zustandsaufnahme.md` exists and names
+- [ ] `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` exists and names
       every finding with a file reference or a count
 - [ ] N4 resolved by measurement: the settings window's `minWidth` is compared
       against `SettingsGrid`'s 560 px container threshold, and the answer
@@ -83,9 +83,9 @@ of its claims are still unverified and are the actual work left here.
 
 ## Links
 
-- Draft: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md)
+- Draft: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md)
 - [`../README.md`](../README.md)
-- [FEAT-0605](FEAT-0605-button-placement-visibility-and-dependency-audit.md) — first child
-- [FEAT-0606](FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md) — settings track
-- [FEAT-0608](FEAT-0608-introduce-control-and-density-tokens.md) — the enabler
-- [FEAT-0613](FEAT-0613-introduce-compact-default-and-wide-density-modes.md) — the goal
+- [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md) — first child
+- [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md) — settings track
+- [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — the enabler
+- [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — the goal

@@ -1,5 +1,5 @@
 ---
-id: FEAT-0616
+id: FEAT-0617
 title: Turn the sidebar width into a token and allow resizing it
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0608]
+depends_on: [FEAT-0609]
 ---
 
-# FEAT-0616 — Turn the sidebar width into a token and allow resizing it
+# FEAT-0617 — Turn the sidebar width into a token and allow resizing it
 
 The left sidebar is 384 pixels because a class attribute says so. It cannot be
 changed by the user and no density mode can reach it.
@@ -68,7 +68,7 @@ that makes the arrangement user-owned.
 - Collapsible sidebars, or a sidebar that hides into a rail. That is a layout
   decision, not a width one.
 - Changing which panels appear in which sidebar — that is
-      [FEAT-0605](FEAT-0605-button-placement-visibility-and-dependency-audit.md)'s
+      [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)'s
       territory.
 - Snapping windows beside the sidebar.
 - Making the right sidebar independently toggleable from the left. The
@@ -88,8 +88,8 @@ that makes the arrangement user-owned.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §1 and §7 (N6)
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §1 and §7 (N6)
 - `src/routes/+page.svelte`
-- [FEAT-0608](FEAT-0608-introduce-control-and-density-tokens.md) — prereq
+- [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — prereq
 - [BUG-0410](../bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md)
-- [FEAT-0615](FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md)
+- [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md)

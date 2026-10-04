@@ -1,5 +1,5 @@
 ---
-id: FEAT-0605
+id: FEAT-0606
 title: Audit button placement, visibility and enablement dependencies
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0604]
+depends_on: [FEAT-0605]
 ---
 
-# FEAT-0605 — Audit button placement, visibility and dependencies
+# FEAT-0606 — Audit button placement, visibility and dependencies
 
 There are 364 raw `<button>` elements across 167 files and sixteen uses of the
 shared `btn-*` utility classes. Before adopting a button primitive, it is worth
@@ -65,13 +65,13 @@ hidden inside a styling change.
 - [ ] `#save-preset-btn` / `#delete-preset-btn` / `#preset-loader` are checked
       against each other for consistency and the result recorded
 - [ ] The table is added to
-      [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md)
+      [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md)
       as a new section, not as a separate document
 
 ## Out of scope
 
 - Moving, restyling, or removing any button. This item only measures.
-- Button primitive adoption, which is [FEAT-0609](FEAT-0609-extend-and-adopt-the-button-primitive.md)
+- Button primitive adoption, which is [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md)
   onward.
 - Changing any enablement logic.
 - Iconography, labels, and i18n of button text.
@@ -84,9 +84,9 @@ hidden inside a styling change.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §5
-- [FEAT-0604](FEAT-0604-ui-status-quo-audit.md)
-- [FEAT-0609](FEAT-0609-extend-and-adopt-the-button-primitive.md) — consumes this
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §5
+- [FEAT-0605](FEAT-0605-ui-status-quo-audit.md)
+- [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md) — consumes this
 - [BUG-0410](../bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md)
 - [BUG-0412](../bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md)
 - [BUG-0423](../bugs/BUG-0423-coalesce-duplicate-account-fetches.md)

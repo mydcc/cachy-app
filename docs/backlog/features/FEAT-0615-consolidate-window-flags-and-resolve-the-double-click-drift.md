@@ -1,5 +1,5 @@
 ---
-id: FEAT-0614
+id: FEAT-0615
 title: Consolidate the window flags and resolve the double-click state drift
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0604]
+depends_on: [FEAT-0605]
 ---
 
-# FEAT-0614 — Consolidate the window flags and resolve the double-click drift
+# FEAT-0615 — Consolidate the window flags and resolve the double-click drift
 
 The window system carries ~30 flags, several of which claim the same concern
 and none of which document which wins. Magnetic tiling cannot be designed until
@@ -73,10 +73,10 @@ is migrated in the same PR.
 ## Out of scope
 
 - Snapping, tiling, or any new window gesture. That is
-      [FEAT-0615](FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md).
+      [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md).
 - Changing `pinSide` semantics. `togglePin()` is already annotated *"Pinning
       logic (experimental tiling)"* and does exactly one thing — flip a flag,
-      un-maximize, save. It is left as it is until FEAT-0615 gives it a
+      un-maximize, save. It is left as it is until FEAT-0616 gives it a
       purpose.
 - Window sizing, which [BUG-0411](../bugs/BUG-0411-modal-windows-oversized-polish.md)
       (`done`) already settled.
@@ -88,12 +88,12 @@ is migrated in the same PR.
 - Is `showHeaderIndicators` part of the header concern or its own? It reads as
   its own, but it is not in any of the three overlapping sets.
 - Should `pinSide` survive at all, given only one call site ever sets it? If
-  FEAT-0615 does not use it, deleting it here is cheaper than carrying it.
+  FEAT-0616 does not use it, deleting it here is cheaper than carrying it.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §2.1 and §2.2
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §2.1 and §2.2
 - `src/lib/windows/types.ts`, `src/lib/windows/WindowBase.svelte.ts`
 - [BUG-0411](../bugs/BUG-0411-modal-windows-oversized-polish.md)
-- [FEAT-0612](FEAT-0612-adopt-the-button-primitive-in-journal-and-window-frames.md)
-- [FEAT-0615](FEAT-0615-add-magnetic-snapping-and-edge-tiling-for-windows.md)
+- [FEAT-0613](FEAT-0613-adopt-the-button-primitive-in-journal-and-window-frames.md)
+- [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md)

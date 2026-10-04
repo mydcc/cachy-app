@@ -1,5 +1,5 @@
 ---
-id: FEAT-0613
+id: FEAT-0614
 title: Introduce compact, default and wide density modes
 type: feature
 status: specced
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0606, FEAT-0608, FEAT-0609, FEAT-0610, FEAT-0611, FEAT-0612]
+depends_on: [FEAT-0607, FEAT-0609, FEAT-0610, FEAT-0611, FEAT-0612, FEAT-0613]
 ---
 
-# FEAT-0613 — Introduce compact, default and wide density modes
+# FEAT-0614 — Introduce compact, default and wide density modes
 
 The reason the rest of this track exists. Inputs are 42 px tall; the question
 this item answers is whether 32 px makes Cachy better or worse, and it answers
@@ -50,10 +50,10 @@ Three implementation constraints, all from the audit:
   costs six touchpoints per flag (default, `$state`, load, save, getter), and
   the mode must not be the seventh ad-hoc boolean.
 - The dropdown's placement is decided in
-  [FEAT-0606](FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md), not
+  [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md), not
   here.
 - The mode has to reach controls that currently pad instead of sizing, which
-  is what [FEAT-0608](FEAT-0608-introduce-control-and-density-tokens.md) and
+  is what [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) and
   the three adoption items exist for.
 
 ## Acceptance criteria
@@ -81,9 +81,9 @@ Three implementation constraints, all from the audit:
 ## Out of scope
 
 - Introducing the tokens. That is
-      [FEAT-0608](FEAT-0608-introduce-control-and-density-tokens.md); this item
+      [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md); this item
       only selects between them.
-- Adopting the button primitive, which is FEAT-0610 through FEAT-0612.
+- Adopting the button primitive, which is FEAT-0611 through FEAT-0613.
 - A font-scale setting. Density is one control; adding a second independent
       typography knob recreates the problem this track exists to remove.
 - Per-area density. One setting, one mode, app-wide.
@@ -105,10 +105,10 @@ Three implementation constraints, all from the audit:
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §4 and §7 (N1, N2)
-- [FEAT-0606](FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md) — placement
-- [FEAT-0608](FEAT-0608-introduce-control-and-density-tokens.md) — the tokens
-- [FEAT-0609](FEAT-0609-extend-and-adopt-the-button-primitive.md)
-- [FEAT-0610](FEAT-0610-adopt-the-button-primitive-in-the-settings-tabs.md)
-- [FEAT-0611](FEAT-0611-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md)
-- [FEAT-0612](FEAT-0612-adopt-the-button-primitive-in-journal-and-window-frames.md)
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §4 and §7 (N1, N2)
+- [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md) — placement
+- [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — the tokens
+- [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md)
+- [FEAT-0611](FEAT-0611-adopt-the-button-primitive-in-the-settings-tabs.md)
+- [FEAT-0612](FEAT-0612-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md)
+- [FEAT-0613](FEAT-0613-adopt-the-button-primitive-in-journal-and-window-frames.md)

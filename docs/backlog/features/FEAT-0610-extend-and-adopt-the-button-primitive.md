@@ -1,5 +1,5 @@
 ---
-id: FEAT-0609
+id: FEAT-0610
 title: Extend the button primitive and adopt it in the app shell header
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0604, FEAT-0605, FEAT-0608]
+depends_on: [FEAT-0605, FEAT-0606, FEAT-0609]
 ---
 
-# FEAT-0609 — Extend the button primitive and adopt it in the shell header
+# FEAT-0610 — Extend the button primitive and adopt it in the shell header
 
 A shared button component already exists, is already tested, and is used by
 nothing. This item gives it what it lacks and proves it on one surface.
@@ -44,9 +44,9 @@ variants (default, danger), states (disabled, selection) and a group, in about
 twenty lines.
 
 Rollout beyond the pilot is three separate items, one per area:
-[FEAT-0610](FEAT-0610-adopt-the-button-primitive-in-the-settings-tabs.md),
-[FEAT-0611](FEAT-0611-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md),
-[FEAT-0612](FEAT-0612-adopt-the-button-primitive-in-journal-and-window-frames.md).
+[FEAT-0611](FEAT-0611-adopt-the-button-primitive-in-the-settings-tabs.md),
+[FEAT-0612](FEAT-0612-adopt-the-button-primitive-in-the-calculator-and-trade-panel.md),
+[FEAT-0613](FEAT-0613-adopt-the-button-primitive-in-journal-and-window-frames.md).
 This item does not do them.
 
 ## Acceptance criteria
@@ -55,7 +55,7 @@ This item does not do them.
       already uses, mapped to the existing `btn-*` / paired CSS classes rather
       than to new colours
 - [ ] `Button.svelte` exposes exactly three sizes, and their heights come from
-      the [FEAT-0608](FEAT-0608-introduce-control-and-density-tokens.md)
+      the [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md)
       tokens rather than from literals
 - [ ] `.btn-base` no longer uses `transition: all`; transitions are named
       properties only
@@ -67,17 +67,17 @@ This item does not do them.
 - [ ] `#preset-loader` is either migrated or explicitly left as a `<select>`,
       with the reason recorded
 - [ ] The migrated controls render identically to `develop` at default settings
-- [ ] `docs/backlog/assets/FEAT-0604/ui-zustandsaufnahme.md` §5 is updated with
+- [ ] `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` §5 is updated with
       the post-pilot counts
 
 ## Out of scope
 
-- Migrating the other 359 buttons. That is FEAT-0610 through FEAT-0612.
+- Migrating the other 359 buttons. That is FEAT-0611 through FEAT-0613.
 - Deciding *which* buttons exist or where they sit — that is
-      [FEAT-0605](FEAT-0605-button-placement-visibility-and-dependency-audit.md).
+      [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md).
 - Changing button colours, contrast, or any theme value.
 - Introducing a new colour for a new variant.
-- `DashboardNav.svelte`, which is journal-local and belongs to FEAT-0612.
+- `DashboardNav.svelte`, which is journal-local and belongs to FEAT-0613.
 
 ## Open questions
 
@@ -89,8 +89,8 @@ This item does not do them.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §5 and §6 (C7, C9)
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §5 and §6 (C7, C9)
 - `src/components/shared/Button.svelte`
-- [FEAT-0605](FEAT-0605-button-placement-visibility-and-dependency-audit.md)
-- [FEAT-0608](FEAT-0608-introduce-control-and-density-tokens.md)
-- [FEAT-0610](FEAT-0610-adopt-the-button-primitive-in-the-settings-tabs.md) — next
+- [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)
+- [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md)
+- [FEAT-0611](FEAT-0611-adopt-the-button-primitive-in-the-settings-tabs.md) — next

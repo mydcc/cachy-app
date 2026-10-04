@@ -1,5 +1,5 @@
 ---
-id: FEAT-0608
+id: FEAT-0609
 title: Introduce control-geometry and density tokens
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0604]
+depends_on: [FEAT-0605]
 ---
 
-# FEAT-0608 — Introduce control-geometry and density tokens
+# FEAT-0609 — Introduce control-geometry and density tokens
 
 Every control size in the app is a literal. This item turns control geometry
 into tokens, so that a later item can change it by changing a value.
@@ -44,7 +44,7 @@ tokens, and route the control classes through it.
 
 The token values in this item equal today's values. The diff must be visually a
 no-op; its only observable effect is that a control height now has one source.
-Making it 32 px is [FEAT-0613](FEAT-0613-introduce-compact-default-and-wide-density-modes.md)
+Making it 32 px is [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md)
 and belongs there.
 
 Scope the tokens to what controls actually need: height, horizontal padding,
@@ -89,9 +89,9 @@ height.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §4 and §6 (C1, C4)
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §4 and §6 (C1, C4)
 - `src/themes.css` (3223 lines)
-- [FEAT-0604](FEAT-0604-ui-status-quo-audit.md)
-- [FEAT-0609](FEAT-0609-extend-and-adopt-the-button-primitive.md) — consumes these
-- [FEAT-0613](FEAT-0613-introduce-compact-default-and-wide-density-modes.md) — the consumer
-- [FEAT-0616](FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md)
+- [FEAT-0605](FEAT-0605-ui-status-quo-audit.md)
+- [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md) — consumes these
+- [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — the consumer
+- [FEAT-0617](FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md)

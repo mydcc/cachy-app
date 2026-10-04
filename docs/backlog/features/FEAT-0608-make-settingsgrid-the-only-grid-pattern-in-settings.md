@@ -1,5 +1,5 @@
 ---
-id: FEAT-0607
+id: FEAT-0608
 title: Make SettingsGrid the only grid pattern inside the settings window
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0606]
+depends_on: [FEAT-0607]
 ---
 
-# FEAT-0607 — Make `SettingsGrid` the only grid pattern in settings
+# FEAT-0608 — Make `SettingsGrid` the only grid pattern in settings
 
 `SettingsGrid.svelte` already documents the right rules for how settings lay
 themselves out. Roughly twenty places in the two tabs that control appearance
@@ -86,7 +86,7 @@ already broke once will be broken again.
 ## Out of scope
 
 - Changing the 560 px or 960 px thresholds. If the threshold is wrong,
-      FEAT-0604's N4 measurement is what shows it, and it gets its own item.
+      FEAT-0605's N4 measurement is what shows it, and it gets its own item.
 - Visual redesign of any settings row.
 - The viewport-breakpoint layout of the app shell (`+page.svelte`), which is a
       different container and legitimately different.
@@ -94,14 +94,14 @@ already broke once will be broken again.
 
 ## Open questions
 
-- FEAT-0604's N4 measures whether the settings window's `minWidth` is below
+- FEAT-0605's N4 measures whether the settings window's `minWidth` is below
   560 px. If it is, the two-column threshold is currently unreachable and this
   item is blocked on a decision about the window's minimum width, not on the
   conversion.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §3.2
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §3.2
 - `src/components/settings/shared/SettingsGrid.svelte`
-- [FEAT-0606](FEAT-0606-harmonize-settings-hierarchy-and-tab-naming.md) — prereq
-- [FEAT-0613](FEAT-0613-introduce-compact-default-and-wide-density-modes.md) — needs this
+- [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md) — prereq
+- [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — needs this

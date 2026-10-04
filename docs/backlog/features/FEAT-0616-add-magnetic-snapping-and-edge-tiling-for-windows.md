@@ -1,5 +1,5 @@
 ---
-id: FEAT-0615
+id: FEAT-0616
 title: Add magnetic edge snapping and tiling to the window system
 type: feature
 status: specced
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0614]
+depends_on: [FEAT-0615]
 ---
 
-# FEAT-0615 — Add magnetic edge snapping and tiling to windows
+# FEAT-0616 — Add magnetic edge snapping and tiling to windows
 
 Dragging a window to a screen edge currently does nothing. The data model for
 pinning exists and no gesture drives it.
@@ -36,7 +36,7 @@ interaction. A user who drags a window to the left edge gets no feedback at
 all.
 
 The reason this is not simply "add a drag handler" is
-[FEAT-0614](FEAT-0614-consolidate-window-flags-and-resolve-the-double-click-drift.md):
+[FEAT-0615](FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md):
 `allowMaximize`/`showMaximizeButton` and the two double-click flag sets overlap,
 and snapping needs to decide what a window's edge behaviour is.
 
@@ -81,7 +81,7 @@ folded in here.
   workspace system. This is edge snapping, not a tiling manager.
 - Persisting a full layout arrangement. One window's pinned state is already
   persisted; the arrangement around it is not.
-- The flag consolidation, which is FEAT-0614.
+- The flag consolidation, which is FEAT-0615.
 - The reset affordance, which is its own item.
 - Changing window sizes or minimum sizes.
 - Touch gestures. The existing drag is a pointer drag; touch parity is a
@@ -97,12 +97,12 @@ folded in here.
   to hit accurately.
 - Does a snapped left window replace the left sidebar, or sit beside it? This
   determines whether the answer lives here or in
-  [FEAT-0616](FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md).
+  [FEAT-0617](FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md).
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §2.3
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §2.3
 - `src/lib/windows/WindowBase.svelte.ts`, `src/lib/windows/implementations/WindowRegistry.svelte.ts`
-- [FEAT-0614](FEAT-0614-consolidate-window-flags-and-resolve-the-double-click-drift.md) — prereq
-- [FEAT-0616](FEAT-0616-turn-sidebar-width-into-a-token-and-allow-resizing.md)
-- [FEAT-0617](FEAT-0617-rethink-app-navigation-and-window-entry-points.md)
+- [FEAT-0615](FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md) — prereq
+- [FEAT-0617](FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md)
+- [FEAT-0618](FEAT-0618-rethink-app-navigation-and-window-entry-points.md)

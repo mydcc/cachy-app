@@ -1,7 +1,7 @@
 # UI status quo — windows, elements, CSS debt
 
 Baseline read of the Cachy UI, taken 2026-10-03 against `develop` at `d853139c6`.
-This is the evidence base for [FEAT-0604](../../features/FEAT-0604-ui-status-quo-audit.md)
+This is the evidence base for [FEAT-0605](../../features/FEAT-0605-ui-status-quo-audit.md)
 and for every item that depends on it. It is a snapshot, not a living contract —
 when a number here is wrong, fix the number here in the same PR that changes it.
 

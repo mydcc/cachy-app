@@ -1,5 +1,5 @@
 ---
-id: FEAT-0606
+id: FEAT-0607
 title: Harmonize the settings hierarchy, tab naming and sub-tab pattern
 type: feature
 status: ready
@@ -8,13 +8,13 @@ milestone: none
 created: "2026-10-03"
 editions: [community, pro, private]
 area: ui
-parent: FEAT-0604
+parent: FEAT-0605
 data_class: none
 adr: none
-depends_on: [FEAT-0604]
+depends_on: [FEAT-0605]
 ---
 
-# FEAT-0606 — Harmonize the settings hierarchy and tab naming
+# FEAT-0607 — Harmonize the settings hierarchy and tab naming
 
 The settings were built tab by tab and the tabs do not agree with each other.
 This item makes them agree before anything is added to them — in particular
@@ -67,7 +67,7 @@ tabs conform.
 
 This item also hosts the density control's *placement* decision — which tab it
 belongs in — without implementing it. That is
-[FEAT-0613](FEAT-0613-introduce-compact-default-and-wide-density-modes.md).
+[FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md).
 
 ## Acceptance criteria
 
@@ -82,7 +82,7 @@ belongs in — without implementing it. That is
 - [ ] A grouping of the eight tabs is decided and recorded; if grouping by
       grouping, it is recorded as out of scope here rather than left implicit
 - [ ] Where the density control will live is decided and recorded, so
-      FEAT-0613 does not have to choose again
+      FEAT-0614 does not have to choose again
 - [ ] Both `de.json` and `en.json` carry any new keys
 
 ## Out of scope
@@ -90,10 +90,10 @@ belongs in — without implementing it. That is
 - Moving settings between tabs. Users who bookmarked a mental model get it
   back; reorganisation is a separate, larger decision.
 - The grid and column work, which is
-  [FEAT-0607](FEAT-0607-make-settingsgrid-the-only-grid-pattern-in-settings.md).
+  [FEAT-0608](FEAT-0608-make-settingsgrid-the-only-grid-pattern-in-settings.md).
 - Adding the density control itself.
 - Touching the 2166-line settings store beyond what a new i18n key requires.
-- ARIA roles and keyboard navigation for the tab bars, which FEAT-0604's N8
+- ARIA roles and keyboard navigation for the tab bars, which FEAT-0605's N8
   measures first. If that check finds them missing, it is filed as a `BUG`.
 
 ## Open questions
@@ -107,9 +107,9 @@ belongs in — without implementing it. That is
 
 ## Links
 
-- Evidence: [`assets/FEAT-0604/ui-zustandsaufnahme.md`](../assets/FEAT-0604/ui-zustandsaufnahme.md) §3.1
-- [FEAT-0604](FEAT-0604-ui-status-quo-audit.md)
-- [FEAT-0607](FEAT-0607-make-settingsgrid-the-only-grid-pattern-in-settings.md) — next in this track
-- [FEAT-0613](FEAT-0613-introduce-compact-default-and-wide-density-modes.md) — needs this first
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §3.1
+- [FEAT-0605](FEAT-0605-ui-status-quo-audit.md)
+- [FEAT-0608](FEAT-0608-make-settingsgrid-the-only-grid-pattern-in-settings.md) — next in this track
+- [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — needs this first
 - [BUG-0601](../bugs/BUG-0601-hardcoded-duration-bucket-labels.md)
 - [BUG-0602](../bugs/BUG-0602-hardcoded-dataset-labels.md)
