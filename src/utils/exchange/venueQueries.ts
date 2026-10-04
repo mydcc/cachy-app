@@ -169,7 +169,9 @@ export function buildTpslWriteBody(params: Record<string, unknown>): string {
  * every other mix endpoint.
  */
 export function buildPendingOrdersQueryParams(venue: Venue): Record<string, string> {
-  return venue === "bitunix" ? {} : { productType: "umcbl" };
+  // UTA's `unfilled-orders` takes an optional `category`; sending it keeps the
+  // read scoped to futures the same way the other three reads are.
+  return venue === "bitunix" ? {} : { category: "USDT-FUTURES" };
 }
 
 /**
@@ -205,9 +207,15 @@ export function buildOrdersHistoryQueryParams(
     : Math.min(Math.max(requested, 1), POSITIONS_HISTORY_LIMIT_MAX);
 
   if (venue === "bitget") {
+    // UTA `history-orders`: `category` replaces V1's `productType`, `limit`
+    // replaces `pageSize` (default 100, max 100 — the clamp above already
+    // holds 100), cursor pagination. The 90-day access window with a 30-day
+    // max span replaces V1's seven-day default, but the client-side
+    // startTime/endTime re-filtering stays: the venue's window is not the
+    // window the client signed.
     const params: Record<string, string> = {
-      productType: "umcbl",
-      pageSize: String(limit),
+      category: "USDT-FUTURES",
+      limit: String(limit),
     };
     if (payload.symbol) params.symbol = payload.symbol;
     if (payload.startTime !== undefined) params.startTime = String(payload.startTime);
@@ -255,9 +263,11 @@ export function buildOrderDetailQueryParams(payload: {
  * handles the ordering half of this rule, and cannot help with this half.
  */
 export function buildAccountQueryParams(venue: Venue): Record<string, string> {
+  // UTA takes `category`, not `productType` + `marginCoin` — verified live
+  // 2026-10-03 (`docs/bitget-api/14_uta_v3.md`). Every current account is UTA.
   return venue === "bitunix"
     ? { marginCoin: "USDT" }
-    : { productType: "umcbl", marginCoin: "USDT" };
+    : { category: "USDT-FUTURES" };
 }
 
 /**
@@ -279,5 +289,5 @@ export function buildBalanceQueryParams(venue: Venue): Record<string, string> {
 export function buildPositionsQueryParams(venue: Venue): Record<string, string> {
   return venue === "bitunix"
     ? {}
-    : { productType: "umcbl", marginCoin: "USDT" };
+    : { category: "USDT-FUTURES" };
 }

@@ -571,7 +571,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0596",
     "title": "Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "created": "2026-09-30",
@@ -587,6 +587,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0580",
       "BUG-0590"
     ],
+    "assignee": "opencode",
+    "branch": "fix/bug-0596-uta-signed-reads",
     "file": "bugs/BUG-0596-bitget-signed-read-paths-need-v2.md"
   },
   {
