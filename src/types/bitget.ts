@@ -100,11 +100,21 @@ export interface BitgetOrderPayload {
   symbol: string;
   side: string; // buy, sell
   orderType: string; // limit, market
-  force: string; // normal, gtc, ioc, fok
+  force: string; // gtc, ioc, fok, post_only (V1's "normal" is dead)
   price?: string;
   size: string; // quantity
   clientOid?: string;
   reduceOnly?: boolean;
   presetStopSurplusPrice?: string; // TP
   presetStopLossPrice?: string; // SL
+  /**
+   * UTA hedge position side (long|short). Present on hedge intents, absent
+   * on one-way — the builder enforces the split, see below.
+   */
+  posSide?: string;
+  /**
+   * UTA margin mode. Required: the venue defaults an omitted field to cross,
+   * and a default that moves margin is not one Cachy takes silently.
+   */
+  marginMode?: string;
 }

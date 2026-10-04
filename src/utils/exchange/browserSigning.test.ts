@@ -196,13 +196,15 @@ describe("signCachyRequest — Bitget", () => {
   });
 
   it("signs the body for a body-signed route", async () => {
-    const payload = { ...PLACE_ORDER_BITUNIX, exchange: "bitget" };
+    // BUG-0597: the UTA body builder requires an explicit marginMode (it
+    // refuses to let the venue default it), so the payload names one.
+    const payload = { ...PLACE_ORDER_BITUNIX, exchange: "bitget", marginMode: "cross" };
     const signed = await signCachyRequest({
       cachyPath: "/api/orders",
       keys: KEYS,
       venue: "bitget",
       payload,
-      upstreamPath: "/api/mix/v1/order/place-order",
+      upstreamPath: "/api/v3/trade/place-order",
       now: NOW,
     });
 
@@ -217,7 +219,7 @@ describe("signCachyRequest — Bitget", () => {
   // bug the fix this pins was about. Expected path read from the table
   // `bitget.ts` forwards from, so the two are pinned against each other.
   it("resolves the upstream path from the body action on a write", async () => {
-    const payload = { ...PLACE_ORDER_BITUNIX, exchange: "bitget" };
+    const payload = { ...PLACE_ORDER_BITUNIX, exchange: "bitget", marginMode: "cross" };
 
     const signed = await signCachyRequest({
       cachyPath: "/api/orders",
@@ -296,7 +298,7 @@ describe("signCachyRequest — the secret never rides", () => {
       {
         cachyPath: "/api/orders",
         venue: "bitget" as const,
-        payload: { ...PLACE_ORDER_BITUNIX, exchange: "bitget" },
+        payload: { ...PLACE_ORDER_BITUNIX, exchange: "bitget", marginMode: "cross" },
       },
       { cachyPath: "/api/tpsl", venue: "bitunix" as const, queryParams: { orderId: "42" } },
       { cachyPath: "/api/sync", venue: "bitunix" as const, queryParams: { symbol: "BTCUSDT" } },

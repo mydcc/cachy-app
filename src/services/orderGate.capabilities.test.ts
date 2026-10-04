@@ -83,6 +83,13 @@ function openIntent(provider: string, overrides: Record<string, unknown> = {}): 
 
 /** A market close — the one entry-free order shape every venue takes. */
 function reduceIntent(provider: string, overrides: Record<string, unknown> = {}): OrderIntent {
+    // BUG-0597: Bitget closes travel transactionally (BUY closes a short)
+    // with posSide naming the side; anything else is the pre-UTA shape the
+    // gate now refuses. Bitunix keeps the position convention untouched.
+    const utaCloseShort =
+        provider === "bitget"
+            ? { side: "BUY", posSide: "SHORT", reduceOnly: false }
+            : {};
     return {
         kind: "reduce",
         endpoint: "/api/orders",
@@ -94,6 +101,7 @@ function reduceIntent(provider: string, overrides: Record<string, unknown> = {})
             qty: "0.5",
             reduceOnly: true,
             tradeSide: "CLOSE",
+            ...utaCloseShort,
             ...overrides,
         },
         displayed: {
@@ -427,13 +435,15 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
         });
 
         it("still checks a reduce-only market close, which every venue takes", () => {
+            // BUG-0597: one-way close of the displayed short travels as BUY
+            // (transactional direction); the SELL here would close a long.
             const intent: OrderIntent = {
                 kind: "reduce",
                 endpoint: "/api/orders",
                 payload: {
                     type: "place-order",
                     symbol: "BTCUSDT",
-                    side: "SELL",
+                    side: "BUY",
                     orderType: "MARKET",
                     qty: "0.5",
                     reduceOnly: true,

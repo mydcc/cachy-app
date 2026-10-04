@@ -296,15 +296,12 @@ const BITGET_UPSTREAM_PATHS: Record<string, string> = {
  * divergence between them belongs here, not behind a shared constant.
  */
 const BITGET_ORDER_PATHS: Record<string, string> = {
-  // place-order / close-position stay on V1 until BUG-0597 ports them — a
-  // deliberate split, not an oversight. Reads moved first because they are
-  // verifiable without funds; cancel (below) moved next because it cannot
-  // open a position.
-  "place-order": "/api/mix/v1/order/placeOrder",
-  "close-position": "/api/mix/v1/order/placeOrder",
-  // Phase B (BUG-0597): cancel ported to UTA first — a cancel can refuse or
-  // mis-target, but it can never open a position, so it is the safe half of
-  // the writes to move ahead of place-order.
+  // BUG-0597: writes ride UTA — place-order and close-position share
+  // `/api/v3/trade/place-order` (one endpoint, the body carrying the intent),
+  // cancel-order rides `/api/v3/trade/cancel-order`. A cancel can refuse or
+  // mis-target but never open a position, so it moved a phase ahead.
+  "place-order": "/api/v3/trade/place-order",
+  "close-position": "/api/v3/trade/place-order",
   "cancel-order": "/api/v3/trade/cancel-order",
   // The two query-signed reads, on UTA paths (verified 2026-10-03).
   // `order-detail` has no row on purpose: Bitget

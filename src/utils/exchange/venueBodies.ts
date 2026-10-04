@@ -112,12 +112,18 @@ function venueBody(
       if (!safeAmount || new Decimal(safeAmount).lte(0)) {
         throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
       }
+      // UTA hedge closes name their side: without `posSide` this body would
+      // open instead of close, so the route refuses it rather than the venue.
+      // (One-way closes travel as `place-order` + `reduceOnly`, not here.)
+      if (!payload.posSide) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
       return buildBitgetPlaceOrderBody(
         buildBitgetClosePositionPayload({
           symbol: payload.symbol,
           side: payload.side,
           amount: safeAmount,
           marginCoin: payload.marginCoin,
+          posSide: payload.posSide,
+          marginMode: payload.marginMode,
         }),
       );
     }

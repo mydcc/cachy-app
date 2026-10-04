@@ -1393,6 +1393,11 @@ class TradeService {
                               clientOrderId: candidateOrderId,
                               tradeSide,
                               positionId,
+                              // BUG-0597: UTA names the side it closes. Bitunix
+                              // keeps the position-side convention untouched.
+                              ...(settingsState.apiProvider === "bitget"
+                                ? this.bitgetUtaCloseFields(positionSide)
+                                : {}),
                           },
                           displayed: {
                               symbol,
@@ -1712,6 +1717,71 @@ class TradeService {
     }
 
     /**
+     * BUG-0597: UTA intent fields for a close. The caller names the position
+     * side it is closing; this returns the transactional direction UTA wants
+     * (`SELL` closes a long) plus the position side itself — never the
+     * position-side convention the Bitunix branch of these call sites uses.
+     *
+     * Mode comes from the store (BUG-0596 positions lane). Only a positive
+     * `one_way` omits `posSide`; an unknown mode reads as hedge, because a
+     * `posSide` sent to a one-way account rejects at the venue while an
+     * omitted one on hedge leaves the intent ambiguous. The reverse
+     * staleness — mode flipped to hedge while the store still says one_way —
+     * emits reduce-only without posSide on a hedge account: likely
+     * venue-rejected (reduceOnly is one-way-only), but direction alone on
+     * hedge is ambiguous if ever accepted. A mode change with open positions
+     * is the operator's cue to re-sync before trading. `reduceOnly` is
+     * one-way-only on UTA and never travels with `posSide` — the body
+     * builder throws on the combination, so a hedge close arrives with it
+     * false rather than relying on the venue to ignore it.
+     *
+     * `marginMode` is passed through unresolved (possibly ""): the builder
+     * refuses an unknown mode instead of letting the venue default to cross.
+     */
+    private bitgetUtaCloseFields(positionSide: "long" | "short"): {
+        side: "BUY" | "SELL";
+        posSide?: "LONG" | "SHORT";
+        reduceOnly: boolean;
+        marginMode?: string;
+    } {
+        const side = positionSide === "long" ? "SELL" : "BUY";
+        // Undefined (not "") when never synced: the gate only compares margin
+        // mode when both sides carry one, so an empty string would read as a
+        // present-but-wrong value and refuse with a mismatch. The body builder
+        // still requires it and throws when it is absent.
+        const marginMode = normalizeMarginMode(tradeState.remoteMarginMode) || undefined;
+        if ((accountState.positionMode ?? "").toLowerCase() === "one_way") {
+            return { side, reduceOnly: true, marginMode };
+        }
+        return {
+            side,
+            posSide: positionSide.toUpperCase() as "LONG" | "SHORT",
+            reduceOnly: false,
+            marginMode,
+        };
+    }
+
+    /**
+     * BUG-0597: UTA intent fields for an open. Direction implies the position
+     * side (`BUY` opens long) except in one-way mode, where no `posSide`
+     * travels at all.
+     */
+    private bitgetUtaOpenFields(direction: "BUY" | "SELL"): {
+        posSide?: "LONG" | "SHORT";
+        marginMode?: string;
+    } {
+        return {
+            posSide:
+                (accountState.positionMode ?? "").toLowerCase() === "one_way"
+                    ? undefined
+                    : direction === "BUY"
+                      ? "LONG"
+                      : "SHORT",
+            marginMode: normalizeMarginMode(tradeState.remoteMarginMode) || undefined,
+        };
+    }
+
+    /**
      * Generates the client order ID for one submission attempt.
      *
      * FEAT-0069's open question was whether this should be random per attempt
@@ -1815,6 +1885,10 @@ class TradeService {
             effect: orderType === "MARKET" ? undefined : this.effectFor(params.effect),
             tradeSide: params.tradeSide,
             positionId: params.positionId,
+            // BUG-0597: direction implies the position side on opens.
+            ...(settingsState.apiProvider === "bitget"
+              ? this.bitgetUtaOpenFields(params.side)
+              : {}),
         };
 
         if (params.takeProfit) {
@@ -1982,6 +2056,10 @@ class TradeService {
             effect: orderType === "MARKET" ? undefined : this.effectFor(params.effect),
             tradeSide: "OPEN",
             positionId: position.positionId,
+            // BUG-0597: direction implies the position side on opens.
+            ...(settingsState.apiProvider === "bitget"
+              ? this.bitgetUtaOpenFields(positionSide === "long" ? "BUY" : "SELL")
+              : {}),
         };
 
         const result = await this.gatedRequest({
@@ -2120,6 +2198,11 @@ class TradeService {
                 reduceOnly: true,
                 tradeSide,
                 positionId,
+                // BUG-0597: UTA names the side it closes (transactional
+                // direction + posSide). Bitunix keeps its convention untouched.
+                ...(settingsState.apiProvider === "bitget"
+                  ? this.bitgetUtaCloseFields(positionSide)
+                  : {}),
             },
             displayed: {
                 symbol,
