@@ -20,7 +20,42 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { patchBuildIndex, DELEGATE_SHIM } from './postbuild-lib.mjs';
+import { patchBuildIndex, precompressFonts, DELEGATE_SHIM } from './postbuild-lib.mjs';
+
+describe('precompressFonts', () => {
+  /** @type {string} */
+  let root;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'cachy-precompress-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it('returns 0 when build/client directory does not exist', () => {
+    expect(precompressFonts(root)).toBe(0);
+  });
+
+  it('precompresses font files under build/client with .br and .gz extensions', () => {
+    const fontDir = path.join(root, 'build', 'client', 'fonts', 'Inter');
+    fs.mkdirSync(fontDir, { recursive: true });
+    const fontPath = path.join(fontDir, 'Inter.woff2');
+    fs.writeFileSync(fontPath, 'font-content-mock-bytes-12345', 'utf-8');
+
+    const nonFontPath = path.join(fontDir, 'README.txt');
+    fs.writeFileSync(nonFontPath, 'readme content', 'utf-8');
+
+    const count = precompressFonts(root);
+    expect(count).toBe(1);
+
+    expect(fs.existsSync(`${fontPath}.br`)).toBe(true);
+    expect(fs.existsSync(`${fontPath}.gz`)).toBe(true);
+    expect(fs.existsSync(`${nonFontPath}.br`)).toBe(false);
+    expect(fs.existsSync(`${nonFontPath}.gz`)).toBe(false);
+  });
+});
 
 describe('patchBuildIndex', () => {
   /** @type {string} */

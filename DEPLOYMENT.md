@@ -167,14 +167,16 @@ add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;
 add_header Permissions-Policy "camera=(self \"https://space.cachy.app\"), microphone=(self \"https://space.cachy.app\"), xr-spatial-tracking=(self \"https://space.cachy.app\" *), display-capture=(self \"https://space.cachy.app\"), fullscreen=*, autoplay=*, accelerometer=*, gyroscope=*, clipboard-write=*, encrypted-media=*, picture-in-picture=*, web-share=*, geolocation=*" always;
 ```
 
-**Gzip compression & asset performance.** Ensure Nginx has Gzip compression enabled to optimize Lighthouse performance scores and prevent serving uncompressed responses:
+**Gzip compression & asset performance.** Ensure Nginx has Gzip and precompressed static file support enabled to optimize Lighthouse performance scores and prevent serving uncompressed responses:
 
 ```nginx
 gzip on;
 gzip_comp_level 6;
 gzip_min_length 1024;
 gzip_proxied any;
-gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml font/ttf font/otf font/woff font/woff2 application/font-woff application/vnd.ms-fontobject;
+gzip_static on;
+brotli_static on;
 ```
 
 **Prefer TLS 1.2 and newer.** Leave `TLSv1.1` out of `ssl_protocols`; it is
@@ -609,13 +611,15 @@ If `./scripts/jules/monitor-production.sh` or the daily automated production mon
    - Confirm that aaPanel's Node project Run Command is set to `node --env-file=.env server.js` (or `node build/index.js`, which delegates to `server.js` via `scripts/postbuild.mjs`). A bare unpatched `node build/index.js` (or any direct adapter-node entry) skips Express compression and security header middleware.
 
 3. **Lighthouse Performance Score Below Threshold:**
-   - Ensure Gzip compression is enabled in Nginx `location /` or `server` block:
+   - Ensure Gzip compression and static precompressed asset serving are enabled in Nginx `location /` or `server` block:
      ```nginx
      gzip on;
      gzip_comp_level 6;
      gzip_min_length 1024;
      gzip_proxied any;
-     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml;
+     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript image/svg+xml font/ttf font/otf font/woff font/woff2 application/font-woff application/vnd.ms-fontobject;
+     gzip_static on;
+     brotli_static on;
      ```
    - Reload Nginx after updating configuration: `nginx -s reload`.
 

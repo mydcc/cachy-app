@@ -17,6 +17,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 // The build output always lives at <repo-root>/build, regardless of the
@@ -70,6 +71,56 @@ if (isEntryPoint()) {
 `;
 
 /**
+ * Recursively find and precompress font files (.ttf, .woff, .woff2, .otf, .eot)
+ * under `build/client/` using Brotli and Gzip during postbuild.
+ * @param {string} [root] repository root that contains `build/`
+ * @returns {number} count of precompressed font files
+ */
+export function precompressFonts(root = REPO_ROOT) {
+  const clientDir = path.join(root, 'build', 'client');
+  if (!fs.existsSync(clientDir)) {
+    return 0;
+  }
+
+  const fontExtension = /\.(ttf|woff2?|eot|otf)$/i;
+  let count = 0;
+
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile() && fontExtension.test(entry.name)) {
+        try {
+          const content = fs.readFileSync(fullPath);
+          const br = zlib.brotliCompressSync(content, {
+            params: {
+              [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY,
+            },
+          });
+          const gz = zlib.gzipSync(content, { level: 9 });
+
+          fs.writeFileSync(`${fullPath}.br`, br);
+          fs.writeFileSync(`${fullPath}.gz`, gz);
+          count += 1;
+        } catch (err) {
+          console.warn(`Failed to precompress font ${fullPath}:`, err);
+        }
+      }
+    }
+  }
+
+  walk(clientDir);
+  return count;
+}
+
+/**
  * Rewrite the adapter's entry point so `node build` serves through the Express
  * wrapper. Throws when the adapter output is missing — a silent no-op would let
  * a build "succeed" without the delegation it promises.
@@ -85,5 +136,6 @@ export function patchBuildIndex(root = REPO_ROOT) {
     );
   }
   fs.writeFileSync(buildIndexPath, DELEGATE_SHIM, 'utf-8');
+  precompressFonts(root);
   return buildIndexPath;
 }
