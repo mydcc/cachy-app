@@ -163,17 +163,27 @@ A **filled** order was not observed: the account is empty and no order was
 placed. Field presence on an empty list settles the naming, not the semantics
 under a partial fill.
 
-## Direction is split the same way in UTA as in V2 Classic
+## Direction is split the same way in UTA as in V2 Classic — responses only
 
-**Documented.** UTA orders carry `side` (direction) and `tradeSide`
-(`open` / `close`) as separate fields, plus `posSide` (`long` / `short`) and
-`holdMode: "hedge_mode"`.
+**Documented, and scoped: this section describes responses, not requests.**
+UTA order *responses* (`order-info`, `fills`) carry `side` (direction),
+`tradeSide` (`open` / `close`, computed by the venue), `posSide`
+(`long` / `short`) and `holdMode: "hedge_mode"`. There is **no `tradeSide`
+request field** — the place-order params list none (`15_uta_writes.md`).
+Requests split direction from intent as `side` + `posSide` instead.
 
-This matters for BUG-0597, whose acceptance test is "position returns to flat",
-not "the request returned 200". The hazard transfers unchanged: a close that
-drops `tradeSide` is a valid open. `README.md` records that Classic closes a long
-with `side=buy` while UTA closes a long with `side=sell` — the opposite
-convention, so the mapping is per-generation and cannot be shared.
+> Correction (2026-10-04): an earlier revision of this section framed
+> `tradeSide` as half of the request schema. It is not. See
+> `15_uta_writes.md` for the request side.
+
+This still matters for BUG-0597, whose acceptance test is "position returns
+to flat", not "the request returned 200" — but the hazard moved: a close
+that drops `posSide` violates a documented requirement (fail-closed,
+unverified), while a *wrong* `posSide` flips instead of flattening with a
+`00000` on the request. `README.md` records that Classic closes a long
+with `side=buy` (plus `tradeSide: close`) while UTA closes a long with
+`side=sell` (plus `posSide: long`) — opposite side values for the same
+intent, so the mapping is per-generation and cannot be shared.
 
 ## Query ordering before signing — resolved for V3
 

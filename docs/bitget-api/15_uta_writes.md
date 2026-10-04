@@ -27,7 +27,7 @@ The hazard transfers with a different shape (see below).
 | modify | `POST /api/v3/trade/modify-order` | orderId\|clientOid + symbol + category + qty and/or price | **Documented**, unverified |
 | cancel one | `POST /api/v3/trade/cancel-order` | orderId\|clientOid + category | **Documented**, unverified |
 | cancel symbol/all | `POST /api/v3/trade/cancel-symbol-order` | category + optional symbol | **Documented**, unverified — the rollback path |
-| close all | `POST /api/v3/trade/close-positions` | category + optional symbol/posSide | **Documented**, unverified — per-order results, partial failure possible |
+| close all | `POST /api/v3/trade/close-positions` | category + optional symbol/posSide | **Documented**, unverified — per-order results, partial failure possible. Path taken from the vendor nav grouping (Position Management); the position page slugs do not resolve to fetchable text, so re-confirm at implementation time |
 | order status | `GET /api/v3/trade/order-info` | orderId\|clientOid | **Documented**, unverified — the verification read |
 | instrument meta | `GET /api/v3/market/instruments` | category + optional symbol, public | **Verified** (below) |
 
@@ -48,8 +48,10 @@ Required: `category` (`USDT-FUTURES`), `symbol` (bare pair, `BTCUSDT`),
   positions**, futures only.
 - `marginMode` (`crossed` | `isolated`), futures only, **defaults to `crossed`**
   when omitted. Explicit is better: positions carry their own `marginMode`.
-- `reduceOnly` (`yes` | `no`, default `no`): *"Only applicable in one-way
-  mode"* — and `tradeSide` being absent, this is the one-way close.
+- `reduceOnly` (`yes` | `no`, default `no`): `yes` means the order may only
+  reduce the position. Per the page's Open Position Logic section this is the
+  one-way-mode close (there is no `tradeSide` to carry it); paraphrased, not
+  quoted — the param description itself carries no mode qualifier.
 - `clientOid`: 1–32 chars, `^[.A-Z:/a-z0-9_-]{1,32}$`. No documented
   duplicate behaviour — the page says nothing about resubmission, so **no
   auto-retry on writes** until a duplicate is observed rejected.
@@ -58,7 +60,10 @@ Required: `category` (`USDT-FUTURES`), `symbol` (bare pair, `BTCUSDT`),
   `tpTriggerBy` / `slTriggerBy` (`market` | `mark`, default market),
   `tpOrderType` / `slOrderType` (`limit` | `market`),
   `tpLimitPrice` / `slLimitPrice` (limit only). Futures only. This is the
-  material for the `tpSlAtEntry` re-evaluation (BUG-0503).
+  material for the `tpSlAtEntry` re-evaluation (BUG-0503). Note a vendor
+  label typo: the place-order page titles the TP trigger param
+  `stpTriggerBy`, but the curl sample and the modify-order page use
+  `tpTriggerBy` — the wire field is `tpTriggerBy`.
 
 ## The close matrix (hedge mode)
 
@@ -116,8 +121,11 @@ account state. Open question for the account holder, not the docs.
 2. `clientOid` resubmitted → rejected as duplicate, or second order? Method:
    docs are silent; probe on demo with a far-from-market limit, cancel after.
    Until answered: no write retries anywhere.
-3. One-way `holdMode` literal on the wire? `hedge_mode` is observed; the
-   one-way spelling is not. Method: read positions on a one-way demo account.
+3. One-way `holdMode` wire literal — settled as Documented: the order-info
+   response schema lists `holdMode` as `one_way_mode / hedge_mode`
+   (verified against the live vendor page 2026-10-04). What stays open is
+   only wire observation of `one_way_mode` on a real one-way account; the
+   store sets nothing it has not observed either way.
 4. Demo funding and fee behaviour — read, not assumed, on first demo contact.
 5. `modify-order` `autoCancel: yes` semantics under failure — read the page
    again at implementation time; the tail was cut in transcription.
