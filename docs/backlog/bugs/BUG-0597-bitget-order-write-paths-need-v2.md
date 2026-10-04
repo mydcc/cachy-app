@@ -12,7 +12,7 @@ data_class: none
 adr: none
 depends_on: [BUG-0596, BUG-0580]
 assignee: opencode
-branch: fix/bug-0597-uta-preset-tpsl
+branch: docs/bug-0597-remove-demo-key-narrative
 ---
 
 # Migrate the Bitget order write paths to V2
@@ -40,7 +40,7 @@ One-way: no `posSide`, close via `reduceOnly: "yes"`.
 
 This changes the hazard shape but not the acceptance: omitting `posSide` in
 hedge mode violates a documented requirement (fail-closed, unlike V2's
-`tradeSide` trap — unverified until a demo probe), while a *wrong* `posSide`
+`tradeSide` trap — unverified until observed), while a *wrong* `posSide`
 still flips instead of flattening with a `00000` on the request. "Position
 returns to flat" stays the criterion; "request returned 200" proves nothing.
 
@@ -51,17 +51,17 @@ cancel-order`, cancel-all `/api/v3/trade/cancel-symbol-order`, close-all
 place-order params (`category`, `qty` in base coin, `posSide` required in
 hedge, `marginMode` defaulting to `crossed`, `clientOid` regex, preset TP/SL
 fields for the BUG-0503 re-eval), live instrument minimums (BTCUSDT:
-minOrderQty 0.0001, minOrderAmount 5 USDT — verification costs cents, virtual
-on demo), per-order entries in cancel-all/close-all responses (envelope `00000`
+minOrderQty 0.0001, minOrderAmount 5 USDT — verification costs cents on the
+trader's account), per-order entries in cancel-all/close-all responses (envelope `00000`
 can carry a failed leg), and no documented `clientOid` idempotency (so no
 write retries until a duplicate is observed rejected).
 
-What stays demo-gated (asked, not inferred): posSide-omission behaviour,
-clientOid-resubmission behaviour, the one-way `holdMode` wire literal, demo
-funding, and whether the demo account's mode can be switched in futures
+What stays observation-gated (asked, not inferred): posSide-omission behaviour,
+clientOid-resubmission behaviour, the one-way `holdMode` wire literal, funding
+and fee behaviour, and whether the account's mode can be switched in futures
 settings (the UTA API has no set-position-mode endpoint — mode switches in
-app UI per vendor support). Plus two preconditions on the account holder:
-demo API keys, and the demo account's current holdMode.
+app UI per vendor support). Plus one precondition on the account holder:
+the account's current holdMode.
 
 ## Symptom
 
@@ -149,7 +149,7 @@ field a verified shape.
 - [ ] No request body contains `timInForceValue`
 - [ ] `place-order` sends `productType` and `marginMode`
 - [ ] A close on a **hedge-mode** account returns the position to flat,
-      verified in a sandbox — not merely a 200 response
+      verified against a real position — not merely a 200 response
 - [ ] A test fails if a close is sent without `tradeSide`
 - [ ] One-way mode is handled explicitly, on its own branch, since `tradeSide`
       is ignored there

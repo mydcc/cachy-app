@@ -124,7 +124,8 @@ live vendor page on 2026-09-28. The V1-decommission finding was verified
 against the live API with unauthenticated requests.
 
 Everything about **request signing and order behaviour** is *not* verified,
-because verifying it needs credentials and a sandbox:
+because verifying it needs trader-side observation on the live account —
+agents never hold keys and never send requests:
 
 - Whether query parameters must be sorted before signing (`01_sign.md`) — the
   blocker on the whole migration.

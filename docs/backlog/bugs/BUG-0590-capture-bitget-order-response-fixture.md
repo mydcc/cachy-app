@@ -46,8 +46,9 @@ other.
 
 **Not captured:** a *filled* order. The account is empty and nothing was placed,
 so the semantics of `cumExecQty` under a partial fill are inferred from the
-documented sample, not observed. Bitget's demo trading (`paptrading: 1` header,
-own demo keys) removes the need for a funded account if that capture is wanted.
+documented sample, not observed. Observed 2026-10-04: there are no demo API
+keys — a fill capture comes from the trader's live account during normal
+trading and is recorded here; agents never hold keys and never place orders.
 
 Acceptance criteria below stand for the Classic half. Full evidence with captured
 bytes: `docs/bitget-api/14_uta_v3.md`.
@@ -89,9 +90,9 @@ fix. The capture has to come first.
    history endpoints agree with each other.
 4. Update BUG-0580 with the V1/V2 split, since this settles part of it.
 
-Credentials are needed for the capture. Everything downstream — the fixture
-commit, the field mapping, the regression test — is then possible without
-asking anyone anything.
+The capture is observed trader-side and handed over as bytes (secrets
+stripped); the agent commits only the fixture. Everything downstream — the
+fixture commit, the field mapping, the regression test — needs no keys.
 
 ## Acceptance criteria
 

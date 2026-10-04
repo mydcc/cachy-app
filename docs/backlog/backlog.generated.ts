@@ -612,7 +612,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0580"
     ],
     "assignee": "opencode",
-    "branch": "fix/bug-0597-uta-preset-tpsl",
+    "branch": "docs/bug-0597-remove-demo-key-narrative",
     "file": "bugs/BUG-0597-bitget-order-write-paths-need-v2.md"
   },
   {
