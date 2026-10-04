@@ -2,9 +2,9 @@
 
 # Backlog index
 
-142 items. How to read and add them: [README.md](README.md).
+145 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ done 101
+Counts by status: 💡 idea 16 · 📋 specced 26 · 🟡 in-progress 2 · ✅ done 101
 
 ---
 
@@ -148,6 +148,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 | ID | Title | Prio | Status | Area |
 | --- | --- | --- | --- | --- |
+| [BUG-0251](bugs/BUG-0251-autobackup-overwrites-healthy-snapshot-with-null.md) | autoBackupService overwrites healthy snapshot with null on local store corruption | P0 | 📋 specced | persistence |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -161,6 +162,8 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0234](bugs/BUG-0234-analyst-store-coupling-regression.md) | Analyst backfill through the shared store makes the whole UI flicker continuously | P1 | ✅ done | market-data |
 | [BUG-0235](bugs/BUG-0235-ssrf-missing-reserved-ip-filter-in-external-routes.md) | Missing private and reserved IP filtering in external proxy routes creates SSRF vulnerability | P1 | ✅ done | security |
 | [BUG-0236](bugs/BUG-0236-sentiment-route-error-redaction.md) | Sentiment route returns unsanitized error messages risking API key exposure | P1 | ✅ done | security |
+| [BUG-0250](bugs/BUG-0250-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | 📋 specced | persistence |
+| [BUG-0252](bugs/BUG-0252-repair-mfe-mae-paginates-wrong.md) | repairMfeMae calculates wrong values for long trades due to missing pagination | P1 | 📋 specced | persistence |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
@@ -221,6 +224,7 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) | Closing a position 500s on a HEDGE-mode account (missing tradeSide/positionId) | P0 | ✅ done | M3 | community, pro, private | none | none | — |
 | [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) | Closing a position still 500s after BUG-0062 on a ONE_WAY/Isolated account | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md) |
 | [BUG-0064](bugs/BUG-0064-oms-position-update-wipes-positionid.md) | omsService.updatePosition() overwrites positionId/positionMode on partial WS pushes | P0 | ✅ done | M3 | community, pro, private | none | none | [BUG-0062](bugs/BUG-0062-hedge-mode-close-position-fails.md), [BUG-0063](bugs/BUG-0063-close-position-500s-must-not-be-null.md) |
+| [BUG-0251](bugs/BUG-0251-autobackup-overwrites-healthy-snapshot-with-null.md) | autoBackupService overwrites healthy snapshot with null on local store corruption | P0 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -250,6 +254,8 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 | [BUG-0243](bugs/BUG-0243-risk-reward-guard-non-blocking.md) | Risk:Reward Guard only logs but does not block execution | P1 | ✅ done | M8 | community, pro, private | none | none | — |
 | [BUG-0248](bugs/BUG-0248-chart-candle-price-reactivity-freeze.md) | Candlestick chart and position live price updates freeze due to Svelte 5 reactivity gap | P1 | 🟡 in-progress | M3 | community, pro, private | none | none | — |
 | [BUG-0249](bugs/BUG-0249-account-balance-reconciliation-stale-margin.md) | Account balance and margin do not reconcile after closing positions and stale funding rate log | P1 | 📋 specced | M3 | community, pro, private | none | none | — |
+| [BUG-0250](bugs/BUG-0250-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | 📋 specced | none | community, pro, private | A | none | — |
+| [BUG-0252](bugs/BUG-0252-repair-mfe-mae-paginates-wrong.md) | repairMfeMae calculates wrong values for long trades due to missing pagination | P1 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -358,4 +364,4 @@ Counts by status: 💡 idea 16 · 📋 specced 23 · 🟡 in-progress 2 · ✅ d
 
 ---
 
-Next free number: **0250**
+Next free number: **0253**

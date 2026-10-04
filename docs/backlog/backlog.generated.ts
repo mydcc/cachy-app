@@ -210,6 +210,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0064-oms-position-update-wipes-positionid.md"
   },
   {
+    "id": "BUG-0251",
+    "title": "autoBackupService overwrites healthy snapshot with null on local store corruption",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0251-autobackup-overwrites-healthy-snapshot-with-null.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -861,6 +879,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "target_date": "2026-11-05",
     "start_date": "2026-08-19",
     "file": "bugs/BUG-0249-account-balance-reconciliation-stale-margin.md"
+  },
+  {
+    "id": "BUG-0250",
+    "title": "restoreFromBackup merges missing fields instead of overwriting",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0250-restore-merges-instead-of-overwriting.md"
+  },
+  {
+    "id": "BUG-0252",
+    "title": "repairMfeMae calculates wrong values for long trades due to missing pagination",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0252-repair-mfe-mae-paginates-wrong.md"
   },
   {
     "id": "FEAT-0014",
