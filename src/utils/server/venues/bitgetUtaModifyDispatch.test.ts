@@ -51,13 +51,22 @@ describe("Bitget UTA modify dispatch (BUG-0597 Phase E)", () => {
       ok: true,
       status: 200,
       text: async () =>
-        JSON.stringify({ code: "00000", msg: "success", data: { orderId: "1" } }),
+        JSON.stringify({
+          code: "00000",
+          msg: "success",
+          data: { orderId: "1" },
+        }),
     });
 
     await bitgetVenue.executeOrder(
       envelope,
       { exchange: "bitget", type: "modify-order" } as never,
-      JSON.stringify({ orderId: "1", symbol: "BTCUSDT", category: "USDT-FUTURES", price: "89000" }),
+      JSON.stringify({
+        orderId: "1",
+        symbol: "BTCUSDT",
+        category: "USDT-FUTURES",
+        price: "89000",
+      }),
     );
 
     expect(requestedUrl().pathname).toBe("/api/v3/trade/modify-order");
@@ -72,7 +81,11 @@ describe("Bitget UTA modify dispatch (BUG-0597 Phase E)", () => {
     });
 
     const error = await bitgetVenue
-      .executeOrder(envelope, { exchange: "bitget", type: "modify-order" } as never, "{}")
+      .executeOrder(
+        envelope,
+        { exchange: "bitget", type: "modify-order" } as never,
+        "{}",
+      )
       .then(
         () => null,
         (e) => e as { venueCode?: string },

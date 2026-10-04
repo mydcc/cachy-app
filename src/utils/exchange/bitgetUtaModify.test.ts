@@ -75,8 +75,24 @@ describe("Bitget UTA modify-order body (BUG-0597 Phase E)", () => {
     expect(body).not.toHaveProperty("orderId");
   });
 
+  it("sends both identifiers when both are known; the venue prioritises orderId", () => {
+    // tradeService merges params over the live order, so both identifiers
+    // are usually present. The venue documents orderId priority — pinned
+    // here so a future "send exactly one" refactor breaks loudly.
+    const body = buildBitgetModifyOrderBody({
+      ...BASE,
+      clientOid: "opt-abcdef1234567890abcdef123456",
+      price: "89000",
+    }) as Record<string, unknown>;
+
+    expect(body.orderId).toBe("111111111111111111");
+    expect(body.clientOid).toBe("opt-abcdef1234567890abcdef123456");
+  });
+
   it("refuses a modify with neither qty nor price", () => {
-    expect(() => buildBitgetModifyOrderBody({ ...BASE })).toThrow("bitunixErrors.VALIDATION_ERROR");
+    expect(() => buildBitgetModifyOrderBody({ ...BASE })).toThrow(
+      "bitunixErrors.VALIDATION_ERROR",
+    );
   });
 
   it("refuses a modify with no identifier", () => {
@@ -101,7 +117,11 @@ describe("Bitget UTA modify-order body (BUG-0597 Phase E)", () => {
 
   it("refuses protection fields until their format is verified (Phase F)", () => {
     expect(() =>
-      buildBitgetModifyOrderBody({ ...BASE, price: "89000", tpPrice: "95000" } as never),
+      buildBitgetModifyOrderBody({
+        ...BASE,
+        price: "89000",
+        tpPrice: "95000",
+      } as never),
     ).toThrow("bitunixErrors.VALIDATION_ERROR");
   });
 

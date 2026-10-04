@@ -54,18 +54,22 @@ export function buildBitgetPlaceOrderBody(
   order: BitgetOrderPayload & { marginCoin?: string },
 ): Record<string, unknown> {
   const safeSize = formatApiNum(order.size);
-  if (!safeSize || new Decimal(safeSize).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
+  if (!safeSize || new Decimal(safeSize).lte(0))
+    throw new Error(ORDER_ERRORS.INVALID_QTY);
 
   const orderType = String(order.orderType).toLowerCase();
-  if (orderType !== "limit" && orderType !== "market") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  if (orderType !== "limit" && orderType !== "market")
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
 
   const side = String(order.side).toLowerCase();
-  if (side !== "buy" && side !== "sell") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  if (side !== "buy" && side !== "sell")
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
 
   let price: string | undefined;
   if (orderType === "limit") {
     const safePrice = formatApiNum(order.price);
-    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    if (!safePrice || new Decimal(safePrice).lte(0))
+      throw new Error(ORDER_ERRORS.INVALID_PRICE);
     price = safePrice;
   }
 
@@ -73,12 +77,16 @@ export function buildBitgetPlaceOrderBody(
   // hedge-mode positions and `reduceOnly` as applicable in one-way mode only.
   // Both at once is a contradiction no account mode accepts, so it throws
   // here rather than travelling as a request the venue resolves by guessing.
-  const posSide = order.posSide === undefined ? undefined : String(order.posSide).toLowerCase();
+  const posSide =
+    order.posSide === undefined
+      ? undefined
+      : String(order.posSide).toLowerCase();
   if (posSide !== undefined && !["long", "short"].includes(posSide)) {
     throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
   }
   const reduceOnly = Boolean(order.reduceOnly);
-  if (posSide !== undefined && reduceOnly) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  if (posSide !== undefined && reduceOnly)
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
 
   // Required, never defaulted: an omitted `marginMode` opens cross-margin,
   // and Cachy does not choose a trader's margin mode by omission. Accepts the
@@ -98,7 +106,8 @@ export function buildBitgetPlaceOrderBody(
   // dropped (traceability then comes from the response `orderId`) rather
   // than rejecting the order over it.
   const clientOid =
-    typeof order.clientOid === "string" && /^[.A-Z:/a-z0-9_-]{1,32}$/.test(order.clientOid)
+    typeof order.clientOid === "string" &&
+    /^[.A-Z:/a-z0-9_-]{1,32}$/.test(order.clientOid)
       ? order.clientOid
       : undefined;
 
@@ -109,7 +118,8 @@ export function buildBitgetPlaceOrderBody(
     orderType,
     qty: safeSize,
     price,
-    timeInForce: orderType === "market" ? undefined : mapTimeInForce(order.force),
+    timeInForce:
+      orderType === "market" ? undefined : mapTimeInForce(order.force),
     posSide,
     marginMode: venueMarginMode,
     reduceOnly: reduceOnly ? "yes" : undefined,
@@ -176,7 +186,8 @@ export function buildBitgetOrderPayload(
   payload: PlaceOrderPayload,
 ): BitgetOrderPayload & { marginCoin?: string } {
   for (const field of BITGET_UNSUPPORTED_PROTECTION_FIELDS) {
-    if (payload[field] !== undefined) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+    if (payload[field] !== undefined)
+      throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
   }
   return {
     symbol: payload.symbol,
@@ -264,7 +275,10 @@ export function buildBitgetCancelOrderBody(payload: {
  * a destructive default Cachy does not opt into. The venue default (`no`)
  * applies. Protection fields stay refused until Phase F verifies their
  * format — a preset TP/SL the venue silently drops would leave the position
- * unprotected from the resting order's next tick.
+ * unprotected from the resting order's next tick. The refusal travels as the
+ * `bitunixErrors.VALIDATION_ERROR` key, translated at the call site like the
+ * place path — a trader who cannot modify a protected order sees a typed
+ * refusal, not a raw error.
  */
 export function buildBitgetModifyOrderBody(payload: {
   orderId?: string;
@@ -281,7 +295,8 @@ export function buildBitgetModifyOrderBody(payload: {
   slOrderType?: string;
   slOrderPrice?: string;
 }): Record<string, unknown> {
-  if (!payload.orderId && !payload.clientOid) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  if (!payload.orderId && !payload.clientOid)
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
   if (!payload.symbol) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
   if (payload.qty === undefined && payload.price === undefined) {
     throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
@@ -295,14 +310,16 @@ export function buildBitgetModifyOrderBody(payload: {
   let qty: string | undefined;
   if (payload.qty !== undefined) {
     const safeQty = formatApiNum(payload.qty);
-    if (!safeQty || new Decimal(safeQty).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
+    if (!safeQty || new Decimal(safeQty).lte(0))
+      throw new Error(ORDER_ERRORS.INVALID_QTY);
     qty = safeQty;
   }
 
   let price: string | undefined;
   if (payload.price !== undefined) {
     const safePrice = formatApiNum(payload.price);
-    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    if (!safePrice || new Decimal(safePrice).lte(0))
+      throw new Error(ORDER_ERRORS.INVALID_PRICE);
     price = safePrice;
   }
 
