@@ -105,6 +105,22 @@ export interface BitgetOrderPayload {
   size: string; // quantity
   clientOid?: string;
   reduceOnly?: boolean;
+  /**
+   * UTA preset protection, Cachy-side spellings (BUG-0597 Phase F). The
+   * place body maps these onto `takeProfit` / `stopLoss` plus the trigger,
+   * order-type and limit-price fields. Wired and tested, but unreachable
+   * live while `tpSlAtEntry` is false — the gate refuses entries that
+   * carry a stop. (The `presetStop*` pair below is the Classic V2
+   * spelling and stays unmapped on the UTA path.)
+   */
+  tpPrice?: string;
+  tpStopType?: string;
+  tpOrderType?: string;
+  tpOrderPrice?: string;
+  slPrice?: string;
+  slStopType?: string;
+  slOrderType?: string;
+  slOrderPrice?: string;
   presetStopSurplusPrice?: string; // TP
   presetStopLossPrice?: string; // SL
   /**

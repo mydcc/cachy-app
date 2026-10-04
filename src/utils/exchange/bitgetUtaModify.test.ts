@@ -115,7 +115,7 @@ describe("Bitget UTA modify-order body (BUG-0597 Phase E)", () => {
     ).toThrow("bitunixErrors.INVALID_QTY");
   });
 
-  it("refuses protection fields until their format is verified (Phase F)", () => {
+  it("keeps refusing protection fields (Phase F wired place only; modify takes qty/price)", () => {
     expect(() =>
       buildBitgetModifyOrderBody({
         ...BASE,

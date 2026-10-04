@@ -124,7 +124,110 @@ export function buildBitgetPlaceOrderBody(
     marginMode: venueMarginMode,
     reduceOnly: reduceOnly ? "yes" : undefined,
     clientOid,
+    ...buildPresetLeg(
+      {
+        price: order.tpPrice,
+        stopType: order.tpStopType,
+        orderType: order.tpOrderType,
+        orderPrice: order.tpOrderPrice,
+      },
+      "takeProfit",
+      "tpTriggerBy",
+      "tpOrderType",
+      "tpLimitPrice",
+    ),
+    ...buildPresetLeg(
+      {
+        price: order.slPrice,
+        stopType: order.slStopType,
+        orderType: order.slOrderType,
+        orderPrice: order.slOrderPrice,
+      },
+      "stopLoss",
+      "slTriggerBy",
+      "slOrderType",
+      "slLimitPrice",
+    ),
   });
+}
+
+/**
+ * Maps one preset leg (TP or SL) onto its UTA wire keys, in wire order.
+ *
+ * An absent leg maps to nothing. A leg with a trigger price but no trigger
+ * spelling relies on the venue's documented `market` default. A leg with a
+ * trigger price but no order type sends the trigger alone — what executes
+ * at the trigger then is venue behaviour Phase G verifies live, which is
+ * why the gate keeps this wiring unreachable until then. Everything else
+ * contradictory is refused: sub-fields without their trigger price, a
+ * LIMIT leg without its limit price, a MARKET leg carrying one, and unknown
+ * spellings. Each refusal is a refused order, never a silently
+ * downgraded one.
+ */
+function buildPresetLeg(
+  leg: {
+    price?: string;
+    stopType?: string;
+    orderType?: string;
+    orderPrice?: string;
+  },
+  takeKey: string,
+  triggerByKey: string,
+  orderTypeKey: string,
+  limitPriceKey: string,
+): Record<string, unknown> {
+  if (
+    leg.price === undefined &&
+    leg.stopType === undefined &&
+    leg.orderType === undefined &&
+    leg.orderPrice === undefined
+  ) {
+    return {};
+  }
+  if (leg.price === undefined)
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+
+  const take = formatApiNum(leg.price);
+  if (!take || new Decimal(take).lte(0))
+    throw new Error(ORDER_ERRORS.INVALID_PRICE);
+
+  let triggerBy: string | undefined;
+  if (leg.stopType !== undefined) {
+    const stopType = String(leg.stopType).toUpperCase();
+    if (stopType === "MARK_PRICE") triggerBy = "mark";
+    else if (stopType === "LAST_PRICE") triggerBy = "market";
+    else throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  }
+
+  let type: string | undefined;
+  let limitPrice: string | undefined;
+  if (leg.orderType !== undefined) {
+    const presetOrderType = String(leg.orderType).toUpperCase();
+    if (presetOrderType === "LIMIT") {
+      if (leg.orderPrice === undefined)
+        throw new Error(ORDER_ERRORS.INVALID_PRICE);
+      const safe = formatApiNum(leg.orderPrice);
+      if (!safe || new Decimal(safe).lte(0))
+        throw new Error(ORDER_ERRORS.INVALID_PRICE);
+      type = "limit";
+      limitPrice = safe;
+    } else if (presetOrderType === "MARKET") {
+      if (leg.orderPrice !== undefined)
+        throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+      type = "market";
+    } else {
+      throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+    }
+  } else if (leg.orderPrice !== undefined) {
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  }
+
+  return {
+    [takeKey]: take,
+    [triggerByKey]: triggerBy,
+    [orderTypeKey]: type,
+    [limitPriceKey]: limitPrice,
+  };
 }
 
 /**
@@ -149,21 +252,21 @@ function mapTimeInForce(force: string | undefined): string {
 }
 
 /**
- * Protection-relevant `place-order` fields Bitget has no verified mapping
- * for. Sending them would drop the trader's stop or TP/SL silently, leaving
- * a position unprotected from its first tick — so they are refused with
- * `VALIDATION_ERROR` instead, the same way an unknown venue/action pair is.
- * (`effect`, `clientId`, `tradeSide` and `positionId` stay unmapped as
- * before: `force` defaults to `"normal"` and the latter two are
- * Bitunix-HEDGE-only.)
+ * Preset TP/SL fields with a verified UTA place-order mapping (BUG-0597
+ * Phase F): `tpPrice` → `takeProfit`, `slPrice` → `stopLoss`, the stop
+ * types onto `tpTriggerBy` / `slTriggerBy` (`MARK_PRICE` → `mark`,
+ * `LAST_PRICE` → `market`), the order types verbatim, and the order prices
+ * onto `tpLimitPrice` / `slLimitPrice`. Carried by `buildBitgetOrderPayload`
+ * and mapped by `buildBitgetPlaceOrderBody`, which validates them — a LIMIT
+ * preset without its limit price, a MARKET preset carrying one, or an
+ * orphaned sub-field without its trigger price is a refused order, never a
+ * silently downgraded one.
  *
- * Exported for the modify path, which refuses the same fields until Phase F
- * verifies their format: a preset TP/SL the venue silently drops would
- * leave the position unprotected from the resting order's next tick.
+ * Modify keeps refusing every field below: UTA `modify-order` takes
+ * qty and/or price only, so a preset travelling there has no venue param
+ * to land on.
  */
-export const BITGET_UNSUPPORTED_PROTECTION_FIELDS = [
-  "triggerPrice",
-  "stopPrice",
+export const BITGET_PRESET_PROTECTION_FIELDS = [
   "tpPrice",
   "tpStopType",
   "tpOrderType",
@@ -172,6 +275,19 @@ export const BITGET_UNSUPPORTED_PROTECTION_FIELDS = [
   "slStopType",
   "slOrderType",
   "slOrderPrice",
+] as const;
+
+/**
+ * Protection-relevant `place-order` fields with no UTA mapping at all.
+ * `triggerPrice` / `stopPrice` trigger an entry, and UTA place-order takes
+ * `limit` | `market` only — so they are refused with `VALIDATION_ERROR`
+ * instead of travelling as a request the venue resolves by guessing.
+ * (`effect`, `clientId` and `positionId` stay unmapped as before: `force`
+ * defaults to `"normal"` and the latter two are Bitunix-HEDGE-only.)
+ */
+export const BITGET_UNSUPPORTED_PROTECTION_FIELDS = [
+  "triggerPrice",
+  "stopPrice",
 ] as const;
 
 /**
@@ -205,6 +321,16 @@ export function buildBitgetOrderPayload(
     // (tradeService resolves both); the body builder validates them.
     posSide: payload.posSide?.toLowerCase(),
     marginMode: payload.marginMode,
+    // Preset protection rides the payload for the place body to map (Phase
+    // F); entry-trigger prices have no UTA mapping and stay refused above.
+    tpPrice: payload.tpPrice,
+    tpStopType: payload.tpStopType,
+    tpOrderType: payload.tpOrderType,
+    tpOrderPrice: payload.tpOrderPrice,
+    slPrice: payload.slPrice,
+    slStopType: payload.slStopType,
+    slOrderType: payload.slOrderType,
+    slOrderPrice: payload.slOrderPrice,
   };
 }
 
@@ -273,12 +399,12 @@ export function buildBitgetCancelOrderBody(payload: {
  *
  * `autoCancel` is never sent: `yes` cancels the original when modify fails,
  * a destructive default Cachy does not opt into. The venue default (`no`)
- * applies. Protection fields stay refused until Phase F verifies their
- * format — a preset TP/SL the venue silently drops would leave the position
- * unprotected from the resting order's next tick. The refusal travels as the
- * `bitunixErrors.VALIDATION_ERROR` key, translated at the call site like the
- * place path — a trader who cannot modify a protected order sees a typed
- * refusal, not a raw error.
+ * applies. Protection fields stay refused — Phase F wired their format for
+ * place-order only, and UTA `modify-order` takes qty and/or price, so a
+ * preset travelling here has no venue param to land on. The refusal travels
+ * as the `bitunixErrors.VALIDATION_ERROR` key, translated at the call site
+ * like the place path — a trader who cannot modify a protected order sees a
+ * typed refusal, not a raw error.
  */
 export function buildBitgetModifyOrderBody(payload: {
   orderId?: string;
@@ -301,7 +427,10 @@ export function buildBitgetModifyOrderBody(payload: {
   if (payload.qty === undefined && payload.price === undefined) {
     throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
   }
-  for (const field of BITGET_UNSUPPORTED_PROTECTION_FIELDS) {
+  for (const field of [
+    ...BITGET_UNSUPPORTED_PROTECTION_FIELDS,
+    ...BITGET_PRESET_PROTECTION_FIELDS,
+  ]) {
     if ((payload as Record<string, unknown>)[field] !== undefined) {
       throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
     }

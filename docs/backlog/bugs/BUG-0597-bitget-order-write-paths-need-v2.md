@@ -12,7 +12,7 @@ data_class: none
 adr: none
 depends_on: [BUG-0596, BUG-0580]
 assignee: opencode
-branch: fix/bug-0597-uta-writes-recon
+branch: fix/bug-0597-uta-preset-tpsl
 ---
 
 # Migrate the Bitget order write paths to V2
