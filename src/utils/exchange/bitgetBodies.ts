@@ -282,8 +282,9 @@ export const BITGET_PRESET_PROTECTION_FIELDS = [
  * `triggerPrice` / `stopPrice` trigger an entry, and UTA place-order takes
  * `limit` | `market` only — so they are refused with `VALIDATION_ERROR`
  * instead of travelling as a request the venue resolves by guessing.
- * (`effect`, `clientId` and `positionId` stay unmapped as before: `force`
- * defaults to `"normal"` and the latter two are Bitunix-HEDGE-only.)
+ * (`effect`, `clientId` and `positionId` stay unmapped as before: an absent
+ * effect resolves to `"gtc"` in the body builder — `"normal"` is accepted
+ * there only as a legacy spelling — and the latter two are Bitunix-HEDGE-only.)
  */
 export const BITGET_UNSUPPORTED_PROTECTION_FIELDS = [
   "triggerPrice",
