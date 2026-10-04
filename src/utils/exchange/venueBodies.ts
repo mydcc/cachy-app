@@ -40,6 +40,7 @@ import { formatApiNum } from "../utils";
 import {
   buildBitgetCancelOrderBody,
   buildBitgetClosePositionPayload,
+  buildBitgetModifyOrderBody,
   buildBitgetOrderPayload,
   buildBitgetPlaceOrderBody,
 } from "./bitgetBodies";
