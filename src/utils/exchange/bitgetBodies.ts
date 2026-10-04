@@ -157,12 +157,13 @@ export function buildBitgetClosePositionPayload(order: {
 }
 
 /**
- * The cancel body. Both venues POST this one, so it is not a transport
- * difference: Bitunix documents `cancel_orders` as a `POST` carrying
- * `{ symbol, orderList }` (`docs/bitunix-api/07_trade.md`) — the same shape
- * family as the Bitget body here, only grouped differently. The Bitunix builder
- * is not written yet, which is the sole reason `buildVenueBody("bitunix", …)`
- * throws for this pair.
+ * The UTA cancel body. The venue takes exactly one identifier (`orderId` or
+ * `clientOid`, orderId winning if both arrive) plus `category` — no symbol,
+ * no margin coin. Cachy cancels by `orderId` (the route schema requires it),
+ * so the builder sends only that and the venue's priority rule never triggers.
+ *
+ * BUG-0597 Phase B: money-neutral direction — a cancel can refuse or
+ * mis-target, but it can never open a position.
  */
 export function buildBitgetCancelOrderBody(payload: {
   symbol: string;
@@ -170,8 +171,7 @@ export function buildBitgetCancelOrderBody(payload: {
   marginCoin?: string;
 }): Record<string, unknown> {
   return {
-    symbol: payload.symbol,
-    marginCoin: payload.marginCoin,
     orderId: payload.orderId,
+    category: "USDT-FUTURES",
   };
 }
