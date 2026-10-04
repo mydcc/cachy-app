@@ -170,6 +170,10 @@ export function buildBitgetCancelOrderBody(payload: {
   orderId: string;
   marginCoin?: string;
 }): Record<string, unknown> {
+  // symbol/marginCoin are route-level fields Cachy still requires, but UTA
+  // cancel takes neither — they are intentionally not sent, not forgotten.
+  // Likewise the category is USDT-FUTURES only: Cachy cancels USDT-M perps
+  // and nothing else, so a single literal is correct until that changes.
   return {
     orderId: payload.orderId,
     category: "USDT-FUTURES",

@@ -296,8 +296,10 @@ const BITGET_UPSTREAM_PATHS: Record<string, string> = {
  * divergence between them belongs here, not behind a shared constant.
  */
 const BITGET_ORDER_PATHS: Record<string, string> = {
-  // Writes stay on V1 until BUG-0597 ports them — a deliberate split, not an
-  // oversight. Reads moved first because they are verifiable without funds.
+  // place-order / close-position stay on V1 until BUG-0597 ports them — a
+  // deliberate split, not an oversight. Reads moved first because they are
+  // verifiable without funds; cancel (below) moved next because it cannot
+  // open a position.
   "place-order": "/api/mix/v1/order/placeOrder",
   "close-position": "/api/mix/v1/order/placeOrder",
   // Phase B (BUG-0597): cancel ported to UTA first — a cancel can refuse or
