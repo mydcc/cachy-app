@@ -234,7 +234,7 @@ seconds. Both use the same HMAC-SHA256 + base64.
 
 This asymmetry is a permanent trap for anyone unifying the two signers.
 
-### ⚠️ WebSocket login success code
+### WebSocket login success code — resolved live (2026-10-03)
 
 The page documents success as:
 
@@ -244,14 +244,20 @@ The page documents success as:
 
 and failure as `{ "event": "error", "code": "30005", "msg": "error" }`.
 
-`code` is `"0"` — **not** `"00000"`, which is what every REST endpoint uses.
-Cachy tests `msg.code === "00000"` at [`src/services/bitgetWs.ts:469`](../../src/services/bitgetWs.ts).
+**Neither documented spelling is what the venue sends.** Four authenticated
+logins on 2026-10-03 — both private hosts (`wss://ws.bitget.com/v3/ws/private`
+and `wss://ws.bitget.com/v2/ws/private`), millisecond and second timestamps —
+all answered with `code` as the JSON **number** `0`:
 
-If the venue really sends `"0"`, Cachy's login-success detection never fires and
-the private subscription is never requested. Recorded here as unverified: the
-same page is already known to be wrong about the timestamp unit, so its `"0"`
-is not trustworthy either. Worth confirming in a sandbox alongside the query
-ordering question.
+```json
+{"event":"login","code":0,"connId":"0621ccff…"}
+```
+
+So `code === "00000"` fails, and `code === "0"` fails too — strict equality
+against a number. Cachy normalizes with `String(msg.code)` before comparing and
+accepts `"00000"` and `"0"`, which covers the observed `0` together with both
+documented spellings (`src/services/bitgetWs.ts`, BUG-0581, fixed in #3769). An
+unrecognised code logs loudly instead of falling through silently.
 
 "If login fails, it will automatically disconnect."
 

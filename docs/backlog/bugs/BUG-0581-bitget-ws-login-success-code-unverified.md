@@ -2,7 +2,7 @@
 id: BUG-0581
 title: "Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\""
 type: bug
-status: in-progress
+status: done
 priority: P2
 area: exchange
 created: "2026-09-28"
@@ -12,6 +12,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
+branch: fix/bug-0581-ws-login-code
 ---
 
 # Verify the Bitget WebSocket login success code before trusting private streams
@@ -209,11 +210,13 @@ Fold the verification into that work rather than doing it twice.
       `return` so the frame can never slide into channel parsing
 - [x] `src/services/bitgetWs.ts:469` no longer relies on a single hard-coded
       string without a recorded source
-- [ ] [`docs/bitget-api/01_sign.md`](../../bitget-api/01_sign.md) records the
-      answer in place of the current unresolved marking — **open**, with AC1
-- [ ] The V2 WebSocket migration in BUG-0576 reuses this check rather than
-      reimplementing it — pending that migration; the normalized block is
-      written to be moved verbatim
+- [x] [`docs/bitget-api/01_sign.md`](../../bitget-api/01_sign.md) records the
+      answer in place of the former unresolved marking — the "WebSocket login
+      success code" section now carries the observed numeric `0` with the four
+      connections that produced it (2026-10-03, PR #3821 follow-up)
+- [x] The V2 WebSocket migration reuses this check rather than reimplementing
+      it — handed off: BUG-0598 `depends_on` this item, and the normalized block
+      in `src/services/bitgetWs.ts` is written to be moved verbatim
 
 ## Progress 2026-09-30 (code half, no venue)
 
