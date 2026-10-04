@@ -105,4 +105,4 @@ folded in here.
 - `src/lib/windows/WindowBase.svelte.ts`, `src/lib/windows/implementations/WindowRegistry.svelte.ts`
 - [FEAT-0615](FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md) — prereq
 - [FEAT-0617](FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md)
-- [FEAT-0618](FEAT-0618-rethink-app-navigation-and-window-entry-points.md)
+- [FEAT-0618](FEAT-0618-entry-point-registry-and-window-manager-scope.md)
