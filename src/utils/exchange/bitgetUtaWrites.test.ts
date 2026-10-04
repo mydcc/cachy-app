@@ -123,6 +123,26 @@ describe("Bitget UTA place-order body (BUG-0597)", () => {
     ).toThrow();
   });
 
+  it("accepts the shared normalizeMarginMode spellings end to end", () => {
+    // tradeService feeds normalizeMarginMode() output ("cross"/"isolation"),
+    // not the venue spellings — the builder must take both, or every
+    // isolated-margin order is refused while cross works.
+    for (const [input, expected] of [
+      ["cross", "crossed"],
+      ["crossed", "crossed"],
+      ["isolation", "isolated"],
+      ["isolated", "isolated"],
+    ] as const) {
+      const body = buildBitgetPlaceOrderBody({
+        ...BASE,
+        side: "buy",
+        posSide: "long",
+        marginMode: input,
+      }) as Record<string, unknown>;
+      expect(body.marginMode).toBe(expected);
+    }
+  });
+
   it("omits price and timeInForce on market orders", () => {
     const body = buildBitgetPlaceOrderBody({
       ...BASE,

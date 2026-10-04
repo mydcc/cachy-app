@@ -1725,7 +1725,12 @@ class TradeService {
      * Mode comes from the store (BUG-0596 positions lane). Only a positive
      * `one_way` omits `posSide`; an unknown mode reads as hedge, because a
      * `posSide` sent to a one-way account rejects at the venue while an
-     * omitted one on hedge leaves the intent ambiguous. `reduceOnly` is
+     * omitted one on hedge leaves the intent ambiguous. The reverse
+     * staleness — mode flipped to hedge while the store still says one_way —
+     * emits reduce-only without posSide on a hedge account: likely
+     * venue-rejected (reduceOnly is one-way-only), but direction alone on
+     * hedge is ambiguous if ever accepted. A mode change with open positions
+     * is the operator's cue to re-sync before trading. `reduceOnly` is
      * one-way-only on UTA and never travels with `posSide` — the body
      * builder throws on the combination, so a hedge close arrives with it
      * false rather than relying on the venue to ignore it.

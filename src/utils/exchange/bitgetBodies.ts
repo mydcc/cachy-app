@@ -81,12 +81,15 @@ export function buildBitgetPlaceOrderBody(
   if (posSide !== undefined && reduceOnly) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
 
   // Required, never defaulted: an omitted `marginMode` opens cross-margin,
-  // and Cachy does not choose a trader's margin mode by omission.
+  // and Cachy does not choose a trader's margin mode by omission. Accepts the
+  // shared `normalizeMarginMode` spellings (`cross`, `isolation`) alongside
+  // the venue's own (`crossed`, `isolated`) — the tradeService helper feeds
+  // the former, so rejecting it would refuse every isolated-margin order.
   const marginMode = String(order.marginMode ?? "").toLowerCase();
   const venueMarginMode =
     marginMode === "crossed" || marginMode === "cross"
       ? "crossed"
-      : marginMode === "isolated"
+      : marginMode === "isolated" || marginMode === "isolation"
         ? "isolated"
         : null;
   if (!venueMarginMode) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);

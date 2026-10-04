@@ -195,6 +195,7 @@ describe("BUG-0527 — closePosition on Bitget", () => {
         expect(orderPayloads[0].reduceOnly).toBe(false);
         expect(orderPayloads[0].side).toBe("SELL");
         expect(orderPayloads[0].posSide).toBe("LONG");
+        expect(orderPayloads[0].marginMode).toBeDefined();
     });
 
     it("sizes off the exchange-fresh amount, not a stale OMS entry", async () => {
