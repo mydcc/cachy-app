@@ -171,7 +171,7 @@ describe("BUG-0527 — closePosition on Bitget", () => {
         vi.clearAllMocks();
     });
 
-    it("sends one reduce-only order with the exchange-fresh amount when the OMS is empty", async () => {
+    it("sends one posSide close order with the exchange-fresh amount when the OMS is empty", async () => {
         useLiveOmsStore([]);
         const orderPayloads = useExchangeMock([{ symbol: "BTCUSDT", side: "long", size: "0.5" }]);
 
@@ -188,7 +188,13 @@ describe("BUG-0527 — closePosition on Bitget", () => {
         expect(orderPayloads).toHaveLength(1);
         expect(orderPayloads[0].type).toBe("place-order");
         expect(orderPayloads[0].qty).toBe("0.5");
-        expect(orderPayloads[0].reduceOnly).toBe(true);
+        // BUG-0597: UTA hedge closes name their side (SELL closes a long)
+        // instead of reduceOnly, which is one-way-only on UTA. The "one
+        // order" and "exchange-fresh amount" guarantees are unchanged; only
+        // the mechanism moved.
+        expect(orderPayloads[0].reduceOnly).toBe(false);
+        expect(orderPayloads[0].side).toBe("SELL");
+        expect(orderPayloads[0].posSide).toBe("LONG");
     });
 
     it("sizes off the exchange-fresh amount, not a stale OMS entry", async () => {

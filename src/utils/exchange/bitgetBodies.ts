@@ -34,24 +34,6 @@ import { formatApiNum } from "../utils";
 import { ORDER_ERRORS, cleanPayload } from "./orderErrors";
 
 /**
- * Bitget encodes open-versus-close in the side, where Cachy encodes it in
- * `reduceOnly`. An unrecognised side stays `""` rather than guessing a
- * direction — the exchange rejects it, which is the outcome a guess would
- * have hidden.
- */
-function bitgetSide(rawSide: string, reduceOnly: boolean): string {
-  const side = rawSide.toLowerCase();
-  if (reduceOnly) {
-    if (side === "buy") return "close_short";
-    if (side === "sell") return "close_long";
-  } else {
-    if (side === "buy") return "open_long";
-    if (side === "sell") return "open_short";
-  }
-  return "";
-}
-
-/**
  * Validates and formats a place-order payload into the exact object the
  * exchange signs.
  *
@@ -60,6 +42,13 @@ function bitgetSide(rawSide: string, reduceOnly: boolean): string {
  * the same reason as the Bitunix path: without it a low-priced level
  * serialises as `"1e-7"`, which the exchange rejects. Throws `ORDER_ERRORS`
  * codes rather than messages, because the caller maps them to a locale.
+ *
+ * UTA shape (BUG-0597): `side` carries direction only; open-versus-close in
+ * hedge mode rides on `posSide`, in one-way mode on `reduceOnly`. There is no
+ * `tradeSide` request field — the venue computes it for the response. Every
+ * refusal below is a refused order, never a wrong one: a body this function
+ * rejects cannot fill, and a body it emits states its intent completely, so
+ * the venue has nothing left to assume.
  */
 export function buildBitgetPlaceOrderBody(
   order: BitgetOrderPayload & { marginCoin?: string },
@@ -67,22 +56,83 @@ export function buildBitgetPlaceOrderBody(
   const safeSize = formatApiNum(order.size);
   if (!safeSize || new Decimal(safeSize).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
 
-  let price = order.price;
-  if (String(order.orderType).toLowerCase() === "limit") {
+  const orderType = String(order.orderType).toLowerCase();
+  if (orderType !== "limit" && orderType !== "market") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+
+  const side = String(order.side).toLowerCase();
+  if (side !== "buy" && side !== "sell") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+
+  let price: string | undefined;
+  if (orderType === "limit") {
     const safePrice = formatApiNum(order.price);
     if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
     price = safePrice;
   }
 
+  // Hedge-only vs one-way-only: the venue documents `posSide` as required in
+  // hedge-mode positions and `reduceOnly` as applicable in one-way mode only.
+  // Both at once is a contradiction no account mode accepts, so it throws
+  // here rather than travelling as a request the venue resolves by guessing.
+  const posSide = order.posSide === undefined ? undefined : String(order.posSide).toLowerCase();
+  if (posSide !== undefined && !["long", "short"].includes(posSide)) {
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  }
+  const reduceOnly = Boolean(order.reduceOnly);
+  if (posSide !== undefined && reduceOnly) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+
+  // Required, never defaulted: an omitted `marginMode` opens cross-margin,
+  // and Cachy does not choose a trader's margin mode by omission.
+  const marginMode = String(order.marginMode ?? "").toLowerCase();
+  const venueMarginMode =
+    marginMode === "crossed" || marginMode === "cross"
+      ? "crossed"
+      : marginMode === "isolated"
+        ? "isolated"
+        : null;
+  if (!venueMarginMode) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+
+  // `clientOid` is venue metadata, not money: a non-compliant value is
+  // dropped (traceability then comes from the response `orderId`) rather
+  // than rejecting the order over it.
+  const clientOid =
+    typeof order.clientOid === "string" && /^[.A-Z:/a-z0-9_-]{1,32}$/.test(order.clientOid)
+      ? order.clientOid
+      : undefined;
+
   return cleanPayload({
+    category: "USDT-FUTURES",
     symbol: order.symbol,
-    marginCoin: order.marginCoin || "USDT",
-    side: bitgetSide(order.side, Boolean(order.reduceOnly)),
-    orderType: order.orderType,
+    side,
+    orderType,
+    qty: safeSize,
     price,
-    size: safeSize,
-    timInForceValue: order.force,
+    timeInForce: orderType === "market" ? undefined : mapTimeInForce(order.force),
+    posSide,
+    marginMode: venueMarginMode,
+    reduceOnly: reduceOnly ? "yes" : undefined,
+    clientOid,
   });
+}
+
+/**
+ * Maps a Cachy time-in-force to the UTA spelling. Limit orders state theirs
+ * explicitly rather than relying on the venue's gtc default.
+ */
+function mapTimeInForce(force: string | undefined): string {
+  switch (String(force ?? "").toLowerCase()) {
+    case "ioc":
+      return "ioc";
+    case "fok":
+      return "fok";
+    case "post_only":
+      return "post_only";
+    case "gtc":
+    case "":
+    case "normal":
+      return "gtc";
+    default:
+      throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  }
 }
 
 /**
@@ -127,32 +177,48 @@ export function buildBitgetOrderPayload(
     orderType: payload.orderType.toLowerCase(),
     size: payload.qty,
     price: payload.price,
-    force: "normal",
+    // Effect travels as the UTA time-in-force spelling; absent means gtc,
+    // resolved in the body builder rather than here.
+    force: (payload.effect ?? "GTC").toLowerCase(),
     reduceOnly: Boolean(payload.reduceOnly),
     marginCoin: payload.marginCoin,
+    clientOid: payload.clientId,
+    // Hedge position side and margin mode ride the payload from the caller
+    // (tradeService resolves both); the body builder validates them.
+    posSide: payload.posSide?.toLowerCase(),
+    marginMode: payload.marginMode,
   };
 }
 
 /**
  * The close-position request, expressed as the same intermediate payload a
- * place-order produces. `reduceOnly` is always `true` — a close that could
- * open is not a close. `amount` arrives already formatted by the caller, in
+ * place-order produces. `amount` arrives already formatted by the caller, in
  * the same way `buildBitunixClosePositionPayload` takes a formatted `qty`.
+ *
+ * `posSide` is required (compile-time, not validated): without it a hedge
+ * close is an open with the wrong sign, so a close that does not name its
+ * side does not compile. One-way closes travel a different path
+ * (`place-order` + `reduceOnly`, which the body builder maps); `reduceOnly`
+ * is one-way-only on UTA and is never sent here.
  */
 export function buildBitgetClosePositionPayload(order: {
   symbol: string;
   side: string;
   amount: string;
   marginCoin?: string;
+  posSide: string;
+  marginMode?: string;
 }): BitgetOrderPayload & { marginCoin?: string } {
   return {
     symbol: order.symbol,
     side: order.side.toLowerCase(),
     orderType: "market",
     size: order.amount,
-    force: "normal",
-    reduceOnly: true,
+    force: "GTC",
+    reduceOnly: false,
     marginCoin: order.marginCoin,
+    posSide: order.posSide,
+    marginMode: order.marginMode,
   };
 }
 

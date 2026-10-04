@@ -1602,6 +1602,96 @@ describe("orderGate — an open above the free balance is refused (BUG-0549)", (
     });
 });
 
+// BUG-0597 — UTA states direction transactionally while `displayed.side`
+// keeps the position convention, so the gate verifies the triple
+// (displayed position, posSide, payload direction) on reduce intents
+// instead of direct side parity.
+describe("orderGate — UTA side triple on reduce intents", () => {
+    function utaCloseIntent(overrides: {
+        displayedSide?: string;
+        payloadSide?: string;
+        posSide?: string | null;
+        reduceOnly?: boolean;
+        provider?: string;
+    } = {}): OrderIntent {
+        const intent = reduceIntent();
+        // Default is the hedge close-long triple; pass posSide: null to
+        // exercise the posSide-less (one-way) shape.
+        const posSide = overrides.posSide === undefined ? "LONG" : overrides.posSide;
+        return {
+            ...intent,
+            payload: {
+                ...intent.payload,
+                side: overrides.payloadSide ?? "SELL",
+                ...(posSide === null ? {} : { posSide }),
+                reduceOnly: overrides.reduceOnly ?? false,
+                tradeSide: "CLOSE",
+            },
+            displayed: {
+                ...intent.displayed,
+                provider: overrides.provider ?? "bitget",
+                side: overrides.displayedSide ?? "BUY",
+            },
+        };
+    }
+
+    it("approves a hedge close-long triple", () => {
+        const verdict = orderGate.verify(utaCloseIntent());
+
+        expect(verdict.approved).toBe(true);
+        expect(verdict.refusal).toBeNull();
+    });
+
+    it("refuses a flipped posSide and names it", () => {
+        // SELL into a SHORT opens instead of closing the displayed long.
+        const verdict = orderGate.verify(utaCloseIntent({ posSide: "SHORT" }));
+
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.field).toBe("posSide");
+    });
+
+    it("refuses a payload direction that does not close the named side", () => {
+        const verdict = orderGate.verify(
+            utaCloseIntent({ posSide: "LONG", payloadSide: "BUY" }),
+        );
+
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.field).toBe("side");
+    });
+
+    it("approves a one-way close with inverted direction and reduceOnly", () => {
+        const verdict = orderGate.verify(
+            utaCloseIntent({ posSide: null, reduceOnly: true }),
+        );
+
+        expect(verdict.approved).toBe(true);
+        expect(verdict.refusal).toBeNull();
+    });
+
+    it("refuses a same-side one-way close, which is never a close", () => {
+        const verdict = orderGate.verify(
+            utaCloseIntent({ posSide: null, reduceOnly: true, payloadSide: "BUY" }),
+        );
+
+        expect(verdict.approved).toBe(false);
+        expect(verdict.refusal?.field).toBe("side");
+    });
+
+    it("leaves non-UTA reduce intents on direct parity", () => {
+        // Bitunix keeps the position convention on the payload: displayed
+        // BUY against payload SELL must still refuse, UTA rules or not.
+        const verdict = orderGate.verify(reduceIntent());
+
+        expect(verdict.approved).toBe(true);
+        const mutated = reduceIntent();
+        (mutated.payload as Record<string, unknown>).side = "SELL";
+        const refused = orderGate.verify(mutated);
+
+        expect(refused.approved).toBe(false);
+        expect(refused.refusal?.field).toBe("side");
+    });
+});
+
 // BUG-0575 (#3693). `orderGate.invalidTpSl` is the one template whose own
 // article precedes {field} ("the {field} price" / "Der {field}-Preis"), while
 // the label it receives already carries one ("the take profit" /

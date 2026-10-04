@@ -1011,7 +1011,48 @@ class OrderGate {
         }
 
         // --- side ----------------------------------------------------------
-        if (displayed.side !== undefined) {
+        // UTA states direction transactionally while `displayed.side` keeps
+        // the position convention (BUY names a long being closed, not an
+        // order to buy), so direct parity would refuse every correct close.
+        // `posSide`-carrying reduce intents verify the triple instead —
+        // displayed position, posSide, payload direction — which is stricter
+        // than parity: a flipped posSide fails here, not at the venue.
+        // Scoped to kind "reduce" on purpose: opens state direction on both
+        // sides already, and nothing there needs translating.
+        if (kind === "reduce" && typeof payload.posSide === "string") {
+            checked.push("side");
+            const payloadPosSide = payload.posSide.toUpperCase();
+            const displayedSide =
+                typeof displayed.side === "string" ? displayed.side.toUpperCase() : undefined;
+            const payloadSide = typeof payload.side === "string" ? payload.side.toUpperCase() : undefined;
+            const expectedPosSide =
+                displayedSide === "BUY" ? "LONG" : displayedSide === "SELL" ? "SHORT" : undefined;
+            if (expectedPosSide === undefined || expectedPosSide !== payloadPosSide) {
+                return refuse(mismatch("posSide", expectedPosSide ?? "—", payloadPosSide));
+            }
+            const expectedPayloadSide = payloadPosSide === "LONG" ? "SELL" : "BUY";
+            if (payloadSide !== expectedPayloadSide) {
+                return refuse(mismatch("side", expectedPayloadSide, payloadSide ?? "—"));
+            }
+        } else if (
+            kind === "reduce" &&
+            displayed.provider === "bitget" &&
+            payload.reduceOnly === true &&
+            typeof displayed.side === "string" &&
+            typeof payload.side === "string"
+        ) {
+            // One-way close: there is no posSide to check against, so the
+            // direction must be the inversion of the displayed position.
+            // Same-side is never a close — and on one-way, where no posSide
+            // disambiguates, it would be an open.
+            checked.push("side");
+            const displayedSide = displayed.side.toUpperCase();
+            const expected =
+                displayedSide === "BUY" ? "SELL" : displayedSide === "SELL" ? "BUY" : undefined;
+            if (expected === undefined || payload.side.toUpperCase() !== expected) {
+                return refuse(mismatch("side", expected ?? "—", payload.side.toUpperCase()));
+            }
+        } else if (displayed.side !== undefined) {
             checked.push("side");
             const payloadSide = typeof payload.side === "string" ? payload.side.toUpperCase() : undefined;
             const displayedSide = displayed.side.toUpperCase();

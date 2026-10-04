@@ -137,28 +137,48 @@ describe("buildVenueBody dispatches to the module that owns the body", () => {
   });
 
   it("builds the Bitget place-order body with the venue's own key order", () => {
-    expect(buildVenueBody("bitget", placeOrder())).toBe(
+    // BUG-0597: UTA hedge open — direction plus posSide, margin explicit.
+    const payload = {
+      ...placeOrder(),
+      exchange: "bitget",
+      posSide: "LONG",
+      marginMode: "cross",
+    };
+
+    expect(buildVenueBody("bitget", payload)).toBe(
       JSON.stringify({
+        category: "USDT-FUTURES",
         symbol: "BTCUSDT",
-        marginCoin: "USDT",
-        side: "open_long",
+        side: "buy",
         orderType: "limit",
+        qty: "0.5",
         price: "60000",
-        size: "0.5",
-        timInForceValue: "normal",
+        timeInForce: "gtc",
+        posSide: "long",
+        marginMode: "crossed",
       }),
     );
   });
 
-  it("builds the Bitget close body as a reduce-only market order", () => {
-    expect(buildVenueBody("bitget", closePosition())).toBe(
+  it("builds the Bitget close body with side and posSide, never reduceOnly", () => {
+    // BUG-0597: a hedge close names its side; reduceOnly is one-way-only on
+    // UTA and must not travel with posSide.
+    const payload = {
+      ...closePosition(),
+      exchange: "bitget",
+      posSide: "LONG",
+      marginMode: "cross",
+    };
+
+    expect(buildVenueBody("bitget", payload)).toBe(
       JSON.stringify({
+        category: "USDT-FUTURES",
         symbol: "BTCUSDT",
-        marginCoin: "USDT",
-        side: "close_long",
+        side: "sell",
         orderType: "market",
-        size: "0.5",
-        timInForceValue: "normal",
+        qty: "0.5",
+        posSide: "long",
+        marginMode: "crossed",
       }),
     );
   });
@@ -200,7 +220,9 @@ describe("buildVenueBody dispatches to the module that owns the body", () => {
   });
 
   it("keeps the Bitget order body free of the Cachy-side defaults Bitget never asked for", () => {
-    const body = JSON.parse(buildVenueBody("bitget", placeOrder())) as Record<string, unknown>;
+    const body = JSON.parse(
+      buildVenueBody("bitget", { ...placeOrder(), marginMode: "cross" }),
+    ) as Record<string, unknown>;
 
     expect(body).not.toHaveProperty("reduceOnly");
     expect(body).not.toHaveProperty("exchange");
@@ -315,8 +337,10 @@ describe("the client and the server sign the bytes the builder produced", () => 
       "/api/v1/futures/account/adjust_position_margin",
       accountSetting({ type: "adjust-position-margin", amount: "100", positionId: "p-1" }),
     ],
-    ["bitget", "/api/mix/v1/order/placeOrder", placeOrder()],
-    ["bitget", "/api/mix/v1/order/placeOrder", closePosition()],
+    ["bitget", "/api/v3/trade/place-order", { ...placeOrder(), marginMode: "cross" }],
+    // Close-position route refuses a close that does not name its side, so
+    // the conformance payload carries posSide like a real caller must.
+    ["bitget", "/api/v3/trade/place-order", { ...closePosition(), posSide: "LONG", marginMode: "cross" }],
     // UTA cancel path (BUG-0597 Phase B) — the literal here is only the
     // prehash input for the string/object agreement check below, but it
     // should still name a path Cachy actually signs.

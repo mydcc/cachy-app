@@ -81,6 +81,14 @@ export const PlaceOrderSchema = BaseRequestSchema.extend({
   // say which one. Omitted entirely for ONE_WAY accounts — see BUG-0062.
   tradeSide: z.enum(["OPEN", "CLOSE"]).optional(),
   positionId: z.string().optional(),
+  // UTA hedge position side (BUG-0597): long|short, carried to `posSide`.
+  // Optional at the schema because one-way accounts must not send it; the
+  // body builder enforces the per-branch rules.
+  posSide: z.enum(["LONG", "SHORT"]).optional(),
+  // UTA margin mode, as the account reports it (cross|isolated, either case).
+  // Optional at the schema; required by the Bitget body builder, which refuses
+  // to let the venue default it.
+  marginMode: z.string().optional(),
 
   // --- FEAT-0069 -----------------------------------------------------------
   // Fields place_order accepts (docs/bitunix-api/07_trade.md:577-596) that
@@ -126,6 +134,8 @@ export const ClosePositionSchema = BaseRequestSchema.extend({
   side: z.string().transform(s => s.toUpperCase()).refine(s => ["BUY", "SELL"].includes(s), { message: "Side must be BUY or SELL" }),
   amount: PositiveNumericString, // quantity to close
   marginCoin: z.string().optional().default("USDT"), // For Bitget
+  posSide: z.enum(["LONG", "SHORT"]).optional(),
+  marginMode: z.string().optional(),
 });
 
 // --- Close All Positions ---
