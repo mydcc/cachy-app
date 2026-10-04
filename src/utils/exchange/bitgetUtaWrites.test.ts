@@ -101,26 +101,26 @@ describe("Bitget UTA place-order body (BUG-0597)", () => {
   it("refuses posSide together with reduceOnly", () => {
     expect(() =>
       buildBitgetPlaceOrderBody({ ...BASE, side: "sell", posSide: "long", reduceOnly: true }),
-    ).toThrow();
+    ).toThrow("bitunixErrors.VALIDATION_ERROR");
   });
 
   it("refuses a posSide outside long and short", () => {
     expect(() =>
       buildBitgetPlaceOrderBody({ ...BASE, side: "buy", posSide: "both" }),
-    ).toThrow();
+    ).toThrow("bitunixErrors.VALIDATION_ERROR");
   });
 
   it("refuses a missing marginMode instead of letting the venue default", () => {
     const { marginMode: _dropped, ...withoutMode } = BASE;
     expect(() =>
       buildBitgetPlaceOrderBody({ ...withoutMode, side: "buy", posSide: "long" }),
-    ).toThrow();
+    ).toThrow("bitunixErrors.VALIDATION_ERROR");
   });
 
   it("refuses a marginMode outside crossed and isolated", () => {
     expect(() =>
       buildBitgetPlaceOrderBody({ ...BASE, side: "buy", posSide: "long", marginMode: "portfolio" }),
-    ).toThrow();
+    ).toThrow("bitunixErrors.VALIDATION_ERROR");
   });
 
   it("accepts the shared normalizeMarginMode spellings end to end", () => {
@@ -196,6 +196,6 @@ describe("Bitget UTA place-order body (BUG-0597)", () => {
   it("still refuses a non-positive quantity", () => {
     expect(() =>
       buildBitgetPlaceOrderBody({ ...BASE, side: "buy", posSide: "long", size: "0" }),
-    ).toThrow();
+    ).toThrow("bitunixErrors.INVALID_QTY");
   });
 });

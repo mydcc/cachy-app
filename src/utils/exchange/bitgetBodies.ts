@@ -146,8 +146,12 @@ function mapTimeInForce(force: string | undefined): string {
  * (`effect`, `clientId`, `tradeSide` and `positionId` stay unmapped as
  * before: `force` defaults to `"normal"` and the latter two are
  * Bitunix-HEDGE-only.)
+ *
+ * Exported for the modify path, which refuses the same fields until Phase F
+ * verifies their format: a preset TP/SL the venue silently drops would
+ * leave the position unprotected from the resting order's next tick.
  */
-const BITGET_UNSUPPORTED_PROTECTION_FIELDS = [
+export const BITGET_UNSUPPORTED_PROTECTION_FIELDS = [
   "triggerPrice",
   "stopPrice",
   "tpPrice",
@@ -247,4 +251,67 @@ export function buildBitgetCancelOrderBody(payload: {
     orderId: payload.orderId,
     category: "USDT-FUTURES",
   };
+}
+
+/**
+ * The UTA modify body. Identity is orderId and/or clientOid (the venue lets
+ * orderId win when both arrive, so both travel when both are known); the
+ * change itself is qty and/or price, at least one required. `symbol` is
+ * required by the venue and refused when absent — a modify that does not
+ * name its market has no business travelling.
+ *
+ * `autoCancel` is never sent: `yes` cancels the original when modify fails,
+ * a destructive default Cachy does not opt into. The venue default (`no`)
+ * applies. Protection fields stay refused until Phase F verifies their
+ * format — a preset TP/SL the venue silently drops would leave the position
+ * unprotected from the resting order's next tick.
+ */
+export function buildBitgetModifyOrderBody(payload: {
+  orderId?: string;
+  clientOid?: string;
+  symbol?: string;
+  qty?: string;
+  price?: string;
+  tpPrice?: string;
+  tpStopType?: string;
+  tpOrderType?: string;
+  tpOrderPrice?: string;
+  slPrice?: string;
+  slStopType?: string;
+  slOrderType?: string;
+  slOrderPrice?: string;
+}): Record<string, unknown> {
+  if (!payload.orderId && !payload.clientOid) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  if (!payload.symbol) throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  if (payload.qty === undefined && payload.price === undefined) {
+    throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+  }
+  for (const field of BITGET_UNSUPPORTED_PROTECTION_FIELDS) {
+    if ((payload as Record<string, unknown>)[field] !== undefined) {
+      throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+    }
+  }
+
+  let qty: string | undefined;
+  if (payload.qty !== undefined) {
+    const safeQty = formatApiNum(payload.qty);
+    if (!safeQty || new Decimal(safeQty).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
+    qty = safeQty;
+  }
+
+  let price: string | undefined;
+  if (payload.price !== undefined) {
+    const safePrice = formatApiNum(payload.price);
+    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    price = safePrice;
+  }
+
+  return cleanPayload({
+    orderId: payload.orderId,
+    clientOid: payload.clientOid,
+    symbol: payload.symbol,
+    category: "USDT-FUTURES",
+    qty,
+    price,
+  });
 }

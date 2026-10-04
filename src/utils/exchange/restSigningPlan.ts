@@ -303,6 +303,11 @@ const BITGET_ORDER_PATHS: Record<string, string> = {
   "place-order": "/api/v3/trade/place-order",
   "close-position": "/api/v3/trade/place-order",
   "cancel-order": "/api/v3/trade/cancel-order",
+  // Phase E (BUG-0597): modify rides `/api/v3/trade/modify-order`. Like
+  // cancel it cannot open a position — it changes price or size of a
+  // resting order — so it moves with the safe half, ahead of any preset
+  // protection format (Phase F).
+  "modify-order": "/api/v3/trade/modify-order",
   // The two query-signed reads, on UTA paths (verified 2026-10-03).
   // `order-detail` has no row on purpose: Bitget
   // wires none of that action (`venues/bitget.ts` answers `null`), and a row
