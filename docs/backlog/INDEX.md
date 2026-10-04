@@ -2,9 +2,9 @@
 
 # Backlog index
 
-496 items. How to read and add them: [README.md](README.md).
+497 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 20 · 🟡 in-progress 4 · ✅ done 426 · ⛔ dropped 1
+Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 21 · 🟡 in-progress 4 · ✅ done 426 · ⛔ dropped 1
 
 ---
 
@@ -317,6 +317,7 @@ Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 20 · 🟡 in-pr
 | [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 🟢 ready | execution |
 | [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 🟢 ready | execution |
 | [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | ✅ done | alerts |
+| [IDEA-0620](ideas/IDEA-0620-bitget-uta-zero-balance-test-protocol.md) | Trader test protocol for Bitget UTA writes, zero-balance first | P1 | 🟢 ready | exchange |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | ui |
 | [BUG-0038](bugs/BUG-0038-android-manifest-regressions.md) | PWA splash screen, screenshots and long-press shortcuts regressed on Android | P2 | ✅ done | pwa |
 | [BUG-0051](bugs/BUG-0051-sidepanel-never-rendered.md) | SidePanel.svelte is never rendered, so the "Enable Side Panel" setting does nothing | P2 | ✅ done | ui |
@@ -747,6 +748,7 @@ Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 20 · 🟡 in-pr
 | [FEAT-0488](features/FEAT-0488-bot-order-submission-guard.md) | Guard bot order submission against duplicates, stacking and unbounded repeat | P1 | 🟢 ready | none | community, pro, private | A | ADR-0012 | — |
 | [FEAT-0526](features/FEAT-0526-kill-switch-explained-and-configurable-in-settings.md) | Explain the kill switch in Settings and make its behaviour configurable | P1 | 🟢 ready | none | community, pro, private | A | none | — |
 | [FEAT-0544](features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md) | Inspect and edit bot order intent including stop-loss | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [IDEA-0620](ideas/IDEA-0620-bitget-uta-zero-balance-test-protocol.md) | Trader test protocol for Bitget UTA writes, zero-balance first | P1 | 🟢 ready | none | community, pro, private | none | none | [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) |
 | [BUG-0005](bugs/BUG-0005-gpu-chop-field-mismatch.md) | GPU-accelerated Choppiness writes to a field nothing reads | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0006](bugs/BUG-0006-sentiment-response-unvalidated.md) | Sentiment cache and AI response are trusted without schema validation | P2 | ✅ done | M0 | community, pro, private | none | none | — |
 | [BUG-0009](bugs/BUG-0009-symbolpicker-null-resolution.md) | SymbolPickerWindow resolves with null against a type that excludes it | P2 | ✅ done | none | community, pro, private | none | none | — |
@@ -1066,4 +1068,4 @@ Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 20 · 🟡 in-pr
 
 ---
 
-Next free number: **0620**
+Next free number: **0621**
