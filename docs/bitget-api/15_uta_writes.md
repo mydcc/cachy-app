@@ -6,8 +6,9 @@ same HMAC scheme as the reads (`14_uta_v3.md`).
 
 Every claim marked **Documented** is transcribed from a vendor page and was not
 observed. Claims marked **Verified** were observed live. Anything else is an
-**open question** with the method that settles it — Phase B+ answers them on
-demo keys, never by inference.
+**open question** with the method that settles it — observation on the
+trader's account, recorded here, never by inference. Agents never hold keys
+and never send requests: there is no agent-executed probe, on demo or live.
 
 ## The generation correction
 
@@ -76,7 +77,7 @@ Required: `category` (`USDT-FUTURES`), `symbol` (bare pair, `BTCUSDT`),
 
 Omitting `posSide` in hedge mode violates a documented requirement, so the
 venue should reject it — **fail-closed**, unlike Classic V2's `tradeSide`
-trap. Unverified until a demo probe (open question 1): if the venue ever
+trap. Unverified until observed (open question 1): if the venue ever
 accepts a posSide-less hedge order, the builder must refuse it before signing.
 
 The remaining hazard is a *wrong* `posSide`: `side: sell` + `posSide: short`
@@ -99,41 +100,44 @@ minLeverage: 1, maxLeverage: 150, status: online
 ```
 
 A minimal verification round-trip (open + close 0.0001 BTC as taker) costs on
-the order of two taker fees on ~$11 notional — cents, and virtual on demo.
-No funded account is needed for any verification step.
+the order of two taker fees on ~$11 notional — cents. Observed 2026-10-04:
+there are no demo API keys; only the trader's live account exists, so every
+observation is made trader-side during normal trading and recorded here.
 
 ## Position mode switching
 
 The UTA API nav lists no set-position-mode / set-margin-mode / set-leverage
 endpoint (Classic had all three). The vendor support article says the two
 position modes switch *"in the futures settings"* — i.e. app UI, not API.
-So the demo account's `holdMode` is whatever the futures settings say, and the
+So the account's `holdMode` is whatever the futures settings say, and the
 API only ever *reads* it (per position/order). Consequence: both close
-branches are verifiable on one demo account **only if** its mode can be
+branches are verifiable on one account **only if** its mode can be
 switched in the UI with no open positions. Otherwise each branch needs its own
 account state. Open question for the account holder, not the docs.
 
-## Open questions (demo-gated — nothing below is inferred)
+## Open questions (observation-gated — nothing below is inferred)
 
 1. `posSide` omitted in hedge mode → reject (fail-closed, as documented) or
-   accept with a default? Method: one demo place without `posSide`, cancel or
-   flatten immediately after reading the answer.
+   accept with a default? Method: trader-side observation — one live place
+   without `posSide` (far-from-market limit, cancelled or flattened
+   immediately after reading the answer), recorded here. No agent sends it.
 2. `clientOid` resubmitted → rejected as duplicate, or second order? Method:
-   docs are silent; probe on demo with a far-from-market limit, cancel after.
-   Until answered: no write retries anywhere.
+   docs are silent; trader-side observation with a far-from-market limit,
+   cancelled after. Until answered: no write retries anywhere.
 3. One-way `holdMode` wire literal — settled as Documented: the order-info
    response schema lists `holdMode` as `one_way_mode / hedge_mode`
    (verified against the live vendor page 2026-10-04). What stays open is
    only wire observation of `one_way_mode` on a real one-way account; the
    store sets nothing it has not observed either way.
-4. Demo funding and fee behaviour — read, not assumed, on first demo contact.
+4. Funding and fee behaviour — read from the trader's account, not assumed,
+   on first observation.
 5. `modify-order` `autoCancel: yes` semantics under failure — read the page
    again at implementation time; the tail was cut in transcription.
 6. Modify `qty` is assumed to be the new absolute quantity (replace), not a
    delta: `tradeService` re-sends the live amount even on price-only intents,
    which is a no-op under replace semantics and an inflation under delta
-   semantics. Unresolvable from docs — probe on funded (modify qty to a known
-   value, read back via `order-info`, compare) before trusting any modify.
+   semantics. Unresolvable from docs — observed trader-side (modify qty to a
+   known value, read back via `order-info`, compare) before trusting any modify.
 
 ## Links
 

@@ -721,6 +721,13 @@ it — both otherwise `{ "code": "00000", "data": { "clientOid", "orderId" } }`.
 
 ## Rest API Demo Trading
 
+> **Observed 2026-10-04 (account holder): there are no demo API keys — only
+> live-account keys exist — and agents never hold keys or send requests.**
+> The demo sections below transcribe vendor pages verbatim; they describe the
+> vendor's demo program, not a path any agent can or will use. Open behaviour
+> questions are settled by trader-side observation, recorded in
+> `15_uta_writes.md`.
+
 > **Could not verify** the following, because the page does not state it: **which
 > endpoints refuse demo credentials.** Neither demo page contains any list, table
 > or note of demo-ineligible endpoints, and neither mentions

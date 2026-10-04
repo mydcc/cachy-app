@@ -231,20 +231,22 @@ matter for the venue. `01_sign.md:235` calls the asymmetry a permanent trap;
 against these two hosts it is not one. Not tested: whether a *wrong* WS signature
 is rejected, so this covers valid signatures only.
 
-## Demo trading — the way to test the write path
+## Demo trading — vendor prose, corrected by observation
 
-**Documented**, from `/uta/guide`. Not exercised here.
+**Documented**, from `/uta/guide`. Not exercised here — and superseded below.
 
-Bitget offers a demo environment with virtual funds:
+The vendor page describes a demo environment with virtual funds (demo API
+key via Demo mode → Personal Center → API Key Management; REST with the demo
+key plus header `paptrading: 1`; WebSocket on `wspap` hosts). That is
+transcribed vendor prose, not a verified path.
 
-- Create a Demo API key: log in → switch to Demo mode → Personal Center →
-  API Key Management → Create Demo API Key.
-- REST: send the demo key and add header `paptrading: 1`.
-- WebSocket: `wss://wspap.bitget.com/v3/ws/public`, `wss://wspap.bitget.com/v3/ws/private`.
-
-This is the answer to "the account is empty, so no order can be placed". It also
-means BUG-0597's acceptance test — a close that returns the position to flat —
-can run without funding an account.
+Observed 2026-10-04 by the account holder: **there are no demo API keys —
+only live-account keys exist.** Agents never hold keys and never send
+requests, so no agent-executed probe exists on any path. Open behaviour
+questions are settled only by trader-side observation during normal trading
+and recorded in `15_uta_writes.md`; "the account is empty, so no order can be
+placed" is answered by waiting for a real position, not by a demo
+environment.
 
 ## Links
 
