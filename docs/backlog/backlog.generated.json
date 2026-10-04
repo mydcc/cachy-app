@@ -2843,6 +2843,27 @@
       "file": "bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md"
     },
     {
+      "id": "BUG-0619",
+      "title": "A Bitunix refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope",
+      "type": "bug",
+      "status": "done",
+      "priority": "P1",
+      "area": "exchange",
+      "created": "2026-10-04",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "assignee": "opencode",
+      "branch": "fix/bitunix-venue-error-propagation",
+      "file": "bugs/BUG-0619-bitunix-refusal-becomes-opaque-500.md"
+    },
+    {
       "id": "FEAT-0014",
       "title": "Produce Community, Pro and Private builds from one tree",
       "type": "feature",
@@ -10555,5 +10576,5 @@
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
     }
   ],
-  "count": 495
+  "count": 496
 }

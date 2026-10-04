@@ -323,7 +323,7 @@ describe("POST /api/account-settings refuses rather than reporting a silent succ
       marginMode: "CROSS",
     });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(502);
     const body = await response.json();
     expect(body.error).toContain("Position or order exists");
   });

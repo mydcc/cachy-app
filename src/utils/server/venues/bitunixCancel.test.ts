@@ -141,7 +141,11 @@ describe("bitunixVenue.executeOrder cancel-all", () => {
   it("throws on transport failure instead of resolving quietly", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 500, text: async () => "boom" });
 
-    await expect(executeAsRoute(cancelAll())).rejects.toThrow("Cancel all failed");
+    // BUG-0619: the venue's refusal carries its own diagnosis now, so the
+    // message names what Bitunix answered instead of which Cachy function
+    // threw. The guarantee this asserts — reject, never resolve quietly — is
+    // unchanged.
+    await expect(executeAsRoute(cancelAll())).rejects.toThrow("Bitunix Error: 500 boom");
   });
 
   it("surfaces a partial failureList entry as an error", async () => {
