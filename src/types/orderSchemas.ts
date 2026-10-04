@@ -180,7 +180,7 @@ export const ModifyOrderSchema = BaseRequestSchema.extend({
   orderId: z.string().optional(),
   clientId: z.string().optional(),
   symbol: z.string().optional(),
-  qty: PositiveNumericString,
+  qty: PositiveNumericString.optional(),
   price: NumericString.optional(),
   tpPrice: NumericString.optional(),
   tpStopType: z.string().optional(),
@@ -192,6 +192,10 @@ export const ModifyOrderSchema = BaseRequestSchema.extend({
   slOrderPrice: NumericString.optional(),
 }).refine(data => !!data.orderId || !!data.clientId, {
   message: "Either orderId or clientId must be provided",
+}).refine(data => !!data.qty || !!data.price, {
+  // UTA takes qty and/or price; Bitunix validates present fields the same
+  // way, so loosening here changes nothing that currently passes.
+  message: "Either qty or price must be provided",
 });
 
 // --- History ---

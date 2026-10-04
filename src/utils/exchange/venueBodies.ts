@@ -40,6 +40,7 @@ import { formatApiNum } from "../utils";
 import {
   buildBitgetCancelOrderBody,
   buildBitgetClosePositionPayload,
+  buildBitgetModifyOrderBody,
   buildBitgetOrderPayload,
   buildBitgetPlaceOrderBody,
 } from "./bitgetBodies";
@@ -129,9 +130,30 @@ function venueBody(
     }
 
     case "modify-order":
-      // Bitget has no verified modify request format (BUG-0001 is the standing
-      // reminder not to guess one), so this is a venue boundary, not a gap.
-      if (venue !== "bitunix") throw new Error(ORDER_ERRORS.VALIDATION_ERROR);
+      // BUG-0597 Phase E: UTA modify is transcribed (`15_uta_writes.md`) —
+      // orderId and/or clientOid, symbol, category, qty and/or price.
+      // Bitunix keeps its own builder; the branches do not share fields.
+      // `clientId` is Cachy's name for the venue's `clientOid`.
+      if (venue !== "bitunix") {
+        // Every protection-ish field travels, so the builder — not the call
+        // site — decides what is refused. Dropping one here would be the
+        // silent loss the refusal exists to prevent.
+        return buildBitgetModifyOrderBody({
+          orderId: payload.orderId,
+          clientOid: payload.clientId,
+          symbol: payload.symbol,
+          qty: payload.qty,
+          price: payload.price,
+          tpPrice: payload.tpPrice,
+          tpStopType: payload.tpStopType,
+          tpOrderType: payload.tpOrderType,
+          tpOrderPrice: payload.tpOrderPrice,
+          slPrice: payload.slPrice,
+          slStopType: payload.slStopType,
+          slOrderType: payload.slOrderType,
+          slOrderPrice: payload.slOrderPrice,
+        });
+      }
       return buildBitunixModifyOrderBody(payload);
 
     case "cancel-order":

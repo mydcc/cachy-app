@@ -718,11 +718,41 @@ async function executeOrder(
   if (payload.type === "close-position") {
     return await placeBitgetOrder(envelope, venueBody);
   }
+  if (payload.type === "modify-order") {
+    return await modifyBitgetOrder(envelope, venueBody);
+  }
   if (payload.type === "cancel-order") {
     return await cancelBitgetOrder(envelope, venueBody);
   }
 
   return null;
+}
+
+/**
+ * Sends an order modification. The response shape is not pinned beyond
+ * passing `data` through — the modify response was not transcribed, and
+ * per BUG-0001 the venue boundary does not invent fields to normalize.
+ * Callers confirm via `order-info`, not via this return value.
+ */
+async function modifyBitgetOrder(
+    envelope: PresignedEnvelope,
+    venueBody: string,
+) {
+    const baseUrl = "https://api.bitget.com";
+    const path = bitgetPath("/api/orders", "modify-order");
+
+    const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: bitgetCallHeaders(envelope),
+        body: venueBody,
+    });
+
+    const text = await response.text();
+    assertBitgetOk(response, text);
+
+    const res = safeJsonParse(text);
+
+    return res.data;
 }
 
 /*

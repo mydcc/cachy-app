@@ -129,6 +129,11 @@ account state. Open question for the account holder, not the docs.
 4. Demo funding and fee behaviour — read, not assumed, on first demo contact.
 5. `modify-order` `autoCancel: yes` semantics under failure — read the page
    again at implementation time; the tail was cut in transcription.
+6. Modify `qty` is assumed to be the new absolute quantity (replace), not a
+   delta: `tradeService` re-sends the live amount even on price-only intents,
+   which is a no-op under replace semantics and an inflation under delta
+   semantics. Unresolvable from docs — probe on funded (modify qty to a known
+   value, read back via `order-info`, compare) before trusting any modify.
 
 ## Links
 
