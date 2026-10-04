@@ -3876,6 +3876,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0544-inspect-and-edit-bot-order-intent-with-stop.md"
   },
   {
+    "id": "IDEA-0620",
+    "title": "Trader test protocol for Bitget UTA writes, zero-balance first",
+    "type": "idea",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0597"
+    ],
+    "assignee": "human",
+    "file": "ideas/IDEA-0620-bitget-uta-zero-balance-test-protocol.md"
+  },
+  {
     "id": "BUG-0005",
     "title": "GPU-accelerated Choppiness writes to a field nothing reads",
     "type": "bug",
