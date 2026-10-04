@@ -1742,10 +1742,14 @@ class TradeService {
         side: "BUY" | "SELL";
         posSide?: "LONG" | "SHORT";
         reduceOnly: boolean;
-        marginMode: string;
+        marginMode?: string;
     } {
         const side = positionSide === "long" ? "SELL" : "BUY";
-        const marginMode = normalizeMarginMode(tradeState.remoteMarginMode);
+        // Undefined (not "") when never synced: the gate only compares margin
+        // mode when both sides carry one, so an empty string would read as a
+        // present-but-wrong value and refuse with a mismatch. The body builder
+        // still requires it and throws when it is absent.
+        const marginMode = normalizeMarginMode(tradeState.remoteMarginMode) || undefined;
         if ((accountState.positionMode ?? "").toLowerCase() === "one_way") {
             return { side, reduceOnly: true, marginMode };
         }
@@ -1764,7 +1768,7 @@ class TradeService {
      */
     private bitgetUtaOpenFields(direction: "BUY" | "SELL"): {
         posSide?: "LONG" | "SHORT";
-        marginMode: string;
+        marginMode?: string;
     } {
         return {
             posSide:
@@ -1773,7 +1777,7 @@ class TradeService {
                     : direction === "BUY"
                       ? "LONG"
                       : "SHORT",
-            marginMode: normalizeMarginMode(tradeState.remoteMarginMode),
+            marginMode: normalizeMarginMode(tradeState.remoteMarginMode) || undefined,
         };
     }
 
