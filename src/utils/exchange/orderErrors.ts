@@ -39,6 +39,31 @@ export const ORDER_ERRORS = {
 export interface ExchangeError extends Error {
   code?: string;
   details?: string;
+  /**
+   * HTTP status the venue answered with. Read by `upstreamErrorStatus`, so a
+   * venue rejection does not collapse into a blanket 500 on its way to the
+   * client.
+   */
+  status?: number;
+  /**
+   * The venue's own business code, e.g. Bitget's `"30032"`. Deliberately not
+   * `code`: that field carries a Cachy translation key the UI resolves, and
+   * overwriting it with vendor prose would leave the German UI untranslatable.
+   */
+  venueCode?: string;
+  /**
+   * The venue's message, verbatim. Diagnostic only — never shown as UI copy
+   * without going through the locale files.
+   */
+  venueMessage?: string;
+  /**
+   * HTTP status the venue actually answered with, kept for diagnosis only.
+   *
+   * Deliberately not what the client is told: Bitget pairs a business error
+   * with a 4xx *and* reports some on a 200, so relaying this would answer a
+   * browser with 400 for a request Cachy got wrong — or with 200 for a refusal.
+   */
+  venueHttpStatus?: number;
 }
 
 export function cleanPayload<T extends object>(payload: T): T {

@@ -19,7 +19,7 @@ import type { NormalizedOrder, NormalizedPosition } from "../../../types/exchang
 import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import { formatApiNum } from "../../utils";
 import { safeJsonParse } from "../../safeJson";
-import { readExchangeJson } from "../exchangeResponse";
+
 import { bitgetCallHeaders, type PresignedEnvelope } from "../presignedEnvelope";
 import {
   fetchWithTimeout,
@@ -59,6 +59,86 @@ interface BitgetRawOrder {
 // --- Bitget Helpers ---
 
 /**
+ * The status Cachy answers with when the venue refuses. Chosen in
+ * `apiResponse.ts` too, and asserted in both test files — a refusal must never
+ * arrive as a 200 or as an internal fault.
+ */
+const VENUE_REJECTED_STATUS = 502;
+
+/**
+ * Throws the error Bitget actually described, or returns when the call succeeded.
+ *
+ * Bitget pairs a business failure with a non-2xx status: `30032` (V1
+ * decommissioned), `40085` (UTA account calling a Classic path), `400172`
+ * (parameter verification), `40009` (bad signature) all arrive as HTTP 400 or
+ * 400. So a check that tests `response.ok` before reading the envelope discards
+ * the only diagnostic the venue offers, and the caller is left with a generic
+ * string — which is what turned a decommissioned endpoint into an opaque HTTP
+ * 500 on the client. `fetchBitgetKlines` already reads the envelope first for
+ * exactly this reason; this lifts that ordering to every signed call.
+ *
+ * The status check stays as the fallback for an upstream that answers with no
+ * readable envelope at all, so a truncated or non-JSON body still fails loudly
+ * instead of parsing to `undefined`.
+ */
+function assertBitgetOk(response: Response, text: string): void {
+  const envelope = parseBitgetEnvelope(text);
+  const venueCode = envelope?.code;
+  const venueMessage = envelope?.msg ?? "";
+
+  if (venueCode !== undefined && venueCode !== "00000") {
+    throw bitgetVenueError(venueCode, venueMessage, response.status);
+  }
+  if (!response.ok) {
+    throw bitgetVenueError(String(response.status), text.slice(0, 200), response.status);
+  }
+}
+
+/**
+ * Builds an error that carries the venue's code, message and HTTP status as
+ * fields rather than only inside its string.
+ *
+ * `venueCode` is what `assertBitgetOk` found in the envelope; `fallbackCode` is
+ * for the no-envelope case, where the HTTP status is all there is. The status
+ * rides along so the API layer can answer 502 instead of a blanket 500.
+ */
+function bitgetVenueError(
+  venueCode: string,
+  venueMessage: string,
+  httpStatus: number,
+): ExchangeError {
+  const detail = venueMessage ? `${venueCode} ${venueMessage}` : venueCode;
+  const error = new Error(
+    `Bitget Error: ${detail}`,
+  ) as ExchangeError;
+  error.venueCode = venueCode;
+  error.venueMessage = venueMessage;
+  error.venueHttpStatus = httpStatus;
+  // What our own client is told, which is not what Bitget answered. Relaying
+  // Bitget's status would hand a browser a 400 for a request Cachy got wrong
+  // at the exchange, or — because Bitget also reports business errors on a
+  // 200 — a 200 carrying an error body. 502 says "the exchange refused", in
+  // every case, and the venue's own status stays available for diagnosis.
+  error.status = VENUE_REJECTED_STATUS;
+  return error;
+}
+
+/**
+ * Appends the hedge-mode hint to a Bitget error whose message mentions mode,
+ * position or side — the vendor never names the cause. Applied only on the
+ * order-placement path, where a refusal costs the user a trade; the read paths
+ * would only produce a misleading suggestion.
+ */
+function withHedgeModeHint(e: unknown): unknown {
+  const error = e as ExchangeError;
+  const message = error?.venueMessage?.toLowerCase() ?? "";
+  if (!message) return e;
+  if (!/mode|position|side/.test(message)) return e;
+  error.message = `${error.message} (Possible cause: Mismatch between App (Hedge Mode) and Exchange settings. Check One-Way vs Hedge Mode)`;
+  return error;
+}
+
+/**
  * Posts an already-built body.
  *
  * The body arrives as a string from `buildVenueBody` and the signer takes it
@@ -78,22 +158,17 @@ async function placeBitgetOrder(
         body: venueBody,
     });
 
-    if (!response.ok) {
-        const text = await response.text();
-        const err = new Error(ORDER_ERRORS.BITGET_API_ERROR);
-        (err as ExchangeError).details = `${response.status} ${text.slice(0, 100)}`;
-        throw err;
+    const text = await response.text();
+    try {
+        assertBitgetOk(response, text);
+    } catch (e) {
+        // The hedge/one-way mismatch is the most common reason an otherwise
+        // correct Bitget order is refused, and it is invisible in the vendor's
+        // message. This is the money path, so it keeps the hint.
+        throw withHedgeModeHint(e);
     }
 
-    const text = await response.text();
     const res = safeJsonParse(text);
-    if (res.code !== "00000") {
-        let msg = res.msg;
-        if (msg && (msg.toLowerCase().includes("mode") || msg.toLowerCase().includes("position") || msg.toLowerCase().includes("side"))) {
-            msg += " (Possible cause: Mismatch between App (Hedge Mode) and Exchange settings. Check One-Way vs Hedge Mode)";
-        }
-        throw new Error(`Bitget Error: ${res.code} ${msg}`);
-    }
 
     return res.data;
 }
@@ -114,10 +189,9 @@ async function fetchBitgetPendingOrders(
         headers: bitgetCallHeaders(envelope),
     });
 
-    if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
     const text = await response.text();
+    assertBitgetOk(response, text);
     const res = safeJsonParse(text);
-    if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
     const orders = res.data || [];
     return orders.map((o: BitgetRawOrder) => ({
@@ -154,10 +228,9 @@ async function fetchBitgetHistoryOrders(
         headers: bitgetCallHeaders(envelope),
     });
 
-    if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
     const text = await response.text();
+    assertBitgetOk(response, text);
     const res = safeJsonParse(text);
-    if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
     const orders = res.data || [];
     let mapped: NormalizedOrder[] = orders.map((o: BitgetRawOrder) => ({
@@ -200,16 +273,10 @@ async function cancelBitgetOrder(
         body: venueBody,
     });
 
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Bitget Cancel Error: ${response.status} ${text}`);
-    }
-
     const text = await response.text();
+    assertBitgetOk(response, text);
+
     const res = safeJsonParse(text);
-    if (res.code !== "00000") {
-        throw new Error(`Bitget Error: ${res.msg}`);
-    }
 
     return res.data;
 }
@@ -245,11 +312,9 @@ async function fetchBitgetAccount(
         headers: bitgetCallHeaders(envelope)
     });
 
-    if (!response.ok) throw new Error("Bitget API Error");
     const text = await response.text();
+    assertBitgetOk(response, text);
     const res = safeJsonParse(text);
-
-    if (res.code !== "00000") throw new Error(res.msg);
 
     const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
     if (!data) throw new Error("No account data found");
@@ -279,9 +344,9 @@ async function fetchBitgetBalance(
         headers: bitgetCallHeaders(envelope)
     });
 
-    if (!response.ok) throw new Error("Bitget API Error");
-    const res = await readExchangeJson(response);
-    if (res.code !== "00000") throw new Error(res.msg);
+    const text = await response.text();
+    assertBitgetOk(response, text);
+    const res = safeJsonParse(text);
 
     const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
     if (!data) return "0";
@@ -496,9 +561,9 @@ async function fetchBitgetPositions(
         headers: bitgetCallHeaders(envelope)
     });
 
-    if (!response.ok) throw new Error("Bitget API Error");
-    const res = await readExchangeJson(response);
-    if (res.code !== "00000") throw new Error(res.msg);
+    const text = await response.text();
+    assertBitgetOk(response, text);
+    const res = safeJsonParse(text);
 
     const data = res.data || [];
 
