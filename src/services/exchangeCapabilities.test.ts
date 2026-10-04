@@ -197,9 +197,10 @@ describe("exchange capabilities (FEAT-0017)", () => {
         it("reports hedge only where a position mode is actually observed", () => {
             expect(supportsPositionMode("bitunix", "hedge")).toBe(true);
             expect(supportsPositionMode("bitunix", "one_way")).toBe(true);
-            // Bitget sends no position mode Cachy reads; unknown stays unoffered.
-            expect(supportsPositionMode("bitget", "hedge")).toBe(false);
-            expect(supportsPositionMode("bitget", "one_way")).toBe(false);
+            // BUG-0596: UTA sends `holdMode` on positions and orders
+            // (`hedge_mode`, verified live) — Bitget now observes a mode too.
+            expect(supportsPositionMode("bitget", "hedge")).toBe(true);
+            expect(supportsPositionMode("bitget", "one_way")).toBe(true);
         });
     });
 
