@@ -26,14 +26,13 @@ import type { OrderRequestPayload } from "../../../types/orderSchemas";
 import type { AccountSettingsPayload } from "../../../types/accountSettingsSchemas";
 import { formatApiNum } from "../../utils";
 import { safeJsonParse } from "../../safeJson";
-import { readExchangeJson } from "../exchangeResponse";
 import { bitunixCallHeaders, type PresignedEnvelope } from "../presignedEnvelope";
 import {
   fetchWithTimeout,
   DEFAULT_UPSTREAM_TIMEOUT_MS,
   type UpstreamApiError,
 } from "../fetchWithTimeout";
-import { ORDER_ERRORS, type ExchangeError } from "../../exchange/orderErrors";
+import type { ExchangeError } from "../../exchange/orderErrors";
 import {
   UPSTREAM_RETRY_ATTEMPTS,
   isRetryableUpstreamStatus,
@@ -54,6 +53,70 @@ type ApiError = UpstreamApiError;
 
 // --- Bitunix Helpers ---
 
+/**
+ * The status Cachy answers with when the venue refuses. Same value as the
+ * Bitget half (BUG-0604) — a refusal is a refusal regardless of venue, and the
+ * two test files assert the same number.
+ */
+const VENUE_REJECTED_STATUS = 502;
+
+/**
+ * Throws the error Bitunix actually described, or returns when the call succeeded.
+ *
+ * Bitunix answers `{code, msg, data}` with `code: 0` on success, and pairs a
+ * business failure with a non-2xx status — so a check that tests `response.ok`
+ * before reading the envelope discards the only diagnostic the venue offers.
+ * That is what turned every Bitunix refusal into an opaque HTTP 500 on the
+ * client (BUG-0604 fixed the Bitget half; this is the Bitunix half).
+ *
+ * The status check stays as the fallback for an upstream that answers with no
+ * readable envelope at all, so a truncated or non-JSON body still fails loudly
+ * instead of parsing to `undefined`.
+ */
+function assertBitunixOk(response: Response, text: string): void {
+  let code: unknown;
+  let message = "";
+  try {
+    const parsed = safeJsonParse(text);
+    if (parsed && typeof parsed === "object") {
+      code = (parsed as { code?: unknown }).code;
+      const msg = (parsed as { msg?: unknown }).msg;
+      if (typeof msg === "string") message = msg;
+    }
+  } catch {
+    // Not a readable envelope — the status check below is the fallback.
+  }
+  if (code !== undefined && String(code) !== "0") {
+    throw bitunixVenueError(String(code), message, response.status);
+  }
+  if (!response.ok) {
+    throw bitunixVenueError(String(response.status), text.slice(0, 200), response.status);
+  }
+}
+
+/**
+ * Builds an error that carries the venue's code, message and HTTP status as
+ * fields rather than only inside its string.
+ *
+ * `venueCode` is what `assertBitunixOk` found in the envelope; on the
+ * no-envelope path the HTTP status is all there is. The client is always told
+ * 502: relaying the venue's status would hand a browser a 4xx for a request
+ * Cachy itself got wrong at the exchange.
+ */
+function bitunixVenueError(
+  venueCode: string,
+  venueMessage: string,
+  httpStatus: number,
+): ExchangeError {
+  const detail = venueMessage ? `${venueCode} ${venueMessage}` : venueCode;
+  const error = new Error(`Bitunix Error: ${detail}`) as ExchangeError;
+  error.venueCode = venueCode;
+  error.venueMessage = venueMessage;
+  error.venueHttpStatus = httpStatus;
+  error.status = VENUE_REJECTED_STATUS;
+  return error;
+}
+
 async function cancelBitunixOrder(envelope: PresignedEnvelope, venueBody: string) {
     const baseUrl = "https://fapi.bitunix.com";
     const path = "/api/v1/futures/trade/cancel_orders";
@@ -66,14 +129,17 @@ async function cancelBitunixOrder(envelope: PresignedEnvelope, venueBody: string
 
     if (!response.ok) {
         // If 404/400, order might already be filled/cancelled. Ignore.
+        // Unchanged by the BUG-0604 follow-up: this is a status-based
+        // idempotency swallow, not an envelope reading, and narrowing it to
+        // specific venue codes would change cancel semantics.
         const text = await response.text();
         if (response.status === 400 || response.status === 404) return;
-        throw new Error(`Cancel failed: ${text}`);
+        assertBitunixOk(response, text);
     }
 
     const text = await response.text();
+    assertBitunixOk(response, text);
     const res = safeJsonParse(text);
-    if (String(res.code) !== "0") throw new Error(res.msg);
 
     // cancel_orders reports per-order outcomes rather than failing the whole
     // call — surface a rejected order (e.g. already filled) as an error
@@ -94,14 +160,9 @@ async function cancelAllBitunixOrders(envelope: PresignedEnvelope, venueBody: st
         body: venueBody,
     });
 
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Cancel all failed: ${text}`);
-    }
-
     const text = await response.text();
+    assertBitunixOk(response, text);
     const res = safeJsonParse(text);
-    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
 
     // Surface partial failures from failureList if any
     const failure = res.data?.failureList?.[0];
@@ -122,14 +183,9 @@ async function closeAllBitunixPositions(envelope: PresignedEnvelope, venueBody: 
         body: venueBody,
     });
 
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Close all positions failed: ${text}`);
-    }
-
     const text = await response.text();
+    assertBitunixOk(response, text);
     const res = safeJsonParse(text);
-    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
 
     return res.data ?? { success: true };
 }
@@ -144,14 +200,9 @@ async function flashCloseBitunixPosition(envelope: PresignedEnvelope, venueBody:
         body: venueBody,
     });
 
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Flash close failed: ${text}`);
-    }
-
     const text = await response.text();
+    assertBitunixOk(response, text);
     const res = safeJsonParse(text);
-    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
 
     return res.data;
 }
@@ -170,10 +221,9 @@ async function fetchBitunixOrderDetail(
         headers: bitunixCallHeaders(envelope),
     });
 
-    if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
     const text = await response.text();
+    assertBitunixOk(response, text);
     const res = safeJsonParse(text) as BitunixResponse<BitunixOrder>;
-    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
 
     const o = res.data;
     if (!o) throw new Error("Order not found");
@@ -220,14 +270,9 @@ async function modifyBitunixOrder(
         body: venueBody,
     });
 
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Modify failed: ${text}`);
-    }
-
     const text = await response.text();
+    assertBitunixOk(response, text);
     const res = safeJsonParse(text);
-    if (String(res.code) !== "0") throw new Error(res.msg || `Bitunix error: ${res.code}`);
 
     return res.data;
 }
@@ -253,37 +298,9 @@ async function placeBitunixOrder(
     body: venueBody,
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    let errorMsg = ORDER_ERRORS.BITUNIX_API_ERROR;
-    let details = `${response.status} ${text.slice(0, 200)}`;
-
-    // Attempt to parse JSON error from exchange
-    try {
-        const jsonError = safeJsonParse(text);
-        if (jsonError.msg || jsonError.message || jsonError.error) {
-            errorMsg = jsonError.msg || jsonError.message || jsonError.error;
-        }
-        if (jsonError.code) {
-             details = `Code: ${jsonError.code}`;
-        }
-    } catch {
-        // Ignore JSON parse error, stick to text
-    }
-
-    const err: ExchangeError = new Error(errorMsg);
-    err.details = details;
-    throw err;
-  }
-
   const text = await response.text();
+  assertBitunixOk(response, text);
   const res: BitunixResponse<BitunixOrder> = safeJsonParse(text);
-  if (String(res.code) !== "0") {
-    // msg as the main error text, for legacy compatibility.
-    const err: ExchangeError = new Error(res.msg);
-    err.code = String(res.code);
-    throw err;
-  }
 
   return res.data;
 }
@@ -304,10 +321,9 @@ async function fetchBitunixPendingOrders(envelope: PresignedEnvelope): Promise<N
     headers: bitunixCallHeaders(envelope),
   });
 
-  if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
   const text = await response.text();
+  assertBitunixOk(response, text);
   const res = safeJsonParse(text) as BitunixResponse<BitunixOrder[] | BitunixOrderListWrapper>;
-  if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
 
   let listData: BitunixOrder[] = [];
   if (res.data) {
@@ -371,10 +387,9 @@ async function fetchBitunixHistoryOrders(
     headers: bitunixCallHeaders(envelope),
   });
 
-  if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
   const text = await response.text();
+  assertBitunixOk(response, text);
   const res = safeJsonParse(text);
-  if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
 
   let listData: BitunixOrder[] = [];
   if (res.data) {
@@ -442,20 +457,9 @@ async function fetchBitunixAccount(
     headers: bitunixCallHeaders(envelope),
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    const safeText = text.slice(0, 200);
-    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
-  }
-
   const text = await response.text();
-  const res = safeJsonParse(text);
-
-  if (res.code !== 0 && res.code !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
-    );
-  }
+    assertBitunixOk(response, text);
+    const res = safeJsonParse(text);
 
   const data = Array.isArray(res.data) ? res.data[0] : res.data;
 
@@ -497,18 +501,10 @@ async function fetchBitunixBalance(
     headers: bitunixCallHeaders(envelope),
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
-  }
+  const text = await response.text();
+    assertBitunixOk(response, text);
 
-  const data = await readExchangeJson(response);
-
-  if (data.code !== 0 && data.code !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
-    );
-  }
+  const data = safeJsonParse(text);
 
   // Parsing Logic
   const accountInfo = data.data;
@@ -673,9 +669,14 @@ async function fetchBitunixKlines(
 
     const safeText = text.slice(0, 100);
     console.error(`Bitunix API error ${response.status}: ${safeText}...`);
-    const error = new Error(`Bitunix API error: ${response.status}`) as ApiError;
-    error.status = response.status;
-    throw error;
+    if (data && typeof data === "object" && "code" in data && String(data.code) !== "0") {
+      throw bitunixVenueError(
+        String(data.code),
+        typeof data.msg === "string" ? data.msg : "",
+        response.status,
+      );
+    }
+    throw bitunixVenueError(String(response.status), text.slice(0, 200), response.status);
   }
 
   const responseText = await response.text();
@@ -691,7 +692,11 @@ async function fetchBitunixKlines(
         error.status = 404;
         throw error;
       }
-      throw new Error(`Bitunix API error: ${data.msg}`);
+      throw bitunixVenueError(
+        String(data.code),
+        typeof data.msg === "string" ? data.msg : "",
+        response.status,
+      );
   }
 
   const results = data.data || [];
@@ -766,18 +771,10 @@ async function fetchBitunixPositions(
     },
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
-  }
+  const text = await response.text();
+    assertBitunixOk(response, text);
 
-  const data = await readExchangeJson(response);
-
-  if (data.code !== 0 && data.code !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
-    );
-  }
+  const data = safeJsonParse(text);
 
   // Normalized Position Object
   const rawPositions = Array.isArray(data.data) ? data.data : [];
@@ -947,30 +944,16 @@ async function postBitunixAccount(
     body,
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    const error: ApiError = new Error(
-      `Bitunix API error: ${response.status} ${text.slice(0, 200)}`,
-    );
-    error.status = response.status;
-    throw error;
-  }
+  const text = await response.text();
+  assertBitunixOk(response, text);
 
-  const res = await readExchangeJson<BitunixResponse<unknown>>(response);
-  if (String(res.code) !== "0") {
-    // The preconditions this family documents — "not while a position or
-    // order is open" for margin mode and position mode — are enforced by the
-    // exchange, and this is where that refusal becomes an error rather than
-    // a silent success. The UI disables the control beforehand; that is
-    // courtesy, this is the guarantee.
-    const error: ExchangeError = new Error(res.msg || `Bitunix API error code: ${res.code}`);
-    // `code` is a string on `ExchangeError` and `string | number` on the
-    // wire, so it is normalised rather than cast — the route puts it in a
-    // JSON body, where 0 and "0" would read differently to the client.
-    error.code = String(res.code);
-    throw error;
-  }
+  const res = safeJsonParse(text) as BitunixResponse<unknown>;
 
+  // The preconditions this family documents — "not while a position or order
+  // is open" for margin mode and position mode — are enforced by the exchange,
+  // and the assert above is where that refusal becomes an error rather than a
+  // silent success. The UI disables the control beforehand; that is courtesy,
+  // this is the guarantee.
   return res.data ?? null;
 }
 
