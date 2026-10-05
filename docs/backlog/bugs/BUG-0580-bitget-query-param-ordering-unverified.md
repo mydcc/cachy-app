@@ -24,8 +24,6 @@ settles the V3 (`/api/v3/*`) rule from the live 2026-10-03 observation; the
 acceptance criteria below apply to V3, and criterion 5 (both signers updated)
 is moot because the rule did not change — insertion order stands.
 
-# Settle whether Bitget requires query parameters to be sorted before signing
-
 ## Result (2026-10-03): no, on `/api/v3/*` — still unverified on `/api/v2/*`
 
 Settled live against a UTA account, with a control that proves the signature was
