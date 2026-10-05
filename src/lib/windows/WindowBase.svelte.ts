@@ -26,6 +26,15 @@ import { windowRegistry } from "./WindowRegistry.svelte";
 import { Z_LAYERS } from "./zLayers";
 import { generateId } from "../../utils/utils";
 
+/**
+ * Fallback header height (px) for aspect-ratio geometry when the real header
+ * cannot be measured (this logic layer has no DOM access). Matches the
+ * WindowFrame header: 640x404 and 1080x651 channel totals both resolve to
+ * exact 16:9 content with a 44px header. Single source of truth — the frame
+ * imports this instead of hardcoding its own copy.
+ */
+export const WINDOW_HEADER_HEIGHT = 44;
+
 /** A custom control rendered in the window header (e.g. a timeframe picker). */
 export interface HeaderControl {
     label: string;
@@ -559,17 +568,18 @@ export abstract class WindowBase {
     }
 
     /** Updates window dimensions with support for fixed aspect ratios. */
-    updateSize(width: number, height: number) {
+    updateSize(width: number, height: number, headerHeight: number = WINDOW_HEADER_HEIGHT) {
         if (this.isMaximized) return;
 
         let newWidth = Math.max(width, this.minWidth);
         let newHeight = Math.max(height, this.minHeight);
 
         if (this.aspectRatio) {
-            // Header height is 41px according to WindowFrame layout.
-            // Aspect ratio only applies to the CONTENT area.
-            const HEADER_HEIGHT = 41;
-            newHeight = Math.round((newWidth / this.aspectRatio) + HEADER_HEIGHT);
+            // Aspect ratio only applies to the CONTENT area. Callers with DOM
+            // access (WindowFrame resize) pass the measured header height so
+            // the content lands on the exact ratio; the 44px fallback above
+            // applies everywhere else.
+            newHeight = Math.round((newWidth / this.aspectRatio) + headerHeight);
         }
 
         // Keep the intended size, then clamp for display. Storing the
