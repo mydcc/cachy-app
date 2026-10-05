@@ -65,8 +65,12 @@
     let headerEl: HTMLElement | null = $state(null);
     let contentInnerEl: HTMLElement | null = $state(null);
     let contentEl: HTMLElement | null = $state(null);
+    // Outer frame element for chrome measurement (borders + header).
+    let frameEl: HTMLElement | null = $state(null);
     let fitApplied = $state(false);
     let fittedWin: object | null = null;
+    // Aspect-snap guard (see effect below): at most one correction per size.
+    let snappedKey: string | null = null;
 
     /**
      * Context Menu Observer
@@ -175,6 +179,22 @@
     }
 
     /**
+     * Measures the window chrome separating the outer frame from the content
+     * box (header + 1px borders, and any scrollbar). Returns null before
+     * mount. Used to size aspect-locked windows by their CONTENT box so an
+     * embedded 16:9 canvas (e.g. Unity) fills it without letterbox bars.
+     */
+    function measureChrome(): { vertical: number; horizontal: number } | null {
+        const frame = frameEl;
+        const content = contentEl;
+        if (!frame || !content) return null;
+        return {
+            vertical: frame.offsetHeight - content.clientHeight,
+            horizontal: frame.offsetWidth - content.clientWidth,
+        };
+    }
+
+    /**
      * Multi-directional Resizing Implementation
      * Handles 8 coordinates (N, S, E, W, NW, NE, SW, SE) and supports
      * fixed aspect ratios defined in the window configuration.
@@ -194,10 +214,14 @@
         const startPointerX = e.clientX;
         const startPointerY = e.clientY;
 
-        // Measured header height so aspect-ratio geometry tracks the real
-        // layout (theme/font changes included); shared constant as fallback
-        // before mount or when the ref is unavailable.
-        const headerHeight = headerEl?.offsetHeight || WINDOW_HEADER_HEIGHT;
+        // Measured window chrome (borders + header) so aspect-ratio geometry
+        // targets the CONTENT box exactly instead of assuming a constant.
+        // frame.offsetWidth - content.clientWidth covers both 1px borders
+        // (and any scrollbar); the vertical difference covers header+borders.
+        // Shared WINDOW_HEADER_HEIGHT constant as fallback before mount.
+        const chrome = measureChrome();
+        const chromeV = chrome?.vertical ?? WINDOW_HEADER_HEIGHT;
+        const chromeH = chrome?.horizontal ?? 0;
 
         const onPointerMove = (moveEvent: PointerEvent) => {
             if (!isResizing) return;
@@ -232,17 +256,17 @@
                 }
             }
 
-            // 2. Aspect Ratio Enforcement (if applicable)
+            // 2. Aspect Ratio Enforcement on the CONTENT box (if applicable)
             if (win.aspectRatio) {
                 const ratio = win.aspectRatio;
                 if (direction === "e" || direction === "w") {
-                    newHeight = newWidth / ratio + headerHeight;
+                    newHeight = (newWidth - chromeH) / ratio + chromeV;
                 } else if (direction === "s" || direction === "n") {
-                    const contentHeight = newHeight - headerHeight;
-                    newWidth = contentHeight * ratio;
+                    const contentHeight = newHeight - chromeV;
+                    newWidth = contentHeight * ratio + chromeH;
                 } else {
                     // Corner resizing defaults to width-dependency
-                    newHeight = newWidth / ratio + headerHeight;
+                    newHeight = (newWidth - chromeH) / ratio + chromeV;
                 }
 
                 // Adjust anchor points when resizing from top/left handles
@@ -258,14 +282,14 @@
             if (newWidth < win.minWidth) {
                 newWidth = win.minWidth;
                 if (win.aspectRatio)
-                    newHeight = newWidth / win.aspectRatio + headerHeight;
+                    newHeight = (newWidth - chromeH) / win.aspectRatio + chromeV;
                 if (direction.includes("w"))
                     newX = startX + (startWidth - newWidth);
             }
 
             // 4. Update the logic instance
             win.updatePosition(newX, newY);
-            win.updateSize(newWidth, newHeight, headerHeight);
+            win.updateSize(newWidth, newHeight, chromeV, chromeH);
         };
 
         const endResize = (endEvent: PointerEvent) => {
@@ -368,7 +392,15 @@
             // Untracked: this write must not re-trigger the effect.
             untrack(() => {
                 if (guarded && Math.abs(fitted - win.height) <= 1) return;
-                win.updateSize(win.width, fitted, header.offsetHeight || WINDOW_HEADER_HEIGHT);
+                // Same measured chrome as the resize/snap paths so a
+                // hypothetical aspect-locked fit window stays consistent.
+                const chrome = measureChrome();
+                win.updateSize(
+                    win.width,
+                    fitted,
+                    chrome?.vertical ?? (header.offsetHeight || WINDOW_HEADER_HEIGHT),
+                    chrome?.horizontal ?? 0,
+                );
             });
         };
 
@@ -389,6 +421,43 @@
         return () => {
             cancelled = true;
         };
+    });
+
+    /**
+     * Aspect-content snap. After layout, verifies the content box of an
+     * aspect-locked window against the locked ratio and corrects sub-pixel
+     * leftovers (borders, rounding, fallback chrome at open) with a single
+     * adjustment. Runs at most once per size (snappedKey), so it cannot
+     * oscillate: if the residual survives the correction, it stops anyway.
+     * Skipped while resizing/dragging and for maximized/minimized/pinned
+     * windows. This is what removes the ~1px Unity letterbox bars that a
+     * hardcoded ratio can never hit for every size.
+     */
+    $effect(() => {
+        const ratio = win.aspectRatio;
+        if (!ratio || win.isMaximized || win.isMinimized || win.isPinned) return;
+        if (isResizing || isDragging) return;
+        void win.width;
+        void win.height;
+        const content = contentEl;
+        if (!content) return;
+        // Keyed by window id: a reused frame still snaps a new window once.
+        const key = `${win.id}:${win.width}x${win.height}`;
+        if (snappedKey === key) return;
+        untrack(() => {
+            const contentW = content.clientWidth;
+            const contentH = content.clientHeight;
+            if (contentW <= 0 || contentH <= 0) return;
+            snappedKey = key;
+            if (Math.abs(contentH - contentW / ratio) < 1) return;
+            const chrome = measureChrome();
+            win.updateSize(
+                win.width,
+                win.height,
+                chrome?.vertical ?? WINDOW_HEADER_HEIGHT,
+                chrome?.horizontal ?? 0,
+            );
+        });
     });
 
     // --- INTERACTION UTILITIES ---
@@ -455,6 +524,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+    bind:this={frameEl}
     class={extraClasses}
     class:window-frame={true}
     class:glass-panel={true}
@@ -848,7 +918,12 @@
         {/if}
     </div>
 
-    <div class="window-content" style:font-size="{win.fontSize}px" bind:this={contentEl}>
+    <div
+        class="window-content"
+        class:channel-no-scroll={win.windowType === "channel"}
+        style:font-size="{win.fontSize}px"
+        bind:this={contentEl}
+    >
         <div
             class="content-wrapper"
             bind:this={contentInnerEl}
@@ -1091,6 +1166,11 @@
         overflow-y: auto;
         overflow-x: hidden;
         position: relative;
+    }
+    /* Channel windows embed a fixed-ratio canvas (Unity): never show
+       scrollbars that would steal width and break the ratio fit. */
+    .window-content.channel-no-scroll {
+        overflow: hidden;
     }
     .header-spacer {
         flex: 1;

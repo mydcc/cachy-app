@@ -394,6 +394,13 @@ describe("WindowBase.updateSize (FEAT-0050)", () => {
         expect(win.height).toBe(Math.round(800 / 2 + 43.5));
     });
 
+    it("subtracts horizontal chrome from the ratio width", () => {
+        const win = makeTestWindow();
+        win.aspectRatio = 2; // 2:1
+        win.updateSize(800, 999, 44, 2 /* 1px borders */);
+        expect(win.height).toBe(Math.round((800 - 2) / 2) + 44);
+    });
+
     it("does not resize a maximized window", () => {
         const win = makeTestWindow();
         win.maximize();

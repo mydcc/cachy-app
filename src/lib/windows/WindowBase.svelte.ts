@@ -568,18 +568,25 @@ export abstract class WindowBase {
     }
 
     /** Updates window dimensions with support for fixed aspect ratios. */
-    updateSize(width: number, height: number, headerHeight: number = WINDOW_HEADER_HEIGHT) {
+    updateSize(
+        width: number,
+        height: number,
+        headerHeight: number = WINDOW_HEADER_HEIGHT,
+        chromeWidth: number = 0,
+    ) {
         if (this.isMaximized) return;
 
         let newWidth = Math.max(width, this.minWidth);
         let newHeight = Math.max(height, this.minHeight);
 
         if (this.aspectRatio) {
-            // Aspect ratio only applies to the CONTENT area. Callers with DOM
-            // access (WindowFrame resize) pass the measured header height so
-            // the content lands on the exact ratio; the 44px fallback above
-            // applies everywhere else.
-            newHeight = Math.round((newWidth / this.aspectRatio) + headerHeight);
+            // Aspect ratio applies to the CONTENT box: the outer width minus
+            // horizontal chrome (borders), plus vertical chrome (header +
+            // borders). Callers with DOM access (WindowFrame) pass measured
+            // values; the fallbacks above apply everywhere else.
+            newHeight = Math.round(
+                (newWidth - chromeWidth) / this.aspectRatio + headerHeight,
+            );
         }
 
         // Keep the intended size, then clamp for display. Storing the
