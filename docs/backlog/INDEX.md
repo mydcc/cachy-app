@@ -2,9 +2,9 @@
 
 # Backlog index
 
-500 items. How to read and add them: [README.md](README.md).
+504 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 428 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 428 · ⛔ dropped 1
 
 ---
 
@@ -179,6 +179,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | --- | --- | --- | --- | --- |
 | [FEAT-0033](features/FEAT-0033-chat-hardening-and-reputation.md) | Harden Global Chat and add peer-signal reputation | P2 | 📋 specced | collaboration |
 | [FEAT-0034](features/FEAT-0034-copy-trading.md) | Share a trade setup live, as price levels only | P2 | 📋 specced | collaboration |
+| [IDEA-0624](ideas/IDEA-0624-shared-price-levels-feed.md) | Push voluntarily shared price levels live to subscribers | P3 | 💡 idea | cloud |
 
 ### M8
 
@@ -198,6 +199,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0467](features/FEAT-0467-multi-provider-management.md) | User-managed AI providers with per-provider endpoints and API formats | P2 | ✅ done | ai |
 | [FEAT-0471](features/FEAT-0471-single-provider-registry-five-tabs.md) | Single AI provider registry with five tabs and fetched model pickers | P2 | ✅ done | ai |
 | [IDEA-0305](ideas/IDEA-0305-external-market-context-as-veto.md) | Use external market context as a veto, never as a trigger | P3 | 💡 idea | ai |
+| [IDEA-0626](ideas/IDEA-0626-class-c-market-data-seed.md) | Seed cold start from a shared Class-C market data cache | P3 | 💡 idea | cloud |
 
 ### M9
 
@@ -205,6 +207,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | --- | --- | --- | --- | --- |
 | [FEAT-0035](features/FEAT-0035-autonomous-execution-agent.md) | Let an agent trade inside limits it cannot exceed | P2 | 💡 idea | ai |
 | [FEAT-0396](features/FEAT-0396-automation-settings-tab.md) | An Automation settings tab for user-configured bots | P2 | ✅ done | alerts |
+| [IDEA-0625](ideas/IDEA-0625-agent-state-user-operated-instance.md) | Host autonomous agent state on a user-operated instance | P3 | 💡 idea | sync |
 
 ### Unscheduled
 
@@ -564,6 +567,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | trade-panel |
 | [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | market-data |
 | [IDEA-0564](ideas/IDEA-0564-tpsl-seam-tests.md) | Seam-level TPSL tests for tick misalignment and position-less drops | P3 | 📋 specced | execution |
+| [IDEA-0627](ideas/IDEA-0627-venue-positioning-overlay.md) | Overlay venue positioning aggregates on the chart | P3 | 💡 idea | charts |
 
 ---
 
@@ -1071,7 +1075,11 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | [IDEA-0408](ideas/IDEA-0408-multi-trade-mode.md) | Multi-trade mode (one position vs position per trade) | P3 | 💡 idea | none | community, pro, private | A | none | — |
 | [IDEA-0413](ideas/IDEA-0413-market-data-polling-volume.md) | Market-data polling volume (per-timeframe klines plus funding bulk) | P3 | 💡 idea | none | community, pro, private | C | none | — |
 | [IDEA-0564](ideas/IDEA-0564-tpsl-seam-tests.md) | Seam-level TPSL tests for tick misalignment and position-less drops | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [IDEA-0624](ideas/IDEA-0624-shared-price-levels-feed.md) | Push voluntarily shared price levels live to subscribers | P3 | 💡 idea | M7 | pro, private | B | required | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
+| [IDEA-0625](ideas/IDEA-0625-agent-state-user-operated-instance.md) | Host autonomous agent state on a user-operated instance | P3 | 💡 idea | M9 | private | A | required | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
+| [IDEA-0626](ideas/IDEA-0626-class-c-market-data-seed.md) | Seed cold start from a shared Class-C market data cache | P3 | 💡 idea | M8 | pro, private | C | required | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) |
+| [IDEA-0627](ideas/IDEA-0627-venue-positioning-overlay.md) | Overlay venue positioning aggregates on the chart | P3 | 💡 idea | none | community, pro, private | C | none | — |
 
 ---
 
-Next free number: **0624**
+Next free number: **0628**

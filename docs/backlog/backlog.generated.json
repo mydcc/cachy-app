@@ -10657,7 +10657,81 @@
       "adr": "none",
       "depends_on": [],
       "file": "ideas/IDEA-0564-tpsl-seam-tests.md"
+    },
+    {
+      "id": "IDEA-0624",
+      "title": "Push voluntarily shared price levels live to subscribers",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "M7",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "cloud",
+      "data_class": "B",
+      "adr": "required",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "file": "ideas/IDEA-0624-shared-price-levels-feed.md"
+    },
+    {
+      "id": "IDEA-0625",
+      "title": "Host autonomous agent state on a user-operated instance",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "M9",
+      "editions": [
+        "private"
+      ],
+      "area": "sync",
+      "data_class": "A",
+      "adr": "required",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "file": "ideas/IDEA-0625-agent-state-user-operated-instance.md"
+    },
+    {
+      "id": "IDEA-0626",
+      "title": "Seed cold start from a shared Class-C market data cache",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "M8",
+      "editions": [
+        "pro",
+        "private"
+      ],
+      "area": "cloud",
+      "data_class": "C",
+      "adr": "required",
+      "depends_on": [
+        "FEAT-0014"
+      ],
+      "file": "ideas/IDEA-0626-class-c-market-data-seed.md"
+    },
+    {
+      "id": "IDEA-0627",
+      "title": "Overlay venue positioning aggregates on the chart",
+      "type": "idea",
+      "status": "idea",
+      "priority": "P3",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "charts",
+      "data_class": "C",
+      "adr": "none",
+      "depends_on": [],
+      "file": "ideas/IDEA-0627-venue-positioning-overlay.md"
     }
   ],
-  "count": 500
+  "count": 504
 }
