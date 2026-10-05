@@ -566,9 +566,10 @@ export abstract class WindowBase {
         let newHeight = Math.max(height, this.minHeight);
 
         if (this.aspectRatio) {
-            // Header height is 41px according to WindowFrame layout.
+            // Header height is 44px according to WindowFrame layout
+            // (640x404 and 1080x651 totals both resolve to exact 16:9 content).
             // Aspect ratio only applies to the CONTENT area.
-            const HEADER_HEIGHT = 41;
+            const HEADER_HEIGHT = 44;
             newHeight = Math.round((newWidth / this.aspectRatio) + HEADER_HEIGHT);
         }
 

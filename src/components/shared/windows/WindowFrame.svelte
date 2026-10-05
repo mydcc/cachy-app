@@ -194,7 +194,8 @@
         const startPointerY = e.clientY;
 
         // Shared constant for header height to offset aspect ratio calculations correctly.
-        const HEADER_HEIGHT = 41;
+        // 44px measured from WindowFrame layout (640x404 / 1080x651 channel totals = exact 16:9 content).
+        const HEADER_HEIGHT = 44;
 
         const onPointerMove = (moveEvent: PointerEvent) => {
             if (!isResizing) return;

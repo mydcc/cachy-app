@@ -382,9 +382,9 @@ describe("WindowBase.updateSize (FEAT-0050)", () => {
         const win = makeTestWindow();
         win.aspectRatio = 2; // 2:1
         win.updateSize(800, 999 /* ignored -- aspectRatio drives height */);
-        // height = round(width / ratio) + HEADER_HEIGHT(41)
+        // height = round(width / ratio) + HEADER_HEIGHT(44)
         expect(win.width).toBe(800);
-        expect(win.height).toBe(Math.round(800 / 2) + 41);
+        expect(win.height).toBe(Math.round(800 / 2) + 44);
     });
 
     it("does not resize a maximized window", () => {

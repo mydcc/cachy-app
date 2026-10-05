@@ -41,9 +41,9 @@ describe('ChannelWindow Initial Dimensions and Aspect Ratio', () => {
     expect(win.y).toBe(60);
     expect(win.width).toBe(640);
     expect(win.aspectRatio).toBeCloseTo(16 / 9);
-    // Total window height includes 41px header -> 360 + 41 = 401px
-    // Content height (win.height - 41) is exactly 360px.
-    const contentHeight = win.height - 41;
+    // Total window height includes 44px header -> 360 + 44 = 404px
+    // Content height (win.height - 44) is exactly 360px.
+    const contentHeight = win.height - 44;
     expect(contentHeight).toBe(360);
     expect(win.width / contentHeight).toBeCloseTo(16 / 9);
   });
@@ -58,5 +58,19 @@ describe('ChannelWindow Initial Dimensions and Aspect Ratio', () => {
     const props = win.componentProps as { allow?: string };
     expect(props.allow).toBeDefined();
     expect(props.allow).not.toContain('fullscreen');
+  });
+
+  it('should sandbox the channel iframe without allow-modals to suppress embedded alert() popups', () => {
+    const win = new ChannelWindow(
+      'https://space.cachy.app/index.php?plot_id=BTC',
+      'BTC Channel',
+      'channel-BTC'
+    );
+
+    const props = win.componentProps as { sandbox?: string };
+    expect(props.sandbox).toBeDefined();
+    expect(props.sandbox).toContain('allow-scripts');
+    expect(props.sandbox).toContain('allow-same-origin');
+    expect(props.sandbox).not.toContain('allow-modals');
   });
 });

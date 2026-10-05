@@ -22,11 +22,15 @@
     interface Props {
         window: WindowBase & { url: string };
         allow?: string;
+        sandbox?: string;
     }
 
     let {
         window: win,
-        allow = "xr-spatial-tracking; camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; web-share"
+        allow = "xr-spatial-tracking; camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; web-share",
+        // Sandboxed without allow-modals so the embedded page cannot pop up
+        // alert() dialogs (e.g. on a denied startup fullscreen request).
+        sandbox = "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
     }: Props = $props();
 
     // Tracks a real embed failure (e.g. the remote host refuses the connection or blocks
@@ -83,6 +87,7 @@
             src={win.url}
             title={win.title}
             {allow}
+            {sandbox}
             onerror={handleEmbedError}
             class="w-full h-full border-0 block"
         ></iframe>
