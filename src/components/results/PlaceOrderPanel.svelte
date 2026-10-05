@@ -65,7 +65,7 @@
   import { activeExchange } from "../../services/exchange";
   import ActiveAccountChip from "../shared/ActiveAccountChip.svelte";
   import { translateRefusal, MAX_ACCOUNT_STATE_AGE_MS } from "../../services/orderGate";
-  import { marketState } from "../../stores/market.svelte";
+  import { marketState, META_FETCH_RETRY_MS } from "../../stores/market.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { formatDynamicDecimal, parseDecimal } from "../../utils/utils";
   import type { TranslationKey } from "../../locales/schema";
@@ -349,10 +349,28 @@
     data !== null && narrowTradeType(data.tradeType) !== null,
   );
 
+  // BUG-0628 — the refetch must key off the trade input, not the calculator
+  // output. The calculator refuses without metadata (no orderable size), so
+  // `data` is null exactly when a refetch is most needed; gating on
+  // `data?.symbol` deadlocks after a silently failed fetch (no further
+  // trading-pairs request, panel stuck on notReady + noSymbolMeta).
+  // `metaRetryTick` re-arms one attempt per store cooldown, because nothing
+  // else re-fires once the calculator has refused. `fetchKeyedMeta`
+  // deduplicates concurrent callers, so this cannot become a fetch storm.
+  let metaRetryTick = $state(0);
   $effect(() => {
-    if (data?.symbol && exchange === "bitunix" && !meta) {
-      activeExchange().account.fetchTradingPairInfo(data.symbol);
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- bare read registers the retry driver as an effect dependency
+    metaRetryTick;
+    const needed = tradeState.symbol || data?.symbol;
+    if (!needed || exchange !== "bitunix") return;
+    // Read the store directly: `meta` follows the calculator output, which
+    // is null while the guard refuses — the entry may still be cached.
+    if (marketState.symbolMeta[normalizeSymbol(needed, exchange || "bitunix")] !== undefined) return;
+    void activeExchange().account.fetchTradingPairInfo(needed);
+    const timer = setTimeout(() => {
+      metaRetryTick += 1;
+    }, META_FETCH_RETRY_MS);
+    return () => clearTimeout(timer);
   });
 
   const typeLabel = (t: OrderEntryType) =>

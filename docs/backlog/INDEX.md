@@ -4,7 +4,7 @@
 
 505 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-progress 5 · ✅ done 430 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 431 · ⛔ dropped 1
 
 ---
 
@@ -314,7 +314,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0604](bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md) | A Bitget refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | exchange |
 | [BUG-0619](bugs/BUG-0619-bitunix-refusal-becomes-opaque-500.md) | A Bitunix refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | exchange |
 | [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | ✅ done | persistence |
-| [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | 🟡 in-progress | calculation |
+| [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | calculation |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -716,7 +716,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0604](bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md) | A Bitget refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0619](bugs/BUG-0619-bitunix-refusal-becomes-opaque-500.md) | A Bitunix refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |

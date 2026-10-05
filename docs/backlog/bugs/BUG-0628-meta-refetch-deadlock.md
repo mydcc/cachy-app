@@ -2,7 +2,7 @@
 id: BUG-0628
 title: Panel refetch gated on calculator output deadlocks after a failed metadata fetch
 type: bug
-status: in-progress
+status: done
 branch: fix/meta-refetch-deadlock
 priority: P1
 milestone: none
