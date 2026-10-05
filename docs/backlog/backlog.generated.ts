@@ -616,6 +616,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0597-bitget-order-write-paths-need-v2.md"
   },
   {
+    "id": "BUG-0622",
+    "title": "autoBackupService overwrites healthy snapshot with null on local store corruption",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P0",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0622-autobackup-overwrites-healthy-snapshot-with-null.md"
+  },
+  {
     "id": "FEAT-0011",
     "title": "Verify every order against displayed state before it leaves the client",
     "type": "feature",
@@ -2895,6 +2914,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "assignee": "opencode",
     "branch": "fix/bitunix-venue-error-propagation",
     "file": "bugs/BUG-0619-bitunix-refusal-becomes-opaque-500.md"
+  },
+  {
+    "id": "BUG-0621",
+    "title": "restoreFromBackup merges missing fields instead of overwriting",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0621-restore-merges-instead-of-overwriting.md"
   },
   {
     "id": "FEAT-0014",

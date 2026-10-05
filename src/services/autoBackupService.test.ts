@@ -207,6 +207,36 @@ describe("autoBackupService", () => {
       await saveOpfsSnapshot();
       expect(fetchSpy).not.toHaveBeenCalled();
     });
+
+    it("does not overwrite a healthy OPFS snapshot when the local journal is corrupt (BUG-0622)", async () => {
+      const healthySnapshot = JSON.stringify({
+        appName: "R-Calculator",
+        backupVersion: 4,
+        timestamp: "2026-10-01T00:00:00.000Z",
+        isEncrypted: false,
+        data: {
+          journal: JSON.stringify([{ id: "healthy-trade" }]),
+          settings: JSON.stringify({ riskPercentage: 2 }),
+          presets: null,
+          tradeState: null,
+          theme: null,
+          quizState: null,
+        },
+      });
+      mockOpfs = createMockOpfs({ [OPFS_BACKUP_FILENAME]: healthySnapshot });
+
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, "{ corrupt json");
+      localStorage.setItem(
+        CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
+        JSON.stringify({ riskPercentage: 2 }),
+      );
+
+      const success = await saveOpfsSnapshot();
+
+      expect(success).toBe(false);
+      expect(mockOpfs.mockWritable.write).not.toHaveBeenCalled();
+      expect(mockOpfs.files[OPFS_BACKUP_FILENAME]).toBe(healthySnapshot);
+    });
   });
 
   describe("triggerAutoBackup", () => {
