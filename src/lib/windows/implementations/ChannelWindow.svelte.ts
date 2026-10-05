@@ -74,7 +74,13 @@ export class ChannelWindow extends WindowBase {
         if (event.data && event.data.type === 'unity-info') {
             const { width, height } = event.data;
             if (width && height) {
-                this.aspectRatio = width / height;
+                const reported = width / height;
+                // Channel windows are locked to 16:9 (WindowRegistry). Ignore
+                // reports that deviate (e.g. window chrome included in the
+                // numbers) so a wrong ratio cannot pillarbox the Unity canvas
+                // with black side bars.
+                if (Math.abs(reported - 16 / 9) / (16 / 9) > 0.03) return;
+                this.aspectRatio = reported;
                 // Force a resize calculation to apply the new ratio immediately.
                 this.updateSize(this.width, this.width / this.aspectRatio);
             }
@@ -98,6 +104,12 @@ export class ChannelWindow extends WindowBase {
     get componentProps() {
         return {
             url: this.url,
+            // No `allow-modals`: suppresses the embedded page's alert() error
+            // popup when its startup fullscreen request is denied (below).
+            sandbox: "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock",
+            // Intentionally no `fullscreen`: blocks the Unity app's automatic
+            // fullscreen switch at startup. Manual fullscreen stays blocked as
+            // well — the browser cannot distinguish auto from manual requests.
             allow: "xr-spatial-tracking; camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; web-share"
         };
     }
