@@ -58,5 +58,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0020](0020-automation-envelope-promotion-and-simulate-bots.md) | Promotion derives a bot, and simulate bots submit through the gate | Proposed |
 | [0021](0021-decimal-money-boundary-display-stays-f64.md) | The decimal money boundary stops where the display does | Accepted |
 | [0022](0022-cache-key-from-normalized-request.md) | A cache key is derived from a normalized request, not from the URL | Proposed |
+| [0023](0023-bitget-uta-only.md) | Bitget speaks UTA only; Classic is refused, not ported | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._
