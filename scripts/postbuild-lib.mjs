@@ -91,6 +91,12 @@ export function patchBuildIndex(root = REPO_ROOT) {
 
 const FONT_EXTENSION = /\.(ttf|woff2?|otf|eot)$/i;
 
+// Quality 8 instead of BROTLI_MAX_QUALITY (11): q11 costs ~10x CPU for ~2-5%
+// smaller output on fonts, and .woff2 inputs are already Brotli-compressed
+// internally so recompressing them gains almost nothing either way. q8 keeps
+// postbuild fast while staying within a few percent of max compression.
+const BROTLI_QUALITY = 8;
+
 /**
  * Precompress font files under build/client with Brotli and Gzip because
  * adapter-node omits font extensions from default precompression.
@@ -117,17 +123,23 @@ export function precompressFonts(root = REPO_ROOT) {
       if (entry.isDirectory()) {
         walk(fullPath);
       } else if (entry.isFile() && FONT_EXTENSION.test(entry.name)) {
-        const data = fs.readFileSync(fullPath);
+        // One unreadable/corrupt font (or a full disk on one variant write)
+        // must not abort the whole deploy: warn per file and continue.
+        try {
+          const data = fs.readFileSync(fullPath);
 
-        const brData = zlib.brotliCompressSync(data, {
-          params: { [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY },
-        });
-        fs.writeFileSync(`${fullPath}.br`, brData);
+          const brData = zlib.brotliCompressSync(data, {
+            params: { [zlib.constants.BROTLI_PARAM_QUALITY]: BROTLI_QUALITY },
+          });
+          fs.writeFileSync(`${fullPath}.br`, brData);
 
-        const gzData = zlib.gzipSync(data, { level: zlib.constants.Z_BEST_COMPRESSION });
-        fs.writeFileSync(`${fullPath}.gz`, gzData);
+          const gzData = zlib.gzipSync(data, { level: zlib.constants.Z_BEST_COMPRESSION });
+          fs.writeFileSync(`${fullPath}.gz`, gzData);
 
-        count += 1;
+          count += 1;
+        } catch (err) {
+          console.warn(`postbuild: skipping font ${fullPath}: ${err.message}`);
+        }
       }
     }
   }
