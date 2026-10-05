@@ -129,7 +129,7 @@ function orderCalls(): unknown[][] {
     );
 }
 
-/** The cancel-all the function fires before closing, if it fired. */
+/** The post-close cancel-all cleanup, if it fired (BUG-0586 close-then-cancel). */
 function cancelCalls(): unknown[][] {
     return orderCalls().filter(([, init]) => {
         const body = (init as RequestInit | undefined)?.body;

@@ -4,7 +4,7 @@
 
 504 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 429 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 430 · ⛔ dropped 1
 
 ---
 
@@ -300,7 +300,7 @@ Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | ✅ done | repo |
 | [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | ✅ done | ci |
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | journal |
-| [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | trade-panel |
+| [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | ✅ done | trade-panel |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | execution |
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | execution |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | exchange |
@@ -701,7 +701,7 @@ Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0586](bugs/BUG-0586-flash-close-strips-protection-before-session-refusal.md) | A flash close that the new session guard refuses still leaves the position open with its stops cancelled | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0587](bugs/BUG-0587-unticketed-store-writing-reads.md) | Two store-writing exchange reads carry no read ticket, so a late response re-stamps the account after a switch | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0588](bugs/BUG-0588-stale-low-previous-quantity-skips-daily-loss.md) | A load-bearing comment justifies a money-path classification with a partial-fill premise neither venue exhibits | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0589](bugs/BUG-0589-bitget-filled-reads-an-undocumented-field.md) | Bitget `NormalizedOrder.filled` reads a field the API mirror never documents, so it is almost certainly always "0 | P1 | 📋 specced | none | community, pro, private | none | none | [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |

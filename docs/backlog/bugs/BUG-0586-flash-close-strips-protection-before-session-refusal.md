@@ -2,7 +2,7 @@
 id: BUG-0586
 title: A flash close that the new session guard refuses still leaves the position open with its stops cancelled
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -87,11 +87,12 @@ Re-check whether the same shape exists in `closePosition` and
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect: a session change between the cancel and the
-      dispatch leaves the position open, and fails without the fix — **still
-      open**, this is the ordering half and no fix has been chosen (see Open
-      question)
-- [ ] The test passes with the fix — **still open**, same reason
+- [x] A test reproduces the defect: a session change between the cancel and the
+      dispatch leaves the position open, and fails without the fix — covered
+      by `cancelSpy not called` on the refusal path plus the
+      dispatch-before-cancel `invocationCallOrder` pin; both go red on the old
+      ordering (verified via stash)
+- [x] The test passes with the fix — 5 close suites, 20/20 green
 - [x] A refused flash close no longer leaves a `_isUnconfirmed` order behind
 - [x] The existing BUG-0331 regression test still passes, and BUG-0331 is
       re-linked from this item rather than left silently `done`
@@ -104,35 +105,23 @@ in the second test, so the indeterminate branch's `if (order)` was false,
 `updateOrder` never ran, and the assertion held with or without the fix. With
 the mock added it goes red when the fix is removed.
 
-The two open criteria are the reason this item is still `specced`.
+Both halves landed with this PR: the ghost-order half via #3728 and the
+ordering half here.
 
-## Open question
+## Decision (2026-10-05, user)
 
-This item stays `specced` on purpose: the second half needs a **product
-decision** that an agent must not make alone. Both orderings are implementable
-and each fails differently.
+**Close-then-cancel.** The close is dispatched first; the resting stops are
+cancelled only after it succeeds. A session refusal therefore lands while the
+position is still protected, and the already-terminal refusal handling removes
+the optimistic order with nothing to reconcile.
 
-- **Cancel-then-close** (today's order). The stops are gone before the close
-  goes out, so a resting stop cannot fight the market order. The cost: a
-  session refusal discovered after the cancel leaves the position **open and
-  unprotected**, with only a toast.
-- **Close-then-cancel.** Closes that window. The cost: a stop placed in the
-  gap can fill against the close, and in hedge mode that fill opens a **reverse
-  position** rather than flattening one.
+Accepted residual risk: a stop placed after the dispatch and before the cancel
+can fill against the close, and in hedge mode that fill opens a reverse
+position rather than flattening one. Closing an unprotected-position window
+was judged worse than this possible unintended reverse.
 
-Closing an unprotected-position window by opening a possible unintended reverse
-is a risk-appetite call, not a mechanical one. The first half of this item — a
-refused flash close is terminal, so it no longer leaves a misleading
-`_isUnconfirmed` order — is implemented and independent of this choice; the
-item does not close until the second half is decided.
-
-`docs/TODO.md` is where `docs/backlog/README.md` says an open decision belongs;
-this section is the pointer, and the decision itself needs a human.
-
-**Status: still `specced`, deliberately.** PR #3728 lands the ghost-order half
-and nothing else. Two of the four acceptance criteria above stay unticked, so
-this item must not be flipped to `done` and the issue it mirrors must not be
-closed by that PR.
+`closePosition` and `closeAllPositions` were re-checked: neither cancels stops
+before dispatching, so the shape existed only in `flashClosePosition`.
 
 ## Out of scope
 

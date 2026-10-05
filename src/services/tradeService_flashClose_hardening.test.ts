@@ -163,13 +163,14 @@ describe('BUG-0586 — a flash close refused by the session guard', () => {
     });
 
     it('leaves no unconfirmed close behind for a request that never left', async () => {
-        // The dispatch guard refuses here, after the cancel above already
-        // stripped the position's protection. A refusal is raised *before* the
-        // bytes leave — the gate's checks and the guard's `beforeAttempt` hook
-        // both run ahead of `fetch` — so this is not an unknown outcome to be
-        // reconciled later. Classifying it as indeterminate parked the close in
-        // the OMS as `_isUnconfirmed`, which reads as "a close is out there we
-        // cannot see" for a request that provably did not go out.
+        // BUG-0586, second half (product decision 2026-10-05:
+        // close-then-cancel). The dispatch guard refuses here — and the
+        // cancel below never runs, because the close is dispatched first
+        // and the stops are cancelled only after it succeeds. So a session
+        // that moved leaves the position open *and still protected*, and
+        // the refusal is terminal: the gate's checks and the guard's
+        // `beforeAttempt` hook both run ahead of `fetch`, so the venue never
+        // saw it and there is nothing to reconcile later.
         vi.spyOn(tradeService, 'signedRequest').mockRejectedValue(
             new OrderRefusedError({
                 field: 'mode',
@@ -202,6 +203,10 @@ describe('BUG-0586 — a flash close refused by the session guard', () => {
         expect(omsService.updateOrder).not.toHaveBeenCalledWith(
             expect.objectContaining({ _isUnconfirmed: true }),
         );
+        // The ordering half of BUG-0586: the dispatch failed, so the
+        // post-close cleanup must never have run — the stops are still
+        // resting on the still-open position.
+        expect(cancelSpy).not.toHaveBeenCalled();
     });
 
     it('still parks a genuine timeout as unconfirmed', async () => {
@@ -228,7 +233,7 @@ describe('BUG-0586 — a flash close refused by the session guard', () => {
     });
 
     it('still cancels protection and closes when nothing is refused', async () => {
-        vi.spyOn(tradeService, 'signedRequest').mockResolvedValue({ code: '0', msg: 'Success' });
+        const requestSpy = vi.spyOn(tradeService, 'signedRequest').mockResolvedValue({ code: '0', msg: 'Success' });
 
         await expect(tradeService.flashClosePosition('BTCUSDT', 'long')).resolves.toEqual({
             success: true,
@@ -236,5 +241,11 @@ describe('BUG-0586 — a flash close refused by the session guard', () => {
         });
 
         expect(cancelSpy).toHaveBeenCalled();
+        // Close-then-cancel: the dispatch leaves before the cleanup runs.
+        // Without this pin a future reorder back to cancel-first would pass
+        // every assertion above silently.
+        expect(requestSpy.mock.invocationCallOrder[0]).toBeLessThan(
+            cancelSpy.mock.invocationCallOrder[0],
+        );
     });
 });

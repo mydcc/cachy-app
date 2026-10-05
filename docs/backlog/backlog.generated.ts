@@ -2654,7 +2654,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0586",
     "title": "A flash close that the new session guard refuses still leaves the position open with its stops cancelled",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [

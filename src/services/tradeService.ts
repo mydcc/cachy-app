@@ -1455,28 +1455,37 @@ class TradeService {
             });
 
             /*
-             * HARDENING: Safety First. Clear the position's resting SL/TP
-             * before closing, or a resting stop can fight the market order.
+             * BUG-0586 (product decision 2026-10-05: close-then-cancel). The
+             * close is dispatched BEFORE the resting stops are cancelled, so
+             * a refusal from `gatedRequest` — risk limits, kill switch, or
+             * the dispatch guard's session check — lands while the position
+             * is still protected: the cancel below never runs, and the catch
+             * removes the optimistic order as terminal (a refusal never
+             * leaves the device, so there is nothing to reconcile).
+             *
+             * Residual risk, accepted with the decision: a stop placed after
+             * the dispatch and before the cancel can fill against the close,
+             * and in hedge mode that fill opens a reverse position rather
+             * than flattening one. That window is inherent to close-first;
+             * the alternative (cancel-first) left a refused close open AND
+             * unprotected, which is strictly worse at the moment the trader
+             * was trying to get out.
+             */
+            const result = await this.gatedRequest(intent);
+
+            /*
+             * Cleanup AFTER the close. A resting stop that survives the fill
+             * would otherwise stay live on a flat position — or fight the
+             * next entry on the symbol.
              *
              * Carries the flash close's own authorisation: `cancel-all`
              * confirms by default, and without this the gate refuses a cleanup
-             * the user already agreed to when they confirmed the close. The
-             * refusal is caught below, so the symptom would have been silent —
-             * the position closes with its stops still resting.
+             * the user already agreed to when they confirmed the close.
              *
-             * What this ordering does NOT cover, and why the fix stops here
-             * rather than reordering: by the time a session refusal is raised,
-             * these stops are already gone and the position is still open, so
-             * the trader is left unprotected. The obvious repair — close first,
-             * cancel after — closes that hole but introduces a worse one. The
-             * resting stop this line just cancelled can no longer be the one
-             * that fills, but a stop placed *after* the cancel and *before* the
-             * close would be, and in hedge mode that fill opens a reverse
-             * position rather than flattening one. Trading a known-unprotected
-             * position for a possible unintended reverse is a product call,
-             * not a mechanical one, so BUG-0586 stays `specced` with both
-             * orderings and their trade-offs written down rather than having
-             * one picked silently inside a catch block.
+             * A cancel failure here must not fail the close: the position is
+             * already flat, so this is a cleanup problem, not an execution
+             * one. It is logged CRITICAL because resting stops may still be
+             * live and need the trader's attention.
              */
             try {
                 await this.cancelAllOrders(symbol, true, {
@@ -1484,10 +1493,8 @@ class TradeService {
                     confirmedAt,
                 });
             } catch (cancelError) {
-                logger.error("market", `[FlashClose] CRITICAL: Failed to cancel open orders for ${symbol}. Proceeding with close.`, cancelError);
+                logger.error("market", `[FlashClose] CRITICAL: Close succeeded but failed to cancel open orders for ${symbol}. Resting stops may still be live.`, cancelError);
             }
-
-            const result = await this.gatedRequest(intent);
 
             const pnlVal = position.unrealizedPnl ?? new Decimal(0);
             effectsState.triggerDuckEvent({
