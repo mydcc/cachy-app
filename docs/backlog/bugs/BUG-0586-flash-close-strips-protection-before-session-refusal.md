@@ -105,7 +105,8 @@ in the second test, so the indeterminate branch's `if (order)` was false,
 `updateOrder` never ran, and the assertion held with or without the fix. With
 the mock added it goes red when the fix is removed.
 
-The two open criteria are the reason this item is still `specced`.
+Both halves landed with this PR: the ghost-order half via #3728 and the
+ordering half here.
 
 ## Decision (2026-10-05, user)
 
