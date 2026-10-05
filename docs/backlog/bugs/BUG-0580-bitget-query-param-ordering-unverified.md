@@ -2,7 +2,7 @@
 id: BUG-0580
 title: "Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation"
 type: bug
-status: specced
+status: done
 priority: P1
 area: exchange
 created: "2026-09-28"
@@ -11,7 +11,18 @@ editions: ["community", "pro", "private"]
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: docs/bug-0580-v3-signing-evidence
 ---
+
+# Settle whether Bitget requires query parameters to be sorted before signing
+
+## Scope (2026-10-05, ADR-0023)
+
+UTA-only: the Classic `/api/v2/*` half is dropped, not deferred. What follows
+settles the V3 (`/api/v3/*`) rule from the live 2026-10-03 observation; the
+acceptance criteria below apply to V3, and criterion 5 (both signers updated)
+is moot because the rule did not change — insertion order stands.
 
 # Settle whether Bitget requires query parameters to be sorted before signing
 
@@ -198,20 +209,28 @@ item's migration order.
 
 ## Acceptance criteria
 
-- [ ] Bitget support has answered the sorting question, **or** one signed V2 GET
-      has been made in both orderings and the outcome recorded verbatim
-- [ ] The answer is written into
+- [x] Bitget support has answered the sorting question, **or** one signed GET
+      has been made in both orderings and the outcome recorded verbatim —
+      settled live on V3, both orders `00000` with wrong-secret control `40009`
+      (`docs/bitget-api/14_uta_v3.md`); Classic half dropped per ADR-0023
+- [x] The answer is written into
       [`docs/bitget-api/01_sign.md`](../../bitget-api/01_sign.md), replacing the
       current "unresolved" marking
-- [ ] A test pins the exact prehash for a Bitget request with two or more query
-      parameters, in the order the venue requires
-- [ ] `src/utils/exchange/restSigningPlan.ts:207` and `:236` no longer assert
-      the Bitget rule without a recorded source
-- [ ] If the rule changed, `signBitgetRequest` and `generateBitgetSignature`
-      are both updated and stay byte-identical to each other
-- [ ] The Bitunix signing path is unaffected — its sorted requirement is
-      separate and already correct
-- [ ] BUG-0576's step 1 can be marked satisfied
+- [x] A test pins the exact prehash for a Bitget request with two or more query
+      parameters, in the order the venue requires —
+      `signingConformance.test.ts`, "signs a multi-parameter Bitget GET in
+      insertion order", RED-proven against a sorting mutation
+- [x] `src/utils/exchange/restSigningPlan.ts:207` and `:236` no longer assert
+      the Bitget rule without a recorded source — both cite the live V3
+      observation now
+- [x] If the rule changed, `signBitgetRequest` and `generateBitgetSignature`
+      are both updated and stay byte-identical to each other — moot, the rule
+      did not change; both signers take insertion order
+      (`exchangeSigning.ts:257`, `server/bitget.ts:89`) and the A3 gate holds
+- [x] The Bitunix signing path is unaffected — its sorted requirement is
+      separate and already correct (untouched by this diff)
+- [x] BUG-0576's step 1 can be marked satisfied — for the UTA (`/api/v3/*`)
+      generation this item targets
 
 ## Links
 

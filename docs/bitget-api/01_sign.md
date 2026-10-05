@@ -140,23 +140,32 @@ worked `queryString` examples are alphabetical too (`limit=20&symbol=BTCUSDT`,
 
 Cachy does the opposite. `signBitgetRequest` builds the query with
 `new URLSearchParams(params).toString()`, which is **insertion order, unsorted**,
-and [`src/utils/exchange/restSigningPlan.ts:202`](../../src/utils/exchange/restSigningPlan.ts) explicitly forbids applying the
+and [`src/utils/exchange/restSigningPlan.ts:202`](../../src/utils/exchange/restSigningPlan.ts) forbids applying the
 sorted comparator to a Bitget route, on the grounds that it would reorder the
 prehash relative to what the signer does.
 
-There is no live evidence either way, because every Bitget V1 endpoint
-Cachy calls is decommissioned and answers `30032` before a signature is ever
-checked. So the question is open in the one direction that matters: a signed
-`GET` may be failing for this reason and be misattributed to the V1
-decommission.
+### ✅ Resolved for `/api/v3/*` (UTA) — observed live 2026-10-03
 
-**This needs a sandbox run before migration.** The safe migration assumption is
-that sorted is correct and the insertion-order behaviour is a latent bug in
-every Bitget `GET`. The counter-consideration is that the sorted comparator is
-shared with Bitunix and Bitunix genuinely requires it, so "it always worked" is
-not available as evidence either.
+Settled against a UTA account with a control proving the signature was actually
+checked (`docs/bitget-api/14_uta_v3.md`, "Query ordering before signing"):
 
-Do not resolve this by picking a side in a code review. See BUG-0576.
+| Request | Result |
+|---|---|
+| wrong secret (control) | HTTP 400, `code=40009` |
+| valid secret, insertion order | HTTP 200, `code=00000` |
+| valid secret, sorted order | HTTP 200, `code=00000` |
+
+**Both orders are accepted on V3.** The venue verifies against a canonicalised
+query, so insertion order — what Cachy sends — is correct as written and needs
+no change. The control is load-bearing: an earlier run returned `40085` from
+both variants, which is the UTA gate firing before signature validation and
+means nothing about ordering.
+
+**Not carried to Classic `/api/v2/*`.** A UTA account is refused there with
+`40085`, so the Classic rule is unverified — and unneeded: per ADR-0023 Cachy
+targets UTA only and Classic is refused, not ported.
+
+Do not resolve the remaining half by picking a side in a code review. See BUG-0576.
 
 ### RSA signing
 

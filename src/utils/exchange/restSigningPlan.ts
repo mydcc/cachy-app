@@ -205,9 +205,11 @@ export function cachyAction(path: string): string | undefined {
  * the query string and therefore changes the signature.
  *
  * It is *not* the Bitget rule. `signBitgetRequest` and `generateBitgetSignature`
- * take the parameters in insertion order and do not sort at all, so this
- * comparator applied to a Bitget route would reorder the prehash. A3/A4 must not
- * reach for it on the Bitget half of the table.
+ * take the parameters in insertion order and do not sort at all — observed
+ * correct on `/api/v3/*`: the venue accepts both byte orders (wrong-secret
+ * control `40009`, see `docs/bitget-api/14_uta_v3.md`), so this comparator
+ * applied to a Bitget route would reorder the prehash for no reason. A3/A4
+ * must not reach for it on the Bitget half of the table.
  */
 export function canonicalQueryString(params: Record<string, string>): string {
   return new URLSearchParams(
@@ -233,7 +235,9 @@ export function canonicalQueryParamsInput(params: Record<string, string>): strin
 /**
  * The URL form of `params` as **this venue** serialises it.
  *
- * Bitunix sorts; Bitget takes insertion order — see the warning on
+ * Bitunix sorts (vendor rule); Bitget takes insertion order — verified on
+ * `/api/v3/*` against a live UTA account (`docs/bitget-api/14_uta_v3.md`:
+ * both orders `00000`, wrong-secret control `40009`). See the warning on
  * `canonicalQueryString` above, which is the Bitunix half of this rule and
  * must not be applied to a Bitget route. A server rebuilds a signed query
  * through here so the comparison against `x-api-query` is the same

@@ -4,7 +4,7 @@
 
 504 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 428 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 429 · ⛔ dropped 1
 
 ---
 
@@ -296,7 +296,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | security |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | execution |
 | [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | exchange |
-| [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | exchange |
+| [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | ✅ done | exchange |
 | [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | ✅ done | repo |
 | [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | ✅ done | ci |
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | journal |
@@ -697,7 +697,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0560](bugs/BUG-0560-credential-card-without-private-verification.md) | Credential cards show green without private-account verification | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) | Shrinking modify with widened stop escapes the loss-per-trade ceiling | P1 | ✅ done | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md) |
 | [BUG-0579](bugs/BUG-0579-bitunix-ws-private-channel-names-unverified.md) | Bitunix private WebSocket channel names are unverified and may be silently dead | P1 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) | Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0583](bugs/BUG-0583-revert-guard-false-passed-pr-3718.md) | The stale-snapshot revert guard reported success on a PR that did revert develop | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0584](bugs/BUG-0584-semantic-release-cannot-push.md) | semantic-release cannot push, so no release has shipped since 2026-09-20 | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0585](bugs/BUG-0585-journalsort-nan-date-freezes-column.md) | A row with an unparseable date silently freezes the whole journal sort column | P1 | ✅ done | none | community, pro, private | none | none | — |
