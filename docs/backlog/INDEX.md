@@ -2,9 +2,9 @@
 
 # Backlog index
 
-499 items. How to read and add them: [README.md](README.md).
+500 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-progress 4 · ✅ done 428 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 428 · ⛔ dropped 1
 
 ---
 
@@ -468,6 +468,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 | [FEAT-0615](features/FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md) | Consolidate the window flags and resolve the double-click state drift | P2 | 🟢 ready | ui |
 | [FEAT-0616](features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md) | Add magnetic edge snapping and tiling to the window system | P2 | 📋 specced | ui |
 | [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | ui |
+| [FEAT-0623](features/FEAT-0623-audit-super-alert-system-gaps-and-design.md) | Audit the Super Alert system for gaps and UI/UX design | P2 | 🟢 ready | alerts |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
@@ -961,6 +962,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 | [FEAT-0615](features/FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md) | Consolidate the window flags and resolve the double-click state drift | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0605](features/FEAT-0605-ui-status-quo-audit.md) |
 | [FEAT-0616](features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md) | Add magnetic edge snapping and tiling to the window system | P2 | 📋 specced | none | community, pro, private | none | none | [FEAT-0615](features/FEAT-0615-consolidate-window-flags-and-resolve-the-double-click-drift.md) |
 | [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0609](features/FEAT-0609-introduce-control-and-density-tokens.md) |
+| [FEAT-0623](features/FEAT-0623-audit-super-alert-system-gaps-and-design.md) | Audit the Super Alert system for gaps and UI/UX design | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0607](features/FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md) |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -1072,4 +1074,4 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 
 ---
 
-Next free number: **0623**
+Next free number: **0624**
