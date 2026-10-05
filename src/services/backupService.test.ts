@@ -492,6 +492,8 @@ describe("backupService", () => {
 
     it("keeps merge behavior for pre-BACKUP_VERSION backups without tradeState", async () => {
       localStorage.setItem(tradeKey, JSON.stringify({ symbol: "BTCUSDT" }));
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, "light");
+      localStorage.setItem("theme", "light");
 
       const backup = JSON.stringify({
         appName: backupService.APP_NAME,
@@ -505,6 +507,8 @@ describe("backupService", () => {
 
       expect(result.success).toBe(true);
       expect(localStorage.getItem(tradeKey)).toBe(JSON.stringify({ symbol: "BTCUSDT" }));
+      expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY)).toBe("light");
+      expect(localStorage.getItem("theme")).toBe("light");
     });
   });
 });

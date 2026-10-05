@@ -154,7 +154,10 @@ export async function saveOpfsSnapshot(): Promise<boolean> {
 
     // A corrupt local store must never truncate a healthy snapshot into a
     // null hole: keep the previous file and skip this round (BUG-0622).
-    if (hasCorruptStore(payload)) return false;
+    if (hasCorruptStore(payload)) {
+      console.warn("AutoBackup: skipping OPFS snapshot, corrupt local store detected (BUG-0622)");
+      return false;
+    }
 
     // Do not save a completely empty backup over a potentially valid previous snapshot
     const meta = extractSnapshotMeta(payload);

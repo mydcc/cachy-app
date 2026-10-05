@@ -610,6 +610,7 @@ export async function restoreFromBackup(
     // "was empty", so remove it (full replace, BUG-0621). Older backups may
     // predate fields, so they keep merge behavior and only write present
     // fields — restoring a pre-feature backup must not wipe newer stores.
+    // When adding a payload field, bump BACKUP_VERSION or restores will wipe it.
     const fullReplace = backup.backupVersion >= BACKUP_VERSION;
     const restoreField = (raw: string | null | undefined, key: string) => {
       if (raw) {
