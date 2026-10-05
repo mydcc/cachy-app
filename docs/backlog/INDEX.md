@@ -4,7 +4,7 @@
 
 499 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 21 · 🟡 in-progress 4 · ✅ done 428 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-progress 4 · ✅ done 428 · ⛔ dropped 1
 
 ---
 
@@ -553,7 +553,7 @@ Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 21 · 🟡 in-pr
 | [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | ui |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | ui |
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | exchange |
-| [FEAT-0618](features/FEAT-0618-rethink-app-navigation-and-window-entry-points.md) | Rethink app navigation and window entry points | P3 | 💡 idea | ui |
+| [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | ui |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -1052,7 +1052,7 @@ Counts by status: 💡 idea 24 · 📋 specced 21 · 🟢 ready 21 · 🟡 in-pr
 | [FEAT-0573](features/FEAT-0573-say-what-the-close-percentage-is-measured-against.md) | Say what the partial-close percentage is measured against | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | none | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [FEAT-0618](features/FEAT-0618-rethink-app-navigation-and-window-entry-points.md) | Rethink app navigation and window entry points | P3 | 💡 idea | none | community, pro, private | none | none | [FEAT-0616](features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md), [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) |
+| [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0616](features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md), [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
