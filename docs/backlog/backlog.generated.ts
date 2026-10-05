@@ -8428,6 +8428,28 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md"
   },
   {
+    "id": "FEAT-0623",
+    "title": "Audit the Super Alert system for gaps and UI/UX design",
+    "type": "feature",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "created": "2026-10-05",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "alerts",
+    "parent": "FEAT-0605",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0607"
+    ],
+    "file": "features/FEAT-0623-audit-super-alert-system-gaps-and-design.md"
+  },
+  {
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
