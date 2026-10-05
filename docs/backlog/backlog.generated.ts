@@ -2935,6 +2935,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0621-restore-merges-instead-of-overwriting.md"
   },
   {
+    "id": "BUG-0628",
+    "title": "Panel refetch gated on calculator output deadlocks after a failed metadata fetch",
+    "type": "bug",
+    "status": "done",
+    "branch": "fix/meta-refetch-deadlock",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "calculation",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0628-meta-refetch-deadlock.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",

@@ -116,6 +116,7 @@ vi.mock("../../stores/market.svelte", () => ({
             mockSymbolMetaStore.symbolMeta[symbol] = meta;
         },
     },
+    META_FETCH_RETRY_MS: 30_000,
 }));
 
 vi.mock("../../services/exchange", () => ({
