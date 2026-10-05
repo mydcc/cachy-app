@@ -88,6 +88,20 @@ describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
     return JSON.parse(call[1]?.body as string);
   }
 
+  /*
+   * BUG-0586 (close-then-cancel): a flash close emits two fetches — the
+   * close first, the stop cleanup after — so `lastBody()` would read the
+   * `cancel-all`, not the close. Select the close by its type instead of
+   * by position; `closePosition` tests keep `lastBody()` because they emit
+   * exactly one fetch.
+   */
+  function closeBody(): Record<string, unknown> {
+    const bodies = fetchSpy.mock.calls.map((call) => JSON.parse(call[1]?.body as string));
+    const close = bodies.find((b) => b.type === "flash-close-position");
+    expect(close).toBeDefined();
+    return close;
+  }
+
   describe("closePosition", () => {
     it("sends tradeSide=CLOSE and positionId, with side matching the position (not inverted), in HEDGE mode", async () => {
       vi.mocked(omsService.getPositions).mockReturnValue([
@@ -198,7 +212,7 @@ describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
 
       await tradeService.flashClosePosition("XRPUSDT", "long");
 
-      const body = lastBody();
+      const body = closeBody();
       expect(body.type).toBe("flash-close-position");
       expect(body.symbol).toBe("XRPUSDT");
       expect(body.positionId).toBe("662491704776252252");
@@ -218,7 +232,7 @@ describe("TradeService close-order fields (BUG-0062/BUG-0063)", () => {
 
       await tradeService.flashClosePosition("XRPUSDT", "long");
 
-      const body = lastBody();
+      const body = closeBody();
       expect(body.type).toBe("flash-close-position");
       expect(body.symbol).toBe("XRPUSDT");
       expect(body.positionId).toBe("662491704776252252");

@@ -84,8 +84,9 @@ describe('TradeService Flash Close Reproduction', () => {
 
     vi.mocked(omsService.getPositions).mockReturnValue([freshPos]);
 
-    // Mock fetch to simulate cancelAllOrders failure
-    // The first call will be "cancel-all"
+    // Mock fetch to simulate cancelAllOrders failure.
+    // BUG-0586 (close-then-cancel): the first call is the close
+    // (`place-order`), the post-close cleanup (`cancel-all`) is second.
     vi.mocked(global.fetch).mockImplementation(async (url: string, options: { body: string }) => {
         const body = JSON.parse(options.body);
 
@@ -114,18 +115,17 @@ describe('TradeService Flash Close Reproduction', () => {
     await expect(tradeService.flashClosePosition(symbol, side)).resolves.toEqual({ success: true, data: { code: 0, msg: 'success' } });
 
     // Verify that the CLOSE order WAS sent despite cancel failure
-    // We expect 2 calls (cancel-all, then place-order)
+    // We expect 2 calls (place-order first, then the cancel-all cleanup)
     expect(global.fetch).toHaveBeenCalledTimes(2);
 
     const firstCallArgs = vi.mocked(global.fetch).mock.calls[0];
-    expect(JSON.parse(firstCallArgs[1].body).type).toBe('cancel-all');
-
-    const secondCallArgs = vi.mocked(global.fetch).mock.calls[1];
-    const secondBody = JSON.parse(secondCallArgs[1].body);
+    const firstBody = JSON.parse(firstCallArgs[1].body);
     // It is a POST /api/orders — FEAT-0405 A5b carries the action in `?action=`,
     // which is where the route resolves the signature shape from.
-    expect(secondCallArgs[0]).toBe('/api/orders?action=place-order');
-    // For closePosition, we check side or other params
-    expect(secondBody.reduceOnly).toBe(true);
+    expect(firstCallArgs[0]).toBe('/api/orders?action=place-order');
+    expect(firstBody.reduceOnly).toBe(true);
+
+    const secondCallArgs = vi.mocked(global.fetch).mock.calls[1];
+    expect(JSON.parse(secondCallArgs[1].body).type).toBe('cancel-all');
   });
 });
