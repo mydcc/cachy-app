@@ -237,15 +237,15 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
         expect(body.reduceOnly).toBe(true);
     });
 
-    it('should attempt to cancel all orders before closing the position (Hardening)', async () => {
+    it('should close the position before cancelling resting orders (BUG-0586 close-then-cancel)', async () => {
         // Clear previous calls
         signedRequestSpy.mockClear();
 
         await tradeService.flashClosePosition('BTCUSDT', 'long');
 
         // We expect TWO calls.
-        // Call 1: Cancel All
-        // Call 2: Market Close
+        // Call 1: Market Close
+        // Call 2: Cancel All (post-close cleanup of resting stops)
 
         const calls = signedRequestSpy.mock.calls;
 
@@ -255,16 +255,17 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
             call[1].type === 'cancel-all'
         );
 
-        // Expect the Cancel All call to be present (Hardening Fix)
+        // Expect the Cancel All call to be present (post-close cleanup)
         expect(cancelCall).toBeDefined();
 
         // Ensure Close call is also present
         const closeCall = calls.find((call) => call[1] && call[1].side === 'BUY');
         expect(closeCall).toBeDefined();
 
-        // Ensure Cancel happens BEFORE Close
+        // Ensure Close happens BEFORE Cancel (BUG-0586 product decision
+        // 2026-10-05: a refusal lands while the position is still protected)
         const cancelIndex = calls.indexOf(cancelCall!);
         const closeIndex = calls.indexOf(closeCall!);
-        expect(cancelIndex).toBeLessThan(closeIndex);
+        expect(closeIndex).toBeLessThan(cancelIndex);
     });
 });
