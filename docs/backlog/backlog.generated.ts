@@ -619,7 +619,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0622",
     "title": "autoBackupService overwrites healthy snapshot with null on local store corruption",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P0",
     "milestone": "none",
     "editions": [
@@ -631,7 +631,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
     "file": "bugs/BUG-0622-autobackup-overwrites-healthy-snapshot-with-null.md"
   },
   {
@@ -2919,7 +2918,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0621",
     "title": "restoreFromBackup merges missing fields instead of overwriting",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2931,7 +2930,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
     "file": "bugs/BUG-0621-restore-merges-instead-of-overwriting.md"
   },
   {
