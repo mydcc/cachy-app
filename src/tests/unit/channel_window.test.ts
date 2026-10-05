@@ -73,4 +73,31 @@ describe('ChannelWindow Initial Dimensions and Aspect Ratio', () => {
     expect(props.sandbox).toContain('allow-same-origin');
     expect(props.sandbox).not.toContain('allow-modals');
   });
+
+  it('ignores unity-info aspect reports deviating from 16:9', () => {
+    const win = new ChannelWindow(
+      'https://space.cachy.app/index.php?plot_id=BTC',
+      'BTC Channel',
+      'channel-BTC'
+    );
+
+    const before = win.aspectRatio;
+    const handleMessage = (win as unknown as { handleUnityMessage: (e: unknown) => void }).handleUnityMessage;
+    // 640x404 includes window chrome — must not corrupt the 16:9 lock.
+    handleMessage({ origin: 'https://space.cachy.app', data: { type: 'unity-info', width: 640, height: 404 } });
+    expect(win.aspectRatio).toBe(before);
+  });
+
+  it('applies unity-info aspect reports at 16:9', () => {
+    const win = new ChannelWindow(
+      'https://space.cachy.app/index.php?plot_id=BTC',
+      'BTC Channel',
+      'channel-BTC'
+    );
+
+    const handleMessage = (win as unknown as { handleUnityMessage: (e: unknown) => void }).handleUnityMessage;
+    handleMessage({ origin: 'https://space.cachy.app', data: { type: 'unity-info', width: 1280, height: 720 } });
+    expect(win.aspectRatio).toBeCloseTo(16 / 9);
+    expect(win.height).toBe(Math.round(win.width / (16 / 9)) + 44);
+  });
 });

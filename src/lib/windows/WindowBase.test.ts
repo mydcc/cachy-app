@@ -387,6 +387,13 @@ describe("WindowBase.updateSize (FEAT-0050)", () => {
         expect(win.height).toBe(Math.round(800 / 2) + 44);
     });
 
+    it("uses a measured header height when provided", () => {
+        const win = makeTestWindow();
+        win.aspectRatio = 2; // 2:1
+        win.updateSize(800, 999, 43.5 /* measured header */);
+        expect(win.height).toBe(Math.round(800 / 2 + 43.5));
+    });
+
     it("does not resize a maximized window", () => {
         const win = makeTestWindow();
         win.maximize();

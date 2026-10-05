@@ -22,15 +22,15 @@
     interface Props {
         window: WindowBase & { url: string };
         allow?: string;
-        sandbox?: string;
+        /** Sandbox flags (required). Must omit allow-modals — single source
+            is ChannelWindow.componentProps. */
+        sandbox: string;
     }
 
     let {
         window: win,
         allow = "xr-spatial-tracking; camera; microphone; display-capture; autoplay; clipboard-write; encrypted-media; web-share",
-        // Sandboxed without allow-modals so the embedded page cannot pop up
-        // alert() dialogs (e.g. on a denied startup fullscreen request).
-        sandbox = "allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+        sandbox
     }: Props = $props();
 
     // Tracks a real embed failure (e.g. the remote host refuses the connection or blocks

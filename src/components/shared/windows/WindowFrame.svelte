@@ -38,6 +38,7 @@
     import { effectsState } from "../../../stores/effects.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
+    import { WINDOW_HEADER_HEIGHT } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import CachyIcon from "../CachyIcon.svelte";
 
@@ -193,9 +194,10 @@
         const startPointerX = e.clientX;
         const startPointerY = e.clientY;
 
-        // Shared constant for header height to offset aspect ratio calculations correctly.
-        // 44px measured from WindowFrame layout (640x404 / 1080x651 channel totals = exact 16:9 content).
-        const HEADER_HEIGHT = 44;
+        // Measured header height so aspect-ratio geometry tracks the real
+        // layout (theme/font changes included); shared constant as fallback
+        // before mount or when the ref is unavailable.
+        const headerHeight = headerEl?.offsetHeight || WINDOW_HEADER_HEIGHT;
 
         const onPointerMove = (moveEvent: PointerEvent) => {
             if (!isResizing) return;
@@ -234,13 +236,13 @@
             if (win.aspectRatio) {
                 const ratio = win.aspectRatio;
                 if (direction === "e" || direction === "w") {
-                    newHeight = newWidth / ratio + HEADER_HEIGHT;
+                    newHeight = newWidth / ratio + headerHeight;
                 } else if (direction === "s" || direction === "n") {
-                    const contentHeight = newHeight - HEADER_HEIGHT;
+                    const contentHeight = newHeight - headerHeight;
                     newWidth = contentHeight * ratio;
                 } else {
                     // Corner resizing defaults to width-dependency
-                    newHeight = newWidth / ratio + HEADER_HEIGHT;
+                    newHeight = newWidth / ratio + headerHeight;
                 }
 
                 // Adjust anchor points when resizing from top/left handles
@@ -256,14 +258,14 @@
             if (newWidth < win.minWidth) {
                 newWidth = win.minWidth;
                 if (win.aspectRatio)
-                    newHeight = newWidth / win.aspectRatio + HEADER_HEIGHT;
+                    newHeight = newWidth / win.aspectRatio + headerHeight;
                 if (direction.includes("w"))
                     newX = startX + (startWidth - newWidth);
             }
 
             // 4. Update the logic instance
             win.updatePosition(newX, newY);
-            win.updateSize(newWidth, newHeight);
+            win.updateSize(newWidth, newHeight, headerHeight);
         };
 
         const endResize = (endEvent: PointerEvent) => {
@@ -366,7 +368,7 @@
             // Untracked: this write must not re-trigger the effect.
             untrack(() => {
                 if (guarded && Math.abs(fitted - win.height) <= 1) return;
-                win.updateSize(win.width, fitted);
+                win.updateSize(win.width, fitted, header.offsetHeight || WINDOW_HEADER_HEIGHT);
             });
         };
 
