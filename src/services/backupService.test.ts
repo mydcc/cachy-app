@@ -444,4 +444,71 @@ describe("backupService", () => {
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY)).toBe(legitimateData.orderAudit);
     });
   });
+
+  describe("BUG-0621: restoreFromBackup replaces absent fields on current-version backups", () => {
+    const tradeKey = CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store";
+
+    function currentVersionBackup(data: Partial<backupService.BackupData>): string {
+      return JSON.stringify({
+        appName: backupService.APP_NAME,
+        backupVersion: backupService.BACKUP_VERSION,
+        timestamp: new Date().toISOString(),
+        isEncrypted: false,
+        data,
+      });
+    }
+
+    it("removes stale tradeState when a current-version backup has no tradeState", async () => {
+      localStorage.setItem(tradeKey, JSON.stringify({ symbol: "BTCUSDT" }));
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify({ theme: "light" }));
+
+      const result = await backupService.restoreFromBackup(
+        currentVersionBackup({
+          settings: JSON.stringify({ theme: "dark", hasAcceptedDisclaimer: true }),
+        }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(localStorage.getItem(tradeKey)).toBeNull();
+      expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)).toBe(
+        JSON.stringify({ theme: "dark", hasAcceptedDisclaimer: true }),
+      );
+    });
+
+    it("removes stale theme keys when a current-version backup has no theme", async () => {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, "light");
+      localStorage.setItem("theme", "light");
+
+      const result = await backupService.restoreFromBackup(
+        currentVersionBackup({
+          settings: JSON.stringify({ theme: "dark" }),
+        }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY)).toBeNull();
+      expect(localStorage.getItem("theme")).toBeNull();
+    });
+
+    it("keeps merge behavior for pre-BACKUP_VERSION backups without tradeState", async () => {
+      localStorage.setItem(tradeKey, JSON.stringify({ symbol: "BTCUSDT" }));
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, "light");
+      localStorage.setItem("theme", "light");
+
+      const backup = JSON.stringify({
+        appName: backupService.APP_NAME,
+        backupVersion: backupService.BACKUP_VERSION - 1,
+        timestamp: new Date().toISOString(),
+        isEncrypted: false,
+        data: { settings: JSON.stringify({ theme: "dark" }) },
+      });
+
+      const result = await backupService.restoreFromBackup(backup);
+
+      expect(result.success).toBe(true);
+      expect(localStorage.getItem(tradeKey)).toBe(JSON.stringify({ symbol: "BTCUSDT" }));
+      expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY)).toBe("light");
+      expect(localStorage.getItem("theme")).toBe("light");
+    });
+  });
 });

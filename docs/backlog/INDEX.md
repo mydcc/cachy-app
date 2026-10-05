@@ -2,9 +2,9 @@
 
 # Backlog index
 
-497 items. How to read and add them: [README.md](README.md).
+499 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-progress 4 · ✅ done 426 · ⛔ dropped 1
+Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-progress 6 · ✅ done 426 · ⛔ dropped 1
 
 ---
 
@@ -223,6 +223,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | repo |
 | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md) | Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty | P0 | ✅ done | exchange |
 | [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 🟡 in-progress | exchange |
+| [BUG-0622](bugs/BUG-0622-autobackup-overwrites-healthy-snapshot-with-null.md) | autoBackupService overwrites healthy snapshot with null on local store corruption | P0 | 🟡 in-progress | persistence |
 | [FEAT-0212](features/FEAT-0212-automatic-local-backup.md) | Automatically back up local data so a cleared browser cache can't destroy it | P0 | ✅ done | core |
 | [BUG-0052](bugs/BUG-0052-app-access-token-blocks-public-byok-users.md) | APP_ACCESS_TOKEN blocks BYOK users who have no way to know it | P1 | ✅ done | api |
 | [BUG-0079](bugs/BUG-0079-store-subscribe-timer-leak.md) | Legacy subscribe() causes memory leaks and race conditions via shared debounce timers | P1 | ✅ done | ui |
@@ -309,6 +310,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0599](bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md) | `normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects | P1 | ✅ done | exchange |
 | [BUG-0604](bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md) | A Bitget refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | exchange |
 | [BUG-0619](bugs/BUG-0619-bitunix-refusal-becomes-opaque-500.md) | A Bitunix refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | exchange |
+| [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | 🟡 in-progress | persistence |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -596,6 +598,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0582](bugs/BUG-0582-stale-snapshot-guard-not-required-on-develop.md) | The stale-snapshot revert guard is not a required check, so a PR that reverts develop merges anyway | P0 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md) | Bitget signed read calls still address the decommissioned V1 API, so account, balance, positions and order lists are empty | P0 | ✅ done | none | community, pro, private | none | none | [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md), [BUG-0590](bugs/BUG-0590-capture-bitget-order-response-fixture.md) |
 | [BUG-0597](bugs/BUG-0597-bitget-order-write-paths-need-v2.md) | Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made | P0 | 🟡 in-progress | none | community, pro, private | none | none | [BUG-0596](bugs/BUG-0596-bitget-signed-read-paths-need-v2.md), [BUG-0580](bugs/BUG-0580-bitget-query-param-ordering-unverified.md) |
+| [BUG-0622](bugs/BUG-0622-autobackup-overwrites-healthy-snapshot-with-null.md) | autoBackupService overwrites healthy snapshot with null on local store corruption | P0 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) | Verify every order against displayed state before it leaves the client | P0 | ✅ done | M1 | community, pro, private | A | none | — |
 | [FEAT-0012](features/FEAT-0012-paper-trading-mode.md) | Add a paper-trading mode that shares the live execution path | P0 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0013](features/FEAT-0013-risk-limits-and-kill-switch.md) | Enforce hard risk limits and a kill switch at the execution boundary | P0 | ✅ done | M1 | community, pro, private | A | none | — |
@@ -706,6 +709,7 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 | [BUG-0599](bugs/BUG-0599-symbolutils-still-appends-the-v1-umcbl-suffix.md) | `normalizeSymbol` appends Bitget's decommissioned `_UMCBL` suffix for thirty callers, so every future V2 request carries a contract the venue rejects | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0604](bugs/BUG-0604-bitget-refusal-becomes-opaque-500.md) | A Bitget refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0619](bugs/BUG-0619-bitunix-refusal-becomes-opaque-500.md) | A Bitunix refusal arrives as an opaque HTTP 500 because the venue reads the response status before the envelope | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -1068,4 +1072,4 @@ Counts by status: 💡 idea 23 · 📋 specced 22 · 🟢 ready 21 · 🟡 in-pr
 
 ---
 
-Next free number: **0621**
+Next free number: **0623**

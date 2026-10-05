@@ -606,38 +606,35 @@ export async function restoreFromBackup(
     }
 
     // --- Restore to localStorage (Fail-Closed: Only executed after all validations pass) ---
-    if (data.settings) {
-      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, data.settings);
-    }
-    if (data.presets) {
-      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY, data.presets);
-    }
-    if (data.journal) {
-      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, data.journal);
-    }
-    if (data.tradeState) {
-      safeLocalStorage.setItem(
-        CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
-        data.tradeState,
-      );
-    }
+    // Current-version backups are complete by schema: an absent field means
+    // "was empty", so remove it (full replace, BUG-0621). Older backups may
+    // predate fields, so they keep merge behavior and only write present
+    // fields — restoring a pre-feature backup must not wipe newer stores.
+    // When adding a payload field, bump BACKUP_VERSION or restores will wipe it.
+    const fullReplace = backup.backupVersion >= BACKUP_VERSION;
+    const restoreField = (raw: string | null | undefined, key: string) => {
+      if (raw) {
+        safeLocalStorage.setItem(key, raw);
+      } else if (fullReplace) {
+        safeLocalStorage.removeItem(key);
+      }
+    };
+    restoreField(data.settings, CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
+    restoreField(data.presets, CONSTANTS.LOCAL_STORAGE_PRESETS_KEY);
+    restoreField(data.journal, CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
+    restoreField(data.tradeState, CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store");
     if (data.theme) {
       const sanitizedTheme = data.theme.replace(/^"|"$/g, "").trim();
       safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, sanitizedTheme);
       safeLocalStorage.setItem("theme", sanitizedTheme);
+    } else if (fullReplace) {
+      safeLocalStorage.removeItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY);
+      safeLocalStorage.removeItem("theme");
     }
-    if (data.quizState) {
-      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY, data.quizState);
-    }
-    if (data.riskLimits) {
-      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_RISK_KEY, data.riskLimits);
-    }
-    if (data.paperTrading) {
-      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_PAPER_KEY, data.paperTrading);
-    }
-    if (data.orderAudit) {
-      safeLocalStorage.setItem(CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY, data.orderAudit);
-    }
+    restoreField(data.quizState, CONSTANTS.LOCAL_STORAGE_QUIZ_KEY);
+    restoreField(data.riskLimits, CONSTANTS.LOCAL_STORAGE_RISK_KEY);
+    restoreField(data.paperTrading, CONSTANTS.LOCAL_STORAGE_PAPER_KEY);
+    restoreField(data.orderAudit, CONSTANTS.LOCAL_STORAGE_ORDER_AUDIT_KEY);
 
     return {
       success: true,
