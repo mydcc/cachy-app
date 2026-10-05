@@ -50,7 +50,7 @@ Three implementation constraints, all from the audit:
   costs six touchpoints per flag (default, `$state`, load, save, getter), and
   the mode must not be the seventh ad-hoc boolean.
 - The dropdown's placement is decided in
-  [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md), not
+  [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md), not
   here.
 - The mode has to reach controls that currently pad instead of sizing, which
   is what [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) and
@@ -106,7 +106,7 @@ Three implementation constraints, all from the audit:
 ## Links
 
 - Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §4 and §7 (N1, N2)
-- [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md) — placement
+- [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) — placement
 - [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — the tokens
 - [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md)
 - [FEAT-0611](FEAT-0611-adopt-the-button-primitive-in-the-settings-tabs.md)

@@ -86,6 +86,6 @@ of its claims are still unverified and are the actual work left here.
 - Draft: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md)
 - [`../README.md`](../README.md)
 - [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md) — first child
-- [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md) — settings track
+- [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) — settings track
 - [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — the enabler
 - [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — the goal

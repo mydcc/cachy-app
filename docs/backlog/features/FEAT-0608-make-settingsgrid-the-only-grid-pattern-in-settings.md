@@ -103,5 +103,5 @@ already broke once will be broken again.
 
 - Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §3.2
 - `src/components/settings/shared/SettingsGrid.svelte`
-- [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md) — prereq
+- [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) — prereq
 - [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — needs this

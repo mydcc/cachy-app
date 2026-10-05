@@ -51,7 +51,7 @@ as it is.
 - [ ] Every `<button>` in the journal tree renders through `Button.svelte` or
       carries a naming comment
 - [ ] `DashboardNav`'s preset strip renders through the tab-bar component
-      decided in [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md),
+      decided in [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md),
       or states why a journal-local strip may differ
 - [ ] The `DOMPurify.sanitize` icon path is unchanged; the sanitisation test
       that covers it still passes
