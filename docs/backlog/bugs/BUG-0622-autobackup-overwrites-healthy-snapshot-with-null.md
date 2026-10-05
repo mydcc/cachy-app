@@ -2,7 +2,7 @@
 id: BUG-0622
 title: autoBackupService overwrites healthy snapshot with null on local store corruption
 type: bug
-status: in-progress
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,6 @@ area: persistence
 data_class: A
 adr: none
 depends_on: []
-assignee: opencode
 ---
 
 # BUG-0622 — autoBackupService overwrites healthy snapshot with null on local store corruption
@@ -70,3 +69,7 @@ and needs no check.
 - Supersedes the BUG-0251 draft from PR #3860 (closed unmerged; IDs 0250–0252
   were reassigned on `develop` in the meantime)
 - Branch: `fix/persistence-restore-autobackup`
+
+## What shipped
+
+Shipped in 1.6.0-beta.378 (PR #3864, squash-merge 1874d1def).
