@@ -392,7 +392,15 @@
             // Untracked: this write must not re-trigger the effect.
             untrack(() => {
                 if (guarded && Math.abs(fitted - win.height) <= 1) return;
-                win.updateSize(win.width, fitted, header.offsetHeight || WINDOW_HEADER_HEIGHT);
+                // Same measured chrome as the resize/snap paths so a
+                // hypothetical aspect-locked fit window stays consistent.
+                const chrome = measureChrome();
+                win.updateSize(
+                    win.width,
+                    fitted,
+                    chrome?.vertical ?? (header.offsetHeight || WINDOW_HEADER_HEIGHT),
+                    chrome?.horizontal ?? 0,
+                );
             });
         };
 
@@ -433,7 +441,8 @@
         void win.height;
         const content = contentEl;
         if (!content) return;
-        const key = `${win.width}x${win.height}`;
+        // Keyed by window id: a reused frame still snaps a new window once.
+        const key = `${win.id}:${win.width}x${win.height}`;
         if (snappedKey === key) return;
         untrack(() => {
             const contentW = content.clientWidth;
