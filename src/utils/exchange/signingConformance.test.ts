@@ -199,6 +199,37 @@ describe("A2 — vendor spec oracle", () => {
     );
   });
 
+  it("signs a multi-parameter Bitget GET in insertion order, the order V3 accepts", async () => {
+    // BUG-0580, settled live on `/api/v3/*` (`docs/bitget-api/14_uta_v3.md`):
+    // the venue canonicalises, so both byte orders return `00000`
+    // (wrong-secret control: `40009`). Cachy sends insertion order; this pins
+    // those exact bytes so a future sort — e.g. reaching for
+    // `canonicalQueryString`, which is Bitunix's rule — goes red here instead
+    // of drifting silently. Two keys in non-alphabetical insertion order are
+    // load-bearing: with one key, or keys already sorted, ordering is a no-op
+    // and a reversed sort would pass this vector unpunished.
+    const signed = await signBitgetRequest(
+      KEYS.apiSecret,
+      "GET",
+      "/api/v3/account/fee-rate",
+      { symbol: "BTCUSDT", category: "SPOT" },
+      null,
+      { timestamp: "1700000000000" },
+    );
+
+    // Insertion order, not alphabetical (`category=…&symbol=…` would be sorted).
+    expect(signed.queryString).toBe("symbol=BTCUSDT&category=SPOT");
+    expect(signed.signature).toBe(
+      docBitgetSign(
+        KEYS.apiSecret,
+        "1700000000000",
+        "GET",
+        "/api/v3/account/fee-rate?symbol=BTCUSDT&category=SPOT",
+        "",
+      ),
+    );
+  });
+
   it("keeps the server signer on the same side of the same oracle", () => {
     // Pins the other half: the server module must satisfy the spec too, or the
     // comparison in `assertPresignedConsistency` compares two wrong things.

@@ -2572,7 +2572,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0580",
     "title": "Bitget signed GET requests may be signed with unsorted query parameters, contradicting the vendor documentation",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "area": "exchange",
     "created": "2026-09-28",
@@ -2585,6 +2585,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
+    "branch": "docs/bug-0580-v3-signing-evidence",
     "file": "bugs/BUG-0580-bitget-query-param-ordering-unverified.md"
   },
   {
