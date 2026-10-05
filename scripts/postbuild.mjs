@@ -19,7 +19,10 @@
 // (no entry-point guard), so it can never exit 0 without patching: a missing
 // adapter output throws instead. Pure logic lives in postbuild-lib.mjs so it
 // stays unit-testable without side effects.
-import { patchBuildIndex } from './postbuild-lib.mjs';
+import { patchBuildIndex, precompressFonts } from './postbuild-lib.mjs';
 
 const patched = patchBuildIndex();
 console.log(`Successfully patched ${patched} to delegate to server.js`);
+
+const fontCount = precompressFonts();
+console.log(`Precompressed ${fontCount} font files with Brotli and Gzip`);

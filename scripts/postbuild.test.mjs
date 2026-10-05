@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { patchBuildIndex, DELEGATE_SHIM } from './postbuild-lib.mjs';
+import { patchBuildIndex, precompressFonts, DELEGATE_SHIM } from './postbuild-lib.mjs';
 
 describe('patchBuildIndex', () => {
   /** @type {string} */
@@ -75,5 +75,40 @@ describe('patchBuildIndex', () => {
     expect(DELEGATE_SHIM).toContain('fs.realpathSync.native(entry)');
     expect(DELEGATE_SHIM).toContain('fs.realpathSync.native(self)');
     expect(DELEGATE_SHIM).toContain('fileURLToPath(import.meta.url)');
+  });
+});
+
+describe('precompressFonts', () => {
+  /** @type {string} */
+  let root;
+
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'cachy-postbuild-font-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it('returns 0 when build/client directory does not exist', () => {
+    expect(precompressFonts(root)).toBe(0);
+  });
+
+  it('precompresses font files under build/client with .br and .gz variants', () => {
+    const fontsDir = path.join(root, 'build', 'client', 'fonts');
+    fs.mkdirSync(fontsDir, { recursive: true });
+
+    const fontPath = path.join(fontsDir, 'test-font.ttf');
+    const txtPath = path.join(fontsDir, 'readme.txt');
+    fs.writeFileSync(fontPath, 'fake ttf font data '.repeat(20), 'utf-8');
+    fs.writeFileSync(txtPath, 'text content', 'utf-8');
+
+    const count = precompressFonts(root);
+    expect(count).toBe(1);
+
+    expect(fs.existsSync(`${fontPath}.br`)).toBe(true);
+    expect(fs.existsSync(`${fontPath}.gz`)).toBe(true);
+    expect(fs.existsSync(`${txtPath}.br`)).toBe(false);
+    expect(fs.existsSync(`${txtPath}.gz`)).toBe(false);
   });
 });

@@ -17,6 +17,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 // The build output always lives at <repo-root>/build, regardless of the
@@ -86,4 +87,51 @@ export function patchBuildIndex(root = REPO_ROOT) {
   }
   fs.writeFileSync(buildIndexPath, DELEGATE_SHIM, 'utf-8');
   return buildIndexPath;
+}
+
+const FONT_EXTENSION = /\.(ttf|woff2?|otf|eot)$/i;
+
+/**
+ * Precompress font files under build/client with Brotli and Gzip because
+ * adapter-node omits font extensions from default precompression.
+ * @param {string} [root] repository root that contains `build/`
+ * @returns {number} number of font files precompressed
+ */
+export function precompressFonts(root = REPO_ROOT) {
+  const clientDir = path.join(root, 'build', 'client');
+  if (!fs.existsSync(clientDir)) {
+    return 0;
+  }
+
+  let count = 0;
+
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile() && FONT_EXTENSION.test(entry.name)) {
+        const data = fs.readFileSync(fullPath);
+
+        const brData = zlib.brotliCompressSync(data, {
+          params: { [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY },
+        });
+        fs.writeFileSync(`${fullPath}.br`, brData);
+
+        const gzData = zlib.gzipSync(data, { level: zlib.constants.Z_BEST_COMPRESSION });
+        fs.writeFileSync(`${fullPath}.gz`, gzData);
+
+        count += 1;
+      }
+    }
+  }
+
+  walk(clientDir);
+  return count;
 }
