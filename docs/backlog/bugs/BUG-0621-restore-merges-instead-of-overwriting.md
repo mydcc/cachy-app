@@ -2,7 +2,7 @@
 id: BUG-0621
 title: restoreFromBackup merges missing fields instead of overwriting
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,6 @@ area: persistence
 data_class: A
 adr: none
 depends_on: []
-assignee: opencode
 ---
 
 # BUG-0621 — restoreFromBackup merges missing fields instead of overwriting
@@ -70,3 +69,7 @@ fields — restoring a pre-feature backup must not wipe newer stores.
 - Supersedes the BUG-0250 draft from PR #3860 (closed unmerged; IDs 0250–0252
   were reassigned on `develop` in the meantime)
 - Branch: `fix/persistence-restore-autobackup`
+
+## What shipped
+
+Shipped in 1.6.0-beta.378 (PR #3864, squash-merge 1874d1def).
