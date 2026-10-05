@@ -8179,7 +8179,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
   },
   {
     "id": "FEAT-0607",
-    "title": "Harmonize the settings hierarchy, tab naming and sub-tab pattern",
+    "title": "Harmonize the settings vocabulary, placement, hierarchy and tab naming",
     "type": "feature",
     "status": "ready",
     "priority": "P2",
@@ -8197,7 +8197,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "FEAT-0605"
     ],
-    "file": "features/FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md"
+    "file": "features/FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md"
   },
   {
     "id": "FEAT-0608",

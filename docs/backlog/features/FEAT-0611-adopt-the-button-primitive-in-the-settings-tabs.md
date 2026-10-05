@@ -46,7 +46,7 @@ not unadopted buttons.
       `Button.svelte`, or carries a comment naming the component it belongs to
       instead (tab rail, toggle row, segmented control)
 - [ ] The `VisualsTab` sub-tab pills render through the tab-bar component
-      decided in [FEAT-0607](FEAT-0607-harmonize-settings-hierarchy-and-tab-naming.md),
+      decided in [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md),
       not through hand-written classes
 - [ ] Every migrated button's height comes from the control-geometry tokens
 - [ ] No `!important` is added by this item
