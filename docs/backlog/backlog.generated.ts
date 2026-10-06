@@ -8472,6 +8472,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0623-audit-super-alert-system-gaps-and-design.md"
   },
   {
+    "id": "FEAT-0629",
+    "title": "Migrate to SvelteKit 3 and adapter-node 6",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "features/FEAT-0629-migrate-to-sveltekit-3.md"
+  },
+  {
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
