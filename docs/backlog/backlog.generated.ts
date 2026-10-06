@@ -10490,6 +10490,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0618-entry-point-registry-and-window-manager-scope.md"
   },
   {
+    "id": "FEAT-0641",
+    "title": "Upgrade katex to 0.19 once marked-katex-extension allows it",
+    "type": "feature",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",

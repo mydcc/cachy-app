@@ -48,15 +48,25 @@ Versions involved:
 | `conventional-changelog-writer` | 8.4.0 | ≥ 9 |
 | `conventional-changelog-conventionalcommits` | 9.3.1 → 10.4.1 fails | — |
 
-The writer is not a direct dependency. It is hoisted from `semantic-release@25`,
-and the generator's wrapper imports the bare specifier:
+The writer is not a direct dependency. Two `@semantic-release` plugins request it,
+both with `^8.0.0`, and the lockfile resolves that to a single hoisted copy:
+
+```
+@semantic-release/commit-analyzer:           conventional-changelog-writer ^8.0.0
+@semantic-release/release-notes-generator:   conventional-changelog-writer ^8.0.0
+conventional-changelog-writer (lockfile):    8.4.0
+```
+
+The generator's wrapper imports the bare specifier, so it gets exactly that
+copy:
 
 ```js
 // @semantic-release/release-notes-generator/wrappers/conventional-changelog-writer.js
 import { writeChangelogString as writer } from 'conventional-changelog-writer';
 ```
 
-so it resolves to that single hoisted 8.4.0.
+Both requesters are semantic-release's own, which is why the fix is a
+semantic-release upgrade rather than something we can pin from here.
 
 ## Two things that are *not* wrong
 
