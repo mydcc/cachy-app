@@ -9655,6 +9655,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0637-engines-range-below-jsdom-floor.md"
   },
   {
+    "id": "BUG-0639",
+    "title": "conventional-changelog-conventionalcommits 10 cannot render with the installed writer",
+    "type": "bug",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0639-changelog-preset-needs-newer-writer.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -10562,6 +10580,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0635-upgrade-three-to-0186.md"
+  },
+  {
+    "id": "FEAT-0641",
+    "title": "Upgrade katex to 0.19 once marked-katex-extension allows it",
+    "type": "feature",
+    "status": "done",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md"
   },
   {
     "id": "IDEA-0036",
