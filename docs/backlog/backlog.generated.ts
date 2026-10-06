@@ -10472,6 +10472,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0618-entry-point-registry-and-window-manager-scope.md"
   },
   {
+    "id": "FEAT-0635",
+    "title": "Upgrade three to 0.186 and the matching type definitions",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P3",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0635-upgrade-three-to-0186.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",
