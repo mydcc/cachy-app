@@ -8,6 +8,9 @@ This file is the single source of truth for all coding agents.
 
 ```bash
 npm install
+npx playwright install   # required before npm run test:e2e or npm run test:gpu; without it
+                         # Playwright reports "Executable doesn't exist" and the GPU gate
+                         # fails for a reason that has nothing to do with the code
 npm run dev          # builds WASM first via scripts/build_wasm.sh
 npm run build        # Production build (including WASM)
 npm run check        # Type check via svelte-check (run on demand; CI verifies PRs automatically)
