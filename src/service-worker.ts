@@ -17,7 +17,8 @@
 
 /// <reference types="@sveltejs/kit" />
 /// <reference lib="webworker" />
-import { build, files, version } from "$service-worker";
+import { version } from "$app/env";
+import { assets, immutable } from "$app/manifest";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -25,8 +26,8 @@ declare const self: ServiceWorkerGlobalScope;
 const CACHE = `cache-${version}`;
 
 const ASSETS = [
-  ...build, // the app itself
-  ...files, // everything in `static`
+  ...immutable.map((entry) => entry.path), // the app itself
+  ...assets.map((entry) => entry.path), // everything in `static`
 ];
 
 self.addEventListener("install", (event) => {

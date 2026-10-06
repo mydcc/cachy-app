@@ -22,12 +22,12 @@
 -->
 
 <script lang="ts">
-   import { page } from '$app/stores';
+   import { page } from '$app/state';
    import AcademyContent from "../../../../components/shared/AcademyContent.svelte";
    import de from '../../../../locales/locales/de.json';
    import en from '../../../../locales/locales/en.json';
 
-   let lang = $derived($page.params.lang || 'en');
+   let lang = $derived(page.params.lang || 'en');
    let dict = $derived(lang === 'de' ? de : en);
    let title = $derived(dict.academy?.title || "Trading Academy");
 </script>

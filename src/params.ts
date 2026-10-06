@@ -15,6 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export function match(param: string) {
-  return param === 'de' || param === 'en';
-}
+import { defineParams } from "@sveltejs/kit/params";
+
+// Matches the two locales the app is translated into. Currently no route
+// constrains a param with `=lang`, so this matcher is dormant — it is kept
+// (previously src/params/lang.ts) so routes can opt in without re-creating it.
+export const params = defineParams({
+  lang: (param) => {
+    if (param === "de" || param === "en") {
+      return param;
+    }
+  },
+});
