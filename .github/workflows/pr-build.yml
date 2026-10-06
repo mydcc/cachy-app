@@ -1,0 +1,107 @@
+# Copyright (C) 2026 MYDCT
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# Builds the app and boots the built server whenever a dependency or the build
+# configuration changes in a pull request.
+#
+# Why this exists: no other workflow compiled the app on a PR. `deploy-build`
+# does, but only after the change is already on main/develop. So a change that
+# breaks `npm run build`, or that produces a bundle which cannot start, passed
+# every check and surfaced on the deploy server instead. Two real cases:
+#
+#   2026-10-06, deploy: the SvelteKit 3 bundle imported `HandledHttpError` from
+#   a Kit 2 install. Green build, `SyntaxError` before `listen()`, port never
+#   opened, health check failed, rollback.
+#
+#   2026-10-06, PR #3903: `jsdom` installed with `-D` landed in
+#   `devDependencies`, which made Vite bundle its CommonJS into the ESM SSR
+#   chunk. Build failed with `__dirname is not defined`; every other check in
+#   the PR passed. The same placement would also have left the server without
+#   jsdom at runtime, because the deploy installs with `npm ci --omit=dev`.
+#
+# The boot check is the part that is easy to leave out. A green build is not
+# evidence of a healthy server — the first incident above had a green build and
+# a dead port. So this job starts what it just built and asks it for health.
+
+name: PR Build
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - ".node-version"
+
+concurrency:
+  group: pr-build-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-boot:
+    name: Build and boot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # The pinned version, not a floating major: this job exists to verify what
+      # the deploy will actually run, so it must not drift from `.node-version`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "npm"
+
+      # No Rust toolchain here on purpose. `scripts/build_wasm.sh` keeps the
+      # committed `static/wasm/` artifacts when no toolchain is present, and the
+      # WASM module is not what dependency bumps put at risk. `deploy-build` is
+      # where the Rust-backed artifact is built.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Boot the built server and wait for health
+        env:
+          PORT: "4173"
+          ORIGIN: "http://127.0.0.1:4173"
+        run: |
+          node build/index.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          server_pid=$!
+
+          # Bounded, so a server that hangs fails the job instead of stalling it.
+          for attempt in $(seq 1 45); do
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "::error::the built server exited during startup"
+              cat "$RUNNER_TEMP/server.log"
+              exit 1
+            fi
+            if curl --silent --fail --max-time 2 "http://127.0.0.1:$PORT/api/health" > "$RUNNER_TEMP/health.json"; then
+              echo "healthy after ${attempt} attempt(s):"
+              cat "$RUNNER_TEMP/health.json"
+              kill "$server_pid" 2>/dev/null || true
+              wait "$server_pid" 2>/dev/null || true
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "::error::the built server never answered /api/health within 90s"
+          cat "$RUNNER_TEMP/server.log"
+          kill "$server_pid" 2>/dev/null || true
+          exit 1

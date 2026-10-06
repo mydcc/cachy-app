@@ -70,12 +70,34 @@ run for dependency changes.
 
 ## Acceptance criteria
 
-- [ ] A workflow runs `npm run build` when `package.json` / `package-lock.json`
+- [x] A workflow runs `npm run build` when `package.json` / `package-lock.json`
       change in a PR
-- [ ] The built server is started and `/api/health` is polled to a bounded
+- [x] The built server is started and `/api/health` is polled to a bounded
       timeout
-- [ ] A deliberately broken build fails the job
-- [ ] The job is not required for source-only PRs
+- [x] A deliberately broken build fails the job
+- [x] The job is not required for source-only PRs
+
+## What shipped
+
+`.github/workflows/pr-build.yml` — triggers on `pull_request` limited to
+`package.json`, `package-lock.json`, `vite.config.ts` and `.node-version`, so
+source-only PRs do not pay for it. It uses `node-version-file: .node-version`
+rather than a floating major, because the point is to verify what the deploy
+will actually run. No Rust toolchain: `scripts/build_wasm.sh` keeps the
+committed artifacts, and the WASM module is not what a dependency bump puts at
+risk.
+
+The boot check was verified in all three directions before the workflow was
+merged, against a real local build:
+
+| case | result |
+|---|---|
+| real build | `healthy after 2 attempt(s)`, exit 0 |
+| entry point exits during startup (the 2026-10-06 shape) | `::error::the built server exited during startup` plus the server log with the `ReferenceError`, exit 1 |
+| entry point hangs and never answers | `::error::the built server never answered /api/health within 90s`, exit 1 |
+
+The second row is the one the first incident would have produced. A workflow
+that has only ever reported success is not a check.
 
 ## Open questions
 
