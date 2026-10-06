@@ -6039,6 +6039,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0631-benchmark-files-run-twice.md"
   },
   {
+    "id": "BUG-0636",
+    "title": "CI never builds, so a dependency bump that breaks the server bundle passes every check",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ci",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0636-no-build-job-in-ci.md"
+  },
+  {
+    "id": "BUG-0638",
+    "title": "server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -9601,6 +9637,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0633-closeAllPositions-benchmark-aborts.md"
   },
   {
+    "id": "BUG-0637",
+    "title": "engines admits Node versions that production dependencies reject",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0637-engines-range-below-jsdom-floor.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -10470,6 +10524,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0617"
     ],
     "file": "features/FEAT-0618-entry-point-registry-and-window-manager-scope.md"
+  },
+  {
+    "id": "FEAT-0634",
+    "title": "Upgrade jsdom to 30 and keep it a production dependency",
+    "type": "feature",
+    "status": "done",
+    "priority": "P3",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0634-upgrade-jsdom-to-30.md"
   },
   {
     "id": "IDEA-0036",
