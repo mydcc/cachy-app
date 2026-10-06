@@ -16,7 +16,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { svelte, vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
-import { cspDirectives } from "./src/config/cspDirectives";
+import { cspDirectives } from "./src/config/cspDirectives.ts";
 
 // Single source of truth for the app version: the `version` field in
 // package.json, which semantic-release bumps on every release.
@@ -101,8 +101,17 @@ export default defineConfig({
           {
             name: "cachy-ensure-svelte-kit-sync",
             config() {
-              if (!existsSync("node_modules/$app/package.json")) {
-                execSync("svelte-kit sync", { stdio: "inherit" });
+              // Guard against re-entry: `svelte-kit sync` itself loads this
+              // config, so an unguarded marker check would fork-bomb nested
+              // sync processes (each level waiting on the next).
+              if (
+                !process.env.CACHY_SYNCING &&
+                !existsSync("node_modules/$app/tsconfig.json")
+              ) {
+                execSync("svelte-kit sync", {
+                  stdio: "inherit",
+                  env: { ...process.env, CACHY_SYNCING: "1" },
+                });
               }
             },
           },
