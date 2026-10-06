@@ -1,5 +1,5 @@
 ---
-id: BUG-0629
+id: BUG-0631
 title: Every benchmark file runs twice because Vitest creates one bench project per inline project
 type: bug
 status: specced
@@ -13,7 +13,7 @@ depends_on: []
 # assignee:            # required while status: in-progress (who is working this)
 ---
 
-# BUG-0629 — Every benchmark file runs twice because Vitest creates one bench project per inline project
+# BUG-0631 — Every benchmark file runs twice because Vitest creates one bench project per inline project
 
 ## Symptom
 

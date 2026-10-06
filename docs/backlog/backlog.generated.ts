@@ -6021,6 +6021,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md"
   },
   {
+    "id": "BUG-0631",
+    "title": "Every benchmark file runs twice because Vitest creates one bench project per inline project",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0631-benchmark-files-run-twice.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
