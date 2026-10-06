@@ -127,8 +127,8 @@ describe('StorageService', () => {
 
     test('append_1_candle_to_50000', async ({ bench }) => {
       await bench('append_1_candle_to_50000', { time: 500 }, async () => {
-            if (!storageService) throw new Error("Service not loaded");
-            await storageService.saveKlines(symbol, tf, newKline);
-        }).run();
+        if (!storageService) throw new Error("Service not loaded");
+        await storageService.saveKlines(symbol, tf, newKline);
+      }).run();
     });
 });

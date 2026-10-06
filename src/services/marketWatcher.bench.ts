@@ -53,7 +53,7 @@ describe('marketWatcher fillGaps', () => {
 
     test('fillGaps with fixed gaps', async ({ bench }) => {
       await bench('fillGaps with fixed gaps', () => {
-            (marketWatcher as unknown as MarketWatcherInternals).fillGaps(klines, intervalMs);
-        }).run();
+        (marketWatcher as unknown as MarketWatcherInternals).fillGaps(klines, intervalMs);
+      }).run();
     });
 });

@@ -60,37 +60,37 @@ const internals = tradeService as unknown as TradeServiceInternals;
 describe('tradeService benchmark (Optimized)', () => {
     test('closeAllPositions with pre-fetch', async ({ bench }) => {
       await bench('closeAllPositions with pre-fetch', async () => {
-            const origFetch = internals.fetchOpenPositionsFromApi;
-            const origSignedReq = internals.signedRequest;
-            try {
-                internals.fetchOpenPositionsFromApi = vi.fn().mockImplementation(async () => {
-                    await new Promise(resolve => setTimeout(resolve, 50));
-                    // Simulate that fetchOpenPositionsFromApi updates the cache correctly!
-                    vi.mocked(omsService.getPositions).mockReturnValue([
-                        mkPosition('BTCUSDT', 'long', Date.now()),
-                        mkPosition('ETHUSDT', 'short', Date.now()),
-                        mkPosition('XRPUSDT', 'long', Date.now()),
-                        mkPosition('SOLUSDT', 'short', Date.now()),
-                        mkPosition('DOGEUSDT', 'long', Date.now())
-                    ]);
-                });
-    
-                internals.signedRequest = vi.fn().mockResolvedValue({ code: 0 });
-    
-                // Force a stale environment for the original code path:
+        const origFetch = internals.fetchOpenPositionsFromApi;
+        const origSignedReq = internals.signedRequest;
+        try {
+            internals.fetchOpenPositionsFromApi = vi.fn().mockImplementation(async () => {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                // Simulate that fetchOpenPositionsFromApi updates the cache correctly!
                 vi.mocked(omsService.getPositions).mockReturnValue([
-                    mkPosition('BTCUSDT', 'long', 0),
-                    mkPosition('ETHUSDT', 'short', 0),
-                    mkPosition('XRPUSDT', 'long', 0),
-                    mkPosition('SOLUSDT', 'short', 0),
-                    mkPosition('DOGEUSDT', 'long', 0)
+                    mkPosition('BTCUSDT', 'long', Date.now()),
+                    mkPosition('ETHUSDT', 'short', Date.now()),
+                    mkPosition('XRPUSDT', 'long', Date.now()),
+                    mkPosition('SOLUSDT', 'short', Date.now()),
+                    mkPosition('DOGEUSDT', 'long', Date.now())
                 ]);
-    
-                await tradeService.closeAllPositions();
-            } finally {
-                internals.fetchOpenPositionsFromApi = origFetch;
-                internals.signedRequest = origSignedReq;
-            }
-        }).run();
+            });
+
+            internals.signedRequest = vi.fn().mockResolvedValue({ code: 0 });
+
+            // Force a stale environment for the original code path:
+            vi.mocked(omsService.getPositions).mockReturnValue([
+                mkPosition('BTCUSDT', 'long', 0),
+                mkPosition('ETHUSDT', 'short', 0),
+                mkPosition('XRPUSDT', 'long', 0),
+                mkPosition('SOLUSDT', 'short', 0),
+                mkPosition('DOGEUSDT', 'long', 0)
+            ]);
+
+            await tradeService.closeAllPositions();
+        } finally {
+            internals.fetchOpenPositionsFromApi = origFetch;
+            internals.signedRequest = origSignedReq;
+        }
+      }).run();
     });
 });

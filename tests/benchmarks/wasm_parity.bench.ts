@@ -184,8 +184,8 @@ describe('WASM technicals round trip', () => {
     for (const { n, series } of CASES) {
         test(`initialize + update (${n} candles)`, async ({ bench }) => {
           await bench(`initialize + update (${n} candles)`, () => {
-                    roundTrip(series);
-                }).run();
+            roundTrip(series);
+          }).run();
         });
     }
 });
@@ -194,8 +194,8 @@ describe('TS indicators baseline', () => {
     for (const { n, series } of CASES) {
         test(`calculateAllIndicators (${n} candles)`, async ({ bench }) => {
           await bench(`calculateAllIndicators (${n} candles)`, () => {
-                    tsRoundTrip(series);
-                }).run();
+            tsRoundTrip(series);
+          }).run();
         });
     }
 });

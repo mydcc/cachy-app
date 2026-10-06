@@ -78,11 +78,11 @@ describe('NewsSentimentPanel render smoke benchmark', () => {
 
     test('mount and unmount panel', async ({ bench }) => {
       await bench('mount and unmount panel', () => {
-            const component = mount(NewsSentimentPanel, {
-                target,
-                props: { variant: 'main' }
-            });
-            unmount(component);
-        }).run();
+        const component = mount(NewsSentimentPanel, {
+            target,
+            props: { variant: 'main' }
+        });
+        unmount(component);
+      }).run();
     });
 });

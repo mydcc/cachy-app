@@ -204,6 +204,28 @@ export default defineConfig({
         },
       },
     ],
+    benchmark: {
+      // Vitest collects every `*.bench.ts` file as a benchmark file, and a
+      // benchmark file without tests is an error: "No test suite found in
+      // file". The nine files below match the glob but are standalone scripts
+      // with hand-rolled `performance.now()` timing, not Vitest benchmarks —
+      // one calls `process.exit(1)`, one encodes a precision assertion. They
+      // fail the same way on Vitest 4, so this was never a working entry in
+      // `npm run benchmark:technicals`; excluding them lets the 18 real
+      // benchmarks run. The scripts stay reachable via `npx tsx`.
+      // Converting them to real benchmarks is its own piece of work (FEAT-0630).
+      exclude: [
+        "tests/benchmarks/kline_string_optimization.bench.ts",
+        "tests/benchmarks/mfi_optimization.bench.ts",
+        "tests/benchmarks/patternDetection.bench.ts",
+        "tests/benchmarks/safeJson.bench.ts",
+        "tests/benchmarks/slidingWindow.bench.ts",
+        "tests/benchmarks/stochrsi.bench.ts",
+        "tests/benchmarks/technicals.bench.ts",
+        "tests/benchmarks/worker_simulation.bench.ts",
+        "tests/benchmarks/wma_optimization.bench.ts",
+      ],
+    },
   },
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),

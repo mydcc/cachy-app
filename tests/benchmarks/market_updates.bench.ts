@@ -37,12 +37,12 @@ describe('MarketManager Performance', () => {
 
   test('updateTicker (Buffered)', async ({ bench }) => {
     await bench('updateTicker (Buffered)', () => {
-        for (let i = 0; i < 100; i++) {
-            market.updateTicker(SYMBOL, {
-                lastPrice: 50000 + i,
-                vol: 1000 + i
-            });
-        }
+      for (let i = 0; i < 100; i++) {
+          market.updateTicker(SYMBOL, {
+              lastPrice: 50000 + i,
+              vol: 1000 + i
+          });
+      }
     }).run();
   });
 });

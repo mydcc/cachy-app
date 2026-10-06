@@ -75,15 +75,15 @@ const settings = {
 describe('Technicals Performance', () => {
     test('Full Calculation (Current)', async ({ bench }) => {
       await bench('Full Calculation (Current)', () => {
-            // Simulates what marketAnalyst does currently:
-            // Pass { EMA: true, RSI: true } but due to logic, it calculates everything
-            calculateAllIndicators(klines, settings);
-        }).run();
+        // Simulates what marketAnalyst does currently:
+        // Pass { EMA: true, RSI: true } but due to logic, it calculates everything
+        calculateAllIndicators(klines, settings);
+      }).run();
     });
 
     test('Cache Key Generation', async ({ bench }) => {
       await bench('Cache Key Generation', () => {
-            JSON.stringify(settings);
-        }).run();
+        JSON.stringify(settings);
+      }).run();
     });
 });

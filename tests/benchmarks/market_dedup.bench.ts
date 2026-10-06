@@ -37,15 +37,15 @@ describe('MarketManager Deduplication', () => {
 
   test('applySymbolKlines (1000 updates, same candle)', async ({ bench }) => {
     await bench('applySymbolKlines (1000 updates, same candle)', () => {
-        // We use 'rest' to bypass the internal buffer and force immediate execution of applySymbolKlines
-        // This isolates the performance of the application logic (map -> sort -> dedup -> merge)
-        market.updateSymbolKlines(SYMBOL, TIMEFRAME, rawBatch, 'rest', false);
+      // We use 'rest' to bypass the internal buffer and force immediate execution of applySymbolKlines
+      // This isolates the performance of the application logic (map -> sort -> dedup -> merge)
+      market.updateSymbolKlines(SYMBOL, TIMEFRAME, rawBatch, 'rest', false);
     }).run();
   });
 
   test('applySymbolKlines (1000 unique candles)', async ({ bench }) => {
     await bench('applySymbolKlines (1000 unique candles)', () => {
-        market.updateSymbolKlines(SYMBOL, TIMEFRAME, multiBatch, 'rest', false);
+      market.updateSymbolKlines(SYMBOL, TIMEFRAME, multiBatch, 'rest', false);
     }).run();
   });
 });

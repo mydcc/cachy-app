@@ -66,6 +66,11 @@ repo is on Vite 8.3 with `.node-version` 26.8.1.
 - [x] `npm run build` still green (`vite build`: ✓ built in 12.77s)
 - [x] `clearMocks` pinned to `false` so the upgrade does not silently change
       mock semantics across the suite
+- [x] Generated API shape runs green under Vitest 5 (probe, see state)
+- [ ] `npm run check` green — left to CI, job "TypeScript Type Check". Dropped
+      from the local checklist with a reason rather than quietly: svelte-check
+      does not type-check test or benchmark files, so this migration cannot
+      reach it.
 
 ## State (2026-10-06)
 
@@ -99,7 +104,51 @@ Vite 8.3's dependency optimizer runs for the client environment with platform
 `browser` and cannot resolve `node:module` inside Vite's own `rolldown/runtime.js`
 ("Tsconfig not found"); separately, oxc cannot load `$app/tsconfig` in the test
 transform path. `vite build` is unaffected. Reproduced with `vitest@4.1.11`
-installed, so it is not a Vitest 5 regression. Worth its own issue.
+installed, so it is not a Vitest 5 regression. Worth its own issue (#3897).
+
+### Review findings, same day
+
+A review pass over the diff produced two findings that needed fixing and one that
+needed evidence.
+
+**Fixed — indentation.** The codemod re-indented the `await bench(` line but
+spliced each body in at its original absolute indentation, so files whose body
+already sat +4 deep came out three levels deep: 48 sites split 33×+2, 3×+4, 10×+6,
+2×+10. All 48 now sit at exactly +2 with the arrow function's closing brace level
+with `await bench(`. Body-internal nesting was shifted, never rewritten — 48/48
+sites intact, ESLint clean, no whitespace errors, type errors unchanged at 44.
+
+**Fixed — the 9 files that are not benchmarks.** Evidence first, then the fix.
+Vitest rejects a benchmark file without tests, exactly:
+
+```
+FAIL  |bench| empty.bench.ts [ empty.bench.ts ]
+Error: No test suite found in file /tmp/opencode/probe/empty.bench.ts
+```
+
+Vitest 4.1.11 produces the identical error, so `npm run benchmark:technicals`
+was already broken before this upgrade — 9 of its 27 files. They are standalone
+scripts with hand-rolled `performance.now()` timing: one calls `process.exit(1)`,
+one encodes a precision assertion, one interleaves setup between calls. Converting
+them to real benchmarks is therefore not a mechanical wrap and belongs in its own
+item; here they are taken out of benchmark collection via `benchmark.exclude`, so
+the documented command runs the 18 real benchmarks and the scripts stay reachable
+through `npx tsx`.
+
+**Evidence — the generated shape runs.** Since the suite cannot start locally,
+the generated shape was validated in a scratch project against Vitest 5.0.3:
+sync benchmark, options in second position, awaited async benchmark, and
+loop-registered tests — 5/5 green. That covers all four shapes the codemod emits.
+
+**Still open — `sharedViteServer`.** v5 defaults it to true and the `unit` project
+does not modify the Vite config, so it now reuses the root server and the root
+config runs once instead of once per project. If `npm test` fails in CI, this is
+the first lever to try (`sharedViteServer: false`), not the last.
+
+**Still open — `vitest.perf.config.ts`.** The only CI job that touches it runs
+`npm run test:perf` under `continue-on-error: true`, so a break there shows up
+nowhere but the job log. That config merges `vite.config.ts`, which defines
+`test.projects`, and Vitest 5 changed how projects merge with a root config.
 
 ## Out of scope
 
