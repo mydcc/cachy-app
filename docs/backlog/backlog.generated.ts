@@ -9565,6 +9565,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md"
   },
   {
+    "id": "BUG-0632",
+    "title": "The toNumFast benchmark measures a code path that always throws",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md"
+  },
+  {
+    "id": "BUG-0633",
+    "title": "The closeAllPositions benchmark aborts because closing the position reports an error",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0633-closeAllPositions-benchmark-aborts.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",

@@ -108,9 +108,12 @@ benchmarks at all (see FEAT-0630).
   benchmarks, excluded via `benchmark.exclude` in FEAT-0630
 - `src/benchmarks/crypto_loop.bench.ts`: its `$app/env` mock and its exclusion
   from the routine run are settled in FEAT-0630's PR
-- The remaining benchmark failures (`trade.closeAllFailed`, the
-  `Current - DecimalLikes (Method)` fixture) — those are defects in the code
-  under measurement, not in the harness
+- `news_slice.bench.ts` and `marketWatcher.bench.ts`, which fail only under one
+  of the two projects — demonstrated to be part of this defect rather than
+  separate ones: `mount(...) is not available on the server` and `window is not
+  defined` are what a component-mount benchmark does in the wrong project
+- BUG-0632 and BUG-0633 — defects in the code under measurement, which this
+  collection problem neither causes nor fixes
 
 ## Links
 
