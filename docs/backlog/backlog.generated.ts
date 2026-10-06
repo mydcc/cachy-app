@@ -9658,7 +9658,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0639",
     "title": "conventional-changelog-conventionalcommits 10 cannot render with the installed writer",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -10585,7 +10585,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0641",
     "title": "Upgrade katex to 0.19 once marked-katex-extension allows it",
     "type": "feature",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [

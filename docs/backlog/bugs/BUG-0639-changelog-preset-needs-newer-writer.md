@@ -2,7 +2,7 @@
 id: BUG-0639
 title: conventional-changelog-conventionalcommits 10 cannot render with the installed writer
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]

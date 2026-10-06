@@ -2,7 +2,7 @@
 id: FEAT-0641
 title: Upgrade katex to 0.19 once marked-katex-extension allows it
 type: feature
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
