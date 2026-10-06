@@ -10548,7 +10548,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0635",
     "title": "Upgrade three to 0.186 and the matching type definitions",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "assignee": "opencode",
     "milestone": "none",

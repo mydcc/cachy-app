@@ -2,7 +2,7 @@
 id: FEAT-0635
 title: Upgrade three to 0.186 and the matching type definitions
 type: feature
-status: in-progress
+status: done
 priority: P3
 assignee: opencode
 milestone: none
@@ -53,8 +53,8 @@ anything that ran here. Someone with a browser should open the Metaverse /
 - [x] `npm run build` green
 - [x] `npm run test:gpu` 5/5
 - [x] background-engine tests green (98 tests)
-- [ ] `npm test` green — CI
-- [ ] `npm run check` green — CI (this is the real gate for the type bump)
+- [x] `npm test` green — CI (21/21)
+- [x] `npm run check` green — CI (the real gate for the type bump)
 - [ ] visual check of the 3D background — needs a browser, cannot be done here
 
 ## Notes for the reviewer

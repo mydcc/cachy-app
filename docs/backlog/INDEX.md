@@ -4,7 +4,7 @@
 
 515 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-progress 5 · ✅ done 434 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 435 · ⛔ dropped 1
 
 ---
 
@@ -568,7 +568,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | exchange |
 | [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | ui |
 | [FEAT-0634](features/FEAT-0634-upgrade-jsdom-to-30.md) | Upgrade jsdom to 30 and keep it a production dependency | P3 | ✅ done | deps |
-| [FEAT-0635](features/FEAT-0635-upgrade-three-to-0186.md) | Upgrade three to 0.186 and the matching type definitions | P3 | 🟡 in-progress | deps |
+| [FEAT-0635](features/FEAT-0635-upgrade-three-to-0186.md) | Upgrade three to 0.186 and the matching type definitions | P3 | ✅ done | deps |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -1080,7 +1080,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0616](features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md), [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) |
 | [FEAT-0634](features/FEAT-0634-upgrade-jsdom-to-30.md) | Upgrade jsdom to 30 and keep it a production dependency | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0635](features/FEAT-0635-upgrade-three-to-0186.md) | Upgrade three to 0.186 and the matching type definitions | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0635](features/FEAT-0635-upgrade-three-to-0186.md) | Upgrade three to 0.186 and the matching type definitions | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
