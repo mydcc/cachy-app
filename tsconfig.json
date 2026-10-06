@@ -1,5 +1,5 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
+  "extends": "$app/tsconfig",
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
@@ -18,10 +18,7 @@
     "src/**/*.ts",
     "src/**/*.svelte",
     "src/**/*.svelte.ts",
-    "src/**/*.svelte.js",
-    ".svelte-kit/ambient.d.ts",
-    ".svelte-kit/non-ambient.d.ts",
-    ".svelte-kit/types/**/$types.d.ts"
+    "src/**/*.svelte.js"
   ],
   "exclude": [
     "node_modules/**",

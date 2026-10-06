@@ -11,8 +11,9 @@ import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import adapter from "@sveltejs/adapter-node";
 import { sveltekit } from "@sveltejs/kit/vite";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { svelte, vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -82,30 +83,100 @@ export default defineConfig({
   // Tests do not need the full SvelteKit plugin: it generates the route
   // manifest and resolves hooks, which unit tests never touch, and its SSR
   // machinery dominates Vitest's transform/import time. Under Vitest the
-  // lightweight `svelte()` plugin (which still compiles `.svelte` / `.svelte.ts`
-  // and reads `vitePreprocess` from svelte.config.js) is used instead, and the
-  // `$app/*` / `$env/*` virtual modules it normally provides are aliased to
-  // small stand-ins in `src/tests/helpers/`. Dev/build/check keep `sveltekit()`.
+  // lightweight `svelte()` plugin (which still compiles `.svelte` / `.svelte.ts`)
+  // is used instead, and the `$app/*` / `$env/*` virtual modules it normally
+  // provides are aliased to small stand-ins in `src/tests/helpers/`.
+  // Dev/build/check keep `sveltekit()`. Preprocessing is passed explicitly to
+  // both plugins: since SvelteKit 3 there is no `svelte.config.js` anymore.
   //
   // One thing `sveltekit()` did for free was run `svelte-kit sync` on startup,
-  // generating `.svelte-kit/tsconfig.json`, which `tsconfig.json` extends.
+  // generating the `$app` types package, which `tsconfig.json` extends.
   // Without it, rolldown's resolver (used during dependency optimization) fails
   // on a fresh checkout/CI with "Tsconfig not found" — so the test branch syncs
-  // once, only when the generated config is missing.
+  // once, only when the generated package is missing.
   plugins: [
     process.env.VITEST === "true"
       ? [
           {
             name: "cachy-ensure-svelte-kit-sync",
             config() {
-              if (!existsSync(".svelte-kit/tsconfig.json")) {
+              if (!existsSync("node_modules/$app/package.json")) {
                 execSync("svelte-kit sync", { stdio: "inherit" });
               }
             },
           },
-          svelte(),
+          svelte({ preprocess: vitePreprocess() }),
         ]
-      : sveltekit(),
+      : sveltekit({
+          preprocess: vitePreprocess(),
+          adapter: adapter(),
+          // Build-time origin for CSRF checks and `event.url` behind a
+          // reverse proxy (replaces adapter-node's removed ORIGIN variable —
+          // see DEPLOYMENT.md §7). Unset (e.g. CI builds) falls back to the
+          // request-derived origin via host headers.
+          paths: {
+            ...(process.env.ORIGIN ? { origin: process.env.ORIGIN } : {}),
+          },
+          csp: {
+            mode: "auto",
+            directives: {
+              "default-src": ["self"],
+              "script-src": [
+                "self",
+                "wasm-unsafe-eval",
+                "https://s.cachy.app",
+                "blob:",
+              ],
+              "style-src": [
+                "self",
+                "unsafe-inline",
+              ],
+              "img-src": [
+                "self",
+                "data:",
+                "https:",
+              ],
+              "media-src": [
+                "self",
+                "blob:",
+                "https:",
+              ],
+              "font-src": [
+                "self",
+                "data:",
+              ],
+              "object-src": ["none"],
+              "base-uri": ["self"],
+              "frame-src": [
+                "self",
+                "https://space.cachy.app",
+                "https://s.cachy.app",
+                "https:",
+                "blob:",
+                "data:",
+              ],
+              "frame-ancestors": ["self"],
+              "connect-src": [
+                "self",
+                "https:",
+                "https://s.cachy.app",
+                "https://chat.cachy.app",
+                "wss://chat.cachy.app",
+                "https://*.cachy.app",
+                "wss://*.cachy.app",
+                "wss://fapi.bitunix.com",
+                "wss://stream.bitunix.com",
+                "wss://ws.bitget.com",
+                "https://api.imgbb.com",
+                "https://discord.com",
+                "https://api.telegram.org",
+                "https://api.mailgun.net",
+                "https://generativelanguage.googleapis.com",
+                "https://api.openai.com",
+              ],
+            },
+          },
+        }),
     tailwindcss(),
   ],
   resolve: {
