@@ -215,6 +215,13 @@ export default defineConfig({
       // benchmarks run. The scripts stay reachable via `npx tsx`.
       // Converting them to real benchmarks is its own piece of work (FEAT-0630).
       exclude: [
+        // Needs a device key derived from real session state, and its two
+        // sequential PBKDF2 benchmarks each run past 300 s — measured, not
+        // estimated. Doubled by the per-project collection that below, that is
+        // over twenty minutes in a command meant to be run routinely. Kept for
+        // manual measurement: vitest bench src/benchmarks/crypto_loop.bench.ts
+        // --testTimeout 900000
+        "src/benchmarks/crypto_loop.bench.ts",
         "tests/benchmarks/kline_string_optimization.bench.ts",
         "tests/benchmarks/mfi_optimization.bench.ts",
         "tests/benchmarks/patternDetection.bench.ts",

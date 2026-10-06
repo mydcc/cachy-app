@@ -1,6 +1,12 @@
 
-import { describe, beforeAll, test } from 'vitest';
+import { describe, beforeAll, test, vi } from 'vitest';
 import { cryptoService, type EncryptedBlob } from '../services/cryptoService';
+
+// cryptoService reads `browser` from $app/env, not from a global. The window
+// polyfill below therefore never reaches the check that matters: without this
+// mock, encrypt() throws 'CryptoService requires generic Web Crypto API
+// (Secure Context)' and the benchmarks are skipped instead of measured.
+vi.mock('$app/env', () => ({ browser: true }));
 
 // Ensure crypto is available in Node environment
 if (typeof window === 'undefined') {
