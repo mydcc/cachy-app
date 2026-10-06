@@ -2,7 +2,7 @@
 id: FEAT-0634
 title: Upgrade jsdom to 30 and keep it a production dependency
 type: feature
-status: in-progress
+status: done
 priority: P3
 assignee: opencode
 milestone: none
@@ -66,7 +66,7 @@ and the dependency section:
 - [x] `src/lib/server/sanitizer.test.ts` and
       `src/routes/api/external/article-content/article_content.test.ts` green
 - [x] `DashboardNav.xss.component.test.ts` green (jsdom on the component side)
-- [ ] `npm test` green (CI)
+- [x] `npm test` green (CI: 21/21)
 
 ## Out of scope
 

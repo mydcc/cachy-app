@@ -10529,7 +10529,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0634",
     "title": "Upgrade jsdom to 30 and keep it a production dependency",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "assignee": "opencode",
     "milestone": "none",
