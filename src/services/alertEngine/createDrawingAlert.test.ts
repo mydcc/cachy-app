@@ -34,7 +34,7 @@ import { RULE_DRAWING_STORAGE_KEY, readDrawingAnchorLedger } from "./drawingAnch
 import { armDrawingAlert, buildDrawingAlert } from "./createDrawingAlert";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 const T0 = 1_757_030_400_000;
 const HOUR = 3_600_000;

@@ -22,7 +22,7 @@ import { tradeService, BitunixApiError } from "./tradeService";
 import { omsService } from "./omsService";
 import { Decimal } from "decimal.js";
 
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
   browser: true,
   dev: true
 }));

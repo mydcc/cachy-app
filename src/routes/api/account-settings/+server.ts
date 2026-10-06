@@ -54,7 +54,7 @@ import type { RequestHandler } from "./$types";
 import { AccountSettingsRequestSchema } from "../../../types/accountSettingsSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkClientToken } from "../../../lib/server/clientToken";
-import { logger } from "$lib/server/logger";
+import { logger } from "#lib/server/logger.js";
 import { upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";
 import { buildVenueBody } from "../../../utils/exchange/venueBodies";

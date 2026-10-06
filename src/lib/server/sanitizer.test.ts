@@ -45,7 +45,7 @@ import { sanitizeHtml } from '../utils/sanitizer';
 
 let browserValue = true;
 
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
   get browser() {
     return browserValue;
   }

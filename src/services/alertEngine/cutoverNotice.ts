@@ -37,7 +37,7 @@
  * Class A: the acknowledgement lives in `localStorage` and is never reported.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "../logger";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readRuleOriginLedger } from "./ruleOriginLedger";

@@ -41,7 +41,7 @@ import { describe, it, expect } from "vitest";
  * from console output rather than from CI.
  *
  * So: client code reaches guarded routes through `appFetch` from
- * `$lib/appAuth`, and this test fails the build when a raw `fetch` slips back
+ * `#lib/appAuth.js`, and this test fails the build when a raw `fetch` slips back
  * in.
  */
 
@@ -147,7 +147,7 @@ describe("client callers of guarded API routes send the app access token", () =>
     expect(
       offenders,
       "These call plain fetch() on a route guarded by checkClientToken, so the " +
-        "server answers 401. Use appFetch from $lib/appAuth instead:\n" +
+        "server answers 401. Use appFetch from #lib/appAuth.js instead:\n" +
         offenders.map((o) => `  ${o}`).join("\n"),
     ).toEqual([]);
   });

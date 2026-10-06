@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 /**
  * CryptoService using Native Web Crypto API (SubtleCrypto) for performance.

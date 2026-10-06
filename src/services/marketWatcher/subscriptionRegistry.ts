@@ -17,7 +17,7 @@
 
 import { untrack } from "svelte";
 import { normalizeSymbol } from "../../utils/symbolUtils";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "../logger";
 import { activeExchange } from "../exchange";
 import type { MarketDataPort } from "../exchange";

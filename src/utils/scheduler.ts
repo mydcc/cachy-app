@@ -23,7 +23,7 @@
  * Prevents "Micro-Stutter" by ensuring state updates happen only once per frame.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 class FrameScheduler {
     private tasks = new Set<() => void>();

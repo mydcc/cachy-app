@@ -23,7 +23,7 @@ import {
   INDEXEDDB_BLOCKED_ERROR_NAME,
 } from "./cryptoService";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

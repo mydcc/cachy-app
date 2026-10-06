@@ -21,7 +21,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
-    import { browser } from "$app/environment";
+    import { browser } from "$app/env";
     import * as THREE from "three";
     import { settingsState } from "../../stores/settings.svelte";
     import { effectsState } from "../../stores/effects.svelte";

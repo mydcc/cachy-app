@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeJournalEntry } from "../utils/utils";
 import type { JournalEntry } from "./types";

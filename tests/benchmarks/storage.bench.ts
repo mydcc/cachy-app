@@ -2,7 +2,7 @@
 import { bench, describe, vi, beforeAll } from 'vitest';
 import { Decimal } from 'decimal.js';
 
-vi.mock('$app/environment', () => ({ browser: true }));
+vi.mock('$app/env', () => ({ browser: true }));
 
 /** What storageService actually stores: a keyed record it can sort by id. */
 interface StoredRecord {

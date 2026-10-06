@@ -18,34 +18,34 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import svelteConfig from "../svelte.config.js";
+import { cspDirectives } from "./config/cspDirectives";
 
 describe("Content-Security-Policy Configuration (BUG-0270)", () => {
-  const directives = svelteConfig.kit?.csp?.directives ?? {};
+  const directives = cspDirectives;
   const scriptSrc = directives["script-src"] ?? [];
   const connectSrc = directives["connect-src"] ?? [];
 
-  it("svelte.config.js script-src must not contain unsafe-inline or bare unsafe-eval", () => {
+  it("CSP script-src must not contain unsafe-inline or bare unsafe-eval", () => {
     expect(scriptSrc).not.toContain("unsafe-inline");
     expect(scriptSrc).not.toContain("unsafe-eval");
     expect(scriptSrc).toContain("wasm-unsafe-eval");
     expect(scriptSrc).toContain("self");
   });
 
-  it("svelte.config.js connect-src must not contain localhost or 127.0.0.1 dev origins", () => {
+  it("CSP connect-src must not contain localhost or 127.0.0.1 dev origins", () => {
     for (const origin of connectSrc) {
       expect(origin).not.toMatch(/127\.0\.0\.1/);
       expect(origin).not.toMatch(/localhost/);
     }
   });
 
-  it("svelte.config.js connect-src must not contain unused NewRelic endpoints (FEAT-0374)", () => {
+  it("CSP connect-src must not contain unused NewRelic endpoints (FEAT-0374)", () => {
     for (const origin of connectSrc) {
       expect(origin).not.toMatch(/nr-data\.net/);
     }
   });
 
-  it("svelte.config.js connect-src allows every external notification channel host (FEAT-0397)", () => {
+  it("CSP connect-src allows every external notification channel host (FEAT-0397)", () => {
     // One entry per host actually called from src/services/externalDelivery.ts.
     // Missing one here means a silent-in-CI, broken-in-production channel: unit
     // tests mock fetch and never see the browser enforce this policy.
@@ -54,7 +54,7 @@ describe("Content-Security-Policy Configuration (BUG-0270)", () => {
     expect(connectSrc).toContain("https://api.mailgun.net");
   });
 
-  it("svelte.config.js connect-src allows https provider endpoints for browser-direct AI providers (FEAT-0467)", () => {
+  it("CSP connect-src allows https provider endpoints for browser-direct AI providers (FEAT-0467)", () => {
     // User-configured AI providers are arbitrary hosts, so the policy allows any
     // HTTPS origin. Without it the browser blocks the direct request before it
     // leaves the page and every provider would have to use the server relay.

@@ -42,7 +42,7 @@
  * Class A (ADR-0001): `localStorage` only.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 import { logger } from "../logger";
 import { safeLocalStorage } from "../../utils/storageWrapper";

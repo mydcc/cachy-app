@@ -22,7 +22,7 @@
  * Enables granular control over console output via Settings.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { toastService } from "./toastService.svelte";
 import { readLoggerConfig } from "./loggerConfig";
 

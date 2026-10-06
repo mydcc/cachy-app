@@ -26,7 +26,7 @@ import { SecretsLoader, readPersistedCiphertextState } from "./secretsLoader";
 import { cryptoService } from "../../services/cryptoService";
 import { CONSTANTS } from "../../lib/constants";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

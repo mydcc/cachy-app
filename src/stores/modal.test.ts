@@ -20,7 +20,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock the environment so we can toggle `browser`
-vi.mock("$app/environment", () => {
+vi.mock("$app/env", () => {
     let _browser = true;
     return {
         get browser() { return _browser; },
@@ -37,7 +37,7 @@ import { DialogWindow } from "../lib/windows/implementations/DialogWindow.svelte
 vi.spyOn(windowManager, "open").mockImplementation(() => {});
 
 describe("ModalManager", () => {
-    let env: typeof import("$app/environment");
+    let env: typeof import("$app/env");
     let originalBrowser: boolean;
     let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
@@ -46,7 +46,7 @@ describe("ModalManager", () => {
         // Mock console.warn to suppress output during SSR tests
         consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-        env = await import("$app/environment");
+        env = await import("$app/env");
         originalBrowser = env.browser;
         (env as { browser: boolean }).browser = true; // Default to browser environment
     });

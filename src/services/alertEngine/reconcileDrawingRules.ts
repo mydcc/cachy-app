@@ -44,7 +44,7 @@
  * Class A throughout.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 import { DRAWINGS_STORAGE_KEY } from "../../lib/chart/drawings/types";
 import type { RuleDocument } from "../../lib/rules/types";

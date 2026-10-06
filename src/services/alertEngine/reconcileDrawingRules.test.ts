@@ -33,7 +33,7 @@ import {
     type DrawingStoreSnapshot,
 } from "./reconcileDrawingRules";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 function rule(id: string, enabled = true): RuleDocument {
     return {

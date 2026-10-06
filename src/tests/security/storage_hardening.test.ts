@@ -27,7 +27,7 @@ type SettingsManagerInternals = { effectActive: boolean; save: () => Promise<voi
 const asInternals = (s: SettingsManager) => s as unknown as SettingsManagerInternals;
 
 // Mock environment
-vi.mock("$app/environment", () => ({ browser: true, dev: true }));
+vi.mock("$app/env", () => ({ browser: true, dev: true }));
 
 // Mock CryptoService
 let isSessionUnlocked = false;

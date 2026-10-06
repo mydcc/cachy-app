@@ -22,7 +22,7 @@ import type { NewsItem } from "../services/newsTypes";
 const mockFetchNews = vi.fn();
 const mockAnalyzeSentiment = vi.fn();
 
-vi.mock("$app/environment", () => ({ browser: true, dev: true }));
+vi.mock("$app/env", () => ({ browser: true, dev: true }));
 vi.mock("../services/newsService", () => ({
   newsService: {
     fetchNews: (symbol?: string) => mockFetchNews(symbol),

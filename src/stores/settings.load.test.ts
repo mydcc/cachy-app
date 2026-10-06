@@ -30,7 +30,7 @@ import { SettingsManager } from "./settings.svelte";
 import { cryptoService } from "../services/cryptoService";
 import { VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

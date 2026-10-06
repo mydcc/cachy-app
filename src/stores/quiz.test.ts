@@ -22,7 +22,7 @@ import { CONSTANTS } from "../lib/constants";
 import { effectsState } from "./effects.svelte";
 
 // Mock dependencies
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

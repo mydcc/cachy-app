@@ -16,13 +16,13 @@
  */
 
 import { i18nReady } from "./locales/i18n";
-import { dev } from "$app/environment";
-import type { HandleClientError } from "@sveltejs/kit";
+import { dev } from "$app/env";
+import type { HandleClientError } from "@sveltejs/kit/hooks";
 import {
   installStaleDeploymentRecovery,
   isStaleChunkError,
   scheduleStaleReload,
-} from "$lib/staleDeploymentRecovery";
+} from "#lib/staleDeploymentRecovery.js";
 
 // Recover from stale deployments: after a release replaces the build output,
 // long-lived tabs fail lazy chunk imports with "Failed to fetch dynamically

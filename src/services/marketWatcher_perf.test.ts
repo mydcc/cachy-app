@@ -58,7 +58,7 @@ vi.mock('./storageService', () => ({
         saveKlines: vi.fn(),
     }
 }));
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
     browser: true
 }));
 

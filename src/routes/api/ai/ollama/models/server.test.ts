@@ -22,9 +22,9 @@ import { issueToken } from "../../../../../lib/server/clientToken";
  * BUG-0295: same no-baseUrl contract as the chat route — see server.test.ts
  * next to /api/ai/ollama for the full rationale.
  */
-vi.mock("$lib/server/urlValidator", async (importOriginal) => {
+vi.mock("#lib/server/urlValidator.js", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("$lib/server/urlValidator")>();
+    await importOriginal<typeof import("#lib/server/urlValidator.js")>();
   const allowedHosts = new Set<string>();
   const isAllowed = (urlStr: string): boolean => {
     try {
@@ -47,7 +47,7 @@ vi.mock("$env/dynamic/private", () => ({
 }));
 
 const { GET } = await import("./+server");
-const urlValidatorModule = await import("$lib/server/urlValidator");
+const urlValidatorModule = await import("#lib/server/urlValidator.js");
 const envModule = await import("$env/dynamic/private");
 
 const safeFetchMock = vi.mocked(urlValidatorModule.safeFetch);

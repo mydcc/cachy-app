@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from "vitest";
 
 // `browser: true` so the constructor takes the subscription path. The effect
 // inside it stays inert because `cloudEnabled` is false in the settings mock.
-vi.mock("$app/environment", () => ({ browser: true }));
+vi.mock("$app/env", () => ({ browser: true }));
 
 vi.mock("./settings.svelte", () => ({
   settingsState: {

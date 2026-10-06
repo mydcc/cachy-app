@@ -24,8 +24,8 @@ vi.mock('../../stores/indicator.svelte', () => ({
     }
 }));
 
-// Mock $app/environment
-vi.mock('$app/environment', () => ({
+// Mock $app/env
+vi.mock('$app/env', () => ({
     browser: false
 }));
 

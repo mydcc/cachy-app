@@ -104,7 +104,7 @@ Object.defineProperty(global, 'navigator', {
 });
 
 // Mock browser environment
-vi.mock('$app/environment', () => ({ browser: true, dev: true, building: false, version: 'test' }));
+vi.mock('$app/env', () => ({ browser: true, dev: true, building: false, version: 'test' }));
 
 // Mock Logger
 vi.mock('./logger', () => ({

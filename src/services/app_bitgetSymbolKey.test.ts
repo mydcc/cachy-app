@@ -19,9 +19,9 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 // setupRealtimeUpdates() is gated behind `if (!browser) return`. Vitest's
-// default test environment resolves $app/environment's `browser` to false,
+// default test environment resolves $app/env's `browser` to false,
 // so without this mock the function under test would silently no-op.
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

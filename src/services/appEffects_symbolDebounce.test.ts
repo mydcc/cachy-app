@@ -21,7 +21,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // The stores only arm their persistence effects when `browser` is true;
 // without this mock they silently no-op (same trick as
 // app_bitgetSymbolKey.test.ts).
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

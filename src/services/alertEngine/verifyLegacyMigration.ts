@@ -43,7 +43,7 @@
  * migration itself must survive FEAT-0399 as the last remaining reader.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "../logger";
 import { ALERTS_STORAGE_KEY, readMigratedIds } from "./migrateAlertsToRules";
 import { safeLocalStorage } from "../../utils/storageWrapper";

@@ -9,6 +9,10 @@
     "url": "git+https://github.com/mydcc/cachy-app.git"
   },
   "type": "module",
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
+  },
   "engines": {
     "node": ">=22.19.0"
   },
@@ -20,7 +24,8 @@
     "postbuild": "node scripts/postbuild.mjs",
     "preview": "vite preview",
     "start": "node server.js",
-    "check": "svelte-kit sync && bash ./scripts/run-lowpri.sh svelte-check --tsconfig ./tsconfig.json",
+    "check": "svelte-kit sync && bash ./scripts/run-lowpri.sh svelte-check --tsconfig ./tsconfig.json && npm run check:sw",
+    "check:sw": "tsc -p src/service-worker/tsconfig.json --noEmit",
     "check:node": "node scripts/check-node-version.mjs",
     "check:watch": "svelte-kit sync && bash ./scripts/run-lowpri.sh svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint .",
@@ -74,8 +79,8 @@
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
     "@google/generative-ai": "^0.24.1",
-    "@sveltejs/adapter-node": "^5.5.7",
-    "@sveltejs/kit": "^2.70.3",
+    "@sveltejs/adapter-node": "^6.0.0",
+    "@sveltejs/kit": "^3.0.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/dompurify": "^3.0.5",

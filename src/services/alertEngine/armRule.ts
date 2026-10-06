@@ -33,7 +33,7 @@
  * Class A (ADR-0001): rules are strategy and stay in `localStorage`.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import type { RuleDocument } from "../../lib/rules/types";
 import { ruleEvaluationGate } from "../../lib/rules/ruleEvaluationGate";
 import { logger } from "../logger";

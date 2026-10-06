@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } fr
 import { logger } from './logger';
 import { setLoggerConfigProvider } from './loggerConfig';
 import { toastService } from './toastService.svelte';
-import * as appEnvironment from '$app/environment';
+import * as appEnvironment from '$app/env';
 
 // Mock dependencies
 vi.mock('./toastService.svelte', () => ({
@@ -30,7 +30,7 @@ vi.mock('./toastService.svelte', () => ({
 }));
 
 // Mock browser check
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
     browser: true
 }));
 

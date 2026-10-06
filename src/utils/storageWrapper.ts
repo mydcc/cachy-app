@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 /**
  * Centralized localStorage wrapper with error handling and quota management.

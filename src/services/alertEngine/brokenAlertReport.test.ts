@@ -27,7 +27,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readable } from "svelte/store";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 const loggerError = vi.fn();
 vi.mock("../logger", () => ({

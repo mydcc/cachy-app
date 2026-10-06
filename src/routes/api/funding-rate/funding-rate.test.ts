@@ -17,7 +17,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './+server';
-import { cache } from '$lib/server/cache';
+import { cache } from '#lib/server/cache.js';
 
 describe('GET /api/funding-rate', () => {
   beforeEach(() => {

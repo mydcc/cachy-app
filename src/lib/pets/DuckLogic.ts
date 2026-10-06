@@ -16,7 +16,7 @@
  */
 
 import * as THREE from "three";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { DuckState, DUCK_STATE_PRIORITY } from "./types";
 import type { DuckDaoState, DuckTriggerEvent } from "./types";
 import { createAccessories } from "./DuckAccessories";

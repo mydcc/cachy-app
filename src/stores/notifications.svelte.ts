@@ -24,7 +24,7 @@
  * `services/notificationService.svelte.ts`.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";
 import {

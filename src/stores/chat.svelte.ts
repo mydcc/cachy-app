@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 import { settingsState } from "./settings.svelte";
 import { cloudService, type CloudStatus } from "../services/cloudService";

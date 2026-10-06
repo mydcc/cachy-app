@@ -32,7 +32,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { marketWatcher } from "./marketWatcher";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

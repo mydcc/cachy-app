@@ -17,7 +17,7 @@
 
 // src/services/onboardingService.ts
 import { trackCustomEvent } from "./trackingService";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { safeLocalStorage } from "../utils/storageWrapper";
 
 const FIRST_INPUT_KEY = "cachy-onboarding-first-input";

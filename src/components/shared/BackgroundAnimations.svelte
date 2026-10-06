@@ -4,7 +4,7 @@
 
 <script lang="ts">
     import { settingsState } from "../../stores/settings.svelte";
-    import { browser } from "$app/environment";
+    import { browser } from "$app/env";
     import { tradeState } from "../../stores/trade.svelte";
     import { activeExchange } from "../../services/exchange";
 

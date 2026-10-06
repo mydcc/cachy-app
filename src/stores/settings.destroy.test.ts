@@ -2,8 +2,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SettingsManager } from './settings.svelte';
 
-// Mock the `$app/environment` module's `browser` export.
-vi.mock('$app/environment', () => ({
+// Mock the `$app/env` module's `browser` export.
+vi.mock('$app/env', () => ({
   browser: true
 }));
 

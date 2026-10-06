@@ -17,7 +17,7 @@
 
 import { _ } from "../locales/i18n";
 import { get } from "svelte/store";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
 import { isUnsafeObjectKey } from "../utils/utils";

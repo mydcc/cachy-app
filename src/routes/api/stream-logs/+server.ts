@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { logger, type LogEntry } from "$lib/server/logger";
+import { logger, type LogEntry } from "#lib/server/logger.js";
 import { env } from "$env/dynamic/private";
 import type { RequestHandler } from "./$types";
 import crypto from "node:crypto";

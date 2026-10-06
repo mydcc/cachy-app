@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import CachyIcon from '../../../components/shared/CachyIcon.svelte';
   import { icons } from '../../../lib/constants';
 
@@ -25,7 +25,7 @@
 
   let { children } = $props();
 
-  let lang = $derived($page.params.lang || 'en');
+  let lang = $derived(page.params.lang || 'en');
   let dict = $derived(lang === 'de' ? de : en);
 </script>
 

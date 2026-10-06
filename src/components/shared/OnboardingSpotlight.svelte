@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { browser } from "$app/environment";
+  import { browser } from "$app/env";
   import { onboardingState } from "../../stores/onboarding.svelte";
   import { _ } from "../../locales/i18n";
   import type { TranslationKey } from "../../locales/schema";

@@ -17,7 +17,7 @@
 
 <script lang="ts">
     import { onMount } from "svelte";
-    import { browser } from "$app/environment";
+    import { browser } from "$app/env";
     import { settingsState } from "../../stores/settings.svelte";
     import GalaxyWorker from "./backgrounds/galaxy.worker?worker";
     import { readCssColor, isLightColor } from "../../lib/themeColors";

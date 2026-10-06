@@ -33,7 +33,7 @@ import type { BackupFile } from "./backupService";
 // `safeLocalStorage` is a no-op when `browser` is false (unit project
 // default). Mock it to true so persistence assertions exercise the real
 // wrapper path (same pattern as `drawings.test.ts`).
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 // Helper mock for OPFS
 function createMockOpfs(initialFiles: Record<string, string> = {}) {

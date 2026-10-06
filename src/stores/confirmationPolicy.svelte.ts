@@ -26,7 +26,7 @@
  * `rmsService.ts` alongside the risk limits and the kill switch.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";
 import {

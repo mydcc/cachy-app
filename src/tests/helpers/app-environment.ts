@@ -16,11 +16,11 @@
  */
 
 /**
- * Stand-in for SvelteKit's `$app/environment` virtual module, used only by the
+ * Stand-in for SvelteKit's `$app/env` virtual module, used only by the
  * Vitest run.
  *
  * The Vitest config does not load the `sveltekit()` plugin (it pulls in the
- * SSR / route machinery that unit tests never touch); the `$app/environment`
+ * SSR / route machinery that unit tests never touch); the `$app/env`
  * alias points here instead. `browser` is pinned per Vitest project via the
  * `VITEST_BROWSER` test env var so it matches exactly what the plugin produced:
  * `false` in the `unit` project, `true` in the `components` project (which

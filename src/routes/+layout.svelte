@@ -30,7 +30,7 @@
   import { initFileTargets } from "../services/fileTargetBackupService.svelte";
   import { initAlertEngine } from "../stores/alerts.svelte";
 import { afterNavigate } from "$app/navigation";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { trackPageView } from "../services/trackingService";
   import { initZoomPlugin } from "../lib/chartSetup";
   import { registerResetCoordinator } from "../utils/appReset";
@@ -52,7 +52,7 @@ import { afterNavigate } from "$app/navigation";
   import "../app.css";
 
 
-  import { browser } from "$app/environment";
+  import { browser } from "$app/env";
   import { themeBackground } from "../lib/themeBackgrounds";
 
   interface Props {
@@ -291,7 +291,7 @@ import { afterNavigate } from "$app/navigation";
   });
 
   afterNavigate(() => {
-    trackPageView($page.url.href, document.title);
+    trackPageView(page.url.href, document.title);
   });
 
   onMount(() => {
@@ -508,7 +508,7 @@ import { afterNavigate } from "$app/navigation";
   $effect(() => {
     if (!browser) return;
     
-    const action = $page.url.searchParams.get("action");
+    const action = page.url.searchParams.get("action");
     if (action === "journal") {
       uiState.toggleJournalModal(true);
       // Clean up URL to avoid re-triggering on reload

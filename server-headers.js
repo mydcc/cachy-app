@@ -37,7 +37,7 @@ export const SECURITY_HEADERS = [
  * SvelteKit (kit.csp.mode "auto") emits a per-request Content-Security-Policy
  * carrying `nonce-…` tokens that match the inline scripts in the served HTML
  * (app.html helpers, theme init, SvelteKit bootstrap). That policy is
- * complete — generated from the directives in svelte.config.js — so wherever
+ * complete — generated from the directives in vite.config.ts — so wherever
  * it is present it must win: overwriting it with the static policy below
  * strips the nonces, the browser blocks every inline script including
  * kit.start(), and the app stays blank (SSR is disabled, so nothing renders

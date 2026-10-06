@@ -27,9 +27,9 @@ import type { safeFetch } from "../../../../lib/server/urlValidator";
  * explicitly allowlisted hosts pass) so the 403 regression assertions stay
  * meaningful instead of testing the mock.
  */
-vi.mock("$lib/server/urlValidator", async (importOriginal) => {
+vi.mock("#lib/server/urlValidator.js", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("$lib/server/urlValidator")>();
+    await importOriginal<typeof import("#lib/server/urlValidator.js")>();
   const allowedHosts = new Set<string>();
   const isAllowed = (urlStr: string): boolean => {
     try {
@@ -52,7 +52,7 @@ vi.mock("$env/dynamic/private", () => ({
 }));
 
 const { POST } = await import("./+server");
-const urlValidatorModule = await import("$lib/server/urlValidator");
+const urlValidatorModule = await import("#lib/server/urlValidator.js");
 const envModule = await import("$env/dynamic/private");
 
 const safeFetchMock = vi.mocked<typeof safeFetch>(urlValidatorModule.safeFetch);

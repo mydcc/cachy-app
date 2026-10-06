@@ -56,7 +56,7 @@ import { cryptoService } from "../services/cryptoService";
 import type { EncryptedBlob } from "../services/cryptoService";
 import type { SwitchAuthorization } from "../lib/confirmationPolicy";
 
-vi.mock("$app/environment", () => ({ browser: true }));
+vi.mock("$app/env", () => ({ browser: true }));
 
 vi.mock("../services/cryptoService", () => ({
   cryptoService: {

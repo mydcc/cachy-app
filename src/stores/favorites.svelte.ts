@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { untrack } from "svelte";
 import { settingsState, MAX_FAVORITE_SYMBOLS } from "./settings.svelte";
 import { safeLocalStorage } from "../utils/storageWrapper";

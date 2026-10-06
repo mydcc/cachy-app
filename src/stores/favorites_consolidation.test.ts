@@ -29,7 +29,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CONSTANTS } from "../lib/constants";
 
-vi.mock("$app/environment", () => ({ browser: true }));
+vi.mock("$app/env", () => ({ browser: true }));
 
 async function loadStores() {
     vi.resetModules();

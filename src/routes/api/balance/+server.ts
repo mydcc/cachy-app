@@ -23,7 +23,7 @@ import { checkPresignedRequest, readPresignedEnvelope } from "../../../utils/ser
 import { buildBalanceQueryParams } from "../../../utils/exchange/venueQueries";
 import { queryStringForVenue } from "../../../utils/exchange/restSigningPlan";
 import { safeJsonParse } from "../../../utils/safeJson";
-import { logger } from "$lib/server/logger";
+import { logger } from "#lib/server/logger.js";
 import { redactString } from "../../../utils/redact";
 import { upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 import { resolveVenue } from "../../../utils/server/venues";

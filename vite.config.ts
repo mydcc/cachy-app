@@ -11,10 +11,14 @@ import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import adapter from "@sveltejs/adapter-node";
 import { sveltekit } from "@sveltejs/kit/vite";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { svelte, vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, configDefaults } from "vitest/config";
+// `loadEnv` is not re-exported by vitest/config, so it comes from vite itself.
+import { loadEnv } from "vite";
 import tailwindcss from "@tailwindcss/vite";
+import { cspDirectives } from "./src/config/cspDirectives.ts";
 
 // Single source of truth for the app version: the `version` field in
 // package.json, which semantic-release bumps on every release.
@@ -82,37 +86,72 @@ export default defineConfig({
   // Tests do not need the full SvelteKit plugin: it generates the route
   // manifest and resolves hooks, which unit tests never touch, and its SSR
   // machinery dominates Vitest's transform/import time. Under Vitest the
-  // lightweight `svelte()` plugin (which still compiles `.svelte` / `.svelte.ts`
-  // and reads `vitePreprocess` from svelte.config.js) is used instead, and the
-  // `$app/*` / `$env/*` virtual modules it normally provides are aliased to
-  // small stand-ins in `src/tests/helpers/`. Dev/build/check keep `sveltekit()`.
+  // lightweight `svelte()` plugin (which still compiles `.svelte` / `.svelte.ts`)
+  // is used instead, and the `$app/*` / `$env/*` virtual modules it normally
+  // provides are aliased to small stand-ins in `src/tests/helpers/`.
+  // Dev/build/check keep `sveltekit()`. Preprocessing is passed explicitly to
+  // both plugins: since SvelteKit 3 there is no `svelte.config.js` anymore.
   //
   // One thing `sveltekit()` did for free was run `svelte-kit sync` on startup,
-  // generating `.svelte-kit/tsconfig.json`, which `tsconfig.json` extends.
+  // generating the `$app` types package, which `tsconfig.json` extends.
   // Without it, rolldown's resolver (used during dependency optimization) fails
   // on a fresh checkout/CI with "Tsconfig not found" — so the test branch syncs
-  // once, only when the generated config is missing.
+  // once, only when the generated package is missing.
   plugins: [
     process.env.VITEST === "true"
       ? [
           {
             name: "cachy-ensure-svelte-kit-sync",
             config() {
-              if (!existsSync(".svelte-kit/tsconfig.json")) {
-                execSync("svelte-kit sync", { stdio: "inherit" });
+              // Guard against re-entry: `svelte-kit sync` itself loads this
+              // config, so an unguarded marker check would fork-bomb nested
+              // sync processes (each level waiting on the next).
+              if (
+                !process.env.CACHY_SYNCING &&
+                !existsSync("node_modules/$app/tsconfig.json")
+              ) {
+                execSync("svelte-kit sync", {
+                  stdio: "inherit",
+                  env: { ...process.env, CACHY_SYNCING: "1" },
+                });
               }
             },
           },
-          svelte(),
+          svelte({ preprocess: vitePreprocess() }),
         ]
-      : sveltekit(),
+      : sveltekit({
+          preprocess: vitePreprocess(),
+          adapter: adapter(),
+          // Build-time origin for CSRF checks and `event.url` behind a
+          // reverse proxy (replaces adapter-node's removed ORIGIN variable —
+          // see DEPLOYMENT.md §7). Unset (e.g. CI builds) falls back to the
+          // request-derived origin via host headers.
+          // SvelteKit 3 reads ORIGIN at BUILD time, but Vite never merges .env
+          // files into `process.env` — only `loadEnv()` does. Our deploy flow
+          // copies `.env` into the shadow build dir and runs `npm run build`
+          // without exporting it, so without this call ORIGIN would silently
+          // stay unset and the canonical CSRF origin would degrade to the Host
+          // request header.
+          paths: {
+            ...(() => {
+              const origin =
+                process.env.ORIGIN ??
+                loadEnv(process.env.NODE_ENV ?? "production", process.cwd(), "ORIGIN").ORIGIN;
+              return origin ? { origin } : {};
+            })(),
+          },
+          csp: {
+            mode: "auto",
+            directives: cspDirectives,
+          },
+        }),
     tailwindcss(),
   ],
   resolve: {
     alias: {
-      "$app/environment": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
+      "$app/env": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
       "$env/dynamic/private": fileURLToPath(new URL("./src/tests/helpers/dynamic-private-env.ts", import.meta.url)),
-      $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+      "#lib": fileURLToPath(new URL("./src/lib", import.meta.url)),
     },
   },
   test: {
@@ -143,7 +182,7 @@ export default defineConfig({
         // Mounting a component needs `svelte` resolved to its browser build;
         // its server entry throws `lifecycle_function_unavailable` from
         // `mount()`. Setting that condition globally is not free — it also
-        // flips `$app/environment`'s `browser` to true, which sent
+        // flips `$app/env`'s `browser` to true, which sent
         // technicalsService down its Worker path and broke two passing tests.
         // So it lives here, scoped to the files that need it.
         extends: true,
@@ -185,32 +224,97 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["openai"], 
-      output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (id.includes("three")) return "three-vendor";
-            if (id.includes("chart.js") || id.includes("chartjs-")) return "chart-vendor";
-            if (id.includes("katex") || id.includes("marked")) return "markdown-vendor";
-            if (id.includes("@google/generative-ai") || id.includes("openai")) return "ai-vendor";
-            if (id.includes("svelte-i18n") || id.includes("intl-messageformat")) return "i18n-vendor";
-            if (id.includes("dompurify")) return "dompurify-vendor";
-            if (id.includes("zod")) return "zod-vendor";
-            if (id.includes("lodash-es")) return "lodash-vendor";
-            if (id.includes("lightweight-charts")) return "charts-vendor";
-            if (id.includes("spacetimedb")) return "spacetimedb-vendor";
-            return "vendor";
-          }
-          // Production Hardening: Split Shaders and WASM into dedicated chunks
-          if (id.includes('shaders/') && id.endsWith('.wgsl')) {
-            return 'gpu-shaders';
-          }
-          if (id.includes('technicals-wasm') || id.includes('.wasm')) {
-            return 'wasm-engine';
-          }
-        },
-      },
+      external: ["openai"],
     },
     chunkSizeWarningLimit: 1000,
   },
+  // Vendor chunking is client-build-only, and only outside Vitest (which
+  // manages its own environments and would choke on a stray `client` key):
+  // the SSR bundle is re-bundled by adapter-node 6 (which breaks when its
+  // entry chunk is renamed), and the service-worker environment builds with
+  // codeSplitting disabled, where chunking options are a hard error.
+  ...(process.env.VITEST === "true"
+    ? {}
+    : {
+        environments: {
+          client: {
+            build: {
+              // NOTE: `rolldownOptions`, not `rollupOptions` — per-environment
+              // config only honours the new key; the old one is silently
+              // ignored (verified: no vendor chunks emitted with it).
+              rolldownOptions: {
+                output: {
+                  // Vendor chunking must be expressed as `codeSplitting.groups`,
+                  // not `manualChunks`: Kit sets `output.codeSplitting`
+                  // itself, and rolldown ignores `manualChunks` whenever
+                  // `codeSplitting` is specified (WARN in the client build).
+                  // Groups merge with Kit's own `sveltekit-manifest` group.
+                  codeSplitting: {
+                    // Every vendor group is pinned to `node_modules/<pkg>/`.
+                    // Bare package-name regexes also match first-party paths —
+                    // `/three/` alone swallowed `src/lib/three/*` and
+                    // `ThreeBackground.svelte` into `three-vendor`.
+                    groups: [
+                      {
+                        name: "three-vendor",
+                        test: /node_modules[\\/]three[\\/]/,
+                      },
+                      {
+                        name: "chart-vendor",
+                        test: /node_modules[\\/](chart\.js|chartjs-[^\\/]+)[\\/]/,
+                      },
+                      {
+                        name: "markdown-vendor",
+                        test: /node_modules[\\/](katex|marked|marked-katex-extension)[\\/]/,
+                      },
+                      {
+                        name: "ai-vendor",
+                        test: /node_modules[\\/](@google[\\/]generative-ai|openai)[\\/]/,
+                      },
+                      {
+                        name: "i18n-vendor",
+                        test: /node_modules[\\/](svelte-i18n|intl-messageformat)[\\/]/,
+                      },
+                      {
+                        name: "dompurify-vendor",
+                        test: /node_modules[\\/]dompurify[\\/]/,
+                      },
+                      {
+                        name: "zod-vendor",
+                        test: /node_modules[\\/]zod[\\/]/,
+                      },
+                      {
+                        name: "lodash-vendor",
+                        test: /node_modules[\\/]lodash-es[\\/]/,
+                      },
+                      {
+                        name: "charts-vendor",
+                        test: /node_modules[\\/]lightweight-charts[\\/]/,
+                      },
+                      {
+                        name: "spacetimedb-vendor",
+                        test: /node_modules[\\/]spacetimedb[\\/]/,
+                      },
+                      // Catch-all for the rest of node_modules — except the
+                      // Kit client runtime: grouping entry.js together with
+                      // its dynamic import client-entry.js would erase the
+                      // edge Kit uses to locate the runtime chunk
+                      // ("Could not find the client runtime chunk").
+                      {
+                        name: "vendor",
+                        test: /node_modules\/(?!@sveltejs\/kit\/src\/runtime)/,
+                      },
+                      // Production Hardening: Split Shaders and WASM into dedicated chunks
+                      { name: "gpu-shaders", test: /shaders\/.*\.wgsl/ },
+                      {
+                        name: "wasm-engine",
+                        test: /technicals-wasm|\.wasm/,
+                      },
+                    ],
+                  },
+              },
+            },
+          },
+        },
+      }}),
 });

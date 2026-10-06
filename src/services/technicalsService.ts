@@ -16,7 +16,7 @@
  */
 
 import { Decimal } from "decimal.js";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "./logger";
 import type { IndicatorSettings } from "../types/indicators";
 import { indicatorState } from "../stores/indicator.svelte";
