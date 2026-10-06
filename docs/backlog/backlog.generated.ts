@@ -8475,7 +8475,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0629",
     "title": "Migrate to SvelteKit 3 and adapter-node 6",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
+    "branch": "chore/kit3-migration",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -8487,7 +8488,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
     "file": "features/FEAT-0629-migrate-to-sveltekit-3.md"
   },
   {
