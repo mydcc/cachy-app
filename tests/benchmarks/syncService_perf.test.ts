@@ -22,7 +22,7 @@ vi.mock('../../src/stores/ui.svelte', () => ({
 vi.mock('../../src/stores/settings.svelte', () => ({
   settingsState: { isPro: true, apiKeys: { bitunix: { key: 'test', secret: 'test' } } }
 }));
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
   browser: false
 }));
 

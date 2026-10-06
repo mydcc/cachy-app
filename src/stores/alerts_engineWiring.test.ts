@@ -41,7 +41,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // `vi.doUnmock` drops back to the real alias (where `browser` is false) for
 // every test that follows, which silently makes them vacuous again.
 const mockEnvironment = (isBrowser: boolean) =>
-  vi.doMock("$app/environment", () => ({
+  vi.doMock("$app/env", () => ({
     browser: isBrowser,
     dev: false,
     building: false,
@@ -87,7 +87,7 @@ const resetModulesAndFlush = async () => {
  *
  * Only accepts the result once the freshly imported `alertState` reports
  * "idle" — the value only a genuinely new singleton starts with — *and* the
- * `$app/environment` of the same post-reset module graph carries this test's
+ * `$app/env` of the same post-reset module graph carries this test's
  * `browser` flag. `idle` alone does not prove the module is ours: a fresh
  * instance baked with the *previous* test's environment still reports "idle"
  * and then runs the loader it should have skipped (SSR tests), or skips the
@@ -101,12 +101,12 @@ async function importFreshAlertsModule(
   for (let attempt = 0; attempt < 5; attempt++) {
     // Re-register this test's factory every attempt, not just once in the
     // body: the registration travels over worker RPC, so an import may
-    // resolve `$app/environment` against whatever factory was already
+    // resolve `$app/env` against whatever factory was already
     // registered (usually `browser: true` from `beforeEach`).
     mockEnvironment(expectedBrowser);
     await resetModulesAndFlush();
     const mod = await import(modulePath);
-    const env = await import("$app/environment");
+    const env = await import("$app/env");
     if (mod.alertState.engineStatus === "idle" && env.browser === expectedBrowser) return mod;
   }
   throw new Error(
@@ -227,7 +227,7 @@ describe("FEAT-0399 — rule engine startup wiring", () => {
   });
 
   afterEach(() => {
-    vi.doUnmock("$app/environment");
+    vi.doUnmock("$app/env");
   });
 
   it("does nothing during SSR", async () => {
@@ -323,7 +323,7 @@ describe("FEAT-0399 — the startup order the legacy retirement depends on", () 
   });
 
   afterEach(() => {
-    vi.doUnmock("$app/environment");
+    vi.doUnmock("$app/env");
   });
 
   it("verifies the legacy store against the migration ledger", async () => {

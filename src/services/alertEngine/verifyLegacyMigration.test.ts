@@ -18,8 +18,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // `safeLocalStorage` and every `browser`-guarded reader are no-ops in the
-// `unit` project unless `$app/environment` says otherwise.
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+// `unit` project unless `$app/env` says otherwise.
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 import { reportLegacyMigrationState, verifyLegacyMigration } from "./verifyLegacyMigration";
 import { ALERTS_STORAGE_KEY, MIGRATED_LEDGER_KEY } from "./migrateAlertsToRules";

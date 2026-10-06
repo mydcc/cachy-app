@@ -25,7 +25,7 @@
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
     import { effectivePixelRatio } from "../../lib/three/quality";
     import { attachContextRecovery } from "../../lib/three/webgl";
-    import { browser } from "$app/environment";
+    import { browser } from "$app/env";
 
     let { layer = "tiles" as const, zIndex = 40 } = $props<{
         layer?: "tiles" | "windows" | "modals";

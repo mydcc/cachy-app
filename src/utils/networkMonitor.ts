@@ -23,7 +23,7 @@
  * on poor connections (e.g. Mobile Hotspot).
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 export type ConnectionQuality = "4g" | "3g" | "2g" | "slow-2g";
 

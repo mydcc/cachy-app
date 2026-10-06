@@ -19,7 +19,7 @@
  * Copyright (C) 2026 MYDCT
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { DialogWindow } from "../lib/windows/implementations/DialogWindow.svelte";
 import { SymbolPickerWindow } from "../lib/windows/implementations/SymbolPickerWindow.svelte";

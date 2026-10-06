@@ -31,7 +31,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // which it is in the `unit` project — without this the store would be writing
 // into a no-op and every persistence assertion would pass or fail for the
 // wrong reason.
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 import { DRAWINGS_STORAGE_KEY } from "../lib/chart/drawings/types";
 import { levelAt } from "../lib/chart/drawings/levelAt";

@@ -8,7 +8,7 @@
  */
 
 import { untrack } from "svelte";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { CONSTANTS, VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";

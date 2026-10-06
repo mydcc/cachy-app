@@ -20,7 +20,7 @@ import { GET } from './+server';
 import crypto from 'node:crypto';
 
 // Mock dependencies
-vi.mock('$lib/server/logger', () => ({
+vi.mock('#lib/server/logger.js', () => ({
   logger: {
     on: vi.fn(),
     off: vi.fn(),

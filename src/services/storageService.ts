@@ -22,7 +22,7 @@
  * Persists market data to IndexedDB for offline capability and extended history.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "./logger";
 import type { Kline, SerializedKline } from "./technicalsTypes";
 import { serializeKline, deserializeKline } from "./technicalsTypes";

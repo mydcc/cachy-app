@@ -19,7 +19,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock browser environment before importing the store
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
   dev: true
 }));

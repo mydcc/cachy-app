@@ -20,10 +20,10 @@ import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // setupRealtimeUpdates() (like most of app.ts) is gated behind `if (!browser)
-// return`. Vitest's default test environment resolves $app/environment's
+// return`. Vitest's default test environment resolves $app/env's
 // `browser` to false, so without this mock the function under test - and
 // settingsState's own constructor - would both silently no-op.
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

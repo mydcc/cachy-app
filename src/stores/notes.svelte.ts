@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { settingsState } from "./settings.svelte";
 import { untrack } from "svelte";
 import { generateId } from "../utils/utils";

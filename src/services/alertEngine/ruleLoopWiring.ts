@@ -27,7 +27,7 @@
  * needs to.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import type { EvaluationCandle, RuleDocument } from "../../lib/rules/types";
 import { marketState } from "../../stores/market.svelte";
 import { safeTfToMs } from "../../utils/timeUtils";

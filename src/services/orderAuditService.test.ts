@@ -28,7 +28,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
 import { readFileSync } from "node:fs";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: true }));
+vi.mock("$app/env", () => ({ browser: true, dev: true }));
 vi.mock("./logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));

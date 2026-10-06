@@ -32,7 +32,7 @@ const EXCHANGE_ROW_CAP = 200;
 const MINUTE = 60_000;
 const NOW = 1_700_000_000_000;
 
-vi.mock("$app/environment", () => ({ browser: true }));
+vi.mock("$app/env", () => ({ browser: true }));
 vi.mock("../logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { CONSTANTS } from "../lib/constants";
 import { getBackupPayload, restoreFromBackup, type BackupFile } from "./backupService";
 import { safeLocalStorage } from "../utils/storageWrapper";

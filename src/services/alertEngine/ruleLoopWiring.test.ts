@@ -41,7 +41,7 @@ import { ruleEvaluationLoop } from "./ruleEvaluationLoop";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { safeLocalStorage } from "../../utils/storageWrapper";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
   dev: false,
 }));

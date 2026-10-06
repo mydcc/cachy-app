@@ -26,7 +26,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("$app/environment", () => ({ browser: true }));
+vi.mock("$app/env", () => ({ browser: true }));
 
 vi.mock("../services/logger", () => ({
   logger: { log: vi.fn(), error: vi.fn(), warn: vi.fn() },

@@ -34,7 +34,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { riskState } from "../stores/riskLimits.svelte";
 import type { NormalizedOrder } from "../types/exchange";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: true }));
+vi.mock("$app/env", () => ({ browser: true, dev: true }));
 
 vi.mock("./omsService", () => ({
     omsService: {

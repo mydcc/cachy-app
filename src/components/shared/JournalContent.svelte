@@ -27,7 +27,7 @@
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import { icons } from "../../lib/constants";
-    import { browser } from "$app/environment";
+    import { browser } from "$app/env";
     import { getComputedColor } from "../../utils/colors";
     import type { WindowBase } from "../../lib/windows/WindowBase.svelte";
     import type { Snippet } from "svelte";

@@ -49,7 +49,7 @@ const NOT_OPERATOR_CONFIG = new Set([
   // helper reading it does not fail the audit.
   "VITEST",
   // Set by vite.config.ts per Vitest project to mirror SvelteKit's
-  // `$app/environment.browser` in the `$app/environment` test helper.
+  // `$app/env.browser` in the `$app/env` test helper.
   // Test infrastructure, not operator configuration.
   "VITEST_BROWSER",
 ]);

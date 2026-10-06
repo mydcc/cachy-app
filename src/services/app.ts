@@ -35,7 +35,7 @@ import { safeJsonParse } from "../utils/safeJson";
 import type { JournalEntry } from "../stores/types";
 import type { JournalStatus } from "../stores/types";
 import { Decimal } from "decimal.js";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { addContextProvider, initTracking } from "./trackingService";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";

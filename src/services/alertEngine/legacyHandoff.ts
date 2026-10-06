@@ -39,7 +39,7 @@
  * edit.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "../logger";
 import type { RuleDocument } from "../../lib/rules/types";
 import { ALERTS_STORAGE_KEY, RULES_STORAGE_KEY, readMigratedIds } from "./migrateAlertsToRules";

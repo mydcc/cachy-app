@@ -21,7 +21,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: true }));
+vi.mock("$app/env", () => ({ browser: true, dev: true }));
 
 import { uiState } from "./ui.svelte";
 import { themes, themeOptions } from "../lib/constants";

@@ -38,7 +38,7 @@ vi.mock("../../locales/i18n", async () => {
 });
 
 const { sanitizeHtml } = vi.hoisted(() => ({ sanitizeHtml: vi.fn((html: string) => html) }));
-vi.mock("$lib/utils/sanitizer", () => ({ sanitizeHtml }));
+vi.mock("#lib/utils/sanitizer.js", () => ({ sanitizeHtml }));
 
 const settingsMock = vi.hoisted(() => ({ disclaimerAccepted: false }));
 vi.mock("../../stores/settings.svelte", () => ({ settingsState: settingsMock }));

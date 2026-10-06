@@ -26,7 +26,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
 
-vi.mock("$app/environment", () => ({ browser: false, dev: true }));
+vi.mock("$app/env", () => ({ browser: false, dev: true }));
 
 const settings = vi.hoisted(() => ({ journalPaperTrades: true }));
 vi.mock("./settings.svelte", () => ({ settingsState: settings }));

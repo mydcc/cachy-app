@@ -31,7 +31,7 @@
  * limit of zero refuses everything.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { Decimal } from "decimal.js";
 import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";

@@ -18,7 +18,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from './+server';
 import * as clientToken from '../../../../lib/server/clientToken';
-import { logger } from '$lib/server/logger';
+import { logger } from '#lib/server/logger.js';
 import {
   signedEnvelopeRequest,
   TEST_SIGNING_KEYS,

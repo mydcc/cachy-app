@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { presetState } from "../stores/preset.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import type { AppState } from "../stores/types";

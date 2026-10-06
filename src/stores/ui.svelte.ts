@@ -15,7 +15,7 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { untrack } from "svelte";
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";

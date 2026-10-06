@@ -52,7 +52,7 @@ import { afterNavigate } from "$app/navigation";
   import "../app.css";
 
 
-  import { browser } from "$app/environment";
+  import { browser } from "$app/env";
   import { themeBackground } from "../lib/themeBackgrounds";
 
   interface Props {

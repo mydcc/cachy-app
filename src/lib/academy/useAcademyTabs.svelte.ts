@@ -21,7 +21,7 @@
  * `[[lang]]/(seo)/academy/+page.svelte` SEO route — one owner, two users.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 export type AcademyTab = "chartPatterns" | "candlestickPatterns";
 

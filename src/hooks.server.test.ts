@@ -44,11 +44,11 @@ vi.mock('@sveltejs/kit/hooks', () => ({
   }
 }));
 
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
   building: false
 }));
 
-vi.mock('$lib/server/logger', () => ({
+vi.mock('#lib/server/logger.js', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -67,7 +67,7 @@ const originalError = console.error;
 
 // Import after mocks are set up (vi.mock calls are hoisted automatically)
 import { headersHandler, handle } from './hooks.server';
-import { CONSTANTS } from '$lib/constants';
+import { CONSTANTS } from '#lib/constants.js';
 import { SECURITY_HEADERS } from '../server-headers.js';
 
 beforeEach(() => {
@@ -152,7 +152,7 @@ describe('handle sequence (Integration)', () => {
     });
 
     const mockResolve = vi.fn().mockResolvedValue(mockResponse);
-    const loggerInfoSpy = (await import('$lib/server/logger')).logger.info;
+    const loggerInfoSpy = (await import('#lib/server/logger.js')).logger.info;
 
     // Act
     const result = await handle({ event: mockEvent, resolve: mockResolve });
@@ -226,7 +226,7 @@ describe('handle sequence (Integration)', () => {
       cookies: mockCookies
     } as unknown as RequestEvent);
 
-    const { logger: mockLogger } = await import('$lib/server/logger');
+    const { logger: mockLogger } = await import('#lib/server/logger.js');
 
     // Test 429 (Rate Limit) -> should warn
     const resolve429 = vi.fn().mockResolvedValue(new Response('rate limited', { status: 429 }));

@@ -20,7 +20,7 @@ import { checkClientToken } from "../../../lib/server/clientToken";
 import { BaseRequestSchema } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
-import { logger } from "$lib/server/logger";
+import { logger } from "#lib/server/logger.js";
 import { redactString } from "../../../utils/redact";
 import { resolveVenue } from "../../../utils/server/venues";
 import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";

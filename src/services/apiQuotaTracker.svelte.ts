@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "./logger";
 import { safeLocalStorage } from "../utils/storageWrapper";
 

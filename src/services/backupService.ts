@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { CONSTANTS } from "../lib/constants";
 import { CREDENTIAL_SCHEMA_VERSION } from "../stores/settings/accounts";
 import { SENSITIVE_KEYS } from "../stores/settings/secretsLoader";

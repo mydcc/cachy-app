@@ -26,7 +26,7 @@ import type { RuleDocument, Verdict } from "../../lib/rules/types";
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { readStoredRules } from "./ruleLoopWiring";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 vi.mock("../logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },

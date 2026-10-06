@@ -22,7 +22,7 @@ import { checkClientToken } from "../../../../lib/server/clientToken";
 import type { BitunixOrder } from "../../../../types/bitunix";
 import { readExchangeJson } from "../../../../utils/server/exchangeResponse";
 import { safeJsonParse } from "../../../../utils/safeJson";
-import { logger } from "$lib/server/logger";
+import { logger } from "#lib/server/logger.js";
 import { redactString } from "../../../../utils/redact";
 import { fetchWithTimeout, upstreamErrorStatus } from "../../../../utils/server/fetchWithTimeout";
 import {

@@ -23,7 +23,7 @@
  */
 
 import DOMPurify from "dompurify";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 export function sanitizeHtml(dirty: string): string {
   if (!browser) return dirty; // SSR safety

@@ -18,7 +18,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock browser env — false, so the constructor does not open a connection.
-vi.mock("$app/environment", () => ({ browser: false }));
+vi.mock("$app/env", () => ({ browser: false }));
 
 vi.mock("./settings.svelte", () => ({
   settingsState: {

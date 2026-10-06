@@ -19,7 +19,7 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from "vitest";
 import type { Settings } from "./settings.svelte";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
   dev: true
 }));

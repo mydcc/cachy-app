@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { CONSTANTS } from "../lib/constants";
 import { locale, _ } from "../locales/i18n";
 import { get } from "svelte/store";

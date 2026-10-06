@@ -20,7 +20,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import { cryptoService, isValidLegacyHexKey } from "./cryptoService";
 import legacyFixture from "./__fixtures__/legacy-aes-cbc-blob.json";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

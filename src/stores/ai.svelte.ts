@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { Decimal } from "decimal.js";
 import { get } from "svelte/store";
 import { _ } from "../locales/i18n";

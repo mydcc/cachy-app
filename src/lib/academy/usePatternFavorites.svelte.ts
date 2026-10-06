@@ -22,7 +22,7 @@
  * (`candlestick_favorites`). Keys stay separate — no migration needed.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { safeJsonParse } from "../../utils/safeJson";
 
 class PatternFavoritesState {

@@ -20,8 +20,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as backupService from "./backupService";
 import { CONSTANTS } from "../lib/constants";
 
-// Mock $app/environment
-vi.mock("$app/environment", () => ({
+// Mock $app/env
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

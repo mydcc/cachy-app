@@ -17,7 +17,7 @@
 
 import { get } from "svelte/store";
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { _ } from "../locales/i18n";
 import { migrateAlertsToRuleDocuments } from "../services/alertEngine/migrateAlertsToRules";
 import {

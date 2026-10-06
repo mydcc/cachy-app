@@ -32,7 +32,7 @@
  * told the wrong one.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import type { CompareOp, RuleDocument } from "../../lib/rules/types";
 import { logger } from "../logger";
 import { isBot } from "./botStore";

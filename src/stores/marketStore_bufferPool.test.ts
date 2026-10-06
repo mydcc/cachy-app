@@ -4,7 +4,7 @@ import { MarketManager } from "./market.svelte";
 import { settingsState } from "./settings.svelte";
 import { Decimal } from "decimal.js";
 
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
   dev: true
 }));

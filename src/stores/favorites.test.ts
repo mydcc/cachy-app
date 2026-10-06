@@ -12,7 +12,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MAX_FAVORITE_SYMBOLS } from './settings.svelte';
 
-vi.mock('$app/environment', () => ({ browser: true }));
+vi.mock('$app/env', () => ({ browser: true }));
 
 /**
  * Since BUG-0232 this store no longer owns a `cachy_favorites` key; it is a

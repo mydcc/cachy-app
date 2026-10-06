@@ -27,7 +27,7 @@ import {
   type ShadowFiringRecord,
 } from "./shadowLedger";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 vi.mock("../logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },

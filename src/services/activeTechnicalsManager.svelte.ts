@@ -31,7 +31,7 @@ import { favoritesState } from "../stores/favorites.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { technicalsService } from "./technicalsService";
 import { marketWatcher } from "./marketWatcher";
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { logger } from "./logger";
 import type { KlineBuffers } from "./technicalsTypes";
 import type { Decimal } from "decimal.js";

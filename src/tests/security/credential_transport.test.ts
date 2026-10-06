@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import type { RequestEvent } from "@sveltejs/kit";
-import { logger } from "$lib/server/logger";
+import { logger } from "#lib/server/logger.js";
 import { signedEnvelopeRequest } from "../helpers/signedEnvelopeRequest";
 import { AccountSettingsRequestSchema } from "../../types/accountSettingsSchemas";
 import {
@@ -28,7 +28,7 @@ import {
 } from "../../utils/exchange/venueQueries";
 
 // Mock client token check to pass
-vi.mock("$lib/server/clientToken", () => ({
+vi.mock("#lib/server/clientToken.js", () => ({
   checkClientToken: vi.fn(() => null),
 }));
 vi.mock("../../../lib/server/clientToken", () => ({

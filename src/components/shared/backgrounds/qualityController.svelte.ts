@@ -25,7 +25,7 @@
  * `lib/three/quality.ts`; this file only measures and exposes it.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { nextQualityTier, type ConcreteQuality, type VisualQuality } from "../../../lib/three/quality";
 
 /** Smoothing factor for the frame-time average. */

@@ -28,7 +28,7 @@
  * one thing this item exists to avoid.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import { z } from "zod";
 import { CONSTANTS } from "../lib/constants";
 import { clampVolume, DEFAULT_SOUND_VOLUME } from "../lib/notificationTones";

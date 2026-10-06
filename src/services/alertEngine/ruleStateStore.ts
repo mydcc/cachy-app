@@ -29,7 +29,7 @@
  * report.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import type { BotAnchorSnapshot, RuleState } from "../../lib/rules/types";
 import { logger } from "../logger";
 import { safeLocalStorage } from "../../utils/storageWrapper";

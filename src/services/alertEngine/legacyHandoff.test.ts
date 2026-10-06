@@ -17,7 +17,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 import { LEGACY_HANDOFF_KEY, runLegacyHandoff } from "./legacyHandoff";
 import {

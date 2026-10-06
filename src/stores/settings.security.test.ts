@@ -22,7 +22,7 @@ import { SettingsManager } from "./settings.svelte";
 import { cryptoService } from "../services/cryptoService";
 
 // Mock browser environment
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
   browser: true,
 }));
 

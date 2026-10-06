@@ -21,7 +21,7 @@ import { tradeState, INITIAL_TRADE_STATE } from "./trade.svelte";
 import { Decimal } from "decimal.js";
 
 // Mock browser
-vi.mock("$app/environment", () => ({
+vi.mock("$app/env", () => ({
     browser: true,
     dev: true
 }));

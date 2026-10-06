@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import ContentRenderer from '$lib/components/ContentRenderer.svelte';
+  import ContentRenderer from '#lib/components/ContentRenderer.svelte';
 
   let { data } = $props();
 </script>

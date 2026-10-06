@@ -38,7 +38,7 @@ import type { RequestHandler } from "./$types";
 import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/orderSchemas";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { checkClientToken } from "../../../lib/server/clientToken";
-import { logger } from "$lib/server/logger";
+import { logger } from "#lib/server/logger.js";
 import { upstreamErrorStatus } from "../../../utils/server/fetchWithTimeout";
 import {
   checkPresignedRequest,

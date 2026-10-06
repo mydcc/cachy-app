@@ -7,7 +7,7 @@
  * License, or (at your option) any later version.
  */
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 import type { JournalEntry } from "../stores/types";
 import type { getJournalAnalysis } from "../lib/calculators/aggregator";
 import { generateId } from "../utils/utils";

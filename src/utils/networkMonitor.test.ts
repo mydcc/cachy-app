@@ -20,7 +20,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NetworkMonitor } from './networkMonitor';
 
 // Mock dependencies
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
   browser: true
 }));
 

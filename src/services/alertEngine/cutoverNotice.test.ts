@@ -25,7 +25,7 @@ import {
 import { RULES_STORAGE_KEY } from "./migrateAlertsToRules";
 import { RULE_ORIGIN_STORAGE_KEY } from "./ruleOriginLedger";
 
-vi.mock("$app/environment", () => ({ browser: true, dev: false }));
+vi.mock("$app/env", () => ({ browser: true, dev: false }));
 
 vi.mock("../logger", () => ({
   logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },

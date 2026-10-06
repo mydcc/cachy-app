@@ -19,7 +19,7 @@ import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { AccountRequestSchema } from "../../../types/accountSchemas";
-import { logger } from "$lib/server/logger";
+import { logger } from "#lib/server/logger.js";
 import { jsonSuccess, jsonError, handleApiError } from "../../../utils/apiResponse";
 import { resolveVenue } from "../../../utils/server/venues";
 import { checkPresignedRequest } from "../../../utils/server/presignedEnvelope";

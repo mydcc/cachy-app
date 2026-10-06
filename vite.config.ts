@@ -181,9 +181,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "$app/environment": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
+      "$app/env": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
       "$env/dynamic/private": fileURLToPath(new URL("./src/tests/helpers/dynamic-private-env.ts", import.meta.url)),
-      $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+      #lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
     },
   },
   test: {
@@ -214,7 +214,7 @@ export default defineConfig({
         // Mounting a component needs `svelte` resolved to its browser build;
         // its server entry throws `lifecycle_function_unavailable` from
         // `mount()`. Setting that condition globally is not free — it also
-        // flips `$app/environment`'s `browser` to true, which sent
+        // flips `$app/env`'s `browser` to true, which sent
         // technicalsService down its Worker path and broke two passing tests.
         // So it lives here, scoped to the files that need it.
         extends: true,

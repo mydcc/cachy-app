@@ -9,6 +9,10 @@
     "url": "git+https://github.com/mydcc/cachy-app.git"
   },
   "type": "module",
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
+  },
   "engines": {
     "node": ">=22.19.0"
   },

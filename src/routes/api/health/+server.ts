@@ -16,7 +16,7 @@
  */
 
 import { json } from '@sveltejs/kit';
-import { APP_VERSION } from '$lib/version';
+import { APP_VERSION } from '#lib/version.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async () => {
