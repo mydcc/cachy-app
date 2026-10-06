@@ -242,6 +242,15 @@ Since multiple agents share the same local folder, conflicts arise (detached HEA
 git fetch origin develop                              # get latest
 git worktree add .worktrees/<session> -b <first-branch> origin/develop
 # then work exclusively in .worktrees/<session>/
+
+# Once per session, AFTER the shared checkout's last `npm ci`: a worktree nested
+# under this checkout makes Vite load the *parent's* tsconfig, whose
+# `extends: "$app/tsconfig"` resolves against the parent's node_modules. `npm ci`
+# never creates that directory — @sveltejs/kit has no postinstall — so without
+# this every vitest command in the worktree dies at startup with
+# "Tsconfig not found" / "Could not resolve 'node:module'" (#3897).
+# Run from the worktree root — `../../` is the shared checkout, not the worktree.
+cd ../../ && npx svelte-kit sync && cd -
 ```
 
 **Per task inside the session worktree:**

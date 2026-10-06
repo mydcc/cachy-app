@@ -23,7 +23,7 @@
  * routing-threshold decision parked in IDEA-0312. Run: `npm run benchmark:technicals`.
  */
 
-import { bench, describe, beforeAll, afterAll } from 'vitest';
+import { describe, beforeAll, afterAll, test } from 'vitest';
 import { createServer, type Server } from 'http';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -182,16 +182,20 @@ afterAll(() => {
 
 describe('WASM technicals round trip', () => {
     for (const { n, series } of CASES) {
-        bench(`initialize + update (${n} candles)`, () => {
+        test(`initialize + update (${n} candles)`, async ({ bench }) => {
+          await bench(`initialize + update (${n} candles)`, () => {
             roundTrip(series);
+          }).run();
         });
     }
 });
 
 describe('TS indicators baseline', () => {
     for (const { n, series } of CASES) {
-        bench(`calculateAllIndicators (${n} candles)`, () => {
+        test(`calculateAllIndicators (${n} candles)`, async ({ bench }) => {
+          await bench(`calculateAllIndicators (${n} candles)`, () => {
             tsRoundTrip(series);
+          }).run();
         });
     }
 });

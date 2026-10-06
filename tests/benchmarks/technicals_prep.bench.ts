@@ -1,5 +1,5 @@
 
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 import { Decimal } from 'decimal.js';
 
 // Mock Kline with Decimal
@@ -132,27 +132,39 @@ const prepareCachedCopy = (cached: typeof cachedBuffers1k) => {
 };
 
 describe('Technicals Preparation Benchmark', () => {
-  bench('Current Prep (1k items)', () => {
-    prepareCurrent(klines1k);
+  test('Current Prep (1k items)', async ({ bench }) => {
+    await bench('Current Prep (1k items)', () => {
+      prepareCurrent(klines1k);
+    }).run();
   });
 
-  bench('Optimized Prep (1k items)', () => {
-    prepareOptimized(klines1k);
+  test('Optimized Prep (1k items)', async ({ bench }) => {
+    await bench('Optimized Prep (1k items)', () => {
+      prepareOptimized(klines1k);
+    }).run();
   });
 
-  bench('Cached Copy (1k items)', () => {
-    prepareCachedCopy(cachedBuffers1k);
+  test('Cached Copy (1k items)', async ({ bench }) => {
+    await bench('Cached Copy (1k items)', () => {
+      prepareCachedCopy(cachedBuffers1k);
+    }).run();
   });
 
-  bench('Current Prep (10k items)', () => {
-    prepareCurrent(klines10k);
+  test('Current Prep (10k items)', async ({ bench }) => {
+    await bench('Current Prep (10k items)', () => {
+      prepareCurrent(klines10k);
+    }).run();
   });
 
-  bench('Optimized Prep (10k items)', () => {
-    prepareOptimized(klines10k);
+  test('Optimized Prep (10k items)', async ({ bench }) => {
+    await bench('Optimized Prep (10k items)', () => {
+      prepareOptimized(klines10k);
+    }).run();
   });
 
-  bench('Cached Copy (10k items)', () => {
-    prepareCachedCopy(cachedBuffers10k);
+  test('Cached Copy (10k items)', async ({ bench }) => {
+    await bench('Cached Copy (10k items)', () => {
+      prepareCachedCopy(cachedBuffers10k);
+    }).run();
   });
 });

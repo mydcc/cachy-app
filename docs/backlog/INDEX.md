@@ -2,9 +2,9 @@
 
 # Backlog index
 
-506 items. How to read and add them: [README.md](README.md).
+510 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 432 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 433 · ⛔ dropped 1
 
 ---
 
@@ -409,6 +409,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | execution |
 | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | ✅ done | exchange |
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | ✅ done | tooling |
+| [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | 📋 specced | deps |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -474,6 +475,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | ui |
 | [FEAT-0623](features/FEAT-0623-audit-super-alert-system-gaps-and-design.md) | Audit the Super Alert system for gaps and UI/UX design | P2 | 🟢 ready | alerts |
 | [FEAT-0629](features/FEAT-0629-migrate-to-sveltekit-3.md) | Migrate to SvelteKit 3 and adapter-node 6 | P2 | ✅ done | deps |
+| [FEAT-0630](features/FEAT-0630-migrate-to-vitest-5.md) | Migrate the test infrastructure to Vitest 5 | P2 | ✅ done | deps |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
@@ -524,6 +526,8 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | ✅ done | i18n |
 | [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | i18n |
 | [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | i18n |
+| [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | 📋 specced | deps |
+| [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | deps |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -861,6 +865,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) |
 | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -971,6 +976,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0609](features/FEAT-0609-introduce-control-and-density-tokens.md) |
 | [FEAT-0623](features/FEAT-0623-audit-super-alert-system-gaps-and-design.md) | Audit the Super Alert system for gaps and UI/UX design | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0607](features/FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) |
 | [FEAT-0629](features/FEAT-0629-migrate-to-sveltekit-3.md) | Migrate to SvelteKit 3 and adapter-node 6 | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0630](features/FEAT-0630-migrate-to-vitest-5.md) | Migrate the test infrastructure to Vitest 5 | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |
@@ -1022,6 +1028,8 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -1086,4 +1094,4 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 
 ---
 
-Next free number: **0630**
+Next free number: **0634**
