@@ -211,32 +211,72 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["openai"], 
-      output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            if (id.includes("three")) return "three-vendor";
-            if (id.includes("chart.js") || id.includes("chartjs-")) return "chart-vendor";
-            if (id.includes("katex") || id.includes("marked")) return "markdown-vendor";
-            if (id.includes("@google/generative-ai") || id.includes("openai")) return "ai-vendor";
-            if (id.includes("svelte-i18n") || id.includes("intl-messageformat")) return "i18n-vendor";
-            if (id.includes("dompurify")) return "dompurify-vendor";
-            if (id.includes("zod")) return "zod-vendor";
-            if (id.includes("lodash-es")) return "lodash-vendor";
-            if (id.includes("lightweight-charts")) return "charts-vendor";
-            if (id.includes("spacetimedb")) return "spacetimedb-vendor";
-            return "vendor";
-          }
-          // Production Hardening: Split Shaders and WASM into dedicated chunks
-          if (id.includes('shaders/') && id.endsWith('.wgsl')) {
-            return 'gpu-shaders';
-          }
-          if (id.includes('technicals-wasm') || id.includes('.wasm')) {
-            return 'wasm-engine';
-          }
-        },
-      },
+      external: ["openai"],
     },
     chunkSizeWarningLimit: 1000,
   },
+  // Vendor chunking is client-build-only, and only outside Vitest (which
+  // manages its own environments and would choke on a stray `client` key):
+  // the SSR bundle is re-bundled by adapter-node 6 (which breaks when its
+  // entry chunk is renamed), and the service-worker environment builds with
+  // codeSplitting disabled, where chunking options are a hard error.
+  ...(process.env.VITEST === "true"
+    ? {}
+    : {
+        environments: {
+          client: {
+            build: {
+              // NOTE: `rolldownOptions`, not `rollupOptions` — per-environment
+              // config only honours the new key; the old one is silently
+              // ignored (verified: no vendor chunks emitted with it).
+              rolldownOptions: {
+                output: {
+                  // Vendor chunking must be expressed as `codeSplitting.groups`,
+                  // not `manualChunks`: Kit sets `output.codeSplitting`
+                  // itself, and rolldown ignores `manualChunks` whenever
+                  // `codeSplitting` is specified (WARN in the client build).
+                  // Groups merge with Kit's own `sveltekit-manifest` group.
+                  codeSplitting: {
+                    groups: [
+                      { name: "three-vendor", test: /three/ },
+                      { name: "chart-vendor", test: /chart\.js|chartjs-/ },
+                      { name: "markdown-vendor", test: /katex|marked/ },
+                      {
+                        name: "ai-vendor",
+                        test: /@google\/generative-ai|openai/,
+                      },
+                      {
+                        name: "i18n-vendor",
+                        test: /svelte-i18n|intl-messageformat/,
+                      },
+                      { name: "dompurify-vendor", test: /dompurify/ },
+                      { name: "zod-vendor", test: /zod/ },
+                      { name: "lodash-vendor", test: /lodash-es/ },
+                      {
+                        name: "charts-vendor",
+                        test: /lightweight-charts/,
+                      },
+                      { name: "spacetimedb-vendor", test: /spacetimedb/ },
+                      // Catch-all for the rest of node_modules — except the
+                      // Kit client runtime: grouping entry.js together with
+                      // its dynamic import client-entry.js would erase the
+                      // edge Kit uses to locate the runtime chunk
+                      // ("Could not find the client runtime chunk").
+                      {
+                        name: "vendor",
+                        test: /node_modules\/(?!@sveltejs\/kit\/src\/runtime)/,
+                      },
+                      // Production Hardening: Split Shaders and WASM into dedicated chunks
+                      { name: "gpu-shaders", test: /shaders\/.*\.wgsl/ },
+                      {
+                        name: "wasm-engine",
+                        test: /technicals-wasm|\.wasm/,
+                      },
+                    ],
+                  },
+              },
+            },
+          },
+        },
+      }}),
 });

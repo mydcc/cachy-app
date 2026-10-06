@@ -115,7 +115,8 @@ The following steps apply to both environments (directory names per environment)
       compression and security headers. The `--env-file` flag is not optional in
       practice: Node does **not** read `.env` on its own, so a bare
       `node server.js` (or `node build/index.js`) silently runs without
-      `NODE_ENV`, `ORIGIN`, `ADDRESS_HEADER` or `XFF_DEPTH` from §7 — which is
+      `NODE_ENV`, `ADDRESS_HEADER` or `XFF_DEPTH` from §7 (`ORIGIN` is consumed
+      at build time instead — see §7) — which is
       why `/api/health` then reports `"environment":"development"` on a
       production box. It defaults `PORT` to 3001 instead of adapter-node's 3000,
       for hosts where 3000 is already taken.
@@ -466,7 +467,7 @@ XFF_DEPTH=1
 > [ADR-0002's BUG-0052 amendment](docs/adr/0002-api-authentication-fails-closed.md)).
 > There is no deployment-wide token to configure or leak.
 
-_Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions._
+_Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions. Since SvelteKit 3 it is consumed at **build** time (`paths.origin` in `vite.config.ts`, read from `process.env.ORIGIN`), not by the running server — so `.env` must be present when `npm run build` executes (the §6 shadow build copies the tree including `.env`). If `ORIGIN` is unset at build time, the origin falls back to request headers; behind a proxy that forwards them, set `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=x-forwarded-host` at runtime instead._
 
 > ⚠️ **`ADDRESS_HEADER`/`XFF_DEPTH` matter as soon as any per-IP rate limit is
 > in play** (`/api/auth/token`, `checkClientToken` — see

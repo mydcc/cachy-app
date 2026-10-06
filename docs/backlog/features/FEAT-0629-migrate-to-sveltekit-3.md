@@ -50,10 +50,28 @@ Metaverse iframe (`space.cachy.app`) — migration must preserve it.
 
 ## Open questions
 
-- What is the exact Kit 3 config shape for adapter-node options previously
-  living in `svelte.config.js`?
-- Are there breaking changes in load functions, form actions or remote
-  functions affecting our routes?
+- [x] What is the exact Kit 3 config shape? → `sveltekit({ preprocess,
+  adapter, csp, paths })` in `vite.config.ts`; `svelte.config.js` deleted.
+  `paths.origin` reads `process.env.ORIGIN` (official adapter-node pattern).
+- [x] Breaking changes in load/actions? → none in use. Migrated instead:
+  `$lib`→`#lib` (36 files + `imports` + test alias), `$app/environment`→`$app/env`,
+  `$app/stores`→`$app/state`, `$service-worker`→`$app/env`+`$app/manifest`,
+  `src/params/lang.ts`→`src/params.ts`, `Handle*`→`@sveltejs/kit/hooks`,
+  `$env/dynamic/private` types via `src/env-legacy.d.ts` bridge.
+- [ ] Vendor chunking: `manualChunks` is dead under Kit 3 (Kit sets
+  `output.codeSplitting`, rolldown ignores `manualChunks` then; top-level
+  `manualChunks` also breaks the adapter-node 6 re-bundle and the SW build).
+  Re-expressed as `codeSplitting.groups` under `environments.client`
+  (requires the `rolldownOptions` key — `rollupOptions` is silently ignored
+  per-environment). Verify vendor chunks in build output.
+- [ ] Full env migration (`src/env.ts` + `$app/env/*`, `.env.example`,
+  `env_documentation.test.ts` audit) is a separate follow-up item.
+
+## State
+
+2026-10-06: `npm run check` green (0 errors), CSP/boundary/security/hook/env
+guard tests green (64 tests), production build passes all phases. Pending:
+vendor-chunk verification in `build/client`, then push + PR.
 
 ## Links
 
