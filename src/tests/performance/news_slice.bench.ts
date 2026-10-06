@@ -5,12 +5,11 @@
 // drift. It does NOT compare against the pre-`$derived` template — a bench
 // mounts one component version only, so it can never prove the slice hoist
 // itself made anything faster.
-import { bench, describe } from 'vitest';
+import { afterEach, beforeEach, describe, test, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
 import NewsSentimentPanel from '../../components/shared/NewsSentimentPanel.svelte';
 import { newsStore } from '../../stores/news.svelte';
 import { settingsState } from '../../stores/settings.svelte';
-import { afterEach, beforeEach, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('../../stores/ui.svelte', () => ({
@@ -77,11 +76,13 @@ describe('NewsSentimentPanel render smoke benchmark', () => {
         document.body.removeChild(target);
     });
 
-    bench('mount and unmount panel', () => {
-        const component = mount(NewsSentimentPanel, {
-            target,
-            props: { variant: 'main' }
-        });
-        unmount(component);
+    test('mount and unmount panel', async ({ bench }) => {
+      await bench('mount and unmount panel', () => {
+            const component = mount(NewsSentimentPanel, {
+                target,
+                props: { variant: 'main' }
+            });
+            unmount(component);
+        }).run();
     });
 });

@@ -1,5 +1,5 @@
 
-import { bench, describe, beforeAll } from 'vitest';
+import { describe, beforeAll, test } from 'vitest';
 import { cryptoService, type EncryptedBlob } from '../services/cryptoService';
 
 // Ensure crypto is available in Node environment
@@ -52,37 +52,45 @@ describe('Crypto Loop Performance', () => {
         }
     });
 
-    bench('Sequential Encryption (Obfuscation Mode)', async () => {
-        const secrets: Record<string, EncryptedBlob> = {};
-        for (const key of SENSITIVE_KEYS) {
-            const value = values[key];
-            if (value) {
-                secrets[key] = await cryptoService.encrypt(value, deviceKey);
+    test('Sequential Encryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Sequential Encryption (Obfuscation Mode)', async () => {
+            const secrets: Record<string, EncryptedBlob> = {};
+            for (const key of SENSITIVE_KEYS) {
+                const value = values[key];
+                if (value) {
+                    secrets[key] = await cryptoService.encrypt(value, deviceKey);
+                }
             }
-        }
+        }).run();
     });
 
-    bench('Parallel Encryption (Obfuscation Mode)', async () => {
-        const secrets: Record<string, EncryptedBlob> = {};
-        await Promise.all(SENSITIVE_KEYS.map(async (key) => {
-            const value = values[key];
-            if (value) {
-                secrets[key] = await cryptoService.encrypt(value, deviceKey);
+    test('Parallel Encryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Parallel Encryption (Obfuscation Mode)', async () => {
+            const secrets: Record<string, EncryptedBlob> = {};
+            await Promise.all(SENSITIVE_KEYS.map(async (key) => {
+                const value = values[key];
+                if (value) {
+                    secrets[key] = await cryptoService.encrypt(value, deviceKey);
+                }
+            }));
+        }).run();
+    });
+
+    test('Sequential Decryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Sequential Decryption (Obfuscation Mode)', async () => {
+            const decrypted: Record<string, string> = {};
+            for (const [key, blob] of Object.entries(encryptedSecrets)) {
+                decrypted[key] = await cryptoService.decrypt(blob, deviceKey);
             }
-        }));
+        }).run();
     });
 
-    bench('Sequential Decryption (Obfuscation Mode)', async () => {
-        const decrypted: Record<string, string> = {};
-        for (const [key, blob] of Object.entries(encryptedSecrets)) {
-            decrypted[key] = await cryptoService.decrypt(blob, deviceKey);
-        }
-    });
-
-    bench('Parallel Decryption (Obfuscation Mode)', async () => {
-        const decrypted: Record<string, string> = {};
-        await Promise.all(Object.entries(encryptedSecrets).map(async ([key, blob]) => {
-            decrypted[key] = await cryptoService.decrypt(blob, deviceKey);
-        }));
+    test('Parallel Decryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Parallel Decryption (Obfuscation Mode)', async () => {
+            const decrypted: Record<string, string> = {};
+            await Promise.all(Object.entries(encryptedSecrets).map(async ([key, blob]) => {
+                decrypted[key] = await cryptoService.decrypt(blob, deviceKey);
+            }));
+        }).run();
     });
 });

@@ -4,7 +4,7 @@
 
 507 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 23 · 🟡 in-progress 4 · ✅ done 432 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-progress 5 · ✅ done 432 · ⛔ dropped 1
 
 ---
 
@@ -474,7 +474,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 23 · 🟡 in-pr
 | [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | ui |
 | [FEAT-0623](features/FEAT-0623-audit-super-alert-system-gaps-and-design.md) | Audit the Super Alert system for gaps and UI/UX design | P2 | 🟢 ready | alerts |
 | [FEAT-0629](features/FEAT-0629-migrate-to-sveltekit-3.md) | Migrate to SvelteKit 3 and adapter-node 6 | P2 | ✅ done | deps |
-| [FEAT-0630](features/FEAT-0630-migrate-to-vitest-5.md) | Migrate the test infrastructure to Vitest 5 | P2 | 🟢 ready | deps |
+| [FEAT-0630](features/FEAT-0630-migrate-to-vitest-5.md) | Migrate the test infrastructure to Vitest 5 | P2 | 🟡 in-progress | deps |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | execution |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | execution |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | i18n |
@@ -972,7 +972,7 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 23 · 🟡 in-pr
 | [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) | Turn the sidebar width into a token and allow resizing it | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0609](features/FEAT-0609-introduce-control-and-density-tokens.md) |
 | [FEAT-0623](features/FEAT-0623-audit-super-alert-system-gaps-and-design.md) | Audit the Super Alert system for gaps and UI/UX design | P2 | 🟢 ready | none | community, pro, private | none | none | [FEAT-0607](features/FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) |
 | [FEAT-0629](features/FEAT-0629-migrate-to-sveltekit-3.md) | Migrate to SvelteKit 3 and adapter-node 6 | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [FEAT-0630](features/FEAT-0630-migrate-to-vitest-5.md) | Migrate the test infrastructure to Vitest 5 | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [FEAT-0630](features/FEAT-0630-migrate-to-vitest-5.md) | Migrate the test infrastructure to Vitest 5 | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [IDEA-0563](ideas/IDEA-0563-open-with-unmeasured-balance.md) | Decide what an open with unmeasured balance should do | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [IDEA-0566](ideas/IDEA-0566-modify-margin-ceiling.md) | Prospective margin ceiling for quantity-increasing modifies | P2 | 📋 specced | none | community, pro, private | A | none | [BUG-0548](bugs/BUG-0548-pending-order-modify-bypasses-risk-limits.md), [BUG-0549](bugs/BUG-0549-open-margin-exceeded-remains-orderable.md) |
 | [BUG-0007](bugs/BUG-0007-hardcoded-ui-strings.md) | Several UI strings are hardcoded instead of translated | P3 | ✅ done | none | community, pro, private | none | none | — |

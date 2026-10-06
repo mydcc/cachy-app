@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 import { marketWatcher } from './marketWatcher';
 import { Decimal } from 'decimal.js';
 import type { Kline } from './technicalsTypes';
@@ -51,7 +51,9 @@ describe('marketWatcher fillGaps', () => {
         }
     }
 
-    bench('fillGaps with fixed gaps', () => {
-        (marketWatcher as unknown as MarketWatcherInternals).fillGaps(klines, intervalMs);
+    test('fillGaps with fixed gaps', async ({ bench }) => {
+      await bench('fillGaps with fixed gaps', () => {
+            (marketWatcher as unknown as MarketWatcherInternals).fillGaps(klines, intervalMs);
+        }).run();
     });
 });

@@ -1,4 +1,4 @@
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 import { getRollingData } from "../../src/lib/calculators/stats";
 import type { JournalEntry } from "../../src/stores/types";
 
@@ -26,7 +26,9 @@ describe("getRollingData", () => {
     } as unknown as JournalEntry);
   }
 
-  bench("getRollingData (5k trades, window=20)", () => {
-    getRollingData(journalData, 20);
+  test("getRollingData (5k trades, window=20)", async ({ bench }) => {
+    await bench("getRollingData (5k trades, window=20)", () => {
+      getRollingData(journalData, 20);
+    }).run();
   });
 });

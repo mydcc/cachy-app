@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { bench, describe, vi, beforeAll } from 'vitest';
+import { describe, vi, beforeAll, test } from 'vitest';
 import { Decimal } from 'decimal.js';
 
 vi.mock('$app/env', () => ({ browser: true }));
@@ -125,8 +125,10 @@ describe('StorageService', () => {
          newKline = generateKlines(1, 1000000 + 50000 * 60000);
     });
 
-    bench('append_1_candle_to_50000', async () => {
-        if (!storageService) throw new Error("Service not loaded");
-        await storageService.saveKlines(symbol, tf, newKline);
-    }, { time: 500 });
+    test('append_1_candle_to_50000', async ({ bench }) => {
+      await bench('append_1_candle_to_50000', { time: 500 }, async () => {
+            if (!storageService) throw new Error("Service not loaded");
+            await storageService.saveKlines(symbol, tf, newKline);
+        }).run();
+    });
 });

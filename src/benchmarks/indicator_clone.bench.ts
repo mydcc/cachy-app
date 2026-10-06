@@ -15,21 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 import { indicatorState } from '../stores/indicator.svelte';
 
 describe('Indicator State Cloning', () => {
   const state = indicatorState.toJSON();
 
-  bench('toJSON()', () => {
-    indicatorState.toJSON();
+  test('toJSON()', async ({ bench }) => {
+    await bench('toJSON()', () => {
+      indicatorState.toJSON();
+    }).run();
   });
 
-  bench('JSON.stringify(state)', () => {
-    JSON.stringify(state);
+  test('JSON.stringify(state)', async ({ bench }) => {
+    await bench('JSON.stringify(state)', () => {
+      JSON.stringify(state);
+    }).run();
   });
 
-  bench('structuredClone(state)', () => {
-    structuredClone(state);
+  test('structuredClone(state)', async ({ bench }) => {
+    await bench('structuredClone(state)', () => {
+      structuredClone(state);
+    }).run();
   });
 });

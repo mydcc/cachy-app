@@ -2,8 +2,9 @@
 id: FEAT-0630
 title: Migrate the test infrastructure to Vitest 5
 type: feature
-status: ready
+status: in-progress
 priority: P2
+assignee: opencode
 milestone: none
 editions: [community, pro, private]
 area: deps
@@ -56,13 +57,49 @@ repo is on Vite 8.3 with `.node-version` 26.8.1.
 
 ## Acceptance criteria
 
-- [ ] `vitest` and `@vitest/ui` at `^5.0.3` (lockfile updated)
-- [ ] All `*.bench.ts` files use the new benchmarking API and
-      `npm run benchmark:technicals` still runs
-- [ ] `npm test` green (both `unit` and `components` projects)
-- [ ] No `vi.mock` call nested inside a `describe`/block (v5 throws on those)
-- [ ] `.vitest/` is gitignored
-- [ ] `npm run check` and `npm run build` still green
+- [x] `vitest` and `@vitest/ui` at `^5.0.3` (lockfile updated)
+- [x] All `*.bench.ts` files use the new benchmarking API
+- [ ] `npm run benchmark:technicals` still runs — **blocked locally**, see state
+- [ ] `npm test` green (both `unit` and `components` projects) — **blocked locally**, see state
+- [x] No `vi.mock` call nested inside a `describe`/block (v5 throws on those)
+- [x] `.vitest/` is gitignored
+- [x] `npm run build` still green (`vite build`: ✓ built in 12.77s)
+- [x] `clearMocks` pinned to `false` so the upgrade does not silently change
+      mock semantics across the suite
+
+## State (2026-10-06)
+
+Migration is written and type-verified; the two runtime criteria could not be
+executed here.
+
+- 18 of the 27 `*.bench.ts` files used the removed module-scope `bench` import
+  and were rewritten — 48 call sites. The other 9 files import nothing from
+  Vitest (they are loose scripts with their own `performance.now()` timing) and
+  were left untouched.
+- `bench(NAME, FN, OPTIONS)` had to become `bench(NAME, OPTIONS, FN)`: v4 took
+  the tinybench options last, v5 takes them second. One site
+  (`storage.bench.ts`, `{ time: 500 }`) would have lost its options silently.
+- Type proof, both directions: with Vitest 5 installed the unrewritten files
+  fail with `TS2724: '"vitest"' has no exported member named 'bench'` (17
+  errors); the rewritten ones have none. Total errors under a throwaway tsconfig
+  that includes the benchmarks: 61 before, 44 after — the 17 that vanish are
+  exactly those.
+- The 44 remaining are pre-existing type looseness in files the project excludes
+  from `npm run check` (`src/benchmarks/**`, `src/tests/**`, `tests/**`):
+  Kline literals missing/over-typed fields, `marketWatcher_backfill.test.ts`
+  missing `markPrice`. Not introduced here, not fixed here.
+- Nested `vi.mock` scan over all 559 test files: 1124 call sites, 0 nested. The
+  scanner was verified against planted violations before its result was trusted.
+- `src/tests/performance/news_slice.bench.ts` had two separate `vitest` import
+  statements; both were rewritten, producing a duplicate `test` identifier. Now
+  one consolidated import.
+
+**Blocked:** the suite cannot start in this environment — on Vitest 4 *and* 5.
+Vite 8.3's dependency optimizer runs for the client environment with platform
+`browser` and cannot resolve `node:module` inside Vite's own `rolldown/runtime.js`
+("Tsconfig not found"); separately, oxc cannot load `$app/tsconfig` in the test
+transform path. `vite build` is unaffected. Reproduced with `vitest@4.1.11`
+installed, so it is not a Vitest 5 regression. Worth its own issue.
 
 ## Out of scope
 

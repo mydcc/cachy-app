@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 import { Decimal } from 'decimal.js';
 import { calculateAllIndicators } from '../utils/technicalsCalculator';
 import type { Kline } from '../services/technicalsTypes';
@@ -41,11 +41,15 @@ const data1k = generateKlines(1000);
 const data20k = generateKlines(20000);
 
 describe('Indicator Calculation', () => {
-  bench('calculateAllIndicators (1000 candles)', () => {
-    calculateAllIndicators(data1k);
+  test('calculateAllIndicators (1000 candles)', async ({ bench }) => {
+    await bench('calculateAllIndicators (1000 candles)', () => {
+      calculateAllIndicators(data1k);
+    }).run();
   });
 
-  bench('calculateAllIndicators (20000 candles)', () => {
-    calculateAllIndicators(data20k);
+  test('calculateAllIndicators (20000 candles)', async ({ bench }) => {
+    await bench('calculateAllIndicators (20000 candles)', () => {
+      calculateAllIndicators(data20k);
+    }).run();
   });
 });

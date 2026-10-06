@@ -162,6 +162,13 @@ export default defineConfig({
     // over this default. Pure-logic files already annotated `node` stay as-is.
     testTimeout: 20000,
     hookTimeout: 20000,
+    // Vitest 5 flipped this to `true`. That is a behavioural change across the
+    // whole suite, not a version bump: a mock recorded in `beforeAll` or in a
+    // setup file loses its call history before the test that asserts on it, so
+    // such a test keeps passing until the day someone adds an assertion.
+    // Pin the old default for the upgrade; adopting the new one is its own
+    // change, to be made when the suite can actually be run (FEAT-0630).
+    clearMocks: false,
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     pool: "threads",

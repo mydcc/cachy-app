@@ -8494,8 +8494,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0630",
     "title": "Migrate the test infrastructure to Vitest 5",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P2",
+    "assignee": "opencode",
     "milestone": "none",
     "editions": [
       "community",
