@@ -59,8 +59,12 @@ repo is on Vite 8.3 with `.node-version` 26.8.1.
 
 - [x] `vitest` and `@vitest/ui` at `^5.0.3` (lockfile updated)
 - [x] All `*.bench.ts` files use the new benchmarking API
-- [ ] `npm run benchmark:technicals` still runs — **blocked locally**, see state
-- [ ] `npm test` green (both `unit` and `components` projects) — **blocked locally**, see state
+- [ ] `npm run benchmark:technicals` runs — collection verified in a scratch
+      project (both directions), the 18 real benchmarks now collect cleanly;
+      the 9 scripts are excluded. Not run against this repo's config: blocked
+      locally, see below
+- [x] `npm test` green — CI, all 24 jobs including `Unit Tests`. Locally still
+      blocked, see below
 - [x] No `vi.mock` call nested inside a `describe`/block (v5 throws on those)
 - [x] `.vitest/` is gitignored
 - [x] `npm run build` still green (`vite build`: ✓ built in 12.77s)
