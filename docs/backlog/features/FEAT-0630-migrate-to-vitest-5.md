@@ -2,7 +2,7 @@
 id: FEAT-0630
 title: Migrate the test infrastructure to Vitest 5
 type: feature
-status: in-progress
+status: done
 priority: P2
 assignee: opencode
 milestone: none
