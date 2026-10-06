@@ -16,6 +16,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { svelte, vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, configDefaults } from "vitest/config";
 import tailwindcss from "@tailwindcss/vite";
+import { cspDirectives } from "./src/config/cspDirectives";
 
 // Single source of truth for the app version: the `version` field in
 // package.json, which semantic-release bumps on every release.
@@ -119,62 +120,7 @@ export default defineConfig({
           },
           csp: {
             mode: "auto",
-            directives: {
-              "default-src": ["self"],
-              "script-src": [
-                "self",
-                "wasm-unsafe-eval",
-                "https://s.cachy.app",
-                "blob:",
-              ],
-              "style-src": [
-                "self",
-                "unsafe-inline",
-              ],
-              "img-src": [
-                "self",
-                "data:",
-                "https:",
-              ],
-              "media-src": [
-                "self",
-                "blob:",
-                "https:",
-              ],
-              "font-src": [
-                "self",
-                "data:",
-              ],
-              "object-src": ["none"],
-              "base-uri": ["self"],
-              "frame-src": [
-                "self",
-                "https://space.cachy.app",
-                "https://s.cachy.app",
-                "https:",
-                "blob:",
-                "data:",
-              ],
-              "frame-ancestors": ["self"],
-              "connect-src": [
-                "self",
-                "https:",
-                "https://s.cachy.app",
-                "https://chat.cachy.app",
-                "wss://chat.cachy.app",
-                "https://*.cachy.app",
-                "wss://*.cachy.app",
-                "wss://fapi.bitunix.com",
-                "wss://stream.bitunix.com",
-                "wss://ws.bitget.com",
-                "https://api.imgbb.com",
-                "https://discord.com",
-                "https://api.telegram.org",
-                "https://api.mailgun.net",
-                "https://generativelanguage.googleapis.com",
-                "https://api.openai.com",
-              ],
-            },
+            directives: cspDirectives,
           },
         }),
     tailwindcss(),
