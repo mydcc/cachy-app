@@ -22,6 +22,34 @@ set -e
 
 # --- 1. Configuration & Initial Setup ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Execute from a private snapshot of this script.
+#
+# The SYNC step below runs `git pull`, which rewrites this very file while bash
+# is still executing it. Bash reads scripts lazily and only tracks a byte
+# offset, so once the file grows, every following line is read from the wrong
+# position — sections get skipped or run twice. Observed on 2026-10-06: a freshly
+# merged fix was pulled in mid-run and its block never executed, so the deploy
+# silently ran without it.
+#
+# Executing a copy pins the content for the whole run. SCRIPT_DIR travels along
+# explicitly because BASH_SOURCE now points into the snapshot and must not
+# redefine it. Best effort by design: if no snapshot can be taken, the deploy
+# carries on unprotected rather than being blocked by the protection.
+if [[ -z "${CACHY_DEPLOY_SNAPSHOT:-}" ]]; then
+    CACHY_SNAPSHOT_FILE="$(mktemp "${TMPDIR:-/tmp}/cachy-deploy.XXXXXXXX" 2>/dev/null || true)"
+    if [[ -n "$CACHY_SNAPSHOT_FILE" ]] && cp -- "${BASH_SOURCE[0]}" "$CACHY_SNAPSHOT_FILE" 2>/dev/null; then
+        chmod 700 "$CACHY_SNAPSHOT_FILE" 2>/dev/null || true
+        CACHY_DEPLOY_SNAPSHOT=1 \
+        CACHY_DEPLOY_SCRIPT_DIR="$SCRIPT_DIR" \
+        CACHY_SNAPSHOT_FILE="$CACHY_SNAPSHOT_FILE" \
+            exec bash "$CACHY_SNAPSHOT_FILE" "$@"
+    fi
+    CACHY_SNAPSHOT_FILE=""
+fi
+SCRIPT_DIR="${CACHY_DEPLOY_SCRIPT_DIR:-$SCRIPT_DIR}"
+trap 'rm -f "${CACHY_SNAPSHOT_FILE:-/dev/null}"' EXIT
+
 CONF_FILE="$SCRIPT_DIR/.deploy.conf"
 START_TIME=$(date +%s)
 
