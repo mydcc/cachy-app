@@ -270,18 +270,6 @@ health_check() {
 
     elapsed=$(( $(date +%s) - check_start ))
     log "${RED}Health check FAILED after ${elapsed}s. Last observed: ${last_state:-no response at all}${NC}"
-    # A port that never opens at all (as opposed to opening and then failing to
-    # answer) means the process died during startup, and the start log holds the
-    # reason. The one class of that failure that is specific to this script: the
-    # local build path compiles in a shadow copy and swaps only build/, so a
-    # stale node_modules can leave a freshly built server unable to resolve its
-    # own framework. Name it here instead of letting the next operator guess.
-    if [[ "${last_state:-}" == *"port"*"not open"* ]]; then
-        log "${YELLOW}  Tip: the server never bound the port, so it crashed during startup.${NC}"
-        log "${YELLOW}       Read the start log above first. If it is an import/module error,${NC}"
-        log "${YELLOW}       check whether node_modules matches the current build:${NC}"
-        log "${YELLOW}         npm ci --omit=dev --legacy-peer-deps${NC}"
-    fi
     return 1
 }
 
@@ -579,34 +567,6 @@ BUILD_DURATION=$(( $(date +%s) - BUILD_START_TIME ))
 echo "$BUILD_DURATION" > "$LAST_TIME_FILE"
 log "Build successful in ${BUILD_DURATION}s (Log: $BUILD_LOG)"
 notify_build_success "${BUILD_DURATION}s" 2>/dev/null || true
-
-# 3b. Refresh the live tree's production dependencies.
-#
-# The local build path compiles inside a shadow copy with its own fresh
-# `npm ci`, but the swap below replaces only build/. Without this step the live
-# tree keeps whatever node_modules it had, so the deployed server can be built
-# against one framework version and executed against another. That is not
-# hypothetical: the SvelteKit 3 server output resolves `@sveltejs/kit/internal`
-# at runtime and imports `HandledHttpError`, which only exists from Kit 3 on.
-# With a Kit 2 node_modules still in place, `node server.js` throws a
-# SyntaxError before it ever calls listen(), the port never opens, and the
-# health check only reports the outcome 90 seconds later.
-#
-# Skipped in CI mode: that path already ran `npm ci --omit=dev` while fetching
-# the artifact. Runs before the swap and aborts on failure, so a broken install
-# never reaches the running deployment. Cheap by design — `--omit=dev` skips
-# the full build-time dependency tree.
-if [[ "$CI_MODE" != "1" ]]; then
-    log "${CYAN}[DEPS]${NC} Refreshing production dependencies (npm ci --omit=dev)..."
-    if ! npm ci --omit=dev --legacy-peer-deps >> "$BUILD_LOG" 2>&1; then
-        echo -e "${RED}❌ Dependency install FAILED!${NC}"
-        echo -e "${YELLOW}--- Last 15 lines of build log ---${NC}"
-        tail -n 15 "$BUILD_LOG"
-        echo -e "${YELLOW}----------------------------------${NC}"
-        rm -rf "$WORK_DIR_TMP"
-        error_exit "Production dependencies could not be installed. Production was not affected."
-    fi
-fi
 
 # 4. Permissions & Swap
 log "${CYAN}[SWAP]${NC} Setting permissions and swapping build..."
