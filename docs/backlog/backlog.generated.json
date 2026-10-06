@@ -10534,6 +10534,25 @@
       "file": "features/FEAT-0634-upgrade-jsdom-to-30.md"
     },
     {
+      "id": "FEAT-0635",
+      "title": "Upgrade three to 0.186 and the matching type definitions",
+      "type": "feature",
+      "status": "done",
+      "priority": "P3",
+      "assignee": "opencode",
+      "milestone": "none",
+      "editions": [
+        "community",
+        "pro",
+        "private"
+      ],
+      "area": "deps",
+      "data_class": "none",
+      "adr": "none",
+      "depends_on": [],
+      "file": "features/FEAT-0635-upgrade-three-to-0186.md"
+    },
+    {
       "id": "FEAT-0641",
       "title": "Upgrade katex to 0.19 once marked-katex-extension allows it",
       "type": "feature",
@@ -10956,5 +10975,5 @@
       "file": "ideas/IDEA-0627-venue-positioning-overlay.md"
     }
   ],
-  "count": 516
+  "count": 517
 }
