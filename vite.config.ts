@@ -183,7 +183,7 @@ export default defineConfig({
     alias: {
       "$app/env": fileURLToPath(new URL("./src/tests/helpers/app-environment.ts", import.meta.url)),
       "$env/dynamic/private": fileURLToPath(new URL("./src/tests/helpers/dynamic-private-env.ts", import.meta.url)),
-      #lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+      "#lib": fileURLToPath(new URL("./src/lib", import.meta.url)),
     },
   },
   test: {

@@ -16,7 +16,7 @@
  */
 
 import { sequence } from "@sveltejs/kit/hooks";
-import type { Handle } from "@sveltejs/kit";
+import type { Handle } from "@sveltejs/kit/hooks";
 import { building } from "$app/env";
 import { logger } from "#lib/server/logger.js";
 import { i18nReady } from "./locales/i18n";

@@ -17,7 +17,7 @@
 
 import { i18nReady } from "./locales/i18n";
 import { dev } from "$app/env";
-import type { HandleClientError } from "@sveltejs/kit";
+import type { HandleClientError } from "@sveltejs/kit/hooks";
 import {
   installStaleDeploymentRecovery,
   isStaleChunkError,
