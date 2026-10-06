@@ -16,7 +16,7 @@
  */
 
 
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 import { calculateAllIndicators } from '../utils/technicalsCalculator';
 import { Decimal } from 'decimal.js';
 import type { IndicatorSettings } from '../types/indicators';
@@ -73,13 +73,17 @@ const settings = {
 } as unknown as IndicatorSettings;
 
 describe('Technicals Performance', () => {
-    bench('Full Calculation (Current)', () => {
+    test('Full Calculation (Current)', async ({ bench }) => {
+      await bench('Full Calculation (Current)', () => {
         // Simulates what marketAnalyst does currently:
         // Pass { EMA: true, RSI: true } but due to logic, it calculates everything
         calculateAllIndicators(klines, settings);
+      }).run();
     });
 
-    bench('Cache Key Generation', () => {
+    test('Cache Key Generation', async ({ bench }) => {
+      await bench('Cache Key Generation', () => {
         JSON.stringify(settings);
+      }).run();
     });
 });

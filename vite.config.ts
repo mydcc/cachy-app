@@ -162,6 +162,13 @@ export default defineConfig({
     // over this default. Pure-logic files already annotated `node` stay as-is.
     testTimeout: 20000,
     hookTimeout: 20000,
+    // Vitest 5 flipped this to `true`. That is a behavioural change across the
+    // whole suite, not a version bump: a mock recorded in `beforeAll` or in a
+    // setup file loses its call history before the test that asserts on it, so
+    // such a test keeps passing until the day someone adds an assertion.
+    // Pin the old default for the upgrade; adopting the new one is its own
+    // change, to be made when the suite can actually be run (FEAT-0630).
+    clearMocks: false,
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
     pool: "threads",
@@ -197,6 +204,35 @@ export default defineConfig({
         },
       },
     ],
+    benchmark: {
+      // Vitest collects every `*.bench.ts` file as a benchmark file, and a
+      // benchmark file without tests is an error: "No test suite found in
+      // file". The nine files below match the glob but are standalone scripts
+      // with hand-rolled `performance.now()` timing, not Vitest benchmarks —
+      // one calls `process.exit(1)`, one encodes a precision assertion. They
+      // fail the same way on Vitest 4, so this was never a working entry in
+      // `npm run benchmark:technicals`; excluding them lets the 18 real
+      // benchmarks run. The scripts stay reachable via `npx tsx`.
+      // Converting them to real benchmarks is its own piece of work (FEAT-0630).
+      exclude: [
+        // Needs a device key derived from real session state, and its two
+        // sequential PBKDF2 benchmarks each run past 300 s — measured, not
+        // estimated. Doubled by the per-project collection that below, that is
+        // over twenty minutes in a command meant to be run routinely. Kept for
+        // manual measurement: vitest bench src/benchmarks/crypto_loop.bench.ts
+        // --testTimeout 900000
+        "src/benchmarks/crypto_loop.bench.ts",
+        "tests/benchmarks/kline_string_optimization.bench.ts",
+        "tests/benchmarks/mfi_optimization.bench.ts",
+        "tests/benchmarks/patternDetection.bench.ts",
+        "tests/benchmarks/safeJson.bench.ts",
+        "tests/benchmarks/slidingWindow.bench.ts",
+        "tests/benchmarks/stochrsi.bench.ts",
+        "tests/benchmarks/technicals.bench.ts",
+        "tests/benchmarks/worker_simulation.bench.ts",
+        "tests/benchmarks/wma_optimization.bench.ts",
+      ],
+    },
   },
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),

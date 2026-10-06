@@ -1,4 +1,4 @@
-import { bench, describe } from 'vitest';
+import { describe, test } from 'vitest';
 import { Decimal } from 'decimal.js';
 import { toNumFast } from '../../src/utils/fastConversion';
 
@@ -29,31 +29,47 @@ const createCurrent = () => {
 describe('toNumFast Benchmark', () => {
   const currentFn = createCurrent();
 
-  bench('Current - Numbers', () => {
-    for (let i = 0; i < 1000; i++) currentFn(numbers[i]);
+  test('Current - Numbers', async ({ bench }) => {
+    await bench('Current - Numbers', () => {
+      for (let i = 0; i < 1000; i++) currentFn(numbers[i]);
+    }).run();
   });
-  bench('Optimized (Imported) - Numbers', () => {
-    for (let i = 0; i < 1000; i++) toNumFast(numbers[i]);
-  });
-
-  bench('Current - Strings', () => {
-    for (let i = 0; i < 1000; i++) currentFn(strings[i]);
-  });
-  bench('Optimized (Imported) - Strings', () => {
-    for (let i = 0; i < 1000; i++) toNumFast(strings[i]);
+  test('Optimized (Imported) - Numbers', async ({ bench }) => {
+    await bench('Optimized (Imported) - Numbers', () => {
+      for (let i = 0; i < 1000; i++) toNumFast(numbers[i]);
+    }).run();
   });
 
-  bench('Current - Decimals', () => {
-    for (let i = 0; i < 1000; i++) currentFn(decimals[i]);
+  test('Current - Strings', async ({ bench }) => {
+    await bench('Current - Strings', () => {
+      for (let i = 0; i < 1000; i++) currentFn(strings[i]);
+    }).run();
   });
-  bench('Optimized (Imported) - Decimals', () => {
-    for (let i = 0; i < 1000; i++) toNumFast(decimals[i]);
+  test('Optimized (Imported) - Strings', async ({ bench }) => {
+    await bench('Optimized (Imported) - Strings', () => {
+      for (let i = 0; i < 1000; i++) toNumFast(strings[i]);
+    }).run();
   });
 
-  bench('Current - DecimalLikes (Method)', () => {
-    for (let i = 0; i < 1000; i++) currentFn(decimalLikes[i]);
+  test('Current - Decimals', async ({ bench }) => {
+    await bench('Current - Decimals', () => {
+      for (let i = 0; i < 1000; i++) currentFn(decimals[i]);
+    }).run();
   });
-  bench('Optimized (Imported) - DecimalLikes (Method)', () => {
-    for (let i = 0; i < 1000; i++) toNumFast(decimalLikes[i]);
+  test('Optimized (Imported) - Decimals', async ({ bench }) => {
+    await bench('Optimized (Imported) - Decimals', () => {
+      for (let i = 0; i < 1000; i++) toNumFast(decimals[i]);
+    }).run();
+  });
+
+  test('Current - DecimalLikes (Method)', async ({ bench }) => {
+    await bench('Current - DecimalLikes (Method)', () => {
+      for (let i = 0; i < 1000; i++) currentFn(decimalLikes[i]);
+    }).run();
+  });
+  test('Optimized (Imported) - DecimalLikes (Method)', async ({ bench }) => {
+    await bench('Optimized (Imported) - DecimalLikes (Method)', () => {
+      for (let i = 0; i < 1000; i++) toNumFast(decimalLikes[i]);
+    }).run();
   });
 });

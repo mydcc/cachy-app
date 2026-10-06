@@ -1,6 +1,12 @@
 
-import { bench, describe, beforeAll } from 'vitest';
+import { describe, beforeAll, test, vi } from 'vitest';
 import { cryptoService, type EncryptedBlob } from '../services/cryptoService';
+
+// cryptoService reads `browser` from $app/env, not from a global. The window
+// polyfill below therefore never reaches the check that matters: without this
+// mock, encrypt() throws 'CryptoService requires generic Web Crypto API
+// (Secure Context)' and the benchmarks are skipped instead of measured.
+vi.mock('$app/env', () => ({ browser: true }));
 
 // Ensure crypto is available in Node environment
 if (typeof window === 'undefined') {
@@ -52,7 +58,8 @@ describe('Crypto Loop Performance', () => {
         }
     });
 
-    bench('Sequential Encryption (Obfuscation Mode)', async () => {
+    test('Sequential Encryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Sequential Encryption (Obfuscation Mode)', async () => {
         const secrets: Record<string, EncryptedBlob> = {};
         for (const key of SENSITIVE_KEYS) {
             const value = values[key];
@@ -60,9 +67,11 @@ describe('Crypto Loop Performance', () => {
                 secrets[key] = await cryptoService.encrypt(value, deviceKey);
             }
         }
+      }).run();
     });
 
-    bench('Parallel Encryption (Obfuscation Mode)', async () => {
+    test('Parallel Encryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Parallel Encryption (Obfuscation Mode)', async () => {
         const secrets: Record<string, EncryptedBlob> = {};
         await Promise.all(SENSITIVE_KEYS.map(async (key) => {
             const value = values[key];
@@ -70,19 +79,24 @@ describe('Crypto Loop Performance', () => {
                 secrets[key] = await cryptoService.encrypt(value, deviceKey);
             }
         }));
+      }).run();
     });
 
-    bench('Sequential Decryption (Obfuscation Mode)', async () => {
+    test('Sequential Decryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Sequential Decryption (Obfuscation Mode)', async () => {
         const decrypted: Record<string, string> = {};
         for (const [key, blob] of Object.entries(encryptedSecrets)) {
             decrypted[key] = await cryptoService.decrypt(blob, deviceKey);
         }
+      }).run();
     });
 
-    bench('Parallel Decryption (Obfuscation Mode)', async () => {
+    test('Parallel Decryption (Obfuscation Mode)', async ({ bench }) => {
+      await bench('Parallel Decryption (Obfuscation Mode)', async () => {
         const decrypted: Record<string, string> = {};
         await Promise.all(Object.entries(encryptedSecrets).map(async ([key, blob]) => {
             decrypted[key] = await cryptoService.decrypt(blob, deviceKey);
         }));
+      }).run();
     });
 });

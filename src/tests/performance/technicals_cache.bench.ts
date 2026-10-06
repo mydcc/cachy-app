@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { bench, describe, vi } from 'vitest';
+import { describe, vi, test } from 'vitest';
 
 // Mock the Svelte store module to avoid runtime errors
 vi.mock('../../stores/indicator.svelte', () => ({
@@ -106,17 +106,23 @@ const optimizedSettings = structuredClone(mockSettings);
 optimizedSettings._cachedJson = JSON.stringify(mockSettings);
 
 describe('Technicals Cache Key Generation', () => {
-  bench('calculateTechnicals (Fresh Settings Object)', async () => {
-    const freshSettings = structuredClone(mockSettings);
-    await technicalsService.calculateTechnicals(klines, freshSettings);
+  test('calculateTechnicals (Fresh Settings Object)', async ({ bench }) => {
+    await bench('calculateTechnicals (Fresh Settings Object)', async () => {
+      const freshSettings = structuredClone(mockSettings);
+      await technicalsService.calculateTechnicals(klines, freshSettings);
+    }).run();
   });
 
-  bench('calculateTechnicals (Optimized Settings Object)', async () => {
-    const settings = structuredClone(optimizedSettings);
-    await technicalsService.calculateTechnicals(klines, settings);
+  test('calculateTechnicals (Optimized Settings Object)', async ({ bench }) => {
+    await bench('calculateTechnicals (Optimized Settings Object)', async () => {
+      const settings = structuredClone(optimizedSettings);
+      await technicalsService.calculateTechnicals(klines, settings);
+    }).run();
   });
 
-  bench('structuredClone Only', async () => {
-    structuredClone(mockSettings);
+  test('structuredClone Only', async ({ bench }) => {
+    await bench('structuredClone Only', async () => {
+      structuredClone(mockSettings);
+    }).run();
   });
 });

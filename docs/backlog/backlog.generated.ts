@@ -6021,6 +6021,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md"
   },
   {
+    "id": "BUG-0631",
+    "title": "Every benchmark file runs twice because Vitest creates one bench project per inline project",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0631-benchmark-files-run-twice.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -8491,6 +8509,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0629-migrate-to-sveltekit-3.md"
   },
   {
+    "id": "FEAT-0630",
+    "title": "Migrate the test infrastructure to Vitest 5",
+    "type": "feature",
+    "status": "done",
+    "priority": "P2",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0630-migrate-to-vitest-5.md"
+  },
+  {
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
@@ -9526,6 +9563,42 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md"
+  },
+  {
+    "id": "BUG-0632",
+    "title": "The toNumFast benchmark measures a code path that always throws",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md"
+  },
+  {
+    "id": "BUG-0633",
+    "title": "The closeAllPositions benchmark aborts because closing the position reports an error",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0633-closeAllPositions-benchmark-aborts.md"
   },
   {
     "id": "FEAT-0022",
