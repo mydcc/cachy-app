@@ -2,9 +2,9 @@
 
 # Backlog index
 
-505 items. How to read and add them: [README.md](README.md).
+515 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 431 · ⛔ dropped 1
+Counts by status: 💡 idea 37 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 431 · ⛔ dropped 1
 
 ---
 
@@ -559,6 +559,16 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | ui |
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | exchange |
 | [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | ui |
+| [FEAT-0629](features/FEAT-0629-update-sveltejs-adapter-node-to-major-version-6.0.0.md) | Update @sveltejs/adapter-node to major version 6.0.0 | P3 | 💡 idea | deps |
+| [FEAT-0630](features/FEAT-0630-update-sveltejs-kit-to-major-version-3.0.0.md) | Update @sveltejs/kit to major version 3.0.0 | P3 | 💡 idea | deps |
+| [FEAT-0631](features/FEAT-0631-update-types-three-to-major-version-0.186.0.md) | Update @types/three to major version 0.186.0 | P3 | 💡 idea | deps |
+| [FEAT-0632](features/FEAT-0632-update-vitest-ui-to-major-version-5.0.3.md) | Update @vitest/ui to major version 5.0.3 | P3 | 💡 idea | deps |
+| [FEAT-0633](features/FEAT-0633-update-conventional-changelog-conventionalcommits-to-major-version-10.4.1.md) | Update conventional-changelog-conventionalcommits to major version 10.4.1 | P3 | 💡 idea | deps |
+| [FEAT-0634](features/FEAT-0634-update-intl-messageformat-to-major-version-12.1.3.md) | Update intl-messageformat to major version 12.1.3 | P3 | 💡 idea | deps |
+| [FEAT-0635](features/FEAT-0635-update-negotiator-to-major-version-1.1.0.md) | Update negotiator to major version 1.1.0 | P3 | 💡 idea | deps |
+| [FEAT-0636](features/FEAT-0636-update-three-to-major-version-0.186.1.md) | Update three to major version 0.186.1 | P3 | 💡 idea | deps |
+| [FEAT-0637](features/FEAT-0637-update-typescript-to-major-version-7.0.2.md) | Update typescript to major version 7.0.2 | P3 | 💡 idea | deps |
+| [FEAT-0638](features/FEAT-0638-update-vitest-to-major-version-5.0.3.md) | Update vitest to major version 5.0.3 | P3 | 💡 idea | deps |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -1061,6 +1071,16 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0574](features/FEAT-0574-say-when-the-close-pnl-mark-is-derived-not-reported.md) | Say when the close dialog's PnL mark is derived, not reported | P3 | ✅ done | none | community, pro, private | none | ADR-0010 | — |
 | [FEAT-0600](features/FEAT-0600-bitget-mark-klines-on-v2.md) | Serve Bitget mark-price candles from the V2 kline endpoint | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0616](features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md), [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) |
+| [FEAT-0629](features/FEAT-0629-update-sveltejs-adapter-node-to-major-version-6.0.0.md) | Update @sveltejs/adapter-node to major version 6.0.0 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0630](features/FEAT-0630-update-sveltejs-kit-to-major-version-3.0.0.md) | Update @sveltejs/kit to major version 3.0.0 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0631](features/FEAT-0631-update-types-three-to-major-version-0.186.0.md) | Update @types/three to major version 0.186.0 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0632](features/FEAT-0632-update-vitest-ui-to-major-version-5.0.3.md) | Update @vitest/ui to major version 5.0.3 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0633](features/FEAT-0633-update-conventional-changelog-conventionalcommits-to-major-version-10.4.1.md) | Update conventional-changelog-conventionalcommits to major version 10.4.1 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0634](features/FEAT-0634-update-intl-messageformat-to-major-version-12.1.3.md) | Update intl-messageformat to major version 12.1.3 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0635](features/FEAT-0635-update-negotiator-to-major-version-1.1.0.md) | Update negotiator to major version 1.1.0 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0636](features/FEAT-0636-update-three-to-major-version-0.186.1.md) | Update three to major version 0.186.1 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0637](features/FEAT-0637-update-typescript-to-major-version-7.0.2.md) | Update typescript to major version 7.0.2 | P3 | 💡 idea | none | community, pro, private | none | none | — |
+| [FEAT-0638](features/FEAT-0638-update-vitest-to-major-version-5.0.3.md) | Update vitest to major version 5.0.3 | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -1084,4 +1104,4 @@ Counts by status: 💡 idea 27 · 📋 specced 20 · 🟢 ready 22 · 🟡 in-pr
 
 ---
 
-Next free number: **0629**
+Next free number: **0639**
