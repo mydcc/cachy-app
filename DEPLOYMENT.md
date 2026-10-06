@@ -590,12 +590,11 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 
 ### Production Monitor Reports Missing Security Headers or Low Performance Score
 
-If `./scripts/jules/monitor-production.sh` or the daily automated production monitor reports missing security headers (e.g., `Strict-Transport-Security`, `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) or a low Lighthouse performance score:
+If `./scripts/jules/monitor-production.sh` or the daily automated production monitor reports missing security headers (e.g., `Strict-Transport-Security`, `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) or a low Lighthouse performance score (e.g., Score 29 < threshold 70):
 
 1. **Missing Security Headers behind Nginx / aaPanel:**
-   - In Nginx, an `add_header` directive inside a `location /` block overrides and suppresses all `add_header` directives defined at the `server` level.
-   - If aaPanel's site configuration has `location /` with `add_header X-Cache ...`, Nginx drops server-level security headers.
-   - **Fix:** Copy all security headers directly into the `location /` block in aaPanel / Nginx configuration, ensuring each includes `always`:
+   - **Root Cause:** In Nginx, if an `add_header` directive is defined inside a `location /` block (e.g., aaPanel's auto-generated `add_header X-Cache ...`), Nginx completely ignores and suppresses all `add_header` directives configured at the parent `server` block level.
+   - **Fix:** Place all required security headers directly inside the `location /` block in the Nginx site configuration, ensuring each includes the `always` flag so headers apply to error responses as well:
      ```nginx
      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://s.cachy.app blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://s.cachy.app; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-src 'self' https://space.cachy.app https://s.cachy.app https: blob: data:; frame-ancestors 'self'; connect-src 'self' https: https://s.cachy.app https://chat.cachy.app wss://chat.cachy.app https://*.cachy.app wss://*.cachy.app wss://fapi.bitunix.com wss://stream.bitunix.com wss://ws.bitget.com https://api.imgbb.com https://discord.com https://api.telegram.org https://api.mailgun.net https://generativelanguage.googleapis.com https://api.openai.com" always;
@@ -610,7 +609,8 @@ If `./scripts/jules/monitor-production.sh` or the daily automated production mon
    - Confirm that aaPanel's Node project Run Command is set to `node --env-file=.env server.js` (or `node build/index.js`, which delegates to `server.js` via `scripts/postbuild.mjs`). A bare unpatched `node build/index.js` (or any direct adapter-node entry) skips Express compression and security header middleware.
 
 3. **Lighthouse Performance Score Below Threshold:**
-   - Ensure Gzip compression is enabled in Nginx `location /` or `server` block:
+   - **Root Cause:** When Nginx reverse proxying is active without Gzip/Brotli compression enabled at the Nginx layer, response payloads (JS/CSS/fonts) are transmitted uncompressed to clients, severely degrading First Contentful Paint (FCP) and Lighthouse performance scores (down to ~29).
+   - **Fix:** Ensure Gzip compression is enabled in the Nginx `location /` or `server` block:
      ```nginx
      gzip on;
      gzip_comp_level 6;
