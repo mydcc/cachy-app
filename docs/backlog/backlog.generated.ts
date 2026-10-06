@@ -9601,6 +9601,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0633-closeAllPositions-benchmark-aborts.md"
   },
   {
+    "id": "BUG-0639",
+    "title": "conventional-changelog-conventionalcommits 10 cannot render with the installed writer",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0639-changelog-preset-needs-newer-writer.md"
+  },
+  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
