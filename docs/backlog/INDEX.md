@@ -2,9 +2,9 @@
 
 # Backlog index
 
-515 items. How to read and add them: [README.md](README.md).
+517 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 435 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 437 · ⛔ dropped 1
 
 ---
 
@@ -531,6 +531,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | 📋 specced | deps |
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | deps |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | 📋 specced | deps |
+| [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | deps |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -569,6 +570,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | ui |
 | [FEAT-0634](features/FEAT-0634-upgrade-jsdom-to-30.md) | Upgrade jsdom to 30 and keep it a production dependency | P3 | ✅ done | deps |
 | [FEAT-0635](features/FEAT-0635-upgrade-three-to-0186.md) | Upgrade three to 0.186 and the matching type definitions | P3 | ✅ done | deps |
+| [FEAT-0641](features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md) | Upgrade katex to 0.19 once marked-katex-extension allows it | P3 | ✅ done | deps |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -1038,6 +1040,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -1081,6 +1084,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0618](features/FEAT-0618-entry-point-registry-and-window-manager-scope.md) | Define the entry-point registry and align the window manager scope with a reference | P3 | 📋 specced | none | community, pro, private | none | none | [FEAT-0616](features/FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md), [FEAT-0617](features/FEAT-0617-turn-sidebar-width-into-a-token-and-allow-resizing.md) |
 | [FEAT-0634](features/FEAT-0634-upgrade-jsdom-to-30.md) | Upgrade jsdom to 30 and keep it a production dependency | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0635](features/FEAT-0635-upgrade-three-to-0186.md) | Upgrade three to 0.186 and the matching type definitions | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [FEAT-0641](features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md) | Upgrade katex to 0.19 once marked-katex-extension allows it | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
@@ -1104,4 +1108,4 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 
 ---
 
-Next free number: **0639**
+Next free number: **0642**
