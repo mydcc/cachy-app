@@ -15,6 +15,8 @@ import adapter from "@sveltejs/adapter-node";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { svelte, vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, configDefaults } from "vitest/config";
+// `loadEnv` is not re-exported by vitest/config, so it comes from vite itself.
+import { loadEnv } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import { cspDirectives } from "./src/config/cspDirectives.ts";
 
@@ -124,8 +126,19 @@ export default defineConfig({
           // reverse proxy (replaces adapter-node's removed ORIGIN variable —
           // see DEPLOYMENT.md §7). Unset (e.g. CI builds) falls back to the
           // request-derived origin via host headers.
+          // SvelteKit 3 reads ORIGIN at BUILD time, but Vite never merges .env
+          // files into `process.env` — only `loadEnv()` does. Our deploy flow
+          // copies `.env` into the shadow build dir and runs `npm run build`
+          // without exporting it, so without this call ORIGIN would silently
+          // stay unset and the canonical CSRF origin would degrade to the Host
+          // request header.
           paths: {
-            ...(process.env.ORIGIN ? { origin: process.env.ORIGIN } : {}),
+            ...(() => {
+              const origin =
+                process.env.ORIGIN ??
+                loadEnv(process.env.NODE_ENV ?? "production", process.cwd(), "ORIGIN").ORIGIN;
+              return origin ? { origin } : {};
+            })(),
           },
           csp: {
             mode: "auto",
@@ -237,26 +250,51 @@ export default defineConfig({
                   // `codeSplitting` is specified (WARN in the client build).
                   // Groups merge with Kit's own `sveltekit-manifest` group.
                   codeSplitting: {
+                    // Every vendor group is pinned to `node_modules/<pkg>/`.
+                    // Bare package-name regexes also match first-party paths —
+                    // `/three/` alone swallowed `src/lib/three/*` and
+                    // `ThreeBackground.svelte` into `three-vendor`.
                     groups: [
-                      { name: "three-vendor", test: /three/ },
-                      { name: "chart-vendor", test: /chart\.js|chartjs-/ },
-                      { name: "markdown-vendor", test: /katex|marked/ },
+                      {
+                        name: "three-vendor",
+                        test: /node_modules[\\/]three[\\/]/,
+                      },
+                      {
+                        name: "chart-vendor",
+                        test: /node_modules[\\/](chart\.js|chartjs-[^\\/]+)[\\/]/,
+                      },
+                      {
+                        name: "markdown-vendor",
+                        test: /node_modules[\\/](katex|marked|marked-katex-extension)[\\/]/,
+                      },
                       {
                         name: "ai-vendor",
-                        test: /@google\/generative-ai|openai/,
+                        test: /node_modules[\\/](@google[\\/]generative-ai|openai)[\\/]/,
                       },
                       {
                         name: "i18n-vendor",
-                        test: /svelte-i18n|intl-messageformat/,
+                        test: /node_modules[\\/](svelte-i18n|intl-messageformat)[\\/]/,
                       },
-                      { name: "dompurify-vendor", test: /dompurify/ },
-                      { name: "zod-vendor", test: /zod/ },
-                      { name: "lodash-vendor", test: /lodash-es/ },
+                      {
+                        name: "dompurify-vendor",
+                        test: /node_modules[\\/]dompurify[\\/]/,
+                      },
+                      {
+                        name: "zod-vendor",
+                        test: /node_modules[\\/]zod[\\/]/,
+                      },
+                      {
+                        name: "lodash-vendor",
+                        test: /node_modules[\\/]lodash-es[\\/]/,
+                      },
                       {
                         name: "charts-vendor",
-                        test: /lightweight-charts/,
+                        test: /node_modules[\\/]lightweight-charts[\\/]/,
                       },
-                      { name: "spacetimedb-vendor", test: /spacetimedb/ },
+                      {
+                        name: "spacetimedb-vendor",
+                        test: /node_modules[\\/]spacetimedb[\\/]/,
+                      },
                       // Catch-all for the rest of node_modules — except the
                       // Kit client runtime: grouping entry.js together with
                       // its dynamic import client-entry.js would erase the

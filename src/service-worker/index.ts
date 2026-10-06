@@ -16,18 +16,29 @@
  */
 
 /// <reference types="@sveltejs/kit" />
-/// <reference lib="webworker" />
 import { version } from "$app/env";
 import { assets, immutable } from "$app/manifest";
-
-declare const self: ServiceWorkerGlobalScope;
+import { asset } from "$app/paths";
+import { self } from "$app/service-worker";
+import type { AssetPath } from "$app/types";
 
 // Create a unique cache name for this deployment
 const CACHE = `cache-${version}`;
 
-const ASSETS = [
-  ...immutable.map((entry) => entry.path), // the app itself
-  ...assets.map((entry) => entry.path), // everything in `static`
+// `$app/manifest` paths are relative to the base path ("_app/…", "robots.txt"),
+// while `url.pathname` in the fetch handler is absolute ("/_app/…"). Comparing
+// them raw makes every `ASSETS.includes(...)` below miss, which silently kills
+// cache-first for immutable assets. `asset()` is the path-prefixing helper for
+// files; the SvelteKit docs show `resolve()` here, but that one is typed for
+// route IDs and rejects a union of asset paths outright.
+//
+// Typed as `string[]` on purpose: the helpers return narrow literal unions,
+// which would make `includes(url.pathname)` a type error. The `immutable` cast
+// is needed because Kit types those Vite output paths as plain `string` while
+// `asset()` only accepts the `AssetPath` union of files in `static`.
+const ASSETS: string[] = [
+  ...immutable.map((entry) => asset(entry.path as AssetPath)), // the app itself
+  ...assets.map((entry) => asset(entry.path)), // everything in `static`
 ];
 
 self.addEventListener("install", (event) => {

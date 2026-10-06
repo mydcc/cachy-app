@@ -22,9 +22,7 @@
   ],
   "exclude": [
     "node_modules/**",
-    "src/service-worker.js",
-    "src/service-worker.ts",
-    "src/service-worker.d.ts",
+    "src/service-worker",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
     "src/tests/**",

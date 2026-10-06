@@ -467,7 +467,7 @@ XFF_DEPTH=1
 > [ADR-0002's BUG-0052 amendment](docs/adr/0002-api-authentication-fails-closed.md)).
 > There is no deployment-wide token to configure or leak.
 
-_Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions. Since SvelteKit 3 it is consumed at **build** time (`paths.origin` in `vite.config.ts`, read from `process.env.ORIGIN`), not by the running server — so `.env` must be present when `npm run build` executes (the §6 shadow build copies the tree including `.env`). If `ORIGIN` is unset at build time, the origin falls back to request headers; behind a proxy that forwards them, set `PROTOCOL_HEADER=x-forwarded-proto` and `HOST_HEADER=x-forwarded-host` at runtime instead._
+_Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to resolve `event.url` and to pass its cross-origin check on form submissions. Since SvelteKit 3 it is consumed at **build** time, not by the running server: `vite.config.ts` passes it to SvelteKit as `paths.origin`. Vite does not put `.env` files into `process.env`, so the config reads it via `loadEnv()` — which works because the §6 shadow build copies the tree (including `.env`) into `.deploy_work` before `npm run build` runs. If `.env` is missing at build time, the origin falls back to the request's Host header instead of the pinned value, so a directly reachable instance could spoof it; keep `.env` present for builds, or export `ORIGIN` in the environment._
 
 > ⚠️ **`ADDRESS_HEADER`/`XFF_DEPTH` matter as soon as any per-IP rate limit is
 > in play** (`/api/auth/token`, `checkClientToken` — see
