@@ -522,20 +522,38 @@ async function fetchBitgetKlines(
   start?: number,
   end?: number,
 ) {
-  // Bitget Granularity: 1m, 5m, 15m, 30m, 1H, 4H, 12H, 1D, 1W
-  // V2 takes the same names and rejects the lowercase spellings with 400171,
-  // so this mapping carries over unchanged from V1.
+  // Bitget granularities, verified live 2026-10-07 (unauthenticated V2):
+  // 1m, 3m, 5m, 15m, 30m, 1H, 4H, 6H, 12H, 1D, 1W, 1M serve `00000`;
+  // every other spelling the chart offers (2m, 6m, 9m, 10m, 12m, 24m, 27m,
+  // 45m, 2h, 8h, 3d, …) answers `400171`, including the lowercase hour forms
+  // (`6h`, `12h`) — V2 takes the same names V1 did and rejects the lowercase
+  // spellings, so this mapping carries over unchanged from V1.
+  //
+  // Anything not in this map is refused here, before a request exists, rather
+  // than letting the venue's `400171` escape as a chart error (BUG-0576). An
+  // unrecognised spelling is a caller bug, not a venue limitation, and a
+  // request the venue can only reject is an upstream call spent learning
+  // nothing. Deliberately no case-folding: `1M` and `1m` differ by case alone.
   const map: Record<string, string> = {
     "1m": "1m",
+    "3m": "3m",
     "5m": "5m",
     "15m": "15m",
     "30m": "30m",
     "1h": "1H",
     "4h": "4H",
+    "6h": "6H",
+    "12h": "12H",
     "1d": "1D",
     "1w": "1W",
+    "1M": "1M",
   };
-  const mappedInterval = map[interval] || interval;
+  const mappedInterval = map[interval];
+  if (!mappedInterval) {
+    throw new Error(
+      `Bitget does not serve granularity "${interval}"; served: ${Object.keys(map).join(", ")}`,
+    );
+  }
 
   const params: Record<string, string> = {
     symbol: bitgetV2Symbol(symbol),
@@ -596,7 +614,7 @@ async function fetchBitgetKlines(
   }
 
   // Optimize: Return plain strings
-  return rows
+  const candles = rows
     .map((k: BitgetCandleTuple) => ({
       timestamp: parseInt(String(k[0])),
       open: k[1],
@@ -606,6 +624,19 @@ async function fetchBitgetKlines(
       volume: k[5], // base volume
     }))
     .sort((a, b) => a.timestamp - b.timestamp);
+
+  // A short series is observable rather than silent: when the venue returns
+  // fewer rows than requested on an unbounded fetch, that is logged the way
+  // the Bitunix path logs it, instead of being reported as a complete fetch
+  // (BUG-0576). Bounded ranges legitimately return fewer rows, so only the
+  // unbounded case logs.
+  const sentLimit = params.limit === undefined ? undefined : parseInt(params.limit);
+  if (!start && !end && sentLimit !== undefined && candles.length < sentLimit) {
+    console.warn(
+      `[Klines] Bitget returned ${candles.length} of ${sentLimit} requested candles for ${symbol} ${mappedInterval} — short series, not a complete fetch`,
+    );
+  }
+  return candles;
 }
 
 // --- Positions ---
