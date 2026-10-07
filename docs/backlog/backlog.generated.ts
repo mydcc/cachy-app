@@ -10603,7 +10603,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0642",
     "title": "Remove the orphaned intl-messageformat dependency instead of upgrading it",
     "type": "feature",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P3",
     "assignee": "opencode",
     "milestone": "none",
