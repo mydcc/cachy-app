@@ -92,6 +92,9 @@ vi.mock("../../services/orderPlacementService", () => ({
 // this the control case places nothing and every stale case passes for the
 // wrong reason.
 const showMock = vi.hoisted(() => vi.fn(async () => true));
+// Assertable: the refusal the trader actually sees is the guard's only
+// observable behaviour, so no stale case may pass without checking it.
+const showErrorMock = vi.hoisted(() => vi.fn());
 vi.mock("../../stores/modal.svelte", () => ({ modalState: { show: showMock } }));
 
 /**
@@ -110,12 +113,18 @@ const split = vi.hoisted(() => ({
         stop: "58000",
         positionSize: "0.5",
         requiredMargin: "1000",
+        leverage: "10",
+        accountSize: "10000",
+        risk: "1",
     },
     inputs: {
         symbol: "BTCUSDT",
         tradeType: "long",
         entry: "60000",
         stop: "58000",
+        leverage: "10",
+        accountSize: "10000",
+        risk: "1",
     },
     /** Legs travel with the order, so a deleted leg is stale too. */
     calculatedTargets: [] as string[],
@@ -140,7 +149,13 @@ vi.mock("../../stores/trade.svelte", () => ({
             return split.inputTargets.map((price) => ({ price, percentage: 100 }));
         },
         get leverage() {
-            return "10";
+            return split.inputs.leverage;
+        },
+        get accountSize() {
+            return split.inputs.accountSize;
+        },
+        get riskPercentage() {
+            return split.inputs.risk;
         },
         get remoteMarginMode() {
             return "CROSSED";
@@ -214,7 +229,7 @@ vi.mock("../../services/exchange", () => ({
 vi.mock("../../services/toastService.svelte", () => ({
     toastService: { error: vi.fn(), success: vi.fn() },
 }));
-vi.mock("../../stores/ui.svelte", () => ({ uiState: { showError: vi.fn() } }));
+vi.mock("../../stores/ui.svelte", () => ({ uiState: { showError: showErrorMock } }));
 
 function lookup(key: string): string {
     return key
@@ -259,6 +274,14 @@ beforeEach(() => {
     split.inputs.stop = "58000";
     split.calculatedTargets = [];
     split.inputTargets = [];
+    split.inputs.leverage = "10";
+    split.inputs.accountSize = "10000";
+    split.inputs.risk = "1";
+    // Symbol and direction too: leaving them out lets "symbol changed" leak into
+    // every later case and fail them for the wrong reason — the same trap as the
+    // false green, wearing the other face.
+    split.inputs.symbol = "BTCUSDT";
+    split.inputs.tradeType = "long";
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -283,10 +306,38 @@ async function submit() {
     await settle();
 }
 
+/**
+ * A refused submit has two observable effects and a case is only honest if it
+ * checks both: nothing was sent, *and* the trader was told why. Asserting only
+ * the first passes just as well when the button was disabled, the metadata was
+ * missing or the dialog rejected — none of which is this guard.
+ */
+function expectRefusal() {
+    expect(placeEntryGroupMock).not.toHaveBeenCalled();
+    expect(showErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining("Nothing was sent"),
+    );
+}
+
 describe("BUG-0648 — a submit may not send what the inputs no longer state", () => {
-    it("places when the calculation still matches the inputs", async () => {
+    it("places what the calculation says, and sends exactly that", async () => {
         await submit();
+
         expect(placeEntryGroupMock).toHaveBeenCalledTimes(1);
+        // Not just "something was sent": for a guard whose whole job is "do not
+        // send the wrong numbers", the payload is the contract.
+        const plan = placeEntryGroupMock.mock.calls[0][0] as Record<string, unknown>;
+        expect(plan.symbol).toBe("BTCUSDT");
+        expect(plan.tradeType).toBe("long");
+        expect((plan.entryPrice as Decimal).toString()).toBe("60000");
+        expect((plan.stopLossPrice as Decimal).toString()).toBe("58000");
+        expect((plan.qty as Decimal).toString()).toBe("0.5");
+        // Not "no error at all": the placement mock returns undefined, which the
+        // panel reports as `entryRejected`. What must be absent is the guard's
+        // own message — an unrelated refusal must not read as the guard firing.
+        expect(showErrorMock).not.toHaveBeenCalledWith(
+            expect.stringContaining("Nothing was sent"),
+        );
     });
 
     it("does not place when the stop was cleared but the calculation still holds one", async () => {
@@ -296,7 +347,7 @@ describe("BUG-0648 — a submit may not send what the inputs no longer state", (
 
         await submit();
 
-        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expectRefusal();
     });
 
     it("does not place when the entry price moved and the calculation still holds the old one", async () => {
@@ -304,7 +355,44 @@ describe("BUG-0648 — a submit may not send what the inputs no longer state", (
 
         await submit();
 
-        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expectRefusal();
+    });
+
+    it("does not place when the direction changed under a stale calculation", async () => {
+        split.inputs.tradeType = "short";
+
+        await submit();
+
+        expectRefusal();
+    });
+
+    it("does not place when the symbol changed under a stale calculation", async () => {
+        split.inputs.symbol = "ETHUSDT";
+
+        await submit();
+
+        expectRefusal();
+    });
+
+    /*
+     * The three scalars `positionSize` is a function of. Guarding the stop alone
+     * left the same defect one field over: change leverage and the frozen size
+     * goes out against the old leverage.
+     */
+    it("does not place when the leverage changed and the calculation froze the size", async () => {
+        split.inputs.leverage = "20";
+
+        await submit();
+
+        expectRefusal();
+    });
+
+    it("does not place when the account size changed under a stale calculation", async () => {
+        split.inputs.accountSize = "20000";
+
+        await submit();
+
+        expectRefusal();
     });
 
     it("does not place when a take-profit leg was deleted but the calculation holds it", async () => {
@@ -313,23 +401,67 @@ describe("BUG-0648 — a submit may not send what the inputs no longer state", (
 
         await submit();
 
-        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expectRefusal();
+    });
+
+    /*
+     * Order is part of what gets sent — `submit()` builds `takeProfits` from
+     * `data.targets` in order. Comparing only the count would call a reorder
+     * "unchanged", so this case owns the per-index comparison.
+     */
+    it("does not place when two take-profit legs were reordered", async () => {
+        split.calculatedTargets = ["65000", "70000"];
+        split.inputTargets = ["70000", "65000"];
+
+        await submit();
+
+        expectRefusal();
     });
 
     it("places when the legs match, so the guard is not refusing every order", async () => {
-        split.calculatedTargets = ["65000"];
-        split.inputTargets = ["65000"];
+        split.calculatedTargets = ["65000", "70000"];
+        split.inputTargets = ["65000", "70000"];
 
         await submit();
 
         expect(placeEntryGroupMock).toHaveBeenCalledTimes(1);
     });
 
-    it("does not place when the symbol changed under a stale calculation", async () => {
-        split.inputs.symbol = "ETHUSDT";
+    /*
+     * `TradeTargetSchema.price` carries no numeric refine
+     * (`trade.svelte.ts:159`), so a leg price can hold any string. With the raw
+     * constructor this throws inside a `$derived` — which does not merely refuse
+     * the click, it takes the panel down on every re-evaluation. Refusing is the
+     * right outcome; crashing is not available as one.
+     */
+    it("refuses an unreadable leg price instead of throwing inside the derived", async () => {
+        split.calculatedTargets = ["65000"];
+        split.inputTargets = ["abc"];
 
         await submit();
 
-        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expectRefusal();
+    });
+
+    /*
+     * The calculator skips the store write-back below this delta and assigns
+     * `currentTradeData` anyway (`calculatorService.ts:429`), so `data` can hold
+     * a stop the store never received. Comparing exactly would refuse that order
+     * forever with no input that helps — a dead end of its own.
+     */
+    it("places when the stop differs only by the delta the calculator ignores", async () => {
+        split.inputs.stop = "58000.0000005";
+
+        await submit();
+
+        expect(placeEntryGroupMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not place when the stop differs by more than that delta", async () => {
+        split.inputs.stop = "58000.00001";
+
+        await submit();
+
+        expectRefusal();
     });
 });

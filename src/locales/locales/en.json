@@ -2353,9 +2353,9 @@
         "cacheSummary": "Hits {hits} · Misses {misses} · {hitRate}% hit rate",
         "noUncachedYet": "No uncached calculations yet — interact with the chart or run the benchmark.",
         "panelTitle": "⚡ Engine Debug Panel",
-      "aria": {
-        "recentHistoryToggle": "Recent History — show or hide"
-      }
+        "aria": {
+          "recentHistoryToggle": "Recent History — show or hide"
+        }
       }
     },
     "performance": {
@@ -4472,7 +4472,7 @@
       "targetMissing": "The entry and its stop are in place, but the take-profit is not.",
       "tradingUnavailable": "Trading is unavailable for this symbol.",
       "metadataLoading": "Loading trading pair details...",
-      "staleCalculation": "The order no longer matches what you entered — a price or the stop changed after the last calculation, or the inputs no longer add up. Nothing was sent. Re-enter the entry and stop, then try again.",
+      "staleCalculation": "Nothing was sent. The figures above come from an earlier calculation that no longer matches the entry, stop, targets or leverage now set in the form. Check those inputs before sending an order.",
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max}).",
       "accountUnverified": "Credentials unverified — the private account is still being checked.",

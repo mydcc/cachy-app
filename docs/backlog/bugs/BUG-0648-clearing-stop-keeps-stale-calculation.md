@@ -151,13 +151,17 @@ designed around it.
 ## Resolution, first half — the money path is closed
 
 `submit()` now refuses before anything is built when `data` and the form
-disagree: entry price, stop, take-profit legs, symbol and direction. It says so
-(`orderEntry.errors.staleCalculation`) and sends nothing.
+disagree — and "the form" means every field the calculation consumes: account
+size, risk percentage, entry price, stop, leverage and the take-profit legs,
+plus symbol and direction. It says so (`orderEntry.errors.staleCalculation`) and
+sends nothing.
 
 The guard belongs here and not in the gate because the gate compares the payload
 against the intent and **both are built from `data`**. It cannot see a
 disagreement that exists inside the one object it trusts. Everywhere else the
 gate is the right place; this is the exception, and the reason is structural.
+`orderGate.ts:1872` shows the same blindness for leverage: it compares
+`payload.leverage` with `displayed.leverage`, and both arrive from `data`.
 
 ### One rule that had to be sharpened
 
@@ -175,7 +179,62 @@ partial mock as a withdrawal.
 Worth recording because the broken version would have been invisible in
 production and would have failed at the next refactor instead.
 
+### What the review changed
+
+A reviewer read the first version and was right about the gap that mattered most:
+the guard covered the fields that had occurred to me and not the fields that feed
+the calculation. `positionSize` and `requiredMargin` are functions of account
+size, risk percentage, entry price, stop, leverage and fees
+(`calculatorService.ts:478-492`), so guarding four of those six was BUG-0648 one
+field over — change the leverage and the frozen size went out against the old
+one. The three scalars are guarded now.
+
+Three more findings, all confirmed by reading the code rather than taking the
+review on trust:
+
+- **`new Decimal()` unguarded.** `TradeTargetSchema.price` carries no numeric
+  refine (`trade.svelte.ts:159`), so any string can reach the comparison. A throw
+  inside a `$derived` does not refuse the click, it breaks the panel on every
+  re-evaluation — the auto-update ticker would take it down. `parseDecimal`, which
+  the calculator uses on these exact fields, was already imported.
+- **Exact comparison where the calculator has a tolerance.** It skips the store
+  write-back when the derived stop moved less than `0.000001`
+  (`calculatorService.ts:429`) and assigns `currentTradeData` anyway, so `data`
+  can hold a stop the store never received. Comparing exactly refused that order
+  forever with no input that helps. Both now share one named delta. The gate's
+  own `decimalsAgree` could not be borrowed for this — it is `a.eq(b)`, exact.
+- **The message sent the trader into the dead end.** It said "re-enter the entry
+  and stop", which on Bitget is what the gate had just told them not to do. It
+  now describes the state — the figures come from an earlier calculation — and
+  names what is compared, without prescribing an input.
+
+One more, found while fixing: the test fixture never reset `symbol` and
+`tradeType`, so the case that changes them leaked into every later case and failed
+them for the wrong reason. The false-green trap has a second face.
+
 ### Verification
+
+- Thirteen cases in `PlaceOrderPanel.staleSubmit.component.test.ts`, driving
+  `currentTradeData` and the form inputs apart by hand.
+- **The control case came first and caught a false green.** The first three cases
+  passed immediately because my modal mock never resolved, so nothing was ever
+  placed — and "nothing was placed" was what each stale case expected. A case
+  asserting a *successful* placement exposed it. A guard that cannot fail is worse
+  than no guard.
+- **Every refusal case asserts two things**: that nothing was sent *and* that the
+  guard's own message was shown. Asserting only the first passes just as well when
+  the button was disabled or the dialog rejected — neither of which is this guard.
+- **The control asserts the payload**, not just the call count. For a guard whose
+  whole job is "do not send the wrong numbers", the numbers are the contract.
+- **Mutation, one branch at a time.** Removing the leverage comparison, the
+  account-size comparison, the tolerance or `parseDecimal` each fails exactly one
+  case and leaves the other twelve green. A branch that only stays green because
+  of a different one is not pinned.
+- 153 tests across `src/components/results/`, `orderGate.capabilities` and
+  `tradeService_placeOrder`. `npm run check` clean for every file touched; the one
+  remaining error (`marketWatcher.bench.ts`, `Property 'bench' does not exist on
+  type 'TestContext'`) and all six warnings are pre-existing in files this does not
+  touch.
 
 - Six cases in `PlaceOrderPanel.staleSubmit.component.test.ts`, driving
   `currentTradeData` and the form inputs apart by hand.
@@ -214,6 +273,12 @@ zero — `currentTradeData` has exactly two readers outside the store:
 - `PlaceOrderPanel.svelte:143` — the only consumer of the values
 - `app.ts:203` — already null-safe (`?.positionSize?.gt(0)`), and refusing with
   `errors.invalidTrade` is the right answer when there is no valid calculation
+
+One caller is outside this panel: the alert engine places through the same
+service (`stores/alerts.svelte.ts:300`), which is why the guard could not simply
+move down into `orderPlacementService`. That path builds its plan from market
+state rather than from a form, so the stale-form hazard is specific to the panel —
+but a service-level check remains the stricter home if the inputs ever grow.
 
 So nulling it on a refused calculation appears to be safe; what is undecided is
 whether blanking the summary is the behaviour a trader wants. `BUG-0649` is the
