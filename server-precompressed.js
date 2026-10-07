@@ -88,11 +88,24 @@ export function buildPrecompressedIndex(dir, prefix = '', into = new Map()) {
 /**
  * Decide which precompressed variant to serve for a request, if any.
  *
- * Uses negotiator (already in the tree via `compression`) so the full
- * Accept-Encoding grammar is honoured: q-values, `*`, and crucially q=0, which
- * means "explicitly not acceptable". A substring test like
- * `acceptEncoding.includes("br")` matches "br;q=0" and would send a body the
- * client just refused to accept.
+ * Uses negotiator so the full Accept-Encoding grammar is honoured: q-values,
+ * `*`, and crucially q=0, which means "explicitly not acceptable". A substring
+ * test like `acceptEncoding.includes("br")` matches "br;q=0" and would send a
+ * body the client just refused to accept.
+ *
+ * The second argument to `encoding()` is an *options object* since
+ * negotiator 1.0, not a plain preference array. Passing the array still
+ * "works" — an Array has no `.preferred`, so the preference silently becomes
+ * undefined — but then q-value ties are resolved by spec specificity instead
+ * of by our own variant order, and Chrome's `gzip, deflate, br` would get gzip.
+ * Hence `{ preferred: variants }`.
+ *
+ * The preference is `Object.keys(available)`, i.e. the order the variants were
+ * first seen in `buildPrecompressedIndex`, which is `readdir` order and
+ * therefore not guaranteed. On ext4 that yields `.br` before `.gz`, so brotli
+ * wins ties; that is the behaviour this has always had, and the upgrade keeps
+ * it rather than introducing a new one. Making it explicit from VARIANTS would
+ * be a separate change, not part of a dependency bump.
  * @param {string} indexKey request path, e.g. "/_app/immutable/x.js"
  * @param {PrecompressedIndex} index
  * @param {import('negotiator').IncomingMessageWithHeaders} req
@@ -102,10 +115,8 @@ export function selectVariant(indexKey, index, req) {
   const available = index.get(indexKey);
   if (available === undefined) return null;
 
-  const chosen = new Negotiator(req).encoding(
-    Object.keys(available),
-    Object.keys(available),
-  );
+  const variants = Object.keys(available);
+  const chosen = new Negotiator(req).encoding(variants, { preferred: variants });
   if (chosen === false || !Object.hasOwn(available, chosen)) return null;
 
   return { suffix: available[chosen], encoding: chosen };
