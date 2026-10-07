@@ -151,6 +151,22 @@ jobs:
       - name: Validate backlog front matter
         run: npm run backlog:check
 
+      # A PR that opens a *new* backlog item can leave it `in-progress`
+      # forever. check-backlog-flip.ts only fires when a PR closes an issue
+      # whose label names the item, and a brand-new item has no issue yet —
+      # FEAT-0643 and FEAT-0644 both shipped and stayed claimed for a whole
+      # session that way, their PRs carrying [no issue] so the flip check had
+      # nothing to fire on. `in-progress` is correct while such a PR is open,
+      # so nothing running before the merge can notice. This one reads the
+      # merged state instead: an item still claimed whose branch has a merged
+      # PR is a claim nobody is honouring, and AGENTS.md stops every other
+      # agent from touching it meanwhile.
+      - name: Flag in-progress items whose branch already merged
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run backlog:check:stale
+
       # No bots: a PR that touches files under docs/backlog/ must carry the
       # regenerated index (INDEX.md + backlog.generated.*) itself — nothing
       # regenerates it after the merge anymore. BUG-0225 (per-PR index churn

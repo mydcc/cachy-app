@@ -2,7 +2,7 @@
 id: BUG-0598
 title: "The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles"
 type: bug
-status: in-progress
+status: ready
 priority: P1
 milestone: none
 created: "2026-09-30"
@@ -11,11 +11,12 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [BUG-0581]
-assignee: opencode
 branch: fix/bug-0598-ws-public-v2
 ---
 
 # Migrate the Bitget WebSocket from the V1 stream to the V2 public/private pair
+
+> **State note.** Blocked on **IDEA-0620** — the trader test protocol. The code work is landed (see the merged PR for this item's branch); what is missing is live verification against the exchange, which needs a human with API keys. No agent can close that.
 
 Step 4 of [BUG-0576](BUG-0576-bitget-v1-api-decommissioned.md), filed on its
 own because it is a lifecycle change rather than a path rewrite.

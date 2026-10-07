@@ -2,7 +2,7 @@
 id: BUG-0597
 title: "Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made"
 type: bug
-status: in-progress
+status: ready
 priority: P0
 milestone: none
 created: "2026-09-30"
@@ -11,11 +11,12 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [BUG-0596, BUG-0580]
-assignee: opencode
 branch: docs/bug-0597-remove-demo-key-narrative
 ---
 
 # Migrate the Bitget order write paths to V2
+
+> **State note.** Blocked on **IDEA-0620** — the trader test protocol. The code work is landed (see the merged PR for this item's branch); what is missing is live verification against the exchange, which needs a human with API keys. No agent can close that.
 
 Row 1 and 4 of the mapping table in
 [`docs/bitget-api/09_v1_vs_v2.md`](../../bitget-api/09_v1_vs_v2.md), split out of

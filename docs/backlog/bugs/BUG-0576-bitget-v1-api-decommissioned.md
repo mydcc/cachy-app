@@ -2,7 +2,7 @@
 id: BUG-0576
 title: "Bitget integration calls the decommissioned V1 API, so every signed REST call fails"
 type: bug
-status: in-progress
+status: ready
 priority: P0
 area: exchange
 created: "2026-09-28"
@@ -11,11 +11,12 @@ editions: ["community", "pro", "private"]
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
 branch: fix/bitget-v2-market-data
 ---
 
 # Migrate the Bitget integration from the decommissioned V1 API to V2
+
+> **State note.** Blocked on **IDEA-0620** — the trader test protocol. The code work is landed (see the merged PR for this item's branch); what is missing is live verification against the exchange, which needs a human with API keys. No agent can close that.
 
 ## Progress — 2026-10-03: there is a third generation, and Cachy cannot reach it
 
