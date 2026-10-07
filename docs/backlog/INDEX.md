@@ -4,7 +4,15 @@
 
 527 items. How to read and add them: [README.md](README.md).
 
+<<<<<<< HEAD
 Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 450 · ⛔ dropped 1
+=======
+<<<<<<< HEAD
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 26 · ✅ done 450 · ⛔ dropped 1
+=======
+Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 27 · 🟡 in-progress 1 · ✅ done 448 · ⛔ dropped 1
+>>>>>>> d67f93ca0 (refactor(trade): split four domains out of tradeService)
+>>>>>>> dbd66d33f (refactor(trade): split four domains out of tradeService)
 
 ---
 
@@ -441,7 +449,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 4
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | ui |
 | [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | ui |
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 🟢 ready | ui |
-| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | ui |
+| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 🟡 in-progress | ui |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | ui |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | ✅ done | ui |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | ✅ done | calculation |
@@ -943,7 +951,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 4
 | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) | Core Utility Upgrade | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0337](features/FEAT-0337-design-token-foundation.md) |
 | [FEAT-0340](features/FEAT-0340-component-style-migration.md) | Component Style Migration | P2 | ✅ done | none | community, pro, private | none | none | [FEAT-0338](features/FEAT-0338-core-utility-upgrade.md) |
 | [FEAT-0341](features/FEAT-0341-epic-codebase-modernization.md) | Epic: Q3 Codebase Modernization & Tech Debt | P2 | 🟢 ready | none | community, pro, private | none | none | — |
-| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [FEAT-0342](features/FEAT-0342-decompose-god-modules.md) | Decompose remaining god modules (VisualsTab, tradeService) | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [FEAT-0343](features/FEAT-0343-svelte5-event-callbacks.md) | Migrate legacy Svelte 4 createEventDispatcher to Svelte 5 callbacks | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0344](features/FEAT-0344-remove-hardcoded-colors.md) | Replace hardcoded hex colors with CSS design tokens | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0345](features/FEAT-0345-indicator-decimal-migration.md) | Migrate indicator and charting variables to decimal.js | P2 | ✅ done | none | community, pro, private | none | none | — |

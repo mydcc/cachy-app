@@ -7403,7 +7403,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0342",
     "title": "Decompose remaining god modules (VisualsTab, tradeService)",
     "type": "feature",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
     "priority": "P2",
     "milestone": "none",
     "editions": [

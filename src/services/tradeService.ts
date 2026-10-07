@@ -40,9 +40,7 @@ import { safeJsonParse } from "../utils/safeJson";
 import {
     PositionRawSchema,
     BitunixLeverageMarginModeSchema,
-    BitunixTradingPairResponseSchema,
     BitunixPositionTierResponseSchema,
-    BitgetContractsResponseSchema,
 } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder, NormalizedPosition } from "../types/exchange";
@@ -52,10 +50,9 @@ import { paperAccountFeed } from "./paperAccountFeed";
 import { paperExchange } from "./paperExchange";
 import { capabilitiesOf } from "./exchangeCapabilities";
 import { unwrapApiEnvelope, formatApiNum, parseDecimal } from "../utils/utils";
-import { normalizeTpSlRows } from "./tpslNormalize";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
-import { accountEpoch, type AccountSession } from "./accountEpoch.svelte";
+import { accountEpoch } from "./accountEpoch.svelte";
 import { accountReadOrder, leverageReadOrder, positionsReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
@@ -69,8 +66,6 @@ import {
     mutatingActionOf,
     BOT_PAPER_ONLY_MESSAGE_KEY,
     type GatePass,
-    type DisplayedState,
-    type OrderIntent,
     type OrderOrigin,
     type TransportContext,
 } from "./orderGate";
@@ -86,11 +81,9 @@ import {
     buildLeverageMarginModeQueryParams,
     buildOrderDetailQueryParams,
     buildPositionsQueryParams,
-    buildTpslReadQueryParams,
     buildTpslWriteBody,
 } from "../utils/exchange/venueQueries";
 import { AccountSettingsRequestSchema } from "../types/accountSettingsSchemas";
-import { OrderRequestSchema } from "../types/orderSchemas";
 
 // Error shapes and order parameter contracts live in ./trade/* (FEAT-0342);
 // re-exported here so existing importers keep working.
@@ -98,13 +91,24 @@ export { BitunixApiError, TradeError, TRADE_ERRORS } from "./trade/tradeErrors";
 export type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
 import { BitunixApiError, TradeError, TRADE_ERRORS } from "./trade/tradeErrors";
 import type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
-/**
- * An intent as a call site states it: everything except the account fields,
- * which `completeIntent` fills in from the active session.
- */
-type PartialIntent = Omit<OrderIntent, "displayed"> & {
-    displayed: Omit<DisplayedState, "provider" | "accountFingerprint" | "paperMode">;
-};
+// Payload validation/serialization and the intent builder (FEAT-0342). The
+// intent builder takes the account half as an argument rather than reading
+// the store itself: a service must not import stores.
+import {
+    completeIntent,
+    parseOrderPayload,
+    serializePayload,
+    type AccountHalf,
+    type PartialIntent,
+} from "./trade/payloadCodec";
+import { createSessionDispatch, type DispatchContext } from "./trade/dispatchSession";
+import { createPairMetaLoader } from "./trade/pairMeta";
+import {
+    createTpSlService,
+    type ModifyTpSlParams,
+    type PlacePositionTpSlParams,
+    type PlaceTpSlParams,
+} from "./trade/tpSlService";
 
 /**
  * The credentials of an account that does not exist.
@@ -132,62 +136,15 @@ const READ_BACK_ATTEMPTS = 3;
 const READ_BACK_DELAYS_MS = [700, 2000];
 
 /**
- * BUG-0551 — the last check before a write leaves the device.
- *
- * Everything the transport decides is decided synchronously: the provider,
- * the account whose keys sign the request, the paper/live branch. The one
- * thing that is not is signing itself — `exchangeSignedFetch` awaits the
- * WebCrypto digests before it dispatches — and a trader who switches account,
- * venue or mode inside that window used to get the write anyway. The
- * live-to-paper case is the one that costs real money: the UI shows a
- * simulated order while the live branch, chosen before the switch, dispatches
- * it.
- *
- * `assertGatePass` above cannot see it. That check answers "does the account
- * the transport resolved still match what the gate approved", and it reads
- * both sides in the same synchronous block — a switch that happens one await
- * later is invisible to it.
- *
- * So the context is read once, kept, and compared again at the point where
- * the bytes go out. Two layers, because they fail differently: the session
- * token catches a rotation whose fields came back unchanged (switch away and
- * back while signing), and the field comparison catches a context write that
- * never rotated one.
- *
- * The check rides `appFetch`'s per-attempt hook rather than this wrapper's
- * body. Signing is not the last await in the dispatch path: `appFetch` awaits
- * the token restore, may issue a token, and on a client-token 401 issues
- * another and tries again — and that retry is the attempt that reaches the
- * venue. A check here would run once, before all of it.
- *
- * Read-only requests are deliberately untouched. A read that crosses the
- * boundary is stale, not dangerous — it cannot dispatch a write. Three of the
- * read lanes here take a read-order ticket and drop a late answer at the store
- * write: the leverage read, and both account reads (`/api/account` for the
- * position mode and the account itself). The two position-list reads in this
- * file — `/api/sync/positions-pending` and `/api/positions` — take none, and
- * BUG-0419 owns that gap. Refusing reads here would turn every account switch
- * into an error in the polling paths for no safety gain.
- */
-function dispatchUnderSession(
-    session: AccountSession,
-    expected: DispatchContext,
-): (input: string, init?: RequestInit) => Promise<Response> {
-    return (input, init) => appFetch(input, init, () => assertSessionIntact(session, expected));
-}
-
-/** The part of a transport context that a switch can move. */
-type DispatchContext = Pick<
-    TransportContext,
-    "provider" | "accountFingerprint" | "accountId" | "paperMode"
->;
-
-/**
  * The context a request is about to be sent under, read now.
  *
  * The same derivation as at approval time, deliberately: `activeAccountFor`
  * is venue-scoped, so reporting `activeAccountId` raw would name an account
  * the signature does not belong to.
+ *
+ * The BUG-0551 guard that consumes this — refusing a request whose context
+ * moved under the signing await — lives in ./trade/dispatchSession and takes
+ * this read as a port, because a service must not import stores.
  */
 function readDispatchContext(): DispatchContext {
     const provider = settingsState.apiProvider;
@@ -204,91 +161,51 @@ function readDispatchContext(): DispatchContext {
     };
 }
 
-/**
- * The refusal for a context that moved under the signing await.
- *
- * Named after what actually changed rather than "invalid request": a mode
- * flip, a venue switch and an account switch are three different mistakes,
- * and the trader reading the toast is the one who has to know which one
- * happened.
- */
-function sessionChangedRefusal(
-    expected: DispatchContext,
-    current: DispatchContext,
-): OrderRefusedError {
-    const changed = (
-        field: string,
-        from: string | undefined,
-        to: string | undefined,
-    ): OrderRefusedError =>
-        new OrderRefusedError({
-            field,
-            reason: "mismatch",
-            messageKey: "orderGate.sessionChanged",
-            values: { field, expected: from ?? "—", actual: to ?? "—" },
-        });
-
-    if (current.provider !== expected.provider) {
-        return changed("exchange", expected.provider, current.provider);
-    }
-    if (current.paperMode !== expected.paperMode) {
-        return changed(
-            "mode",
-            expected.paperMode ? "paper" : "live",
-            current.paperMode ? "paper" : "live",
-        );
-    }
-    if (current.accountId !== expected.accountId) {
-        return changed("account", expected.accountId, current.accountId);
-    }
-    if (current.accountFingerprint !== expected.accountFingerprint) {
-        return changed("account", expected.accountFingerprint, current.accountFingerprint);
-    }
-    // The session rotated while every field it describes reads the same: the
-    // trader went to another account and came back, or the credentials were
-    // re-entered. The request would technically be safe, but nothing about it
-    // was verified against the context on screen now, so it is refused.
-    //
-    // Its own message rather than a field mismatch, because there is no field
-    // to name: naming one would point the trader at the account or the switch
-    // when neither is what moved, and interpolating the rotation counter would
-    // put an internal sequence number in front of them. `accountEpoch.rotate`
-    // already logs the sequence it moved to.
-    return new OrderRefusedError({
-        field: "session",
-        reason: "mismatch",
-        messageKey: "orderGate.sessionRotated",
-        values: { field: "session" },
-    });
-}
-
-/**
- * Whether the write may still go out, and throws the named refusal if not.
- *
- * Split from `dispatchUnderSession` so the rule is readable on its own: the
- * hook is the seam, this is what it enforces.
- */
-function assertSessionIntact(session: AccountSession, expected: DispatchContext): void {
-    const current = readDispatchContext();
-    // Both layers, in this order. The session token catches a rotation whose
-    // fields came back unchanged; the field comparison then catches a context
-    // write that never rotated one — `settingsState` setters do not.
-    if (accountEpoch.isCurrent(session) && sameDispatchContext(current, expected)) return;
-    throw sessionChangedRefusal(expected, current);
-}
-
-function sameDispatchContext(a: DispatchContext, b: DispatchContext): boolean {
-    return (
-        a.provider === b.provider &&
-        a.accountId === b.accountId &&
-        a.accountFingerprint === b.accountFingerprint &&
-        a.paperMode === b.paperMode
-    );
-}
-
 class TradeService {
-    // Hardening: Promise Coalescing to prevent Thundering Herd
-    private fetchPositionsPromise: Promise<void> | null = null;
+    /**
+     * BUG-0551's per-attempt guard, bound to this service's context reads.
+     * The rule lives in ./trade/dispatchSession; the reads are injected here
+     * because they reach stores, which that module may not import.
+     */
+    private readonly dispatchUnderSession = createSessionDispatch(
+        readDispatchContext,
+        (session) => accountEpoch.isCurrent(session),
+    );
+
+    /** Pair metadata. The loader owns the in-flight bookkeeping. */
+    private readonly pairMeta = createPairMetaLoader({
+        shouldFetchMeta: (key) => marketState.shouldFetchMeta(key),
+        noteMetaFetch: (key, ok) => marketState.noteMetaFetch(key, ok),
+        setSymbolMeta: (key, info) => marketState.setSymbolMeta(key, info),
+    });
+
+    /**
+     * TP/SL reads and writes. Every write goes through the gate port, which
+     * is the same `gatedRequest` the order paths use — there is no second
+     * route to a state-mutating request.
+     */
+    private readonly tpSl = createTpSlService({
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        signedRequest: <T,>(
+            endpoint: string,
+            payload: Record<string, unknown>,
+            pass?: GatePass,
+            queryParams?: Record<string, string>,
+            origin?: OrderOrigin,
+        ) => this.signedRequest<T>(endpoint, payload, pass, queryParams, origin),
+        activeVenue: () => settingsState.apiProvider,
+        hasActiveKeys: () => {
+            const provider = settingsState.apiProvider;
+            const keys = keysForActiveAccount(
+                settingsState.accounts,
+                settingsState.activeAccountId,
+                provider,
+            );
+            return Boolean(keys?.key && keys?.secret);
+        },
+        isPaperMode: () => paperState.enabled,
+        activeSymbol: () => tradeState.symbol,
+    });
 
     // Helper to sign and send requests to backend
     // Test mocks this
@@ -398,7 +315,7 @@ class TradeService {
         const payloadWithExchange = { exchange: provider, ...payload };
 
         // Deep serialize Decimals to strings before JSON.stringify
-        const serializedPayload = this.serializePayload(payloadWithExchange);
+        const serializedPayload = serializePayload(payloadWithExchange);
 
         // FEAT-0405 A5 — the orders schema is not a pass-through. It defaults
         // `marginCoin`, uppercases `side` and clamps `limit`, and the route
@@ -409,7 +326,7 @@ class TradeService {
         // parsing first, and for the same reason.
         const signedPayload =
             endpoint === "/api/orders"
-                ? this.parseOrderPayload(serializedPayload)
+                ? parseOrderPayload(serializedPayload)
                 : serializedPayload;
 
         const plan = planForRoute(endpoint);
@@ -495,7 +412,10 @@ class TradeService {
                   fetchFn:
                       mutatingActionOf(payload, endpoint) === null
                           ? appFetch
-                          : dispatchUnderSession(accountEpoch.current(), transportContext),
+                          : this.dispatchUnderSession(
+                                accountEpoch.current(),
+                                transportContext,
+                            ),
                   // Still named here: the route reads the provider to resolve
                   // its venue, and the envelope only carries credentials.
                   headers: { "X-Provider": provider },
@@ -705,7 +625,7 @@ class TradeService {
             // Named rather than inferred: the route resolves its venue from the
             // body, and the envelope itself carries only credentials.
             venue: provider,
-            fetchFn: dispatchUnderSession(accountEpoch.current(), context),
+            fetchFn: this.dispatchUnderSession(accountEpoch.current(), context),
             headers: { "X-Provider": provider },
             payload: parsed.data,
         });
@@ -916,137 +836,21 @@ class TradeService {
         accountState.requestSync();
     }
 
-    // Read-only: precision, order-size limits, leverage range and status for
-    // a symbol. Public endpoints, no credentials.
-    //
-    // BUG-0501: venue-dispatched internally — Bitunix reads market/
-    // trading_pairs, Bitget reads V2 mix contracts — but one method, so the
-    // adapter table keeps a single verb to declare. The entry is keyed
-    // venue-normalized, and every miss path records the attempt instead of
-    // writing a stub: a failed fetch retries after the cooldown, never reads
-    // as "no precision".
+    /**
+     * Read-only: precision, order-size limits, leverage range and status for
+     * a symbol. Public endpoints, no credentials.
+     *
+     * BUG-0501: venue-dispatched internally — Bitunix reads market/
+     * trading_pairs, Bitget reads V2 mix contracts — but one method, so the
+     * adapter table keeps a single verb to declare. The loader, and the
+     * in-flight bookkeeping that coalesces concurrent reads, live in
+     * ./trade/pairMeta.
+     */
     public async fetchTradingPairInfo(symbol: string): Promise<void> {
-        const venue = settingsState.apiProvider || "bitunix";
-        const key = normalizeSymbol(symbol, venue);
-        await this.fetchKeyedMeta(key, () =>
-            venue === "bitget"
-                ? this.loadBitgetInstrumentInfo(key, symbol)
-                : this.loadBitunixPairInfo(key, symbol),
+        await this.pairMeta.fetchTradingPairInfo(
+            symbol,
+            settingsState.apiProvider || "bitunix",
         );
-    }
-
-    /** In-flight metadata loads, so concurrent callers share one request. */
-    private metaFetchInflight: Record<string, Promise<void>> = {};
-
-    private async fetchKeyedMeta(key: string, load: () => Promise<boolean>): Promise<void> {
-        if (!marketState.shouldFetchMeta(key)) return;
-        const running = this.metaFetchInflight[key];
-        if (running) {
-            await running;
-            return;
-        }
-        const flight = (async () => {
-            try {
-                marketState.noteMetaFetch(key, await load());
-            } catch {
-                marketState.noteMetaFetch(key, false);
-            } finally {
-                delete this.metaFetchInflight[key];
-            }
-        })();
-        this.metaFetchInflight[key] = flight;
-        await flight;
-    }
-
-    /** Loads one Bitunix row; true when an entry was written. */
-    private async loadBitunixPairInfo(key: string, symbol: string): Promise<boolean> {
-        try {
-            const response = await appFetch(`/api/trading-pairs?symbols=${encodeURIComponent(symbol)}`);
-            if (!response.ok) return false;
-            const json = await response.json();
-
-            const validation = BitunixTradingPairResponseSchema.safeParse(json);
-            if (!validation.success) {
-                logger.error("network", "[TradeService] Invalid trading-pairs response", validation.error.issues);
-                return false;
-            }
-            const entry = validation.data.data?.[0];
-            if (!entry) return false;
-
-            marketState.setSymbolMeta(key, {
-                symbol: entry.symbol,
-                basePrecision: entry.basePrecision,
-                quotePrecision: entry.quotePrecision,
-                minTradeVolume: entry.minTradeVolume ?? null,
-                maxLimitOrderVolume: entry.maxLimitOrderVolume ?? null,
-                maxMarketOrderVolume: entry.maxMarketOrderVolume ?? null,
-                minLeverage: entry.minLeverage,
-                maxLeverage: entry.maxLeverage,
-                defaultLeverage: entry.defaultLeverage,
-                priceProtectScope: entry.priceProtectScope ?? null,
-                symbolStatus: entry.symbolStatus,
-                isApiSupported: entry.isApiSupported,
-            });
-            return true;
-        } catch (e) {
-            logger.debug("api", "[TradeService] fetchTradingPairInfo failed", e);
-            return false;
-        }
-    }
-
-    /** Loads one Bitget V2 contracts row; true when an entry was written. */
-    private async loadBitgetInstrumentInfo(key: string, symbol: string): Promise<boolean> {
-        const toInt = (v: string | undefined): number | undefined => {
-            if (v === undefined) return undefined;
-            const n = parseInt(v, 10);
-            return Number.isFinite(n) ? n : undefined;
-        };
-        const toDecimalOrNull = (v: string | undefined): Decimal | null => {
-            if (v === undefined) return null;
-            try {
-                const d = new Decimal(v);
-                return d.isFinite() ? d : null;
-            } catch {
-                return null;
-            }
-        };
-        try {
-            const response = await appFetch(`/api/bitget/contracts?symbols=${encodeURIComponent(symbol)}`);
-            if (!response.ok) return false;
-            const json = await response.json();
-
-            const validation = BitgetContractsResponseSchema.safeParse(json);
-            if (!validation.success || validation.data.code !== "00000") {
-                logger.error("network", "[TradeService] Invalid bitget contracts response");
-                return false;
-            }
-            const row = validation.data.data?.find(
-                (r) => normalizeSymbol(r.symbol, "bitget") === key,
-            );
-            if (!row) return false;
-
-            marketState.setSymbolMeta(key, {
-                symbol: row.symbol,
-                basePrecision: toInt(row.volumePlace),
-                quotePrecision: toInt(row.pricePlace),
-                minTradeVolume: toDecimalOrNull(row.minTradeNum),
-                maxLimitOrderVolume: toDecimalOrNull(row.maxOrderQty),
-                maxMarketOrderVolume: toDecimalOrNull(row.maxMarketOrderQty),
-                minLeverage: toInt(row.minLever),
-                maxLeverage: toInt(row.maxLever),
-                defaultLeverage: undefined,
-                priceProtectScope: null,
-                // V2 reports "normal"; the gate and the panel speak Bitunix
-                // ("OPEN"). Mapped here so one vocabulary rules downstream;
-                // anything else passes through raw and refuses closed.
-                symbolStatus: row.symbolStatus === "normal" ? "OPEN" : row.symbolStatus,
-                isApiSupported: undefined,
-            });
-            return true;
-        } catch (e) {
-            logger.debug("api", "[TradeService] fetchBitgetInstrumentInfo failed", e);
-            return false;
-        }
     }
 
     // Read-only: maintenance-margin tiers for a symbol
@@ -1075,74 +879,15 @@ class TradeService {
         }
     }
 
-    // Helper to safely serialize Decimals to strings
-    /**
-     * Validates an order payload before it is signed (FEAT-0405 A5).
-     *
-     * The route validates the body it receives and rebuilds the signed bytes
-     * from *that* parse, so this is the only way both sides can arrive at the
-     * same string. Throws rather than falling back to the raw payload: a
-     * payload the route would refuse is not one to sign, and a silent fallback
-     * would surface as a divergence in the middle of a trade.
-     */
-    private parseOrderPayload(
-        payload: unknown,
-    ): Record<string, unknown> {
-        const parsed = OrderRequestSchema.safeParse(payload);
-        if (!parsed.success) {
-            const details = parsed.error.issues
-                .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-                .join(", ");
-            throw new BitunixApiError("VALIDATION_ERROR", "apiErrors.generic", details);
-        }
-        return parsed.data as Record<string, unknown>;
-    }
-
-    private serializePayload(payload: unknown, depth = 0, seen = new WeakSet()): unknown {
-        if (depth > 20) {
-            logger.warn("market", "[TradeService] Serialization depth limit exceeded");
-            return "[Serialization Limit]";
-        }
-
-        if (!payload) return payload;
-        if (payload instanceof Decimal) return payload.toString();
-
-        // Handle generic objects that might be Decimals if constructor name is mangled or instance check fails
-        if (Decimal.isDecimal(payload)) {
-            return payload.toString();
-        }
-
-        if (typeof payload === 'object' && payload !== null) {
-            if (seen.has(payload)) return "[Circular]";
-            seen.add(payload);
-        }
-
-        if (Array.isArray(payload)) {
-            return payload.map(item => this.serializePayload(item, depth + 1, seen));
-        }
-
-        if (typeof payload === 'object') {
-            const newObj: Record<string, unknown> = {};
-            for (const key in payload) {
-                if (Object.prototype.hasOwnProperty.call(payload, key)) {
-                    newObj[key] = this.serializePayload((payload as Record<string, unknown>)[key], depth + 1, seen);
-                }
-            }
-            return newObj;
-        }
-
-        return payload;
-    }
-
     /**
      * The account half of the displayed state — the exchange and key the UI
      * currently shows as active. Every intent needs it; nothing else about
      * an intent is shared, so the rest is built per call site.
+     *
+     * The store read stays here; the intent builder that consumes it is in
+     * ./trade/payloadCodec, which cannot read stores itself.
      */
-    private displayedAccount(): Pick<
-        DisplayedState,
-        "provider" | "accountFingerprint" | "accountId" | "paperMode"
-    > {
+    private displayedAccount(): AccountHalf {
         const provider = settingsState.apiProvider;
         // Same resolution as the transport, for the same reason: the id has
         // to name the account the fingerprint came from.
@@ -1171,52 +916,8 @@ class TradeService {
      * FEAT-0011: verify, then transmit. Every mutating order in this service
      * goes through here — `signedRequest` refuses one that does not.
      */
-    /**
-     * Fills in the account fields every intent shares, so a caller states only
-     * what is specific to its order.
-     *
-     * Extracted in BUG-0331 because the flash-close path now verifies an
-     * intent before it acts and then submits the same one. Building it twice
-     * would mean the check and the submission could disagree — which is the
-     * exact class of bug the gate exists to catch.
-     */
-    private completeIntent(intent: PartialIntent): OrderIntent {
-        const account = this.displayedAccount();
-
-        // A caller may *state* which account it believed was active — that is
-        // how the account chip will supply a second, independent root once
-        // every order surface renders one. What a caller may not do is blank
-        // it.
-        //
-        // `...intent.displayed` spreads over the store-derived block, and
-        // `accountId` is not in `PartialIntent`'s omit list, so a call site
-        // passing `accountId: maybeUndefined` used to overwrite the real id
-        // with `undefined` — and `assertGatePass` skips the comparison
-        // entirely when the pass carries none. An ordinary-looking assignment
-        // could therefore switch off a money-critical check with nothing
-        // going red anywhere.
-        //
-        // So: a supplied id that disagrees with the store is a refusal, and
-        // the id that reaches the pass is always the store's.
-        const supplied = intent.displayed.accountId;
-        if (supplied !== undefined && supplied !== account.accountId) {
-            throw new OrderRefusedError(
-                mismatch("account", supplied, account.accountId ?? "—"),
-            );
-        }
-
-        return {
-            ...intent,
-            displayed: {
-                ...account,
-                ...intent.displayed,
-                accountId: account.accountId,
-            },
-        };
-    }
-
     private async gatedRequest<T>(intent: PartialIntent): Promise<T> {
-        const full = this.completeIntent(intent);
+        const full = completeIntent(intent, this.displayedAccount());
         const result = await orderGate.submit<T>(full, (pass) =>
             this.signedRequest<T>(full.endpoint, full.payload, pass, undefined, full.origin),
         );
@@ -1434,7 +1135,7 @@ class TradeService {
              * the same verification, and this cannot approve anything the gate
              * would refuse. It only moves the refusal to before the damage.
              */
-            orderGate.verifyOrThrow(this.completeIntent(intent));
+            orderGate.verifyOrThrow(completeIntent(intent, this.displayedAccount()));
 
             // Past this line the function has side effects to undo on failure.
             clientOrderId = candidateOrderId;
@@ -2738,270 +2439,33 @@ class TradeService {
     }
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
-        const provider = settingsState.apiProvider || "bitunix";
-        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-        /*
-         * Credentials are what a *venue* needs, and this read goes through
-         * `signedRequest`, which answers from the simulator in paper mode
-         * without touching the network (FEAT-0327).
-         *
-         * Not a mode branch: the request built below is identical either way.
-         * This only stops the guard from refusing, before the seam is even
-         * reached, a read that needs no credentials — which is what told
-         * `orderPlacementService` that every simulated entry's stop was
-         * missing, and reported a protected position as unprotected.
-         */
-        if (!paperState.enabled && (!keys?.key || !keys?.secret)) {
-             throw new Error("dashboard.alerts.noApiKeys");
-        }
-
-        if (provider === "bitunix") {
-             const symbolsToFetch = new Set<string>();
-             // Add current active symbol
-             if (tradeState.symbol) symbolsToFetch.add(tradeState.symbol);
-             // Add all symbols with open positions
-             const positions = omsService.getPositions();
-             positions.forEach(p => symbolsToFetch.add(p.symbol));
-
-             const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
-             const results: TpSlOrder[] = [];
-
-             // Rate limit handling: Batch requests (max 5 concurrent)
-             const BATCH_SIZE = 5;
-             for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
-                  const batch = fetchList.slice(i, i + BATCH_SIZE);
-                  await Promise.all(
-                      batch.map(async (sym) => {
-                          try {
-                              const params: Record<string, unknown> = {};
-                              if (sym) params.symbol = sym;
-
-                              const data = await this.signedRequest<Record<string, unknown>>(
-                                  "/api/tpsl",
-                                  { exchange: "bitunix", action: view, params },
-                                  undefined,
-                                  buildTpslReadQueryParams(params),
-                              ).catch((e): Record<string, unknown> => {
-                                  // Preserve rawMessage for classification if available
-                                  const errMsg = (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
-                                  return { error: errMsg };
-                              }); // Hardened
-
-                              if (data.error) {
-                                  if (!String(data.error).includes("code: 2")) { // Symbol not found
-                                      logger.warn("market", `TP/SL fetch warning for ${sym}: ${data.error}`);
-                                  }
-                                  return;
-                              }
-                              // BUG-0292: a Bitunix row carries both legs and
-                              // names neither, so it has to be split into the
-                              // one-plan-per-leg shape the store groups by.
-                              // Pushing the raw rows through is what made
-                              // `plansFor()` answer "no stop" for every
-                              // position that had one.
-                              const res = (Array.isArray(data) ? data : data.rows || []) as unknown[];
-                              results.push(...normalizeTpSlRows(res));
-                          } catch (e: unknown) {
-                              logger.warn("market", `TP/SL network error for ${sym}`, e);
-                          }
-                      })
-                  );
-             }
-
-             // Deduplicate
-             const uniqueOrders = new Map<string, TpSlOrder>();
-             results.forEach((o) => {
-                 // `orderId` first, deliberately (BUG-0292): after the split it
-                 // is the *leg* id, and the two legs of one row share the row's
-                 // `id`. Keying on `id` would collapse a take-profit and its
-                 // stop into one entry and drop whichever arrived first.
-                 const id = o.orderId || o.id || o.planId;
-                 if (id) uniqueOrders.set(String(id), o);
-             });
-             const final = Array.from(uniqueOrders.values());
-             // Sort by time (newest first)
-             final.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
-             return final;
-        } else {
-             // Generic provider — live-Bitget never arrives here: its adapter
-             // gates this read on SUPPORTS.tpSl (false) and resolves empty, so
-             // no Bitunix-only envelope is ever signed with Bitget keys outside
-             // paper mode, where the seam below answers simulated.
-             const data = await this.signedRequest<Record<string, unknown>>(
-                  "/api/tpsl",
-                  { action: view },
-                  undefined,
-                  buildTpslReadQueryParams({}),
-             );
-             const list = (Array.isArray(data) ? data : data.rows || []) as TpSlOrder[];
-             list.sort((a: TpSlOrder, b: TpSlOrder) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
-             return list;
-    }
+        return this.tpSl.fetchTpSlOrders(view);
     }
 
     public async cancelTpSlOrder(order: TpSlOrder) {
-        // `/api/tpsl` nests the order fields under `params`; the gate reads
-        // symbol/orderId off the top level, so they are mirrored there. The
-        // route ignores the extra keys.
-        //
-        // `sourceOrderId` first (BUG-0292): `orderId` on a normalised plan is
-        // the leg id this app invented ("123-tp"), which the venue has never
-        // heard of. The row id it was split from is the one that cancels
-        // something. Falls back to `orderId` for plans that were never split —
-        // the generic non-Bitunix path produces those.
-        const orderId = order.sourceOrderId || order.orderId || order.id;
-        return this.gatedRequest({
-            kind: "cancel",
-            endpoint: "/api/tpsl",
-            payload: {
-                exchange: "bitunix",
-                action: "cancel",
-                symbol: order.symbol,
-                orderId,
-                params: {
-                    orderId,
-                    symbol: order.symbol,
-                    planType: order.planType,
-                },
-            },
-            displayed: { symbol: order.symbol, orderId },
-        });
+        return this.tpSl.cancelTpSlOrder(order);
     }
 
     /**
      * Modifies one leg of an existing TP/SL order (BUG-0293).
      *
-     * `POST /tpsl/modify_order` reads `tpPrice`/`slPrice` (at least one),
-     * each with its own stop type, order type/price and quantity — the same
-     * per-leg shape `placeTpSlOrder` sends, not a `planType`+`triggerPrice`
-     * switch. It has no `symbol` parameter either; the order is identified by
-     * `orderId` alone. This used to build a wire body the endpoint does not
-     * document — `{orderId, symbol, planType, triggerPrice, qty}` — which
-     * every call since it shipped sent, and which the venue's own "at least
-     * one of tpPrice/slPrice" rule would reject.
+     * The wire shape and why it is per-leg is documented on the module that
+     * builds it, ./trade/tpSlService.
      */
-    public async modifyTpSlOrder(params: {
-        orderId: string,
-        symbol: string,
-        planType: "PROFIT" | "LOSS",
-        triggerPrice: string,
-        qty?: string,
-        stopType?: "LAST_PRICE" | "MARK_PRICE",
-        context?: { side: "long" | "short"; entryPrice: Decimal },
-        tickSize?: Decimal,
-    }) {
-        const wire: Record<string, unknown> = { orderId: params.orderId };
-        if (params.planType === "PROFIT") {
-            wire.tpPrice = params.triggerPrice;
-            wire.tpStopType = params.stopType ?? "MARK_PRICE";
-            if (params.qty !== undefined) wire.tpQty = params.qty;
-        } else {
-            wire.slPrice = params.triggerPrice;
-            wire.slStopType = params.stopType ?? "MARK_PRICE";
-            if (params.qty !== undefined) wire.slQty = params.qty;
-        }
-
-        return this.gatedRequest({
-            kind: "modify",
-            endpoint: "/api/tpsl",
-            payload: {
-                exchange: "bitunix",
-                action: "modify",
-                symbol: params.symbol,
-                orderId: params.orderId,
-                params: wire,
-            },
-            displayed: {
-                symbol: params.symbol,
-                orderId: params.orderId,
-                positionSide: params.context?.side.toUpperCase(),
-                entryPrice: params.context?.entryPrice,
-                tickSize: params.tickSize,
-                // A PROFIT plan's trigger is a take-profit level, a LOSS
-                // plan's is a stop — same field on the wire, different
-                // meaning, and each has to land in the slot the gate checks.
-                takeProfits: params.planType === "PROFIT" ? [new Decimal(params.triggerPrice)] : undefined,
-                stopLossPrice: params.planType === "LOSS" ? new Decimal(params.triggerPrice) : undefined,
-                // The quantity travels on the same leg it prices; the gate
-                // compares it back against this (BUG-0505).
-                takeProfitQty: params.planType === "PROFIT" && params.qty !== undefined ? new Decimal(params.qty) : undefined,
-                stopLossQty: params.planType === "LOSS" && params.qty !== undefined ? new Decimal(params.qty) : undefined,
-            },
-            priceFields: {
-                stopLoss: "params.slPrice",
-                takeProfit: "params.tpPrice",
-            },
-            qtyFields: {
-                takeProfit: "params.tpQty",
-                takeProfitOrderType: "params.tpOrderType",
-                stopLoss: "params.slQty",
-                stopLossOrderType: "params.slOrderType",
-            },
-        });
+    public async modifyTpSlOrder(params: ModifyTpSlParams): Promise<unknown> {
+        return this.tpSl.modifyTpSlOrder(params);
     }
 
     /**
      * Creates the one position-wide TP/SL plan a position may carry
      * (FEAT-0070).
      *
-     * Distinct from `placeTpSlOrder` below in what it protects: this plan
-     * tracks the position's size, so a position that grows or shrinks stays
-     * covered, and it closes at market. Bitunix allows exactly one per
-     * position — a second create is refused there, which is why the caller
-     * offers edit instead when one already exists.
-     *
-     * `kind: "modify"` rather than `"open"`: setting a stop reduces exposure
-     * and must keep working while the kill switch is engaged, which is what
-     * its own refusal message promises ("adjusting stops still work").
+     * Why this counts as a "modify" rather than an "open", and how it differs
+     * from the fixed-quantity plan below, is documented on the module that
+     * builds it, ./trade/tpSlService.
      */
-    public async placePositionTpSl(params: {
-        symbol: string,
-        positionId: string,
-        takeProfit?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
-        stopLoss?: { price: Decimal, stopType?: "LAST_PRICE" | "MARK_PRICE" },
-        context?: { side: "long" | "short"; entryPrice: Decimal },
-        tickSize?: Decimal,
-    }) {
-        if (!params.takeProfit && !params.stopLoss) {
-            throw new Error("apiErrors.tpslNoLeg");
-        }
-
-        const wire: Record<string, unknown> = {
-            symbol: params.symbol,
-            positionId: params.positionId,
-        };
-        if (params.takeProfit) {
-            wire.tpPrice = formatApiNum(params.takeProfit.price);
-            wire.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
-        }
-        if (params.stopLoss) {
-            wire.slPrice = formatApiNum(params.stopLoss.price);
-            wire.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
-        }
-
-        return this.gatedRequest({
-            kind: "modify",
-            endpoint: "/api/tpsl",
-            payload: {
-                exchange: "bitunix",
-                action: "place-position",
-                symbol: params.symbol,
-                params: wire,
-            },
-            displayed: {
-                symbol: params.symbol,
-                positionId: params.positionId,
-                positionSide: params.context?.side.toUpperCase(),
-                entryPrice: params.context?.entryPrice,
-                tickSize: params.tickSize,
-                takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
-                stopLossPrice: params.stopLoss?.price,
-            },
-            priceFields: {
-                takeProfit: "params.tpPrice",
-                stopLoss: "params.slPrice",
-            },
-        });
+    public async placePositionTpSl(params: PlacePositionTpSlParams): Promise<unknown> {
+        return this.tpSl.placePositionTpSl(params);
     }
 
     /**
@@ -3016,86 +2480,8 @@ class TradeService {
      * handed a quantity the caller already decided. Rounding it again would
      * move a number the trader typed.
      */
-    public async placeTpSlOrder(params: {
-        symbol: string,
-        positionId: string,
-        takeProfit?: {
-            price: Decimal,
-            qty: Decimal,
-            stopType?: "LAST_PRICE" | "MARK_PRICE",
-            orderType?: "LIMIT" | "MARKET",
-            orderPrice?: Decimal,
-        },
-        stopLoss?: {
-            price: Decimal,
-            qty: Decimal,
-            stopType?: "LAST_PRICE" | "MARK_PRICE",
-            orderType?: "LIMIT" | "MARKET",
-            orderPrice?: Decimal,
-        },
-        context?: { side: "long" | "short"; entryPrice: Decimal },
-        tickSize?: Decimal,
-    }) {
-        if (!params.takeProfit && !params.stopLoss) {
-            throw new Error("apiErrors.tpslNoLeg");
-        }
-
-        const wire: Record<string, unknown> = {
-            symbol: params.symbol,
-            positionId: params.positionId,
-        };
-        if (params.takeProfit) {
-            wire.tpPrice = formatApiNum(params.takeProfit.price);
-            wire.tpQty = formatApiNum(params.takeProfit.qty);
-            wire.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
-            wire.tpOrderType = params.takeProfit.orderType ?? "MARKET";
-            if (params.takeProfit.orderPrice !== undefined) {
-                wire.tpOrderPrice = formatApiNum(params.takeProfit.orderPrice);
-            }
-        }
-        if (params.stopLoss) {
-            wire.slPrice = formatApiNum(params.stopLoss.price);
-            wire.slQty = formatApiNum(params.stopLoss.qty);
-            wire.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
-            wire.slOrderType = params.stopLoss.orderType ?? "MARKET";
-            if (params.stopLoss.orderPrice !== undefined) {
-                wire.slOrderPrice = formatApiNum(params.stopLoss.orderPrice);
-            }
-        }
-
-        return this.gatedRequest({
-            kind: "modify",
-            endpoint: "/api/tpsl",
-            payload: {
-                exchange: "bitunix",
-                action: "place",
-                symbol: params.symbol,
-                params: wire,
-            },
-            displayed: {
-                symbol: params.symbol,
-                positionId: params.positionId,
-                positionSide: params.context?.side.toUpperCase(),
-                entryPrice: params.context?.entryPrice,
-                tickSize: params.tickSize,
-                takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
-                stopLossPrice: params.stopLoss?.price,
-                // Fixed-quantity legs, compared back against the wire the
-                // same way prices are (BUG-0505).
-                takeProfitQty: params.takeProfit?.qty,
-                stopLossQty: params.stopLoss?.qty,
-            },
-            priceFields: {
-                takeProfit: "params.tpPrice",
-                stopLoss: "params.slPrice",
-            },
-            qtyFields: {
-                takeProfit: "params.tpQty",
-                takeProfitOrderType: "params.tpOrderType",
-                stopLoss: "params.slQty",
-                stopLossOrderType: "params.slOrderType",
-            },
-        });
+    public async placeTpSlOrder(params: PlaceTpSlParams): Promise<unknown> {
+        return this.tpSl.placeTpSlOrder(params);
     }
 }
 
