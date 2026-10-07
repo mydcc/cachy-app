@@ -4,7 +4,7 @@
 
 522 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 25 · ✅ done 446 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 447 · ⛔ dropped 1
 
 ---
 
@@ -530,7 +530,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 25 · ✅ done 4
 | [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | i18n |
 | [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | i18n |
 | [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | ✅ done | deps |
-| [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | deps |
+| [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | ✅ done | deps |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | deps |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | deps |
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | security |
@@ -1044,7 +1044,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 25 · ✅ done 4
 | [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | none | community, pro, private | none | none | — |

@@ -233,7 +233,6 @@ export default defineConfig({
         "src/benchmarks/indicator_clone.bench.ts",
         "src/benchmarks/indicator_perf.bench.ts",
         "src/services/marketWatcher.bench.ts",
-        "src/tests/closeAllPositions.bench.ts",
         "src/tests/performance/technicals_cache.bench.ts",
         "tests/benchmarks/market_dedup.bench.ts",
         "tests/benchmarks/market_updates.bench.ts",
@@ -258,6 +257,21 @@ export default defineConfig({
         // estimated. Kept for manual measurement:
         //   vitest bench src/benchmarks/crypto_loop.bench.ts --testTimeout 900000
         "src/benchmarks/crypto_loop.bench.ts",
+        // Closes every open position, so its cost is one signed request plus
+        // the post-flatten verification read. The benchmark stubbed
+        // `signedRequest` — the transport the gate calls *after* verification,
+        // so the close looked like it worked — but left `readFreshPositions`
+        // real, and `verifyFlat` runs it immediately afterwards. The check
+        // correctly reported `unverified: true` and threw. Stubbing the read
+        // too would leave the benchmark measuring two mocks and no flatten.
+        //
+        // Not a missing confirmation: `close-all-positions` is deliberately
+        // absent from CONFIRMABLE_ACTIONS, because a settings toggle could
+        // unguard a bulk close by accident. `closeAllFlow` asks
+        // unconditionally at the UI layer instead, so the gate never refuses
+        // this action for want of a `confirmedAt` — in the app or in the
+        // benchmark. BUG-0633.
+        "src/tests/closeAllPositions.bench.ts",
         // Mounts a Svelte component, so it needs `svelte` resolved to its
         // browser build — which no benchmark project has (BUG-0631). On Vitest 4
         // it imported the top-level `bench` and ran in the `components` project,
