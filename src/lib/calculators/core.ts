@@ -25,6 +25,50 @@ import type {
   JournalEntry,
 } from "../../stores/types";
 
+/**
+ * Epoch milliseconds for a journal date field, `NaN` when unreadable.
+ *
+ * `Date.parse` is the string fast path (no `Date` object allocation). A
+ * non-string is taken as epoch milliseconds already, because a hand-edited
+ * or externally-written localStorage blob can hold those and `Date.parse`
+ * rejects the bare digits outright (`NaN`).
+ */
+export function toEpochMs(value: string | number): number {
+  if (typeof value !== "string") return value;
+  return Date.parse(value);
+}
+
+/**
+ * Ascending chronological order by `JournalEntry.date`.
+ *
+ * A Schwartzian transform: the timestamp is read once per trade up front
+ * instead of twice per comparison, so a sort of N trades reads N dates rather
+ * than the ~2·N·log2(N) an inline `new Date(x).getTime()` comparator would.
+ *
+ * `NaN` (an unparseable date) sorts last instead of acting as a barrier: a
+ * comparator subtraction against `NaN` is `false` in all three directions, so
+ * the bad row would answer "equal to everything", never move, and leave the
+ * surrounding rows in input order while the result still looks sorted. Same
+ * decision `sortJournalRows` makes for the journal table.
+ *
+ * Does not mutate the array it is given, and preserves the relative order of
+ * trades sharing a timestamp (`Array.prototype.sort` is stable and the
+ * decorated array keeps input order before sorting).
+ */
+export function sortByDateAsc<T extends { date: string }>(trades: T[]): T[] {
+  return trades
+    .map((t) => ({
+      t,
+      ts: toEpochMs(t.date),
+    }))
+    .sort((a, b) => {
+      if (isNaN(a.ts)) return isNaN(b.ts) ? 0 : 1;
+      if (isNaN(b.ts)) return -1;
+      return a.ts - b.ts;
+    })
+    .map(({ t }) => t);
+}
+
 export function getTradePnL(t: JournalEntry): Decimal {
   // If we have a calculated totalNetProfit, use it preferably (even for manual trades if available)
   if (t.totalNetProfit !== undefined && t.totalNetProfit !== null) {
