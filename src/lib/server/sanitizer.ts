@@ -25,25 +25,6 @@ const window = new JSDOM('').window;
 const purify = DOMPurify(window as unknown as WindowLike);
 
 /**
- * Sanitizes user input for storage.
- * - Strips ALL HTML tags to prevent XSS.
- * - Preserves text content (e.g. "<b>bold</b>" -> "bold").
- * - Removes script/style content entirely.
- * - Designed for Markdown-based chat where raw HTML is not needed.
- */
-export function sanitizeChatInput(text: string): string {
-    if (!text) return "";
-
-    return purify.sanitize(text, {
-        ALLOWED_TAGS: [], // Disallow all HTML tags
-        KEEP_CONTENT: true, // Keep text content of stripped tags (except script/style)
-        WHOLE_DOCUMENT: false,
-        RETURN_DOM: false,
-        RETURN_DOM_FRAGMENT: false
-    });
-}
-
-/**
  * Sanitizes untrusted HTML input (such as RSS feeds or external article snippets) to plain text.
  * - Strips all HTML tags using DOMPurify.
  * - Removes script/style content completely.

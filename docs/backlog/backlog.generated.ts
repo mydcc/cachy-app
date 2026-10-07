@@ -6060,7 +6060,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0638",
     "title": "server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6072,6 +6072,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md"
   },
   {

@@ -1,130 +1,131 @@
 // @vitest-environment node
-import { JSDOM } from 'jsdom';
-import type { Config } from 'dompurify';
-
-vi.mock('dompurify', async (importOriginal) => {
-  // dompurify's shipped .d.ts describes the pre-instantiated browser export
-  // (`DOMPurify`), but the real CJS module resolves to a window-taking
-  // factory function when imported without a global window (this test
-  // environment) — no type in the package matches that dual shape.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actual = await importOriginal() as any;
-  const dompurifyActual = actual.default || actual;
-  const purify = dompurifyActual(new JSDOM('').window);
-
-  return {
-    ...actual,
-    default: {
-      ...actual.default,
-      sanitize: (dirty: string, config: Config) => {
-        const sanitizeConfig = { ...config };
-        sanitizeConfig.FORBID_TAGS = ['iframe', 'img', 'script', 'style'];
-        sanitizeConfig.RETURN_DOM = false;
-        sanitizeConfig.RETURN_DOM_FRAGMENT = false;
-        if(dirty.includes('iframe')) { return '<div>Safe</div>'; }
-        sanitizeConfig.ALLOW_UNKNOWN_PROTOCOLS = false;
-        sanitizeConfig.ADD_TAGS = [];
-        sanitizeConfig.FORBID_ATTR = ['onclick', 'onmouseover', 'style', 'data-custom'];
-        const clean = purify.sanitize(dirty, sanitizeConfig);
-        return clean;
-      }
-    }
-  };
-});
 /*
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sanitizeHtml } from '../utils/sanitizer';
+/**
+ * Tests for the server-side sanitizer — the one that runs on untrusted RSS
+ * descriptions, in `src/routes/api/rss-fetch/+server.ts`.
+ *
+ * The file used to carry a different body: it imported `sanitizeHtml` from
+ * `src/lib/utils/sanitizer` (the client sanitizer) and replaced DOMPurify with
+ * a hand-written stub, so the module in this directory had no coverage while
+ * its filename claimed it did. BUG-0638. The client tests now live next to
+ * their own module, in `src/lib/utils/sanitizer.test.ts`.
+ *
+ * These run the real DOMPurify on a real jsdom window, with nothing mocked.
+ * That matters because the guarantee they pin does not come from DOMPurify's
+ * tag list alone but from how the HTML parser *below* it reinterprets hostile
+ * markup. When jsdom ships a new parser, these are the tests that notice.
+ */
 
-let browserValue = true;
+import { describe, it, expect } from 'vitest';
+import { JSDOM } from 'jsdom';
+import { sanitizeHtmlToText } from './sanitizer';
 
-vi.mock('$app/env', () => ({
-  get browser() {
-    return browserValue;
-  }
-}));
+/**
+ * With no allowed tags, a surviving `<` is either a parser artefact or an
+ * unescaped one. Downstream callers treat this output as plain text (RSS
+ * descriptions), so any tag opener that slips through is the bug.
+ */
+function expectNoTagOpeners(text: string): void {
+  expect(text).not.toMatch(/<[a-zA-Z/!]/);
+}
 
-describe('sanitizeHtml', () => {
-  beforeEach(() => {
-    browserValue = true;
+/** Namespace-confusion payload: the classic mXSS shape, where the parser's
+ *  second pass turns inert markup back into live markup. */
+const NAMESPACE_CONFUSION =
+  '<math><mtext><table><mglyph><style><!--</style>' +
+  '<img title="--><img src=x onerror=alert(1)>">';
+
+describe('sanitizeHtmlToText', () => {
+  it('returns an empty string for empty input', () => {
+    expect(sanitizeHtmlToText('')).toBe('');
   });
 
-  describe('Sanitization (browser=true)', () => {
-    it('should preserve allowed tags', () => {
-      const input = '<p><b>Bold</b> <i>Italic</i> <strong>Strong</strong> <em>Emphasis</em></p>';
-      expect(sanitizeHtml(input)).toBe(input);
-    });
+  it('keeps the surrounding text and drops script and style content entirely', () => {
+    const result = sanitizeHtmlToText(
+      'Hello <script>alert(1)</script> world <style>body{color:red}</style>',
+    );
 
-    it('should preserve allowed links and attributes', () => {
-      const input = '<a href="https://example.com" target="_blank" title="Link" class="btn">Link</a>';
-      const result = sanitizeHtml(input);
-      expect(result).toContain('href="https://example.com"');
-      expect(result).toContain('target="_blank"');
-      expect(result).toContain('title="Link"');
-      expect(result).toContain('class="btn"');
-    });
-
-    it('should preserve lists and tables', () => {
-      const input = '<ul><li>Item</li></ul><table><thead><tr><th>Header</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table>';
-      expect(sanitizeHtml(input)).toBe(input);
-    });
-
-    it('should remove forbidden tags', () => {
-      const input = '<div>Safe</div><script>alert("xss")</script><iframe></iframe><img src="x" onerror="alert(1)">';
-      const result = sanitizeHtml(input);
-      expect(result).toContain('<div>Safe</div>');
-      expect(result).not.toContain('<script>');
-      expect(result).not.toContain('<iframe');
-      expect(result).not.toContain('<img'); // img is not in ALLOWED_TAGS
-    });
-
-    it('should strip forbidden attributes from allowed tags', () => {
-      const input = '<p onclick="alert(1)" onmouseover="run()" data-custom="value">Content</p>';
-      const result = sanitizeHtml(input);
-      expect(result).toBe('<p>Content</p>');
-    });
-
-    it('should strip style attribute entirely', () => {
-      const input = '<span style="color: red; background-image: url(javascript:alert(1))">Text</span>';
-      const result = sanitizeHtml(input);
-      expect(result).not.toContain('style=');
-      expect(result).not.toContain('javascript:alert');
-    });
-
-    it('should handle nested allowed tags', () => {
-      const input = '<div><p><span>Text</span></p></div>';
-      expect(sanitizeHtml(input)).toBe(input);
-    });
+    expect(result).toContain('Hello');
+    expect(result).toContain('world');
+    // Not just the tags: the contents go too, otherwise the payload text would
+    // still be rendered somewhere downstream.
+    expect(result).not.toContain('alert(1)');
+    expect(result).not.toContain('color:red');
   });
 
-  describe('SSR Safety (browser=false)', () => {
-    it('should return input unchanged when browser is false', () => {
-      browserValue = false;
-      const input = '<script>alert("XSS")</script><img src="x" onerror="alert(1)">';
-      expect(sanitizeHtml(input)).toBe(input);
-    });
+  it('produces no markup for a math/mtext namespace-confusion payload', () => {
+    const result = sanitizeHtmlToText(NAMESPACE_CONFUSION);
+
+    expectNoTagOpeners(result);
+    expect(result).not.toContain('onerror');
   });
 
-  describe('Edge Cases', () => {
-    it('should handle empty string', () => {
-      expect(sanitizeHtml('')).toBe('');
-    });
+  it('drops svg and foreignObject content while keeping surrounding text', () => {
+    const result = sanitizeHtmlToText(
+      '<svg><foreignObject><iframe src="javascript:alert(1)"></iframe></foreignObject></svg>ok',
+    );
 
-    it('should handle plain text', () => {
-      expect(sanitizeHtml('Just some text')).toBe('Just some text');
-    });
+    expect(result).toContain('ok');
+    expectNoTagOpeners(result);
+  });
 
-    it('should handle malformed HTML', () => {
-      const input = '<div><b>Unclosed tag';
-      const result = sanitizeHtml(input);
-      expect(result).toContain('<div><b>Unclosed tag</b></div>'); // DOMPurify fixes it
-    });
+  it('drops noscript and template payloads', () => {
+    const noscript = sanitizeHtmlToText(
+      '<noscript><p title="</noscript><img src=x onerror=alert(1)>">',
+    );
+    const template = sanitizeHtmlToText('<template><img src=x onerror=alert(1)></template>tpl');
+
+    expectNoTagOpeners(noscript);
+    expectNoTagOpeners(template);
+    expect(template).toContain('tpl');
+  });
+
+  it('does not carry a javascript: URL through as text', () => {
+    const result = sanitizeHtmlToText('<a href="javascript:alert(1)">click</a>');
+
+    expect(result).toContain('click');
+    expect(result).not.toContain('javascript:');
+  });
+
+  it('recovers text from malformed markup', () => {
+    const result = sanitizeHtmlToText('<div><p>unclosed<b>bold');
+
+    expectNoTagOpeners(result);
+    expect(result).toContain('unclosed');
+    expect(result).toContain('bold');
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(sanitizeHtmlToText('  <p>text</p>  ')).toBe('text');
+  });
+
+  it('stays inert when an HTML parser reads the output back', () => {
+    // The strongest form of the guarantee: not "no tag openers in the string",
+    // but "nothing executable comes back out". If a future parser version
+    // reintroduces markup here, the element count moves and this fails.
+    const output = sanitizeHtmlToText(NAMESPACE_CONFUSION);
+    const { document } = new JSDOM(`<body>${output}</body>`).window;
+
+    expect(document.body.children.length).toBe(0);
+    expect(document.querySelector('img')).toBeNull();
+    expect(document.querySelector('script')).toBeNull();
   });
 });
+
+
