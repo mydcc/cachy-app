@@ -2,7 +2,7 @@
 id: BUG-0645
 title: data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics
 type: bug
-status: in-progress
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
