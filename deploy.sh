@@ -48,7 +48,13 @@ if [[ -z "${CACHY_DEPLOY_SNAPSHOT:-}" ]]; then
     CACHY_SNAPSHOT_FILE=""
 fi
 SCRIPT_DIR="${CACHY_DEPLOY_SCRIPT_DIR:-$SCRIPT_DIR}"
-trap 'rm -f "${CACHY_SNAPSHOT_FILE:-/dev/null}"' EXIT
+# Guard the cleanup: with no snapshot taken, CACHY_SNAPSHOT_FILE is empty and an
+# unguarded `rm -f "${CACHY_SNAPSHOT_FILE:-/dev/null}"` expands to `rm -f
+# /dev/null`. That fails as a normal user (and a failed trap command replaces the
+# script's exit status, so a successful deploy would report failure), and as root
+# it would delete the device node itself. `|| true` keeps the trap from ever
+# changing the exit code.
+trap '[ -n "${CACHY_SNAPSHOT_FILE:-}" ] && rm -f -- "$CACHY_SNAPSHOT_FILE" || true' EXIT
 
 CONF_FILE="$SCRIPT_DIR/.deploy.conf"
 START_TIME=$(date +%s)
