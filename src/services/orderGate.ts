@@ -62,6 +62,11 @@ import {
  * have pulled in all four.
  */
 import { capabilitiesOf, isKnownExchange } from "./exchangeCapabilities";
+// BUG-0649 — the order form asks the same question about the same two flags
+// before the trader presses the button. Two conditions written separately is
+// what put "the stop is placed as a second request" on a screen where this gate
+// was about to refuse it; one predicate is what stops that returning.
+import { canCarryStopLoss } from "./exchange/stopLossPlacement";
 import type { OrderEntryType, TimeInForce } from "./exchangeCapabilities";
 import { cachyAction } from "../utils/exchange/restSigningPlan";
 
@@ -971,7 +976,7 @@ class OrderGate {
              */
             const stopRequested =
                 displayed.stopLossPrice !== undefined && displayed.stopLossPrice.gt(0);
-            if (stopRequested && !caps.tpSlAtEntry && !caps.tpSlStandalone) {
+            if (stopRequested && !canCarryStopLoss(caps)) {
                 checked.push("unplaceableStop");
                 return refuse({
                     field: "stopLoss",

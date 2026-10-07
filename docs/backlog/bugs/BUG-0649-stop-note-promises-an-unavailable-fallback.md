@@ -2,7 +2,7 @@
 id: BUG-0649
 title: The order form promises a stop will be placed separately on a venue that cannot place it
 type: bug
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-branch: fix/live-observation-findings
+assignee: opencode
+branch: fix/bug-0649-stop-note
 ---
 
 # The order form promises a fallback the gate then refuses
@@ -67,13 +68,47 @@ to make before the order, not discover after it.
 
 ## Acceptance criteria
 
-- [ ] The note cannot appear on a venue where the gate refuses the standalone
+- [x] The note cannot appear on a venue where the gate refuses the standalone
       stop, for the current table and for any combination of the two flags
-- [ ] The wording distinguishes "placed as a second request" from "can only go
+- [x] The wording distinguishes "placed as a second request" from "can only go
       out unprotected"
-- [ ] A test renders the form with `tpSlAtEntry: false, tpSlStandalone: false`
+- [x] A test renders the form with `tpSlAtEntry: false, tpSlStandalone: false`
       and asserts which text appears
-- [ ] A test renders it with `false / true` and asserts the second-request text
+- [x] A test renders it with `false / true` and asserts the second-request text
+
+## Resolution
+
+One predicate, two call sites — `canCarryStopLoss` / `stopLossPlacement` in
+`src/services/exchange/stopLossPlacement.ts`. The order form and the gate now
+ask the same question about the same two flags, which is what removes the class of
+defect rather than this instance of it: `orderGate.ts`'s `unplaceableStop` test
+and the panel's note were the same condition written twice, and the panel's copy
+was the incomplete one.
+
+Three states rather than a yes/no, because the two failures need different words:
+`attached` (nothing to say), `separate` (the existing note, now true where it
+shows) and `unprotected` (new — this exchange cannot carry a stop on an entry at
+all, clear the stop to send the order deliberately unprotected).
+
+The gate's behaviour is unchanged: `!a && !b` and `!(a || b)` are the same
+condition. Its 211 existing assertions stay green, which is the evidence that the
+refactor moved nothing.
+
+### Verification
+
+- The component test was written first and failed before the fix, naming the
+  missing sentence rather than anything incidental. The other two cases — the
+  second-request text where the venue really sends one, and no note at all where
+  stops attach — passed before and after, which is what proves the note is chosen
+  by the capability pair and not by something incidental to the test.
+- Mutation: restoring the old `{#if !caps.tpSlAtEntry}` fails exactly one test,
+  with `expected 'Place this position bitget …' to contain 'neither attached to
+  the entry nor as a separate order'`. Restored, 40 green across the component,
+  the predicate and the gate capability suite.
+
+Not addressed here, and still true: the refusal renders `bitget` while the UI
+writes `Bitget`, and paper mode shows a "balance not loaded" note beside an
+Account Balance field reading 10000. Both are recorded above.
 
 ## Also seen in the same observation, not filed here
 

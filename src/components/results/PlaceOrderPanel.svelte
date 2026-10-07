@@ -57,6 +57,7 @@
     type OrderEntryType,
     type TimeInForce,
   } from "../../services/exchangeCapabilities";
+  import { stopLossPlacement } from "../../services/exchange/stopLossPlacement";
   import {
     orderPlacementService,
     narrowTradeType,
@@ -72,6 +73,9 @@
 
   const exchange = $derived(settingsState.apiProvider);
   const caps = $derived(capabilitiesOf(exchange));
+  // BUG-0649 — the note has to agree with the gate. `attached` means nothing to
+  // warn about, so no branch renders for it.
+  const stopPlacement = $derived(stopLossPlacement(caps));
   const tifSupported = $derived(caps.timeInForce.length > 0);
 
   let entryType = $state<OrderEntryType>("market");
@@ -663,8 +667,18 @@
       <div><dt>{$_("orderEntry.summary.stop")}</dt><dd>{formatDynamicDecimal(data.stopLossPrice, meta?.quotePrecision ?? 2)}</dd></div>
     </dl>
 
-    {#if !caps.tpSlAtEntry}
+    <!--
+      BUG-0649. Which note depends on both capability flags, and the gate reads
+      the same pair (`orderGate.ts`, `unplaceableStop`). Asking only
+      `!caps.tpSlAtEntry` is what put "the stop is placed as a second request" on
+      a venue that cannot send a separate request — the gate refused it one click
+      later, on the same screen. The decision lives in `stopLossPlacement` so the
+      two call sites cannot answer different questions again.
+    -->
+    {#if stopPlacement === "separate"}
       <p class="note warn">{$_("orderEntry.notes.noAttachedProtection")}</p>
+    {:else if stopPlacement === "unprotected"}
+      <p class="note warn">{$_("orderEntry.notes.unprotectedEntry")}</p>
     {/if}
 
     {#if !hasMeta}

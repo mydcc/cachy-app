@@ -6114,7 +6114,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0649",
     "title": "The order form promises a stop will be placed separately on a venue that cannot place it",
     "type": "bug",
-    "status": "ready",
+    "status": "in-progress",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6126,7 +6126,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "branch": "fix/live-observation-findings",
+    "assignee": "opencode",
+    "branch": "fix/bug-0649-stop-note",
     "file": "bugs/BUG-0649-stop-note-promises-an-unavailable-fallback.md"
   },
   {
