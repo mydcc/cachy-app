@@ -59,9 +59,27 @@ This change raises both, never lowers them.
 
 ## Acceptance criteria
 
-- [ ] `engines.node` matches the strictest floor among production dependencies
-- [ ] `.node-version` still satisfies `engines`, and is raised if needed
-- [ ] A check or note keeps `engines` from drifting below a dependency again
+- [x] `engines.node` matches the strictest floor among production dependencies —
+      `^22.22.2 || ^24.15.0 || >=26.0.0`, the range `jsdom@30.1.2` declares
+- [x] `.node-version` still satisfies `engines` — `scripts/check-node-version.mjs`
+      passes on 26.8.1
+- [ ] A check keeps `engines` from drifting below a dependency again
+
+## Why the last one is still open
+
+`check-node-version.mjs` guards the pin against `engines`, which is the
+direction that broke before (a sandbox session replaying a stale
+`.node-version` while `engines` moved on). Nothing guards the other direction:
+`engines` is hand-written, so the next dependency with a higher floor widens the
+gap again without anything noticing.
+
+Deriving the range from the lockfile is possible but noisy, since any
+transitive bump could move it. The cheaper half of the guarantee is that a
+dependency needing a newer Node than `engines` promises now shows up as
+`EBADENGINE` during `npm ci` — visible, but only if someone reads the install
+output.
+
+Undecided: pin by hand and compare, or derive.
 
 ## Open questions
 
