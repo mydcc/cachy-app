@@ -2971,6 +2971,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0647-bitget-modify-resends-resting-size.md"
   },
   {
+    "id": "BUG-0648",
+    "title": "Clearing the stop leaves the previous calculation standing, and the order is built from it",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/live-observation-findings",
+    "file": "bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -6090,6 +6109,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "opencode",
     "file": "bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md"
+  },
+  {
+    "id": "BUG-0649",
+    "title": "The order form promises a stop will be placed separately on a venue that cannot place it",
+    "type": "bug",
+    "status": "ready",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/live-observation-findings",
+    "file": "bugs/BUG-0649-stop-note-promises-an-unavailable-fallback.md"
   },
   {
     "id": "FEAT-0019",

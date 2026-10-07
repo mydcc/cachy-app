@@ -34,6 +34,12 @@ cents) and wait until then.
 
 ### Part 1 — zero balance, geldneutral (do now)
 
+Steps 1–5 need **no real deposit**. Step 2 additionally needs **paper mode
+on**: `PlaceOrderPanel` enables submit only when `requiredMargin <= available`
+(`liveMarginFunded`), so at a zero live balance the gate is never consulted and
+the step cannot be run there. Paper starts at a simulated 10000 USDT, which is
+enough — and the capability refusal is venue-based, so it fires the same way.
+
 1. **Reads:** Balance shows 0, positions empty, order history empty, market
    data live, no API errors in console/network. Expected: all green.
 2. **Gate refusal:** Bitget entry *with* stop → must be refused naming venue
@@ -96,6 +102,35 @@ on keys and a zero balance as they stand.
 - Any agent-sent request (forbidden under all circumstances).
 - Flipping `tpSlAtEntry` / `SUPPORTS.tpSl` (separate decision after step 7).
 - Depositing funds (the trader's decision alone).
+
+## Observations — 2026-10-07, deployed build `15a473bc8`
+
+Bitget, zero balance, paper mode for step 2. No funds moved; no order was sent.
+
+| step | result |
+|---|---|
+| 1 Reads | **Passed.** Available 0 USDT, Margin 0, PnL 0, Positions 0, Orders 0, History "No history found." No API error visible in console or network. |
+| 2a entry with stop | **Passed, twice.** `orderGate.unplaceableStop`, naming the venue: "Order refused: bitget cannot place the stop loss for this order — neither attached to the entry nor as a separate order. The order was not sent. Clear the stop to place a deliberately unprotected entry." |
+| 2a remedy | **Failed.** Clearing the stop (ATR off, manual field empty) and resubmitting produced the identical refusal with the summary still reading `STOP 2533.8`. Filed as BUG-0648. |
+| 2b entry without stop | **Not reachable.** Clearing the stop leaves the order carrying it (BUG-0648); on a fresh form a stopless entry has no computable size, so submit stays disabled. Blocked both ways. |
+| 3a TP/SL control on an empty account | **No control exists.** Traced: `canPlaceStandaloneTpSl = capabilities.tpSlStandalone` (`PositionsSidebar.svelte:1248`), and Bitget declares `false` — so `ontpSl` is `undefined` and the per-position control is not rendered. Two independent reasons it is absent: no position to attach it to, and a capability Bitget does not offer. The step's expectation of "a refusal, never silence" cannot be observed, because Cachy never offers the control — which is stronger than refusing, but leaves the standalone-TP/SL refusal path unexercised on Bitget. |
+| 5 close on empty | **Button not rendered.** Traced: the close-all button is inside the `{:else}` branch of `{#if safePositions.length === 0}` (`PositionsList.svelte:150`), so an empty account shows only "No open positions" and never the button. Correct as UX; it makes the step unreachable and leaves `trade.closeAllEmpty` — "No open positions to close." — as a string no user can see. The guard in `confirmAndCloseAllPositions` is likewise unexercisable through the UI. |
+
+**Part 1 is concluded.** One step passed, one step passed but its own remedy is
+broken, and three steps are structurally unreachable — two because Cachy
+correctly declines to offer a control, one because a defect blocks both ways.
+None of that needs a deposit, so nothing here waited on the trader's money
+decision; Part 2 does.
+
+Two further defects surfaced in the same screen and are filed: BUG-0648 (stale
+calculation) and BUG-0649 (the form promises a second-request stop the gate
+refuses). Neither is visible from the code or the tests alone.
+
+**Also worth recording:** the deployed build is 26 commits behind `develop`.
+`orderGate.ts` is identical between them, so the refusal text observed is the
+current text — which is why step 2a's wording can be recorded as evidence. The
+chart granularities are **not**: `3m`, `6h`, `12h` and `1M` fail on that build
+and work on `develop`, so timeframe behaviour must not be observed there.
 
 ## Links
 

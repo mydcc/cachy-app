@@ -2,9 +2,9 @@
 
 # Backlog index
 
-523 items. How to read and add them: [README.md](README.md).
+525 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 448 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 27 · ✅ done 448 · ⛔ dropped 1
 
 ---
 
@@ -316,6 +316,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | ✅ done | persistence |
 | [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | calculation |
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | execution |
+| [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -413,6 +414,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | ✅ done | deps |
 | [BUG-0636](bugs/BUG-0636-no-build-job-in-ci.md) | CI never builds, so a dependency bump that breaks the server bundle passes every check | P2 | 📋 specced | ci |
 | [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | ✅ done | security |
+| [BUG-0649](bugs/BUG-0649-stop-note-promises-an-unavailable-fallback.md) | The order form promises a stop will be placed separately on a venue that cannot place it | P2 | 🟢 ready | ui |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -736,6 +738,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -882,6 +885,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0636](bugs/BUG-0636-no-build-job-in-ci.md) | CI never builds, so a dependency bump that breaks the server bundle passes every check | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0649](bugs/BUG-0649-stop-note-promises-an-unavailable-fallback.md) | The order form promises a stop will be placed separately on a venue that cannot place it | P2 | 🟢 ready | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -1120,4 +1124,4 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 
 ---
 
-Next free number: **0648**
+Next free number: **0650**
