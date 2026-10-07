@@ -133,6 +133,38 @@ describe('sanitizeHtml', () => {
       expect(result).toContain('click');
       expect(result).not.toContain('javascript:');
     });
+
+    // BUG-0645. GlobalTracker reads these three off any clicked node and
+    // forwards the id plus the parsed JSON context to the analytics service,
+    // so surviving ones are an injection surface — `track-ignore` the other way
+    // round, silencing tracking, and it triggers on an empty value too.
+    it('drops the data attributes the analytics tracker reads', () => {
+      const result = sanitizeHtml(
+        '<p data-track-id="fake.purchase" data-track-context=\'{"orderId":42}\'>Text</p>' +
+          '<div data-track-ignore="">hidden</div>',
+      );
+
+      expect(result).not.toContain('data-track-id');
+      expect(result).not.toContain('data-track-context');
+      expect(result).not.toContain('data-track-ignore');
+      // The elements and their text stay; only the attributes go.
+      expect(result).toContain('Text');
+      expect(result).toContain('hidden');
+    });
+
+    // The guard is deliberately narrow: blanket-forbidding data-* would be a
+    // wider policy change than BUG-0645 needs.
+    it('keeps data attributes the tracker does not read', () => {
+      expect(sanitizeHtml('<p data-custom="x" data-symbol="BTCUSDT">Text</p>'))
+        .toContain('data-custom="x"');
+    });
+
+    // Guards the reason the root-cause fix was rejected: switching
+    // DialogView to escaped rendering would lose these breaks. See BUG-0645.
+    it('keeps the line breaks the order confirmation message relies on', () => {
+      expect(sanitizeHtml('BTCUSDT 0.5 Long.<br>TP: 70000<br>Stop: 60000'))
+        .toBe('BTCUSDT 0.5 Long.<br>TP: 70000<br>Stop: 60000');
+    });
   });
 
   describe('SSR passthrough', () => {

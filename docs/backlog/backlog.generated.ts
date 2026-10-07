@@ -9677,7 +9677,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0645",
     "title": "data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -9689,6 +9689,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0645-data-attributes-reach-analytics-tracker.md"
   },
   {
