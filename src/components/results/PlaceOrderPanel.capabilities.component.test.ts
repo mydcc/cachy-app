@@ -356,13 +356,24 @@ describe("FEAT-0017 — PlaceOrderPanel reads exchange capabilities", () => {
         });
 
         /*
-         * Bitget places the stop as a second request. The trader is told,
-         * because a briefly unprotected position is a fact about their money,
-         * not an implementation detail.
+         * BUG-0649 — this case used to expect `noAttachedProtection` here, which
+         * told the trader Bitget "places the stop as a second request". It does
+         * not: `tpSlStandalone` is false as well, so the gate refuses the stop as
+         * `unplaceableStop` one click later. The panel was promising the
+         * fallback the gate had already decided does not exist.
+         *
+         * The warning stays — an unprotected entry is a fact about the trader's
+         * money — but it has to say which kind it is. No venue places the stop
+         * separately today, so the second-request text is unreachable until one
+         * exists; `stopLossPlacement.test.ts` pins that branch for the venue that
+         * would take it.
          */
-        it("warns that Bitget cannot attach the stop to the entry", async () => {
+        it("tells a Bitget entry that it can only go out unprotected", async () => {
             await mountFor("bitget");
-            expect(host.textContent).toContain(lookup("orderEntry.notes.noAttachedProtection"));
+            expect(host.textContent).toContain(lookup("orderEntry.notes.unprotectedEntry"));
+            expect(host.textContent).not.toContain(
+                lookup("orderEntry.notes.noAttachedProtection"),
+            );
         });
     });
 });
