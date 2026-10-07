@@ -307,6 +307,7 @@ Features:
 - ✅ Atomic build in a shadow directory — a failed build never touches the live one
 - ✅ Graceful service shutdown (SIGTERM → SIGKILL)
 - ✅ Build artifact validation
+- ✅ Dependency refresh before the swap (`npm ci --omit=dev`, local builds) — the live tree cannot run a build against a different framework version than it was compiled with
 - ✅ Health check against `/api/health`
 - ✅ Auto-rollback on failure
 - ✅ Optional Discord notifications
@@ -317,20 +318,21 @@ Features:
 2. **Take the concurrency lock** - a second run refuses to start while one is in progress
 3. **Check branch and working tree** - offers to switch branch and to stash changes
 4. **Confirm** - production mode requires an explicit `y`
-5. **Create backup** - full build + package-lock.json + Git commit
-6. **Pull latest code** - `git reset --hard && git pull`
-7. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci && npm run build` there. **A failed build aborts without touching the running deployment.**
+5. **Pull latest code** - `git reset --hard HEAD && git pull`
+6. **Create backup** - full build + package-lock.json + Git commit
+7. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci --legacy-peer-deps && npm run build` there. **A failed build aborts without touching the running deployment.**
 8. **Validate build** - checks that `build/index.js` exists
-9. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` (fixed name, so nothing accumulates), move the new one in. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
-10. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
+9. **Refresh production dependencies** (local build only) - `npm ci --omit=dev` at the project root, before the swap. The shadow build compiles against its own fresh `npm ci`, but the swap replaces only `build/` — without this the live tree keeps whatever `node_modules` it had, so the server can be built against one framework version and executed against another. `--ci` skips it: that path already refreshed deps while fetching the artifact. **A failed install aborts before the swap.**
+10. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` (fixed name, so nothing accumulates), move the new one in. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
+11. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
     Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
     start command (e.g. a bad path) is flagged before the health check even begins.
-11. **Health check** - verify the service responds at `/api/health`
-12. **Auto-rollback** - restore `build_previous` and restart when the health check fails; the previous build is deleted only after the health check passes (unless `KEEP_PREVIOUS=1`)
+12. **Health check** - verify the service responds at `/api/health`
+13. **Auto-rollback** - restore `build_previous` and restart when the health check fails; the previous build is deleted only after the health check passes (unless `KEEP_PREVIOUS=1`)
 
 ### Why the script runs from a snapshot
 
-Step 6 pulls new code, and one of the files it rewrites is `deploy.sh` itself —
+Step 5 pulls new code, and one of the files it rewrites is `deploy.sh` itself —
 while bash is still reading that very file. Bash reads scripts lazily and tracks
 only a **byte offset**, so as soon as the file changes size, every following line
 is read from the wrong position. Sections get skipped entirely, or the same
@@ -352,7 +354,7 @@ or check on a running deploy:
   for `deploy.sh` in `ps` finds nothing, which reads as "no deploy is running"
   when one very much is. See the concurrency-lock entry in Troubleshooting.
 - **A change pulled in mid-run reaches the build but not the run's own logic.**
-  Steps 6 onwards genuinely build the newly pulled code; the deploy *script*
+  Step 5 onwards genuinely build the newly pulled code; the deploy *script*
   stays on whatever was pinned at start. So a fix to `deploy.sh` itself takes
   effect only from the run *after* the one that pulled it.
 - **Snapshot files are cleaned up on exit** via an `EXIT` trap. A run killed with
@@ -361,7 +363,9 @@ or check on a running deploy:
 The snapshot is **best effort**: if it cannot be written (no space in `$TMPDIR`,
 a restrictive `TMPDIR`), the deploy continues unprotected rather than being
 blocked by the protection. If you need to know which happened, check for the
-snapshot process above before assuming pinning was active.
+snapshot process above before assuming pinning was active. On that path there is
+no snapshot file, and the cleanup trap is a no-op — it never touches anything
+outside `$TMPDIR`.
 
 ### Manual rollback
 
@@ -582,9 +586,17 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
 3. **Build fails:**
    - The full build log path is printed on failure — `logs/build_<timestamp>.log`
    - The build runs in `.deploy_work`, so a failure leaves the live deployment untouched
-   - Try manually: `npm ci && npm run build`
+   - Try manually: `npm ci --legacy-peer-deps && npm run build`
 
-4. **A change you just merged appears to have done nothing** — the log shows the
+4. **`❌ Dependency install FAILED!`** — the pre-swap `npm ci --omit=dev` at the
+   project root failed, so the deploy aborted before the swap and the running
+   deployment was never touched. The reason is in the same build log
+   (`logs/build_<timestamp>.log`). Fix the install (usually a lockfile/`package.json`
+   mismatch after a dependency bump), then re-run. This is the failure #3892's
+   refresh step exists to surface early rather than as a health-check timeout: a
+   live tree left on old `node_modules` fails at runtime, not at install time.
+
+5. **A change you just merged appears to have done nothing** — the log shows the
    deploy pulling in the commit, the build succeeds, and the old behavior is
    still in effect. Historically this meant bash had re-read a grown `deploy.sh`
    from a stale byte offset and silently skipped the block that contained the
@@ -598,7 +610,7 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
      not. A fix to `deploy.sh` therefore never affects the run that pulled it;
      run the deploy a second time.
 
-5. **`fatal: detected dubious ownership in repository`:**
+6. **`fatal: detected dubious ownership in repository`:**
    - Git refuses to run `git` commands in a working tree owned by a different user than the one running
      them (a security check, not a `deploy.sh` bug). Common on aaPanel when the repo was cloned as `root`
      (or created by the panel) but `deploy.sh` is run as another shell user.
