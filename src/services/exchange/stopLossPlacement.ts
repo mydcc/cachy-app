@@ -38,20 +38,6 @@
 import type { ExchangeCapabilities } from "../exchangeCapabilities";
 
 /**
- * Whether a venue can carry a stop on this order at all — attached, or as a
- * separate order afterwards.
- *
- * The gate refuses a stop it cannot place; the order form has to say so before
- * the trader presses the button. Both read this.
- */
-export function canCarryStopLoss(caps: {
-    tpSlAtEntry: boolean;
-    tpSlStandalone: boolean;
-}): boolean {
-    return caps.tpSlAtEntry || caps.tpSlStandalone;
-}
-
-/**
  * Which of the two things the trader needs to be told applies here.
  *
  * `separate` — the venue cannot attach, but places the stop itself, so the
@@ -62,7 +48,27 @@ export function canCarryStopLoss(caps: {
  */
 export type StopLossPlacement = "attached" | "separate" | "unprotected";
 
-export function stopLossPlacement(caps: Pick<ExchangeCapabilities, "tpSlAtEntry" | "tpSlStandalone">): StopLossPlacement {
+/** The one capability pair this module reasons about. */
+export type StopLossPair = Pick<
+    ExchangeCapabilities,
+    "tpSlAtEntry" | "tpSlStandalone"
+>;
+
+/**
+ * Whether a venue can carry a stop on this order at all — attached, or as a
+ * separate order afterwards.
+ *
+ * The gate refuses a stop it cannot place; the order form has to say so before
+ * the trader presses the button. Both read this.
+ */
+export function canCarryStopLoss(caps: StopLossPair): boolean {
+    // Derived, not stated a second time. This module exists because one fact had
+    // two spellings; writing the pair out again here would be the same defect one
+    // function down.
+    return stopLossPlacement(caps) !== "unprotected";
+}
+
+export function stopLossPlacement(caps: StopLossPair): StopLossPlacement {
     if (caps.tpSlAtEntry) return "attached";
     return caps.tpSlStandalone ? "separate" : "unprotected";
 }

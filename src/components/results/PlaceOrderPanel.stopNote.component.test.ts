@@ -203,6 +203,9 @@ let component: unknown;
 
 beforeEach(() => {
     flushSync();
+    // The no-stop case turns the stop off; without this it leaks into every
+    // later case and they fail for the wrong reason.
+    tradeData.stopLossPrice = "58000";
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -220,23 +223,49 @@ function render(): string {
 }
 
 describe("BUG-0649 — the stop note names what the venue can actually do", () => {
+    // Read from the locale table rather than hardcoded copy: a rewording of the
+    // sentence should fail nothing, and a rewording that drops the distinguishing
+    // clause must not leave `not.toContain` green for the wrong reason.
+    const UNPROTECTED = lookup("orderEntry.notes.unprotectedEntry");
+    const SECOND_REQUEST = lookup("orderEntry.notes.noAttachedProtection");
+
     it("does not promise a second request on a venue that cannot send one", () => {
         capsMock.tpSlAtEntry = false;
         capsMock.tpSlStandalone = false;
 
         const text = render();
 
-        expect(text).toContain("neither attached to the entry nor as a separate order");
+        expect(text).toContain(UNPROTECTED);
         // The promise that could not be kept, and that the gate contradicted one
         // click later on the same screen.
-        expect(text).not.toContain("placed as a second request");
+        expect(text).not.toContain(SECOND_REQUEST);
     });
 
     it("still promises the second request where the venue really sends one", () => {
         capsMock.tpSlAtEntry = false;
         capsMock.tpSlStandalone = true;
 
-        expect(render()).toContain("placed as a second request");
+        expect(render()).toContain(SECOND_REQUEST);
+    });
+
+    /*
+     * The note has to answer two questions — what the venue can do, and whether
+     * there is a stop to talk about. Answering only the first put "clear the
+     * stop" on every Bitget entry that carries no stop at all: an instruction
+     * that cannot be carried out, for a refusal the gate would never raise.
+     */
+    it("says nothing on a venue that cannot carry a stop when there is none", () => {
+        capsMock.tpSlAtEntry = false;
+        capsMock.tpSlStandalone = false;
+        tradeData.stopLossPrice = "0";
+
+        const text = render();
+
+        // A positive anchor first, so this cannot pass by the panel not
+        // rendering at all.
+        expect(text).toContain(lookup("orderEntry.summary.stop"));
+        expect(text).not.toContain(UNPROTECTED);
+        expect(text).not.toContain(SECOND_REQUEST);
     });
 
     it("says nothing about stops where they attach", () => {
@@ -244,7 +273,11 @@ describe("BUG-0649 — the stop note names what the venue can actually do", () =
         capsMock.tpSlStandalone = true;
 
         const text = render();
-        expect(text).not.toContain("placed as a second request");
-        expect(text).not.toContain("neither attached to the entry nor as a separate order");
+
+        // Positive anchor: two absence assertions alone would also pass if the
+        // summary stopped rendering altogether.
+        expect(text).toContain(lookup("orderEntry.summary.stop"));
+        expect(text).not.toContain(SECOND_REQUEST);
+        expect(text).not.toContain(UNPROTECTED);
     });
 });

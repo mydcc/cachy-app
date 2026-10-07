@@ -2,7 +2,7 @@
 id: BUG-0649
 title: The order form promises a stop will be placed separately on a venue that cannot place it
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -75,6 +75,11 @@ to make before the order, not discover after it.
 - [x] A test renders the form with `tpSlAtEntry: false, tpSlStandalone: false`
       and asserts which text appears
 - [x] A test renders it with `false / true` and asserts the second-request text
+- [x] The note cannot appear when there is no stop to talk about — the gate
+      already asks that (`orderGate.ts:977`, a positive Decimal), so the form
+      asking it differently is the same defect this item is about. Found in
+      review: the first fix warned every Bitget entry, including the many that
+      carry no stop, telling the trader to clear one they never set
 
 ## Resolution
 

@@ -76,6 +76,24 @@
   // BUG-0649 — the note has to agree with the gate. `attached` means nothing to
   // warn about, so no branch renders for it.
   const stopPlacement = $derived(stopLossPlacement(caps));
+  /**
+   * BUG-0649 — the note has to answer a second question too: is there a stop to
+   * talk about at all? The gate asks exactly this (`orderGate.ts:977` — a
+   * positive Decimal, with zero and missing alike meaning none).
+   *
+   * Gating on capability alone put "clear the stop to send the order
+   * deliberately unprotected" on every Bitget entry, including the many that
+   * carry no stop — an instruction that cannot be carried out, on the same
+   * screen, for the same trader this defect was observed on. The gate would not
+   * have refused either. That is this bug's own shape, reintroduced by its own
+   * fix: the panel saying something the gate will not act on.
+   *
+   * `$derived.by` because `data` is declared further down; the closure runs at
+   * read time, once every binding is initialised.
+   */
+  const stopRequested = $derived.by(
+    () => data?.stopLossPrice instanceof Decimal && data.stopLossPrice.gt(0),
+  );
   const tifSupported = $derived(caps.timeInForce.length > 0);
 
   let entryType = $state<OrderEntryType>("market");
@@ -675,9 +693,9 @@
       later, on the same screen. The decision lives in `stopLossPlacement` so the
       two call sites cannot answer different questions again.
     -->
-    {#if stopPlacement === "separate"}
+    {#if stopRequested && stopPlacement === "separate"}
       <p class="note warn">{$_("orderEntry.notes.noAttachedProtection")}</p>
-    {:else if stopPlacement === "unprotected"}
+    {:else if stopRequested && stopPlacement === "unprotected"}
       <p class="note warn">{$_("orderEntry.notes.unprotectedEntry")}</p>
     {/if}
 

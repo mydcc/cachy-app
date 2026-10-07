@@ -6114,7 +6114,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0649",
     "title": "The order form promises a stop will be placed separately on a venue that cannot place it",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
