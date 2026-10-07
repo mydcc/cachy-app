@@ -23,11 +23,20 @@ BUG-0576 for the order the remaining rows are migrated in.
 | 🟡 | partially integrated, or integrated with a known limitation |
 | ❌ | not integrated |
 | ☠️ | wired in Cachy, but calling a **decommissioned** Bitget V1 endpoint |
+| ⏳ | wired to UTA V3, but **not yet verified live** — needs a trader account |
 
 ☠️ is a distinct status from ❌ on purpose. ❌ means nothing is sent. ☠️ means
 code exists, is exercised by the test suite, and would work against a live V1
 API — it fails at the venue instead of at the boundary. Nothing in Cachy
 detects the difference, because the boundary never sees a request.
+
+⏳ is the status the UTA recon (BUG-0597 Phase A–F, verified against live
+envelopes 2026-10-03 in `14_uta_v3.md`) leaves behind: the path, body and
+parser are written against observed shapes and covered by tests, but no live
+order, close or verification has run through them. Claiming ✅ would assert a
+live call nobody made; keeping ☠️ would assert a dead endpoint nothing calls
+anymore — the V1 paths are gone from the path table, so ☠️ currently describes
+nothing. When the trader verification lands (IDEA-0620), ⏳ rows become ✅.
 
 ## Symbol keys: one canonical pair
 
@@ -96,7 +105,7 @@ it.
 
 | Endpoint | Purpose | Status | Code |
 |---|---|---|---|
-| `GET …/account/account` | Account + balance | ☠️ | [[`src/utils/server/venues/bitget.ts:244`](../../src/utils/server/venues/bitget.ts) and `:278` — called **twice** from two Cachy routes |
+| `GET …/account/account` | Account + balance | ⏳ | `/api/v3/account/assets` via `BITGET_UPSTREAM_PATHS` (`restSigningPlan.ts:288`) — called **twice** from two Cachy routes; envelope parsed from the live shape in `14_uta_v3.md` |
 | `GET …/account/accounts` | Account list | ❌ | Single-account read is enough |
 | `GET …/account/liq-price` | Estimated liquidation price | ❌ | Would answer liquidation questions without opening a position |
 | `GET …/account/max-open` | Max openable quantity | ❌ | Not called |
@@ -113,7 +122,7 @@ it.
 
 | Endpoint | Status | Code / Note |
 |---|---|---|
-| `GET …/position/all-position` | ☠️ | [[`src/utils/server/venues/bitget.ts:402`](../../src/utils/server/venues/bitget.ts) — the position snapshot; the OMS is fed from this |
+| `GET …/position/all-position` | ⏳ | `/api/v3/position/current-position` via `BITGET_UPSTREAM_PATHS` — the position snapshot; the OMS is fed from this; raw fields read off the live UTA shape (`venues/bitget.ts:68`) |
 | `GET …/position/single-position` | ❌ | The all-position read covers it |
 | `GET …/position/history-position` | ❌ | Not called — see the `ctime`/`cTime` casing note in `05_position.md` |
 | `GET …/position/adlRank` | ❌ | Not called. Note `adlRank` is deprecated in favour of `rank` |
@@ -123,10 +132,10 @@ it.
 
 | Endpoint | Status | Code / Note |
 |---|---|---|
-| `POST …/order/place-order` | ☠️ | [[`src/utils/server/venues/bitget.ts:75`](../../src/utils/server/venues/bitget.ts) — serves **both** order placement and every close |
-| `GET …/order/orders-pending` | ☠️ | [[`src/utils/server/venues/bitget.ts:112`](../../src/utils/server/venues/bitget.ts) |
-| `GET …/order/orders-history` | ☠️ | [[`src/utils/server/venues/bitget.ts:153`](../../src/utils/server/venues/bitget.ts) — re-filters `startTime`/`endTime` client-side because Bitget's own default is not the one Cachy signs |
-| `POST …/order/cancel-order` | ☠️ | [[`src/utils/server/venues/bitget.ts:197`](../../src/utils/server/venues/bitget.ts) |
+| `POST …/order/place-order` | ⏳ | `/api/v3/trade/place-order` — serves **both** order placement and every close (body carries the intent); UTA body with refusal design (`bitgetBodies.ts`), covered by `bitgetUtaWrites.test.ts` |
+| `GET …/order/orders-pending` | ⏳ | `/api/v3/trade/unfilled-orders` — re-filters `startTime`/`endTime` client-side because Bitget's own default is not the one Cachy signs |
+| `GET …/order/orders-history` | ⏳ | `/api/v3/trade/history-orders` — re-filters `startTime`/`endTime` client-side because Bitget's own default is not the one Cachy signs |
+| `POST …/order/cancel-order` | ⏳ | `/api/v3/trade/cancel-order` — a cancel can refuse or mis-target but never opens a position (Phase B) |
 | `POST …/order/close-positions` | ❌ | **Not used** — see §3. Bitget's native flash close, 1 req/s |
 | `POST …/order/cancel-all-orders` | ❌ | Refused at the signer; no path-table row |
 | `POST …/order/batch-place-order` | ❌ | Refused |
@@ -162,13 +171,13 @@ TP/SL request fields are **refused**, not silently dropped:
 
 | Channel | Type | Status | Note |
 |---|---|---|---|
-| `ticker` | public | ☠️ | `bitgetWs.ts` — V1 socket |
-| `candle1m`…`candle1W` | public | ☠️ | V1 socket; `kline_1m` → `candle1m` mapping |
-| `books5` | public | ☠️ | Depth, 5 levels |
+| `ticker` | public | ✅ | `bitgetWs.ts` — V2 public socket (`wss://ws.bitget.com/v2/ws/public`) |
+| `candle1m`…`candle1W` | public | ✅ | V2 public socket; `kline_1m` → `candle1m` mapping |
+| `books5` | public | ✅ | V2 public socket; depth, 5 levels |
 | `books`, `books15` | public | ❌ | Handled in the dispatcher, not mapped to an adapter channel |
 | `trade` | public | ❌ | `streams.trades: false` at [[`src/services/exchange/bitgetAdapter.ts:246`](../../src/services/exchange/bitgetAdapter.ts) |
-| `orders` | private | ☠️ | Subscribed via `instId: default`; pushes land in `accountState` with **Bitunix** field names — see the note below |
-| `positions` | private | ☠️ | Same field-name mismatch |
+| `orders` | private | ❌ | No private socket yet — `bitgetWs.ts` **refuses** to subscribe on the public V2 socket (BUG-0598). Nothing dead is called; pushes land nowhere until the private half exists. The field-name mismatch below still applies once it does |
+| `positions` | private | ❌ | Same — refusal, not a dead call |
 | `account` | private | 🟡 | Subscribed by `subscribePrivate()` but has **no** `handleMessage` branch |
 | `equity`, `fill`, `positions-history`, `orders-algo`, `adl-noti` | private | ❌ | Not subscribed |
 | `op:"trade"` place-order / cancel-order | private | ❌ | Request channels, not used |
@@ -192,13 +201,13 @@ For each capability: what the venue does, what Cachy does, and where.
 |---|---|---|---|
 | **Single close** | ✅ `POST …/order/close-positions` | 🟡 **Emulated** as a reduce-only market order via `place-order` | [`src/services/tradeService.ts:2088`](../../src/services/tradeService.ts) |
 | **Bulk close** | ✅ `POST …/order/close-positions`, `holdSide` blank closes all — **1 req/s, the tightest limit in the surface** | 🟡 **Emulated**: reads fresh positions, then fires **N concurrent** `placeOrder` calls via `Promise.allSettled` | [`src/services/tradeService.ts:2327`](../../src/services/tradeService.ts) |
-| **Order place** | ✅ `POST …/order/place-order` | ☠️ Wired, V1 body | [`src/utils/server/venues/bitget.ts:75`](../../src/utils/server/venues/bitget.ts) |
-| **Cancel** | ✅ `POST …/order/cancel-order` | ☠️ Wired, V1 body | [`src/utils/server/venues/bitget.ts:197`](../../src/utils/server/venues/bitget.ts) |
+| **Order place** | ✅ `POST …/order/place-order` | ⏳ UTA body (`side` + `posSide`/`reduceOnly`, `marginMode` required, `tradeSide` absent by design) — `bitgetBodies.ts`, `bitgetUtaWrites.test.ts` | [`src/utils/server/venues/bitget.ts:75`](../../src/utils/server/venues/bitget.ts) |
+| **Cancel** | ✅ `POST …/order/cancel-order` | ⏳ `/api/v3/trade/cancel-order` | [`src/utils/server/venues/bitget.ts:197`](../../src/utils/server/venues/bitget.ts) |
 | **TP/SL attach** | ✅ On `place-order` itself (`presetStopSurplusPrice`, `presetStopLossPrice`, plus `*ExecutePrice`), and 5 dedicated plan-order endpoints | ❌ **Refused.** `tpSl: false`, `tpSlAtEntry: false`, `tpSlStandalone: false` | [`src/services/exchange/bitgetAdapter.ts:208`](../../src/services/exchange/bitgetAdapter.ts), [[`src/utils/exchange/bitgetBodies.ts:97`](../../src/utils/exchange/bitgetBodies.ts), `bitgetCapabilities.ts` |
 | **Leverage / margin-mode set** | ✅ `set-leverage`, `set-all-leverage`, `set-margin`, `set-auto-margin`, `set-margin-mode`, `set-position-mode` | ❌ **Refused.** `executeAccountSetting()` returns `null`; every adapter verb refuses on `accountSettings: false` | [`src/utils/server/venues/bitget.ts:495`](../../src/utils/server/venues/bitget.ts), [[`src/services/exchange/bitgetAdapter.ts:162`](../../src/services/exchange/bitgetAdapter.ts) |
-| **Position snapshot** | ✅ `GET …/position/all-position` | ☠️ Wired, V1 path; feeds the OMS | [`src/utils/server/venues/bitget.ts:402`](../../src/utils/server/venues/bitget.ts) |
+| **Position snapshot** | ✅ `GET …/position/all-position` | ⏳ `/api/v3/position/current-position`; feeds the OMS | [`src/utils/server/venues/bitget.ts:402`](../../src/utils/server/venues/bitget.ts) |
 | Order detail | ✅ `GET …/order/detail` | ❌ Refused at the signer | [`src/utils/exchange/restSigningPlan.ts:291`](../../src/utils/exchange/restSigningPlan.ts) |
-| Modify order | ✅ `POST …/order/modify-order` | ❌ Refused at the signer | [`src/utils/exchange/venueBodies.ts:125`](../../src/utils/exchange/venueBodies.ts) |
+| Modify order | ✅ `POST …/order/modify-order` | ⏳ `/api/v3/trade/modify-order` (Phase E) — changes price/size of a resting order, cannot open a position |
 | Cancel all | ✅ `POST …/order/cancel-all-orders` | ❌ Refused at the signer | [`src/utils/exchange/venueBodies.ts:139`](../../src/utils/exchange/venueBodies.ts) |
 | Mark-price candles | ✅ `kLineType: mark` + a dedicated endpoint | ❌ Refused rather than answered with last-price candles | [`src/utils/server/venues/bitget.ts:519`](../../src/utils/server/venues/bitget.ts) |
 | Position mode (one-way / hedge) | ✅ read from **two** places: `account/account` returns `posMode` (`one_way_mode` \| `hedge_mode`) directly, and `history-position` also returns it | ❌ Declared empty — but **the data is already in hand** | `bitgetCapabilities.ts` |

@@ -195,6 +195,30 @@ describe("Bitget market data on the V2 API (BUG-0576)", () => {
       expect(requestedUrl().searchParams.get("granularity")).toBe("1H");
     });
 
+    it.each([
+      ["3m", "3m"],
+      ["6h", "6H"],
+      ["12h", "12H"],
+      ["1M", "1M"],
+    ])("maps %s onto the granularity V2 serves (%s)", async (interval, granularity) => {
+      fetchMock.mockResolvedValue(okResponse({ code: "00000", data: [] }));
+
+      await bitgetVenue.fetchKlines({ symbol: "BTCUSDT", interval, limit: 1 });
+
+      // Each pair verified live 2026-10-07; the lowercase hour forms and the
+      // bare `3m`/`1M` answer 400171 unmapped.
+      expect(requestedUrl().searchParams.get("granularity")).toBe(granularity);
+    });
+
+    it("refuses a granularity V2 does not serve before any request exists", async () => {
+      await expect(
+        bitgetVenue.fetchKlines({ symbol: "BTCUSDT", interval: "2h", limit: 50 }),
+      ).rejects.toThrow('Bitget does not serve granularity "2h"');
+
+      // No upstream call is spent learning what the map already knows.
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it("parses the recorded V2 candle tuple into the venue shape", async () => {
       fetchMock.mockResolvedValue(
         okResponse({
