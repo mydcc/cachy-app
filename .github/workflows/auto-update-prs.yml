@@ -16,13 +16,14 @@ jobs:
     name: Report open PRs whose branch is behind develop
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+      # No checkout. This job makes only GitHub API calls - no git operation
+      # survived the move to reporting - so the working tree would be dead
+      # weight, and GH_REPO below is what tells gh CLI which repository to
+      # talk to in place of the remote it would otherwise read from git.
+      # That is also why `contents: read` is gone: nothing here reads the
+      # repository.
 
       # Why this no longer pushes to PR branches
       # ------------------------------------------
@@ -59,6 +60,7 @@ jobs:
       - name: Report branches that are behind develop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           MARKER: '<!-- auto-update-prs:stale -->'
         run: |
           set -uo pipefail
