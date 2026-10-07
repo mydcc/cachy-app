@@ -201,6 +201,15 @@ describe('selectVariant', () => {
       .toEqual({ suffix: '.gz', encoding: 'gzip' });
   });
 
+  // Equal q-values, and the header lists gzip first. Neither negotiator
+  // version reads that order: the tie is broken by the server's own
+  // preference list, passed as { preferred } — since 1.0, not as a bare array.
+  // Without it the preference is undefined and gzip silently wins.
+  it('breaks q-value ties by server preference, not by header order', () => {
+    expect(selectVariant('/_app/immutable/entry/app.js', index(), req({ 'accept-encoding': 'gzip;q=1, br;q=1' })))
+      .toEqual({ suffix: '.br', encoding: 'br' });
+  });
+
   // The regression that shipped in #3799: acceptEncoding.includes('br')
   // matches "br;q=0", so a client explicitly refusing brotli received it.
   it('refuses brotli when the client sets q=0', () => {
