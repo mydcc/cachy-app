@@ -529,7 +529,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0576",
     "title": "Bitget integration calls the decommissioned V1 API, so every signed REST call fails",
     "type": "bug",
-    "status": "in-progress",
+    "status": "ready",
     "priority": "P0",
     "area": "exchange",
     "created": "2026-09-28",
@@ -542,7 +542,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
     "branch": "fix/bitget-v2-market-data",
     "file": "bugs/BUG-0576-bitget-v1-api-decommissioned.md"
   },
@@ -595,7 +594,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0597",
     "title": "Bitget order placement still posts to the decommissioned V1 placeOrder, and the V2 order schema needs a split Cachy has not made",
     "type": "bug",
-    "status": "in-progress",
+    "status": "ready",
     "priority": "P0",
     "milestone": "none",
     "created": "2026-09-30",
@@ -611,7 +610,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "BUG-0596",
       "BUG-0580"
     ],
-    "assignee": "opencode",
     "branch": "docs/bug-0597-remove-demo-key-narrative",
     "file": "bugs/BUG-0597-bitget-order-write-paths-need-v2.md"
   },
@@ -2834,7 +2832,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0598",
     "title": "The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles",
     "type": "bug",
-    "status": "in-progress",
+    "status": "ready",
     "priority": "P1",
     "milestone": "none",
     "created": "2026-09-30",
@@ -2849,7 +2847,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0581"
     ],
-    "assignee": "opencode",
     "branch": "fix/bug-0598-ws-public-v2",
     "file": "bugs/BUG-0598-bitget-websocket-is-on-the-v1-stream.md"
   },
@@ -7182,8 +7179,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0335",
     "title": "Trail a stop behind a position once the exchange endpoint is verified",
     "type": "feature",
-    "status": "in-progress",
-    "assignee": "opencode",
+    "status": "specced",
     "branch": "docs/bitget-api-crawl (supersedes feature/feat-0335-bitget-trailing-stop, which is unmerged, still carries the pre-review wording, and whose bitget-api/ copy diverges from develop — so the line references below are develop's)",
     "priority": "P2",
     "milestone": "M3",
@@ -8563,6 +8559,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "features/FEAT-0630-migrate-to-vitest-5.md"
+  },
+  {
+    "id": "FEAT-0646",
+    "title": "Catch backlog claims whose branch already merged, and release four stale ones",
+    "type": "feature",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "repo",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/enforce-branch-on-in-progress",
+    "file": "features/FEAT-0646-catch-stale-backlog-claims.md"
   },
   {
     "id": "IDEA-0563",

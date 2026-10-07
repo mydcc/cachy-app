@@ -2,8 +2,7 @@
 id: FEAT-0335
 title: Trail a stop behind a position once the exchange endpoint is verified
 type: feature
-status: in-progress
-assignee: opencode
+status: specced
 branch: docs/bitget-api-crawl (supersedes feature/feat-0335-bitget-trailing-stop, which is unmerged, still carries the pre-review wording, and whose bitget-api/ copy diverges from develop — so the line references below are develop's)
 priority: P2
 milestone: M3
@@ -16,6 +15,8 @@ parent: FEAT-0023
 ---
 
 # FEAT-0335 — Trail a stop behind a position once the exchange endpoint is verified
+
+> **State note.** Blocked on a Bitunix trailing-stop endpoint that does not exist in the current API doc crawl — see the note in this item's body and FEAT-0070's Out of scope. The Bitunix half stays blocked; the Bitget half is specified but not built.
 
 > **Bitunix: blocked, and not by a decision.** There is no verified Bitunix
 > trailing-stop endpoint in the current API doc crawl — see
