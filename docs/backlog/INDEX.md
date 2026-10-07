@@ -2,9 +2,9 @@
 
 # Backlog index
 
-518 items. How to read and add them: [README.md](README.md).
+519 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 441 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 442 · ⛔ dropped 1
 
 ---
 
@@ -411,7 +411,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | ✅ done | tooling |
 | [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | ✅ done | deps |
 | [BUG-0636](bugs/BUG-0636-no-build-job-in-ci.md) | CI never builds, so a dependency bump that breaks the server bundle passes every check | P2 | 📋 specced | ci |
-| [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | 📋 specced | security |
+| [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | ✅ done | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -532,6 +532,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | deps |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | deps |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | deps |
+| [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -875,7 +876,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0636](bugs/BUG-0636-no-build-job-in-ci.md) | CI never builds, so a dependency bump that breaks the server bundle passes every check | P2 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -1042,6 +1043,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -1110,4 +1112,4 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-pr
 
 ---
 
-Next free number: **0643**
+Next free number: **0646**
