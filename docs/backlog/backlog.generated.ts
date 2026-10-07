@@ -6060,7 +6060,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0638",
     "title": "server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6072,6 +6072,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md"
   },
   {
@@ -9671,6 +9672,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0639-changelog-preset-needs-newer-writer.md"
+  },
+  {
+    "id": "BUG-0645",
+    "title": "data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0645-data-attributes-reach-analytics-tracker.md"
   },
   {
     "id": "FEAT-0022",
