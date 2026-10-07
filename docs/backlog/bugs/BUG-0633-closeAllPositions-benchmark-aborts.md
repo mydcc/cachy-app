@@ -43,12 +43,38 @@ project-collection artefact.
 
 ## Cause
 
-**Unknown.** The benchmark exercises `closeAllPositions` with pre-fetched
-candles, and the code reaches `reportFlattenShortfall`, which raises
-`trade.closeAllFailed`. Whether that is the intended path for this fixture, or
-the benchmark's setup produces a state the service legitimately rejects, has not
-been established — reading the benchmark would not settle it, only running it
-does.
+**Established by measurement (2026-10-07), not unknown.** Three hypotheses were
+tested and the first two disproved by instrumenting the run:
+
+1. ~~`omsService.getPositions` returns stale positions after the send~~ — no.
+   `verifyFlat` does not read it; it calls `readFreshPositions`.
+2. ~~`exchangeSignedFetch` needs mocking~~ — no. Instrumented directly: the
+   signed call is reached **0 times**, so the verification fails *before* any
+   network access.
+3. ~~`settingsState.apiKeys` is the wrong source~~ — no. `keysForActiveAccount`
+   reads `accounts`/`activeAccountId`, but supplying those changes nothing.
+
+The actual blocker: `closeAllPositions` → `gatedRequest` → `orderGate.submit`,
+and `orderGate` refuses an intent with no `confirmedAt` — the timestamp of a
+human confirmation, FEAT-0024. The benchmark stubs `signedRequest` and so
+bypasses the gate, but `verifyFlat` still runs afterwards and reports
+`unverified: true`, which raises `trade.closeAllFailed`.
+
+That is a security feature on a money path. Unhooking it inside a benchmark
+is not a call to make from a desk.
+
+## Options
+
+- **A** — Rebuild the fixture so it passes the gate the way the app does
+  (simulated confirmation). Faithful, but it means encoding an order-confirmation
+  path in a performance measurement.
+- **B** — Drop `closeAllPositions` from `benchmark:technicals` and document that
+  it is not measurable while a safety gate sits in front of it. Honest, loses
+  the measurement.
+- **C** — Decide with someone reading `tradeService` and `orderGate` together.
+
+Left open deliberately. The recommendation is C, then B if the measurement turns
+out not to be worth an order-confirmation harness.
 
 ## Fix
 
