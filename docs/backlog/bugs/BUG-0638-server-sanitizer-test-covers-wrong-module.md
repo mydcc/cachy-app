@@ -2,7 +2,7 @@
 id: BUG-0638
 title: server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,70 @@ area: security
 data_class: none
 adr: none
 depends_on: []
-# assignee:
+assignee: opencode
 ---
+
+Branch: `fix/bug-0638-sanitizer-tests`
+
+## Resolution
+
+Shipped in the PR that closes this item. All four acceptance criteria are met.
+
+**1. Client tests moved to `src/lib/utils/sanitizer.test.ts`** — 12 tests,
+importing `./sanitizer`, so the location matches the subject. The DOMPurify
+stub is gone entirely: the file runs under `@vitest-environment jsdom`, where a
+global `window` exists and the real pre-instantiated DOMPurify export works
+without the dual-shape factory problem the stub was working around. Only
+`$app/env` is mocked, to drive the `browser` flag gating the SSR passthrough.
+
+**The stub had been hiding a real behavioural difference.** It forced
+`FORBID_ATTR: ['onclick', 'onmouseover', 'style', 'data-custom']` and short-
+circuited on `if (dirty.includes('iframe')) { return '<div>Safe</div>'; }`.
+Against real DOMPurify, `data-custom` **survives** — DOMPurify allows `data-*`
+by default. The old test asserted `<p>Content</p>`, which was only ever true
+because of the stub. The new test pins what the sanitizer actually does:
+event handlers and `style` are stripped, inert `data-*` is kept. Tightening the
+policy to forbid `data-*` would be a policy change, which this item puts out
+of scope — so the test documents the real contract instead of the invented one.
+
+**2. `src/lib/server/sanitizer.ts` is covered without mocking anything.**
+`src/lib/server/sanitizer.test.ts` was deleted; its misleading body is gone and
+`sanitizer.parsing.test.ts` was renamed to `sanitizer.test.ts` (via `git mv`,
+so history follows). One file, correctly named, covering the module in its own
+directory, running real DOMPurify on a real jsdom window. 9 tests.
+
+**3. `sanitizeChatInput` removed.** It had no production caller — only the test
+that covered it. Before deleting, both plausible callers were checked: the
+global chat renders through `CloudTab.svelte` with **no `{@html}` sink**, so
+messages are escaped by the framework and need no sanitizer; the RSS path uses
+`sanitizeHtmlToText`. There is no intended caller waiting, so per this item's
+own criterion ("has a caller or is removed") removal is the answer. If a chat
+XSS sink ever appears, the fix belongs at that sink rather than in a dormant
+export.
+
+**4. No test file mocks away the module whose behaviour it asserts.** Verified
+by mutation, not by inspection — see below.
+
+### Mutation proof
+
+A green test that cannot fail is worse than no test, so each side was mutated:
+
+- `img` + `iframe` added to `ALLOWED_TAGS` → *drops tags that are not on the
+  allowlist* goes red.
+- `ALLOWED_ATTR` removed entirely → *keeps the allowed attributes on a link*,
+  *strips event handlers and style…* and *strips the style attribute entirely*
+  go red.
+
+Both reverted; `git diff` on the sanitizer confirms the file is unmodified.
+
+### Verification
+
+- `src/lib/server/sanitizer.test.ts` + `src/lib/utils/sanitizer.test.ts`:
+  21 tests green
+- `src/lib` sweep: 77 files, 1369 tests green
+- `npx tsc --noEmit`: no errors in the touched files
+- `sanitizeChatInput` has zero remaining references in `src`
+- `npm test` full suite — CI
 
 # BUG-0638 — `server/sanitizer.test.ts` covers the wrong module, behind a stub
 
