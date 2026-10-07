@@ -50,6 +50,32 @@ const maxWorkers = (() => {
   return 2;
 })();
 
+/**
+ * Benchmarks that assert wall-clock time or heap growth. They are useful
+ * signals but cannot be pass/fail gates: on a shared CI runner a single GC
+ * pause moves the result more than any real regression would. The scaling
+ * check compares a ~5ms measurement against a ~24ms one, so ±3ms of noise
+ * swings the ratio by 60% — it measured the runner, not the algorithm, and
+ * failed CI at 10.9x against a threshold of 8 while passing locally at 4.4x.
+ * Run them deliberately with `npm run test:perf`; CI runs them in a
+ * non-blocking job so the numbers stay visible.
+ *
+ * Declared before `VITEST_EXCLUDE`, which consumes it, and exported as the one
+ * source for both sides: `vitest.perf.config.ts` collects exactly this list.
+ * The two used to be written out separately and drifted — the perf config named
+ * a file that does not exist at that path, missed two that do, and — because a
+ * top-level `include` is ignored once `projects` is set — collected nothing of
+ * this list and ran the whole suite instead.
+ */
+export const PERF_TESTS = [
+  "src/services/engineBenchmark.test.ts",
+  "src/benchmarks/marketWatcher_backfill.test.ts",
+  "tests/benchmarks/syncService_perf.test.ts",
+  "src/tests/performance/memory_profiling.test.ts",
+  "src/tests/performance/dataRepairService_benchmark.test.ts",
+  "src/tests/performance/startup_benchmark.test.ts",
+] as const;
+
 const VITEST_EXCLUDE = [
   ...configDefaults.exclude,
   // Both hold git worktrees, and AGENTS.md tells every agent to make one before
@@ -66,20 +92,7 @@ const VITEST_EXCLUDE = [
   "tests/e2e/**",
   // The WebGPU parity suite needs a real browser adapter: `npm run test:gpu`.
   "tests/gpu/**",
-  // Benchmarks that assert wall-clock time or heap growth. They are useful
-  // signals but cannot be pass/fail gates: on a shared CI runner a single GC
-  // pause moves the result more than any real regression would. The scaling
-  // check compares a ~5ms measurement against a ~24ms one, so ±3ms of noise
-  // swings the ratio by 60% — it measured the runner, not the algorithm, and
-  // failed CI at 10.9x against a threshold of 8 while passing locally at 4.4x.
-  // Run them deliberately with `npm run test:perf`; CI runs them in a
-  // non-blocking job so the numbers stay visible.
-  "src/services/engineBenchmark.test.ts",
-  "src/benchmarks/marketWatcher_backfill.test.ts",
-  "tests/benchmarks/syncService_perf.test.ts",
-  "src/tests/performance/memory_profiling.test.ts",
-  "src/tests/performance/dataRepairService_benchmark.test.ts",
-  "src/tests/performance/startup_benchmark.test.ts",
+  ...PERF_TESTS,
 ];
 
 export default defineConfig({
