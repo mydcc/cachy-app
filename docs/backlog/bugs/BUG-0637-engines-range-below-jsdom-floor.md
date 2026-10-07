@@ -2,7 +2,7 @@
 id: BUG-0637
 title: engines admits Node versions that production dependencies reject
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]

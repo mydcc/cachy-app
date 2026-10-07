@@ -2,7 +2,7 @@
 id: BUG-0631
 title: Every benchmark file runs twice because Vitest creates one bench project per inline project
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

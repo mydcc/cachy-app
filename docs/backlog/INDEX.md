@@ -4,7 +4,7 @@
 
 517 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 437 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 440 · ⛔ dropped 1
 
 ---
 
@@ -409,7 +409,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | execution |
 | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | ✅ done | exchange |
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | ✅ done | tooling |
-| [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | 📋 specced | deps |
+| [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | ✅ done | deps |
 | [BUG-0636](bugs/BUG-0636-no-build-job-in-ci.md) | CI never builds, so a dependency bump that breaks the server bundle passes every check | P2 | 📋 specced | ci |
 | [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | 📋 specced | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
@@ -528,9 +528,9 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | ✅ done | i18n |
 | [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | i18n |
 | [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | i18n |
-| [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | 📋 specced | deps |
+| [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | ✅ done | deps |
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | deps |
-| [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | 📋 specced | deps |
+| [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | deps |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | deps |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
@@ -872,7 +872,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0568](bugs/BUG-0568-shrink-price-pump-escapes-size-caps.md) | Quantity shrink with pumped price escapes the size caps without a loss limit | P2 | ✅ done | none | community, pro, private | A | none | [BUG-0567](bugs/BUG-0567-shrink-stop-loss-ceiling.md) |
 | [BUG-0581](bugs/BUG-0581-bitget-ws-login-success-code-unverified.md) | Bitget WebSocket login success may never be detected because the vendor documents code \"0\" but Cachy tests \"00000\" | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0591](bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md) | The SpacetimeDB module resolves the wrong SDK major, so any typecheck of it fails | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0631](bugs/BUG-0631-benchmark-files-run-twice.md) | Every benchmark file runs twice because Vitest creates one bench project per inline project | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0636](bugs/BUG-0636-no-build-job-in-ci.md) | CI never builds, so a dependency bump that breaks the server bundle passes every check | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
@@ -1037,9 +1037,9 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0601](bugs/BUG-0601-hardcoded-duration-bucket-labels.md) | Hardcoded duration bucket labels in stats calculator | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0602](bugs/BUG-0602-hardcoded-dataset-labels.md) | Hardcoded dataset labels in CandlestickChart component | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0603](bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md) | TP/SL and pending-order chart line titles stay English in German | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0632](bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md) | The toNumFast benchmark measures a code path that always throws | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | none | community, pro, private | none | none | — |
-| [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
