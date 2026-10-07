@@ -1,6 +1,18 @@
 # UTA writes — `/api/v3/trade/*` (order placement, modify, cancel)
 
-Source: <https://www.bitget.com/legacy-docs/uta/trade/*>, transcribed 2026-10-04.
+Source: <https://www.bitget.com/api-doc/uta/trade/place-order>, which serves the
+whole Order Management section (place, modify, cancel, batch, order-info,
+unfilled, history, fills). Transcribed 2026-10-04; re-read 2026-10-07.
+
+The per-endpoint `legacy-docs/uta/trade/*` slugs this file originally cited are
+gone. Checked 2026-10-07, all 404: `place-order`, `modify-order`, `cancel-order`,
+`cancel-symbol-order`, `order-info` — the five trade endpoints in the table
+below. The `api-doc/uta/trade/<slug>` path resolves instead, and its page carries
+every endpoint in that table **except** `close-positions`, which sits under
+Position Management. Those slugs answer 200 but serve the UTA overview rather
+than the endpoint spec, so they cannot settle it either — the `close-positions`
+row records the same limitation.
+
 Base domain REST: `https://api.bitget.com`. All calls below are signed with the
 same HMAC scheme as the reads (`14_uta_v3.md`).
 
@@ -25,7 +37,7 @@ The hazard transfers with a different shape (see below).
 | Action | Method + path | Params | Result |
 |---|---|---|---|
 | place | `POST /api/v3/trade/place-order` | body (below) | `00000`, `data: {orderId, clientOid}` — **Documented** |
-| modify | `POST /api/v3/trade/modify-order` | orderId\|clientOid + symbol + category + qty and/or price | **Documented**, unverified |
+| modify | `POST /api/v3/trade/modify-order` | orderId\|clientOid + symbol + category + qty and/or price | **Documented**, unverified — `autoCancel` settled, see below |
 | cancel one | `POST /api/v3/trade/cancel-order` | orderId\|clientOid + category | **Documented**, unverified |
 | cancel symbol/all | `POST /api/v3/trade/cancel-symbol-order` | category + optional symbol | **Documented**, unverified — the rollback path |
 | close all | `POST /api/v3/trade/close-positions` | category + optional symbol/posSide | **Documented**, unverified — per-order results, partial failure possible. Path taken from the vendor nav grouping (Position Management); the position page slugs do not resolve to fetchable text, so re-confirm at implementation time |
@@ -38,12 +50,70 @@ The hazard transfers with a different shape (see below).
 leg (`"code": "24056", "msg": "notExisted"` in the documented sample). A caller
 that checks only the envelope reads a partial rollback as a success.
 
+## Modify order — what the page settles
+
+Open question 5 is **answered** (re-read 2026-10-07). Quoting the
+`autoCancel` parameter description verbatim:
+
+> Will the original order be canceled if the order modification fails
+> yes: Cancel / no: Not cancel (default)
+> When set to yes: if the matching engine fails to modify the order, the order
+> is cancelled immediately; after cancellation, the counter will reject any
+> further modification requests for that order (including in-flight and new
+> requests).
+
+So `autoCancel: yes` is not merely "cancel the original on failure" — it also
+**permanently burns that order for modification**. Every later request is
+refused, in-flight ones included. A client that treats a rejected modify as
+retryable and retries with `autoCancel: yes` has its own retry rejected.
+
+`requestId` (number, ≤18 digits) is described as "Returned when `autoCancel=yes`
+and the modify order request is rejected", so it is the correlation id for that
+rejection. It is a response field, not a request one.
+
+The default is `no`, and `buildBitgetModifyOrderBody` never sends the field
+(`bitgetBodies.ts:401`), with a test pinning that
+(`bitgetUtaModify.test.ts:128`). That choice was made before the page was
+re-readable and is now backed by the vendor text rather than by caution alone.
+
+Two further constraints on this endpoint, both new to this file:
+
+- "Only orders that have not been fully filled can be modified."
+- "After submitting a modification request and before receiving the result,
+  repeated modification requests cannot be submitted." — modify is serial per
+  order. A retry issued before the first resolves will be refused, so the
+  refusal above is not the only way to hit this.
+
+Whether `qty` is a replace or a delta is still not stated for this endpoint; see
+open question 6.
+
 ## Place-order body (UTA)
 
 Required: `category` (`USDT-FUTURES`), `symbol` (bare pair, `BTCUSDT`),
 `qty` (base coin for USDT futures), `side` (`buy` | `sell`), `orderType`
 (`limit` | `market`). `price` is required for limit, absent for market.
-`timeInForce` is required for limit, defaults to `gtc`.
+`timeInForce` is **not** required, correcting the earlier transcription of this
+file. Re-read 2026-10-07: it carries no *required* marker, and the page states
+"When orderType is limit, it defaults to `gtc`; when orderType is market, the
+system will execute it as `ioc`". `buildBitgetOrderBody` still sends `gtc`
+explicitly on limit orders and omits the field on market ones, which is correct
+under either reading — it just no longer rests on the field being mandatory.
+
+The value set has also grown past what this file recorded: `ioc`, `fok`, `gtc`,
+plus `post_only` and `rpi`. `rpi` is documented as retail price improvement and
+"only available for accounts with RPI market maker permissions".
+
+### Params on the page that this file did not record
+
+`pxAmendType` (`no` | `yes`, default `no`) appears on **both** place and modify:
+`no` rejects an order whose price is outside the venue's limit range, `yes` lets
+the venue amend the price to the best value inside that range. "Only applicable
+to limit orders." Cachy never sends it, so the strict default holds — worth
+naming because `yes` would silently move a trader's limit price, which is exactly
+the kind of field that must not be set by accident.
+
+`autoBorrow` (`yes` | `no`, default `no`) is spot-only, auto-borrowing to cover a
+spot balance shortfall. Not applicable to futures, not sent.
 
 - `posSide` (`long` | `short`): optional in general, **required in hedge-mode
   positions**, futures only.
@@ -131,13 +201,21 @@ account state. Open question for the account holder, not the docs.
    store sets nothing it has not observed either way.
 4. Funding and fee behaviour — read from the trader's account, not assumed,
    on first observation.
-5. `modify-order` `autoCancel: yes` semantics under failure — read the page
-   again at implementation time; the tail was cut in transcription.
+5. ~~`modify-order` `autoCancel: yes` semantics under failure~~ — **answered
+   2026-10-07**, see "Modify order — what the page settles". `yes` cancels the
+   original on failure *and* rejects every later modification of that order.
+   Cachy already never sends the field.
 6. Modify `qty` is assumed to be the new absolute quantity (replace), not a
    delta: `tradeService` re-sends the live amount even on price-only intents,
    which is a no-op under replace semantics and an inflation under delta
-   semantics. Unresolvable from docs — observed trader-side (modify qty to a
-   known value, read back via `order-info`, compare) before trusting any modify.
+   semantics. Re-read 2026-10-07: `modify-order`'s own `qty` description is
+   still "Order quantity / Base coin / Either qty or price must be provided" and
+   still does not say which. The **batch** endpoint states a constraint that only
+   makes sense under replace — "the modified quantity cannot be less than the
+   already filled quantity" — which points the same way, but it is a different
+   endpoint and a constraint, not a definition. Treated as suggestive, not as
+   proof. Still needs observation: modify qty to a known value, read back via
+   `order-info`, compare.
 
 ## Links
 

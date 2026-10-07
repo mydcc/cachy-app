@@ -400,7 +400,11 @@ export function buildBitgetCancelOrderBody(payload: {
  *
  * `autoCancel` is never sent: `yes` cancels the original when modify fails,
  * a destructive default Cachy does not opt into. The venue default (`no`)
- * applies. Protection fields stay refused — Phase F wired their format for
+ * applies. The vendor text also says `yes` makes the venue "reject any further
+ * modification requests for that order (including in-flight and new requests)",
+ * so opting in would also make a rejected modify un-retryable — transcribed at
+ * `docs/bitget-api/15_uta_writes.md`, "Modify order — what the page settles".
+ * Protection fields stay refused — Phase F wired their format for
  * place-order only, and UTA `modify-order` takes qty and/or price, so a
  * preset travelling here has no venue param to land on. The refusal travels
  * as the `bitunixErrors.VALIDATION_ERROR` key, translated at the call site
