@@ -10600,6 +10600,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md"
   },
   {
+    "id": "FEAT-0642",
+    "title": "Remove the orphaned intl-messageformat dependency instead of upgrading it",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P3",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0642-remove-orphaned-intl-messageformat.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",
