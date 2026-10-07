@@ -2,9 +2,9 @@
 
 # Backlog index
 
-518 items. How to read and add them: [README.md](README.md).
+519 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 442 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-progress 4 · ✅ done 442 · ⛔ dropped 1
 
 ---
 
@@ -532,6 +532,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | deps |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | deps |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | deps |
+| [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | 📋 specced | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -1042,6 +1043,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 | [BUG-0633](bugs/BUG-0633-closeAllPositions-benchmark-aborts.md) | The closeAllPositions benchmark aborts because closing the position reports an error | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0637](bugs/BUG-0637-engines-range-below-jsdom-floor.md) | engines admits Node versions that production dependencies reject | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | none | community, pro, private | none | none | — |
+| [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -1110,4 +1112,4 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 22 · 🟡 in-pr
 
 ---
 
-Next free number: **0643**
+Next free number: **0646**

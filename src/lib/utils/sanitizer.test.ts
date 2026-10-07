@@ -98,9 +98,15 @@ describe('sanitizeHtml', () => {
     // in the test — it is what the sanitizer actually does, and the stub that
     // used to cover this case hid the difference by forcing
     // `FORBID_ATTR: ['onclick', 'onmouseover', 'style', 'data-custom']`.
-    // `data-*` is inert: no browser executes anything from it, and DOMPurify
-    // allows it by default. Forbidding it would be a policy change, which
-    // BUG-0638 puts out of scope.
+    // Inert for XSS: no browser executes anything from a data attribute, and
+    // DOMPurify allows them by default. Tightening that is a policy change,
+    // which BUG-0638 puts out of scope.
+    //
+    // Not inert for everything, though: `GlobalTracker.svelte` listens for
+    // clicks document-wide and forwards `data-track-id` plus the JSON in
+    // `data-track-context` to the analytics service. Surviving data
+    // attributes are therefore an analytics-injection surface, not a
+    // script-execution one — filed as BUG-0645, deliberately not fixed here.
     it('strips event handlers and style but keeps inert data attributes', () => {
       const result = sanitizeHtml(
         '<p onclick="alert(1)" onmouseover="run()" style="color:red" data-custom="value">Content</p>',
