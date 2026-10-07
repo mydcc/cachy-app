@@ -198,6 +198,21 @@ export default defineConfig({
           name: "components",
           env: { VITEST_BROWSER: "true" },
           include: [COMPONENT_TESTS],
+          // Vitest derives a benchmark project from every inline project
+          // (`<name> (bench)`) and collects `benchmark.include` into it
+          // regardless of that project's own `include`. So this project ran all
+          // 17 benchmarks a second time under `resolve.conditions:
+          // ["browser"]`, where they died on `window is not defined` and
+          // `mount() is not available on the server` — none of them match
+          // `src/**/*.component.test.ts` (BUG-0631).
+          //
+          // `benchmark.enabled: false` does not help: `vitest bench` forces
+          // benchmark projects on and the expansion stamps `enabled: true` on
+          // the derived project regardless. `hidden: true` does not either —
+          // Vitest only sets that flag itself, for browser parents, and never
+          // reads it from project config. Excluding every benchmark file is
+          // what leaves this project with nothing to collect.
+          benchmark: { exclude: ["**/*.bench.ts", "**/*.benchmark.ts"] },
           // Component tests translate via svelte-i18n; wait for the active
           // dictionary so mounts never assert against raw $keys (FEAT-0259).
           setupFiles: ["./vitest.setup.ts", "./vitest.i18n-setup.ts"],
@@ -205,23 +220,53 @@ export default defineConfig({
       },
     ],
     benchmark: {
+      // Vitest derives a benchmark project from every inline project and
+      // collects `benchmark.include` into each one, ignoring that test
+      // project's own `include`. Without an explicit list, the default glob
+      // matched in both `unit (bench)` and `components (bench)`, so the suite
+      // below ran twice and the `components` copy died on `window is not
+      // defined` and `mount() is not available on the server` (BUG-0631).
+      // The list makes the set explicit; the `components` project excludes
+      // every benchmark file so only `unit (bench)` collects anything.
+      include: [
+        "src/benchmarks/daily_perf_technicals.bench.ts",
+        "src/benchmarks/indicator_clone.bench.ts",
+        "src/benchmarks/indicator_perf.bench.ts",
+        "src/services/marketWatcher.bench.ts",
+        "src/tests/closeAllPositions.bench.ts",
+        "src/tests/performance/technicals_cache.bench.ts",
+        "tests/benchmarks/market_dedup.bench.ts",
+        "tests/benchmarks/market_updates.bench.ts",
+        "tests/benchmarks/marketWatcher_fillGaps.bench.ts",
+        "tests/benchmarks/rolling_stats.bench.ts",
+        "tests/benchmarks/saveJournal.bench.ts",
+        "tests/benchmarks/stats_calc.bench.ts",
+        "tests/benchmarks/storage.bench.ts",
+        "tests/benchmarks/technicals_prep.bench.ts",
+        "tests/benchmarks/toNumFast.bench.ts",
+        "tests/benchmarks/wasm_parity.bench.ts",
+      ],
       // Vitest collects every `*.bench.ts` file as a benchmark file, and a
       // benchmark file without tests is an error: "No test suite found in
-      // file". The nine files below match the glob but are standalone scripts
+      // file". The files below match the glob but are standalone scripts
       // with hand-rolled `performance.now()` timing, not Vitest benchmarks —
-      // one calls `process.exit(1)`, one encodes a precision assertion. They
-      // fail the same way on Vitest 4, so this was never a working entry in
-      // `npm run benchmark:technicals`; excluding them lets the 18 real
-      // benchmarks run. The scripts stay reachable via `npx tsx`.
-      // Converting them to real benchmarks is its own piece of work (FEAT-0630).
+      // one calls `process.exit(1)`, one encodes a precision assertion.
+      // `npx tsx` still reaches them.
       exclude: [
         // Needs a device key derived from real session state, and its two
         // sequential PBKDF2 benchmarks each run past 300 s — measured, not
-        // estimated. Doubled by the per-project collection that below, that is
-        // over twenty minutes in a command meant to be run routinely. Kept for
-        // manual measurement: vitest bench src/benchmarks/crypto_loop.bench.ts
-        // --testTimeout 900000
+        // estimated. Kept for manual measurement:
+        //   vitest bench src/benchmarks/crypto_loop.bench.ts --testTimeout 900000
         "src/benchmarks/crypto_loop.bench.ts",
+        // Mounts a Svelte component, so it needs `svelte` resolved to its
+        // browser build — which no benchmark project has (BUG-0631). On Vitest 4
+        // it imported the top-level `bench` and ran in the `components` project,
+        // so it never actually broke; the Vitest 5 context fixture moved it into
+        // the server-resolved `unit (bench)` project, where `mount()` throws
+        // "lifecycle_function_unavailable". It is a render-cost measurement, not
+        // a hot-loop one. Fixing it means giving it a browser benchmark project
+        // rather than leaving a file that cannot run in a routine command.
+        "src/tests/performance/news_slice.bench.ts",
         "tests/benchmarks/kline_string_optimization.bench.ts",
         "tests/benchmarks/mfi_optimization.bench.ts",
         "tests/benchmarks/patternDetection.bench.ts",

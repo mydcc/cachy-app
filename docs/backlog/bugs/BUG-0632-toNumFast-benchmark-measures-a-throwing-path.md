@@ -2,7 +2,7 @@
 id: BUG-0632
 title: The toNumFast benchmark measures a code path that always throws
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]

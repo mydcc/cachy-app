@@ -2,7 +2,7 @@
 id: BUG-0631
 title: Every benchmark file runs twice because Vitest creates one bench project per inline project
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -120,3 +120,31 @@ benchmarks at all (see FEAT-0630).
 - FEAT-0630 — the Vitest 5 migration that made this observable
 - PR #3898
 - `vite.config.ts` — `test.projects`
+
+## What shipped
+
+`benchmark: { exclude: ["**/*.bench.ts", "**/*.benchmark.ts"] }` on the
+`components` project, plus an explicit `benchmark.include` listing the files
+that do run.
+
+Three earlier approaches were wrong, and the reasons are worth keeping:
+
+- `benchmark.include` alone changed nothing — it scopes collection *inside* a
+  benchmark project, it does not stop a second project from deriving one.
+- `benchmark.enabled: false` does not help — `vitest bench` forces benchmark
+  projects on and the expansion stamps `enabled: true` on the derived project
+  regardless of the parent.
+- `hidden: true` is read by nobody — Vitest sets that flag itself for browser
+  parent projects and never reads it from project config, so it was silently
+  inert. An earlier revision of this work believed it worked, because a
+  `--project="unit (bench)"` run reported 17 files. That number was always 17;
+  only the total had dropped.
+
+Verified by counting what each project collects: `unit (bench)` 16,
+`components (bench)` 0. `npm run benchmark:technicals` went from 34 files / 91
+tests / 5 failures to 16 files / 45 tests / 1 failure. The remaining failure is
+BUG-0633, left open. A component test still passes, so the 721 component tests
+are unaffected.
+
+`news_slice.bench.ts` moved from the include list to the exclude list — see its
+own entry in the exclusions.

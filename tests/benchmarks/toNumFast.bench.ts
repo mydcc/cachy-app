@@ -8,7 +8,16 @@ const strings = Array(1000).fill(0).map(() => Math.random().toString());
 const numbers = Array(1000).fill(0).map(() => Math.random());
 const decimalLikes = Array(1000).fill(0).map(() => ({ s: 1, e: 1, d: [123], toNumber: () => 0.123 }));
 
-// Current implementation (inside function - representative of old code)
+// The pre-optimization implementation, as it was in 4150fe8f0 before
+// `toNumFast` extracted and optimized it: an inline closure doing
+// `new Decimal(val).toNumber()` for every non-primitive.
+//
+// Deliberately *not* a copy of today's `toNumFast`. That one has two later
+// additions this never had — the `toNumber()` fast path and an `Object.assign`
+// branch for serialized Decimal state — and matching them would make the
+// comparison measure nothing. The `decimalLikes` fixture below has a `toNumber`
+// method precisely because the real code prefers it; this one cannot use it,
+// which is the cost being measured.
 const createCurrent = () => {
     return (val: unknown): number => {
         if (typeof val === 'number') return val;
@@ -17,10 +26,16 @@ const createCurrent = () => {
            return isNaN(p) ? 0 : p;
         }
         if (val instanceof Decimal) return val.toNumber();
-        // Duck typing for Decimal-like objects to avoid try/catch
-        const decimalLike = val as { s?: unknown; e?: unknown };
-        if (val && typeof val === 'object' && decimalLike.s !== undefined && decimalLike.e !== undefined) {
-            return new Decimal(val as Decimal.Value).toNumber();
+        // Duck typing for serialized Decimal state. `new Decimal()` needs a
+        // real Decimal here, so a plain state object has to be copied onto one —
+        // same as the current code does.
+        if (val && typeof val === 'object') {
+            const decimalLike = val as { s?: unknown; e?: unknown };
+            if (decimalLike.s !== undefined && decimalLike.e !== undefined) {
+                const d = new Decimal(0);
+                Object.assign(d, val);
+                return d.toNumber();
+            }
         }
         try { return new Decimal(val as Decimal.Value).toNumber(); } catch { return 0; }
     };
