@@ -7405,6 +7405,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "feature",
     "status": "in-progress",
     "assignee": "opencode",
+    "branch": "refactor/feat-0342-trade-service-slice-abc",
     "priority": "P2",
     "milestone": "none",
     "editions": [

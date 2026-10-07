@@ -159,6 +159,11 @@ describe("FEAT-0012 — paper mode reaches no network", () => {
 describe("FEAT-0012 — one seam", () => {
     it("branches on the mode exactly once, at the transport", () => {
         const source = readFileSync("src/services/tradeService.ts", "utf8");
+        // FEAT-0342 (slice C) moved the TP/SL read into its own module, and a
+        // service may not import stores — so the mode it depends on arrives
+        // as a port. The scan has to look at both files, or it stops seeing
+        // the FEAT-0327 credential guard altogether.
+        const tpSl = readFileSync("src/services/trade/tpSlService.ts", "utf8");
 
         // Two branches, and the test names both — the count alone would let
         // a third appear by pushing one of these out of the file.
@@ -182,18 +187,27 @@ describe("FEAT-0012 — one seam", () => {
         // intent and onto the gate-pass context so the transport can compare
         // them, two read the balance *for* the mode so the gate measures an
         // open/add against what the trader is actually trading against
-        // (BUG-0565), one relaxes a credential guard (FEAT-0327) in front of a
-        // read that goes through the seam and therefore needs no credentials,
-        // one refuses a bot-stamped order while paper is off (BUG-0494), and
-        // one re-reads the mode immediately before a write is dispatched
-        // (BUG-0551) so a mode switched mid-signing cannot reach the venue.
-        // None of them changes what the request is: the provenance refusal
-        // stops a paper-only order from reaching the live branch, the
-        // dispatch re-check can only refuse, neither ever routes anything.
+        // (BUG-0565), one refuses a bot-stamped order while paper is off
+        // (BUG-0494), and one re-reads the mode immediately before a write is
+        // dispatched (BUG-0551) so a mode switched mid-signing cannot reach
+        // the venue. One more — the FEAT-0327 credential relaxation — moved
+        // to the TP/SL module and is counted there. None of them changes what
+        // the request is: the provenance refusal stops a paper-only order
+        // from reaching the live branch, the dispatch re-check can only
+        // refuse, neither ever routes anything.
         expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(9);
+
+        // FEAT-0327: exactly one read relaxes a credential guard, because it
+        // goes through the paper seam and therefore needs no credentials. It
+        // used to read the mode and the keys itself; now it takes both as
+        // ports, so the guard is matched by its new shape and the wiring is
+        // pinned separately — a mode read that reaches the TP/SL module from
+        // anywhere but that one port is not the guard this is counting.
         expect(
-            source.match(/if \(!paperState\.enabled && \(!keys\?\.key/g) ?? [],
+            tpSl.match(/if \(!ports\.isPaperMode\(\) && !hasKeys\)/g) ?? [],
         ).toHaveLength(1);
+        expect(source.match(/isPaperMode: \(\) => paperState\.enabled/g) ?? []).toHaveLength(1);
+        expect(source.match(/hasActiveKeys: \(\) => \{/g) ?? []).toHaveLength(1);
         expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(3);
     });
 
