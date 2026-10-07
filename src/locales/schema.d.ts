@@ -3676,6 +3676,7 @@ export type TranslationKey =
   | "orderEntry.errors.targetMissing"
   | "orderEntry.errors.tradingUnavailable"
   | "orderEntry.errors.metadataLoading"
+  | "orderEntry.errors.staleCalculation"
   | "orderEntry.errors.belowMinTradeVolume"
   | "orderEntry.errors.exceedsMaxOrderVolume"
   | "orderEntry.errors.accountUnverified"

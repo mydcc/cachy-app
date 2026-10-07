@@ -2107,9 +2107,9 @@
         "cacheSummary": "Treffer {hits} · Fehlzugriffe {misses} · {hitRate} % Trefferquote",
         "noUncachedYet": "Noch keine Berechnung außerhalb des Caches — Chart bewegen oder Benchmark starten.",
         "panelTitle": "⚡ Engine-Debug-Panel",
-      "aria": {
-        "recentHistoryToggle": "Verlauf — ein- oder ausblenden"
-      }
+        "aria": {
+          "recentHistoryToggle": "Verlauf — ein- oder ausblenden"
+        }
       }
     },
     "performance": {
@@ -4472,6 +4472,7 @@
       "targetMissing": "Einstieg und Stop liegen an, der Take-Profit jedoch nicht.",
       "tradingUnavailable": "Handel ist für dieses Symbol nicht verfügbar.",
       "metadataLoading": "Lade Handelspaar-Details...",
+      "staleCalculation": "Es wurde nichts gesendet. Die Werte oben stammen aus einer früheren Berechnung und passen nicht mehr zu Einstieg, Stop, Zielen oder Hebel im Formular. Prüfe diese Eingaben, bevor du eine Order sendest.",
       "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
       "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max}).",
       "accountUnverified": "Zugangsdaten nicht bestätigt — Privatkonto wird geprüft.",
