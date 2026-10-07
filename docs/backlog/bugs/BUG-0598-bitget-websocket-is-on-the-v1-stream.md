@@ -137,6 +137,28 @@ replace a correct book with a partial one on every push. `books5` and `books15`
 always arrive whole and stay available — the adapter already maps depth to
 `books5`.
 
+## Progress — 2026-10-07: private socket implemented, live verification pending
+
+Branch `fix/bug-0598-ws-private`. A second `BitgetWebSocketService` instance
+pointed at `wss://ws.bitget.com/v2/ws/private`, exported as `bitgetWsPrivate`:
+
+- connects only when the active account holds keys, read via
+  `keysForActiveAccount`; without them it refuses loudly and schedules no
+  reconnect (no keyless retry loop against the login endpoint)
+- logs in on open with the BUG-0581-verified frame, subscribes `orders` /
+  `positions` / `account` on login success with `instType: USDT-FUTURES`
+- the `default` selector bypasses `normalizeSymbol` on subscribe, unsubscribe
+  and the throttle dry-run — it reaches the wire verbatim
+- the ledger is per instance by construction; timing constants untouched
+- 9 tests in `bitgetWs.private.test.ts`, all mock-verified (7 fail without
+  the implementation); neighboring suites green (v2, leak, UTA
+  writes/modify/preset/reads, close-single)
+
+Deliberately not done here: nothing drives the instance yet (no adapter
+wiring until the subscription path is reviewed), and the live login
+handshake plus the 24 h disconnect need a trader account. The acceptance
+boxes stay unchecked until the venue has answered.
+
 ## Links
 
 - BUG-0576 — the parent migration
