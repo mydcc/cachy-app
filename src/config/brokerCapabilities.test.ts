@@ -50,8 +50,10 @@ describe('BROKER_CAPABILITIES', () => {
 
     it('should have correct nativeTimeframes for bitget', () => {
         expect(BROKER_CAPABILITIES.bitget).toBeDefined();
+        // Every entry verified live against V2 2026-10-07 (BUG-0576): the
+        // venue answers 00000 for each of these and 400171 for the rest.
         expect(BROKER_CAPABILITIES.bitget.nativeTimeframes).toEqual([
-            "1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"
+            "1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "12h", "1d", "1w", "1M"
         ]);
     });
 });
