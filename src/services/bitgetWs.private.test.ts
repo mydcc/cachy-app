@@ -229,5 +229,19 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
       expect(pubInternals.getBitgetChannel("orders")).toBeNull();
       pub.destroy();
     });
+
+    it("leaves no key material behind on teardown", () => {
+      withCredentials();
+      openPrivateSocket();
+      type WithKeys = WsInternals & { pendingKeys: unknown };
+
+      expect((internals as WithKeys).pendingKeys).not.toBeNull();
+
+      service.destroy();
+
+      // The next connect re-reads the active account anyway; anything kept
+      // here could only be stale — or reachable from a dead instance.
+      expect((internals as WithKeys).pendingKeys).toBeNull();
+    });
   });
 });

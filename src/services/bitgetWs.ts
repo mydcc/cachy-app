@@ -487,6 +487,10 @@ export class BitgetWebSocketService {
     this.ws = null;
     this.isReconnecting = false;
     this.isAuthenticated = false;
+    // Teardown leaves no key material behind: the next connect re-reads the
+    // active account anyway, so anything kept here could only be stale — or,
+    // after destroy(), reachable from a dead instance (review on #3921).
+    this.pendingKeys = null;
     // BUG-0565 / IDEA-0563: single socket, shared fate — when it goes down
     // the authenticated stream goes with it, so a live measurement stops
     // being one until the next push or REST poll re-stamps it.
