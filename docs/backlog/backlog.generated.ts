@@ -9639,7 +9639,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0633",
     "title": "The closeAllPositions benchmark aborts because closing the position reports an error",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
