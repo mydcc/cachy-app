@@ -54,17 +54,18 @@ jobs:
         run: npm run build
 
       - name: Package artifact
-        run: tar -czf cachy-build.tar.gz build server.js server-headers.js
+        run: tar -czf cachy-build.tar.gz build server.js server-headers.js server-precompressed.js
 
       # A release artifact must be self-contained: the postbuild step rewrites
       # build/index.js to `import '../server.js'`, so server.js and its
-      # server-headers.js dependency have to travel with build/ — otherwise
-      # `node build` on an artifact-only host crashes with ERR_MODULE_NOT_FOUND.
-      # The checks also catch a silent postbuild no-op (unpatched entry point).
+      # server-headers.js and server-precompressed.js dependencies have to
+      # travel with build/ — otherwise `node build` on an artifact-only host
+      # crashes with ERR_MODULE_NOT_FOUND. The checks also catch a silent
+      # postbuild no-op (unpatched entry point).
       - name: Verify artifact
         run: |
           tar -tzf cachy-build.tar.gz > "$RUNNER_TEMP/artifact-contents.txt"
-          for entry in build/index.js server.js server-headers.js; do
+          for entry in build/index.js server.js server-headers.js server-precompressed.js; do
             grep -qx "$entry" "$RUNNER_TEMP/artifact-contents.txt" \
               || { echo "::error::$entry is missing from cachy-build.tar.gz"; exit 1; }
           done
