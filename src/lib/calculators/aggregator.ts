@@ -9,6 +9,7 @@
 
 import type { JournalEntry } from "../../stores/types";
 import type { JournalContext } from "./types";
+import { sortByDateAsc } from "./core";
 import {
   calculateJournalStats,
   calculatePerformanceStats,
@@ -52,14 +53,12 @@ export function getJournalContext(journal: JournalEntry[]): JournalContext {
   }
 
   // Sort closed trades by date once
-  closedTrades.sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-  );
+  const sortedClosedTrades = sortByDateAsc(closedTrades);
 
   // 2. Initialize Context with Pre-calculated Stats
   // We construct the context partially first
   const context: JournalContext = {
-    closedTrades,
+    closedTrades: sortedClosedTrades,
     openTrades,
   };
 

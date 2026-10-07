@@ -21,7 +21,7 @@ import { parseTimestamp, isUnsafeObjectKey } from "../../utils/utils";
 import type { JournalEntry } from "../../stores/types";
 import type { TranslationKey } from "../../locales/schema";
 import type { Kline } from "../../services/apiService";
-import { getTradePnL } from "./core";
+import { getTradePnL, sortByDateAsc, toEpochMs } from "./core";
 import type { JournalContext, JournalStats, PerformanceStats } from "./types";
 
 export function calculateATR(klines: Kline[], period: number = 14): Decimal {
@@ -119,13 +119,7 @@ export function calculatePerformanceStats(
   if (closedTrades.length === 0) return null;
 
   // Use sorted array for sequential metrics
-  // Perf (Schwartzian transform): Cache date parsing before sorting. Drops sort time from ~80ms to ~48ms for 10k trades.
-  const sortedTrades = context
-    ? closedTrades
-    : closedTrades
-        .map((t) => ({ t, ts: new Date(t.date).getTime() }))
-        .sort((a, b) => a.ts - b.ts)
-        .map(({ t }) => t);
+  const sortedTrades = context ? closedTrades : sortByDateAsc(closedTrades);
 
   // Initialize Accumulators
   let totalTrades = 0;
@@ -479,12 +473,7 @@ export function getRollingData(
 ) {
   const sortedTrades = context
     ? context.closedTrades
-    : journal
-        .filter((t) => t.status === "Won" || t.status === "Lost")
-        // Perf (Schwartzian transform): Avoids O(N log N) date parsing
-        .map((t) => ({ t, ts: new Date(t.date).getTime() }))
-        .sort((a, b) => a.ts - b.ts)
-        .map(({ t }) => t);
+    : sortByDateAsc(journal.filter((t) => t.status === "Won" || t.status === "Lost"));
 
   if (sortedTrades.length < windowSize) return null;
 
@@ -722,11 +711,11 @@ export function getDurationStats(journal: JournalEntry[], context?: JournalConte
   closedTrades.forEach((t) => {
     let startTs = 0,
       endTs = 0;
-    if (t.entryDate) startTs = new Date(t.entryDate).getTime();
-    else if (t.isManual !== false) startTs = new Date(t.date).getTime();
+    if (t.entryDate) startTs = toEpochMs(t.entryDate);
+    else if (t.isManual !== false) startTs = toEpochMs(t.date);
 
-    if (t.isManual === false) endTs = new Date(t.date).getTime();
-    else if (t.exitDate) endTs = new Date(t.exitDate).getTime();
+    if (t.isManual === false) endTs = toEpochMs(t.date);
+    else if (t.exitDate) endTs = toEpochMs(t.exitDate);
 
     if (startTs > 0 && endTs > 0) {
       const duration = endTs - startTs;
@@ -808,12 +797,7 @@ export function getDisciplineData(journal: JournalEntry[], context?: JournalCont
 
   const sortedTrades = context
     ? context.closedTrades
-    : journal
-        .filter((t) => t.status === "Won" || t.status === "Lost")
-        // Perf (Schwartzian transform): Avoids O(N log N) date parsing
-        .map((t) => ({ t, ts: new Date(t.date).getTime() }))
-        .sort((a, b) => a.ts - b.ts)
-        .map(({ t }) => t);
+    : sortByDateAsc(journal.filter((t) => t.status === "Won" || t.status === "Lost"));
 
   let maxWinStreak = 0;
   let maxLossStreak = 0;

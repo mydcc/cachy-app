@@ -20,8 +20,10 @@ export const BROKER_CAPABILITIES: Record<string, { nativeTimeframes: string[] }>
     bitunix: {
         nativeTimeframes: ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M"]
     },
-    // Future placeholders
+    // Bitget granularities served by V2, in chart spelling, verified live
+    // 2026-10-07 (BUG-0576). The venue spells hours uppercase (`6H`) and
+    // months `1M`; every other chart spelling the venue rejects with 400171.
     bitget: {
-        nativeTimeframes: ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"]
+        nativeTimeframes: ["1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "12h", "1d", "1w", "1M"]
     }
 };
