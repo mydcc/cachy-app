@@ -23,6 +23,7 @@ import {
   BitgetWSTickerSchema,
 } from "../types/bitgetValidation";
 import { Decimal } from "decimal.js";
+import { keysForActiveAccount } from "../stores/settings/accounts";
 
 // [ts, open, high, low, close, volume] — Bitget candle array entry.
 type BitgetCandleTuple = [string, string, string, string, string, string];
@@ -58,6 +59,24 @@ interface BitgetWSPositionData {
 // `wss://ws.bitget.com/v2/ws/private` plus a login, which is tracked separately —
 // see `subscribePrivate`, which refuses loudly rather than dropping the request.
 const WS_URL = "wss://ws.bitget.com/v2/ws/public";
+
+/**
+ * The authenticated half of the V2 split. Same protocol, same timing, own
+ * lifecycle: the vendor serves `orders`, `positions` and `account` here and
+ * disconnects a socket whose login fails. A second service instance pointed
+ * at this URL is the private socket — its subscription ledger is a separate
+ * `Map` by construction, which is exactly the per-socket ledger BUG-0598
+ * requires.
+ */
+const WS_PRIVATE_URL = "wss://ws.bitget.com/v2/ws/private";
+
+/**
+ * The subscription selector for account-wide private channels. This is a
+ * venue keyword, not a symbol: it must reach the wire verbatim and never pass
+ * through `normalizeSymbol`, which would mangle it into a pair that matches
+ * nothing (BUG-0598).
+ */
+const PRIVATE_SUBSCRIBE_INST_ID = "default";
 
 /**
  * V2 replaced V1's `instType: "mc"` with an explicit product type. Public market
@@ -101,6 +120,18 @@ export class BitgetWebSocketService {
   private isAuthenticated = false;
   private isDestroyed = false;
 
+  /**
+   * Which half of the V2 split this instance is. The default is the public
+   * socket, so every existing construction site keeps its behaviour without
+   * changing. A private instance points at `WS_PRIVATE_URL`, logs in on open,
+   * and accepts the private channels the public one refuses.
+   */
+  private readonly endpoint: string;
+  private readonly isPrivateSocket: boolean;
+  /** Credentials captured at connect time, so a mid-session account switch
+   *  cannot log this socket in as the account the trader has since left. */
+  private pendingKeys: { key: string; secret: string; passphrase?: string } | null = null;
+
   // Throttling
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200;
@@ -120,7 +151,9 @@ export class BitgetWebSocketService {
     this.cleanup();
   };
 
-  constructor() {
+  constructor(opts?: { url?: string; isPrivate?: boolean }) {
+    this.endpoint = opts?.url ?? WS_URL;
+    this.isPrivateSocket = opts?.isPrivate ?? false;
     this.instanceId = ++BitgetWebSocketService.instanceCount;
     logger.log("governance", `[BitgetWS] Instance #${this.instanceId} Created`);
     if (typeof window !== "undefined") {
@@ -222,6 +255,32 @@ export class BitgetWebSocketService {
     if (this.isDestroyed || !settingsState.entitlement.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;
 
+    // The private socket authenticates as an account, not as a venue: without
+    // keys there is nothing to log in with, so refusing here is the only
+    // honest path. Critically this returns *before* any reconnect is
+    // scheduled — a missing-key retry loop would hammer a login endpoint
+    // while the trader has simply not entered credentials yet.
+    this.pendingKeys = null;
+    if (this.isPrivateSocket) {
+      const keys = keysForActiveAccount(
+        settingsState.accounts,
+        settingsState.activeAccountId,
+        "bitget",
+      );
+      if (!keys?.key || !keys?.secret) {
+        logger.warn(
+          "network",
+          "[WS-Bitget] Private socket has no credentials for the active account; not connecting",
+        );
+        return;
+      }
+      this.pendingKeys = {
+        key: keys.key,
+        secret: keys.secret,
+        passphrase: keys.passphrase,
+      };
+    }
+
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       marketState.connectionStatus = "disconnected";
       return;
@@ -247,7 +306,7 @@ export class BitgetWebSocketService {
     marketState.connectionStatus = "connecting";
 
     try {
-      const ws = new WebSocket(WS_URL);
+      const ws = new WebSocket(this.endpoint);
       this.ws = ws;
 
       if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
@@ -284,10 +343,19 @@ export class BitgetWebSocketService {
         this.startHeartbeat(ws);
         this.resetWatchdog(ws);
 
-        // BUG-0598: no login here. V2's public endpoint has no login to perform
-        // and disconnects a socket that tries — which would cost the working
-        // public streams. Private streams move to their own socket, see
-        // `subscribePrivate`.
+        // BUG-0598: no login here on the public socket. V2's public endpoint
+        // has no login to perform and disconnects a socket that tries — which
+        // would cost the working public streams. The private socket logs in
+        // with the credentials captured at connect time instead (see
+        // `subscribePrivate`); without them `connect()` refused before any
+        // socket existed, so `pendingKeys` is set exactly when this runs.
+        if (this.isPrivateSocket && this.pendingKeys) {
+          this.login(
+            this.pendingKeys.key,
+            this.pendingKeys.secret,
+            this.pendingKeys.passphrase ?? "",
+          );
+        }
         this.resubscribe();
       };
 
@@ -419,6 +487,10 @@ export class BitgetWebSocketService {
     this.ws = null;
     this.isReconnecting = false;
     this.isAuthenticated = false;
+    // Teardown leaves no key material behind: the next connect re-reads the
+    // active account anyway, so anything kept here could only be stale — or,
+    // after destroy(), reachable from a dead instance (review on #3921).
+    this.pendingKeys = null;
     // BUG-0565 / IDEA-0563: single socket, shared fate — when it goes down
     // the authenticated stream goes with it, so a live measurement stops
     // being one until the next push or REST poll re-stamps it.
@@ -473,7 +545,11 @@ export class BitgetWebSocketService {
     // that reads like a crash, instead of the plain return the schema below
     // would have given it.
     const rawArg = message.arg as { channel?: string, instId?: unknown } | undefined;
-    if (rawArg && rawArg.channel && typeof rawArg.instId === "string") {
+    // The private subscription selector (`default`) is a venue keyword, not a
+    // symbol — throttling by it would key every account push onto one shared
+    // entry, so it is skipped here (BUG-0598). Per-item pushes carry their own
+    // pair and throttle normally below.
+    if (rawArg && rawArg.channel && typeof rawArg.instId === "string" && rawArg.instId !== PRIVATE_SUBSCRIBE_INST_ID) {
        const channel = rawArg.channel;
        // Same normalization as the handler below, so this dry-run probes the
        // key the handler actually commits to. With the raw wire spelling the two
@@ -506,7 +582,16 @@ export class BitgetWebSocketService {
       if (code === "00000" || code === "0") {
         this.isAuthenticated = true;
         if (settingsState.enableNetworkLogs) logger.log("network", "[WS-Bitget] Login success");
-        this.subscribePrivate();
+        // A login frame only ever arrives on the private socket — the public
+        // endpoint drops a connection that tries. So success here means this
+        // socket may now ask for the account-wide channels.
+        if (this.isPrivateSocket) {
+          for (const channel of PRIVATE_CHANNELS) {
+            this.subscribe(PRIVATE_SUBSCRIBE_INST_ID, channel);
+          }
+        } else {
+          this.subscribePrivate();
+        }
         return;
       }
       logger.warn("network", `[WS-Bitget] Unrecognized login code: ${code}`, msg);
@@ -638,7 +723,15 @@ export class BitgetWebSocketService {
 
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
-    const normalizedSymbol = normalizeSymbol(symbol, "bitget");
+
+    // Private channels are account-wide: the venue subscribes them under the
+    // `default` selector, not under a pair. Normalizing that selector would
+    // mangle it into a key nothing reads, so it bypasses `normalizeSymbol`
+    // here and travels to the wire verbatim (BUG-0598).
+    const isPrivateChannel = (PRIVATE_CHANNELS as readonly string[]).includes(channel);
+    const normalizedSymbol = isPrivateChannel
+      ? PRIVATE_SUBSCRIBE_INST_ID
+      : normalizeSymbol(symbol, "bitget");
 
     // [FIX] Map internal channel to Bitget specific format
     const bitgetChannel = this.getBitgetChannel(channel);
@@ -664,7 +757,9 @@ export class BitgetWebSocketService {
 
   unsubscribe(symbol: string, channel: string) {
     if (!symbol) return;
-    const normalizedSymbol = normalizeSymbol(symbol, "bitget");
+    const normalizedSymbol = (PRIVATE_CHANNELS as readonly string[]).includes(channel)
+      ? PRIVATE_SUBSCRIBE_INST_ID
+      : normalizeSymbol(symbol, "bitget");
 
     const subKey = `${channel}:${normalizedSymbol}`;
     const currentCount = this.subscriptions.get(subKey) || 0;
@@ -692,12 +787,14 @@ export class BitgetWebSocketService {
 
   // [FIX] Helper to map internal channels to Bitget wire format
   private getBitgetChannel(internalChannel: string): string | null {
-      // BUG-0598: V2 serves these on the authenticated private socket only. The
-      // public endpoint rejects them, so this refuses them explicitly. Returning
-      // the name unchanged used to mean a frame the venue silently ignored —
-      // the account panel then showed no orders with nothing in the log to
-      // explain why.
+      // BUG-0598: V2 serves these on the authenticated private socket only.
+      // The public endpoint rejects them, so a public instance refuses them
+      // explicitly; a private instance accepts them, which is the entire
+      // reason it exists. Returning the name unchanged on the public socket
+      // used to mean a frame the venue silently ignored — the account panel
+      // then showed no orders with nothing in the log to explain why.
       if ((PRIVATE_CHANNELS as readonly string[]).includes(internalChannel)) {
+          if (this.isPrivateSocket) return internalChannel;
           logger.warn(
               "network",
               `[WS-Bitget] Refusing to subscribe to the private channel "${internalChannel}" on the public V2 socket; it needs wss://ws.bitget.com/v2/ws/private plus a login (BUG-0598, tracked separately)`,
@@ -800,10 +897,11 @@ export class BitgetWebSocketService {
    * public socket would therefore take the working public streams down with it.
    *
    * The public half landed first because it is verifiable without credentials.
-   * The private socket — with its own reference-counted ledger, since the two
-   * roles no longer share one — is the follow-up. Until it exists, refusing
-   * loudly is the honest behaviour: the account panel has no live stream, and
-   * the log says so instead of the request vanishing.
+   * The private socket below — with its own reference-counted ledger, since
+   * the two roles no longer share one — is the follow-up. Until it is wired
+   * into the lifecycle, refusing loudly on this socket stays the honest
+   * behaviour: the account panel has no live stream, and the log says so
+   * instead of the request vanishing.
    */
   private subscribePrivate() {
     logger.warn(
@@ -846,3 +944,20 @@ export class BitgetWebSocketService {
 }
 
 export const bitgetWs = new BitgetWebSocketService();
+
+/**
+ * The private half of the V2 split (BUG-0598): authenticated socket for
+ * `orders`, `positions` and `account`, with its own subscription ledger —
+ * the two roles no longer share one. It connects only when the active
+ * account holds credentials; without them `connect()` refuses loudly instead
+ * of retry-looping a login endpoint. Login, channel subscription and the
+ * timing constants are the same code as the public half.
+ *
+ * Not yet wired into the adapter lifecycle: nothing drives this instance
+ * until the private subscription path is reviewed, so it currently only runs
+ * when connected explicitly (and in tests).
+ */
+export const bitgetWsPrivate = new BitgetWebSocketService({
+  url: WS_PRIVATE_URL,
+  isPrivate: true,
+});
