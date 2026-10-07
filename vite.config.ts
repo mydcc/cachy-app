@@ -282,12 +282,8 @@ export default defineConfig({
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
   },
-  optimizeDeps: {
-    include: ["intl-messageformat"],
-  },
   ssr: {
     noExternal: [
-      "intl-messageformat",
       "@formatjs/icu-messageformat-parser",
       "@formatjs/icu-skeleton-parser",
       "@formatjs/fast-memoize",
