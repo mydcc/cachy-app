@@ -19,7 +19,7 @@ import { Decimal } from "decimal.js";
 import { CONSTANTS } from "../constants";
 import type { JournalEntry } from "../../stores/types";
 import { isUnsafeObjectKey } from "../../utils/utils";
-import { getTradePnL } from "./core";
+import { getTradePnL, sortByDateAsc, toEpochMs } from "./core";
 import { normalizeTradeDirection } from "../tradeDirection";
 import {
   calculateJournalStats,
@@ -35,9 +35,7 @@ export const getDisciplineData = getDisciplineStats;
 export function getPerformanceData(journal: JournalEntry[], context?: JournalContext) {
   const closedTrades =
     context?.closedTrades ??
-    journal
-      .filter((t) => t.status === "Won" || t.status === "Lost")
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    sortByDateAsc(journal.filter((t) => t.status === "Won" || t.status === "Lost"));
 
   // 1. Equity Curve
   let cumulative = new Decimal(0);
@@ -83,9 +81,7 @@ export function getPerformanceData(journal: JournalEntry[], context?: JournalCon
 export function getQualityData(journal: JournalEntry[], context?: JournalContext) {
   const closedTrades =
     context?.closedTrades ??
-    journal
-      .filter((t) => t.status === "Won" || t.status === "Lost")
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    sortByDateAsc(journal.filter((t) => t.status === "Won" || t.status === "Lost"));
 
   // 1. Win/Loss Distribution (Old) - Keep for backward compatibility if needed
   let won = 0;
@@ -269,11 +265,7 @@ export function getDirectionData(journal: JournalEntry[], context?: JournalConte
   const shortCurve: { x: string; y: number }[] = [];
 
   // Sort trades by date for evolution
-  const sortedByDate = context
-    ? closedTrades
-    : [...closedTrades].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-      );
+  const sortedByDate = context ? closedTrades : sortByDateAsc(closedTrades);
 
   sortedByDate.forEach((t) => {
     const pnl = getTradePnL(t);
@@ -329,7 +321,7 @@ export function getCostData(journal: JournalEntry[], context?: JournalContext) {
 
   // 2. Cumulative Fees
   let cumFees = new Decimal(0);
-  const feeCurve = (context ? closedTrades : [...closedTrades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
+  const feeCurve = (context ? closedTrades : sortByDateAsc(closedTrades))
     .map((t) => {
       const fees = t.totalFees || new Decimal(0);
       const funding = t.fundingFee || new Decimal(0);
@@ -371,15 +363,15 @@ export function getDurationData(journal: JournalEntry[], context?: JournalContex
       let endTs = 0;
 
       if (t.entryDate) {
-        startTs = new Date(t.entryDate).getTime();
+        startTs = toEpochMs(t.entryDate);
       } else if (t.isManual !== false) {
-        startTs = new Date(t.date).getTime();
+        startTs = toEpochMs(t.date);
       }
 
       if (t.isManual === false) {
-        endTs = new Date(t.date).getTime();
+        endTs = toEpochMs(t.date);
       } else {
-        if (t.exitDate) endTs = new Date(t.exitDate).getTime();
+        if (t.exitDate) endTs = toEpochMs(t.exitDate);
       }
 
       if (startTs > 0 && endTs > 0 && !isNaN(startTs) && !isNaN(endTs)) {
@@ -523,9 +515,7 @@ export function getPsychologyData(journal: JournalEntry[], context?: JournalCont
   // Streak Analysis
   const sorted = context
     ? context.closedTrades
-    : [...journal]
-        .filter((t) => t.status === "Won" || t.status === "Lost")
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    : sortByDateAsc(journal.filter((t) => t.status === "Won" || t.status === "Lost"));
 
   let currentWinStreak = 0;
   let currentLossStreak = 0;
@@ -584,9 +574,7 @@ export function getPsychologyData(journal: JournalEntry[], context?: JournalCont
 export function getTagEvolution(journal: JournalEntry[], context?: JournalContext) {
   const closedTrades =
     context?.closedTrades ??
-    journal
-      .filter((t) => t.status === "Won" || t.status === "Lost")
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    sortByDateAsc(journal.filter((t) => t.status === "Won" || t.status === "Lost"));
 
   // Identify Top 5 Tags by Abs PnL
   const tagStats = getTagData(closedTrades, context);
