@@ -13,10 +13,10 @@ concurrency:
 
 jobs:
   update-branches:
-    name: Update open PRs and resolve backlog conflicts
+    name: Report open PRs whose branch is behind develop
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     steps:
       - name: Checkout repository
@@ -24,98 +24,121 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      # Why this no longer pushes to PR branches
+      # ------------------------------------------
+      # It used to. The primary path was GitHub's native update-branch API,
+      # which merges server-side and pushes nothing. The fallback for
+      # conflicting branches merged locally and ran `git push`, and that is
+      # what broke: a push authenticated with the built-in GITHUB_TOKEN falls
+      # under GitHub's recursion guard, so the workflow runs it triggers are
+      # created parked in `action_required` instead of starting. Every PR the
+      # bot had touched then needed a manual approval before it could merge —
+      # the bot created the block it then could not pass.
+      #
+      # The fallback fired almost exclusively on conflicts in the *generated*
+      # backlog files — docs/backlog/INDEX.md and its two companions. A PR
+      # that regenerates them collides with a develop commit that also
+      # regenerated them, native update-branch answers 422, and the fallback
+      # takes over. A run of PRs touching docs/backlog/ therefore queues a run
+      # of approvals.
+      #
+      # What it does now: report which branches are behind and let a human or
+      # agent press "Update branch". That runs as the human, so CI starts
+      # normally and no approval is needed. For the backlog-conflict case the
+      # button conflicts too, so the comment says what actually resolves it
+      # rather than pretending a click is enough.
+      #
+      # Consequence, stated plainly: automatic backlog-conflict resolution is
+      # gone. It cost a standing write credential plus a manual approval per
+      # affected PR, and it is not a job this repository should hand to a bot
+      # holding `contents: write`.
+      #
+      # This also removes the `npm ci` step, which existed only to run
+      # scripts/backlog-index.mjs inside a workflow with write permissions.
 
-      - name: Install dependencies
-        run: npm ci --omit=dev
-
-      - name: Update PR branches and auto-resolve backlog conflicts
+      - name: Report branches that are behind develop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MARKER: '<!-- auto-update-prs:stale -->'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          set -uo pipefail
 
-          echo "Fetching open non-draft PRs targeting develop..."
-          prs=$(gh pr list --base develop --state open --json number,isDraft,headRefName,headRepositoryOwner --jq '.[] | select(.isDraft == false) | "\(.number):\(.headRefName):\(.headRepositoryOwner.login)"')
+          prs=$(gh pr list --base develop --state open --limit 100 \
+            --json number,isDraft,headRefName,headRepositoryOwner \
+            --jq '.[] | select(.isDraft == false) | "\(.number):\(.headRefName):\(.headRepositoryOwner.login)"')
 
           if [ -z "$prs" ]; then
-            echo "No open PRs to update."
+            echo "No open PRs to report on."
             exit 0
           fi
+
+          body=$(mktemp)
+          payload=$(mktemp)
 
           for item in $prs; do
             pr=$(echo "$item" | cut -d: -f1)
             branch=$(echo "$item" | cut -d: -f2)
             owner=$(echo "$item" | cut -d: -f3)
 
-            echo "=== Processing PR #$pr (branch: $branch, owner: $owner) ==="
-
-            # First, try native GitHub API update-branch
-            if gh api -X PUT "repos/${{ github.repository }}/pulls/$pr/update-branch" > /dev/null 2>&1; then
-              echo "✓ Cleanly updated PR #$pr via GitHub API"
+            # Protected branches are never PR heads worth reporting on.
+            # (Kept from #2918.)
+            if [ "$branch" = "develop" ] || [ "$branch" = "main" ]; then
+              echo "Skipping protected branch $branch on PR #$pr"
               continue
             fi
 
-            # If the PR is from an external fork, skip local git resolution
+            # A fork branch does not exist in this repository, so compare
+            # cannot resolve it. Nothing to automate here anyway: "Update
+            # branch" is the correct and only action for a contributor.
             if [ "$owner" != "${{ github.repository_owner }}" ]; then
-              echo "⚠ Cannot auto-resolve fork PR #$pr"
+              echo "Skipping fork branch $branch on PR #$pr (owner: $owner)"
               continue
             fi
 
-            echo "API update failed for PR #$pr. Attempting automatic backlog conflict resolution..."
+            compare=$(gh api "repos/${{ github.repository }}/compare/develop...$branch" 2>/dev/null || echo "")
+            status=$(printf '%s' "$compare" | jq -r '.status // "unknown"')
+            behind=$(printf '%s' "$compare" | jq -r '.behind_by // 0')
 
-            # Ensure clean develop baseline before checking out PR branch
-            git checkout develop --force 2>/dev/null || true
+            existing=$(gh api "repos/${{ github.repository }}/issues/$pr/comments" \
+              --paginate \
+              --jq ".[] | select(.user.login == \"github-actions[bot]\") | select(.body | contains(\"$MARKER\")) | .id" \
+              2>/dev/null | head -1)
 
-            # Fetch branch and try git merge
-            if ! git fetch origin "$branch":"$branch" 2>/dev/null; then
-              echo "⚠ Could not fetch branch $branch, skipping."
+            if [ "$status" != "behind" ] && [ "$status" != "diverged" ]; then
+              if [ -n "$existing" ]; then
+                printf '%s\n\nBranch `%s` is up to date with `develop`.\n' "$MARKER" "$branch" > "$body"
+                jq -n --rawfile b "$body" '{body: $b}' > "$payload"
+                gh api --method PATCH "repos/${{ github.repository }}/issues/comments/$existing" \
+                  --input "$payload" > /dev/null 2>&1 \
+                  || echo "⚠ Failed to clear stale notice on PR #$pr"
+                echo "Cleared stale notice on PR #$pr"
+              fi
               continue
             fi
 
-            git checkout "$branch"
+            echo "PR #$pr ($branch) is $status by $behind commit(s)"
 
-            if git merge origin/develop -m "chore: merge develop into $branch"; then
-              echo "Merged cleanly locally, pushing..."
-              git push origin "$branch" || echo "⚠ Failed to push to $branch"
-              git checkout develop
-              continue
-            fi
+            {
+              printf '%s\n\n' "$MARKER"
+              printf '👀 This branch is **%s commit(s) behind** `develop`, so the merge is blocked until it is brought up to date.\n\n' "$behind"
+              printf '**If "Update branch" works, use it** — click the button on this PR. It runs as you, so CI starts normally.\n\n'
+              printf '**If it reports a conflict in `docs/backlog/`**, that is the generated index (`docs/backlog/INDEX.md` and its two companions) colliding with a `develop` commit that regenerated it too. The conflict is in derived output, not in anything you wrote. Regenerating after the rebase resolves it:\n\n'
+              printf '```bash\ngit fetch origin && git rebase origin/develop\nnode scripts/backlog-index.mjs\ngit add docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json\ngit commit --amend --no-edit && git push --force-with-lease\n```\n\n'
+              printf 'Resolving the markers by hand instead leaves the index inconsistent with the items, and CI rejects that.\n'
+            } > "$body"
 
-            # Check which files have merge conflicts
-            conflicts=$(git diff --name-only --diff-filter=U)
-            echo "Conflicted files in PR #$pr:"
-            echo "$conflicts"
+            jq -n --rawfile b "$body" '{body: $b}' > "$payload"
 
-            # Check if conflicts are ONLY in generated backlog files
-            non_backlog_conflicts=0
-            while IFS= read -r file; do
-              [ -z "$file" ] && continue
-              case "$file" in
-                docs/backlog/INDEX.md|docs/backlog/backlog.generated.ts|docs/backlog/backlog.generated.json)
-                  ;;
-                *)
-                  non_backlog_conflicts=1
-                  ;;
-              esac
-            done <<< "$conflicts"
-
-            if [ "$non_backlog_conflicts" -eq 0 ] && [ -n "$conflicts" ]; then
-              echo "Conflicts are only in generated backlog index files. Resolving automatically..."
-              # Re-generate backlog index
-              node scripts/backlog-index.mjs
-              git add docs/backlog/INDEX.md docs/backlog/backlog.generated.ts docs/backlog/backlog.generated.json
-              git commit -m "chore(backlog): auto-resolve backlog index conflict with develop"
-              git push origin "$branch" || echo "⚠ Failed to push auto-resolved $branch"
-              echo "✓ Successfully auto-resolved backlog conflict and updated PR #$pr"
+            if [ -n "$existing" ]; then
+              gh api --method PATCH "repos/${{ github.repository }}/issues/comments/$existing" \
+                --input "$payload" > /dev/null 2>&1 \
+                || echo "⚠ Failed to update comment on PR #$pr"
             else
-              echo "⚠ PR #$pr has non-backlog code conflicts or empty diff. Aborting merge."
-              git merge --abort || true
+              gh api --method POST "repos/${{ github.repository }}/issues/$pr/comments" \
+                --input "$payload" > /dev/null 2>&1 \
+                || gh pr comment "$pr" --body-file "$body" > /dev/null 2>&1 \
+                || echo "⚠ Failed to comment on PR #$pr"
             fi
-
-            git checkout develop
           done
+
+          rm -f "$body" "$payload"
