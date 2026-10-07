@@ -1,5 +1,5 @@
 
-import { describe, test } from 'vitest';
+import { bench, describe } from 'vitest';
 import { MarketManager, type RawKline } from '../../src/stores/market.svelte';
 
 describe('MarketManager Deduplication', () => {
@@ -35,17 +35,13 @@ describe('MarketManager Deduplication', () => {
       });
   }
 
-  test('applySymbolKlines (1000 updates, same candle)', async ({ bench }) => {
-    await bench('applySymbolKlines (1000 updates, same candle)', () => {
+  bench('applySymbolKlines (1000 updates, same candle)', () => {
       // We use 'rest' to bypass the internal buffer and force immediate execution of applySymbolKlines
       // This isolates the performance of the application logic (map -> sort -> dedup -> merge)
       market.updateSymbolKlines(SYMBOL, TIMEFRAME, rawBatch, 'rest', false);
-    }).run();
   });
 
-  test('applySymbolKlines (1000 unique candles)', async ({ bench }) => {
-    await bench('applySymbolKlines (1000 unique candles)', () => {
+  bench('applySymbolKlines (1000 unique candles)', () => {
       market.updateSymbolKlines(SYMBOL, TIMEFRAME, multiBatch, 'rest', false);
-    }).run();
   });
 });

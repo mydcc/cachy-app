@@ -1,4 +1,4 @@
-import { describe, vi, test } from 'vitest';
+import { bench, describe, vi } from 'vitest';
 import { tradeService } from '../services/tradeService';
 import { omsService } from '../services/omsService';
 import type { OMSPosition } from '../services/omsTypes';
@@ -58,8 +58,7 @@ type TradeServiceInternals = {
 const internals = tradeService as unknown as TradeServiceInternals;
 
 describe('tradeService benchmark (Optimized)', () => {
-    test('closeAllPositions with pre-fetch', async ({ bench }) => {
-      await bench('closeAllPositions with pre-fetch', async () => {
+    bench('closeAllPositions with pre-fetch', async () => {
         const origFetch = internals.fetchOpenPositionsFromApi;
         const origSignedReq = internals.signedRequest;
         try {
@@ -91,6 +90,5 @@ describe('tradeService benchmark (Optimized)', () => {
             internals.fetchOpenPositionsFromApi = origFetch;
             internals.signedRequest = origSignedReq;
         }
-      }).run();
     });
 });

@@ -1,4 +1,4 @@
-import { describe, test } from "vitest";
+import { bench, describe } from "vitest";
 import { calculatePerformanceStats } from "../../src/lib/calculators/stats";
 import type { JournalEntry } from "../../src/stores/types";
 
@@ -25,29 +25,23 @@ describe("calculatePerformanceStats", () => {
     } as unknown as JournalEntry);
   }
 
-  test("Current (O(N log N) date parse)", async ({ bench }) => {
-    await bench("Current (O(N log N) date parse)", () => {
-      // Re-implementation of original sorting logic to measure exactly the slow part
-      const closedTrades = journalData.filter((t) => t.status === "Won" || t.status === "Lost");
-      const _sorted = [...closedTrades].sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-      );
-    }).run();
+  bench("Current (O(N log N) date parse)", () => {
+    // Re-implementation of original sorting logic to measure exactly the slow part
+    const closedTrades = journalData.filter((t) => t.status === "Won" || t.status === "Lost");
+    const _sorted = [...closedTrades].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
   });
 
-  test("Optimized (Schwartzian transform)", async ({ bench }) => {
-    await bench("Optimized (Schwartzian transform)", () => {
-      const closedTrades = journalData.filter((t) => t.status === "Won" || t.status === "Lost");
-      const _sorted = closedTrades
-          .map((t) => ({ t, ts: new Date(t.date).getTime() }))
-          .sort((a, b) => a.ts - b.ts)
-          .map(({ t }) => t);
-    }).run();
+  bench("Optimized (Schwartzian transform)", () => {
+    const closedTrades = journalData.filter((t) => t.status === "Won" || t.status === "Lost");
+    const _sorted = closedTrades
+        .map((t) => ({ t, ts: new Date(t.date).getTime() }))
+        .sort((a, b) => a.ts - b.ts)
+        .map(({ t }) => t);
   });
 
-  test("calculatePerformanceStats (10k trades)", async ({ bench }) => {
-    await bench("calculatePerformanceStats (10k trades)", () => {
-      calculatePerformanceStats(journalData);
-    }).run();
+  bench("calculatePerformanceStats (10k trades)", () => {
+    calculatePerformanceStats(journalData);
   });
 });

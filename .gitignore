@@ -73,9 +73,6 @@ build/
 
 # Vitest cache
 .vitest-cache
-# Vitest 5 moved every generated artifact under one root: attachments, blob
-# reports, and the json/junit reporter output all land in .vitest/
-.vitest/
 coverage/
 dist/
 .env

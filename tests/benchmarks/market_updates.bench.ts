@@ -1,5 +1,5 @@
 
-import { describe, test } from 'vitest';
+import { bench, describe } from 'vitest';
 import { MarketManager } from '../../src/stores/market.svelte';
 import { Decimal } from 'decimal.js';
 
@@ -18,31 +18,27 @@ describe('MarketManager Performance', () => {
     time: 1600000000000
   }], 'rest');
 
-  test('updateKline (High Frequency - Buffered)', async ({ bench }) => {
-    await bench('updateKline (High Frequency - Buffered)', () => {
-      // Simulate 100 updates to the same candle (typical live trading)
-      // The updateKline method now internally uses 'ws' mode and buffers
-      for (let i = 0; i < 100; i++) {
-          market.updateKline(SYMBOL, '1m', {
-              o: 50000,
-              h: 51000 + i, // Changing high
-              l: 49000,
-              c: 50500 + i, // Changing close
-              b: 100 + i,   // Volume (b)
-              t: 1600000000000 // Same timestamp
-          });
-      }
-    }).run();
+  bench('updateKline (High Frequency - Buffered)', () => {
+    // Simulate 100 updates to the same candle (typical live trading)
+    // The updateKline method now internally uses 'ws' mode and buffers
+    for (let i = 0; i < 100; i++) {
+        market.updateKline(SYMBOL, '1m', {
+            o: 50000,
+            h: 51000 + i, // Changing high
+            l: 49000,
+            c: 50500 + i, // Changing close
+            b: 100 + i,   // Volume (b)
+            t: 1600000000000 // Same timestamp
+        });
+    }
   });
 
-  test('updateTicker (Buffered)', async ({ bench }) => {
-    await bench('updateTicker (Buffered)', () => {
+  bench('updateTicker (Buffered)', () => {
       for (let i = 0; i < 100; i++) {
           market.updateTicker(SYMBOL, {
               lastPrice: 50000 + i,
               vol: 1000 + i
           });
       }
-    }).run();
   });
 });

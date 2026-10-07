@@ -1,4 +1,4 @@
-import { describe, test } from 'vitest';
+import { bench, describe } from 'vitest';
 import { Decimal } from 'decimal.js';
 
 interface Kline {
@@ -158,27 +158,19 @@ for (let i = 0; i < COUNT; i++) {
 }
 
 describe('fillGaps Benchmark', () => {
-  test('Original - No Gaps', async ({ bench }) => {
-    await bench('Original - No Gaps', () => {
-      fillGaps_Original(klinesNoGaps, INTERVAL);
-    }).run();
+  bench('Original - No Gaps', () => {
+    fillGaps_Original(klinesNoGaps, INTERVAL);
   });
 
-  test('Optimized - No Gaps', async ({ bench }) => {
-    await bench('Optimized - No Gaps', () => {
-      fillGaps_Optimized(klinesNoGaps, INTERVAL);
-    }).run();
+  bench('Optimized - No Gaps', () => {
+    fillGaps_Optimized(klinesNoGaps, INTERVAL);
   });
 
-  test('Original - With Gaps', async ({ bench }) => {
-    await bench('Original - With Gaps', () => {
-      fillGaps_Original(klinesWithGaps, INTERVAL);
-    }).run();
+  bench('Original - With Gaps', () => {
+    fillGaps_Original(klinesWithGaps, INTERVAL);
   });
 
-  test('Optimized - With Gaps', async ({ bench }) => {
-    await bench('Optimized - With Gaps', () => {
-      fillGaps_Optimized(klinesWithGaps, INTERVAL);
-    }).run();
+  bench('Optimized - With Gaps', () => {
+    fillGaps_Optimized(klinesWithGaps, INTERVAL);
   });
 });

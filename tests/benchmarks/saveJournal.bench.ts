@@ -1,4 +1,4 @@
-import { describe, test } from 'vitest';
+import { bench, describe } from 'vitest';
 import { Decimal } from 'decimal.js';
 import { serializationService } from '../../src/services/serializationService';
 
@@ -31,15 +31,11 @@ const generateJournal = (count: number): JournalEntry[] => {
 const largeJournal = generateJournal(5000);
 
 describe('Journal Serialization', () => {
-  test('JSON.stringify (blocking)', async ({ bench }) => {
-    await bench('JSON.stringify (blocking)', () => {
-      JSON.stringify(largeJournal);
-    }).run();
+  bench('JSON.stringify (blocking)', () => {
+    JSON.stringify(largeJournal);
   });
 
-  test('stringifyAsync (non-blocking)', async ({ bench }) => {
-    await bench('stringifyAsync (non-blocking)', async () => {
-      await serializationService.stringifyAsync(largeJournal);
-    }).run();
+  bench('stringifyAsync (non-blocking)', async () => {
+    await serializationService.stringifyAsync(largeJournal);
   });
 });

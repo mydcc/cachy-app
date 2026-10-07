@@ -6021,60 +6021,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0591-spacetimedb-module-resolves-wrong-sdk-major.md"
   },
   {
-    "id": "BUG-0631",
-    "title": "Every benchmark file runs twice because Vitest creates one bench project per inline project",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0631-benchmark-files-run-twice.md"
-  },
-  {
-    "id": "BUG-0636",
-    "title": "CI never builds, so a dependency bump that breaks the server bundle passes every check",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "ci",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0636-no-build-job-in-ci.md"
-  },
-  {
-    "id": "BUG-0638",
-    "title": "server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P2",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "security",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md"
-  },
-  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -8545,25 +8491,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0629-migrate-to-sveltekit-3.md"
   },
   {
-    "id": "FEAT-0630",
-    "title": "Migrate the test infrastructure to Vitest 5",
-    "type": "feature",
-    "status": "done",
-    "priority": "P2",
-    "assignee": "opencode",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "features/FEAT-0630-migrate-to-vitest-5.md"
-  },
-  {
     "id": "IDEA-0563",
     "title": "Decide what an open with unmeasured balance should do",
     "type": "idea",
@@ -9601,78 +9528,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0603-hardcoded-tpsl-pending-order-titles.md"
   },
   {
-    "id": "BUG-0632",
-    "title": "The toNumFast benchmark measures a code path that always throws",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0632-toNumFast-benchmark-measures-a-throwing-path.md"
-  },
-  {
-    "id": "BUG-0633",
-    "title": "The closeAllPositions benchmark aborts because closing the position reports an error",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0633-closeAllPositions-benchmark-aborts.md"
-  },
-  {
-    "id": "BUG-0637",
-    "title": "engines admits Node versions that production dependencies reject",
-    "type": "bug",
-    "status": "specced",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0637-engines-range-below-jsdom-floor.md"
-  },
-  {
-    "id": "BUG-0639",
-    "title": "conventional-changelog-conventionalcommits 10 cannot render with the installed writer",
-    "type": "bug",
-    "status": "done",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "bugs/BUG-0639-changelog-preset-needs-newer-writer.md"
-  },
-  {
     "id": "FEAT-0022",
     "title": "Make settings findable with a search box",
     "type": "feature",
@@ -10542,62 +10397,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "FEAT-0617"
     ],
     "file": "features/FEAT-0618-entry-point-registry-and-window-manager-scope.md"
-  },
-  {
-    "id": "FEAT-0634",
-    "title": "Upgrade jsdom to 30 and keep it a production dependency",
-    "type": "feature",
-    "status": "done",
-    "priority": "P3",
-    "assignee": "opencode",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "features/FEAT-0634-upgrade-jsdom-to-30.md"
-  },
-  {
-    "id": "FEAT-0635",
-    "title": "Upgrade three to 0.186 and the matching type definitions",
-    "type": "feature",
-    "status": "done",
-    "priority": "P3",
-    "assignee": "opencode",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "features/FEAT-0635-upgrade-three-to-0186.md"
-  },
-  {
-    "id": "FEAT-0641",
-    "title": "Upgrade katex to 0.19 once marked-katex-extension allows it",
-    "type": "feature",
-    "status": "done",
-    "priority": "P3",
-    "milestone": "none",
-    "editions": [
-      "community",
-      "pro",
-      "private"
-    ],
-    "area": "deps",
-    "data_class": "none",
-    "adr": "none",
-    "depends_on": [],
-    "file": "features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md"
   },
   {
     "id": "IDEA-0036",
