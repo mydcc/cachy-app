@@ -3652,6 +3652,7 @@ export type TranslationKey =
   | "orderEntry.unsupported.unknownExchange"
   | "orderEntry.unsupported.timeInForce"
   | "orderEntry.notes.noAttachedProtection"
+  | "orderEntry.notes.unprotectedEntry"
   | "orderEntry.notes.firstTargetOnly"
   | "orderEntry.notes.balanceUnmeasured"
   | "orderEntry.notes.liveMarginShortfall"

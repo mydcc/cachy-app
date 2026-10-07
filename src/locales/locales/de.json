@@ -4440,6 +4440,7 @@
     },
     "notes": {
       "noAttachedProtection": "Diese Börse kann keinen Stop an den Einstieg anhängen. Der Stop wird als zweite Anfrage platziert, die Position ist also kurz ungeschützt — du wirst benachrichtigt, falls er nicht ankommt.",
+      "unprotectedEntry": "Diese Börse kann einen Stop an einem Einstieg nicht tragen — weder am Einstieg noch als separate Order. Es gibt also keinen Weg, ihn zu platzieren. Leere das Stop-Feld, um die Order bewusst ungeschützt zu senden.",
       "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner.",
       "balanceUnmeasured": "Kontostand nicht geladen — die Börse entscheidet, ob diese Order gedeckt ist.",
       "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen."

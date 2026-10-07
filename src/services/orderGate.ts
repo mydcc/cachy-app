@@ -62,6 +62,11 @@ import {
  * have pulled in all four.
  */
 import { capabilitiesOf, isKnownExchange } from "./exchangeCapabilities";
+// BUG-0649 — the order form asks the same question about the same two flags
+// before the trader presses the button. Two conditions written separately is
+// what put "the stop is placed as a second request" on a screen where this gate
+// was about to refuse it; one predicate is what stops that returning.
+import { canCarryStopLoss, stopLossPlacement } from "./exchange/stopLossPlacement";
 import type { OrderEntryType, TimeInForce } from "./exchangeCapabilities";
 import { cachyAction } from "../utils/exchange/restSigningPlan";
 
@@ -971,7 +976,7 @@ class OrderGate {
              */
             const stopRequested =
                 displayed.stopLossPrice !== undefined && displayed.stopLossPrice.gt(0);
-            if (stopRequested && !caps.tpSlAtEntry && !caps.tpSlStandalone) {
+            if (stopRequested && !canCarryStopLoss(caps)) {
                 checked.push("unplaceableStop");
                 return refuse({
                     field: "stopLoss",
@@ -1686,9 +1691,12 @@ class OrderGate {
          * a venue with neither excuses nothing (the `unplaceableStop` rule
          * above already refused such an entry, so this is the belt to those
          * braces for callers that reach the gate directly).
+         *
+         * Spelled through `stopLossPlacement` rather than as two flag reads: this
+         * is the same partition the form and the refusal already ask for, and a
+         * third spelling of it is exactly what BUG-0649 was.
          */
-        if (caps.tpSlAtEntry) return true;
-        return !caps.tpSlStandalone;
+        return stopLossPlacement(caps) !== "separate";
     }
 
     private checkTpSlDirection(intent: OrderIntent, checked: string[]): OrderRefusal | null {
