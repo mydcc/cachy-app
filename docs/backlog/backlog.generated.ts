@@ -10638,6 +10638,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0642-remove-orphaned-intl-messageformat.md"
   },
   {
+    "id": "FEAT-0643",
+    "title": "Upgrade negotiator 0.6 to 1.1 and adapt the precompressed-asset selection call",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P3",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0643-upgrade-negotiator-to-1-1.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",

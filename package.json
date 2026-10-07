@@ -106,7 +106,7 @@
     "marked": "^18.1.0",
     "marked-katex-extension": "^5.1.13",
     "mime-types": "^3.0.2",
-    "negotiator": "^0.6.4",
+    "negotiator": "^1.1.0",
     "openai": "^7.28.0",
     "p-limit": "^7.3.3",
     "postcss": "^8.5.29",
