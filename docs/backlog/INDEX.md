@@ -2,9 +2,9 @@
 
 # Backlog index
 
-520 items. How to read and add them: [README.md](README.md).
+521 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-progress 5 · ✅ done 442 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-progress 6 · ✅ done 442 · ⛔ dropped 1
 
 ---
 
@@ -574,6 +574,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0641](features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md) | Upgrade katex to 0.19 once marked-katex-extension allows it | P3 | ✅ done | deps |
 | [FEAT-0642](features/FEAT-0642-remove-orphaned-intl-messageformat.md) | Remove the orphaned intl-messageformat dependency instead of upgrading it | P3 | ✅ done | deps |
 | [FEAT-0643](features/FEAT-0643-upgrade-negotiator-to-1-1.md) | Upgrade negotiator 0.6 to 1.1 and adapt the precompressed-asset selection call | P3 | 🟡 in-progress | deps |
+| [FEAT-0644](features/FEAT-0644-remove-orphaned-lightweight-charts-indicators.md) | Remove the orphaned lightweight-charts-indicators dependency | P3 | 🟡 in-progress | deps |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | experiment |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | ui |
 | [IDEA-0189](ideas/IDEA-0189-user-operated-sync.md) | Multi-device sync of settings and presets via a user-operated instance | P3 | 💡 idea | sync |
@@ -1091,6 +1092,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 22 · 🟡 in-pr
 | [FEAT-0641](features/FEAT-0641-upgrade-katex-to-019-when-peer-allows.md) | Upgrade katex to 0.19 once marked-katex-extension allows it | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0642](features/FEAT-0642-remove-orphaned-intl-messageformat.md) | Remove the orphaned intl-messageformat dependency instead of upgrading it | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0643](features/FEAT-0643-upgrade-negotiator-to-1-1.md) | Upgrade negotiator 0.6 to 1.1 and adapt the precompressed-asset selection call | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
+| [FEAT-0644](features/FEAT-0644-remove-orphaned-lightweight-charts-indicators.md) | Remove the orphaned lightweight-charts-indicators dependency | P3 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [IDEA-0036](ideas/IDEA-0036-gamification-fork.md) | A gamified fork built on SpacetimeDB and the 3D layer | P3 | 💡 idea | none | community | none | required | — |
 | [IDEA-0037](ideas/IDEA-0037-android-alert-companion.md) | A native Android companion that runs only the alert engine | P3 | 💡 idea | M6 | community, pro, private | A | none | [FEAT-0027](features/FEAT-0027-alert-engine.md) |
 | [IDEA-0073](ideas/IDEA-0073-bitunix-best-bid-ask.md) | Show best bid/ask and spread from the Bitunix tickers batch channel | P3 | 💡 idea | none | community, pro, private | C | none | — |
