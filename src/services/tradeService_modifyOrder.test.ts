@@ -31,6 +31,7 @@ import { tradeService } from "./tradeService";
 import { rmsService } from "./rmsService";
 import { orderGate, type OrderIntent } from "./orderGate";
 import { tradeState } from "../stores/trade.svelte";
+import { settingsState } from "../stores/settings.svelte";
 import { riskState } from "../stores/riskLimits.svelte";
 import type { NormalizedOrder } from "../types/exchange";
 
@@ -130,6 +131,7 @@ beforeEach(() => {
     seen.length = 0;
     riskState.resetLimits();
     tradeState.accountSize = "1000";
+    settingsState.apiProvider = "bitunix";
     rmsService.installGateHooks();
 });
 
@@ -181,6 +183,62 @@ describe("modifyOrder — constructor mapping reaches the gate intact", () => {
         expect(wireParams(wire).qty).toBe("0.2");
         expect(wireParams(wire).price).not.toBe("50000");
         expect(wire).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The venue split on the quantity a price-only amendment carries.
+     *
+     * Bitunix documents `qty` as required on modify_order ("exchange
+     * requirement"), so the backfill above is what keeps a price-only amend
+     * working there. Bitget UTA takes qty and/or price, so the field can be
+     * left off entirely — and leaving it off is the only choice that is safe
+     * while its replace-vs-delta semantics stay unverified (open question 6,
+     * `docs/bitget-api/15_uta_writes.md`). Under delta semantics the backfill
+     * would inflate the order on every price step.
+     *
+     * Both halves are pinned because either one alone would pass by accident:
+     * a change that dropped the backfill everywhere would fail the Bitunix case
+     * above, and one that kept it everywhere would fail the Bitget case below.
+     */
+    it("stops backfilling the quantity into a Bitget price-only amendment", async () => {
+        settingsState.apiProvider = "bitget";
+        const wire = mockLive();
+
+        await tradeService.modifyOrder({ orderId: "o-9", price: "50100" });
+
+        // Asserted as undefined rather than absent: this boundary is the raw
+        // intent payload, and `completeIntent` passes it through untouched. The
+        // key is dropped on the wire by `cleanPayload` inside the venue body
+        // builder, which `bitgetUtaModify.test.ts` pins separately
+        // ("modifies price only"). What matters here is that the *value* stops
+        // being the resting size.
+        const params = wireParams(wire);
+        expect(params.qty).toBeUndefined();
+        expect(params.price).toBe("50100");
+    });
+
+    it("sends the caller's quantity on Bitget when there is one", async () => {
+        settingsState.apiProvider = "bitget";
+        const wire = mockLive();
+
+        await tradeService.modifyOrder({ orderId: "o-9", qty: "0.5" });
+
+        expect(wireParams(wire).qty).toBe("0.5");
+    });
+
+    it("still measures a Bitget price-only amendment against the size cap", async () => {
+        // Guards a property, not the change: this case refuses with or without
+        // the venue split in place, because the cap reads `params.qty` with its
+        // own live fallback rather than the payload. That is exactly why it is
+        // worth pinning — a later edit that made the cap read the payload would
+        // quietly disable it on Bitget, and nothing else here would notice.
+        settingsState.apiProvider = "bitget";
+        mockLive();
+        riskState.setLimit("maxPositionSizeUsdt", "1");
+
+        await expect(
+            tradeService.modifyOrder({ orderId: "o-9", price: "50100" }),
+        ).rejects.toMatchObject({ refusal: { field: "maxPositionSize" } });
     });
 
     it.each(["0", "-5", "bogus"])(

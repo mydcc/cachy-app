@@ -2952,6 +2952,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0628-meta-refetch-deadlock.md"
   },
   {
+    "id": "BUG-0647",
+    "title": "A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "branch": "fix/bitget-modify-no-implicit-qty",
+    "file": "bugs/BUG-0647-bitget-modify-resends-resting-size.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",

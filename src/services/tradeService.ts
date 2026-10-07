@@ -2525,7 +2525,31 @@ class TradeService {
 
         const symbol = params.symbol || liveOrder.symbol;
 
-        const qty = params.qty !== undefined ? formatApiNum(params.qty) : liveOrder.amount;
+        /*
+         * A quantity the caller did not ask for is not sent to Bitget. UTA's
+         * modify takes qty and/or price, and whether its `qty` replaces or adds
+         * is unverified — open question 6 in
+         * `docs/bitget-api/15_uta_writes.md`. Under delta semantics a price-only
+         * modify would inflate the order on every price step, and each step
+         * would look correct to the caller; under replace semantics the field
+         * was a no-op anyway. Omitting it is correct under both, so the
+         * question does not have to be answered first to be safe.
+         *
+         * Bitunix keeps the backfill: its `modify_order` lists `qty` as
+         * required and calls it an "exchange requirement" that Cachy satisfies
+         * from the live order (`docs/bitunix-api/07_trade.md:529`), so a
+         * price-only amend would be refused there.
+         *
+         * The position-size guards below still read `liveOrder.amount`
+         * independently — a price change moves notional, so the cap has to be
+         * measured against the resting size whether or not `qty` travels.
+         */
+        const qty =
+            params.qty !== undefined
+                ? formatApiNum(params.qty)
+                : settingsState.apiProvider === "bitget"
+                  ? undefined
+                  : liveOrder.amount;
         const price = params.price !== undefined ? formatApiNum(params.price) : (liveOrder.price || undefined);
         /*
          * A corrupt price is not a missing one, but it is equally
