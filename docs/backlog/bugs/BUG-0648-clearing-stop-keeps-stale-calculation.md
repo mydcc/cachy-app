@@ -10,7 +10,8 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
-branch: fix/live-observation-findings
+assignee: opencode
+branch: fix/bug-0648-stale-submit
 ---
 
 # Clearing the stop leaves the previous calculation standing
@@ -120,17 +121,18 @@ refuse when they disagree, which closes the money path without deciding the
 
 ## Acceptance criteria
 
-- [ ] `PlaceOrderPanel.submit()` cannot send a quantity, price, stop or target
+- [x] `PlaceOrderPanel.submit()` cannot send a quantity, price, stop or target
       that `data` holds but `tradeState` no longer does
 - [ ] Clearing the stop stops the summary from showing the previous `SIZE`,
       `MARGIN` and `STOP` — or is documented as intentional, with the reason
 - [ ] A summary that renders while `dashboard.promptForData` is displayed is
       either impossible or explained on screen
-- [ ] A test reproduces the defect: a successful calculation, then the stop
+- [x] A test reproduces the defect: a successful calculation, then the stop
       cleared, then a submit — and fails without the fix, naming the stale field
-- [ ] Whatever the fix, the gate's remediation instruction in
-      `orderGate.unplaceableStop` is actually reachable on a venue that cannot
-      carry a stop
+- [~] The gate's remediation instruction in `orderGate.unplaceableStop` is
+      reachable on a venue that cannot carry a stop — **still not**, and this
+      ships knowing it. The wrong order is gone; the route to the right one is
+      not. See the Resolution.
 
 ## Evidence
 
@@ -145,6 +147,78 @@ Trader screenshots, 2026-10-07, deployed build `15a473bc8` (26 commits behind
 The claim that the stale order *would* reach a funded account is derived from
 the code path above, not observed. It should be confirmed before the fix is
 designed around it.
+
+## Resolution, first half — the money path is closed
+
+`submit()` now refuses before anything is built when `data` and the form
+disagree: entry price, stop, take-profit legs, symbol and direction. It says so
+(`orderEntry.errors.staleCalculation`) and sends nothing.
+
+The guard belongs here and not in the gate because the gate compares the payload
+against the intent and **both are built from `data`**. It cannot see a
+disagreement that exists inside the one object it trusts. Everywhere else the
+gate is the right place; this is the exception, and the reason is structural.
+
+### One rule that had to be sharpened
+
+The first version treated an absent store field as "the trader cleared it". That
+is wrong, and eight existing tests said so — `PlaceOrderPanel.confirmation`
+mocks `tradeState` without `entryPrice`, `stopLossPrice`, `tradeType` or
+`targets`, so every case read as a disagreement and the confirmation dialog never
+opened.
+
+An empty field is a **claim**; a missing field is not one. The comparison now
+skips `undefined`. In production these are `string | null` and never
+`undefined`, so no runtime behaviour changes — it only stops the guard reading a
+partial mock as a withdrawal.
+
+Worth recording because the broken version would have been invisible in
+production and would have failed at the next refactor instead.
+
+### Verification
+
+- Six cases in `PlaceOrderPanel.staleSubmit.component.test.ts`, driving
+  `currentTradeData` and the form inputs apart by hand.
+- **The control case came first and caught a false green.** The first three cases
+  passed immediately because my modal mock never resolved, so nothing was ever
+  placed — and "nothing was placed" was what each stale case expected. A fourth
+  case asserting a *successful* placement is what exposed it. A guard that cannot
+  fail is worse than no guard.
+- Mutation, removing the guard: exactly the three stale cases fail, the control
+  stays green. Removing **only** the take-profit comparison fails exactly the one
+  leg case and leaves the other five green — so that branch is pinned
+  independently rather than riding on the others.
+- 146 tests across `src/components/results/`, `orderGate.capabilities` and
+  `tradeService_placeOrder`. `npm run check` clean for every file touched; the
+  one remaining error (`marketWatcher.bench.ts`, `Property 'bench' does not exist
+  on type 'TestContext'`) is pre-existing and not in this diff.
+
+## Still open — the second half
+
+**The gate's remediation is still not reachable, and this does not change that.**
+Clearing the stop now refuses at the panel instead of at the gate, but it still
+refuses, because `data` never clears. The trader cannot yet place the
+deliberately unprotected entry the refusal tells them to place.
+
+What the fix changes is that the refusal can no longer send a stop they removed.
+That is the money-path half, and it is the half that was reachable without a
+product decision.
+
+The other half is visible: **should the summary blank when a recalculation is
+refused?** That is a product decision about what the trader sees mid-edit, not a
+safety one, so it is not taken here.
+
+The groundwork is already established, so whoever takes it does not start from
+zero — `currentTradeData` has exactly two readers outside the store:
+
+- `PlaceOrderPanel.svelte:143` — the only consumer of the values
+- `app.ts:203` — already null-safe (`?.positionSize?.gt(0)`), and refusing with
+  `errors.invalidTrade` is the right answer when there is no valid calculation
+
+So nulling it on a refused calculation appears to be safe; what is undecided is
+whether blanking the summary is the behaviour a trader wants. `BUG-0649` is the
+neighbour here: the panel's own note now says "clear the stop", and until this
+half lands, clearing it is a dead end.
 
 ## Links
 

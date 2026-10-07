@@ -2986,7 +2986,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "branch": "fix/live-observation-findings",
+    "assignee": "opencode",
+    "branch": "fix/bug-0648-stale-submit",
     "file": "bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md"
   },
   {

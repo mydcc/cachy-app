@@ -96,6 +96,70 @@
   );
   const tifSupported = $derived(caps.timeInForce.length > 0);
 
+  /**
+   * BUG-0648 — `data` is the last calculation that *succeeded*, and nothing
+   * nulls it when a later one is refused: `clearResults()` resets
+   * `resultsState`, never `tradeState`. So clearing the stop can leave `data`
+   * still carrying it, and the summary still showing a size derived from it.
+   *
+   * `submit()` builds the order from `data`, and the gate compares the payload
+   * against the intent that same `data` produced — so it cannot see the
+   * disagreement. The gate is the right place to enforce most things and the
+   * wrong place for this one.
+   *
+   * Only a positive level counts as stated, matching `wantsStop` in
+   * `orderPlacementService`: an empty field and a zero both mean "no stop".
+   */
+  function positiveDecimal(value: Decimal | string | null | undefined): Decimal | null {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = value instanceof Decimal ? value : new Decimal(value);
+    return parsed.isFinite() && parsed.gt(0) ? parsed : null;
+  }
+
+  const staleInputs = $derived.by(() => {
+    if (!data) return false;
+    const agrees = (
+      calculated: Decimal | null | undefined,
+      stated: Decimal | string | null | undefined,
+    ) => {
+      // `undefined` means the store states nothing here, which is not the same
+      // as stating "cleared": an empty field is a claim, a missing field is not.
+      // In production these are `string | null` and never undefined, so this
+      // branch changes no behaviour there — it stops the comparison reading a
+      // partial mock as a disagreement.
+      if (stated === undefined) return true;
+      const fromCalculation = positiveDecimal(calculated);
+      const fromInput = positiveDecimal(stated);
+      if (fromCalculation === null && fromInput === null) return true;
+      return (
+        fromCalculation !== null && fromInput !== null && fromCalculation.eq(fromInput)
+      );
+    };
+    /*
+     * Take-profit legs travel with the order, so a leg the trader deleted has
+     * to count as stale too — same rule as the stop, compared per leg: an empty
+     * price and a zero price both mean "no leg".
+     */
+    const calculatedLegs = (data.targets ?? []).map((t) => positiveDecimal(t.price));
+    const statedLegs = (tradeState.targets ?? []).map((t) => positiveDecimal(t.price));
+    const sameLegs =
+      tradeState.targets === undefined ||
+      calculatedLegs.length === statedLegs.length &&
+      calculatedLegs.every((leg, index) => {
+        const other = statedLegs[index];
+        if (leg === null && other === null) return true;
+        return leg !== null && other !== null && leg.eq(other);
+      });
+
+    return (
+      !agrees(data.stopLossPrice, tradeState.stopLossPrice) ||
+      !agrees(data.entryPrice, tradeState.entryPrice) ||
+      !sameLegs ||
+      (tradeState.symbol !== undefined && data.symbol !== tradeState.symbol) ||
+      (tradeState.tradeType !== undefined && data.tradeType !== tradeState.tradeType)
+    );
+  });
+
   let entryType = $state<OrderEntryType>("market");
   let timeInForce = $state<TimeInForce>("GTC");
   let submitting = $state(false);
@@ -434,6 +498,15 @@
 
   async function submit() {
     if (!ready || !data || submitting || !tradeDirectionKnown) return;
+
+    /*
+     * BUG-0648 — refuse before anything is built. The gate cannot catch this:
+     * it compares the payload against the intent, and both come from `data`.
+     */
+    if (staleInputs) {
+      uiState.showError($_("orderEntry.errors.staleCalculation"));
+      return;
+    }
 
     // BUG-0507: the guard belongs where it is checked. Set before the
     // confirmation dialog — the await below lasts as long as the trader
