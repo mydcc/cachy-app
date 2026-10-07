@@ -2,7 +2,7 @@
 id: FEAT-0644
 title: Remove the orphaned lightweight-charts-indicators dependency
 type: feature
-status: in-progress
+status: done
 priority: P3
 assignee: opencode
 milestone: none

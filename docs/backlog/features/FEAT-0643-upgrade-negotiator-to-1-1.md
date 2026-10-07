@@ -2,7 +2,7 @@
 id: FEAT-0643
 title: Upgrade negotiator 0.6 to 1.1 and adapt the precompressed-asset selection call
 type: feature
-status: in-progress
+status: done
 priority: P3
 assignee: opencode
 milestone: none
