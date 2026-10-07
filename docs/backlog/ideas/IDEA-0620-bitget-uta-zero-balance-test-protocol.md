@@ -50,13 +50,43 @@ cents) and wait until then.
 
 ### Part 2 — funded account only (waits for the trader's deposit decision)
 
+Steps 6–9 all need a resting order, and a resting order needs margin. So
+step 8 — the replace-vs-delta question — is **not** reachable with keys alone at
+zero balance. It waits on the deposit decision like the rest of Part 2. Nothing
+in Part 1 is blocked by that: steps 1–5 send no order that can fill, so they run
+on keys and a zero balance as they stand.
+
 6. **Open→Flat:** 0.0001 BTC entry + close. Criterion: position returns to
    flat — a 200 proves nothing. Report position states + order IDs.
 7. **Attach:** Entry with stop → stop is really attached to the order.
    Only after this may `tpSlAtEntry` flip. Report the order payload as shown
    by `order-info`.
-8. **Modify on resting order:** Change price/qty → `order-info` confirms.
-   Report requested vs. confirmed values (settles replace-vs-delta).
+8. **Modify on resting order — settle replace-vs-delta.** **Change the
+   quantity, not only the price.** BUG-0647 stopped Cachy sending a quantity the
+   caller did not state, so a price-only modify now sends no `qty` at all and
+   `order-info` returns the resting size unchanged. That reads exactly like
+   "replace, confirmed" and settles nothing — it is the absence of a change,
+   not an observation of one.
+
+   The probe, with the resting order far enough from market that it cannot fill:
+
+   | step | action | expected under replace | expected under delta |
+   |---|---|---|---|
+   | a | place a resting limit at qty **0.0001** | 0.0001 | 0.0001 |
+   | b | `order-info` → read the confirmed qty | 0.0001 | 0.0001 |
+   | c | modify **qty only**, to **0.0002**, price untouched | — | — |
+   | d | `order-info` → read the confirmed qty | **0.0002** | **0.0003** |
+
+   `0.0002` is replace; `0.0003` is delta. Then cancel the order. Report the two
+   `order-info` qty values verbatim — that pair is the whole answer.
+
+   Useful to run twice: first through Cachy, then as a raw signed
+   `modify-order` call with the same body. Through Cachy confirms what the app
+   does; the raw call isolates the venue from the app, so a disagreement points
+   at the builder instead of at the venue.
+
+   Until this is observed, Cachy sends no quantity on a price-only amend, which
+   is correct under either reading. Do not read that safety as an answer.
 9. **Incidental observations:** `one_way_mode` wire literal,
    `clientOid`-resubmission behaviour, funding/fee behaviour — report
    whatever normal trading surfaces; the agent records it.
