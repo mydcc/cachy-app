@@ -299,6 +299,7 @@ missing.
 Features:
 
 - ✅ Concurrency lock — a second run refuses to start while one is in progress
+- ✅ Pinned script execution — re-executes itself from a private snapshot before doing anything else, so the mid-run `git pull` cannot rewrite the code that is still running (see "What the script does")
 - ✅ Automatic backup (last 5 deployments kept, configurable via `MAX_BACKUPS`)
 - ✅ Single previous build (`build_previous`, removed after success unless `KEEP_PREVIOUS=1`) — no timestamped `build_old_*` pile; legacy piles are deleted on the next deploy
 - ✅ Log rotation (newest `MAX_BUILD_LOGS=20` build/start logs kept, `deploy_*.log` older than `LOG_RETENTION_DAYS=14` days deleted)
@@ -312,19 +313,55 @@ Features:
 
 ### What the script does
 
-1. **Take the concurrency lock** - a second run refuses to start while one is in progress
-2. **Check branch and working tree** - offers to switch branch and to stash changes
-3. **Confirm** - production mode requires an explicit `y`
-4. **Create backup** - full build + package-lock.json + Git commit
-5. **Pull latest code** - `git reset --hard && git pull`
-6. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci && npm run build` there. **A failed build aborts without touching the running deployment.**
-7. **Validate build** - checks that `build/index.js` exists
-8. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` (fixed name, so nothing accumulates), move the new one in. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
-9. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
-   Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
-   start command (e.g. a bad path) is flagged before the health check even begins.
-10. **Health check** - verify the service responds at `/api/health`
-11. **Auto-rollback** - restore `build_previous` and restart when the health check fails; the previous build is deleted only after the health check passes (unless `KEEP_PREVIOUS=1`)
+1. **Pin the executing script** - copies itself into a private snapshot in `$TMPDIR` and re-executes that copy, so the whole run is bound to the code as it was at start (see "Why the script runs from a snapshot" below)
+2. **Take the concurrency lock** - a second run refuses to start while one is in progress
+3. **Check branch and working tree** - offers to switch branch and to stash changes
+4. **Confirm** - production mode requires an explicit `y`
+5. **Create backup** - full build + package-lock.json + Git commit
+6. **Pull latest code** - `git reset --hard && git pull`
+7. **Build in a shadow directory** - copies the tree to `.deploy_work`, runs `npm ci && npm run build` there. **A failed build aborts without touching the running deployment.**
+8. **Validate build** - checks that `build/index.js` exists
+9. **Swap** - `chown www:www`, `chmod 755`, move the old `build/` aside as `build_previous` (fixed name, so nothing accumulates), move the new one in. Timestamped `build_old_*` leftovers from older versions are deleted once on the next deploy.
+10. **Graceful restart** - SIGTERM, then SIGKILL after a grace period, then `START_COMMAND` from `.deploy.conf`.
+    Its output is captured to `logs/start_<timestamp>.log` rather than discarded, and an immediate exit of the
+    start command (e.g. a bad path) is flagged before the health check even begins.
+11. **Health check** - verify the service responds at `/api/health`
+12. **Auto-rollback** - restore `build_previous` and restart when the health check fails; the previous build is deleted only after the health check passes (unless `KEEP_PREVIOUS=1`)
+
+### Why the script runs from a snapshot
+
+Step 6 pulls new code, and one of the files it rewrites is `deploy.sh` itself —
+while bash is still reading that very file. Bash reads scripts lazily and tracks
+only a **byte offset**, so as soon as the file changes size, every following line
+is read from the wrong position. Sections get skipped entirely, or the same
+section runs twice.
+
+This is not theoretical. On **2026-10-06** the dependency-refresh fix from #3892
+was pulled in mid-run; its block never executed, so the deploy shipped against
+stale `node_modules` and failed its health check — with no error pointing at the
+real cause.
+
+So the script copies itself to `$TMPDIR/cachy-deploy.XXXXXXXX` and `exec`s the
+copy, which pins the content for the entire run. `SCRIPT_DIR` is carried over
+explicitly, because `BASH_SOURCE` now points into the snapshot and would
+otherwise redefine it. Three things follow, and they matter when you read a log
+or check on a running deploy:
+
+- **`ps` shows the snapshot, not `deploy.sh`.** A running deploy appears as
+  `bash /tmp/cachy-deploy.XXXXXXXX` (or under `$TMPDIR` if that is set). Looking
+  for `deploy.sh` in `ps` finds nothing, which reads as "no deploy is running"
+  when one very much is. See the concurrency-lock entry in Troubleshooting.
+- **A change pulled in mid-run reaches the build but not the run's own logic.**
+  Steps 6 onwards genuinely build the newly pulled code; the deploy *script*
+  stays on whatever was pinned at start. So a fix to `deploy.sh` itself takes
+  effect only from the run *after* the one that pulled it.
+- **Snapshot files are cleaned up on exit** via an `EXIT` trap. A run killed with
+  SIGKILL leaves its ~30 KB file behind; that is harmless and safe to delete.
+
+The snapshot is **best effort**: if it cannot be written (no space in `$TMPDIR`,
+a restrictive `TMPDIR`), the deploy continues unprotected rather than being
+blocked by the protection. If you need to know which happened, check for the
+snapshot process above before assuming pinning was active.
 
 ### Manual rollback
 
@@ -530,12 +567,38 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
    > a killed script does not free the lock while its npm build is still writing
    > into `.deploy_work`.
 
+   The script's own snapshot lives outside the project, in
+   `$TMPDIR/cachy-deploy.XXXXXXXX`, and is removed by an `EXIT` trap. A run
+   killed with `SIGKILL` cannot run its trap, so one ~30 KB file may remain:
+
+   ```bash
+   ls -l "${TMPDIR:-/tmp}"/cachy-deploy.* 2>/dev/null
+   ```
+
+   Only remove files whose name matches that pattern *and* that no process is
+   currently running — confirm with
+   `ps aux | grep -E 'deploy\.sh|cachy-deploy\.'`.
+
 3. **Build fails:**
    - The full build log path is printed on failure — `logs/build_<timestamp>.log`
    - The build runs in `.deploy_work`, so a failure leaves the live deployment untouched
    - Try manually: `npm ci && npm run build`
 
-4. **`fatal: detected dubious ownership in repository`:**
+4. **A change you just merged appears to have done nothing** — the log shows the
+   deploy pulling in the commit, the build succeeds, and the old behavior is
+   still in effect. Historically this meant bash had re-read a grown `deploy.sh`
+   from a stale byte offset and silently skipped the block that contained the
+   fix; that specific cause is fixed by pinning the script at start (see "Why
+   the script runs from a snapshot"). If you still hit it:
+
+   - Confirm the pinned copy is in use: a running deploy must show up as
+     `bash /tmp/cachy-deploy.XXXXXXXX` under `ps`. If it shows `./deploy.sh`
+     directly, the snapshot was not taken — check that `$TMPDIR` is writable.
+   - Remember that the deploy *script* is pinned at start, while the *build* is
+     not. A fix to `deploy.sh` therefore never affects the run that pulled it;
+     run the deploy a second time.
+
+5. **`fatal: detected dubious ownership in repository`:**
    - Git refuses to run `git` commands in a working tree owned by a different user than the one running
      them (a security check, not a `deploy.sh` bug). Common on aaPanel when the repo was cloned as `root`
      (or created by the panel) but `deploy.sh` is run as another shell user.
@@ -595,14 +658,19 @@ _Note: `ORIGIN` is important behind a reverse proxy — SvelteKit uses it to res
    concurrency-lock file descriptor (fd 200, see "Concurrency lock" in section 3) leaked into the Node
    server process itself and is now held open for as long as that process runs — i.e. until its next
    restart, not until some other deploy finishes. `deploy.sh` closes that fd for `START_CMD` now, so a
-   freshly pulled `deploy.sh` won't reproduce this on its *next* run — but that next run still needs to get
+   run started from an already-fixed checkout won't reproduce this — but that run still needs to get
    past the very `flock -n 200` check this is blocking, so the current stuck lock needs breaking by hand
    once:
    ```bash
    rm .deploy.lock
    ```
-   Safe here specifically because the cause is understood (a live app process, not a second `deploy.sh`
-   genuinely mid-run) — check `ps aux | grep deploy.sh` first if there's any doubt.
+   Safe here specifically because the cause is understood (a live app process, not a second deploy
+   genuinely mid-run) — check with `ps aux | grep -E 'deploy\.sh|cachy-deploy\.'` first if there's any
+   doubt. Both patterns are needed: a deploy running from its pinned snapshot appears as
+   `bash /tmp/cachy-deploy.XXXXXXXX` and would be missed by a `deploy.sh`-only search, which then reads
+   as "nothing is running" when something is. Note that a deploy which *pulled* the fd fix mid-run is
+   still running the pre-fix code (see "Why the script runs from a snapshot"), so it can leak the
+   descriptor once more; the next run is the first that is safe.
 
 ### Production Monitor Reports Missing Security Headers or Low Performance Score
 
