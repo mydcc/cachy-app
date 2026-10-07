@@ -10619,6 +10619,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "features/FEAT-0642-remove-orphaned-intl-messageformat.md"
   },
   {
+    "id": "FEAT-0644",
+    "title": "Remove the orphaned lightweight-charts-indicators dependency",
+    "type": "feature",
+    "status": "in-progress",
+    "priority": "P3",
+    "assignee": "opencode",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "deps",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "features/FEAT-0644-remove-orphaned-lightweight-charts-indicators.md"
+  },
+  {
     "id": "IDEA-0036",
     "title": "A gamified fork built on SpacetimeDB and the 3D layer",
     "type": "idea",
