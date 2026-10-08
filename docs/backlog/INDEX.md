@@ -2,9 +2,9 @@
 
 # Backlog index
 
-532 items. How to read and add them: [README.md](README.md).
+535 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 455 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 458 · ⛔ dropped 1
 
 ---
 
@@ -421,6 +421,9 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 4
 | [BUG-0653](bugs/BUG-0653-persistence-contract-blind-spots.md) | The settings persistence contract is checked by name, and only on the save side | P2 | ✅ done | persistence |
 | [BUG-0655](bugs/BUG-0655-rss-filter-unreachable-but-live.md) | rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01 | P2 | ✅ done | ui |
 | [BUG-0656](bugs/BUG-0656-scanner-loses-write-sites.md) | The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment | P2 | ✅ done | persistence |
+| [BUG-0657](bugs/BUG-0657-load-contract-section-and-secrets-blind-spots.md) | Load contract cannot see a core/display section swap or a dropped secrets assignment | P2 | ✅ done | persistence |
+| [BUG-0658](bugs/BUG-0658-galaxy-reset-shares-default-refs.md) | Galaxy reset hands live state a reference into the shared defaults | P2 | ✅ done | persistence |
+| [BUG-0659](bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md) | Textual guards accept reworded bypasses; or-mode aliasing has no owner | P2 | ✅ done | security |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -899,6 +902,9 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 4
 | [BUG-0653](bugs/BUG-0653-persistence-contract-blind-spots.md) | The settings persistence contract is checked by name, and only on the save side | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0655](bugs/BUG-0655-rss-filter-unreachable-but-live.md) | rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01 | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0656](bugs/BUG-0656-scanner-loses-write-sites.md) | The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0657](bugs/BUG-0657-load-contract-section-and-secrets-blind-spots.md) | Load contract cannot see a core/display section swap or a dropped secrets assignment | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0658](bugs/BUG-0658-galaxy-reset-shares-default-refs.md) | Galaxy reset hands live state a reference into the shared defaults | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0659](bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md) | Textual guards accept reworded bypasses; or-mode aliasing has no owner | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -1138,4 +1144,4 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 4
 
 ---
 
-Next free number: **0657**
+Next free number: **0660**

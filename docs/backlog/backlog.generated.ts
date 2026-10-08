@@ -6240,6 +6240,63 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0656-scanner-loses-write-sites.md"
   },
   {
+    "id": "BUG-0657",
+    "title": "Load contract cannot see a core/display section swap or a dropped secrets assignment",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0657-load-contract-section-and-secrets-blind-spots.md"
+  },
+  {
+    "id": "BUG-0658",
+    "title": "Galaxy reset hands live state a reference into the shared defaults",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0658-galaxy-reset-shares-default-refs.md"
+  },
+  {
+    "id": "BUG-0659",
+    "title": "Textual guards accept reworded bypasses; or-mode aliasing has no owner",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

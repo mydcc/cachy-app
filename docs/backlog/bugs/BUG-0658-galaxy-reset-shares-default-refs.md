@@ -2,7 +2,7 @@
 id: BUG-0658
 title: Galaxy reset hands live state a reference into the shared defaults
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

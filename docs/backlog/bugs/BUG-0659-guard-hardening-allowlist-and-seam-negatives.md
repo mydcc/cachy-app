@@ -2,7 +2,7 @@
 id: BUG-0659
 title: Textual guards accept reworded bypasses; or-mode aliasing has no owner
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

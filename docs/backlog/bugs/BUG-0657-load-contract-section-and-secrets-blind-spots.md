@@ -2,7 +2,7 @@
 id: BUG-0657
 title: Load contract cannot see a core/display section swap or a dropped secrets assignment
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
