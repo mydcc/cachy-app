@@ -54,7 +54,16 @@ import { MAX_FAVORITE_SYMBOLS } from "./settingsTypes";
 /** How `toJSON()` serializes one key. */
 export type SaveMode = "direct" | "snapshot" | "spread" | "custom";
 
-/** How the load path restores one key. `null` means `load()` assigns it. */
+/**
+ * How the load path restores one key. `null` means `load()` assigns it.
+ *
+ * `or` shares the default object on a miss (`stored || defaults[key]`),
+ * exactly like the hand-written code it replaces — `logSettings`,
+ * `rssPresets`, `customRssFeeds` and `discordChannels` all aliased the default
+ * before, and still do. Only `customHotkeys` needed a fresh literal (see its
+ * custom loader): an object the UI mutates in place must never be the shared
+ * default. Deliberately 1:1, not half-fixed.
+ */
 export type LoadMode = "assign" | "coalesce" | "or" | "custom" | null;
 
 /** Which `apply*` driver restores the key. `null` means `load()` owns it. */

@@ -1684,26 +1684,37 @@ export class SettingsManager {
 
   toJSON(): Settings {
     const out: Record<string, unknown> = {};
+    // `keyof Settings` is not a subset of the class properties (`isPro` /
+    // `isProLicenseActive` live on `this.entitlement`), so the dynamic read
+    // goes through one cast instead of pretending the index is typed.
+    const self = this as unknown as Record<keyof Settings, unknown>;
     for (const field of PERSISTENCE_SCHEMA) {
       switch (field.save) {
         case "direct":
-          out[field.key] = this[field.key];
+          out[field.key] = self[field.key];
           break;
         case "snapshot":
-          out[field.key] = $state.snapshot(this[field.key]);
+          out[field.key] = $state.snapshot(self[field.key]);
           break;
         case "spread":
-          out[field.key] = [...(this[field.key] as unknown as unknown[])];
+          // Only `aiAllowedActions` uses this mode.
+          out[field.key] = [...(self[field.key] as string[])];
           break;
         case "custom":
           out[field.key] = saveCustomValue(field.key, {
-            read: <K extends keyof Settings>(key: K): Settings[K] => this[key],
-            snapshot: <T>(value: T): T => $state.snapshot(value),
+            read: <K extends keyof Settings>(key: K): Settings[K] =>
+              self[key] as Settings[K],
+            // `$state.snapshot` returns `Snapshot<T>`; the old literal code
+            // passed snapshots straight into `Settings`-typed positions, so
+            // the cast preserves exactly that boundary.
+            snapshot: <T>(value: T): T => $state.snapshot(value) as T,
             entitlement: this.entitlement,
           });
           break;
       }
     }
+    // Conformance is enforced by `persistenceSchema.test.ts` (save exactness),
+    // not by this cast: a row missing from the table fails there by name.
     return out as unknown as Settings;
   }
 
