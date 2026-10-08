@@ -2,9 +2,7 @@
 id: BUG-0654
 title: The imgurClientId setting has no consumer and has never had one
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/drop-dead-settings-fields
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]

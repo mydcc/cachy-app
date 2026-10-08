@@ -2993,9 +2993,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0652",
     "title": "A settings field that toJSON() forgets is never saved, and nothing says so",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/drop-dead-settings-fields",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -6209,9 +6207,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0655",
     "title": "rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/drop-dead-settings-fields",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -9865,9 +9861,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0654",
     "title": "The imgurClientId setting has no consumer and has never had one",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/drop-dead-settings-fields",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
