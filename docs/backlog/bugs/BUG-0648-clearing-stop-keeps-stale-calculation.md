@@ -10,8 +10,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: fix/bug-0648-stale-submit
+branch: fix/bug-0648-stale-summary
 ---
 
 # Clearing the stop leaves the previous calculation standing
@@ -252,38 +251,45 @@ them for the wrong reason. The false-green trap has a second face.
   one remaining error (`marketWatcher.bench.ts`, `Property 'bench' does not exist
   on type 'TestContext'`) is pre-existing and not in this diff.
 
-## Still open — the second half
+## Second half — the figures now say they are not current
 
-**The gate's remediation is still not reachable, and this does not change that.**
-Clearing the stop now refuses at the panel instead of at the gate, but it still
-refuses, because `data` never clears. The trader cannot yet place the
-deliberately unprotected entry the refusal tells them to place.
+The summary keeps showing the figures and marks them, using the very same
+`staleInputs` that `submit()` refuses on. One predicate, so the numbers on
+screen and the send decision cannot disagree — which is the shape of the defect
+this item was filed for.
 
-What the fix changes is that the refusal can no longer send a stop they removed.
-That is the money-path half, and it is the half that was reachable without a
-product decision.
+**Why the figures were not blanked instead.** `currentTradeData` never clears on
+a refused recalculation, and nulling it there would empty the summary on every
+keystroke while a recalculation is briefly incomplete: type "6" on the way to
+"60000" and the whole panel goes blank, then comes back. A trader who can see
+that a figure is old can act on it; a trader staring at an empty panel cannot
+tell that anything was calculated at all. Labelling is the smaller harm.
 
-The other half is visible: **should the summary blank when a recalculation is
-refused?** That is a product decision about what the trader sees mid-edit, not a
-safety one, so it is not taken here.
+**What this does not fix, stated plainly.** The dead end is unchanged: clearing
+the stop on Bitget still yields an incomplete recalculation, `data` still keeps
+the old stop, and the order is still refused. What changed is that the panel
+now says so *before* the click instead of only after it, and no longer shows
+figures that look sendable while refusing to send them.
 
-The groundwork is already established, so whoever takes it does not start from
-zero — `currentTradeData` has exactly two readers outside the store:
+So the acceptance criterion "the gate's remediation is reachable" is still not
+met. The remaining decision is exactly the one taken here, only not taken to the
+end: whether `currentTradeData` should be nulled when the inputs disagree, which
+would make the remediation reachable and blank the summary mid-edit at the same
+time. That trade is still open and still wants a human.
 
-- `PlaceOrderPanel.svelte:143` — the only consumer of the values
-- `app.ts:203` — already null-safe (`?.positionSize?.gt(0)`), and refusing with
+## Groundwork for whoever takes the rest
+
+`currentTradeData` has exactly two readers outside the store:
+
+- `PlaceOrderPanel.svelte` — the only consumer of the values
+- `app.ts` — already null-safe (`?.positionSize?.gt(0)`), and refusing with
   `errors.invalidTrade` is the right answer when there is no valid calculation
 
 One caller is outside this panel: the alert engine places through the same
-service (`stores/alerts.svelte.ts:300`), which is why the guard could not simply
+service (`stores/alerts.svelte.ts`), which is why the guard could not simply
 move down into `orderPlacementService`. That path builds its plan from market
-state rather than from a form, so the stale-form hazard is specific to the panel —
-but a service-level check remains the stricter home if the inputs ever grow.
-
-So nulling it on a refused calculation appears to be safe; what is undecided is
-whether blanking the summary is the behaviour a trader wants. `BUG-0649` is the
-neighbour here: the panel's own note now says "clear the stop", and until this
-half lands, clearing it is a dead end.
+state rather than from a form, so the stale-form hazard is specific to the panel
+— but a service-level check remains the stricter home if the inputs ever grow.
 
 ## Links
 

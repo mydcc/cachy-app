@@ -319,6 +319,47 @@ function expectRefusal() {
     );
 }
 
+/** Mounts without submitting — for assertions about what the panel shows. */
+async function render(): Promise<string> {
+    component = mount(PlaceOrderPanel, { target: host }) as never;
+    await settle();
+    return host.textContent ?? "";
+}
+
+describe("BUG-0648 — the summary says when its figures are no longer current", () => {
+    it("labels the figures and keeps showing them", async () => {
+        split.inputs.stop = "";
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleCalculation"));
+        // The figures themselves must survive: blanking them would empty the
+        // summary on every keystroke while a recalculation is briefly
+        // incomplete, and a trader cannot act on a panel that shows nothing.
+        expect(text).toContain(lookup("orderEntry.summary.size"));
+    });
+
+    it("shows no label while the calculation still matches the inputs", async () => {
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.summary.size"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    it("labels them for a take-profit leg the trader deleted", async () => {
+        split.calculatedTargets = ["65000"];
+        split.inputTargets = [];
+
+        expect(await render()).toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    it("labels them for a leverage the trader changed after the calculation", async () => {
+        split.inputs.leverage = "20";
+
+        expect(await render()).toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+});
+
 describe("BUG-0648 — a submit may not send what the inputs no longer state", () => {
     it("places what the calculation says, and sends exactly that", async () => {
         await submit();

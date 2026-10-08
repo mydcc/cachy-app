@@ -4443,7 +4443,8 @@
       "unprotectedEntry": "Diese Börse kann einen Stop an einem Einstieg nicht tragen — weder am Einstieg noch als separate Order. Es gibt also keinen Weg, ihn zu platzieren. Leere das Stop-Feld, um die Order bewusst ungeschützt zu senden.",
       "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner.",
       "balanceUnmeasured": "Kontostand nicht geladen — die Börse entscheidet, ob diese Order gedeckt ist.",
-      "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen."
+      "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen.",
+      "staleCalculation": "Nicht aktuell: Diese Werte passen nicht mehr zu Einstieg, Stop, Zielen oder Hebel im Formular."
     },
     "confirm": {
       "titleLive": "Diese Order platzieren?",

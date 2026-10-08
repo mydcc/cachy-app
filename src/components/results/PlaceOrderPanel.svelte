@@ -815,6 +815,21 @@
     </dl>
 
     <!--
+      BUG-0648, second half. This is the same comparison `submit()` refuses on,
+      so the figures on screen and the send decision can no longer disagree.
+
+      The numbers stay. Blanking the summary would empty it on every keystroke
+      while a recalculation is briefly incomplete — worse than showing them
+      labelled, because a trader who can see that a figure is old can act on it,
+      while a trader staring at an empty panel cannot tell that anything was
+      calculated at all. Same reasoning as the BUG-0649 note below: state it
+      here, where the numbers are, not only on the click that was refused.
+    -->
+    {#if staleInputs}
+      <p class="note warn">{$_("orderEntry.notes.staleCalculation")}</p>
+    {/if}
+
+    <!--
       BUG-0649. Which note depends on both capability flags, and the gate reads
       the same pair (`orderGate.ts`, `unplaceableStop`). Asking only
       `!caps.tpSlAtEntry` is what put "the stop is placed as a second request" on
