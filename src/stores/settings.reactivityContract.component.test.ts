@@ -118,7 +118,11 @@ function differentValue(current: unknown): unknown {
     case "boolean":
       return !current;
     case "number":
-      return current + 1;
+      // Non-finite values never change by arithmetic: Infinity + 1 is still
+      // Infinity, and NaN never differs from itself, so neither would register
+      // as a write. No default is non-finite today; this is the guard refusing
+      // a known false-positive shape rather than a live case.
+      return Number.isFinite(current) ? current + 1 : 0;
     case "string":
       return `${current} `;
     case "undefined":
@@ -134,15 +138,17 @@ type Mutable = Record<string, unknown> & { save: () => unknown };
 
 /**
  * Serialized keys whose field lives on a collaborator rather than on the
- * manager. `toJSON()` reads these through that collaborator
- * (`settings.svelte.ts:1978` and `:2093`), so the autosave effect tracks them
- * perfectly well — a write to `settings.isPro` would not, because
+ * manager. `toJSON()` reads these through that collaborator — the `isPro` and
+ * `isProLicenseActive` entries read `this.entitlement` — so the autosave effect
+ * tracks them perfectly well. A write to `settings.isPro` would not, because
  * `SettingsManager` has no such field: it would create an inert own property
  * and the assertion would report a defect that does not exist.
  *
- * ` EntitlementStore` holds both as `$state`
+ * `EntitlementStore` holds both as `$state`
  * (`src/stores/entitlement.svelte.ts:34-35`), and the load merge assigns through
- * the same accessor (`settings.svelte.ts:1586`, `:1757`).
+ * the same accessor. Line numbers for the `toJSON()` entries are deliberately
+ * not pinned here: they already drifted once when the load-merge fix added nine
+ * lines above them.
  *
  * The next test asserts this map covers every key the manager does not have, so
  * a third such key fails loudly instead of being reported as inert.
@@ -220,6 +226,8 @@ describe("settings reactivity contract", () => {
 
   it("routes every key the manager does not hold through a declared owner", () => {
     const unmapped = SETTINGS_KEYS.filter(
+      // `in`, not hasOwn: $state class fields live on the prototype, so an
+      // own-property check would report every key as unmapped.
       (key) => !(key in settings) && !(key in HELD_ELSEWHERE),
     );
     // Without this, a key that moved to another object would be written on the
@@ -231,7 +239,9 @@ describe("settings reactivity contract", () => {
   });
 
   it("covers the fields the store serializes", () => {
-    // So the loop above cannot pass because the key list was empty.
-    expect(SETTINGS_KEYS.length).toBe(167);
+    // So the loop above cannot pass because the key list was empty. Deliberately
+    // not pinned to the current count: the exact number lives in BUG-0653 as a
+    // measurement, and an assertion on it would break on every added setting.
+    expect(SETTINGS_KEYS.length).toBeGreaterThan(0);
   });
 });
