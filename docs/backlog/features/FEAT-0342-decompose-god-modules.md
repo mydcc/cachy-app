@@ -2,7 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,6 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: feature/feat-0342-slice-f-resets
 parent: FEAT-0341
 ---
 
@@ -40,7 +38,7 @@ For the services, split responsibilities by domain (e.g., splitting `apiService`
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
 
-## Status note (2026-10-08, slice F in progress, branch `feature/feat-0342-slice-f-resets`)
+## Status note (2026-10-08, slice F merged in PR #3971)
 
 `src/stores/settings/resets.ts` (new) holds `resetGalaxy` / `resetTradeFlow`
 / `resetChart` as pure functions over a caller-supplied target — no I/O, no

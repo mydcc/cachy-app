@@ -7475,7 +7475,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0342",
     "title": "Decompose remaining god modules (VisualsTab, tradeService)",
     "type": "feature",
-    "status": "in-progress",
+    "status": "specced",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -7487,8 +7487,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
-    "branch": "feature/feat-0342-slice-f-resets",
     "parent": "FEAT-0341",
     "file": "features/FEAT-0342-decompose-god-modules.md"
   },
