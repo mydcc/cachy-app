@@ -64,11 +64,18 @@ tracking point: it calls `toJSON()`, which iterates `PERSISTENCE_SCHEMA` and rea
 dependency graph for all 172 fields, and it only works because every field is a
 `$state` class field on `this`. Four things break the moment one moves elsewhere:
 
-1. `settingsState.<field>` is read directly in 107 production files (~600 accesses),
+1. `settingsState.<field>` is read directly in 97 production files (183
+   distinct fields, 1255 accesses — measured on `ef199e7ae`; an earlier
+   revision of this note said "107 files (~600 accesses)", which matches no
+   reproducible count on that base),
    so a split either rewrites every consumer or reintroduces the coupling through an
    accessor façade.
-2. `update()` does `Object.assign(this, fn(this.toJSON()))`; 46 call sites depend on
-   that flat shape, and a nested field is simply not reached.
+2. `update()` does `Object.assign(this, fn(this.toJSON()))`, but it has **no
+   production caller** — the only four call sites in the repo are in
+   `marketStore_limits.test.ts` (an earlier revision of this note said "46
+   call sites", which is wrong; verified by grep). A nested field is simply
+   not reached, but nothing in production depends on the flat shape, so this
+   brake costs a deletion rather than a migration.
 3. The cross-tab `storage` listener clears `effectActive` for *this* effect only —
    sibling stores with their own effects would keep writing.
 4. The recovery path in `load()` writes defaults over the whole blob, which across
