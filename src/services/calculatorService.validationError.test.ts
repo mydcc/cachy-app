@@ -36,11 +36,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Decimal } from "decimal.js";
 import { tradeState, INITIAL_TRADE_STATE } from "../stores/trade.svelte";
-import { resultsState } from "../stores/results.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState, type TradingPairInfo } from "../stores/market.svelte";
-import { uiState } from "../stores/ui.svelte";
-import { calculatorService } from "./calculatorService";
 import { app } from "./app";
 
 const fehler = vi.hoisted(() => ({ zeigen: vi.fn(), verbergen: vi.fn() }));
