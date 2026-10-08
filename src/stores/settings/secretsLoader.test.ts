@@ -387,6 +387,86 @@ describe("SecretsLoader failed encryption (BUG-0519)", () => {
   });
 });
 
+describe("SecretsLoader legacy plaintext credential (openrouterApiKey)", () => {
+  // `openrouterApiKey` shipped outside `SENSITIVE_KEYS`, so it is the one
+  // credential a user can be holding on disk as plaintext today. Adding it
+  // must not cost those users the key: with no key available in this session
+  // the value cannot become ciphertext, and redacting it would make the only
+  // copy disappear. Redacting a key that *is* already protected stays the
+  // rule, so `lock()` still clears the screen.
+  const blob = {
+    ciphertext: "c",
+    iv: "i",
+    salt: "s",
+    method: "AES-GCM" as const,
+  };
+
+  let consoleError: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    // The sibling BUG-0519 block resets this for the same reason: without it
+    // a call recorded by an earlier test makes "not called" assertions pass or
+    // fail for the wrong reason.
+    vi.mocked(cryptoService.encrypt).mockReset();
+    consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleError.mockRestore();
+  });
+
+  it("encrypts openrouterApiKey like every other sensitive key", async () => {
+    vi.mocked(cryptoService.encrypt).mockResolvedValue(blob);
+    const loader = new SecretsLoader();
+    const data = { openrouterApiKey: "sk-or-v1-secret" } as never;
+
+    const failures = await loader.applyFieldEncryption(data, true, undefined);
+
+    expect(failures).toBe(0);
+    const out = data as unknown as {
+      openrouterApiKey: string;
+      encryptedSecrets: Record<string, unknown>;
+    };
+    expect(out.encryptedSecrets.openrouterApiKey).toEqual(blob);
+    // The plaintext must not survive in the persisted payload.
+    expect(out.openrouterApiKey).toBe("");
+  });
+
+  it("keeps a legacy plaintext key when the session cannot encrypt it", async () => {
+    vi.mocked(cryptoService.encrypt).mockRejectedValue(new Error("no key"));
+    const loader = new SecretsLoader();
+    const data = { openrouterApiKey: "sk-or-v1-secret" } as never;
+
+    await expect(
+      loader.applyFieldEncryption(data, false, undefined),
+    ).resolves.toBe(0);
+
+    expect((data as unknown as { openrouterApiKey: string }).openrouterApiKey).toBe(
+      "sk-or-v1-secret",
+    );
+  });
+
+  it("redacts a key that already has ciphertext when the session is locked", async () => {
+    const encrypt = vi
+      .mocked(cryptoService.encrypt)
+      .mockRejectedValue(new Error("no key"));
+    const loader = new SecretsLoader();
+    const data = {
+      openrouterApiKey: "sk-or-v1-secret",
+      encryptedSecrets: { openrouterApiKey: blob },
+    } as never;
+
+    await loader.applyFieldEncryption(data, false, undefined);
+
+    expect(encrypt).not.toHaveBeenCalled();
+    expect((data as unknown as { openrouterApiKey: string }).openrouterApiKey).toBe("");
+    expect(
+      (data as unknown as { encryptedSecrets: Record<string, unknown> })
+        .encryptedSecrets.openrouterApiKey,
+    ).toEqual(blob);
+  });
+});
+
 describe("SecretsLoader.getDeviceKey retry (BUG-0521)", () => {
   it("clears the cached promise on rejection so a second call retries", async () => {
     const blocked = Object.assign(new Error("IndexedDB open was blocked"), {

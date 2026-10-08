@@ -179,7 +179,7 @@ class TradeService {
         // shape is exactly what makes a reader stop trusting the pair.
         activeVenue: () => settingsState.apiProvider || "bitunix",
         hasActiveKeys: () => {
-            const provider = settingsState.apiProvider;
+            const provider = settingsState.apiProvider || "bitunix";
             const keys = keysForActiveAccount(
                 settingsState.accounts,
                 settingsState.activeAccountId,

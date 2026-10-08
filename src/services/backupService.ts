@@ -407,12 +407,14 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
       }
     }
     parsed.openrouterApiKey = "";
-    // Not a live field any more — removed from Settings in BUG-0654 because it
-    // had no consumer. This line stays because the export path reads the RAW
-    // localStorage string, not toJSON(): a profile written before the field was
-    // removed still carries the key, and without this it would land in an
-    // unencrypted backup in cleartext. Delete this only once no stored profile
-    // can hold it.
+    // `openrouterApiKey` is a live field (AI provider credential) and is in
+    // `SENSITIVE_KEYS` as of this change, so the loop above already covers it.
+    // This line stays because the export path reads the RAW localStorage
+    // string rather than `toJSON()`: an older profile can still carry the key
+    // in cleartext, and being explicit here means a future edit to the
+    // inventory cannot silently unprotect an already-exported backup.
+    // (An earlier version of this comment credited BUG-0654 for removing the
+    // field. BUG-0654 removed `imgurClientId`; this one was never removed.)
     parsed.imgurClientId = "";
 
     return JSON.stringify(parsed);

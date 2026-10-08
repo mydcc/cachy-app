@@ -44,6 +44,11 @@ export const SENSITIVE_KEYS: (keyof Settings)[] = [
   "openaiApiKey",
   "geminiApiKey",
   "anthropicApiKey",
+  // Was the one credential that shipped outside this list and therefore
+  // reached `localStorage` as plaintext (`persistenceSchema` writes it
+  // `save: "direct"`). `backupService` blanked it by hand, which is the tell
+  // that the omission was known rather than intended.
+  "openrouterApiKey",
   "discordBotToken",
   "newsApiKey",
   "cryptoPanicApiKey",
@@ -349,6 +354,17 @@ export class SecretsLoader {
 
     if (!canEncrypt) {
       for (const key of SENSITIVE_KEYS) {
+        // Blank only what is already protected. A key whose value is still
+        // plaintext and has *no* ciphertext entry is legacy material (a field
+        // added to `SENSITIVE_KEYS` after users already stored a value) —
+        // redacting it here would destroy the only copy, because this session
+        // has no key to re-encrypt it with. It survives until the next
+        // `canEncrypt` pass, which is the same window in which it becomes
+        // ciphertext. The steady state is unchanged: every key that has a
+        // blob is blanked, so `lock()` still clears the screen.
+        const protectedAlready =
+          data.encryptedSecrets !== undefined && key in data.encryptedSecrets;
+        if (!protectedAlready) continue;
         // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
         data[key] = "";
       }

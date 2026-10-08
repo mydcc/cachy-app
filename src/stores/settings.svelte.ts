@@ -1547,8 +1547,18 @@ export class SettingsManager {
         }
       }
 
-      this.applyCoreFields(merged);
-      this.applyDisplayFields(merged, parsed);
+      // A schema-level failure — an unknown `save`/`load` mode, a `case` that
+      // does not exist — is a programming error, not corrupt storage. Letting
+      // it reach the catch below would overwrite the user's entire profile
+      // with defaults, turning a one-line typo into silent total data loss
+      // (Class A). Scoped here: log unconditionally and carry on, so a single
+      // bad row costs that field instead of the profile.
+      try {
+        this.applyCoreFields(merged);
+        this.applyDisplayFields(merged, parsed);
+      } catch (schemaError) {
+        console.error("[Settings] Persistence schema load failed:", schemaError);
+      }
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("[Settings] Load failed, using defaults:", e);
