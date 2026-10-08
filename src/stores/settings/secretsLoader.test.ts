@@ -465,6 +465,45 @@ describe("SecretsLoader legacy plaintext credential (openrouterApiKey)", () => {
         .encryptedSecrets.openrouterApiKey,
     ).toEqual(blob);
   });
+
+  it("still blanks the ten older keys without a blob when locked (fail-closed)", async () => {
+    // The carve-out above is scoped to the one migration key on purpose: the
+    // other ten keep the scrubber they always had. A plaintext-without-blob
+    // there is an anomaly (restored merge, hand-edited storage), and the
+    // locked save removes it from disk rather than persisting it.
+    vi.mocked(cryptoService.encrypt).mockRejectedValue(new Error("no key"));
+    const loader = new SecretsLoader();
+    const data = { openaiApiKey: "sk-anomaly" } as never;
+
+    await expect(
+      loader.applyFieldEncryption(data, false, undefined),
+    ).resolves.toBe(0);
+
+    expect((data as unknown as { openaiApiKey: string }).openaiApiKey).toBe("");
+  });
+
+  it("preserves a first-time key when encryption itself fails (nothing to fall back to)", async () => {
+    // BUG-0519 drops the stale blob on failure so a reload cannot resurrect a
+    // superseded credential — correct when a blob existed. With no prior blob
+    // there is nothing stale to drop, and blanking would destroy the only
+    // copy: the value survives for a retry while the failure is still counted
+    // (surfaced via `encryptionFailures`). This is the migration save for a
+    // legacy plaintext key hitting a transient crypto failure.
+    vi.mocked(cryptoService.encrypt).mockRejectedValue(new Error("no key"));
+    const loader = new SecretsLoader();
+    const data = { openrouterApiKey: "sk-or-v1-secret" } as never;
+
+    const failures = await loader.applyFieldEncryption(data, true, undefined);
+
+    expect(failures).toBe(1);
+    expect((data as unknown as { openrouterApiKey: string }).openrouterApiKey).toBe(
+      "sk-or-v1-secret",
+    );
+    expect(
+      (data as unknown as { encryptedSecrets: Record<string, unknown> })
+        .encryptedSecrets,
+    ).not.toHaveProperty("openrouterApiKey");
+  });
 });
 
 describe("SecretsLoader.getDeviceKey retry (BUG-0521)", () => {

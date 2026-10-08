@@ -15,12 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
 import { defaultSettings, SETTINGS_KEYS } from "../settings.svelte";
 import {
+    applySchemaField,
     LOAD_BODY_KEYS,
     loadCustomValue,
     loadSchemaEntries,
@@ -31,6 +32,7 @@ import {
     normalizeStoredPriceScaleMode,
     PERSISTENCE_SCHEMA,
     saveCustomValue,
+    type FieldSchema,
     type LoadTarget,
     type SaveSource,
 } from "./persistenceSchema";
@@ -336,5 +338,63 @@ describe("persistence schema mergers", () => {
 
         // Assert
         expect((target.values["favoriteSymbols"] as string[]).length).toBeLessThanOrEqual(12);
+    });
+
+    it("isolates a bad schema row: it costs that field, not the section", () => {
+        // Arrange — a row with an unknown load mode, the only realistic
+        // trigger (a typo in the table, not in user data), between two valid
+        // rows. The load loop assigns incrementally, so if this threw, every
+        // later row would keep its constructor default — and the armed
+        // autosave would persist that half-applied mix ~500ms later.
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        try {
+            const target = loadTarget();
+            const merged = {
+                backgroundBlur: 7,
+                backgroundOpacity: 0.4,
+            } as unknown as Settings;
+            const defaults = {
+                backgroundBlur: 5,
+                backgroundOpacity: 1,
+            } as unknown as Settings;
+            const badRow = {
+                key: "backgroundBlur",
+                save: "direct",
+                load: "bogus",
+                section: "display",
+            } as unknown as FieldSchema;
+            const goodRow = PERSISTENCE_SCHEMA.find(
+                (field) => field.key === "backgroundOpacity",
+            )!;
+
+            // Act — apply in schema order: good, bad, good.
+            const first = applySchemaField(
+                target,
+                PERSISTENCE_SCHEMA.find(
+                    (field) => field.key === "backgroundBlur",
+                )!,
+                merged,
+                defaults,
+            );
+            const bad = applySchemaField(target, badRow, merged, defaults);
+            const last = applySchemaField(target, goodRow, merged, defaults);
+
+            // Assert — the bad row reports failure without throwing, the rows
+            // around it applied, and the bad field kept its prior (default)
+            // value rather than a partial write.
+            expect(first).toBe(true);
+            expect(bad).toBe(false);
+            expect(last).toBe(true);
+            expect(target.values.backgroundBlur).toBe(7);
+            expect(target.values.backgroundOpacity).toBe(0.4);
+            expect(consoleError).toHaveBeenCalledWith(
+                expect.stringContaining("backgroundBlur"),
+                expect.anything(),
+            );
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 });

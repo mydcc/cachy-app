@@ -58,8 +58,7 @@ import {
   resolveApiProvider,
 } from "./settings/migrations";
 import {
-    loadCustomValue,
-    loadPlainValue,
+    applySchemaField,
     loadSchemaEntries,
     PERSISTENCE_SCHEMA,
     saveCustomValue,
@@ -1599,11 +1598,11 @@ export class SettingsManager {
       entitlement: this.entitlement,
     };
     for (const field of fields) {
-      if (field.load === "custom") {
-        loadCustomValue(field.key, target, merged, defaultSettings, rawParsed);
-      } else if (field.load !== null) {
-        target.set(field.key, loadPlainValue(field, merged, defaultSettings));
-      }
+      // Per-row isolation lives in `applySchemaField` (never throws): a bad
+      // row costs exactly that field, not the remainder of the section. The
+      // load()-level catch below stays as the backstop for anything thrown
+      // outside this loop (`ensureProviderRegistry`, the drivers themselves).
+      applySchemaField(target, field, merged, defaultSettings, rawParsed);
     }
   }
 

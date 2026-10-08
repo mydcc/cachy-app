@@ -200,7 +200,7 @@ class TradeService {
      * does not go through `signedRequest`; see `accountSettingRequest`.
      */
     private readonly accountSettings = createAccountSettingsService({
-        activeVenue: () => settingsState.apiProvider,
+        activeVenue: () => settingsState.apiProvider || "bitunix",
         activeKeys: (provider) =>
             keysForActiveAccount(
                 settingsState.accounts,
