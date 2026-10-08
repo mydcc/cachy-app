@@ -6191,7 +6191,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "bug",
     "status": "in-progress",
     "assignee": "opencode",
-    "branch": "fix/settings-reactivity-contract",
+    "branch": "fix/settings-load-merge",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6222,6 +6222,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0655-rss-filter-unreachable-but-live.md"
+  },
+  {
+    "id": "BUG-0656",
+    "title": "The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/settings-load-merge",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0656-scanner-loses-write-sites.md"
   },
   {
     "id": "FEAT-0019",

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SETTINGS_KEYS, settingsState } from "./settings.svelte";
+import { stripNonCode } from "./settings/sourceScan";
 
 /**
  * The persistence contract, checked by name.
@@ -117,29 +118,24 @@ let sourceCache: Array<{ file: string; text: string }> | undefined;
  * guard has to learn the new shape rather than quietly pass.
  */
 /**
- * Drops comments and string/template literals before matching.
+ * `stripNonCode` moved to `settings/sourceScan.ts`.
  *
- * Without this the scan reads prose: a `//` line explaining
- * `settingsState.foo = …`, or an HTML comment in a `.svelte` file, is
- * indistinguishable from a write. The guard reads its own source, and its
- * docstring names the wrong-field mutation — so without stripping, the file
- * documenting the blind spot would trip it the day a key was named after that
- * field.
+ * The implementation that lived here was five chained regex replacements, with
+ * literals stripped before comments so that a `//` inside a URL string could
+ * not eat the rest of the line. That ordering is right in one direction and
+ * wrong in the other: an apostrophe in a comment — `the user's choice` — opened
+ * a "string" that ran to the *next* apostrophe, possibly across lines, taking
+ * real code with it. Measured on `settings.svelte.ts`: 61% of the file blanked,
+ * 1,205 of 2,054 content lines emptied. Across `src`, 9 real
+ * `settingsState.<key> =` write sites in 4 files became invisible to this scan —
+ * `backgroundType` and `backgroundOpacity` in `VisualsBackground.svelte`,
+ * `autoUpdatePriceInput` in two components, `pnlViewMode` in `PositionsList.svelte`.
  *
- * Literals go **before** line comments, and that order is load-bearing: a URL
- * in a string contains `//`, so stripping comments first would eat the rest of
- * the line and hide a real write sitting next to it. Every region becomes a
- * single space rather than nothing, so two statements are not glued together.
+ * No ordering fixes that, because whether a quote delimits or is just a
+ * character depends on what came before it. The replacement walks the source
+ * once, tracking state, and `settings/sourceScan.test.ts` asserts repo-wide that
+ * it hides no write at all.
  */
-function stripNonCode(text: string): string {
-    return text
-        .replace(/`(?:\\[\s\S]|[^`\\])*`/g, " ")
-        .replace(/"(?:\\[\s\S]|[^"\\])*"/g, " ")
-        .replace(/'(?:\\[\s\S]|[^'\\])*'/g, " ")
-        .replace(/\/\*[\s\S]*?\*\//g, " ")
-        .replace(/\/\/[^\n]*/g, " ")
-        .replace(/<!--[\s\S]*?-->/g, " ");
-}
 
 function productionSources(): Array<{ file: string; text: string }> {
     if (sourceCache) return sourceCache;

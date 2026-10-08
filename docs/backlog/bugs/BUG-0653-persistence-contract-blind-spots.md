@@ -4,7 +4,7 @@ title: The settings persistence contract is checked by name, and only on the sav
 type: bug
 status: in-progress
 assignee: opencode
-branch: fix/settings-reactivity-contract
+branch: fix/settings-load-merge
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -119,6 +119,35 @@ connects them is behavioural — it is about which reactive reads the autosave
 building first; on its own it reads as more than it enforces, and BUG-0652's own
 review found the overclaim in its docstring.
 
+## What the load-side guard found
+
+Three settings were serialized, written by the UI, and never assigned on load:
+`marketAnalysisInterval`, `pauseAnalysisOnBlur` and `analysisTimeframes`. A user
+changed one, the autosave wrote it, and the next reload put the default back.
+
+Measured with sentinels that cannot coincide with any default — an earlier probe
+stored values that happened to match, which proved nothing:
+
+| Key | stored | after construction | default |
+|---|---|---|---|
+| `marketAnalysisInterval` | `12345` | `60` | 60 |
+| `pauseAnalysisOnBlur` | `"SENTINEL"` | `true` | true |
+| `analysisTimeframes` | `["SENTINEL"]` | `["1h","4h"]` | `["1h","4h"]` |
+| `technicalsCacheTTL` *(control)* | `4242` | `4242` | 60 |
+| `showTooltips` *(control)* | `"SENTINEL2"` | `"SENTINEL2"` | true |
+
+`marketAnalysisInterval` is the confusing one. It *is* assigned — inside
+`applyMarketMode`, which only the `marketMode` setter calls. `load()` assigns
+`_marketMode` directly and so never fires that setter, so that path cannot run
+during a load either. It was never restored under any circumstances.
+
+All three are written by `CalculationSettings.svelte:81,82,86,271,277`, so this
+was reachable from the settings UI, not a theoretical gap.
+
+Fixed by assigning them in `applyCoreFields`, with three round-trip tests in
+`settings.load.test.ts`. Removing the assignments turns those three tests red;
+removing one of them turns the source guard red naming that key.
+
 ## Fix
 
 - **Done** — one runtime reactivity assertion:
@@ -127,19 +156,23 @@ review found the overclaim in its docstring.
   save. That closes the wrong-field and non-reactive-backing-field blind spots,
   and it is the only check that speaks the language the bug is written in. It
   must be a `.component.test.ts`; see the measured reason above.
-- **Open** — extend the contract to the load side: assert that every key
-  `toJSON()` emits is either assigned by `applyCoreFields`/`applyDisplayFields`
-  or is a named exception. This is a source-level check, so it needs the same
-  mutation discipline as `order_gate_bypass.test.ts`.
+- **Done** — the load side:
+  `src/stores/settings.loadContract.test.ts`. Asserts that every key `toJSON()`
+  emits is assigned somewhere in the load path — `load()`, `applyCoreFields` or
+  `applyDisplayFields` — with the indirections the class actually uses *derived*
+  from its shape rather than listed: `_apiProvider`/`apiProvider` and
+  `_marketMode`/`marketMode` behind their accessors, `isPro` and
+  `isProLicenseActive` on the `entitlement` store. The exemption list is empty
+  and asserted empty, so it cannot become a hiding place. It found three real
+  instances on first run; see below.
 
 ## Acceptance criteria
 
-- [ ] A test fails when a serialized key is never assigned by the load merge
-      **(open — the load-side guard)**
+- [x] A test fails when a serialized key is never assigned by the load merge
 - [x] A test fails when a `toJSON()` entry reads a different field than its key
 - [x] A test fails when a serialized key's backing store is not reactive
-- [x] Both are mutation-verified against the unmutated tree, and the control is
-      green
+- [x] All three are mutation-verified against the unmutated tree, and the
+      controls are green
 - [x] The guard's own docstring states exactly what it does and does not check,
       including that it only runs in the browser-condition Vitest project
 
@@ -151,11 +184,13 @@ Those are the decomposition work in FEAT-0342; this is the guard it would need.
 ## Links
 
 - `src/stores/settings.svelte.ts` — `toJSON()`, `applyCoreFields`, the `$effect`
-- `src/stores/settings.persistenceContract.test.ts` — the guard, and the
-  blind spots its docstring names
+- `src/stores/settings.persistenceContract.test.ts` — the save-side guard
+- `src/stores/settings.loadContract.test.ts` — the load-side guard
 - `src/stores/settings.reactivityContract.component.test.ts` — the runtime half
-  that closes them
+  that closes the name-vs-read blind spots
 - `src/stores/entitlement.svelte.ts:34-35` — where `isPro` and
   `isProLicenseActive` actually live
+- `settings.svelte.ts:956` (`applyMarketMode`), the only caller of which is the
+  `marketMode` setter — why the interval was never restored on load
 - BUG-0652 — made the save side checkable
 - FEAT-0342 — the decomposition this is a precondition for
