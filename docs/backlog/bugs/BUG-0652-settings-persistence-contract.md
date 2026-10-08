@@ -16,8 +16,11 @@ depends_on: []
 
 # BUG-0652 — A settings field that toJSON() forgets is never saved, and nothing says so
 
-Shipped in PR #3957, merge commit `53e4d5c51`. No `done_version` yet — 441 of the
-447 `done` items omit it too, and the next release is not cut.
+Shipped in PR #3957, merge commit `53e4d5c51`. No `done_version`: the next
+release is not cut, and `done_version` is only set once it is. An earlier draft
+of this line cited the exact fraction of `done` items carrying the field, which
+went stale the moment the item was edited — a count derived from the file it
+lives in is not a fact worth keeping.
 
 **Reopened.** Review of what #3957 shipped found that the guard's own write-scan
 covered 142 of 167 `.svelte` files and no `.ts` at all, while its comment claimed
@@ -98,8 +101,10 @@ to persistence is a comment.
 - Split the tolerated keys by kind. Keys that are not settings at all (a storage
   marker, encryption bookkeeping) are exceptions. Keys that are declared and
   persisted but have **no default** are defects to fix, and are held to a
-  stronger rule: each must be unwritten from the UI, since a setting nothing can
-  set cannot lose a value.
+  stronger rule: each must be unwritten anywhere under `src/`, since a setting
+  nothing can set cannot lose a value. The scan covers the whole source tree
+  rather than the UI layer — a setting is also written from `hotkeyService.ts`,
+  from `app.ts`, and from the window implementations under `src/lib`.
 - Make the exception lists shrinkable — an exception for a key `toJSON()` no
   longer emits is a failure, not a comment that outlives its subject.
 - Close both instances: `rssFilterBySymbol` gains its merge step, `pnlViewMode`
@@ -114,9 +119,10 @@ encrypted.
 ## Why P1
 
 Not because a user has lost a setting — nobody has. Because the *next* setting
-added to this class will hit the same trap, and the class has 166 fields, ~1243
-direct reads from 106 production files, and a `$effect` whose only dependency
-tracking is a name-level agreement between two hand-maintained lists. The
+added to this class will hit the same trap, and `defaultSettings` declares 166
+keys against 174 `$state` fields in the class, read directly from roughly a
+hundred production files, with a `$effect` whose only dependency tracking is a
+name-level agreement between two hand-maintained lists. The
 `area: persistence` grouping is deliberate: BUG-0621 ("restoreFromBackup merges
 missing fields instead of overwriting", P1, `data_class: A`) is the structural
 sibling, and this item is the same failure class on the other side of the
@@ -129,7 +135,7 @@ round-trip.
 - [x] Both directions are checked — a declared setting missing from `toJSON()`,
       and an orphan key in `toJSON()`
 - [x] The exception lists are split by kind, and `MISSING_DEFAULT` entries must
-      be unwritten from the UI
+      be unwritten anywhere under `src/`
 - [x] Exceptions that `toJSON()` no longer emits fail, so the lists can shrink
 - [x] The guard is mutation-verified in every direction it claims, and the
       failure message names the offending field

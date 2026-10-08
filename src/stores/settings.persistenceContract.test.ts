@@ -52,8 +52,12 @@ const NOT_A_SETTING: Readonly<Record<string, string>> = {
  * says.
  *
  * The list is a registry, not a destination. An entry passes only while nothing
- * can write it — see the assertion at the end — and it leaves by being given a
- * default, not by being deleted from here.
+ * can write it — see the assertion at the end — and it leaves by one of two
+ * routes. Either the field gains a default, which is the fix when something
+ * actually reads the setting. Or the field is deleted outright, in which case
+ * this entry has to go with it: the "drops every exception" assertion fails the
+ * moment `toJSON()` stops emitting the key. `imgurClientId` can only take the
+ * second route — it has no consumer, so no default would ever be right for it.
  *
  * `pnlViewMode` was one of these and two components wrote to it. The merge was
  * a bare assignment, so a blob predating the setting left it undefined. It is
@@ -61,12 +65,13 @@ const NOT_A_SETTING: Readonly<Record<string, string>> = {
  * instead.
  */
 const MISSING_DEFAULT: Readonly<Record<string, string>> = {
-    // No consumer anywhere: the only non-store reference is `backupService.ts`,
-    // which scrubs it on export, and `schema.d.ts` still carries the locale key
-    // `settings.integrations.imgurClientId`. A removal candidate — a dead field
-    // alongside a live translation. Whether to delete it or keep it for stored
-    // blobs is a product call, not a persistence one, so it is recorded here
-    // rather than decided.
+    // No consumer anywhere: the only non-store *behavioural* reference is
+    // `backupService.ts`, which scrubs it on export. The name also appears in
+    // `settingsTypes.ts:335`, in `schema.d.ts`, and in both locale JSONs
+    // ("Imgur Client ID"). A removal candidate — a dead field alongside live
+    // translations. Whether to delete it or keep it for stored blobs is a
+    // product call, not a persistence one, so it is recorded here rather than
+    // decided.
     imgurClientId: "no default declared and no consumer; backupService scrubs it on export",
 };
 
@@ -89,26 +94,62 @@ let sourceCache: Array<{ file: string; text: string }> | undefined;
 /**
  * Every production file a setting can be written from.
  *
- * Not just `src/components`. A setting is written from `hotkeyService.ts`
- * (`showSidebars`, `showTechnicals`), from `favorites.svelte.ts` and
- * `SymbolPickerView.svelte` (`favoriteSymbols`), from `appAuth.ts`
- * (`appAccessToken`), and from window implementations under `src/lib`. An
- * earlier version of this scan covered `src/components` alone — 142 of 167
- * `.svelte` files — and its comment claimed that was the only surface, which
- * was false.
+ * Not just `src/components`. An earlier version of this scan covered that
+ * directory alone — 142 of 167 `.svelte` files, no `.ts` at all — while its
+ * comment claimed it was the only surface. It was not, and the writers it
+ * missed were not a handful: `hotkeyService.ts` (`showSidebars`,
+ * `showTechnicals`), `app.ts` (six writes in `setupFirstStart()`), the window
+ * implementations under `src/lib`, `favorites.svelte.ts`,
+ * `SymbolPickerView.svelte`, `CandleChartView.svelte`, `appAuth.ts`, and more
+ * besides. 18 of the 261 production writes to settings live outside
+ * `src/components`, across 14 keys.
  *
  * Test files are excluded: they assign settings to arrange state, and a
  * fixture is not a user reaching a control.
  *
- * **What this cannot see, checked and recorded rather than assumed:** a write
- * through a local alias. `const settings = settingsState` appears in
- * `PortfolioInputs.svelte` (twice) and `i18n.ts`, and none of the three writes
- * through it today — but a `settings.foo = …` there would be invisible. Dynamic
- * access (`settingsState[key]`, `Object.assign(settingsState, …)`) has no
- * instance in the repo at all, verified by grep. If a writer ever routes
- * through an alias or a computed key, this scan stops covering it and the guard
- * has to learn the new shape rather than quietly pass.
+ * **What this cannot see.** Every row below was measured against this regex, and
+ * every row currently has zero live instances in `src` — but the shapes are
+ * real and a future author will not know about them from a passing check:
+ *
+ * - a write through a local alias: `const settings = settingsState` appears in
+ *   `PortfolioInputs.svelte` (twice) and `i18n.ts`, and none writes through it
+ *   today, but a `settings.foo = …` there is invisible
+ * - dynamic access: `settingsState[key] = …`, `Object.assign(settingsState, …)`,
+ *   `delete settingsState.foo` — no instance in the repo
+ * - an optional-chained write: `settingsState.feeRates[ex]?.maker = …`
+ * - a mutation call on an array- or object-valued setting:
+ *   `settingsState.accounts.push(a)`
+ * - a compound assignment or increment: `settingsState.foo ??= x`, `||= x`, `++`
+ * - a destructuring assign: `({ imgurClientId: settingsState.imgurClientId } = o)`
+ *
+ * If a writer ever takes one of these shapes, the scan stops covering it and the
+ * guard has to learn the new shape rather than quietly pass.
  */
+/**
+ * Drops comments and string/template literals before matching.
+ *
+ * Without this the scan reads prose: a `//` line explaining
+ * `settingsState.foo = …`, or an HTML comment in a `.svelte` file, is
+ * indistinguishable from a write. The guard reads its own source, and its
+ * docstring names the wrong-field mutation — so without stripping, the file
+ * documenting the blind spot would trip it the day a key was named after that
+ * field.
+ *
+ * Literals go **before** line comments, and that order is load-bearing: a URL
+ * in a string contains `//`, so stripping comments first would eat the rest of
+ * the line and hide a real write sitting next to it. Every region becomes a
+ * single space rather than nothing, so two statements are not glued together.
+ */
+function stripNonCode(text: string): string {
+    return text
+        .replace(/`(?:\\[\s\S]|[^`\\])*`/g, " ")
+        .replace(/"(?:\\[\s\S]|[^"\\])*"/g, " ")
+        .replace(/'(?:\\[\s\S]|[^'\\])*'/g, " ")
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .replace(/\/\/[^\n]*/g, " ")
+        .replace(/<!--[\s\S]*?-->/g, " ");
+}
+
 function productionSources(): Array<{ file: string; text: string }> {
     if (sourceCache) return sourceCache;
     const found: Array<{ file: string; text: string }> = [];
@@ -118,9 +159,13 @@ function productionSources(): Array<{ file: string; text: string }> {
             if (entry.isDirectory()) walk(path);
             else if (
                 (entry.name.endsWith(".ts") || entry.name.endsWith(".svelte")) &&
-                !entry.name.includes(".test.")
+                !entry.name.includes(".test.") &&
+                !entry.name.includes(".bench.")
             ) {
-                found.push({ file: path, text: readFileSync(path, "utf8") });
+                found.push({
+                    file: path.replace(SRC_ROOT, ""),
+                    text: stripNonCode(readFileSync(path, "utf8")),
+                });
             }
         }
     };
@@ -140,8 +185,8 @@ function productionSources(): Array<{ file: string; text: string }> {
  *
  * The assignment tail is deliberately tight — only index and member steps may
  * sit between the key and the `=`. A wider window would read `settingsState.foo`
- * in `const x = settingsState.foo; const y = 2` as a write, and with ~650
- * files that false positive would arrive immediately.
+ * in `const x = settingsState.foo; const y = 2` as a write, and with the whole
+ * source tree in scope that false positive would arrive immediately.
  */
 function writersOf(key: string): string[] {
     const chain = "(?:\\.[A-Za-z_][\\w$]*|\\[[^\\]]*\\])*";
@@ -149,7 +194,7 @@ function writersOf(key: string): string[] {
     const bind = new RegExp(`bind:[a-zA-Z]+={[^}]*settingsState${chain}\\.${key}\\b`);
     return productionSources()
         .filter(({ text }) => assign.test(text) || bind.test(text))
-        .map(({ file }) => file.replace(`${SRC_ROOT}/`, ""));
+        .map(({ file }) => file);
 }
 
 describe("settings persistence contract", () => {
