@@ -2,7 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: feature/feat-0342-slice-e-schema
 parent: FEAT-0341
 ---
 
@@ -37,6 +39,30 @@ For the services, split responsibilities by domain (e.g., splitting `apiService`
 
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
+
+## Status note (2026-10-08, slice E in progress, branch `feature/feat-0342-slice-e-schema`)
+
+`src/stores/settings/persistenceSchema.ts` (new, 526 lines) holds the single
+key table `PERSISTENCE_SCHEMA` plus the pure custom mergers — the
+Schema-Variante: `toJSON()` + `applyCoreFields()` + `applyDisplayFields()`
+(~474 lines) are now thin drivers (`settings.svelte.ts` 2184 → 1755 lines).
+Reactive assignments, `$state.snapshot` calls, the entitlement reads and
+`ensureProviderRegistry()` stay in the manager, so autosave tracking through
+`toJSON()` is unchanged; single `cryptoCalculatorSettings` key untouched.
+
+Behaviour preserved exactly: `??` vs `||` per key transcribed 1:1 (one
+exception found and kept: `customHotkeys` loads `|| {}`, never the shared
+default object), BUG-0280 redaction with live-key deep-read, feeRates
+per-venue merge, galaxy/tradeFlow/fireConfig deep merges, price-scale
+migration, burn legacy keys, favorites cap. `loadContract.test.ts` moved with
+the code (it scanned the old method bodies textually): `load()` residue still
+textual, `apply*` coverage now via schema table + driver-wiring assertion.
+
+Verified: new `persistenceSchema.test.ts` (11 tests, exactness RED-proven by
+removing a row), settings folder + load/persistence/security/loadContract (215),
+reactivityContract (autosave tracking through the new loop) + ChartTab (6),
+backup/account (106), credentialStore + storage_hardening (34) — all green,
+ESLint clean. Needs human review (Class A, credential serialization).
 
 ## Status note (2026-10-08, slice F merged in PR #3971)
 

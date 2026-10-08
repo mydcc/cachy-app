@@ -2,9 +2,9 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,23 +19,24 @@
  * The load side of the settings persistence contract.
  *
  * `settings.persistenceContract.test.ts` guards the save side: a setting the
- * store declares and serializes. It says nothing about the way back. `load()`
- * assigns through three methods -- itself, `applyCoreFields` and
- * `applyDisplayFields` -- and a key missing from all three is written on every
- * save and never read back: the user's change survives until they reload, then
- * silently reverts to the default. Same defect class as the save side, opposite
- * direction.
+ * store declares and serializes. It says nothing about the way back. A key
+ * written on every save but never read back survives until reload, then
+ * silently reverts to the default. Same defect class as the save side,
+ * opposite direction.
  *
  * That is not hypothetical. `marketAnalysisInterval`, `pauseAnalysisOnBlur` and
  * `analysisTimeframes` were all three declared in `defaultSettings`, read by
  * `toJSON()`, and written by `CalculationSettings.svelte` -- and none of them
- * was assigned on load. `marketAnalysisInterval` made it more confusing: it is
- * assigned inside `applyMarketMode`, which only the `marketMode` setter calls,
- * and `load()` assigns `_marketMode` directly, so that path never runs during a
- * load either.
+ * was assigned on load.
  *
- * Source-level, not runtime, because a runtime check cannot enumerate the load
- * path without duplicating it. The trade-off is stated in the assertion below.
+ * Since FEAT-0342 slice E the load mapping lives in the persistence schema
+ * (`settings/persistenceSchema.ts`), not in hand-written `apply*` bodies.
+ * The coverage below is therefore two halves: `load()` still assigns
+ * `accounts`, `activeAccountId` and `_apiProvider` directly (checked
+ * textually, as before), and every other declared key must have a schema load
+ * entry whose driver the `apply*` methods actually call. Deleting a schema row
+ * or unwiring a driver fails here by name. Source-level, because a runtime
+ * check cannot enumerate the load path without duplicating it.
  */
 
 import { describe, it, expect } from "vitest";
@@ -43,6 +44,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { SETTINGS_KEYS } from "./settings.svelte";
 import { stripNonCode, methodBody } from "./settings/sourceScan";
+import {
+    LOAD_BODY_KEYS,
+    loadSchemaEntries,
+    PERSISTENCE_SCHEMA,
+} from "./settings/persistenceSchema";
 
 const SOURCE_PATH = fileURLToPath(
   new URL("../stores/settings.svelte.ts", import.meta.url),
@@ -65,55 +71,34 @@ describe("settings load contract", () => {
   const source = stripNonCode(readFileSync(SOURCE_PATH, "utf8"));
 
   /**
-   * The whole load path. `load()` is included because it assigns on its own --
-   * `accounts` and `activeAccountId` come from the decrypt branch, and
-   * `_apiProvider` is set there too.
+   * `load()` still owns its direct assignments -- `accounts` and
+   * `activeAccountId` from the decrypt branch, `_apiProvider` from the venue
+   * resolution. The schema carries no load entry for these by design.
    */
-  const loadPath = [
-    methodBody(source, /^\s*private load\(\)/),
-    methodBody(source, /private applyCoreFields\(/),
-    methodBody(source, /private applyDisplayFields\(/),
-  ].join("\n");
+  const loadBody = methodBody(source, /^\s*private load\(\)/);
 
-  it("assigns every key the store declares", () => {
-    const covered = new Set<string>();
-
-    // Direct assignment: this.<key> = ...
-    for (const m of loadPath.matchAll(/this\.([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)/g))
-      covered.add(m[1]);
-
-    // Accessor indirection: `this._key` backs a declared `get key()`. Derived,
-    // not listed, so a renamed accessor cannot leave a stale exemption behind.
-    const getters = new Set(
-      [...source.matchAll(/^\s*get ([A-Za-z_][A-Za-z0-9_]*)\(\)/gm)].map((m) => m[1]),
-    );
-    const stateFields = new Set(
-      [
-        ...source.matchAll(
-          /^\s*(?:private |public |protected )?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\$state/gm,
-        ),
-      ].map((m) => m[1]),
-    );
-    for (const m of loadPath.matchAll(/this\._([A-Za-z][A-Za-z0-9_]*)\s*=(?!=)/g)) {
-      if (getters.has(m[1]) && stateFields.has(`_${m[1]}`)) covered.add(m[1]);
+  it("assigns the schema-external keys in load()", () => {
+    for (const key of LOAD_BODY_KEYS) {
+      const plain = new RegExp(`this\\.${key}\\s*=(?!=)`);
+      const backing = new RegExp(`this\\._${key}\\s*=(?!=)`);
+      expect(
+        plain.test(loadBody) || backing.test(loadBody),
+        `load() no longer assigns ${key}, but the schema carries no load entry for it`,
+      ).toBe(true);
     }
+  });
 
-    // Collaborator indirection: `this.<store>.<key>` where the field is a
-    // `readonly x = new Store(...)`. `entitlement` holds isPro and
-    // isProLicenseActive this way.
-    const collaborators = new Set(
-      [...source.matchAll(/^\s*readonly ([A-Za-z_][A-Za-z0-9_]*)\s*=\s*new /gm)].map(
-        (m) => m[1],
+  it("assigns every other declared key through the schema", () => {
+    const schemaCovered = new Set(
+      PERSISTENCE_SCHEMA.filter((field) => field.load !== null).map(
+        (field) => field.key,
       ),
     );
-    for (const m of loadPath.matchAll(
-      /this\.([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)/g,
-    )) {
-      if (collaborators.has(m[1])) covered.add(m[2]);
-    }
-
     const unloaded = SETTINGS_KEYS.filter(
-      (key) => !covered.has(key) && !(key in NOT_A_PLAIN_ASSIGNMENT),
+      (key) =>
+        !schemaCovered.has(key) &&
+        !(LOAD_BODY_KEYS as readonly string[]).includes(key) &&
+        !(key in NOT_A_PLAIN_ASSIGNMENT),
     );
 
     expect(
@@ -122,6 +107,20 @@ describe("settings load contract", () => {
         `path, so a user's change reverts to the default on reload: ` +
         `${unloaded.join(", ")}`,
     ).toEqual([]);
+  });
+
+  it("wires each apply driver to its schema section", () => {
+    // Otherwise the table above is decoration: a row nobody iterates assigns
+    // nothing, and the previous assertion still passes.
+    const applyCore = methodBody(source, /private applyCoreFields\(/);
+    const applyDisplay = methodBody(source, /private applyDisplayFields\(/);
+    // Note: string literals are stripped by `stripNonCode`, so the section
+    // argument is invisible here — section routing is pinned by the schema
+    // test (`routes core and display entries to their apply driver`).
+    expect(applyCore).toMatch(/loadSchemaEntries\(\s*\)/);
+    expect(applyDisplay).toMatch(/loadSchemaEntries\(\s*\)/);
+    expect(loadSchemaEntries("core").length).toBeGreaterThan(0);
+    expect(loadSchemaEntries("display").length).toBeGreaterThan(0);
   });
 
   it("exempts nothing, so an exemption cannot quietly become a hiding place", () => {
