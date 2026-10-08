@@ -53,6 +53,22 @@ vi.mock("./toastService.svelte", () => ({
     toastService: { error: vi.fn(), success: vi.fn(), add: vi.fn() },
 }));
 
+const signedFetchMock = vi.hoisted(() => vi.fn());
+vi.mock("../utils/exchange/browserSigning", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../utils/exchange/browserSigning")>();
+    return { ...actual, exchangeSignedFetch: signedFetchMock };
+});
+
+/** "The venue reports no open position" -- the state this refusal asserts. */
+function venueReportsNoPositions() {
+    signedFetchMock.mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ code: "0", data: [], msg: "success" }),
+        json: async () => ({ code: "0", data: { positions: [] }, msg: "success" }),
+    });
+}
+
 import { tradeService } from "./tradeService";
 import { omsService } from "./omsService";
 import { marketState } from "../stores/market.svelte";
@@ -281,7 +297,12 @@ describe("FEAT-0334 — refusals reach the caller", () => {
 
     it("refuses an add on a position the venue does not report", async () => {
         vi.spyOn(omsService, "getPositions").mockReturnValue([] as never);
-        vi.spyOn(tradeService, "fetchOpenPositionsFromApi").mockResolvedValue(undefined as never);
+        // FEAT-0342: the fallback moved into ./trade/positionLifecycle, so the
+        // seam to stub is the refresh `ensurePositionFreshness` calls, not the
+        // venue read that lived behind it. Same outcome — the OMS stays empty
+        // either way — without reaching through a private method that no longer
+        // exists on this class.
+        venueReportsNoPositions();
 
         await expect(
             tradeService.addToPosition({

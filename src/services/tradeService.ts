@@ -27,7 +27,6 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { RetryPolicy } from "../utils/retryPolicy";
-import { mapToOMSPosition } from "./mappers";
 import { toastService } from "./toastService.svelte";
 import { _ } from "../locales/i18n";
 import { get } from "svelte/store";
@@ -38,7 +37,6 @@ import { tpSlState } from "../stores/tpsl.svelte";
 import { effectsState } from "../stores/effects.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import {
-    PositionRawSchema,
     BitunixPositionTierResponseSchema,
 } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
@@ -48,7 +46,7 @@ import { paperState } from "../stores/paperTrading.svelte";
 import { paperAccountFeed } from "./paperAccountFeed";
 import { paperExchange } from "./paperExchange";
 import { capabilitiesOf } from "./exchangeCapabilities";
-import { unwrapApiEnvelope, formatApiNum, parseDecimal } from "../utils/utils";
+import { formatApiNum } from "../utils/utils";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountEpoch } from "./accountEpoch.svelte";
@@ -77,7 +75,6 @@ import {
 } from "../utils/exchange/restSigningPlan";
 import {
     buildOrderDetailQueryParams,
-    buildPositionsQueryParams,
     buildTpslWriteBody,
 } from "../utils/exchange/venueQueries";
 
@@ -85,7 +82,7 @@ import {
 // re-exported here so existing importers keep working.
 export { BitunixApiError, TradeError, TRADE_ERRORS } from "./trade/tradeErrors";
 export type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
-import { BitunixApiError, TradeError, TRADE_ERRORS } from "./trade/tradeErrors";
+import { BitunixApiError, TRADE_ERRORS } from "./trade/tradeErrors";
 import type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
 // Payload validation/serialization and the intent builder (FEAT-0342). The
 // intent builder takes the account half as an argument rather than reading
@@ -106,6 +103,7 @@ import {
     type PlaceTpSlParams,
 } from "./trade/tpSlService";
 import { createAccountSettingsService } from "./trade/accountSettings";
+import { createPositionLifecycleService } from "./trade/positionLifecycle";
 
 /**
  * The credentials of an account that does not exist.
@@ -157,6 +155,31 @@ class TradeService {
         shouldFetchMeta: (key) => marketState.shouldFetchMeta(key),
         noteMetaFetch: (key, ok) => marketState.noteMetaFetch(key, ok),
         setSymbolMeta: (key, info) => marketState.setSymbolMeta(key, info),
+    });
+
+    /**
+     * Position freshness, exchange→OMS mirroring and flat verification.
+     *
+     * The provider coercion (`|| "bitunix"`) is the same one `activeVenue`
+     * hands `hasActiveKeys` and the close-all paths — three spellings of one
+     * decision, kept in one place now so a fourth cannot drift from them.
+     */
+    private readonly positionLifecycle = createPositionLifecycleService({
+        activeProvider: () => settingsState.apiProvider || "bitunix",
+        activeKeys: (provider) =>
+            keysForActiveAccount(
+                settingsState.accounts,
+                settingsState.activeAccountId,
+                provider,
+            ),
+        getPositions: () => omsService.getPositions(),
+        updatePosition: (position) => omsService.updatePosition(position),
+        removePosition: (symbol, side) => omsService.removePosition(symbol, side),
+        paperFeed: () => paperAccountFeed(),
+        hydratePositions: (positions, source) =>
+            accountState.hydratePositions(positions, source),
+        beginPositionsRead: () => positionsReadOrder.begin(),
+        mayApplyPositionsRead: (ticket) => positionsReadOrder.mayApply(ticket),
     });
 
     /**
@@ -674,86 +697,17 @@ class TradeService {
         return result;
     }
 
-    // Hardening: Centralized Freshness Check
-    private async ensurePositionFreshness(symbol: string, positionSide: "long" | "short") {
-        let positions = omsService.getPositions();
-        let position = positions.find(
-            (p) => p.symbol === symbol && p.side === positionSide
-        );
-
-        // If cached position is stale (> 200ms), force a refresh to ensure quantity is correct.
-        const MAX_POS_AGE_MS = 200;
-        const now = Date.now();
-
-        if (position && (now - (position.lastUpdated ?? 0) > MAX_POS_AGE_MS)) {
-             logger.warn("market", `[Freshness] Position stale (${now - (position.lastUpdated ?? 0)}ms). Forcing refresh.`);
-             try {
-                await this.refreshPositionsForProvider();
-                positions = omsService.getPositions();
-                position = positions.find(
-                    (p) => p.symbol === symbol && p.side === positionSide
-                );
-             } catch (e) {
-                logger.error("market", `[Freshness] Stale refresh failed`, e);
-                // HARDENING: If refresh fails, do NOT trust stale data for critical ops.
-                // We throw here to abort the operation.
-                throw new Error(TRADE_ERRORS.FETCH_FAILED, { cause: e });
-             }
-        }
-
-        if (!position) {
-            logger.warn("market", `[Freshness] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
-            try {
-                await this.refreshPositionsForProvider();
-                positions = omsService.getPositions();
-                position = positions.find(
-                    (p) => p.symbol === symbol && p.side === positionSide
-                );
-             } catch (e) {
-                logger.error("market", `[Freshness] API Fallback failed`, e);
-                // Propagate error if we really expected a position but couldn't confirm
-                throw e;
-            }
-        }
-
-        return position;
+    /**
+     * Freshness, mirroring and flat verification live in
+     * ./trade/positionLifecycle (FEAT-0342). The bodies moved verbatim; this
+     * facade keeps the call sites and the signatures unchanged.
+     */
+    private ensurePositionFreshness(symbol: string, positionSide: "long" | "short") {
+        return this.positionLifecycle.ensurePositionFreshness(symbol, positionSide);
     }
 
-    /**
-     * Provider-aware OMS refresh for the single-position paths (BUG-0527).
-     *
-     * `ensurePositionFreshness` resolves amounts exclusively through the OMS,
-     * but its fallback (`fetchOpenPositionsFromApi`) is Bitunix-only: on live
-     * Bitget nothing ever fed the OMS, so every single/flash close threw
-     * `POSITION_NOT_FOUND` without sending a request. Per the item's triage —
-     * one truth, not two — non-Bitunix venues refresh through the same
-     * provider-agnostic `/api/positions` read the positions panel uses
-     * (`readFreshPositions`, which mirrors into the OMS), rather than a fresh
-     * read that would leave two sources of truth in the money path.
-     *
-     * The refresh carries the bulk path's eviction guarantee: mirrored keys
-     * the exchange no longer lists are dropped, so a flattened position does
-     * not linger as an OMS ghost a later single close would size off. The
-     * 200 ms staleness rule above is untouched — this only decides *how* a
-     * refresh happens, never *whether* one is required.
-     *
-     * Paper mode is excluded on purpose: the simulator owns the book and
-     * feeds the OMS itself (`paperTradingService`) — a REST mirror would
-     * shadow it. Bitunix keeps its exact current path untouched: its OMS
-     * feed is live over WS with real positionIds, and the mirror carries
-     * none (see `mirrorPositionsToOms`).
-     */
-    private async refreshPositionsForProvider(): Promise<void> {
-        const provider = settingsState.apiProvider || "bitunix";
-        if (provider === "bitunix") {
-            await this.fetchOpenPositionsFromApi();
-            return;
-        }
-        if (paperAccountFeed()) return;
-        const fresh = await this.readFreshPositions(provider);
-        // Null means no credentials to prove anything with — nothing to
-        // mirror, and nothing proven gone, so nothing is evicted either.
-        if (fresh !== null) this.evictMirroredGhosts(fresh);
+    private refreshPositionsForProvider(): Promise<void> {
+        return this.positionLifecycle.refreshPositionsForProvider();
     }
 
     /**
@@ -1019,73 +973,6 @@ class TradeService {
 
             // Return failure object instead of throwing
             return { success: false, error: msg };
-        }
-    }
-
-    private async fetchOpenPositionsFromApi() {
-        if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
-
-        try {
-            // W-6: Use generalized provider key lookup instead of hardcoding 'bitunix'
-            const provider = settingsState.apiProvider;
-            const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-            if (!keys?.key || !keys?.secret) return;
-
-            // The signed query is empty here — the route has no filter to sign —
-            // and the envelope carries it as an empty `x-api-query` rather than
-            // omitting the header, which is how presence and emptiness stay
-            // distinguishable on the wire.
-            const pendingResponse = await exchangeSignedFetch({
-                cachyPath: "/api/sync/positions-pending",
-                keys: { apiKey: keys.key, apiSecret: keys.secret },
-                fetchFn: appFetch,
-                payload: {},
-                queryParams: {},
-            });
-
-            if (!pendingResponse.ok) throw new Error(TRADE_ERRORS.FETCH_FAILED);
-
-            const pendingText = await pendingResponse.text();
-            const pendingResult = safeJsonParse(pendingText);
-            if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
-
-            // Hardening: Best Effort Processing
-            // Instead of failing the entire batch on one malformed entry, we validate per item.
-            const rawList = Array.isArray(pendingResult.data) ? pendingResult.data : [];
-
-            if (rawList.length === 0) {
-                 // Nothing to process, but we might want to clear OMS positions if the API explicitly says "empty list"
-                 // Currently OMS sync is additive/update-based. Full clearing is handled by specialized logic if needed.
-            }
-
-            let errorCount = 0;
-
-            for (const item of rawList) {
-                // Per-item validation
-                const validation = PositionRawSchema.safeParse(item);
-
-                if (validation.success) {
-                    try {
-                        // Use centralized mapper
-                        omsService.updatePosition(mapToOMSPosition(validation.data));
-                    } catch (mapError) {
-                         logger.warn("market", "[TradeService] Mapping error for position", mapError);
-                         errorCount++;
-                    }
-                } else {
-                    // Log but don't crash
-                    logger.warn("market", "[TradeService] Invalid position schema skipped", { item, error: validation.error });
-                    errorCount++;
-                }
-            }
-
-            if (errorCount > 0) {
-                logger.warn("market", `[TradeService] Sync completed with ${errorCount} skipped invalid items.`);
-            }
-
-        } catch (e: unknown) {
-            logger.error("market", "[TradeService] Failed to fetch open positions", e);
-            throw e;
         }
     }
 
@@ -1689,134 +1576,15 @@ class TradeService {
      * OMS mirror only catches up on the next price tick, so it cannot
      * verify a flatten that just ran.
      */
-    private async readFreshPositions(provider: Venue): Promise<NormalizedPosition[] | null> {
-        // BUG-0587: taken before the first await. This read hydrates the store
-        // on the close-all verification path and used to take no ticket, so a
-        // response landing after an account or mode switch re-stamped the
-        // snapshot under the new session. The list it returns is still used
-        // for the verification itself — only the *write* is gated, so a stale
-        // response still fails the caller's check rather than passing it.
-        const ticket = positionsReadOrder.begin();
-
-        const paper = paperAccountFeed();
-        if (paper) return paper.positions();
-        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-        if (!keys?.key || !keys?.secret) return null;
-        const response = await exchangeSignedFetch({
-            cachyPath: "/api/positions",
-            keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
-            venue: provider,
-            payload: { exchange: provider },
-            queryParams: buildPositionsQueryParams(provider),
-            headers: { "X-Provider": provider },
-            fetchFn: appFetch,
-        });
-        const json = await response.json();
-        const { data } = unwrapApiEnvelope<{ positions: NormalizedPosition[] }>(json);
-        if (data === null || !data.positions) throw new Error(TRADE_ERRORS.FETCH_FAILED);
-        if (positionsReadOrder.mayApply(ticket)) {
-            accountState.hydratePositions(data.positions, "live");
-            if (provider !== "bitunix") this.mirrorPositionsToOms(data.positions);
-        }
-        return data.positions;
+    private readFreshPositions(provider: Venue): Promise<NormalizedPosition[] | null> {
+        return this.positionLifecycle.readFreshPositions(provider);
     }
 
-    /**
-     * OMS keys (`symbol:side`) this service mirrored from an exchange-fresh
-     * read (non-Bitunix venues only — see `mirrorPositionsToOms`). The
-     * post-flatten read evicts tracked keys the exchange no longer lists, so
-     * a flattened position does not linger as an OMS ghost that a later
-     * single close would size off (BUG-0527's evidence calls this out: single
-     * closes resolve amounts through the OMS).
-     */
-    private mirroredOmsKeys = new Set<string>();
-
-    /**
-     * Mirrors an exchange-fresh list into the OMS (non-Bitunix venues only).
-     *
-     * Without this the closes below cannot run where nothing else feeds the
-     * OMS: on live Bitget neither its WS channel nor its REST refresh writes
-     * there, so `closePosition` — which resolves amounts through
-     * `ensurePositionFreshness` — would throw `POSITION_NOT_FOUND` for every
-     * leg (single closes through the same path are affected; tracked
-     * separately, not fixed here). Bitunix is excluded on purpose: its OMS
-     * feed is live over WS with real positionIds, and a mirror must never
-     * overwrite those — its close requires the venue's own id
-     * unconditionally (BUG-0062/BUG-0063). The mirror carries no id at all,
-     * so `updatePosition` merges rather than replaces, and the venue body
-     * for these venues needs none (symbol, side, amount).
-     *
-     * Add/update only, mirroring the paper simulator's lead: entries the
-     * exchange no longer lists are simply never enumerated, and the
-     * post-flatten read below is what proves them gone.
-     */
-    private mirrorPositionsToOms(list: NormalizedPosition[]): void {
-        for (const p of list) {
-            const side = p.side.toLowerCase() === "short" ? "short" : "long";
-            this.mirroredOmsKeys.add(`${p.symbol}:${side}`);
-            omsService.updatePosition({
-                symbol: p.symbol,
-                side,
-                amount: parseDecimal(p.size),
-                entryPrice: parseDecimal(p.entryPrice),
-                unrealizedPnl: parseDecimal(p.unrealizedPnL),
-                leverage: parseDecimal(p.leverage),
-                marginMode: (p.marginMode || "").toLowerCase().startsWith("isolat")
-                    ? "isolated"
-                    : "cross",
-                liquidationPrice: parseDecimal(p.liquidationPrice),
-                margin: parseDecimal(p.margin),
-                markPrice: parseDecimal(p.markPrice),
-                lastUpdated: Date.now(),
-            });
-        }
-    }
-
-    /**
-     * Post-flatten verification shared by both close-all paths: success is
-     * not reported while a position on the account remains open. A position
-     * that appeared mid-flatten was never in the work list and produces no
-     * rejection, so per-leg results cannot prove flat — only a fresh read
-     * can. Never throws: a read that itself fails is reported as unverified
-     * rather than as success.
-     */
-    private async verifyFlat(
+    private verifyFlat(
         provider: Venue,
         symbol?: string,
     ): Promise<{ leftover: string[]; unverified: boolean }> {
-        try {
-            const after = await this.readFreshPositions(provider);
-            if (after === null) return { leftover: [], unverified: true };
-            this.evictMirroredGhosts(after);
-            const inScope = symbol ? after.filter((p) => p.symbol === symbol) : after;
-            return { leftover: [...new Set(inScope.map((p) => p.symbol))], unverified: false };
-        } catch (e) {
-            logger.error("market", "[CloseAll] Post-flatten verification read failed", e);
-            return { leftover: [], unverified: true };
-        }
-    }
-
-    /**
-     * Drops mirrored OMS entries the exchange no longer lists. Only keys
-     * this service mirrored are ever evicted — the Bitunix WS feed's entries
-     * (with real positionIds) are never tracked and never touched. Runs on
-     * the full fresh list regardless of symbol scope: a position absent
-     * account-wide is gone, not out of scope.
-     */
-    private evictMirroredGhosts(fresh: NormalizedPosition[]): void {
-        const open = new Set(
-            fresh.map((p) => `${p.symbol}:${p.side.toLowerCase() === "short" ? "short" : "long"}`),
-        );
-        for (const key of this.mirroredOmsKeys) {
-            if (open.has(key)) continue;
-            const separator = key.lastIndexOf(":");
-            const symbol = key.slice(0, separator);
-            const side = key.slice(separator + 1);
-            if (symbol && (side === "long" || side === "short")) {
-                omsService.removePosition(symbol, side);
-            }
-            this.mirroredOmsKeys.delete(key);
-        }
+        return this.positionLifecycle.verifyFlat(provider, symbol);
     }
 
     /**
