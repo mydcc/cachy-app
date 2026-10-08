@@ -2,7 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,43 +11,124 @@ data_class: none
 adr: none
 depends_on: []
 parent: FEAT-0341
+assignee: opencode
+branch: fix/feat-0342-closeout-security
 ---
 
 ## Problem
 Despite previous decomposition efforts (FEAT-0190), several files remain excessively large ("God Modules"):
-- `src/components/settings/tabs/VisualsTab.svelte` (~1930 lines)
-- `src/stores/settings.svelte.ts` (~2130 lines)
-- `src/services/tradeService.ts` (~1700 lines)
-- `src/services/apiService.ts` (~1200 lines)
+- `src/components/settings/tabs/VisualsTab.svelte` (1934 lines at speccing)
+- `src/stores/settings.svelte.ts` (2184 lines at speccing)
+- `src/services/tradeService.ts` (3102 lines at speccing)
+- `src/services/apiService.ts` (1247 lines at speccing)
 
 These monolithic files violate clean architecture principles, making maintenance and concurrent development difficult.
 
-(Sizes above are spec-time estimates. Measured sizes at slice start live in
-the Status notes below — tradeService 3102, apiService 1247 lines; the
-estimates undercount because the files kept growing after the spec.)
+(Measured at speccing commit `fe96e160b`. An earlier revision of this
+section carried estimates that undercounted — `tradeService` ~1700 — because
+the files kept growing after the spec was written.)
 
 ## Fix
 Decompose these files into smaller, focused modules or sub-components.
-For `VisualsTab.svelte`, extract repeated markup into smaller components like `<ColorPickerSection>` and `<VisualGroup>`, or drive the UI via a data configuration schema.
-For the services, split responsibilities by domain (e.g., splitting `apiService` into exchange, user, and ai).
+For `VisualsTab.svelte`, extract repeated markup into smaller components like `<ColorPickerSection>` and `<VisualGroup>`, or drive the UI via a data configuration schema. **(Satisfied ahead of this item by PR #2720.)**
+For the services, split responsibilities by domain. `apiService` was cut along
+its transport seams — `marketData`, `requestManager`, `rateLimiter`,
+`marketTypes`, `apiErrors`, plus new `telemetry` injection ports — rather than
+along the exchange/user/ai split originally sketched here; the seams matched
+the real coupling, so the Fix text was rewritten to describe what shipped.
 
 ## Acceptance criteria
-- [ ] `VisualsTab.svelte` is decomposed and falls below 500 lines of code.
-- [ ] `tradeService.ts` is split into domain-specific services.
-- [ ] `settings.svelte.ts` is refactored into smaller isolated state stores.
-- [ ] `apiService.ts` is divided.
+- [x] `VisualsTab.svelte` is decomposed and falls below 500 lines of code. **Met, but
+      not by this item** — it was 1934 lines when this item was specced (`fe96e160b`);
+      the split to 77 landed in `1dc976ff3` (PR #2720) four days later, in work that
+      never touched this file. No FEAT-0342 PR has edited `VisualsTab.svelte`.
+- [ ] `tradeService.ts` is split into domain-specific services. **Partial**: 3102 → 2232
+      lines, seven lanes extracted and thin-delegated back through a retained façade, but
+      still one class carrying ≥9 domains (`signedRequest` 242, `flashClosePosition` 260,
+      `modifyOrder` 225 raw lines).
+- [ ] `settings.svelte.ts` is refactored into smaller isolated state stores. **Not
+      started.** What shipped is the *other* half of the target below — the persistence
+      coordinator. `SettingsManager` is still a single `$state` holder; see the
+      blocker recorded in the AC-3 note.
+- [x] `apiService.ts` is divided. 1247 → 69 lines across `src/services/api/`.
 - [ ] All existing unit tests pass, and new tests are written for the extracted modules.
+      **Partial**: suites green (583 unit + 3 reactivity-contract), but four extracted
+      modules ship without a colocated test — `trade/tradeParams`, `api/apiErrors`,
+      `api/rateLimiter`, `api/requestManager`.
+
+### What blocks AC 3
+
+The autosave `$effect` in the constructor (`settings.svelte.ts`) registers **one**
+tracking point: it calls `toJSON()`, which iterates `PERSISTENCE_SCHEMA` and reads
+`self[field.key]` — a dynamic index read on `this`. That single read builds the
+dependency graph for all 172 fields, and it only works because every field is a
+`$state` class field on `this`. Four things break the moment one moves elsewhere:
+
+1. `settingsState.<field>` is read directly in 107 production files (~600 accesses),
+   so a split either rewrites every consumer or reintroduces the coupling through an
+   accessor façade.
+2. `update()` does `Object.assign(this, fn(this.toJSON()))`; 46 call sites depend on
+   that flat shape, and a nested field is simply not reached.
+3. The cross-tab `storage` listener clears `effectActive` for *this* effect only —
+   sibling stores with their own effects would keep writing.
+4. The recovery path in `load()` writes defaults over the whole blob, which across
+   several stores could persist a mixed state.
+
+Slices E and F were chosen precisely because they move no fields, so the tracking
+point survived intact. That was the right call, and it is why AC 3 is untouched
+rather than partly delivered.
 ## Out of scope
 
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
+
+## Status note (2026-10-08, review closeout — branch `fix/feat-0342-closeout-security`)
+
+A four-way review of the five merged PRs. **No runtime regression was found**:
+the schema transcription is 1:1 against the pre-extraction code (172 save keys,
+98+66 load assignments), the `services→stores` boundary holds, the decimal audit
+is clean, and the gate scanners catch an injected bypass. The defects were in
+the verification and documentation layer.
+
+Fixed here:
+
+- **`openrouterApiKey` reached `localStorage` as plaintext** — it was the one
+  credential outside `SENSITIVE_KEYS` (`persistenceSchema` writes it
+  `save: "direct"`), and `backupService` blanked it by hand, which shows the
+  omission was known. Adding it is not a one-liner: the `!canEncrypt` branch of
+  `applyFieldEncryption` redacts every sensitive key when the session is locked,
+  so a legacy plaintext value held by a master-password user would have been
+  destroyed unrecoverably. The rule is now *redact only what is already
+  protected* — a key with a ciphertext entry is blanked as before, one without
+  survives until the next `canEncrypt` pass and becomes ciphertext there.
+- **Schema-level load failures wrote defaults over the whole profile.** An
+  unknown `save`/`load` mode reached `load()`'s destructive catch, turning a
+  one-line typo into silent total settings loss. The two `apply*` calls now get
+  their own catch that logs unconditionally.
+- `hasActiveKeys` read `apiProvider` without the `|| "bitunix"` fallback its
+  sibling port carries — under a comment claiming both had it.
+- `adjustPositionMargin` passed `decimalPlaces()` into `toFixed()`, which rounds
+  a value carrying binary residue instead of emitting full precision.
+- A comment in `backupService` credited BUG-0654 with removing
+  `openrouterApiKey`. BUG-0654 removed `imgurClientId`; this one is live.
+
+Both fixes are RED-proven by removing the change and watching the specific test
+fail by name. Verified: `secretsLoader` 35, settings + trade + backup + architecture
+583, reactivity contract 3 — all green; decimal audit and ESLint clean.
+
+Still open, tracked on this item: the guard blind spots (the paper/live seam scan
+covers 1 of 6 read sites; the gate alias scanner misses destructuring; the
+`structuredClone` guard is satisfied by a comment), `accountSettings.test.ts`, and
+AC 3, which is unstarted for the reason recorded under the acceptance criteria.
 
 ## Status note (2026-10-08, slice E merged in PR #3975)
 
 `src/stores/settings/persistenceSchema.ts` (new, 526 lines) holds the single
 key table `PERSISTENCE_SCHEMA` plus the pure custom mergers — the
 Schema-Variante: `toJSON()` + `applyCoreFields()` + `applyDisplayFields()`
-(~474 lines) are now thin drivers (`settings.svelte.ts` 2184 → 1755 lines).
+(~474 lines) are now thin drivers (`settings.svelte.ts` 2184 → 1755 lines at
+that merge; **1774** at `ef199e7ae`, after the guard review follow-ups grew it
+back).
 Reactive assignments, `$state.snapshot` calls, the entitlement reads and
 `ensureProviderRegistry()` stay in the manager, so autosave tracking through
 `toJSON()` is unchanged; single `cryptoCalculatorSettings` key untouched.
@@ -150,7 +231,9 @@ across domains" is **wrong**, and it made this look far riskier than it is:
 moved out with it) and `mirroredOmsKeys` (OMS mirroring, still in place). The
 real coupling runs through module singletons, not fields.
 
-**Merged in slices A–C** (PR #3948, behaviour preserving, 3102 → 2485 lines):
+**Merged in slices A–C** (PR #3948, behaviour preserving, 3102 → 2485 lines;
+the slice-D note below opens at 2492 — a +7 inter-PR drift no note accounted
+for):
 
 - `src/services/trade/dispatchSession.ts` — the BUG-0551 dispatch-context
   rule. Reads are injected because `services` may not import `stores`
@@ -228,9 +311,19 @@ Slice D does not have to fix 2 and 3, but it must not assume they exist.
   load but dropped on save is silent data loss). Settings is Class A data and
   credential serialization is involved — its own PR, human review.
 
-## Status note (2026-09-24, slice 1 merged; follow-up remains specced)
+## Status note (2026-09-24, slice 1 merged)
 
-`VisualsTab.svelte` is already 77 lines (decomposed before this item started).
+**Correction to this note, recorded 2026-10-08.** It previously read that
+`VisualsTab.svelte` "is already 77 lines (decomposed before this item
+started)". That is wrong. The file was **1934 lines** at this item's speccing
+commit (`fe96e160b`, 2026-09-02); the decomposition to 77 lines landed in
+`1dc976ff3` — "refactor(settings): split VisualsTab into section components
+(#2720)", 2026-09-06, four days *after* speccing and in work that does not
+touch this backlog file. No PR under FEAT-0342 has ever edited
+`VisualsTab.svelte`. AC 1 is therefore satisfied by prior work, not by this
+item, and should not be read as its delivery.
+
+`VisualsTab.svelte` is 77 lines today.
 Slice 1 extracts the safe mechanical seams, all suites green:
 
 - `src/services/apiService.ts` (1247 → ~60 lines): fully divided into
@@ -245,8 +338,10 @@ Slice 1 extracts the safe mechanical seams, all suites green:
 
 Remainder (NOT in this PR — needs its own slice): splitting the stateful
 `TradeService` class and the `SettingsManager` rune graph into domain
-services/stores. Both share private mutable state across domains; that
-surgery is high-risk exchange/settings code and does not fit a drive-by
-refactor. Proposed follow-up: one item per class split, each with Human
-review before merge. The stale `in-progress` claim was released on 2026-09-24
-because no active session or worktree remains.
+services/stores. ~~Both share private mutable state across domains~~ — **this
+is wrong**, corrected in the slices A–C note above: `TradeService` has three
+private fields, each local to one domain, and the real coupling runs through
+module singletons. The surgery is still high-risk exchange/settings code and
+does not fit a drive-by refactor. Proposed follow-up: one item per class
+split, each with Human review before merge. The stale `in-progress` claim was
+released on 2026-09-24 because no active session or worktree remains.
