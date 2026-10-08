@@ -49,9 +49,13 @@ verified clean.
   BUG-0652 fixes — and `showTooltips` is tracked twice.
 - *Name check is blind to a non-reactive backing field* — a field declared in
   `defaultSettings` and emitted by `toJSON()` through an accessor pair, whose
-  backing field is a plain field rather than `$state`, also left the guard
-  **4/4 green**. The effect cannot track it either. The class already has this
-  shape (`private _apiProvider` behind `get/set apiProvider`).
+  backing field is a plain field rather than `$state`, would also leave the
+  guard green. The effect cannot track such a field. **This one is
+  hypothetical: no instance exists in the class today.** The two accessor
+  pairs that do exist, `_apiProvider` (`settings.svelte.ts:411`) and
+  `_marketMode` (`:884`), are both `$state`, so the effect tracks them. The
+  first draft of this item cited `_apiProvider` as an instance; it is not one,
+  and the citation was removed rather than softened.
 
 ## Cause
 

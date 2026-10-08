@@ -2,7 +2,9 @@
 id: BUG-0652
 title: A settings field that toJSON() forgets is never saved, and nothing says so
 type: bug
-status: done
+status: in-progress
+assignee: opencode
+branch: fix/contract-scan-scope
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -16,6 +18,13 @@ depends_on: []
 
 Shipped in PR #3957, merge commit `53e4d5c51`. No `done_version` yet — 441 of the
 447 `done` items omit it too, and the next release is not cut.
+
+**Reopened.** Review of what #3957 shipped found that the guard's own write-scan
+covered 142 of 167 `.svelte` files and no `.ts` at all, while its comment claimed
+it covered the only surface there is — and that the evidence in BUG-0653 cited
+`_apiProvider` as an instance of a shape the class does not have. Both are
+corrected here. The acceptance criteria were met; the artefact was not right, and
+an item that claims otherwise is the same failure as an invented citation.
 
 ## Symptom
 
@@ -53,8 +62,25 @@ failing test. The UI shows the value as set until the page is reloaded.
 
 No user has reported either, and the reason differs in each case. For
 `rssFilterBySymbol` no component binds to it either, so the value was always the
-default and the filter branch never fired. For `pnlViewMode` the single read site
-masks it with `|| "value"`. Both are latent, not absent.
+default and the filter branch never fired. For `pnlViewMode` there were four
+production read sites across two components and only one masked the missing
+default — see "Behaviour change" below. Both are latent, not absent.
+
+## Behaviour change
+
+Giving `pnlViewMode` a `"value"` default is not invisible, and the change is
+correct: the control now agrees with what `pnlMode` already rendered. For a user
+whose stored blob predates the setting, and only for them:
+
+- `IndicatorSettings.svelte:182` compares `settingsState.pnlViewMode === mode.value`
+  with no fallback, so **no** segment matched and the three-way control rendered
+  all buttons unselected. It now highlights "Absolute".
+- `PositionsList.svelte:101-108` maps `undefined → "value"` in `togglePnlMode`,
+  so the **first** click on the cycle control looked like a no-op. It now
+  advances to "percent".
+
+`PositionsList.svelte:133` (`|| "value"`) is now redundant and was left in place
+as defence in depth for a store that has not loaded yet.
 
 ## Cause
 

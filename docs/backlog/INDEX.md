@@ -4,7 +4,7 @@
 
 529 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 26 · ✅ done 451 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 26 · 🟡 in-progress 1 · ✅ done 450 · ⛔ dropped 1
 
 ---
 
@@ -317,7 +317,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 26 · ✅ done 4
 | [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | calculation |
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | execution |
 | [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | execution |
-| [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | persistence |
+| [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | 🟡 in-progress | persistence |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -743,7 +743,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 26 · ✅ done 4
 | [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | none | community, pro, private | none | none | — |
-| [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |

@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SETTINGS_KEYS, settingsState } from "./settings.svelte";
 
@@ -46,19 +47,26 @@ const NOT_A_SETTING: Readonly<Record<string, string>> = {
 
 /**
  * Keys that are declared on the class and persisted, but have **no entry in
- * `defaultSettings`**. Each entry is a defect to fix, not an exemption to
- * keep: with no default there is nothing for the load-time merge to fall back
- * to, so the field starts undefined no matter what the stored blob says.
+ * `defaultSettings`**. With no default there is nothing for the load-time merge
+ * to fall back to, so the field starts undefined no matter what the stored blob
+ * says.
+ *
+ * The list is a registry, not a destination. An entry passes only while nothing
+ * can write it — see the assertion at the end — and it leaves by being given a
+ * default, not by being deleted from here.
  *
  * `pnlViewMode` was one of these and two components wrote to it. The merge was
  * a bare assignment, so a blob predating the setting left it undefined. It is
- * fixed now; the assertion below is what keeps the next one from being
- * certified instead.
+ * fixed now; the assertion is what keeps the next one from being certified
+ * instead.
  */
 const MISSING_DEFAULT: Readonly<Record<string, string>> = {
-    // No consumer: the only non-store reference is `backupService.ts`, which
-    // scrubs it on export. Declared and persisted for compatibility with
-    // stored blobs, with no feature behind it today.
+    // No consumer anywhere: the only non-store reference is `backupService.ts`,
+    // which scrubs it on export, and `schema.d.ts` still carries the locale key
+    // `settings.integrations.imgurClientId`. A removal candidate — a dead field
+    // alongside a live translation. Whether to delete it or keep it for stored
+    // blobs is a product call, not a persistence one, so it is recorded here
+    // rather than decided.
     imgurClientId: "no default declared and no consumer; backupService scrubs it on export",
 };
 
@@ -68,35 +76,80 @@ const EXCEPTIONS: Readonly<Record<string, string>> = {
     ...MISSING_DEFAULT,
 };
 
-/** Production Svelte components — the only place a setting can be written from the UI. */
-function componentSources(dir: string): Array<{ file: string; text: string }> {
+/**
+ * `src/`, resolved from this file rather than `process.cwd()`. A relative
+ * `readdirSync` turns a directory rename into a raw ENOENT from inside a test,
+ * which says nothing about which path broke.
+ */
+const SRC_ROOT = fileURLToPath(new URL("../..", import.meta.url));
+
+/** One pass over the tree, not one per key. */
+let sourceCache: Array<{ file: string; text: string }> | undefined;
+
+/**
+ * Every production file a setting can be written from.
+ *
+ * Not just `src/components`. A setting is written from `hotkeyService.ts`
+ * (`showSidebars`, `showTechnicals`), from `favorites.svelte.ts` and
+ * `SymbolPickerView.svelte` (`favoriteSymbols`), from `appAuth.ts`
+ * (`appAccessToken`), and from window implementations under `src/lib`. An
+ * earlier version of this scan covered `src/components` alone — 142 of 167
+ * `.svelte` files — and its comment claimed that was the only surface, which
+ * was false.
+ *
+ * Test files are excluded: they assign settings to arrange state, and a
+ * fixture is not a user reaching a control.
+ *
+ * **What this cannot see, checked and recorded rather than assumed:** a write
+ * through a local alias. `const settings = settingsState` appears in
+ * `PortfolioInputs.svelte` (twice) and `i18n.ts`, and none of the three writes
+ * through it today — but a `settings.foo = …` there would be invisible. Dynamic
+ * access (`settingsState[key]`, `Object.assign(settingsState, …)`) has no
+ * instance in the repo at all, verified by grep. If a writer ever routes
+ * through an alias or a computed key, this scan stops covering it and the guard
+ * has to learn the new shape rather than quietly pass.
+ */
+function productionSources(): Array<{ file: string; text: string }> {
+    if (sourceCache) return sourceCache;
     const found: Array<{ file: string; text: string }> = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const path = join(dir, entry.name);
-        if (entry.isDirectory()) found.push(...componentSources(path));
-        else if (entry.name.endsWith(".svelte")) {
-            found.push({ file: path, text: readFileSync(path, "utf8") });
+    const walk = (dir: string): void => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            const path = join(dir, entry.name);
+            if (entry.isDirectory()) walk(path);
+            else if (
+                (entry.name.endsWith(".ts") || entry.name.endsWith(".svelte")) &&
+                !entry.name.includes(".test.")
+            ) {
+                found.push({ file: path, text: readFileSync(path, "utf8") });
+            }
         }
+    };
+    if (!existsSync(SRC_ROOT)) {
+        throw new Error(`settings contract: source root not found at ${SRC_ROOT}`);
     }
+    walk(SRC_ROOT);
+    sourceCache = found;
     return found;
 }
 
 /**
- * Whether a component *writes* the key — which is what turns a missing default
+ * Whether anything *writes* the key — which is what turns a missing default
  * into a defect. A read is harmless: with nothing to persist, a read just sees
- * undefined and the component decides. `pnlViewMode` was written by two
- * components, and that is the whole reason it mattered.
+ * undefined and the reader decides. `pnlViewMode` was written from two places,
+ * and that is the whole reason it mattered.
+ *
+ * The assignment tail is deliberately tight — only index and member steps may
+ * sit between the key and the `=`. A wider window would read `settingsState.foo`
+ * in `const x = settingsState.foo; const y = 2` as a write, and with ~650
+ * files that false positive would arrive immediately.
  */
-function isWrittenFromUi(key: string): string[] {
-    const writers: string[] = [];
-    for (const { file, text } of componentSources("src/components")) {
-        const assigns = new RegExp(`settingsState\\.${key}\\s*=(?!=)`).test(text);
-        const binds = new RegExp(`bind:[a-zA-Z]+={[^}]*settingsState\\.${key}\\b`).test(
-            text,
-        );
-        if (assigns || binds) writers.push(file);
-    }
-    return writers;
+function writersOf(key: string): string[] {
+    const chain = "(?:\\.[A-Za-z_][\\w$]*|\\[[^\\]]*\\])*";
+    const assign = new RegExp(`settingsState${chain}\\.${key}\\b${chain}\\s*=(?!=)`);
+    const bind = new RegExp(`bind:[a-zA-Z]+={[^}]*settingsState${chain}\\.${key}\\b`);
+    return productionSources()
+        .filter(({ text }) => assign.test(text) || bind.test(text))
+        .map(({ file }) => file.replace(`${SRC_ROOT}/`, ""));
 }
 
 describe("settings persistence contract", () => {
@@ -137,7 +190,7 @@ describe("settings persistence contract", () => {
         // appears — so adding the control has to add the default too.
         const written: string[] = [];
         for (const key of Object.keys(MISSING_DEFAULT)) {
-            for (const file of isWrittenFromUi(key)) written.push(`${key} <- ${file}`);
+            for (const file of writersOf(key)) written.push(`${key} <- ${file}`);
         }
         expect(written).toEqual([]);
     });
