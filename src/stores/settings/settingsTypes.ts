@@ -296,7 +296,7 @@ export interface Settings {
    */
   showStalePriceBadge: boolean;
   positionViewMode?: PositionViewMode;
-  pnlViewMode?: PnlViewMode;
+  pnlViewMode: PnlViewMode;
   isPro: boolean;
   feePreference: "maker" | "taker";
   /**
@@ -431,7 +431,7 @@ export interface Settings {
   showBrokerLink: boolean;
   rssPresets?: string[];
   customRssFeeds?: string[];
-  rssFilterBySymbol?: boolean;
+  rssFilterBySymbol: boolean;
   isProLicenseActive: boolean;
   enableGlassmorphism: boolean;
   glassBlur: number;

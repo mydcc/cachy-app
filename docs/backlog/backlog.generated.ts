@@ -2990,6 +2990,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md"
   },
   {
+    "id": "BUG-0652",
+    "title": "A settings field that toJSON() forgets is never saved, and nothing says so",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/settings-persistence-contract",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0652-settings-persistence-contract.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -6166,6 +6186,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0651-refusal-not-announced-to-screen-readers.md"
+  },
+  {
+    "id": "BUG-0653",
+    "title": "The settings persistence contract is checked by name, and only on the save side",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0653-persistence-contract-blind-spots.md"
   },
   {
     "id": "FEAT-0019",

@@ -542,3 +542,56 @@ describe("SettingsManager.load() -- AI action permissions (BUG-0472)", () => {
     expect(settings.aiAllowedActions).not.toContain("setLeverage");
   });
 });
+
+// BUG-0652. The persistence contract test compares key *names* in toJSON();
+// these two cover the other half, the load-time merge, which is a hand-
+// maintained parallel copy of that key set and had no guard of its own.
+describe("SettingsManager -- BUG-0652 roundtrips", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+  });
+
+  it("defaults rssFilterBySymbol to false", () => {
+    const settings = new SettingsManager();
+    expect(settings.rssFilterBySymbol).toBe(false);
+  });
+
+  it("loads rssFilterBySymbol = true and roundtrips toJSON", () => {
+    // A bare `= merged.rssFilterBySymbol` would leave this false.
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ rssFilterBySymbol: true }),
+    );
+
+    const settings = new SettingsManager();
+    expect(settings.rssFilterBySymbol).toBe(true);
+    expect(settings.toJSON().rssFilterBySymbol).toBe(true);
+  });
+
+  it("defaults pnlViewMode to value", () => {
+    const settings = new SettingsManager();
+    expect(settings.pnlViewMode).toBe("value");
+  });
+
+  it("falls back to value when storage predates pnlViewMode", () => {
+    // The bare assignment this replaces left the field undefined here, which
+    // two components then wrote to.
+    localStorageMock.setItem(STORAGE_KEY, JSON.stringify({ showTooltips: true }));
+
+    const settings = new SettingsManager();
+    expect(settings.pnlViewMode).toBe("value");
+  });
+
+  it("loads a stored pnlViewMode and roundtrips toJSON", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ pnlViewMode: "percent" }),
+    );
+
+    const settings = new SettingsManager();
+    expect(settings.pnlViewMode).toBe("percent");
+    expect(settings.toJSON().pnlViewMode).toBe("percent");
+  });
+});
