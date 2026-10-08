@@ -43,10 +43,14 @@ export const SECURITY_HEADERS = [
  * kit.start(), and the app stays blank (SSR is disabled, so nothing renders
  * without the client bootstrap).
  *
+ * Exported because the nonce question is not local to the Express server:
+ * src/hooks.server.ts needs the identical answer, and keeping two copies of
+ * "does this policy carry a nonce" is how one side later tightens its check
+ * while the other silently keeps the looser one.
  * @param {unknown} value a header value in any Node shape
  * @returns {boolean}
  */
-function cspHasNonce(value) {
+export function cspHasNonce(value) {
   if (typeof value === "string") return value.includes("nonce-");
   if (Array.isArray(value)) return value.some((entry) => cspHasNonce(entry));
   return false;

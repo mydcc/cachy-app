@@ -130,6 +130,40 @@ describe('headersHandler (Server Hook)', () => {
     // Assert: the nonce CSP survives untouched (overwriting it would break app.html scripts)
     expect(result.headers.get('Content-Security-Policy')).toBe(nonceCsp);
   });
+
+  it('should replace a nonce-less CSP with the shared static fallback', async () => {
+    // Arrange: kit.csp.mode "auto" always emits a nonce, so a policy without
+    // one means SvelteKit provided no complete policy here — the shared static
+    // fallback is the only thing keeping object-src/base-uri/frame-ancestors.
+    const incompleteCsp = "default-src 'self'; script-src 'self'";
+    const mockEvent = {} as RequestEvent;
+    const mockResponse = new Response('test body', {
+      status: 200,
+      headers: { 'Content-Security-Policy': incompleteCsp }
+    });
+    const mockResolve = vi.fn().mockResolvedValue(mockResponse);
+
+    // Act
+    const result = await headersHandler({ event: mockEvent, resolve: mockResolve });
+
+    // Assert
+    const expectedCsp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(result.headers.get('Content-Security-Policy')).toBe(expectedCsp);
+  });
+
+  it('should apply the shared static fallback when no CSP is present at all', async () => {
+    const mockEvent = {} as RequestEvent;
+    const mockResponse = new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    });
+    const mockResolve = vi.fn().mockResolvedValue(mockResponse);
+
+    const result = await headersHandler({ event: mockEvent, resolve: mockResolve });
+
+    const expectedCsp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(result.headers.get('Content-Security-Policy')).toBe(expectedCsp);
+  });
 });
 
 describe('handle sequence (Integration)', () => {
