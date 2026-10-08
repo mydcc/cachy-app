@@ -21,10 +21,11 @@ import { SETTINGS_KEYS, settingsState } from "./settings.svelte";
  * *names*. It cannot see which field a `toJSON()` entry reads, so
  * `showSidebars: this.showTooltips` passes; and it cannot see whether a
  * field's backing store is reactive, so a plain field behind an accessor pair
- * passes too. Both were verified green by mutation. Closing that gap needs a
- * runtime reactivity assertion (build a manager, flip a field, observe that a
- * save was scheduled) and is tracked as a follow-up rather than pretended
- * away here.
+ * passes too. Both were verified green by mutation. That gap is now closed by
+ * `settings.reactivityContract.component.test.ts`, which flips every serialized
+ * key and asserts the autosave effect scheduled a save; both mutations turn it
+ * red there. See BUG-0653 for the measurements, including why that file must be
+ * a `.component.test.ts` rather than a plain `.test.ts`.
  */
 
 /**

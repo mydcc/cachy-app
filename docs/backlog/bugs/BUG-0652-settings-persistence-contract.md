@@ -117,8 +117,8 @@ encrypted.
 ## Why P1
 
 Not because a user has lost a setting — nobody has. Because the *next* setting
-added to this class will hit the same trap, and `defaultSettings` declares 166
-keys against 174 `$state` fields in the class, read directly from 995 places
+added to this class will hit the same trap, and `defaultSettings` declares 167
+keys against 173 `$state` fields in the class, read directly from 995 places
 across 97 production files, with a `$effect` whose only dependency tracking is a
 name-level agreement between two hand-maintained lists. The
 `area: persistence` grouping is deliberate: BUG-0621 ("restoreFromBackup merges
