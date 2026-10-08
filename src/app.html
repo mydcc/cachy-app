@@ -20,6 +20,12 @@
   <head>
     <meta charset="utf-8" />
 
+    <!-- No preconnect/dns-prefetch to s.cachy.app here: that host serves only
+         the Matomo container (src/services/trackingService.ts), and it is
+         requested solely after the user opts in to telemetry. A preconnect
+         opens a connection that is almost never used, and it is dropped again
+         after the idle timeout long before a consent decision happens. -->
+
     <!-- Prevent indexing of subdomains (dev, metaverse) -->
     <script nonce="%sveltekit.nonce%">
       if (
