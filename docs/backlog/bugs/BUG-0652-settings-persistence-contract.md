@@ -2,9 +2,7 @@
 id: BUG-0652
 title: A settings field that toJSON() forgets is never saved, and nothing says so
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/settings-persistence-contract
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -15,6 +13,9 @@ depends_on: []
 ---
 
 # BUG-0652 — A settings field that toJSON() forgets is never saved, and nothing says so
+
+Shipped in PR #3957, merge commit `53e4d5c51`. No `done_version` yet — 441 of the
+447 `done` items omit it too, and the next release is not cut.
 
 ## Symptom
 
