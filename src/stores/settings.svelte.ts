@@ -118,7 +118,13 @@ export type {
 } from "./settings/settingsTypes";
 export { TECHNICALS_UPDATE_PRESETS, MAX_FAVORITE_SYMBOLS } from "./settings/settingsTypes";
 
-const defaultSettings: Settings = {
+/**
+ * Read-only export for contract tests (or-mode inventory, save/load parity):
+ * importing the manager would pull the reactive graph into a node test, but
+ * the defaults themselves are a plain module-level object. Never mutate —
+ * several tests assert the live defaults are still pristine.
+ */
+export const defaultSettings: Settings = {
   apiProvider: "bitunix",
   appAccessToken: "",
   marketAnalysisInterval: 60,

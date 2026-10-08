@@ -17,7 +17,7 @@
 
 import { describe, expect, it } from "vitest";
 import { VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
-import { SETTINGS_KEYS } from "../settings.svelte";
+import { defaultSettings, SETTINGS_KEYS } from "../settings.svelte";
 import {
     LOAD_BODY_KEYS,
     loadCustomValue,
@@ -114,6 +114,45 @@ describe("persistence schema exactness", () => {
             PERSISTENCE_SCHEMA.filter((field) => field.load !== null),
         );
         expect(routed).toEqual(expected);
+    });
+
+    it("inventories every or-mode key, so a new one cannot silently alias the default", () => {
+        // Arrange — `stored || defaults[key]` hands an object-valued key the
+        // live default on a storage miss. Scalars cannot alias, so only the
+        // object keys need an owner; but every or-key at all is an explicit
+        // decision recorded here, or the next "fix" diverges save from load.
+        const orKeys = PERSISTENCE_SCHEMA.filter((field) => field.load === "or").map(
+            (field) => field.key,
+        );
+        const objectOrKeys = orKeys
+            .filter((key) => {
+                const value: unknown = defaultSettings[key];
+                return typeof value === "object" && value !== null;
+            })
+            .sort();
+
+        // Assert
+        expect(objectOrKeys).toEqual([
+            "customRssFeeds",
+            "discordChannels",
+            "logSettings",
+            "rssPresets",
+        ]);
+        expect([...orKeys].sort()).toEqual([
+            "ambientToplineIntensity",
+            "ambientToplineMode",
+            "cryptoPanicFilter",
+            "cryptoPanicPlan",
+            "customRssFeeds",
+            "discordChannels",
+            "fontFamily",
+            "heatmapMode",
+            "logSettings",
+            "newsOpenBehavior",
+            "ollamaBaseUrl",
+            "repairTimeframe",
+            "rssPresets",
+        ]);
     });
 
     it("has a working custom saver and loader for every custom row", () => {

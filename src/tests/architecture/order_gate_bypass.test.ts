@@ -436,3 +436,67 @@ describe("FEAT-0011 — the order transport is only reachable through the gate",
         expect(extra.sort()).toEqual(["cancel", "modify"]);
     });
 });
+
+describe("FEAT-0068 — ungated envelope paths are allowlisted, not invisible", () => {
+    /**
+     * Every `cachyPath` that may reach `exchangeSignedFetch` without a gate
+     * pass, with the reason. Reads need no pass; the one write lane
+     * (`/api/account-settings`) carries none by construction — no orders, so
+     * no pass exists — and refuses in paper mode at the port instead (see
+     * the module doc in `trade/accountSettings.ts`).
+     *
+     * The gate scanner above still flags known mutating actions on ANY path,
+     * including these — this list only closes the other direction: a path
+     * nobody justified fails here until it is. Documented rest gap: an
+     * ungated write with a previously unknown action string over an
+     * allowlisted path stays dark, because the scanner cannot know an action
+     * it has never seen mutates.
+     */
+    const UNGATED_ENVELOPE_ALLOWLIST: Record<string, string> = {
+        "/api/account-settings":
+            "FEAT-0068 account writes (leverage, margin mode, position mode). No orders by construction.",
+        "/api/leverage-margin-mode": "Read: live leverage/margin-mode for the account chip.",
+        "/api/account": "Read: account snapshot, position mode, verification claim.",
+        "/api/balance": "Read: balance snapshot.",
+        "/api/positions": "Read: open-positions snapshot.",
+        "/api/orders":
+            "Read: pending-order list and order detail (type: pending / order-detail). Placements go through the transport with a pass.",
+        "/api/sync": "Read: fills sample for the sync backend. Not exchange state.",
+        "/api/sync/orders": "Write to the sync backend (order import), not exchange state. No gate pass by design.",
+        "/api/sync/positions-pending": "Sync-backend pending-positions import, not exchange state.",
+        "/api/sync/positions-history": "Read: positions-history import.",
+    };
+
+    it("sends no ungated envelope call to a path nobody justified", () => {
+        const unlisted: Bypass[] = [];
+        for (const file of sourceFiles()) {
+            const relative = path.relative(REPO_ROOT, file);
+            // The transport fans every gated call out through one
+            // variable-path call (`cachyPath: routeUrl`) that carries no
+            // literal and no pass token — the pass is checked by
+            // assertGatePass before, not sent alongside. The gatedRequest
+            // assertion above owns that file; a new ungated direct call
+            // inside it with a known action still fails there.
+            if (relative === TRANSPORT_OWNER) continue;
+            const lines = readFileSync(file, "utf8").split("\n");
+            for (let i = 0; i < lines.length; i++) {
+                if (!/\bexchangeSignedFetch\s*(?:<[^>]*>)?\s*\(/.test(lines[i])) continue;
+                // The primitive's own definition, not a call site.
+                if (/function\s+exchangeSignedFetch/.test(lines[i])) continue;
+                const tail = lines.slice(i, i + 30).join("\n");
+                const args = argumentText(tail);
+                if (/(?:^|[^A-Za-z0-9_$])pass(?:[^A-Za-z0-9_$]|$)/.test(args)) continue;
+                const cachyPath = tail.match(/cachyPath:\s*"([^"]+)"/)?.[1];
+                if (!cachyPath || !(cachyPath in UNGATED_ENVELOPE_ALLOWLIST)) {
+                    unlisted.push({ file: relative, line: i + 1, excerpt: lines[i].trim() });
+                }
+            }
+        }
+        expect(
+            unlisted,
+            `Ungated envelope call(s) to unjustified path(s) — allowlist with rationale or gate:\n${unlisted
+                .map((b) => `  ${b.file}:${b.line}  ${b.excerpt}`)
+                .join("\n")}`,
+        ).toEqual([]);
+    });
+});
