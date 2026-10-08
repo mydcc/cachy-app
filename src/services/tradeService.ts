@@ -193,7 +193,11 @@ class TradeService {
             queryParams?: Record<string, string>,
             origin?: OrderOrigin,
         ) => this.signedRequest<T>(endpoint, payload, pass, queryParams, origin),
-        activeVenue: () => settingsState.apiProvider,
+        // Both fallbacks kept, deliberately: `apiProvider` is typed
+        // `"bitunix" | "bitget"` and can never be empty today, so the `||` is
+        // dead on both sides — but two reads of the same store disagreeing in
+        // shape is exactly what makes a reader stop trusting the pair.
+        activeVenue: () => settingsState.apiProvider || "bitunix",
         hasActiveKeys: () => {
             const provider = settingsState.apiProvider;
             const keys = keysForActiveAccount(

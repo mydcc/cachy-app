@@ -196,6 +196,29 @@ describe("FEAT-0327 — a simulated fill reaches the panel", () => {
         }
     });
 
+    // The other half of the FEAT-0327 relaxation, and the half that can cost
+    // money. In paper mode the read needs no credentials because the seam
+    // answers it; in live mode it does, so the same missing credentials must
+    // refuse *before* the request leaves — not quietly resolve to an empty
+    // list, because an empty list is what made every simulated entry's stop
+    // look missing (FEAT-0327) and would hide a real one just as well.
+    it("refuses a live read with no credentials, before the seam", async () => {
+        const bitunix = settings.accounts[0];
+        const saved = bitunix.keys;
+        bitunix.keys = { key: "", secret: "" };
+        paperState.setEnabled(false);
+        appFetchMock.mockClear();
+        try {
+            await expect(tradeService.fetchTpSlOrders()).rejects.toThrow(
+                "dashboard.alerts.noApiKeys",
+            );
+            expect(appFetchMock).not.toHaveBeenCalled();
+        } finally {
+            bitunix.keys = saved;
+            paperState.setEnabled(true);
+        }
+    });
+
     it("keeps plans out of the pending-orders tab", async () => {
         await place({ side: "BUY", qty: "1", slPrice: "49000", tpPrice: "52000" });
         // They have their own tab; two rows for one stop, each with its own

@@ -26,7 +26,7 @@
 import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 vi.mock("$app/env", () => ({ browser: true, dev: true }));
 
@@ -165,6 +165,19 @@ describe("FEAT-0012 — one seam", () => {
         // the FEAT-0327 credential guard altogether.
         const tpSl = readFileSync("src/services/trade/tpSlService.ts", "utf8");
 
+        // The whole trade domain, not just the file the seam happens to live
+        // in today. `if (paperState.enabled)` used to be the only way to
+        // branch on the mode; a module that reads it through a port has its
+        // own spelling of the same `if`. Scoping the scan to one file would
+        // let a second live/paper branch walk into a sibling module and sit
+        // there unnoticed — which is the whole failure this test exists for.
+        const tradeDomain = [
+            source,
+            ...readdirSync("src/services/trade")
+                .filter((f) => f.endsWith(".ts") && !f.includes(".test."))
+                .map((f) => readFileSync(`src/services/trade/${f}`, "utf8")),
+        ].join("\n");
+
         // Two branches, and the test names both — the count alone would let
         // a third appear by pushing one of these out of the file.
         //
@@ -209,6 +222,19 @@ describe("FEAT-0012 — one seam", () => {
         expect(source.match(/isPaperMode: \(\) => paperState\.enabled/g) ?? []).toHaveLength(1);
         expect(source.match(/hasActiveKeys: \(\) => \{/g) ?? []).toHaveLength(1);
         expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(3);
+
+        // …and the domain-wide backstop for the branch invariant itself. Every
+        // `if` anywhere in `src/services/trade{,/}` whose condition reads the
+        // mode is one of the three the assertions above already account for:
+        // the two named branches plus the FEAT-0327 credential relaxation. A
+        // fourth — in any file, under either spelling — is a live/paper
+        // branch that decides what a request does instead of what it carries,
+        // which is exactly what FEAT-0012 rules out.
+        expect(
+            tradeDomain.match(
+                /if \(!?paperState\.enabled\)|if \(!?ports\.isPaperMode\(\)/g,
+            ) ?? [],
+        ).toHaveLength(3);
     });
 
     it("reaches the transport with an identical payload in both modes", async () => {
