@@ -44,7 +44,6 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const SRC = path.join(REPO_ROOT, "src");
 
 /** The transport, and the only file allowed to call it without a pass. */
-const TRANSPORT_METHOD = "signedRequest";
 const TRANSPORT_OWNER = path.join("src", "services", "tradeService.ts");
 
 /**
@@ -71,7 +70,69 @@ interface Bypass {
 }
 
 /**
- * Flags a `signedRequest(...)` call whose payload names a mutating action.
+ * Every identifier that can put a request on the wire.
+ *
+ * `signedRequest` is the transport the gate fronts. `exchangeSignedFetch` is
+ * the signing primitive beneath it, and `appFetch` the authenticated fetch —
+ * a module that reaches either one directly has left the gate behind, and
+ * before this list existed nothing here noticed. `appFetch` sits on a great
+ * many read paths, so what keeps the scan quiet is the mutating-action filter
+ * below, not the size of this list.
+ */
+const DISPATCH_PRIMITIVES = ["signedRequest", "exchangeSignedFetch", "appFetch"];
+
+/**
+ * The primitives plus any local binding of one.
+ *
+ * `const send = ports.signedRequest;` reaches the same method without naming
+ * it at the call site, and a per-line scan cannot see through that. Resolving
+ * the alias is what lets this keep the property its own comment claims.
+ *
+ * Scoped to the enclosing block, not to the file. A file-global alias would
+ * promote every `send`/`fetch`/`request` in it to "transport", and those
+ * names are common enough that the scan would start reporting calls that
+ * never touch the wire. The brace count is crude, but this file is a guard:
+ * a crude scope that cannot over-reach beats a precise one nobody reads.
+ */
+function transportNamesIn(lines: string[], line: number): string[] {
+    const names = new Set(DISPATCH_PRIMITIVES);
+    // `this.signedRequest` is covered by the general form — `this` is an
+    // ordinary identifier — so there is no `this\.` alternative to pair with
+    // it. Two ways to match the same text is what makes a repeated group
+    // backtrack, and this one runs over every source file in `src/`.
+    const alias =
+        /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:[A-Za-z_$][\w$]*\.)*(?:signedRequest|exchangeSignedFetch|appFetch)\b/;
+
+    // Walk back to the start of the enclosing block, counting braces. A
+    // binding cannot reach past the block it was declared in, so neither may
+    // the name it introduces.
+    let depth = 0;
+    let start = 0;
+    for (let i = line - 1; i >= 0; i--) {
+        for (const ch of lines[i]) {
+            if (ch === "}") depth++;
+            else if (ch === "{") {
+                if (depth === 0) {
+                    start = i;
+                    break;
+                }
+                depth--;
+            }
+        }
+        if (depth === 0 && start > 0) break;
+        if (depth > 0) continue;
+        start = i;
+    }
+
+    for (let i = start; i <= line; i++) {
+        const match = alias.exec(lines[i]);
+        if (match && !DISPATCH_PRIMITIVES.includes(match[1])) names.add(match[1]);
+    }
+    return [...names];
+}
+
+/**
+ * Flags a request on the wire whose payload names a mutating action.
  * Deliberately syntactic: it reads what a reviewer would read, so it cannot
  * be defeated by a branch that never runs in tests.
  */
@@ -80,7 +141,15 @@ function findBypasses(source: string, file: string): Bypass[] {
     const lines = source.split("\n");
 
     for (let i = 0; i < lines.length; i++) {
-        if (!lines[i].includes(`${TRANSPORT_METHOD}(`)) continue;
+        const names = transportNamesIn(lines, i)
+            .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+            // Longest first, so `signedRequest` is not shadowed by a shorter
+            // alias that happens to be a prefix of it.
+            .sort((a, b) => b.length - a.length)
+            .join("|");
+        const callSite = new RegExp(`\\b(?:${names})\\s*(?:<[^>]*>)?\\s*\\(`);
+        const call = callSite.exec(lines[i]);
+        if (!call) continue;
 
         // A call's payload can span many lines; look ahead far enough to
         // cover the longest one in the codebase (modifyOrder's).
@@ -90,12 +159,42 @@ function findBypasses(source: string, file: string): Bypass[] {
         );
         if (!action) continue;
 
-        // A gated call passes the pass through alongside the payload.
-        if (/signedRequest\s*(<[^>]*>)?\s*\([^)]*\bpass\b/s.test(window)) continue;
+        // A gated call passes the pass through alongside the payload. The
+        // search is anchored at this call and stops at its closing paren,
+        // because a `pass` belonging to some other call further down the
+        // window says nothing about this one — and with the primitive list
+        // this broad, "somewhere in 30 lines" matched 10% of all call sites.
+        const tail = lines.slice(i, i + 30).join("\n");
+        const args = argumentText(tail);
+        if (/(?:^|[^A-Za-z0-9_$])pass(?:[^A-Za-z0-9_$]|$)/.test(args)) continue;
 
         found.push({ file, line: i + 1, excerpt: lines[i].trim() });
     }
     return found;
+}
+
+/**
+ * The argument text of the call opening on the first line of `source`,
+ * closing paren included.
+ *
+ * String and template literals are copied through with their contents
+ * skipped, so a `)` inside a payload does not end the argument list early.
+ */
+function argumentText(source: string): string {
+    let depth = 0;
+    let quote: string | null = null;
+    for (let i = 0; i < source.length; i++) {
+        const ch = source[i];
+        if (quote) {
+            if (ch === "\\") i++;
+            else if (ch === quote) quote = null;
+            continue;
+        }
+        if (ch === '"' || ch === "'" || ch === "`") quote = ch;
+        else if (ch === "(") depth++;
+        else if (ch === ")" && --depth === 0) return source.slice(0, i + 1);
+    }
+    return source;
 }
 
 function routeWriteActions(): string[] {
@@ -195,6 +294,122 @@ describe("FEAT-0011 — the order transport is only reachable through the gate",
             });
         `;
         expect(findBypasses(readOnly, "synthetic.ts")).toEqual([]);
+    });
+
+    // A module that reaches past the transport has left the gate behind just
+    // as surely as one that skips it. Both of these passed before the scan
+    // knew the primitives existed.
+    it("flags a mutating order sent through the signing primitive directly", () => {
+        const bypassing = `
+            export async function sendIt(cachyPath, body, keys) {
+                return exchangeSignedFetch({
+                    cachyPath,
+                    keys,
+                    method: "POST",
+                    payload: { action: "place-order", symbol: "BTCUSDT" },
+                });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    it("flags a mutating order sent through the raw authenticated fetch", () => {
+        const bypassing = `
+            export async function sendIt(payload) {
+                return appFetch("/api/orders", {
+                    method: "POST",
+                    body: JSON.stringify({ action: "close-position", symbol: "BTCUSDT" }),
+                });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // `const send = ports.signedRequest` names the method nowhere near the
+    // call, which is why this form is worth a test of its own rather than
+    // trusting the alias resolution to be obvious.
+    it("flags a mutating order sent through an alias of a transport", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const send = ports.signedRequest;
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    it("still leaves a read through any primitive alone", () => {
+        const reads = `
+            const rows = await appFetch("/api/orders", { method: "POST" });
+            const info = await exchangeSignedFetch({ cachyPath: "/api/orders", payload: { type: "order-detail" } });
+            const plans = await appFetch("/api/tpsl", { method: "POST", body: JSON.stringify({ action: "list" }) });
+        `;
+        expect(findBypasses(reads, "synthetic.ts")).toEqual([]);
+    });
+
+    // A file-global alias would promote every `send` in the file. These two
+    // functions share a name and share nothing else, which is exactly the
+    // shape that made a file-wide scope unusable: the second call mentions a
+    // mutating action and must still be left alone, because that block's
+    // `send` is an analytics serialiser.
+    it("does not carry an alias out of the block that declared it", () => {
+        const source = `
+            function bypass(ports) {
+                const send = ports.signedRequest;
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+            function unrelated(analytics) {
+                const send = analytics.serialize;
+                return send({ action: "place-order", note: "an analytics label, not an order" });
+            }
+        `;
+        const found = findBypasses(source, "synthetic.ts");
+        expect(found).toHaveLength(1);
+        expect(found[0].line).toBe(4);
+    });
+
+    it("still catches the alias inside its own block", () => {
+        const source = `
+            function sneaky(ports) {
+                const send = ports.signedRequest;
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(source, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // A `pass` belonging to a different call says nothing about this one. With
+    // three primitives this window matched 10% of all call sites, and each of
+    // those was a bypass the scan would have silently skipped — the gate below
+    // is what the window-based check mistook for an approval.
+    it("does not accept a later call's pass as a gate on an earlier one", () => {
+        const source = `
+            async function bypass(ports) {
+                await ports.signedRequest("/api/orders", { action: "close-position" });
+            }
+            async function gated(intent, ports) {
+                return orderGate.submit(intent, (pass) =>
+                    ports.signedRequest("/api/orders", { action: "place-order" }, pass),
+                );
+            }
+        `;
+        const found = findBypasses(source, "synthetic.ts");
+        expect(found).toHaveLength(1);
+        expect(found[0].line).toBe(3);
+    });
+
+    it("reads a pass past a closing paren inside a payload", () => {
+        // The payload's own parentheses must not end the argument list, or a
+        // trailing `pass` would fall outside it and look ungated.
+        const gated = `
+            return orderGate.submit(intent, (pass) =>
+                appFetch("/api/orders", {
+                    method: "POST",
+                    body: JSON.stringify({ action: "place-order" }),
+                }, pass),
+            );
+        `;
+        expect(findBypasses(gated, "synthetic.ts")).toEqual([]);
     });
 
     it("keeps its action list in step with the gate's", async () => {
