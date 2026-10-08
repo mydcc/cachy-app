@@ -2,9 +2,7 @@
 id: BUG-0653
 title: The settings persistence contract is checked by name, and only on the save side
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/settings-load-merge
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
