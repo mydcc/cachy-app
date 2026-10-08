@@ -44,7 +44,6 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const SRC = path.join(REPO_ROOT, "src");
 
 /** The transport, and the only file allowed to call it without a pass. */
-const TRANSPORT_METHOD = "signedRequest";
 const TRANSPORT_OWNER = path.join("src", "services", "tradeService.ts");
 
 /**
@@ -71,16 +70,55 @@ interface Bypass {
 }
 
 /**
- * Flags a `signedRequest(...)` call whose payload names a mutating action.
+ * Every identifier that can put a request on the wire.
+ *
+ * `signedRequest` is the transport the gate fronts. `exchangeSignedFetch` is
+ * the signing primitive beneath it, and `appFetch` the authenticated fetch —
+ * a module that reaches either one directly has left the gate behind, and
+ * before this list existed nothing here noticed. `appFetch` sits on a great
+ * many read paths, so what keeps the scan quiet is the mutating-action filter
+ * below, not the size of this list.
+ */
+const DISPATCH_PRIMITIVES = ["signedRequest", "exchangeSignedFetch", "appFetch"];
+
+/**
+ * The primitives plus any local binding of one.
+ *
+ * `const send = ports.signedRequest;` reaches the same method without naming
+ * it at the call site, and a per-line scan cannot see through that. Resolving
+ * the alias is what lets this keep the property its own comment claims.
+ */
+function transportNames(source: string): string[] {
+    const names = new Set(DISPATCH_PRIMITIVES);
+    const alias =
+        /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:this\.|[A-Za-z_$][\w$]*\.)*(?:signedRequest|exchangeSignedFetch|appFetch)\b/g;
+    for (const match of source.matchAll(alias)) {
+        // A self-assignment is not an alias.
+        if (!DISPATCH_PRIMITIVES.includes(match[1])) names.add(match[1]);
+    }
+    return [...names];
+}
+
+/**
+ * Flags a request on the wire whose payload names a mutating action.
  * Deliberately syntactic: it reads what a reviewer would read, so it cannot
  * be defeated by a branch that never runs in tests.
  */
 function findBypasses(source: string, file: string): Bypass[] {
     const found: Bypass[] = [];
     const lines = source.split("\n");
+    const names = transportNames(source)
+        .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .sort((a, b) => b.length - a.length)
+        .join("|");
+    // Longest name first, so `signedRequest` is not shadowed by a shorter
+    // alias that happens to be a prefix of it.
+    const callSite = new RegExp(`\\b(?:${names})\\s*(?:<[^>]*>)?\\s*\\(`);
 
     for (let i = 0; i < lines.length; i++) {
-        if (!lines[i].includes(`${TRANSPORT_METHOD}(`)) continue;
+        const call = callSite.exec(lines[i]);
+        if (!call) continue;
+        const name = call[0].replace(/[<(\s].*$/, "");
 
         // A call's payload can span many lines; look ahead far enough to
         // cover the longest one in the codebase (modifyOrder's).
@@ -91,7 +129,11 @@ function findBypasses(source: string, file: string): Bypass[] {
         if (!action) continue;
 
         // A gated call passes the pass through alongside the payload.
-        if (/signedRequest\s*(<[^>]*>)?\s*\([^)]*\bpass\b/s.test(window)) continue;
+        const gated = new RegExp(
+            `${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*(?:<[^>]*>)?\\s*\\([^)]*\\bpass\\b`,
+            "s",
+        );
+        if (gated.test(window)) continue;
 
         found.push({ file, line: i + 1, excerpt: lines[i].trim() });
     }
@@ -195,6 +237,57 @@ describe("FEAT-0011 — the order transport is only reachable through the gate",
             });
         `;
         expect(findBypasses(readOnly, "synthetic.ts")).toEqual([]);
+    });
+
+    // A module that reaches past the transport has left the gate behind just
+    // as surely as one that skips it. Both of these passed before the scan
+    // knew the primitives existed.
+    it("flags a mutating order sent through the signing primitive directly", () => {
+        const bypassing = `
+            export async function sendIt(cachyPath, body, keys) {
+                return exchangeSignedFetch({
+                    cachyPath,
+                    keys,
+                    method: "POST",
+                    payload: { action: "place-order", symbol: "BTCUSDT" },
+                });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    it("flags a mutating order sent through the raw authenticated fetch", () => {
+        const bypassing = `
+            export async function sendIt(payload) {
+                return appFetch("/api/orders", {
+                    method: "POST",
+                    body: JSON.stringify({ action: "close-position", symbol: "BTCUSDT" }),
+                });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // `const send = ports.signedRequest` names the method nowhere near the
+    // call, which is why this form is worth a test of its own rather than
+    // trusting the alias resolution to be obvious.
+    it("flags a mutating order sent through an alias of a transport", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const send = ports.signedRequest;
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    it("still leaves a read through any primitive alone", () => {
+        const reads = `
+            const rows = await appFetch("/api/orders", { method: "POST" });
+            const info = await exchangeSignedFetch({ cachyPath: "/api/orders", payload: { type: "order-detail" } });
+            const plans = await appFetch("/api/tpsl", { method: "POST", body: JSON.stringify({ action: "list" }) });
+        `;
+        expect(findBypasses(reads, "synthetic.ts")).toEqual([]);
     });
 
     it("keeps its action list in step with the gate's", async () => {
