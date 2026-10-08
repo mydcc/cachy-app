@@ -2993,9 +2993,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0652",
     "title": "A settings field that toJSON() forgets is never saved, and nothing says so",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/settings-persistence-contract",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
