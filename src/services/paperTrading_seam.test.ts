@@ -27,7 +27,7 @@ import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 
 vi.mock("$app/env", () => ({ browser: true, dev: true }));
 
@@ -274,8 +274,21 @@ describe("FEAT-0012 — one seam", () => {
         // with its read count. A new reader has to be added here deliberately,
         // which puts it in front of a reviewer; an unexamined region cannot
         // quietly accumulate one.
+        //
+        // Scope, stated plainly: service-layer `.ts` files (which includes
+        // `.svelte.ts` — that is load-bearing for the `accountSession` row).
+        // Components and other stores read the mode too (seven components,
+        // `ai`/`alerts`/`settings` stores), and two of those are behavior,
+        // not labels: `PlaceOrderPanel.svelte` gates a credential-verification
+        // `$effect` on it, and `alerts.svelte.ts` carries a second mode port
+        // (`paperEnabled: () => paperState.enabled`). Those are known and
+        // accepted as out of scope here — display reads churn too fast for an
+        // inventory, and order routing outside services is still covered
+        // repo-wide by the gate scanner. If either ever routes an order, this
+        // comment is the place that lied.
         const read = /paperState\.enabled\b/g;
         const found = new Map<string, number>();
+        const toPosix = (p: string) => p.split(sep).join("/");
         (function walk(dir: string): void {
             for (const entry of readdirSync(dir, { withFileTypes: true })) {
                 const full = join(dir, entry.name);
@@ -283,7 +296,10 @@ describe("FEAT-0012 — one seam", () => {
                     walk(full);
                 } else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.")) {
                     const hits = readFileSync(full, "utf8").match(read)?.length ?? 0;
-                    if (hits > 0) found.set(full, hits);
+                    // `join` yields `\`-separated paths on Windows while the
+                    // expectation below is POSIX: a Windows `npm test` run
+                    // would fail spuriously without this.
+                    if (hits > 0) found.set(toPosix(full), hits);
                 }
             }
         })("src/services");
@@ -291,13 +307,64 @@ describe("FEAT-0012 — one seam", () => {
         // The `trade/` lane reads the mode through a port, so it does not
         // appear here at all — the backstop above covers it under its own
         // spelling (`ports.isPaperMode()`).
-        expect([...found.entries()].sort()).toEqual([
+        expect(
+            [...found.entries()].sort(),
+            "New paperState.enabled reader in src/services/ — add it to this " +
+                "inventory deliberately after review, or remove it. " +
+                "See the scope note above for what this list does and does not cover.",
+        ).toEqual([
             ["src/services/accountSession.svelte.ts", 1],
             ["src/services/paperAccountFeed.ts", 1],
             ["src/services/paperJournalService.ts", 1],
             ["src/services/paperTradingService.ts", 5],
             ["src/services/rmsService.ts", 1],
             ["src/services/tradeService.ts", 9],
+        ]);
+
+        // Reworded reads of the same mode across the layer. The trade-domain
+        // zero-pins below (rewording test) cover only the scanned set; these
+        // extend them to the other five files, so
+        // `const { enabled: m } = paperState; if (m) { route… }` in
+        // `rmsService.ts` trips here instead of sailing through with its
+        // inventory count unchanged.
+        const layerWide = [...found.keys()]
+            .map((f) => readFileSync(f, "utf8"))
+            .join("\n");
+        expect(layerWide.match(/paperState\s*\[\s*['"]enabled['"]\s*\]/g) ?? []).toEqual([]);
+        expect(layerWide.match(/=\s*paperState\.enabled\b/g) ?? []).toEqual([]);
+        expect(layerWide.match(/=\s*paperState\s*\[\s*['"]enabled['"]\s*\]/g) ?? []).toEqual([]);
+        expect(layerWide.match(/\{\s*enabled\s*:\s*[A-Za-z_$][\w$]*\s*\}/g) ?? []).toEqual([]);
+        expect(layerWide.match(/import\s*\{[^}]*\bpaperState\s+as\s+[A-Za-z_$][\w$]*/g) ?? []).toEqual([]);
+
+        // The port spelling outside `trade/`: a new service that accepts an
+        // `isPaperMode` port and branches on it changes neither the branch
+        // backstop (scoped to `tradeService.ts` + `trade/`) nor this
+        // inventory (blind to the port spelling). Exactly two exist, both in
+        // the lane the backstop already owns — a third is a second seam and
+        // fails here until it is justified like the first two were.
+        const portBranches: string[] = [];
+        (function walkPorts(dir: string): void {
+            for (const entry of readdirSync(dir, { withFileTypes: true })) {
+                const full = join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    walkPorts(full);
+                } else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.")) {
+                    const text = readFileSync(full, "utf8");
+                    // The branch plus the rest of its condition, up to the
+                    // opening brace: a third entry fails the pin, and so does
+                    // a silently reworded one.
+                    const hits =
+                        text.match(/if\s*\(\s*!?ports\.isPaperMode\(\)[^;{]{0,60}\{/g) ?? [];
+                    for (const h of hits) portBranches.push(`${toPosix(full)}: ${h}`);
+                }
+            }
+        })("src/services");
+        expect(
+            portBranches.sort(),
+            "New ports.isPaperMode() branch outside trade/ — a second seam needs the same justification as the first two.",
+        ).toEqual([
+            "src/services/trade/accountSettings.ts: if (ports.isPaperMode()) {",
+            "src/services/trade/tpSlService.ts: if (!ports.isPaperMode() && !hasKeys) {",
         ]);
     });
 
