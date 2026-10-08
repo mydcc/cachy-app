@@ -118,7 +118,8 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   // overwriting it would strip nonces and break app.html scripts.
   for (const [name, value] of SECURITY_HEADERS) {
     if (name === "Content-Security-Policy") {
-      if (!response.headers.has("Content-Security-Policy")) {
+      const existingCsp = response.headers.get("Content-Security-Policy");
+      if (!existingCsp || !existingCsp.includes("nonce-")) {
         response.headers.set(name, value);
       }
     } else {

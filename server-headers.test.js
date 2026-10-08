@@ -209,6 +209,24 @@ describe('overlaySecurityHeaders', () => {
       explicit.filter(([name]) => String(name).toLowerCase() === 'content-security-policy'),
     ).toHaveLength(1);
   });
+
+  it('overlays security headers onto a Headers instance (Web API / SvelteKit adapter-node shape)', () => {
+    const headers = new Headers({ 'content-type': 'text/html' });
+    overlaySecurityHeaders(headers);
+    expect(headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains; preload');
+    expect(headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(headers.get('content-type')).toBe('text/html');
+  });
+
+  it('preserves a nonce CSP on a Headers instance while overlaying other security headers', () => {
+    const nonceCsp = "default-src 'self'; script-src 'self' 'nonce-xyz789'";
+    const headers = new Headers({ 'content-security-policy': nonceCsp });
+    overlaySecurityHeaders(headers);
+    expect(headers.get('content-security-policy')).toBe(nonceCsp);
+    expect(headers.get('x-content-type-options')).toBe('nosniff');
+  });
 });
 
 describe('isImmutableAsset', () => {

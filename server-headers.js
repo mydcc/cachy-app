@@ -86,6 +86,24 @@ export function overlaySecurityHeaders(explicit) {
   if (explicit === null || typeof explicit !== "object") {
     return;
   }
+  const explicitObj = /** @type {any} */ (explicit);
+  if (
+    typeof explicitObj.set === "function" &&
+    typeof explicitObj.get === "function" &&
+    typeof explicitObj.has === "function"
+  ) {
+    for (const [name, value] of SECURITY_HEADERS) {
+      if (
+        name === "Content-Security-Policy" &&
+        explicitObj.has("Content-Security-Policy") &&
+        cspHasNonce(explicitObj.get("Content-Security-Policy"))
+      ) {
+        continue;
+      }
+      explicitObj.set(name, value);
+    }
+    return;
+  }
   if (Array.isArray(explicit)) {
     const names = new Set(SECURITY_HEADERS.map(([name]) => name.toLowerCase()));
     if (explicit.length > 0 && explicit.every((entry) => Array.isArray(entry))) {
