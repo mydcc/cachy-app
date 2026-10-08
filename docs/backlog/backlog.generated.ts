@@ -6135,7 +6135,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0650",
     "title": "A validation error is set and erased in the same tick, so the trader never sees it",
     "type": "bug",
-    "status": "in-progress",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6147,7 +6147,6 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
     "branch": "fix/bug-0650-erased-validation-error",
     "file": "bugs/BUG-0650-validation-error-erased-in-same-tick.md"
   },

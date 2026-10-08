@@ -2,7 +2,7 @@
 id: BUG-0650
 title: A validation error is set and erased in the same tick, so the trader never sees it
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,6 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
 branch: fix/bug-0650-erased-validation-error
 ---
 
