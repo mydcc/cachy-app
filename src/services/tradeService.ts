@@ -483,11 +483,8 @@ class TradeService {
         return data as T;
     }
 
-    // Read-only: current leverage + margin mode for a symbol, straight from
-    // the exchange (not the local calculator input). Populates
-    // tradeState.remoteLeverage/remoteMarginMode, which GeneralInputs.svelte
-    // already reads for its "synced with API" indicator but which nothing
-    // has ever set until now.
+    /** Read-only: current leverage + margin mode for a symbol. Rationale and
+     *  read contract: see ./trade/accountSettings.fetchLeverageMarginMode. */
     public async fetchLeverageMarginMode(symbol: string): Promise<void> {
         return this.accountSettings.fetchLeverageMarginMode(symbol);
     }

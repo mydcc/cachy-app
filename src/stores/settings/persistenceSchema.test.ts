@@ -22,6 +22,7 @@ import { VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
 import { defaultSettings, SETTINGS_KEYS } from "../settings.svelte";
 import {
     LOAD_BODY_KEYS,
+    LOAD_SECRET_KEYS,
     loadCustomValue,
     loadSchemaEntries,
     mergeBurnChannels,
@@ -83,6 +84,13 @@ describe("persistence schema exactness", () => {
         }).toThrow(TypeError);
         expect(Object.isFrozen(PERSISTENCE_SCHEMA)).toBe(true);
         expect(Object.isFrozen(PERSISTENCE_SCHEMA[0])).toBe(true);
+        // Every row, not just the first: a partial freeze (all but one row)
+        // would pass the assertions above while leaving a writable hole.
+        expect(PERSISTENCE_SCHEMA.every(Object.isFrozen)).toBe(true);
+        // The sibling key tables live under the same threat model (a runtime
+        // push silently splitting a contract), so they carry the same lock.
+        expect(Object.isFrozen(LOAD_BODY_KEYS)).toBe(true);
+        expect(Object.isFrozen(LOAD_SECRET_KEYS)).toBe(true);
         expect(PERSISTENCE_SCHEMA.map((f) => f.key)).not.toContain("smuggled");
     });
 

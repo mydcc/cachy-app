@@ -32,20 +32,50 @@ import path from "node:path";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const FORBIDDEN_MARKER = "FUNDING RATE RAW";
-/** The whole directory, not a hand-picked pair of files. `bitunixWs/` holds
- *  three files; a re-add in the third was invisible while the list named two. */
+/** The whole directory, recursively — not a hand-picked pair of files.
+ *  `bitunixWs/` holds three files today; a re-add in the third was invisible
+ *  while the list named two, and a future subdirectory would be invisible to
+ *  a flat `readdirSync`. Test and bench files never ship, so they stay out. */
 const WS_DIR = path.join(REPO_ROOT, "src", "services", "bitunixWs");
-const SCANNED_FILES = [
+const SCANNED_FILES: string[] = [
     path.join(REPO_ROOT, "src", "services", "bitunixWs.ts"),
-    ...readdirSync(WS_DIR, { withFileTypes: true })
-        .filter((e) => e.isFile() && e.name.endsWith(".ts") && !e.name.includes(".test."))
-        .map((e) => path.join(WS_DIR, e.name)),
 ];
+(function walk(dir: string): void {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            walk(full);
+        } else if (
+            entry.name.endsWith(".ts") &&
+            !entry.name.includes(".test.") &&
+            !entry.name.includes(".bench.") &&
+            !entry.name.includes(".spec.")
+        ) {
+            SCANNED_FILES.push(full);
+        }
+    }
+})(WS_DIR);
 
-/** A log line carrying the raw funding payload, however it is worded. */
+/**
+ * A log call carrying the raw funding payload, however it is worded.
+ *
+ * Two deliberate choices, both fail-closed. First, the window: up to 500
+ * chars of call text, so a helper call before the payload
+ * (`log(tag(x), { fundingRate })`) still matches — a `[^)]*` window ends at
+ * the first `)` and misses exactly that. Second, the identifier:
+ * `fundingRate`, `funding_rate` (the shape exchange JSON uses) and
+ * `funding rate` all match, case-insensitively.
+ *
+ * Known limits, stated not hidden: a payload logged under an unrelated name
+ * (`JSON.stringify(message)`) is unattributable to any spelling and is not
+ * caught — that needs payload-shape matching, not identifier matching. And
+ * yes, a legitimate scalar-only log ("funding rate updated", rate) would
+ * fire too; that is the bias a leak guard wants, and the day one is needed
+ * it gets an explicit allowlist line instead of a weaker matcher.
+ */
 function leaksRawFundingRate(source: string): boolean {
     return new RegExp(
-        `\\b(?:log|warn|error|debug|info)\\s*\\([^)]*fundingRate[^)]*\\)`,
+        `\\b(?:log|warn|error|debug|info)\\s*\\([\\s\\S]{0,500}?funding[_ ]?rate`,
         "i",
     ).test(source);
 }
@@ -72,7 +102,22 @@ describe("BUG-0249 — no funding-rate debug log left behind", () => {
     // file was the one guard in the directory that did not.
     it("still detects a reworded leak it is meant to catch", () => {
         expect(leaksRawFundingRate(`logger.log("net", \`[NETWORK] \${JSON.stringify({ fundingRate: r })}\`);`)).toBe(true);
-        // …and does not fire on the shape it must ignore.
-        expect(leaksRawFundingRate(`logger.debug("net", "funding rate subscription opened");`)).toBe(false);
+        // Helper call before the payload: the old `[^)]*` window ended at
+        // the `)` of `tag(x)` and missed exactly this.
+        expect(leaksRawFundingRate(`logger.log("net", tag(x), data.funding_rate);`)).toBe(true);
+        // …and does not fire where no log call carries it: comments, type
+        // shapes and bare strings are not leaks.
+        expect(leaksRawFundingRate(`// funding rate notes for the next reader`)).toBe(false);
+        expect(leaksRawFundingRate(`interface Quote { fundingRate: string }`)).toBe(false);
+        expect(leaksRawFundingRate(`const label = "funding rate subscription opened";`)).toBe(false);
+    });
+
+    // The scan set itself is a contract: three files today, and a future
+    // subdirectory must extend it rather than escape it.
+    it("scans the top-level file plus every non-test file under bitunixWs/", () => {
+        expect(SCANNED_FILES.length).toBeGreaterThanOrEqual(3);
+        expect(SCANNED_FILES).toContain(
+            path.join(REPO_ROOT, "src", "services", "bitunixWs.ts"),
+        );
     });
 });
