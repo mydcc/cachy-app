@@ -2,7 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,8 +10,6 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: feature/feat-0342-slice-e-schema
 parent: FEAT-0341
 ---
 
@@ -40,7 +38,7 @@ For the services, split responsibilities by domain (e.g., splitting `apiService`
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
 
-## Status note (2026-10-08, slice E in progress, branch `feature/feat-0342-slice-e-schema`)
+## Status note (2026-10-08, slice E merged in PR #3975)
 
 `src/stores/settings/persistenceSchema.ts` (new, 526 lines) holds the single
 key table `PERSISTENCE_SCHEMA` plus the pure custom mergers — the
