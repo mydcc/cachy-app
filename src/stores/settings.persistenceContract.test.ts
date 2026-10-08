@@ -56,24 +56,14 @@ const NOT_A_SETTING: Readonly<Record<string, string>> = {
  * routes. Either the field gains a default, which is the fix when something
  * actually reads the setting. Or the field is deleted outright, in which case
  * this entry has to go with it: the "drops every exception" assertion fails the
- * moment `toJSON()` stops emitting the key. `imgurClientId` can only take the
- * second route — it has no consumer, so no default would ever be right for it.
+ * moment `toJSON()` stops emitting the key.
  *
- * `pnlViewMode` was one of these and two components wrote to it. The merge was
- * a bare assignment, so a blob predating the setting left it undefined. It is
- * fixed now; the assertion is what keeps the next one from being certified
- * instead.
+ * Empty at the moment. It held `imgurClientId`, which had no consumer at all and
+ * was removed in BUG-0654. `pnlViewMode` was the previous occupant and is
+ * likewise gone — it gained a default instead, which is what a field with
+ * readers should do.
  */
-const MISSING_DEFAULT: Readonly<Record<string, string>> = {
-    // No consumer anywhere: the only non-store *behavioural* reference is
-    // `backupService.ts`, which scrubs it on export. The name also appears in
-    // `settingsTypes.ts:335`, in `schema.d.ts`, and in both locale JSONs
-    // ("Imgur Client ID"). A removal candidate — a dead field alongside live
-    // translations. Whether to delete it or keep it for stored blobs is a
-    // product call, not a persistence one, so it is recorded here rather than
-    // decided.
-    imgurClientId: "no default declared and no consumer; backupService scrubs it on export",
-};
+const MISSING_DEFAULT: Readonly<Record<string, string>> = {};
 
 /** All keys the contract tolerates beyond `SETTINGS_KEYS`. */
 const EXCEPTIONS: Readonly<Record<string, string>> = {

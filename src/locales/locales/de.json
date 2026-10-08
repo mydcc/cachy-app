@@ -1567,8 +1567,6 @@
     "customRssFeedsDesc": "Füge bis zu 5 eigene RSS-Feeds hinzu (Erweitert)",
     "addFeed": "Feed hinzufügen",
     "removeFeed": "Entfernen",
-    "rssFilterBySymbol": "Nach aktivem Symbol filtern",
-    "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)",
     "integrations": {
       "exchanges": "Börsen Anbindung",
       "intelligence": "KI Anbieter Keys",
@@ -1585,15 +1583,12 @@
       "imgbbPrimary": "ImgBB (Primär)",
       "autoExpiration": "Auto-Löschung (Sek)",
       "imgurOther": "Imgur / Andere",
-      "imgurClientId": "Imgur Client ID",
       "rssPresets": "RSS-Nachrichtenquellen",
       "rssPresetsDesc": "Wähle kuratierte Nachrichtenquellen für den KI-Kontext",
       "customRssFeeds": "Benutzerdefinierte RSS-Feeds",
       "customRssFeedsDesc": "Füge bis zu 5 eigene RSS-Feeds hinzu (Erweitert)",
       "addFeed": "Feed hinzufügen",
-      "removeFeed": "Entfernen",
-      "rssFilterBySymbol": "Nach aktivem Symbol filtern",
-      "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
+      "removeFeed": "Entfernen"
     },
     "ai": {
       "status": {

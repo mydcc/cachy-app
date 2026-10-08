@@ -1565,8 +1565,6 @@
     "customRssFeedsDesc": "Add up to 5 custom RSS feeds (Advanced)",
     "addFeed": "Add Feed",
     "removeFeed": "Remove",
-    "rssFilterBySymbol": "Filter by Active Symbol",
-    "rssFilterBySymbolDesc": "Only show RSS news matching the current chart symbol",
     "ai": {
       "status": {
         "confirmed": "Confirmed",
@@ -2254,14 +2252,11 @@
       "exchanges": "Exchange Connection",
       "filter": "Filter",
       "imgbbPrimary": "ImgBB (Primary)",
-      "imgurClientId": "Imgur Client ID",
       "imgurOther": "Imgur / Other",
       "intelligence": "AI Provider Keys",
       "newsApi": "NewsAPI.org Key",
       "plan": "Plan",
       "removeFeed": "Remove",
-      "rssFilterBySymbol": "Filter by active symbol",
-      "rssFilterBySymbolDesc": "Show only RSS news matching the chart symbol (e.g., BTC)",
       "rssPresets": "RSS News Sources",
       "rssPresetsDesc": "Select curated news sources for AI context",
       "utilities": "Media Storage"

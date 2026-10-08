@@ -4,7 +4,7 @@ title: A settings field that toJSON() forgets is never saved, and nothing says s
 type: bug
 status: in-progress
 assignee: opencode
-branch: fix/contract-scan-scope
+branch: fix/drop-dead-settings-fields
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -16,11 +16,11 @@ depends_on: []
 
 # BUG-0652 — A settings field that toJSON() forgets is never saved, and nothing says so
 
-Shipped in PR #3957, merge commit `53e4d5c51`. No `done_version`: the next
-release is not cut, and `done_version` is only set once it is. An earlier draft
-of this line cited the exact fraction of `done` items carrying the field, which
-went stale the moment the item was edited — a count derived from the file it
-lives in is not a fact worth keeping.
+Shipped in PR #3957, merge commit `53e4d5c51`. No `done_version`: only a handful
+of `done` items carry the field, and it is only set once the release carrying
+them exists. An earlier draft cited the exact fraction, which went stale the
+moment the item was edited — a count derived from the file it lives in is not a
+fact worth keeping.
 
 **Reopened.** Review of what #3957 shipped found that the guard's own write-scan
 covered 142 of 167 `.svelte` files and no `.ts` at all, while its comment claimed
@@ -120,8 +120,8 @@ encrypted.
 
 Not because a user has lost a setting — nobody has. Because the *next* setting
 added to this class will hit the same trap, and `defaultSettings` declares 166
-keys against 174 `$state` fields in the class, read directly from roughly a
-hundred production files, with a `$effect` whose only dependency tracking is a
+keys against 174 `$state` fields in the class, read directly from 995 places
+across 97 production files, with a `$effect` whose only dependency tracking is a
 name-level agreement between two hand-maintained lists. The
 `area: persistence` grouping is deliberate: BUG-0621 ("restoreFromBackup merges
 missing fields instead of overwriting", P1, `data_class: A`) is the structural
