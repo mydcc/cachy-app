@@ -26,17 +26,15 @@ import {
   apiKeyHasMaterial,
 } from "./settings/secretsLoader";
 import type { SwitchAuthorization } from "../lib/confirmationPolicy";
-import { normalizeQuality, type VisualQuality } from "../lib/three/quality";
+import type { VisualQuality } from "../lib/three/quality";
 import type { AiAnalysisMode } from "../types/ai";
 import { safeLocalStorage } from "../utils/storageWrapper";
 import {
   AI_ALLOWED_ACTIONS_DEFAULT,
-  sanitizeAllowedActions,
 } from "../lib/ai/actionPolicy";
 import {
   accountForExchange,
   blankKeysFor,
-  CREDENTIAL_SCHEMA_VERSION,
   defaultAccountName,
   defaultAccountState,
   activeAccountFor,
@@ -58,9 +56,16 @@ import {
 } from "./settings/aiProviders";
 import {
   resolveApiProvider,
-  resolveGeminiModel,
-  resolveAnthropicModel,
 } from "./settings/migrations";
+import {
+    loadCustomValue,
+    loadPlainValue,
+    loadSchemaEntries,
+    PERSISTENCE_SCHEMA,
+    saveCustomValue,
+    type FieldSchema,
+    type LoadTarget,
+} from "./settings/persistenceSchema";
 
 // Domain types and presets live in ./settings/settingsTypes (FEAT-0342);
 // re-exported here so existing importers keep working.
@@ -86,7 +91,6 @@ import type {
   TradeFlowSettings,
   Settings,
 } from "./settings/settingsTypes";
-import { MAX_FAVORITE_SYMBOLS } from "./settings/settingsTypes";
 export type {
   HotkeyMode,
   PositionViewMode,
@@ -1551,309 +1555,38 @@ export class SettingsManager {
 
   /** General, security and AI/market/technicals fields. Part of load()'s merge+assign step. */
   private applyCoreFields(merged: Settings) {
-    this.appAccessToken = merged.appAccessToken ?? "";
-    this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
-    this.autoFetchBalance = merged.autoFetchBalance;
-    this.showSidebars = merged.showSidebars;
-    this.showTooltips = merged.showTooltips ?? defaultSettings.showTooltips;
-    this.showTechnicals = merged.showTechnicals;
-    this.showIndicatorParams = merged.showIndicatorParams;
-    this.technicalsFullHeight = merged.technicalsFullHeight;
-    this.hideUnfilledOrders = merged.hideUnfilledOrders;
-    this.journalPaperTrades = merged.journalPaperTrades ?? defaultSettings.journalPaperTrades;
-    this.showStalePriceBadge = merged.showStalePriceBadge ?? defaultSettings.showStalePriceBadge;
-    this.positionViewMode = merged.positionViewMode;
-    // Was a bare assignment with no default to fall back on, so storage
-    // predating the setting left it undefined while two components wrote to
-    // it. PositionsList already treated "value" as the effective default.
-    this.pnlViewMode = merged.pnlViewMode ?? defaultSettings.pnlViewMode;
-    this.entitlement.isPro = merged.isPro;
-    this.feePreference = merged.feePreference;
-    // Per-venue merge so a partial stored blob never drops a venue or a rate;
-    // storage predating FEAT-0253 has no feeRates at all.
-    this.feeRates = {
-      bitunix: { ...VENUE_DEFAULT_FEE_RATES.bitunix, ...merged.feeRates?.bitunix },
-      bitget: { ...VENUE_DEFAULT_FEE_RATES.bitget, ...merged.feeRates?.bitget },
-    };
-    this.hotkeyMode = merged.hotkeyMode;
-
-    this.customHotkeys = merged.customHotkeys || {};
-    this.favoriteTimeframes = merged.favoriteTimeframes;
-    // Strict limit on favorites to prevent memory overflow (User Agreement: 12)
-    this.favoriteSymbols = (merged.favoriteSymbols || []).slice(0, MAX_FAVORITE_SYMBOLS);
-    this.syncRsiTimeframe = merged.syncRsiTimeframe;
-    this.imgbbApiKey = merged.imgbbApiKey;
-    this.imgbbExpiration = merged.imgbbExpiration;
-    this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
-    this.cloudEnabled = merged.cloudEnabled;
-    this.cloudHost = merged.cloudHost;
-    this.cloudDbName = merged.cloudDbName;
-    this.cloudToken = merged.cloudToken;
-    this.sidePanelMode = merged.sidePanelMode;
-    this.chatStyle = merged.chatStyle;
-    this.maxPrivateNotes = merged.maxPrivateNotes;
-    this.customSystemPrompt = merged.customSystemPrompt;
-    this.aiProvider = merged.aiProvider;
-    this.autoTrading = merged.autoTrading;
-    this.multiAccount = merged.multiAccount;
-    this.openaiApiKey = merged.openaiApiKey;
-    this.openaiModel = merged.openaiModel;
-    this.openaiBaseUrl = merged.openaiBaseUrl ?? defaultSettings.openaiBaseUrl;
-    this.geminiApiKey = merged.geminiApiKey;
-    this.geminiModel = resolveGeminiModel(merged.geminiModel);
-    this.geminiBaseUrl = merged.geminiBaseUrl ?? defaultSettings.geminiBaseUrl;
-    this.anthropicApiKey = merged.anthropicApiKey;
-    this.anthropicModel = resolveAnthropicModel(merged.anthropicModel);
-    this.anthropicBaseUrl = merged.anthropicBaseUrl ?? defaultSettings.anthropicBaseUrl;
-    this.ollamaBaseUrl = merged.ollamaBaseUrl || defaultSettings.ollamaBaseUrl;
-    this.ollamaModel = merged.ollamaModel ?? defaultSettings.ollamaModel;
-    this.openrouterApiKey = merged.openrouterApiKey ?? defaultSettings.openrouterApiKey;
-    this.openrouterModel = merged.openrouterModel ?? defaultSettings.openrouterModel;
-    this.openrouterBaseUrl = merged.openrouterBaseUrl ?? defaultSettings.openrouterBaseUrl;
-    this.userProviders = sanitizeUserProviders(merged.userProviders);
-    this.activeProviderId = merged.activeProviderId ?? defaultSettings.activeProviderId;
+    this.applySchemaLoad(loadSchemaEntries("core"), merged);
     this.ensureProviderRegistry();
-    this.analysisDepth = merged.analysisDepth;
-    this.aiConfirmActions = merged.aiConfirmActions;
-    this.aiAllowSettingsChanges = merged.aiAllowSettingsChanges;
-    this.aiAllowedActions = sanitizeAllowedActions(merged.aiAllowedActions);
-    this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
-    this.aiShareTradeContext = merged.aiShareTradeContext ?? defaultSettings.aiShareTradeContext;
-    this.aiConfirmClear = merged.aiConfirmClear;
-    this.aiAnalysisMode = merged.aiAnalysisMode ?? defaultSettings.aiAnalysisMode;
-    this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
-    this.newsApiKey = merged.newsApiKey;
-    this.cryptoPanicPlan =
-      merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
-    this.cryptoPanicFilter =
-      merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
-    this.newsOpenBehavior =
-      merged.newsOpenBehavior || defaultSettings.newsOpenBehavior;
-    this.enableNewsAnalysis = merged.enableNewsAnalysis;
-    this.cmcApiKey = merged.cmcApiKey;
-    this.enableCmcContext = merged.enableCmcContext;
-    // Declared in the defaults and read by newsService, but nothing wrote it
-    // back until now: it was missing from both toJSON() and this merge step.
-    // No UI binds to it either, so the stored value is still always the
-    // default — see the dead locale keys noted in BUG-0652.
-    // `??` matches the surrounding boolean fields; against this particular
-    // default `||` would behave identically, since the default is `false`.
-    this.rssFilterBySymbol =
-      merged.rssFilterBySymbol ?? defaultSettings.rssFilterBySymbol;
-
-    this._marketMode = merged.marketMode || defaultSettings.marketMode;
-    this.analyzeAllFavorites =
-      merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
-    // Restored here, not in applyMarketMode: load() assigns _marketMode
-    // directly and so never fires that setter, which left these three
-    // serialized by toJSON() and reset to their defaults on every reload.
-    this.marketAnalysisInterval =
-      merged.marketAnalysisInterval ?? defaultSettings.marketAnalysisInterval;
-    this.pauseAnalysisOnBlur =
-      merged.pauseAnalysisOnBlur ?? defaultSettings.pauseAnalysisOnBlur;
-    this.analysisTimeframes =
-      merged.analysisTimeframes ?? defaultSettings.analysisTimeframes;
-    this.marketCacheSize =
-      merged.marketCacheSize ?? defaultSettings.marketCacheSize;
-
-    this.brokenAlertReport =
-      merged.brokenAlertReport ?? defaultSettings.brokenAlertReport;
-
-    this.technicalsUpdateMode =
-      merged.technicalsUpdateMode ?? defaultSettings.technicalsUpdateMode;
-    this.technicalsUpdateInterval = merged.technicalsUpdateInterval;
-    this.technicalsCacheSize =
-      merged.technicalsCacheSize ?? defaultSettings.technicalsCacheSize;
-    this.technicalsCacheTTL =
-      merged.technicalsCacheTTL ?? defaultSettings.technicalsCacheTTL;
-    this.maxTechnicalsHistory =
-      merged.maxTechnicalsHistory ?? defaultSettings.maxTechnicalsHistory;
-    this.enableIndicatorOptimization =
-      merged.enableIndicatorOptimization ??
-      defaultSettings.enableIndicatorOptimization;
-    this.chartHistoryLimit =
-      merged.chartHistoryLimit ?? defaultSettings.chartHistoryLimit;
-    this.chartRenderIntervalMs =
-      merged.chartRenderIntervalMs ?? defaultSettings.chartRenderIntervalMs;
-    this.repairTimeframe =
-      merged.repairTimeframe || defaultSettings.repairTimeframe;
-
-    // Migration: the rebasing modes shipped briefly with #2310 and made
-    // absolute price lines unreadable ("%" scale confusion). Fold any stored
-    // legacy value back to the previous hard-coded behavior.
-    this.chartPriceScaleMode =
-      merged.chartPriceScaleMode === "linear" ||
-      merged.chartPriceScaleMode === "log"
-        ? merged.chartPriceScaleMode
-        : defaultSettings.chartPriceScaleMode;
-    this.chartAutoScale = merged.chartAutoScale ?? defaultSettings.chartAutoScale;
-    this.chartInvertScale =
-      merged.chartInvertScale ?? defaultSettings.chartInvertScale;
-    this.chartDecimalsMode =
-      merged.chartDecimalsMode ?? defaultSettings.chartDecimalsMode;
-    this.chartFixedDecimals =
-      merged.chartFixedDecimals ?? defaultSettings.chartFixedDecimals;
-    this.chartShowGrid = merged.chartShowGrid ?? defaultSettings.chartShowGrid;
-    this.chartLastValueVisible =
-      merged.chartLastValueVisible ?? defaultSettings.chartLastValueVisible;
-    this.chartCandleBorders =
-      merged.chartCandleBorders ?? defaultSettings.chartCandleBorders;
-    this.chartWatermark = merged.chartWatermark ?? defaultSettings.chartWatermark;
-    this.chartCrosshairMode =
-      merged.chartCrosshairMode ?? defaultSettings.chartCrosshairMode;
-    this.chartCrosshairStyle =
-      merged.chartCrosshairStyle ?? defaultSettings.chartCrosshairStyle;
-    this.chartSecondsVisible =
-      merged.chartSecondsVisible ?? defaultSettings.chartSecondsVisible;
-    this.chartFixEdges = merged.chartFixEdges ?? defaultSettings.chartFixEdges;
-    this.chartCountdownEnabled =
-      merged.chartCountdownEnabled ?? defaultSettings.chartCountdownEnabled;
   }
 
   /** Display/UI, background customization and Burning Borders fields. Part of load()'s merge+assign step. */
   private applyDisplayFields(merged: Settings, rawParsed?: Partial<Settings>) {
-    this.showSpinButtons = merged.showSpinButtons;
-    this.disclaimerAccepted = merged.disclaimerAccepted;
-    this.useUtcDateParsing = merged.useUtcDateParsing;
-    this.forceEnglishTechnicalTerms = merged.forceEnglishTechnicalTerms;
-    this.debugMode = merged.debugMode;
-    this.syncFavorites = merged.syncFavorites;
-    this.confirmTradeDeletion = merged.confirmTradeDeletion;
-    this.confirmBulkDeletion = merged.confirmBulkDeletion;
-    this.fontFamily = merged.fontFamily || defaultSettings.fontFamily;
-    this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
-    this.showMarketOverview =
-      merged.showMarketOverview ?? defaultSettings.showMarketOverview;
-    this.showMarketActivity = merged.showMarketActivity;
-    this.showSidebarActivity =
-      merged.showSidebarActivity ?? defaultSettings.showSidebarActivity;
-    this.showMarketSentiment = merged.showMarketSentiment;
-    this.showTechnicalsSummary = merged.showTechnicalsSummary;
-    this.showTechnicalsConfluence = merged.showTechnicalsConfluence;
-    this.showTechnicalsVolatility = merged.showTechnicalsVolatility;
-    this.showTechnicalsOscillators = merged.showTechnicalsOscillators;
-    this.showTechnicalsMAs = merged.showTechnicalsMAs;
-    this.showTechnicalsAdvanced = merged.showTechnicalsAdvanced;
-    this.showTechnicalsSignals = merged.showTechnicalsSignals;
-    this.showTechnicalsPivots =
-      merged.showTechnicalsPivots ?? defaultSettings.showTechnicalsPivots;
-    this.logSettings = merged.logSettings || defaultSettings.logSettings;
-    this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
-    this.showCgHeatLink =
-      merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
-    this.heatmapMode = merged.heatmapMode || defaultSettings.heatmapMode;
-    this.showBrokerLink =
-      merged.showBrokerLink ?? defaultSettings.showBrokerLink;
-    this.rssPresets = merged.rssPresets || defaultSettings.rssPresets || [];
-    this.customRssFeeds =
-      merged.customRssFeeds || defaultSettings.customRssFeeds || [];
-    this.entitlement.isProLicenseActive =
-      merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
+    this.applySchemaLoad(loadSchemaEntries("display"), merged, rawParsed);
+  }
 
-    this.enableGlassmorphism =
-      merged.enableGlassmorphism ?? defaultSettings.enableGlassmorphism;
-    this.glassBlur = merged.glassBlur ?? defaultSettings.glassBlur;
-    this.glassSaturate =
-      merged.glassSaturate ?? defaultSettings.glassSaturate;
-    this.glassOpacity = merged.glassOpacity ?? defaultSettings.glassOpacity;
-
-    // Background Customization
-    this.backgroundType =
-      merged.backgroundType ?? defaultSettings.backgroundType;
-    this.backgroundUrl =
-      merged.backgroundUrl ?? defaultSettings.backgroundUrl;
-    this.backgroundOpacity =
-      merged.backgroundOpacity ?? defaultSettings.backgroundOpacity;
-    this.backgroundBlur =
-      merged.backgroundBlur ?? defaultSettings.backgroundBlur;
-    this.backgroundAnimationPreset =
-      merged.backgroundAnimationPreset ??
-      defaultSettings.backgroundAnimationPreset;
-    this.backgroundAnimationIntensity =
-      merged.backgroundAnimationIntensity ??
-      defaultSettings.backgroundAnimationIntensity;
-    this.videoPlaybackSpeed =
-      merged.videoPlaybackSpeed ?? defaultSettings.videoPlaybackSpeed;
-
-    // Deep merge galaxy settings to ensure new fields (camPos, galaxyRot) are populated if missing in old storage
-    this.galaxySettings = {
-      ...defaultSettings.galaxySettings,
-      ...(merged.galaxySettings || {}),
-    };
-
-    // Deep merge TradeFlow settings for persistence. `galaxyFlow` is merged
-    // one level deeper: a spread would otherwise hand the live state the very
-    // same object as `defaultSettings` whenever storage predates that field.
-    this.tradeFlowSettings = {
-      ...structuredClone(defaultSettings.tradeFlowSettings),
-      ...(merged.tradeFlowSettings || {}),
-      galaxyFlow: {
-        ...structuredClone(defaultSettings.tradeFlowSettings.galaxyFlow),
-        ...(merged.tradeFlowSettings?.galaxyFlow || {}),
+  /**
+   * Restores one `apply*` section from the persistence schema. The table owns
+   * the per-key semantics; this only performs the reactive assignments, so
+   * the autosave `$effect` keeps tracking every field through `toJSON()`.
+   */
+  private applySchemaLoad(
+    fields: readonly FieldSchema[],
+    merged: Settings,
+    rawParsed?: Partial<Settings>,
+  ) {
+    const target: LoadTarget = {
+      set: (key, value) => {
+        (this as unknown as Record<string, unknown>)[key] = value;
       },
+      entitlement: this.entitlement,
     };
-
-    this.enableTelemetry =
-      merged.enableTelemetry ?? defaultSettings.enableTelemetry;
-    this.enableNetworkLogs =
-      merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
-
-    // Social Media
-    this.discordBotToken = merged.discordBotToken;
-    this.discordChannels =
-      merged.discordChannels || defaultSettings.discordChannels;
-
-    // Burning Borders Persistence
-    this.enableBurningBorders =
-      merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;
-    this.borderEffect = merged.borderEffect ?? defaultSettings.borderEffect;
-    this.borderEffectColorMode =
-      merged.borderEffectColorMode ?? defaultSettings.borderEffectColorMode;
-    this.borderEffectCustomColor =
-      merged.borderEffectCustomColor ??
-      defaultSettings.borderEffectCustomColor;
-    this.burningBordersIntensity =
-      merged.burningBordersIntensity ??
-      defaultSettings.burningBordersIntensity;
-    this.burnCharts = rawParsed?.burnCharts ?? merged.burnCharts ?? defaultSettings.burnCharts;
-    this.burnModals = rawParsed?.burnModals ?? merged.burnModals ?? defaultSettings.burnModals;
-    this.burnChannels =
-      rawParsed?.burnChannels ??
-      rawParsed?.burnChannelWindows ??
-      rawParsed?.burnNewsWindows ??
-      merged.burnChannels ??
-      defaultSettings.burnChannels;
-    this.burnMarketOverviewTiles =
-      rawParsed?.burnMarketOverviewTiles ??
-      merged.burnMarketOverviewTiles ??
-      defaultSettings.burnMarketOverviewTiles;
-    this.burnFlashCards =
-      rawParsed?.burnFlashCards ??
-      merged.burnFlashCards ??
-      defaultSettings.burnFlashCards;
-    this.burnJournal = rawParsed?.burnJournal ?? merged.burnJournal ?? defaultSettings.burnJournal;
-    this.fireConfig = {
-      ...defaultSettings.fireConfig,
-      ...(merged.fireConfig || {}),
-    };
-
-    this.enableAmbientTopline =
-      merged.enableAmbientTopline ?? defaultSettings.enableAmbientTopline;
-    this.ambientToplineMode =
-      merged.ambientToplineMode || defaultSettings.ambientToplineMode;
-    this.ambientToplineIntensity =
-      merged.ambientToplineIntensity || defaultSettings.ambientToplineIntensity;
-    this.ambientToplineBursts =
-      merged.ambientToplineBursts ?? defaultSettings.ambientToplineBursts;
-
-    this.visualQuality = normalizeQuality(merged.visualQuality);
-
-    this.enableDockingCentered =
-      merged.enableDockingCentered ?? defaultSettings.enableDockingCentered;
-    this.dockingPosition =
-      merged.dockingPosition ?? defaultSettings.dockingPosition;
-
-    // Legacy manual sync migration removed. WebSockets handle this now.
+    for (const field of fields) {
+      if (field.load === "custom") {
+        loadCustomValue(field.key, target, merged, defaultSettings, rawParsed);
+      } else if (field.load !== null) {
+        target.set(field.key, loadPlainValue(field, merged, defaultSettings));
+      }
+    }
   }
 
   private async save() {
@@ -1950,190 +1683,39 @@ export class SettingsManager {
   }
 
   toJSON(): Settings {
-    return {
-      apiProvider: this.apiProvider,
-      appAccessToken: this.appAccessToken,
-      marketAnalysisInterval: this.marketAnalysisInterval,
-      pauseAnalysisOnBlur: this.pauseAnalysisOnBlur,
-      analysisTimeframes: $state.snapshot(this.analysisTimeframes),
-      autoUpdatePriceInput: this.autoUpdatePriceInput,
-      autoFetchBalance: this.autoFetchBalance,
-      showSidebars: this.showSidebars,
-      showTooltips: this.showTooltips,
-      showTechnicals: this.showTechnicals,
-      showIndicatorParams: this.showIndicatorParams,
-      technicalsFullHeight: this.technicalsFullHeight,
-      hideUnfilledOrders: this.hideUnfilledOrders,
-      journalPaperTrades: this.journalPaperTrades,
-      showStalePriceBadge: this.showStalePriceBadge,
-      positionViewMode: this.positionViewMode,
-      pnlViewMode: this.pnlViewMode,
-      isPro: this.entitlement.isPro,
-      feePreference: this.feePreference,
-      feeRates: $state.snapshot(this.feeRates),
-      hotkeyMode: this.hotkeyMode,
-      // BUG-0280: exchange credentials never serialize, in either mode --
-      // the block carries only placeholders. The $state.snapshot(...)
-      // argument still deep-reads the live keys so the autosave $effect
-      // keeps tracking credential edits.
-      accounts: redactAccounts($state.snapshot(this.accounts)),
-      activeAccountId: this.activeAccountId,
-      credentialSchemaVersion: CREDENTIAL_SCHEMA_VERSION,
-      encryptedAccountKeys: this.encryptedAccountKeys
-        ? $state.snapshot(this.encryptedAccountKeys)
-        : undefined,
-      encryptedSecrets: this.encryptedSecrets
-        ? $state.snapshot(this.encryptedSecrets)
-        : undefined,
-      isEncrypted: this.isEncrypted,
-      customHotkeys: $state.snapshot(this.customHotkeys),
-      favoriteTimeframes: $state.snapshot(this.favoriteTimeframes),
-      favoriteSymbols: $state.snapshot(this.favoriteSymbols),
-      syncRsiTimeframe: this.syncRsiTimeframe,
-      imgbbApiKey: this.imgbbApiKey,
-      imgbbExpiration: this.imgbbExpiration,
-      isDeepDiveUnlocked: this.isDeepDiveUnlocked,
-      cloudEnabled: this.cloudEnabled,
-      cloudHost: this.cloudHost,
-      cloudDbName: this.cloudDbName,
-      cloudToken: this.cloudToken,
-      sidePanelMode: this.sidePanelMode,
-      chatStyle: this.chatStyle,
-      maxPrivateNotes: this.maxPrivateNotes,
-      customSystemPrompt: this.customSystemPrompt,
-      aiProvider: this.aiProvider,
-      openaiApiKey: this.openaiApiKey,
-      openaiModel: this.openaiModel,
-      openaiBaseUrl: this.openaiBaseUrl,
-      geminiApiKey: this.geminiApiKey,
-      geminiModel: this.geminiModel,
-      geminiBaseUrl: this.geminiBaseUrl,
-      anthropicApiKey: this.anthropicApiKey,
-      anthropicModel: this.anthropicModel,
-      anthropicBaseUrl: this.anthropicBaseUrl,
-      ollamaBaseUrl: this.ollamaBaseUrl,
-      ollamaModel: this.ollamaModel,
-      openrouterApiKey: this.openrouterApiKey,
-      openrouterModel: this.openrouterModel,
-      openrouterBaseUrl: this.openrouterBaseUrl,
-      userProviders: redactUserProviders($state.snapshot(this.userProviders)),
-      activeProviderId: this.activeProviderId,
-      encryptedProviderConfigs: this.encryptedProviderConfigs
-        ? $state.snapshot(this.encryptedProviderConfigs)
-        : undefined,
-      analysisDepth: this.analysisDepth,
-      aiConfirmActions: this.aiConfirmActions,
-      aiAllowSettingsChanges: this.aiAllowSettingsChanges,
-      aiAllowedActions: [...this.aiAllowedActions],
-      aiTradeHistoryLimit: this.aiTradeHistoryLimit,
-      aiShareTradeContext: this.aiShareTradeContext,
-      aiConfirmClear: this.aiConfirmClear,
-      aiAnalysisMode: this.aiAnalysisMode,
-      showSpinButtons: this.showSpinButtons,
-      disclaimerAccepted: this.disclaimerAccepted,
-      useUtcDateParsing: this.useUtcDateParsing,
-      forceEnglishTechnicalTerms: this.forceEnglishTechnicalTerms,
-      debugMode: this.debugMode,
-      syncFavorites: this.syncFavorites,
-      confirmTradeDeletion: this.confirmTradeDeletion,
-      confirmBulkDeletion: this.confirmBulkDeletion,
-      enableBurningBorders: this.enableBurningBorders,
-      borderEffect: this.borderEffect,
-      borderEffectColorMode: this.borderEffectColorMode,
-      borderEffectCustomColor: this.borderEffectCustomColor,
-      burningBordersIntensity: this.burningBordersIntensity,
-      burnCharts: this.burnCharts,
-      burnModals: this.burnModals,
-      burnChannels: this.burnChannels,
-      burnMarketOverviewTiles: this.burnMarketOverviewTiles,
-      burnFlashCards: this.burnFlashCards,
-      burnJournal: this.burnJournal,
-      enableAmbientTopline: this.enableAmbientTopline,
-      ambientToplineMode: this.ambientToplineMode,
-      ambientToplineIntensity: this.ambientToplineIntensity,
-      ambientToplineBursts: this.ambientToplineBursts,
-      visualQuality: this.visualQuality,
-      fireConfig: $state.snapshot(this.fireConfig),
-      fontFamily: this.fontFamily,
-      cryptoPanicApiKey: this.cryptoPanicApiKey,
-      newsApiKey: this.newsApiKey,
-      cryptoPanicPlan: this.cryptoPanicPlan,
-      cryptoPanicFilter: this.cryptoPanicFilter,
-      newsOpenBehavior: this.newsOpenBehavior,
-      enableNewsAnalysis: this.enableNewsAnalysis,
-      cmcApiKey: this.cmcApiKey,
-      enableCmcContext: this.enableCmcContext,
-      showMarketOverviewLinks: this.showMarketOverviewLinks,
-      showMarketOverview: this.showMarketOverview,
-      showMarketActivity: this.showMarketActivity,
-      showSidebarActivity: this.showSidebarActivity,
-      showMarketSentiment: this.showMarketSentiment,
-      showTechnicalsSummary: this.showTechnicalsSummary,
-      showTechnicalsConfluence: this.showTechnicalsConfluence,
-      showTechnicalsVolatility: this.showTechnicalsVolatility,
-      showTechnicalsOscillators: this.showTechnicalsOscillators,
-      showTechnicalsMAs: this.showTechnicalsMAs,
-      showTechnicalsAdvanced: this.showTechnicalsAdvanced,
-      showTechnicalsSignals: this.showTechnicalsSignals,
-      showTechnicalsPivots: this.showTechnicalsPivots,
-      showTvLink: this.showTvLink,
-      showCgHeatLink: this.showCgHeatLink,
-      heatmapMode: this.heatmapMode,
-      showBrokerLink: this.showBrokerLink,
-      rssFilterBySymbol: this.rssFilterBySymbol,
-      rssPresets: $state.snapshot(this.rssPresets),
-      customRssFeeds: $state.snapshot(this.customRssFeeds),
-      isProLicenseActive: this.entitlement.isProLicenseActive,
-      glassBlur: this.glassBlur,
-      glassSaturate: this.glassSaturate,
-      glassOpacity: this.glassOpacity,
-      enableGlassmorphism: this.enableGlassmorphism,
-      backgroundType: this.backgroundType,
-      backgroundUrl: this.backgroundUrl,
-      backgroundOpacity: this.backgroundOpacity,
-      backgroundBlur: this.backgroundBlur,
-      backgroundAnimationPreset: this.backgroundAnimationPreset,
-      backgroundAnimationIntensity: this.backgroundAnimationIntensity,
-      videoPlaybackSpeed: this.videoPlaybackSpeed,
-      galaxySettings: $state.snapshot(this.galaxySettings),
-      tradeFlowSettings: $state.snapshot(this.tradeFlowSettings),
-      enableTelemetry: this.enableTelemetry,
-      enableNetworkLogs: this.enableNetworkLogs,
-      logSettings: $state.snapshot(this.logSettings),
-      discordBotToken: this.discordBotToken,
-      discordChannels: $state.snapshot(this.discordChannels),
-      marketMode: this.marketMode,
-      analyzeAllFavorites: this.analyzeAllFavorites,
-      marketCacheSize: this.marketCacheSize,
-      brokenAlertReport: this.brokenAlertReport,
-      technicalsUpdateMode: this.technicalsUpdateMode,
-      technicalsUpdateInterval: this.technicalsUpdateInterval,
-      technicalsCacheSize: this.technicalsCacheSize,
-      technicalsCacheTTL: this.technicalsCacheTTL,
-      maxTechnicalsHistory: this.maxTechnicalsHistory,
-      autoTrading: this.autoTrading,
-      multiAccount: this.multiAccount,
-      enableIndicatorOptimization: this.enableIndicatorOptimization,
-      chartHistoryLimit: this.chartHistoryLimit,
-      chartRenderIntervalMs: this.chartRenderIntervalMs,
-      repairTimeframe: this.repairTimeframe,
-      chartPriceScaleMode: this.chartPriceScaleMode,
-      chartAutoScale: this.chartAutoScale,
-      chartInvertScale: this.chartInvertScale,
-      chartDecimalsMode: this.chartDecimalsMode,
-      chartFixedDecimals: this.chartFixedDecimals,
-      chartShowGrid: this.chartShowGrid,
-      chartLastValueVisible: this.chartLastValueVisible,
-      chartCandleBorders: this.chartCandleBorders,
-      chartWatermark: this.chartWatermark,
-      chartCrosshairMode: this.chartCrosshairMode,
-      chartCrosshairStyle: this.chartCrosshairStyle,
-      chartSecondsVisible: this.chartSecondsVisible,
-      chartFixEdges: this.chartFixEdges,
-      chartCountdownEnabled: this.chartCountdownEnabled,
-      enableDockingCentered: this.enableDockingCentered,
-      dockingPosition: this.dockingPosition,
-    };
+    const out: Record<string, unknown> = {};
+    // `keyof Settings` is not a subset of the class properties (`isPro` /
+    // `isProLicenseActive` live on `this.entitlement`), so the dynamic read
+    // goes through one cast instead of pretending the index is typed.
+    const self = this as unknown as Record<keyof Settings, unknown>;
+    for (const field of PERSISTENCE_SCHEMA) {
+      switch (field.save) {
+        case "direct":
+          out[field.key] = self[field.key];
+          break;
+        case "snapshot":
+          out[field.key] = $state.snapshot(self[field.key]);
+          break;
+        case "spread":
+          // Only `aiAllowedActions` uses this mode.
+          out[field.key] = [...(self[field.key] as string[])];
+          break;
+        case "custom":
+          out[field.key] = saveCustomValue(field.key, {
+            read: <K extends keyof Settings>(key: K): Settings[K] =>
+              self[key] as Settings[K],
+            // `$state.snapshot` returns `Snapshot<T>`; the old literal code
+            // passed snapshots straight into `Settings`-typed positions, so
+            // the cast preserves exactly that boundary.
+            snapshot: <T>(value: T): T => $state.snapshot(value) as T,
+            entitlement: this.entitlement,
+          });
+          break;
+      }
+    }
+    // Conformance is enforced by `persistenceSchema.test.ts` (save exactness),
+    // not by this cast: a row missing from the table fails there by name.
+    return out as unknown as Settings;
   }
 
   update(fn: (s: Settings) => Partial<Settings>) {
