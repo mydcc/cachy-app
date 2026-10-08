@@ -357,4 +357,27 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
     expect(settingsState.chartSecondsVisible).toBe(false);
     expect(settingsState.chartCountdownEnabled).toBe(false);
   });
+
+  // `resets.test.ts` pins what `resetGalaxy` / `resetTradeFlow` compute. It
+  // cannot see whether the `SettingsManager` methods still call them: inline
+  // the assignments back into the manager and that file stays green while the
+  // blur pin — which rests on `backgroundBlur` resetting to literal 0 against a
+  // shipped default of 5 — loses its only production caller. This is the
+  // assertion that keeps slice F load-bearing.
+  it("the manager's reset methods still delegate to the extracted helpers", () => {
+    settingsState.backgroundBlur = 9;
+    settingsState.backgroundOpacity = 0.3;
+    settingsState.galaxySettings = { camPos: { x: 9, y: 9, z: 9 } } as never;
+
+    settingsState.resetGalaxySettings();
+
+    // 0, not defaultSettings' 5 — the pin `resets.test.ts` guards.
+    expect(settingsState.backgroundBlur).toBe(0);
+    expect(settingsState.backgroundOpacity).toBe(1);
+    expect(settingsState.galaxySettings.camPos).not.toEqual({ x: 9, y: 9, z: 9 });
+
+    settingsState.tradeFlowSettings = { speed: 42 } as never;
+    settingsState.resetTradeFlowSettings();
+    expect(settingsState.tradeFlowSettings.speed).not.toBe(42);
+  });
 });

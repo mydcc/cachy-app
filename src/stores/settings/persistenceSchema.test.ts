@@ -34,6 +34,7 @@ import {
     type LoadTarget,
     type SaveSource,
 } from "./persistenceSchema";
+import { stripNonCode } from "./sourceScan";
 import type { Settings } from "./settingsTypes";
 
 /**
@@ -117,18 +118,39 @@ describe("persistence schema exactness", () => {
             fileURLToPath(new URL("../settings.svelte.ts", import.meta.url)),
             "utf8",
         );
+        // Comments are blanked before the scan. The first version of this test
+        // matched the raw source, and `[^;]*` happily spanned a comment — so
+        // both of these passed while stating the opposite of the guard:
+        //
+        //   favoriteSymbols = $state(
+        //     // structuredClone here once Svelte proxies tolerate it
+        //     defaultSettings.favoriteSymbols,
+        //   );
+        //
+        //   logSettings = $state<Record<string, unknown>>({
+        //     // structuredClone is not needed for scalars
+        //     ...defaultSettings.logSettings,
+        //   });
+        //
+        // The second is the nested-aliasing defect `mergeGalaxySettings` was
+        // written to fix. A scanner that trusts a lexical token across a
+        // comment is the shape of bug this repo has already paid for once (an
+        // apostrophe in a comment silently dropped nine write sites).
+        const code = stripNonCode(source);
 
         // Assert — every object-valued init wraps the default in
-        // structuredClone. A new object setting without the clone fails
-        // here before its first in-place edit can rewrite the default.
+        // structuredClone, *as the argument* rather than as a word that
+        // happens to appear somewhere in the statement. A new object setting
+        // without the clone fails here before its first in-place edit can
+        // rewrite the default.
         expect(objectKeys.length).toBeGreaterThan(0);
         for (const key of objectKeys) {
             const init =
-                source.match(new RegExp(`\\b${key} = \\$state[^;]*;`))?.[0] ?? "";
+                code.match(new RegExp(`\\b${key} = \\$state[^;]*;`))?.[0] ?? "";
             expect(
                 init,
                 `${key} init hands live state the live default object — wrap it in structuredClone`,
-            ).toMatch(/structuredClone/);
+            ).toMatch(/=\s*\$state[^(]*\(\s*structuredClone\(/);
         }
     });
 
@@ -198,6 +220,11 @@ describe("persistence schema exactness", () => {
         const store: Record<string, unknown> = { accounts: [], userProviders: [] };
 
         // Act + Assert — every custom row dispatches without throwing.
+        //
+        // This proves a `case` label exists and nothing more: the custom arms
+        // only ever throw from their `default:`, so a row mutated to compute
+        // something else entirely still passes here. The load side is pinned by
+        // value in the tests below; the save side by the redaction test.
         for (const field of PERSISTENCE_SCHEMA) {
             if (field.save === "custom") {
                 expect(() =>
@@ -210,6 +237,96 @@ describe("persistence schema exactness", () => {
                 ).not.toThrow();
             }
         }
+    });
+
+    it("loads marketMode into the private field, never through the setter", () => {
+        // Arrange
+        const target = loadTarget();
+        const merged = { marketMode: "advanced" } as unknown as Settings;
+        const defaults = { marketMode: "simple" } as unknown as Settings;
+
+        // Act
+        loadCustomValue("marketMode", target, merged, defaults, undefined);
+
+        // Assert — `_marketMode` on purpose. `load()` must not fire the
+        // `marketMode` setter, because that setter calls `applyMarketMode`,
+        // which overwrites `marketAnalysisInterval`, `enableNewsAnalysis`,
+        // `showMarketActivity` and `analyzeAllFavorites` with profile-level
+        // values on every load. Writing the public name instead keeps this file
+        // green while those four fields are silently reset each boot.
+        expect(target.values._marketMode).toBe("advanced");
+        expect(target.values).not.toHaveProperty("marketMode");
+    });
+
+    it("loads entitlement onto the entitlement store, not as a Settings field", () => {
+        // Arrange
+        const merged = {
+            isPro: true,
+            isProLicenseActive: true,
+        } as unknown as Settings;
+        const defaults = {
+            isPro: false,
+            isProLicenseActive: false,
+        } as unknown as Settings;
+
+        // Act
+        const isProTarget = loadTarget();
+        loadCustomValue("isPro", isProTarget, merged, defaults, undefined);
+        const licenseTarget = loadTarget();
+        loadCustomValue("isProLicenseActive", licenseTarget, merged, defaults, undefined);
+
+        // Assert — `SettingsManager` has no `isPro` field; it lives on
+        // `this.entitlement`. A `target.set("isPro", …)` here would create an
+        // inert own property that nothing reads, resetting the entitlement on
+        // every reload while both this file and the contract test stay green.
+        expect(isProTarget.entitlement.isPro).toBe(true);
+        expect(licenseTarget.entitlement.isProLicenseActive).toBe(true);
+        expect(isProTarget.values).toEqual({});
+        expect(licenseTarget.values).toEqual({});
+    });
+
+    it("redacts credentials on the accounts save row whatever the source holds", () => {
+        // Arrange — a live profile with real keys, as BUG-0280 describes.
+        const live = [
+            {
+                id: "bitunix-main",
+                name: "Main",
+                keys: { key: "sk-real-key", secret: "sk-real-secret" },
+            },
+        ];
+
+        // Act
+        const saved = saveCustomValue("accounts", saveSource({ accounts: live }));
+
+        // Assert — the placeholders are what reaches localStorage; the real
+        // material must not appear anywhere in the serialized payload.
+        const serialized = JSON.stringify(saved);
+        expect(serialized).not.toContain("sk-real-key");
+        expect(serialized).not.toContain("sk-real-secret");
+    });
+
+    it("redacts provider keys on the userProviders save row", () => {
+        // Arrange
+        const live = [
+            {
+                id: "p1",
+                label: "Custom",
+                flavor: "openai-chat",
+                baseUrl: "https://example.invalid",
+                model: "m",
+                apiKey: "sk-provider-secret",
+                allowServerRelay: false,
+            },
+        ];
+
+        // Act
+        const saved = saveCustomValue(
+            "userProviders",
+            saveSource({ userProviders: live }),
+        );
+
+        // Assert
+        expect(JSON.stringify(saved)).not.toContain("sk-provider-secret");
     });
 });
 
