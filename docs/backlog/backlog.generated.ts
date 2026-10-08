@@ -3003,7 +3003,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
       "pro",
       "private"
     ],
-    "area": "ui",
+    "area": "persistence",
     "data_class": "A",
     "adr": "none",
     "depends_on": [],
@@ -6186,6 +6186,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0651-refusal-not-announced-to-screen-readers.md"
+  },
+  {
+    "id": "BUG-0653",
+    "title": "The settings persistence contract is checked by name, and only on the save side",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0653-persistence-contract-blind-spots.md"
   },
   {
     "id": "FEAT-0019",

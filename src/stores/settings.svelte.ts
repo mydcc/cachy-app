@@ -130,6 +130,7 @@ const defaultSettings: Settings = {
   journalPaperTrades: true,
   showStalePriceBadge: true,
   positionViewMode: "detailed",
+  pnlViewMode: "value",
   isPro: false,
   feePreference: "taker",
   // Fresh per-venue copies, not the module constant: a future
@@ -383,17 +384,19 @@ const defaultSettings: Settings = {
 /**
  * The keys `defaultSettings` declares, frozen at module load.
  *
- * This is the persistence contract, and it exists because the constructor's
- * autosave `$effect` uses `toJSON()` as its dependency tracker: a setting that
- * is declared here but absent from `toJSON()` is never read by the effect, so
- * changing it never schedules a save and the user's change is gone on reload —
- * with no error anywhere. A comment cannot hold that line; `settings.persistenceContract.test`
- * does, in both directions, so a new setting cannot be added to one of the
- * three places (defaults, `$state` field, `toJSON()`) without the other two.
+ * This exists so the declared set is comparable at all: `defaultSettings` was
+ * module-private, so nothing outside this module could check it against
+ * `toJSON()`. The contract that matters is checked in
+ * `settings.persistenceContract.test` — a setting declared here but absent from
+ * `toJSON()` is never read by the constructor's autosave `$effect`, so
+ * changing it never schedules a save and the change is gone on reload.
+ *
+ * The check compares *names*. It does not verify that a matching `$state` field
+ * exists, that it is reactive, or that the `toJSON()` entry reads that field —
+ * see the test's docstring for the blind spots this deliberately does not
+ * pretend to close.
  */
-export const SETTINGS_KEYS = Object.freeze(
-    Object.keys(defaultSettings),
-) as readonly string[];
+export const SETTINGS_KEYS = Object.freeze(Object.keys(defaultSettings));
 
 export class SettingsManager {
   // Cloned, not aliased: `$state` proxies the object it is handed, so passing
@@ -450,7 +453,7 @@ export class SettingsManager {
   positionViewMode = $state<PositionViewMode | undefined>(
     defaultSettings.positionViewMode,
   );
-  pnlViewMode = $state<PnlViewMode | undefined>(defaultSettings.pnlViewMode);
+  pnlViewMode = $state<PnlViewMode>(defaultSettings.pnlViewMode);
   feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
   // Shallow clone: the $state proxy must not share object references with the
   // module-level constant, or editing a rate here would rewrite the default.
@@ -538,9 +541,7 @@ export class SettingsManager {
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
   aiAnalysisMode = $state<AiAnalysisMode>(defaultSettings.aiAnalysisMode);
 
-  rssFilterBySymbol = $state<boolean | undefined>(
-    defaultSettings.rssFilterBySymbol,
-  );
+  rssFilterBySymbol = $state<boolean>(defaultSettings.rssFilterBySymbol);
 
   showSpinButtons = $state<boolean | "hover">(defaultSettings.showSpinButtons);
   disclaimerAccepted = $state<boolean>(defaultSettings.disclaimerAccepted);
@@ -1579,7 +1580,10 @@ export class SettingsManager {
     this.journalPaperTrades = merged.journalPaperTrades ?? defaultSettings.journalPaperTrades;
     this.showStalePriceBadge = merged.showStalePriceBadge ?? defaultSettings.showStalePriceBadge;
     this.positionViewMode = merged.positionViewMode;
-    this.pnlViewMode = merged.pnlViewMode;
+    // Was a bare assignment with no default to fall back on, so storage
+    // predating the setting left it undefined while two components wrote to
+    // it. PositionsList already treated "value" as the effective default.
+    this.pnlViewMode = merged.pnlViewMode ?? defaultSettings.pnlViewMode;
     this.entitlement.isPro = merged.isPro;
     this.feePreference = merged.feePreference;
     // Per-venue merge so a partial stored blob never drops a venue or a rate;
@@ -1647,9 +1651,11 @@ export class SettingsManager {
     this.cmcApiKey = merged.cmcApiKey;
     this.enableCmcContext = merged.enableCmcContext;
     // Declared in the defaults and read by newsService, but nothing wrote it
-    // back until now: no UI binds to it, and it was missing from both toJSON()
-    // and this merge step. `??` rather than `||` so an explicitly stored false
-    // survives instead of falling through to the default.
+    // back until now: it was missing from both toJSON() and this merge step.
+    // No UI binds to it either, so the stored value is still always the
+    // default — see the dead locale keys noted in BUG-0652.
+    // `??` matches the surrounding boolean fields; against this particular
+    // default `||` would behave identically, since the default is `false`.
     this.rssFilterBySymbol =
       merged.rssFilterBySymbol ?? defaultSettings.rssFilterBySymbol;
 
