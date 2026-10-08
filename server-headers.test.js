@@ -392,4 +392,68 @@ describe('wrapWriteHead', () => {
       ),
     });
   });
+
+  // Regression: res.writeHead(code, headers) is the only place explicit headers
+  // reach the wire, and Node accepts a plain object or an array there — not a
+  // Web API Headers instance. Headers stores its entries internally and exposes
+  // no own enumerable properties, so Node's own enumeration finds nothing and
+  // silently drops every header the caller put in it. Verified against the Node
+  // version this project pins: response carries neither content-type nor the
+  // caller's own headers. The wrapper must normalize the shape first.
+  it('normalizes a Web API Headers argument into a Node header object', () => {
+    const res = mockRes();
+    const originalWriteHead = vi.fn();
+    res.writeHead = originalWriteHead;
+    wrapWriteHead(res);
+
+    res.writeHead(200, new Headers({ 'content-type': 'text/html', 'x-custom': 'a' }));
+
+    const passed = originalWriteHead.mock.calls[0][1];
+    expect(passed).not.toBeInstanceOf(Headers);
+    expect(passed['content-type']).toBe('text/html');
+    expect(passed['x-custom']).toBe('a');
+    for (const [name, value] of SECURITY_HEADERS) {
+      const key = Object.keys(passed).find((k) => k.toLowerCase() === name.toLowerCase());
+      expect(key, `${name} must survive normalization`).toBeDefined();
+      expect(passed[key]).toBe(value);
+    }
+  });
+
+  it('keeps a nonce CSP that arrives as a Web API Headers object', () => {
+    const res = mockRes();
+    const originalWriteHead = vi.fn();
+    res.writeHead = originalWriteHead;
+    wrapWriteHead(res);
+
+    const nonceCsp = "default-src 'self'; script-src 'self' 'nonce-xyz789'";
+    res.writeHead(200, new Headers({ 'content-security-policy': nonceCsp }));
+
+    const passed = originalWriteHead.mock.calls[0][1];
+    expect(passed['content-security-policy']).toBe(nonceCsp);
+    // overlaid names keep the canonical SECURITY_HEADERS spelling; HTTP header
+    // names are case-insensitive, so look them up that way.
+    const xcto = Object.keys(passed).find((k) => k.toLowerCase() === 'x-content-type-options');
+    expect(xcto).toBeDefined();
+    expect(passed[xcto]).toBe('nosniff');
+    // The static CSP is not appended a second time.
+    expect(
+      Object.keys(passed).filter((k) => k.toLowerCase() === 'content-security-policy'),
+    ).toHaveLength(1);
+  });
+
+  it('normalizes a Headers argument without disturbing the other writeHead overloads', () => {
+    const res = mockRes();
+    const originalWriteHead = vi.fn();
+    res.writeHead = originalWriteHead;
+    wrapWriteHead(res);
+
+    // 3-arg overload: status message sits between the code and the headers.
+    res.writeHead(200, 'OK', new Headers({ 'content-type': 'text/html' }));
+
+    const call = originalWriteHead.mock.calls[0];
+    expect(call[0]).toBe(200);
+    expect(call[1]).toBe('OK');
+    expect(call[2]['content-type']).toBe('text/html');
+    expect(call[2]['X-Frame-Options']).toBe('SAMEORIGIN');
+  });
 });
