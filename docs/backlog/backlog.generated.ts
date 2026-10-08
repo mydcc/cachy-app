@@ -7488,6 +7488,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "assignee": "opencode",
+    "branch": "feature/feat-0342-slice-f-resets",
     "parent": "FEAT-0341",
     "file": "features/FEAT-0342-decompose-god-modules.md"
   },

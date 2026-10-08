@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
+branch: feature/feat-0342-slice-f-resets
 parent: FEAT-0341
 ---
 
