@@ -186,6 +186,25 @@ describe("persistence schema mergers", () => {
         });
     });
 
+    it("deep-copies galaxy settings so camera moves cannot reach the defaults", () => {
+        // Arrange — a storage miss leaves the nested default objects in place.
+        const defaults = {
+            branches: 3,
+            camPos: { x: 0, y: 2, z: 5 },
+            galaxyRot: { x: 0, y: 0, z: 0 },
+        } as unknown as Settings["galaxySettings"];
+
+        // Act
+        const merged = mergeGalaxySettings(undefined, defaults);
+        merged.camPos.x = 999;
+        merged.galaxyRot.y = 999;
+
+        // Assert
+        expect(merged.camPos).not.toBe(defaults.camPos);
+        expect(defaults.camPos.x).toBe(0);
+        expect(defaults.galaxyRot.y).toBe(0);
+    });
+
     it("folds legacy price-scale modes back to the default", () => {
         // Assert
         expect(normalizeStoredPriceScaleMode("linear", "log")).toBe("linear");

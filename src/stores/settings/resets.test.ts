@@ -119,12 +119,49 @@ describe("resetGalaxy", () => {
         };
 
         // Act
-        resetGalaxy(target, { galaxySettings: galaxyDefaults });
+        resetGalaxy(target, { galaxySettings: galaxyDefaults, backgroundOpacity: 1 });
 
         // Assert
         expect(target.galaxySettings).toEqual(galaxyDefaults);
         expect(target.galaxySettings).not.toBe(galaxyDefaults);
         expect(target.backgroundOpacity).toBe(1);
+    });
+
+    it("does not share nested references with the defaults", () => {
+        // Arrange
+        const target: GalaxyResetTarget = {
+            galaxySettings: { ...galaxyDefaults, branches: 9 },
+            backgroundOpacity: 0.2,
+            backgroundBlur: 7,
+        };
+
+        // Act
+        resetGalaxy(target, { galaxySettings: galaxyDefaults, backgroundOpacity: 1 });
+
+        // A camera drag after the reset must not rewrite the shipped default
+        // for the rest of the session (top-level `not.toBe` does not cover this).
+        target.galaxySettings.camPos.x = 999;
+        target.galaxySettings.galaxyRot.y = 999;
+
+        // Assert
+        expect(target.galaxySettings.camPos).not.toBe(galaxyDefaults.camPos);
+        expect(galaxyDefaults.camPos.x).toBe(0);
+        expect(galaxyDefaults.galaxyRot.y).toBe(0);
+    });
+
+    it("restores opacity from the default, not from a hardcode", () => {
+        // Arrange — a non-1 default tells "reads the default" apart from "sets 1".
+        const target: GalaxyResetTarget = {
+            galaxySettings: galaxyDefaults,
+            backgroundOpacity: 1,
+            backgroundBlur: 5,
+        };
+
+        // Act
+        resetGalaxy(target, { galaxySettings: galaxyDefaults, backgroundOpacity: 0.2 });
+
+        // Assert
+        expect(target.backgroundOpacity).toBe(0.2);
     });
 
     it("clears the blur to zero even though the shipped default keeps a blur", () => {
@@ -136,7 +173,7 @@ describe("resetGalaxy", () => {
         };
 
         // Act
-        resetGalaxy(target, { galaxySettings: galaxyDefaults });
+        resetGalaxy(target, { galaxySettings: galaxyDefaults, backgroundOpacity: 1 });
 
         // Assert
         expect(target.backgroundBlur).toBe(0);

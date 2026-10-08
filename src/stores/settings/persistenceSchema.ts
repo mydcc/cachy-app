@@ -264,6 +264,18 @@ export const LOAD_BODY_KEYS: readonly string[] = [
     "apiProvider",
 ];
 
+/**
+ * Keys `load()` assigns directly that the schema carries no load entry for:
+ * the encryption flag and the encrypted blobs. Mirrors `LOAD_BODY_KEYS` —
+ * the load-contract test fails if any of these stops being assigned, so a
+ * stored encrypted profile can never silently load as unencrypted.
+ */
+export const LOAD_SECRET_KEYS: readonly string[] = [
+    "isEncrypted",
+    "encryptedAccountKeys",
+    "encryptedProviderConfigs",
+];
+
 /** What the manager reads a field from when serializing. */
 export interface SaveSource {
     read<K extends keyof Settings>(key: K): Settings[K];
@@ -327,12 +339,14 @@ export function mergeFeeRates(
     };
 }
 
-/** Deep merge so new galaxy fields populate on old storage. */
+/** Deep merge so new galaxy fields populate on old storage. The result is a
+ * deep copy: without the clone a storage miss would hand the live state the
+ * very same nested objects (`camPos`, `galaxyRot`) as `defaultSettings`. */
 export function mergeGalaxySettings(
     stored: Partial<GalaxySettings> | undefined | null,
     defaults: GalaxySettings,
 ): GalaxySettings {
-    return { ...defaults, ...(stored || {}) };
+    return structuredClone({ ...defaults, ...(stored || {}) });
 }
 
 /**
