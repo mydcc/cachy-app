@@ -272,11 +272,12 @@ values where `entry <= stop`, which is `INVALID`.
 
 The cost is not literal blankness — the `{:else}` renders `orderEntry.notReady`,
 so the trader reads a message rather than an empty area. The cost is the flicker
-and the loss of the last good figures. On the `INVALID` path it is worse than
-that, because the calculator writes its error message and erases it in the same
-tick (`calculatorService.ts:167-170` clears what `showError` just set), so the
-standing note is currently the *only* on-screen signal that the figures and the
-form disagree.
+and the loss of the last good figures.
+
+The `INVALID` path is what made this sharper: the calculator wrote its error
+message and erased it in the same tick, so on that path this note was the only
+thing on screen at all. BUG-0650 fixes the erasure; the note is what the trader
+had in the meantime.
 
 Labelling is the smaller harm, and this paragraph is the trade the remaining
 work has to weigh.
