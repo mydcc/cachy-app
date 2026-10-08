@@ -121,6 +121,10 @@ function giveBalance(available: Decimal) {
 beforeEach(() => {
     sent = [];
     attempts = [];
+    // The venue stub is set per test (`venueReportsNoPositions`); without a
+    // reset it leaks into later tests, which would inherit an empty venue
+    // instead of the payload they expect.
+    signedFetchMock.mockReset();
     registerKillSwitch(null);
     registerRiskLimitCheck(null);
     registerAuditRecorder((a) => attempts.push(a));

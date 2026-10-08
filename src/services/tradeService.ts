@@ -160,12 +160,13 @@ class TradeService {
     /**
      * Position freshness, exchange→OMS mirroring and flat verification.
      *
-     * The provider coercion (`|| "bitunix"`) is the same one `activeVenue`
-     * hands `hasActiveKeys` and the close-all paths — three spellings of one
-     * decision, kept in one place now so a fourth cannot drift from them.
+     * The port carries the raw `apiProvider` setting: origin coerced it in
+     * `refreshPositionsForProvider` but compared it raw in
+     * `fetchOpenPositionsFromApi`, and the module keeps both spellings so the
+     * extraction stays verbatim rather than unifying them.
      */
     private readonly positionLifecycle = createPositionLifecycleService({
-        activeProvider: () => settingsState.apiProvider || "bitunix",
+        activeProvider: () => settingsState.apiProvider,
         activeKeys: (provider) =>
             keysForActiveAccount(
                 settingsState.accounts,

@@ -339,3 +339,82 @@ describe("positionLifecycle staleness (200 ms rule)", () => {
         expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
     });
 });
+
+describe("positionLifecycle bitunix pending feed", () => {
+    beforeEach(() => {
+        exchangeSignedFetchMock.mockReset();
+    });
+
+    /** The `/api/sync/positions-pending` envelope: `data` is the list itself. */
+    function pendingResponse(items: unknown[]) {
+        const envelope = JSON.stringify({ code: "0", data: items, msg: "ok" });
+        return {
+            ok: true,
+            status: 200,
+            json: async () => JSON.parse(envelope),
+            text: async () => envelope,
+        };
+    }
+
+    it("maps a valid pending item into the OMS on bitunix refresh", async () => {
+        exchangeSignedFetchMock.mockResolvedValue(
+            pendingResponse([venuePosition()]),
+        );
+        const ports = makePorts({ activeProvider: () => "bitunix" });
+        const service = createPositionLifecycleService(ports);
+
+        await service.refreshPositionsForProvider();
+
+        expect(ports.updatePosition).toHaveBeenCalledTimes(1);
+        expect(ports.updatePosition).toHaveBeenCalledWith(
+            expect.objectContaining({ symbol: "BTCUSDT", side: "long" }),
+        );
+    });
+
+    it("skips an invalid pending item without throwing or touching the OMS for it", async () => {
+        exchangeSignedFetchMock.mockResolvedValue(
+            pendingResponse([venuePosition(), { bogus: true }]),
+        );
+        const ports = makePorts({ activeProvider: () => "bitunix" });
+        const service = createPositionLifecycleService(ports);
+
+        await service.refreshPositionsForProvider();
+
+        // Best-effort processing: the valid item lands, the malformed one is
+        // skipped (and counted) rather than failing the batch.
+        expect(ports.updatePosition).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends nothing without credentials, even on bitunix", async () => {
+        const ports = makePorts({
+            activeProvider: () => "bitunix",
+            activeKeys: () => ({ key: "", secret: "" }),
+        });
+        const service = createPositionLifecycleService(ports);
+
+        await service.refreshPositionsForProvider();
+
+        expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
+        expect(ports.updatePosition).not.toHaveBeenCalled();
+    });
+
+    it("lets the paper book own the venue: no REST mirror on paper", async () => {
+        // `refreshPositionsForProvider` consults the paper feed before any
+        // venue read (non-bitunix lane): a REST mirror would shadow the
+        // simulator's book with venue truth in the money path. This pins the
+        // outcome, not the specific line — `readFreshPositions` carries the
+        // same guard one layer down, so removing the one here alone stays
+        // green (verified by mutation). Both must go before paper traffic
+        // reaches a venue, and this is the test that notices.
+        const ports = makePorts({
+            activeProvider: () => "bitget",
+            paperFeed: () => ({ positions: () => [] }),
+        });
+        const service = createPositionLifecycleService(ports);
+
+        await service.refreshPositionsForProvider();
+
+        expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
+        expect(ports.updatePosition).not.toHaveBeenCalled();
+    });
+});

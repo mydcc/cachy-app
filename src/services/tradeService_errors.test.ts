@@ -50,6 +50,11 @@ import { omsService } from "./omsService";
 describe("TradeService - Error Constants", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Implementations are set per test (`venueReportsNoPositions`), so a
+    // stub must not survive into the next one: `clearAllMocks` wipes calls,
+    // not implementations — a later test expecting a different venue payload
+    // would silently inherit the empty-venue stub.
+    signedFetchMock.mockReset();
   });
 
   afterEach(() => {

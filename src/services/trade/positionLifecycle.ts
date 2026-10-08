@@ -31,6 +31,14 @@
  * snapshot, the paper feed and the read ticket — which is what makes this
  * lane separable from the rest of the class.
  *
+ * Scoped contract, so the next lane does not have to guess: stores and
+ * services arrive as ports; the shared signing module (`exchangeSignedFetch`
+ * + `appFetch`), the pure mappers/schemas/parsers and `logger` are ambient.
+ * Transport-as-a-port is the order lane's shape (its gate port), not this
+ * one's — promoting it here would put a second signing seam next to the one
+ * the gate owns, and the restubbed facade suites already prove the transport
+ * seam is mockable where it stands.
+ *
  * Not here: `reportFlattenShortfall`. It owns the user-facing message, and
  * this repository's rule for an extracted module is to produce message *keys*
  * and let the owner translate (the reason `warnUnconfirmed` is a port in
@@ -70,7 +78,13 @@ interface PaperFeed {
 }
 
 export interface PositionLifecyclePorts {
-    /** The configured venue, already coerced to a known provider. */
+    /**
+     * The configured venue, exactly as the setting holds it — deliberately
+     * *not* coerced. Origin code coerced in some lanes (`refreshPositions…`)
+     * and compared raw in others (`fetchOpenPositionsFromApi` no-ops on
+     * anything that is not `"bitunix"`, falsy included); each call site keeps
+     * the spelling its origin body had, so the extraction stays verbatim.
+     */
     activeProvider(): PositionProvider;
     /** Credentials of the active account for `provider`. */
     activeKeys(
@@ -183,7 +197,7 @@ export function createPositionLifecycleService(
      * none (see `mirrorPositionsToOms`).
      */
     async function refreshPositionsForProvider(): Promise<void> {
-        const provider = ports.activeProvider();
+        const provider = ports.activeProvider() || "bitunix";
         if (provider === "bitunix") {
             await fetchOpenPositionsFromApi();
             return;
@@ -196,6 +210,9 @@ export function createPositionLifecycleService(
     }
 
     async function fetchOpenPositionsFromApi() {
+        // Raw on purpose: origin compared the uncoerced setting, so a falsy
+        // provider no-ops here instead of coercing to bitunix and firing a
+        // live signed fetch. See the port doc.
         if (ports.activeProvider() !== "bitunix") return; // Only Bitunix supported for now
 
         try {
