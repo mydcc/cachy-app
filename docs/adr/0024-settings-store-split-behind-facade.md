@@ -37,18 +37,22 @@ errors, the write just vanishes.
 
 | Blocker | Measured | Cost to clear |
 |---|---|---|
-| `settingsState.<field>` direct reads | **98 production files**, 183 distinct field names | Facade or a rewrite of 98 files |
+| `settingsState.<field>` direct reads | **97 production files**, 183 distinct field names | Facade or a rewrite of 97 files |
 | `update()`'s flat `Object.assign` shape | **0 production callers.** Only `marketStore_limits.test.ts` (4 calls) | **Free — delete it** |
 | Cross-tab `storage` listener mutes tracking | 1 flag, `:1099-1104` | N flags instead of 1 |
 | `load()`'s recovery writes the whole blob | `settings.svelte.ts:1552-1557` | Per-store scoping |
 
 The second row contradicts what the FEAT-0342 status notes and earlier review
 passes claimed — they recorded "46 call sites" depending on the flat `update()`
-form. That number is wrong. `update()` (`:1729-1733`) has **no production
-caller**; `GeneralInputs.svelte:49` carries the comment *"Direct assignment
-instead of .update()"*, so the form was already abandoned before this item.
-**A reviewer re-deriving these numbers must not trust the old figure.** One of
-the four brakes costs nothing to remove.
+form (item note at `docs/backlog/features/FEAT-0342-decompose-god-modules.md`,
+AC-3 blocker list, as written by PR #3981). That number is wrong. `update()`
+(`:1729-1733`) has **no production caller** — zero outside tests, verified by
+grep; the only four call sites in the repo are in
+`marketStore_limits.test.ts`. **A reviewer re-deriving these numbers must not
+trust the old figure.** One of the four brakes costs nothing to remove
+(and the first row's figures are re-measured in the same pass: 97
+production files, 183 distinct field names, 1255 accesses — the note's
+"107 files (~600 accesses)" matches no reproducible count on this base).
 
 The fourth row got cheaper with the Phase-1 work in PR #3981: the two
 `apply*` calls now carry their own catch, so a schema-level failure no longer
@@ -83,7 +87,7 @@ on a field that stopped being read.
 **2. Fields move into N rune-holding sub-stores behind a facade, and
 `settingsState` keeps its name.**
 
-`settingsState.<field>` stays the public surface via getters, so the 98 files
+`settingsState.<field>` stays the public surface via getters, so the 97 files
 do not change. `toJSON()`/`apply*()` are driven from the schema, which already
 carries the grouping (`field.section`). Each sub-store holds its own `$state`
 fields; the coordinator reads them all.
@@ -106,7 +110,7 @@ recreate the coupling this is meant to remove.
 
 ### What this costs
 
-- 98 files keep compiling against getters that no longer own the state. Devtools
+- 97 files keep compiling against getters that no longer own the state. Devtools
   and stack traces get one more hop; a debugger breakpoint on a field no longer
   intercepts a write.
 - Cross-tab suppression becomes N flags. Every mute point is a chance to
