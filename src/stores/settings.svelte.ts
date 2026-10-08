@@ -380,6 +380,21 @@ const defaultSettings: Settings = {
   dockingPosition: "top",
 };
 
+/**
+ * The keys `defaultSettings` declares, frozen at module load.
+ *
+ * This is the persistence contract, and it exists because the constructor's
+ * autosave `$effect` uses `toJSON()` as its dependency tracker: a setting that
+ * is declared here but absent from `toJSON()` is never read by the effect, so
+ * changing it never schedules a save and the user's change is gone on reload —
+ * with no error anywhere. A comment cannot hold that line; `settings.persistenceContract.test`
+ * does, in both directions, so a new setting cannot be added to one of the
+ * three places (defaults, `$state` field, `toJSON()`) without the other two.
+ */
+export const SETTINGS_KEYS = Object.freeze(
+    Object.keys(defaultSettings),
+) as readonly string[];
+
 export class SettingsManager {
   // Cloned, not aliased: `$state` proxies the object it is handed, so passing
   // `defaultSettings.tradeFlowSettings` directly would let every slider write
@@ -1631,6 +1646,12 @@ export class SettingsManager {
     this.enableNewsAnalysis = merged.enableNewsAnalysis;
     this.cmcApiKey = merged.cmcApiKey;
     this.enableCmcContext = merged.enableCmcContext;
+    // Declared in the defaults and read by newsService, but nothing wrote it
+    // back until now: no UI binds to it, and it was missing from both toJSON()
+    // and this merge step. `??` rather than `||` so an explicitly stored false
+    // survives instead of falling through to the default.
+    this.rssFilterBySymbol =
+      merged.rssFilterBySymbol ?? defaultSettings.rssFilterBySymbol;
 
     this._marketMode = merged.marketMode || defaultSettings.marketMode;
     this.analyzeAllFavorites =
@@ -2063,6 +2084,7 @@ export class SettingsManager {
       showCgHeatLink: this.showCgHeatLink,
       heatmapMode: this.heatmapMode,
       showBrokerLink: this.showBrokerLink,
+      rssFilterBySymbol: this.rssFilterBySymbol,
       rssPresets: $state.snapshot(this.rssPresets),
       customRssFeeds: $state.snapshot(this.customRssFeeds),
       isProLicenseActive: this.entitlement.isProLicenseActive,
