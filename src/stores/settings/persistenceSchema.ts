@@ -264,6 +264,24 @@ export const LOAD_BODY_KEYS: readonly string[] = [
     "apiProvider",
 ];
 
+/**
+ * Keys `load()` assigns directly that the schema carries no load entry for:
+ * the encryption flag, the lock flag, and the encrypted blobs. Mirrors
+ * `LOAD_BODY_KEYS` — the load-contract test fails if any of these stops
+ * being assigned, so a stored encrypted profile can never silently load as
+ * unencrypted. Note the pin proves the assignment lines exist, not that
+ * they fire: the `encryptedSecrets` line is conditional on the blob being
+ * present. `isLocked` follows `isEncrypted` out of `applyAccounts`; pinning
+ * it keeps the two from silently diverging.
+ */
+export const LOAD_SECRET_KEYS: readonly string[] = [
+    "isEncrypted",
+    "isLocked",
+    "encryptedAccountKeys",
+    "encryptedProviderConfigs",
+    "encryptedSecrets",
+];
+
 /** What the manager reads a field from when serializing. */
 export interface SaveSource {
     read<K extends keyof Settings>(key: K): Settings[K];
@@ -327,12 +345,14 @@ export function mergeFeeRates(
     };
 }
 
-/** Deep merge so new galaxy fields populate on old storage. */
+/** Deep merge so new galaxy fields populate on old storage. The result is a
+ * deep copy: without the clone a storage miss would hand the live state the
+ * very same nested objects (`camPos`, `galaxyRot`) as `defaultSettings`. */
 export function mergeGalaxySettings(
     stored: Partial<GalaxySettings> | undefined | null,
     defaults: GalaxySettings,
 ): GalaxySettings {
-    return { ...defaults, ...(stored || {}) };
+    return structuredClone({ ...defaults, ...(stored || {}) });
 }
 
 /**
@@ -454,6 +474,10 @@ export function loadCustomValue(
             );
             return;
         case "fireConfig":
+            // Flat today (four scalar tunables — verified), so the top-level
+            // spread is a complete copy. If a nested object ever joins this
+            // shape, clone it like `mergeGalaxySettings`: a spread would hand
+            // live state the live default.
             target.set("fireConfig", {
                 ...defaults.fireConfig,
                 ...(merged.fireConfig || {}),

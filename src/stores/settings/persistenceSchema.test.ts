@@ -16,8 +16,10 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
-import { SETTINGS_KEYS } from "../settings.svelte";
+import { defaultSettings, SETTINGS_KEYS } from "../settings.svelte";
 import {
     LOAD_BODY_KEYS,
     loadCustomValue,
@@ -102,6 +104,34 @@ describe("persistence schema exactness", () => {
         }
     });
 
+    it("clones every object-valued default at init instead of aliasing it", () => {
+        // Arrange — scalars cannot alias, so only object (and array) keys
+        // can hand live state a reference into `defaultSettings`.
+        const objectKeys = (Object.keys(defaultSettings) as (keyof Settings)[]).filter(
+            (key) => {
+                const value: unknown = defaultSettings[key];
+                return typeof value === "object" && value !== null;
+            },
+        );
+        const source = readFileSync(
+            fileURLToPath(new URL("../settings.svelte.ts", import.meta.url)),
+            "utf8",
+        );
+
+        // Assert — every object-valued init wraps the default in
+        // structuredClone. A new object setting without the clone fails
+        // here before its first in-place edit can rewrite the default.
+        expect(objectKeys.length).toBeGreaterThan(0);
+        for (const key of objectKeys) {
+            const init =
+                source.match(new RegExp(`\\b${key} = \\$state[^;]*;`))?.[0] ?? "";
+            expect(
+                init,
+                `${key} init hands live state the live default object — wrap it in structuredClone`,
+            ).toMatch(/structuredClone/);
+        }
+    });
+
     it("routes core and display entries to their apply driver", () => {
         // Assert — the drivers iterate these lists; a row on no list runs nowhere.
         expect(loadSchemaEntries("core").length).toBeGreaterThan(0);
@@ -114,6 +144,45 @@ describe("persistence schema exactness", () => {
             PERSISTENCE_SCHEMA.filter((field) => field.load !== null),
         );
         expect(routed).toEqual(expected);
+    });
+
+    it("inventories every or-mode key, so a new one cannot silently alias the default", () => {
+        // Arrange — `stored || defaults[key]` hands an object-valued key the
+        // live default on a storage miss. Scalars cannot alias, so only the
+        // object keys need an owner; but every or-key at all is an explicit
+        // decision recorded here, or the next "fix" diverges save from load.
+        const orKeys = PERSISTENCE_SCHEMA.filter((field) => field.load === "or").map(
+            (field) => field.key,
+        );
+        const objectOrKeys = orKeys
+            .filter((key) => {
+                const value: unknown = defaultSettings[key];
+                return typeof value === "object" && value !== null;
+            })
+            .sort();
+
+        // Assert
+        expect(objectOrKeys).toEqual([
+            "customRssFeeds",
+            "discordChannels",
+            "logSettings",
+            "rssPresets",
+        ]);
+        expect([...orKeys].sort()).toEqual([
+            "ambientToplineIntensity",
+            "ambientToplineMode",
+            "cryptoPanicFilter",
+            "cryptoPanicPlan",
+            "customRssFeeds",
+            "discordChannels",
+            "fontFamily",
+            "heatmapMode",
+            "logSettings",
+            "newsOpenBehavior",
+            "ollamaBaseUrl",
+            "repairTimeframe",
+            "rssPresets",
+        ]);
     });
 
     it("has a working custom saver and loader for every custom row", () => {
@@ -184,6 +253,52 @@ describe("persistence schema mergers", () => {
             branches: 9,
             spin: 1,
         });
+    });
+
+    it("deep-copies galaxy settings so camera moves cannot reach the defaults", () => {
+        // Arrange — a storage miss leaves the nested default objects in place.
+        const defaults = {
+            branches: 3,
+            camPos: { x: 0, y: 2, z: 5 },
+            galaxyRot: { x: 0, y: 0, z: 0 },
+        } as unknown as Settings["galaxySettings"];
+
+        // Act
+        const merged = mergeGalaxySettings(undefined, defaults);
+        merged.camPos.x = 999;
+        merged.galaxyRot.y = 999;
+
+        // Assert
+        expect(merged.camPos).not.toBe(defaults.camPos);
+        expect(defaults.camPos.x).toBe(0);
+        expect(defaults.galaxyRot.y).toBe(0);
+    });
+
+    it("deep-copies galaxy settings on the stored path too, not just the miss", () => {
+        // Arrange — the clone wraps the merged result, so a stored blob with
+        // its own nested objects is detached the same way. A regression that
+        // cloned only the miss path (`stored ? {...} : structuredClone(...)`)
+        // would keep this green while reintroducing the alias on every load.
+        const defaults = {
+            branches: 3,
+            camPos: { x: 0, y: 2, z: 5 },
+            galaxyRot: { x: 0, y: 0, z: 0 },
+        } as unknown as Settings["galaxySettings"];
+        const stored = {
+            branches: 9,
+            camPos: { x: 1, y: 1, z: 1 },
+        } as unknown as Partial<Settings["galaxySettings"]>;
+
+        // Act
+        const merged = mergeGalaxySettings(stored, defaults);
+        merged.camPos.x = 999;
+
+        // Assert
+        expect(merged.branches).toBe(9);
+        expect(merged.camPos).not.toBe(stored.camPos);
+        expect(merged.camPos).not.toBe(defaults.camPos);
+        expect(stored.camPos.x).toBe(1);
+        expect(defaults.camPos.x).toBe(0);
     });
 
     it("folds legacy price-scale modes back to the default", () => {

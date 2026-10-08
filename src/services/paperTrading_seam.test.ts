@@ -244,12 +244,60 @@ describe("FEAT-0012 — one seam", () => {
         // the two named branches plus the FEAT-0327 credential relaxation. A
         // fourth — in any file, under either spelling — is a live/paper
         // branch that decides what a request does instead of what it carries,
-        // which is exactly what FEAT-0012 rules out.
+        // which is exactly what FEAT-0012 rules out. The spacing is loose on
+        // purpose: `if ( paperState.enabled )` routes exactly as hard (see
+        // the rewording test below).
         expect(
             tradeDomain.match(
-                /if \(!?paperState\.enabled\)|if \(!?ports\.isPaperMode\(\)/g,
+                /if\s+\(\s*!?paperState\.enabled\b|if\s+\(\s*!?ports\.isPaperMode\(\)/g,
             ) ?? [],
         ).toHaveLength(3);
+    });
+
+    it("flags reworded branches, not just the current spelling", () => {
+        // A ternary routes just as hard as an `if`. Value ternaries
+        // (`paperState.enabled ? "paper" : "live"` — the two balance-key
+        // reads in tradeService) only pick a read key, and routing needs a
+        // call: a `(` between `?` and `:` is what separates the two.
+        const ifBranch =
+            /if\s+\(\s*!?paperState\.enabled\b|if\s+\(\s*!?ports\.isPaperMode\(\)/g;
+        const routingTernary =
+            /paperState\.enabled\s*\?[^;:]{0,200}\(|ports\.isPaperMode\(\)\s*\?[^;:]{0,200}\(/g;
+
+        // The rewordings, each carrying the identical branching:
+        expect(`if ( paperState.enabled ) { live(); }`.match(ifBranch)).not.toBeNull();
+        expect(`if (!ports.isPaperMode()) { live(); }`.match(ifBranch)).not.toBeNull();
+        expect(
+            `paperState.enabled ? paperExchange.handle(o) : send(o)`.match(routingTernary),
+        ).not.toBeNull();
+
+        // And on the real domain: the loose `if` matcher sees exactly the
+        // same three the backstop above counts, and no routing ternary
+        // exists — the two value ternaries pick a balance key, not a route.
+        const tradeDomainWire = [
+            readFileSync("src/services/tradeService.ts", "utf8"),
+            ...readdirSync("src/services/trade")
+                .filter((f) => f.endsWith(".ts") && !f.includes(".test."))
+                .map((f) => readFileSync(`src/services/trade/${f}`, "utf8")),
+        ].join("\n");
+        expect(tradeDomainWire.match(ifBranch) ?? []).toHaveLength(3);
+        expect(tradeDomainWire.match(routingTernary) ?? []).toHaveLength(0);
+
+        // Documented limit, not a hole by oversight: a cached boolean
+        // (`const mode = paperState.enabled; if (mode) …`) is invisible to
+        // every spelling matcher. What catches it is the read count — every
+        // new read of the mode breaks the nine below — so an alias cannot
+        // arrive quietly, only explicitly. All three spellings of the same
+        // trick (direct, bracket, destructured) are pinned to zero; the
+        // first alias of any shape fails here.
+        expect(`const mode = paperState.enabled;\nif (mode) { live(); }`.match(ifBranch)).toBeNull();
+        expect(`const mode = paperState['enabled'];\nif (mode) { live(); }`.match(ifBranch)).toBeNull();
+        expect(`const { enabled: mode } = paperState;\nif (mode) { live(); }`.match(ifBranch)).toBeNull();
+        expect(tradeDomainWire.match(/=\s*paperState\.enabled\b/g) ?? []).toHaveLength(0);
+        expect(tradeDomainWire.match(/=\s*paperState\[\s*['"]enabled['"]\s*\]/g) ?? []).toHaveLength(0);
+        expect(
+            tradeDomainWire.match(/\{\s*enabled\s*(?::\s*[A-Za-z_$][\w$]*)?\s*\}\s*=\s*paperState\b/g) ?? [],
+        ).toHaveLength(0);
     });
 
     it("reaches the transport with an identical payload in both modes", async () => {

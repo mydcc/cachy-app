@@ -73,15 +73,19 @@ export type ChartResetTarget = Pick<
  * `backgroundBlur` is deliberately 0, not `defaults.backgroundBlur` (5):
  * the button restores a clean unblurred backdrop, while the shipped default
  * keeps a slight blur. Do not "simplify" this to the default.
+ *
+ * `backgroundOpacity` follows the default on purpose: unlike the blur there
+ * is no documented reason for the reset to diverge from it.
  */
 export function resetGalaxy(
     target: GalaxyResetTarget,
-    defaults: Pick<Settings, "galaxySettings">,
+    defaults: Pick<Settings, "galaxySettings" | "backgroundOpacity">,
 ): void {
-    target.galaxySettings = {
-        ...defaults.galaxySettings,
-    };
-    target.backgroundOpacity = 1;
+    // Deep copy, not a spread: `camPos` / `galaxyRot` would otherwise stay
+    // shared with `defaultSettings`, and the next camera drag would rewrite
+    // the shipped default for the rest of the session.
+    target.galaxySettings = structuredClone(defaults.galaxySettings);
+    target.backgroundOpacity = defaults.backgroundOpacity;
     target.backgroundBlur = 0;
 }
 

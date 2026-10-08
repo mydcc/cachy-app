@@ -46,6 +46,7 @@ import { SETTINGS_KEYS } from "./settings.svelte";
 import { stripNonCode, methodBody } from "./settings/sourceScan";
 import {
     LOAD_BODY_KEYS,
+    LOAD_SECRET_KEYS,
     loadSchemaEntries,
     PERSISTENCE_SCHEMA,
 } from "./settings/persistenceSchema";
@@ -53,6 +54,23 @@ import {
 const SOURCE_PATH = fileURLToPath(
   new URL("../stores/settings.svelte.ts", import.meta.url),
 );
+
+/**
+ * The `methodBody` counterpart for assertions that need the string literals
+ * `stripNonCode` blanks — currently only the section arguments of the apply
+ * drivers. Single-level bodies only (no nested braces): both drivers are one
+ * `applySchemaLoad` call, so a negated-brace match is exact here. Do not
+ * reuse this for methods with control flow — extend `sourceScan.ts` instead.
+ */
+function rawMethodBody(source: string, signature: RegExp): string {
+    // Lazy to the first `{` (parameter lists hold no braces), then a
+    // negated-brace capture for the single-level body.
+    const match = source.match(
+        new RegExp(`${signature.source}[\\s\\S]*?\\{([^}]*)\\}`),
+    );
+    if (!match) throw new Error(`method not found: ${signature}`);
+    return match[1];
+}
 
 /**
  * Keys the load path handles through an indirection this scan cannot see as a
@@ -84,6 +102,19 @@ describe("settings load contract", () => {
       expect(
         plain.test(loadBody) || backing.test(loadBody),
         `load() no longer assigns ${key}, but the schema carries no load entry for it`,
+      ).toBe(true);
+    }
+  });
+
+  it("assigns the encryption flag and blobs in load()", () => {
+    // Otherwise a stored encrypted profile loads as unencrypted with every
+    // contract green: the schema carries `load: null` for these keys by
+    // design, so only this pin sees the assignment disappear.
+    for (const key of LOAD_SECRET_KEYS) {
+      const plain = new RegExp(`this\\.${key}\\s*=(?!=)`);
+      expect(
+        plain.test(loadBody),
+        `load() no longer assigns ${key}: an encrypted profile would silently load as unencrypted`,
       ).toBe(true);
     }
   });
@@ -121,6 +152,21 @@ describe("settings load contract", () => {
     expect(applyDisplay).toMatch(/loadSchemaEntries\(\s*\)/);
     expect(loadSchemaEntries("core").length).toBeGreaterThan(0);
     expect(loadSchemaEntries("display").length).toBeGreaterThan(0);
+  });
+
+  it("routes each apply driver to its own section, not the other's", () => {
+    // The assertion above cannot see this: `stripNonCode` blanks the string
+    // literals, so `loadSchemaEntries("core")` and `("display")` collapse to
+    // the same text and a swapped driver pair stays green — every section
+    // then reloads from defaults. Read the raw source here, where the
+    // section argument is still visible.
+    const raw = readFileSync(SOURCE_PATH, "utf8");
+    const coreBody = rawMethodBody(raw, /private applyCoreFields\(/);
+    const displayBody = rawMethodBody(raw, /private applyDisplayFields\(/);
+    expect(coreBody).toMatch(/loadSchemaEntries\("core"\)/);
+    expect(displayBody).toMatch(/loadSchemaEntries\("display"\)/);
+    expect(coreBody).not.toMatch(/loadSchemaEntries\("display"\)/);
+    expect(displayBody).not.toMatch(/loadSchemaEntries\("core"\)/);
   });
 
   it("exempts nothing, so an exemption cannot quietly become a hiding place", () => {

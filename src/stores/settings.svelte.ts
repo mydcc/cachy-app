@@ -118,7 +118,13 @@ export type {
 } from "./settings/settingsTypes";
 export { TECHNICALS_UPDATE_PRESETS, MAX_FAVORITE_SYMBOLS } from "./settings/settingsTypes";
 
-const defaultSettings: Settings = {
+/**
+ * Read-only export for contract tests (or-mode inventory, save/load parity):
+ * importing the manager would pull the reactive graph into a node test, but
+ * the defaults themselves are a plain module-level object. Never mutate —
+ * several tests assert the live defaults are still pristine.
+ */
+export const defaultSettings: Settings = {
   apiProvider: "bitunix",
   appAccessToken: "",
   marketAnalysisInterval: 60,
@@ -462,10 +468,8 @@ export class SettingsManager {
   feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
   // Shallow clone: the $state proxy must not share object references with the
   // module-level constant, or editing a rate here would rewrite the default.
-  feeRates = $state({
-    bitunix: { ...defaultSettings.feeRates.bitunix },
-    bitget: { ...defaultSettings.feeRates.bitget },
-  });
+  // structuredClone like every other object-valued init (see `accounts`).
+  feeRates = $state(structuredClone(defaultSettings.feeRates));
   hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
   /**
    * Edition/entitlement state (isPro, isProLicenseActive, the capability
@@ -486,11 +490,15 @@ export class SettingsManager {
   glassSaturate = $state<number>(defaultSettings.glassSaturate);
   glassOpacity = $state<number>(defaultSettings.glassOpacity);
 
-  accounts = $state(defaultSettings.accounts);
+  // Object-valued defaults are cloned, never aliased: handing live state a
+  // reference into `defaultSettings` lets the next in-place edit rewrite the
+  // shipped default for the rest of the session (same class as the galaxy
+  // reset aliasing — see `resetGalaxy`). Scalars need no clone.
+  accounts = $state(structuredClone(defaultSettings.accounts));
   activeAccountId = $state<string>(defaultSettings.activeAccountId);
-  customHotkeys = $state(defaultSettings.customHotkeys);
-  favoriteTimeframes = $state(defaultSettings.favoriteTimeframes);
-  favoriteSymbols = $state(defaultSettings.favoriteSymbols);
+  customHotkeys = $state(structuredClone(defaultSettings.customHotkeys));
+  favoriteTimeframes = $state(structuredClone(defaultSettings.favoriteTimeframes));
+  favoriteSymbols = $state(structuredClone(defaultSettings.favoriteSymbols));
 
   syncRsiTimeframe = $state<boolean>(defaultSettings.syncRsiTimeframe);
   imgbbApiKey = $state<string>(defaultSettings.imgbbApiKey);
@@ -534,12 +542,12 @@ export class SettingsManager {
   openrouterApiKey = $state<string>(defaultSettings.openrouterApiKey);
   openrouterModel = $state<string>(defaultSettings.openrouterModel);
   openrouterBaseUrl = $state<string>(defaultSettings.openrouterBaseUrl);
-  userProviders = $state<ProviderConfig[]>(defaultSettings.userProviders);
+  userProviders = $state<ProviderConfig[]>(structuredClone(defaultSettings.userProviders));
   activeProviderId = $state<string>(defaultSettings.activeProviderId);
   analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
-  aiAllowedActions = $state<string[]>([...defaultSettings.aiAllowedActions]);
+  aiAllowedActions = $state<string[]>(structuredClone(defaultSettings.aiAllowedActions));
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
   aiShareTradeContext = $state<boolean>(defaultSettings.aiShareTradeContext);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
@@ -583,7 +591,7 @@ export class SettingsManager {
     defaultSettings.marketAnalysisInterval,
   );
   pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
-  analysisTimeframes = $state<string[]>(defaultSettings.analysisTimeframes);
+  analysisTimeframes = $state<string[]>(structuredClone(defaultSettings.analysisTimeframes));
   showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
   /**
    * The live account object for a venue, safe to bind a credential input to.
@@ -790,8 +798,8 @@ export class SettingsManager {
   showCgHeatLink = $state<boolean>(defaultSettings.showCgHeatLink);
   heatmapMode = $state<HeatmapMode>(defaultSettings.heatmapMode);
   showBrokerLink = $state<boolean>(defaultSettings.showBrokerLink);
-  rssPresets = $state<string[]>(defaultSettings.rssPresets || []);
-  customRssFeeds = $state<string[]>(defaultSettings.customRssFeeds || []);
+  rssPresets = $state<string[]>(structuredClone(defaultSettings.rssPresets || []));
+  customRssFeeds = $state<string[]>(structuredClone(defaultSettings.customRssFeeds || []));
 
   // Background Customization
   enableGlassmorphism = $state<boolean>(defaultSettings.enableGlassmorphism);
@@ -806,14 +814,14 @@ export class SettingsManager {
     defaultSettings.backgroundAnimationIntensity,
   );
   videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
-  galaxySettings = $state(defaultSettings.galaxySettings);
+  galaxySettings = $state(structuredClone(defaultSettings.galaxySettings));
   enableTelemetry = $state<boolean>(defaultSettings.enableTelemetry);
   enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
-  logSettings = $state(defaultSettings.logSettings);
+  logSettings = $state(structuredClone(defaultSettings.logSettings));
 
   // Social Media
   discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
-  discordChannels = $state<string[]>(defaultSettings.discordChannels);
+  discordChannels = $state<string[]>(structuredClone(defaultSettings.discordChannels));
 
   enableBurningBorders = $state<boolean>(defaultSettings.enableBurningBorders);
   borderEffect = $state<"fire" | "glow">(
@@ -848,7 +856,7 @@ export class SettingsManager {
 
   visualQuality = $state<VisualQuality>(defaultSettings.visualQuality);
 
-  fireConfig = $state(defaultSettings.fireConfig);
+  fireConfig = $state(structuredClone(defaultSettings.fireConfig));
 
   updateFireConfig(newConfig: Partial<Settings["fireConfig"]>) {
     this.fireConfig = { ...this.fireConfig, ...newConfig };

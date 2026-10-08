@@ -43,7 +43,10 @@ import { ROUTE_SIGNING_PLAN } from "../../utils/exchange/restSigningPlan";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SRC = path.join(REPO_ROOT, "src");
 
-/** The transport, and the only file allowed to call it without a pass. */
+/** The transport, and the only file allowed to call it without a pass.
+ * Move-with-me: if the transport or this check ever leaves this file, the
+ * pairing (and the TRANSPORT_OWNER skip in the allowlist describe below)
+ * moves with it. */
 const TRANSPORT_OWNER = path.join("src", "services", "tradeService.ts");
 
 /**
@@ -434,5 +437,140 @@ describe("FEAT-0011 — the order transport is only reachable through the gate",
             (a) => !MUTATING_ACTIONS.includes(a),
         );
         expect(extra.sort()).toEqual(["cancel", "modify"]);
+    });
+});
+
+describe("FEAT-0068 — ungated envelope paths are allowlisted, not invisible", () => {
+    /**
+     * Every `cachyPath` that may reach `exchangeSignedFetch` without a gate
+     * pass, with the reason. Reads need no pass; the one write lane
+     * (`/api/account-settings`) carries none by construction — no orders, so
+     * no pass exists — and refuses in paper mode at the port instead (see
+     * the module doc in `trade/accountSettings.ts`).
+     *
+     * The gate scanner above still flags known mutating actions on ANY path,
+     * including these — this list only closes the other direction: a path
+     * nobody justified fails here until it is. Documented rest gap: an
+     * ungated write with a previously unknown action string over an
+     * allowlisted path stays dark, because the scanner cannot know an action
+     * it has never seen mutates.
+     */
+    const UNGATED_ENVELOPE_ALLOWLIST: Record<string, string> = {
+        "/api/account-settings":
+            "FEAT-0068 account writes (leverage, margin mode, position mode). No orders by construction.",
+        "/api/leverage-margin-mode": "Read: live leverage/margin-mode for the account chip.",
+        "/api/account": "Read: account snapshot, position mode, verification claim.",
+        "/api/balance": "Read: balance snapshot.",
+        "/api/positions": "Read: open-positions snapshot.",
+        "/api/orders":
+            "Read: pending-order list and order detail (type: pending / order-detail). Placements go through the transport with a pass.",
+        "/api/sync": "Read: fills sample for the sync backend. Not exchange state.",
+        "/api/sync/orders": "Write to the sync backend (order import), not exchange state. No gate pass by design.",
+        "/api/sync/positions-pending": "Sync-backend pending-positions import, not exchange state.",
+        "/api/sync/positions-history": "Read: positions-history import.",
+    };
+
+    it("sends no ungated envelope call to a path nobody justified", () => {
+        const unlisted: Bypass[] = [];
+        for (const file of sourceFiles()) {
+            const relative = path.relative(REPO_ROOT, file);
+            // The transport fans every gated call out through one
+            // variable-path call (`cachyPath: routeUrl`) that carries no
+            // literal and no pass token — the pass is checked by
+            // assertGatePass before, not sent alongside. The gatedRequest
+            // assertion above owns that file; a new ungated direct call
+            // inside it with a known action still fails there.
+            if (relative === TRANSPORT_OWNER) continue;
+            const text = readFileSync(file, "utf8");
+            const lines = text.split("\n");
+            // Local aliases of the primitive (`const send = exchangeSignedFetch`)
+            // reach the same envelope without naming it at the call site.
+            // File-scoped (not block-scoped like the gate scan above): alias
+            // names are rare enough that overreach is the smaller risk here.
+            const aliases = new Set<string>();
+            for (const line of lines) {
+                const binding = line.match(
+                    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:[A-Za-z_$][\w$]*\.)*exchangeSignedFetch\b/,
+                );
+                if (binding && binding[1] !== "exchangeSignedFetch") aliases.add(binding[1]);
+            }
+            const sitePattern = new RegExp(
+                `\\b(?:exchangeSignedFetch${[...aliases].map((a) => `|${a}`).join("")})\\s*(?:<[^>]*>)?\\s*\\(`,
+            );
+            for (let i = 0; i < lines.length; i++) {
+                if (!sitePattern.test(lines[i])) continue;
+                // The primitive's own definition, not a call site.
+                if (/function\s+exchangeSignedFetch/.test(lines[i])) continue;
+                const tail = lines.slice(i, i + 30).join("\n");
+                const args = argumentText(tail);
+                if (/(?:^|[^A-Za-z0-9_$])pass(?:[^A-Za-z0-9_$]|$)/.test(args)) continue;
+                // Either quote style; a query suffix addresses the same
+                // route, so it looks up by its bare path.
+                const rawPath = tail.match(/cachyPath:\s*["']([^"']+)["']/)?.[1];
+                const cachyPath = rawPath?.split("?")[0];
+                if (!cachyPath || !(cachyPath in UNGATED_ENVELOPE_ALLOWLIST)) {
+                    unlisted.push({ file: relative, line: i + 1, excerpt: lines[i].trim() });
+                }
+            }
+        }
+        expect(
+            unlisted,
+            `Ungated envelope call(s) to unjustified path(s) — allowlist with rationale or gate:\n${unlisted
+                .map((b) => `  ${b.file}:${b.line}  ${b.excerpt}`)
+                .join("\n")}`,
+        ).toEqual([]);
+    });
+
+    it("closes the write lane to exactly the four declared account actions", async () => {
+        // The path test above cannot see *what* travels an allowlisted path:
+        // an order-like write under a previously unknown action string would
+        // pass it. This pins the other half — the payload contract is a
+        // closed enum, validated before dispatch on the client
+        // (`accountSettingRequest`) and again on the route, so a smuggled
+        // action fails closed instead of travelling.
+        const { AccountSettingsRequestSchema } = await import(
+            "../../types/accountSettingsSchemas"
+        );
+
+        // Exact inventory: a fifth action fails here until it is justified.
+        // Reads `.def` (public in Zod 4); a Zod major bump that moves it
+        // fails loudly here rather than silently.
+        const declared = AccountSettingsRequestSchema.options
+            .map(
+                (option) =>
+                    (
+                        (option as unknown as { shape: { type: unknown } })
+                            .shape.type as unknown as { def: { values: string[] } }
+                    ).def.values,
+            )
+            .flat()
+            .sort();
+        expect(declared).toEqual([
+            "adjust-position-margin",
+            "change-leverage",
+            "change-margin-mode",
+            "change-position-mode",
+        ]);
+
+        // The four declared actions validate; everything else — including
+        // order actions routed through the write lane — does not.
+        const valid = [
+            { type: "change-leverage", exchange: "bitunix", symbol: "BTCUSDT", leverage: 10 },
+            { type: "change-margin-mode", exchange: "bitunix", symbol: "BTCUSDT", marginMode: "CROSS" },
+            { type: "change-position-mode", exchange: "bitunix", positionMode: "HEDGE" },
+            { type: "adjust-position-margin", exchange: "bitunix", symbol: "BTCUSDT", amount: "10" },
+        ];
+        for (const payload of valid) {
+            expect(
+                AccountSettingsRequestSchema.safeParse(payload).success,
+                `${payload.type} must stay accepted`,
+            ).toBe(true);
+        }
+        for (const type of ["place-order", "close-position", "set-leverage", "change-leverage-2", ""]) {
+            expect(
+                AccountSettingsRequestSchema.safeParse({ type, exchange: "bitunix" }).success,
+                `${type || "(empty)"} must stay rejected`,
+            ).toBe(false);
+        }
     });
 });
