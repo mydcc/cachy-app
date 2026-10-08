@@ -2995,7 +2995,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "bug",
     "status": "in-progress",
     "assignee": "opencode",
-    "branch": "fix/contract-scan-scope",
+    "branch": "fix/drop-dead-settings-fields",
     "priority": "P1",
     "milestone": "none",
     "editions": [
