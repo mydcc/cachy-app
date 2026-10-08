@@ -27,6 +27,7 @@ import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
 import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 vi.mock("$app/env", () => ({ browser: true, dev: true }));
 
@@ -252,6 +253,52 @@ describe("FEAT-0012 — one seam", () => {
                 /if\s+\(\s*!?paperState\.enabled\b|if\s+\(\s*!?ports\.isPaperMode\(\)/g,
             ) ?? [],
         ).toHaveLength(3);
+    });
+
+    it("inventories every read of the mode across the whole service layer", () => {
+        // The backstop above walks `tradeService.ts` + `src/services/trade/`.
+        // That set was never the whole seam: `paperState.enabled` is also read
+        // in five more production files under `src/services/`, and a branch
+        // placed in one of them satisfies every assertion in this file. A
+        // module there can route just as hard as one in `trade/`, so "it is not
+        // in the scanned set" was not a safety property — it was an unexamined
+        // region.
+        //
+        // The count cannot simply be raised: seven of the ten branches are in
+        // the paper implementation itself (`paperTradingService` alone holds
+        // five), where branching on the mode *is* the job. Pinning a global
+        // total would encode "the paper services may branch at most N times",
+        // which is not a property worth protecting. So the guard is an
+        // inventory instead — the same shape BUG-0659 required for `or`-mode
+        // settings keys: every file in the layer that reads the mode is named
+        // with its read count. A new reader has to be added here deliberately,
+        // which puts it in front of a reviewer; an unexamined region cannot
+        // quietly accumulate one.
+        const read = /paperState\.enabled\b/g;
+        const found = new Map<string, number>();
+        (function walk(dir: string): void {
+            for (const entry of readdirSync(dir, { withFileTypes: true })) {
+                const full = join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    walk(full);
+                } else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.")) {
+                    const hits = readFileSync(full, "utf8").match(read)?.length ?? 0;
+                    if (hits > 0) found.set(full, hits);
+                }
+            }
+        })("src/services");
+
+        // The `trade/` lane reads the mode through a port, so it does not
+        // appear here at all — the backstop above covers it under its own
+        // spelling (`ports.isPaperMode()`).
+        expect([...found.entries()].sort()).toEqual([
+            ["src/services/accountSession.svelte.ts", 1],
+            ["src/services/paperAccountFeed.ts", 1],
+            ["src/services/paperJournalService.ts", 1],
+            ["src/services/paperTradingService.ts", 5],
+            ["src/services/rmsService.ts", 1],
+            ["src/services/tradeService.ts", 9],
+        ]);
     });
 
     it("flags reworded branches, not just the current spelling", () => {

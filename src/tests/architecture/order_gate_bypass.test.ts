@@ -105,6 +105,14 @@ function transportNamesIn(lines: string[], line: number): string[] {
     // backtrack, and this one runs over every source file in `src/`.
     const alias =
         /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:[A-Za-z_$][\w$]*\.)*(?:signedRequest|exchangeSignedFetch|appFetch)\b/;
+    // Destructuring renames the transport without ever writing `= <primitive>`,
+    // so the form above cannot see it: `const { signedRequest: send } = ports`
+    // binds `send` to the transport and mentions `signedRequest` only as an
+    // object key. That is ordinary refactoring output, not obfuscation — which
+    // is what made this a hole rather than a documented limit. Matched
+    // separately because the captured name is the *renamed* binding.
+    const destructuredAlias =
+        /(?:const|let|var)\s*\{[^}]*\b(?:signedRequest|exchangeSignedFetch|appFetch)\s*:\s*([A-Za-z_$][\w$]*)/;
 
     // Walk back to the start of the enclosing block, counting braces. A
     // binding cannot reach past the block it was declared in, so neither may
@@ -128,7 +136,7 @@ function transportNamesIn(lines: string[], line: number): string[] {
     }
 
     for (let i = start; i <= line; i++) {
-        const match = alias.exec(lines[i]);
+        const match = alias.exec(lines[i]) ?? destructuredAlias.exec(lines[i]);
         if (match && !DISPATCH_PRIMITIVES.includes(match[1])) names.add(match[1]);
     }
     return [...names];
@@ -336,6 +344,30 @@ describe("FEAT-0011 — the order transport is only reachable through the gate",
             export async function sendIt(ports) {
                 const send = ports.signedRequest;
                 return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // The same hole in the other spelling. `const { signedRequest: send } = ports`
+    // never writes `= <primitive>`, so the alias pattern alone cannot bind
+    // `send` to the transport, and the mutating order below reaches the wire
+    // ungated with every other assertion in this file still green.
+    it("flags a mutating order sent through a destructured transport alias", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const { signedRequest: send } = ports;
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    it("flags a mutating order through a destructured appFetch alias", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const { appFetch: relay } = ports;
+                return relay("/api/orders", { method: "POST", body: JSON.stringify({ action: "place-order" }) });
             }
         `;
         expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
