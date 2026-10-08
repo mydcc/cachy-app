@@ -560,7 +560,15 @@
      * it compares the payload against the intent, and both come from `data`.
      */
     if (staleInputs) {
-      uiState.showError($_("orderEntry.errors.staleCalculation"));
+      // Composed, not restated: the clause naming the disagreement lives once,
+      // in the note. Two keys in two languages saying the same thing is four
+      // strings to keep in sync, and the persistent note and the click refusal
+      // would eventually disagree on screen.
+      uiState.showError(
+        $_("orderEntry.errors.staleCalculation", {
+          values: { reason: $_("orderEntry.notes.staleCalculation") },
+        }),
+      );
       return;
     }
 
@@ -826,7 +834,7 @@
       here, where the numbers are, not only on the click that was refused.
     -->
     {#if staleInputs}
-      <p class="note warn">{$_("orderEntry.notes.staleCalculation")}</p>
+      <p class="note warn" role="status">{$_("orderEntry.notes.staleCalculation")}</p>
     {/if}
 
     <!--
@@ -838,9 +846,9 @@
       two call sites cannot answer different questions again.
     -->
     {#if stopRequested && stopPlacement === "separate"}
-      <p class="note warn">{$_("orderEntry.notes.noAttachedProtection")}</p>
+      <p class="note warn" role="status">{$_("orderEntry.notes.noAttachedProtection")}</p>
     {:else if stopRequested && stopPlacement === "unprotected"}
-      <p class="note warn">{$_("orderEntry.notes.unprotectedEntry")}</p>
+      <p class="note warn" role="status">{$_("orderEntry.notes.unprotectedEntry")}</p>
     {/if}
 
     {#if !hasMeta}
@@ -869,7 +877,7 @@
     {:else if balanceUnmeasured}
       <p class="note">{$_("orderEntry.notes.balanceUnmeasured")}</p>
     {:else if liveMarginShortfall && data?.requiredMargin instanceof Decimal && liveAvailable instanceof Decimal}
-      <p class="note warn">
+      <p class="note warn" role="status">
         {$_("orderEntry.notes.liveMarginShortfall", {
           values: {
             actual: data.requiredMargin.toString(),
@@ -878,9 +886,9 @@
         })}
       </p>
     {:else if isBelowMinVolume}
-      <p class="note warn">{$_("orderEntry.errors.belowMinTradeVolume", { values: { min: meta?.minTradeVolume ?? "" } })}</p>
+      <p class="note warn" role="status">{$_("orderEntry.errors.belowMinTradeVolume", { values: { min: meta?.minTradeVolume ?? "" } })}</p>
     {:else if isAboveMaxVolume}
-      <p class="note warn">{$_("orderEntry.errors.exceedsMaxOrderVolume", { values: { max: (entryType === "market" ? meta?.maxMarketOrderVolume : meta?.maxLimitOrderVolume) ?? "" } })}</p>
+      <p class="note warn" role="status">{$_("orderEntry.errors.exceedsMaxOrderVolume", { values: { max: (entryType === "market" ? meta?.maxMarketOrderVolume : meta?.maxLimitOrderVolume) ?? "" } })}</p>
     {/if}
   {:else}
     <p class="note">{$_("orderEntry.notReady")}</p>

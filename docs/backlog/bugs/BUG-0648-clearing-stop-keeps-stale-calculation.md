@@ -122,10 +122,14 @@ refuse when they disagree, which closes the money path without deciding the
 
 - [x] `PlaceOrderPanel.submit()` cannot send a quantity, price, stop or target
       that `data` holds but `tradeState` no longer does
-- [ ] Clearing the stop stops the summary from showing the previous `SIZE`,
-      `MARGIN` and `STOP` — or is documented as intentional, with the reason
-- [ ] A summary that renders while `dashboard.promptForData` is displayed is
-      either impossible or explained on screen
+- [x] Clearing the stop stops the summary from showing the previous `SIZE`,
+      `MARGIN` and `STOP` — **documented as intentional**, per the second half of
+      the Resolution: the figures stay and are labelled not current. Nulling them
+      instead was rejected because a refused recalculation happens on ordinary
+      keystrokes, not only on mistakes — see that section for the traced path
+- [x] A summary that renders while `dashboard.promptForData` is displayed is
+      either impossible or explained on screen — the standing note *is* that
+      explanation, and it renders inside the same block
 - [x] A test reproduces the defect: a successful calculation, then the stop
       cleared, then a submit — and fails without the fix, naming the stale field
 - [~] The gate's remediation instruction in `orderGate.unplaceableStop` is
@@ -259,11 +263,23 @@ screen and the send decision cannot disagree — which is the shape of the defec
 this item was filed for.
 
 **Why the figures were not blanked instead.** `currentTradeData` never clears on
-a refused recalculation, and nulling it there would empty the summary on every
-keystroke while a recalculation is briefly incomplete: type "6" on the way to
-"60000" and the whole panel goes blank, then comes back. A trader who can see
-that a figure is old can act on it; a trader staring at an empty panel cannot
-tell that anything was calculated at all. Labelling is the smaller harm.
+a refused recalculation, and nulling it there would drop the figures on ordinary
+keystrokes, not only on mistakes — traced to three concrete paths: a zero
+`accountSize`/`riskPercentage`/`entryPrice` yields `STATUS_INCOMPLETE` (typing
+`0.5` into risk puts a literal `0` in the store for one tick); a stop `<= 0` does
+too; and editing the entry price on a long that already has a stop walks through
+values where `entry <= stop`, which is `INVALID`.
+
+The cost is not literal blankness — the `{:else}` renders `orderEntry.notReady`,
+so the trader reads a message rather than an empty area. The cost is the flicker
+and the loss of the last good figures. On the `INVALID` path it is worse than
+that, because the calculator writes its error message and erases it in the same
+tick (`calculatorService.ts:167-170` clears what `showError` just set), so the
+standing note is currently the *only* on-screen signal that the figures and the
+form disagree.
+
+Labelling is the smaller harm, and this paragraph is the trade the remaining
+work has to weigh.
 
 **What this does not fix, stated plainly.** The dead end is unchanged: clearing
 the stop on Bitget still yields an incomplete recalculation, `data` still keeps
@@ -283,7 +299,11 @@ time. That trade is still open and still wants a human.
 
 - `PlaceOrderPanel.svelte` — the only consumer of the values
 - `app.ts` — already null-safe (`?.positionSize?.gt(0)`), and refusing with
-  `errors.invalidTrade` is the right answer when there is no valid calculation
+  `errors.invalidTrade` is the right answer when there is no valid calculation.
+  Note `addTrade` copies `currentTradeData` into the journal verbatim, with no
+  staleness check, so a trader who clears a stop and journals the trade records
+  the stop they removed. Same open question, third reader, not reachable from
+  the panel fix
 
 One caller is outside this panel: the alert engine places through the same
 service (`stores/alerts.svelte.ts`), which is why the guard could not simply
