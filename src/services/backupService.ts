@@ -407,6 +407,12 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
       }
     }
     parsed.openrouterApiKey = "";
+    // Not a live field any more — removed from Settings in BUG-0654 because it
+    // had no consumer. This line stays because the export path reads the RAW
+    // localStorage string, not toJSON(): a profile written before the field was
+    // removed still carries the key, and without this it would land in an
+    // unencrypted backup in cleartext. Delete this only once no stored profile
+    // can hold it.
     parsed.imgurClientId = "";
 
     return JSON.stringify(parsed);

@@ -332,7 +332,6 @@ export interface Settings {
   imgbbApiKey: string;
   imgbbExpiration: number;
   isDeepDiveUnlocked?: boolean;
-  imgurClientId?: string;
   /**
    * Global Chat over SpacetimeDB. Class B under ADR-0001, so it is opt-in and
    * off by default: nothing connects until the user turns this on and supplies

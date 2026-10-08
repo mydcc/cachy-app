@@ -493,7 +493,6 @@ export class SettingsManager {
   isDeepDiveUnlocked = $state<boolean | undefined>(
     defaultSettings.isDeepDiveUnlocked,
   );
-  imgurClientId = $state<string | undefined>(defaultSettings.imgurClientId);
 
   cloudEnabled = $state<boolean>(defaultSettings.cloudEnabled);
   cloudHost = $state<string>(defaultSettings.cloudHost);
@@ -1602,7 +1601,6 @@ export class SettingsManager {
     this.imgbbApiKey = merged.imgbbApiKey;
     this.imgbbExpiration = merged.imgbbExpiration;
     this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
-    this.imgurClientId = merged.imgurClientId;
     this.cloudEnabled = merged.cloudEnabled;
     this.cloudHost = merged.cloudHost;
     this.cloudDbName = merged.cloudDbName;
@@ -2002,7 +2000,6 @@ export class SettingsManager {
       imgbbApiKey: this.imgbbApiKey,
       imgbbExpiration: this.imgbbExpiration,
       isDeepDiveUnlocked: this.isDeepDiveUnlocked,
-      imgurClientId: this.imgurClientId,
       cloudEnabled: this.cloudEnabled,
       cloudHost: this.cloudHost,
       cloudDbName: this.cloudDbName,

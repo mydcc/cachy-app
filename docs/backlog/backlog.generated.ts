@@ -6206,6 +6206,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0653-persistence-contract-blind-spots.md"
   },
   {
+    "id": "BUG-0655",
+    "title": "rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/drop-dead-settings-fields",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0655-rss-filter-unreachable-but-live.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
@@ -9840,6 +9860,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "opencode",
     "file": "bugs/BUG-0645-data-attributes-reach-analytics-tracker.md"
+  },
+  {
+    "id": "BUG-0654",
+    "title": "The imgurClientId setting has no consumer and has never had one",
+    "type": "bug",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/drop-dead-settings-fields",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "persistence",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0654-drop-imgur-client-id.md"
   },
   {
     "id": "FEAT-0022",
