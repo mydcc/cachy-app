@@ -6189,7 +6189,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0653",
     "title": "The settings persistence contract is checked by name, and only on the save side",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/settings-reactivity-contract",
     "priority": "P2",
     "milestone": "none",
     "editions": [

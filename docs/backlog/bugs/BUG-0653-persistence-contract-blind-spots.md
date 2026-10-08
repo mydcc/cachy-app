@@ -2,7 +2,9 @@
 id: BUG-0653
 title: The settings persistence contract is checked by name, and only on the save side
 type: bug
-status: specced
+status: in-progress
+assignee: opencode
+branch: fix/settings-reactivity-contract
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -60,6 +62,54 @@ verified clean.
   first draft of this item cited `_apiProvider` as an instance; it is not one,
   and the citation was removed rather than softened.
 
+### Added by the runtime assertion
+
+`src/stores/settings.reactivityContract.component.test.ts` writes every
+serialized key and asserts a save was scheduled. Three things it established,
+all measured:
+
+- *Two serialized keys do not live on the manager.* `isPro` and
+  `isProLicenseActive` are declared in `defaultSettings` and read by `toJSON()`
+  (`settings.svelte.ts:1978`, `:2093`), but the fields themselves are on
+  `this.entitlement` — an `EntitlementStore` where both are `$state`
+  (`src/stores/entitlement.svelte.ts:34-35`), and the load merge assigns through
+  the same accessor (`settings.svelte.ts:1586`, `:1757`). The reactivity is
+  correct; what is wrong is the assumption that a serialized key names a field
+  on the manager. Writing `settings.isPro` creates an inert own property. The
+  test routes those two keys to their owner and asserts that *every* key the
+  manager does not carry is declared, so a third one fails loudly instead of
+  being reported as a reactivity defect.
+- *A runtime reactivity assertion only works in the `components` Vitest
+  project.* Written as a plain `.test.ts` it passes 167 keys as broken. Only
+  `vite.config.ts:209` sets `resolve.conditions: ["browser"]` for `components`;
+  in `unit`, `svelte` resolves to the server entry where `$effect` is inert, so
+  the autosave effect never runs. Measured: `toJSON` call count after writing
+  `showSidebars` was 0 in `unit` and 1 in `components`.
+- *The counts.* 173 `$state` fields, 167 serialized keys, 6 fields not
+  referenced by `toJSON()` (`_apiProvider`, `_marketMode`, `isLocked`,
+  `decryptionFailures`, `encryptionFailures`, `deviceKeyLost`). The arithmetic
+  closes from three directions: the field count from parsing the declarations,
+  `SETTINGS_KEYS.length` from the running test, and the difference as the six
+  names above. BUG-0652 said 166 and 174.
+
+### Mutation evidence for the new assertion
+
+Each mutation turned exactly one key red and the control green.
+
+| Mutation | Reported inert |
+|---|---|
+| `showSidebars: this.showSidebars` → `this.showTooltips` | `showSidebars` only |
+| `chartFixEdges = $state<boolean>(…)` → plain `boolean` field | `chartFixEdges` only |
+| none (control) | 3 of 3 green |
+
+A first version of the test reported **all 167 keys** as broken while the store
+was fine. The cause was in the test: restoring a key left its autosave timer
+pending, so the next iteration's `advanceTimersByTime` fired *that* timer and
+credited the key with a save its own write never caused. The first mutation was
+therefore green. Draining the timer after each restore is what made both
+mutations red — recorded here because the failure mode is invisible: a guard
+that cannot fail is indistinguishable from a store with no autosave at all.
+
 ## Cause
 
 `toJSON()`, `defaultSettings`, the `$state` fields, `applyCoreFields` and
@@ -71,23 +121,27 @@ review found the overclaim in its docstring.
 
 ## Fix
 
-- Extend the contract to the load side: assert that every key `toJSON()` emits
-  is either assigned by `applyCoreFields`/`applyDisplayFields` or is a named
-  exception. This is a source-level check, so it needs the same mutation
-  discipline as `order_gate_bypass.test.ts`.
-- Add one runtime reactivity assertion: build a manager inside `$effect.root`,
-  flip a field, and assert a save was scheduled. That is what closes the
-  wrong-field and non-reactive-backing-field blind spots, and it is the only
-  check that speaks the language the bug is actually written in.
+- **Done** — one runtime reactivity assertion:
+  `src/stores/settings.reactivityContract.component.test.ts`. Builds a manager,
+  flips every serialized key, and asserts the autosave `$effect` scheduled a
+  save. That closes the wrong-field and non-reactive-backing-field blind spots,
+  and it is the only check that speaks the language the bug is written in. It
+  must be a `.component.test.ts`; see the measured reason above.
+- **Open** — extend the contract to the load side: assert that every key
+  `toJSON()` emits is either assigned by `applyCoreFields`/`applyDisplayFields`
+  or is a named exception. This is a source-level check, so it needs the same
+  mutation discipline as `order_gate_bypass.test.ts`.
 
 ## Acceptance criteria
 
 - [ ] A test fails when a serialized key is never assigned by the load merge
-- [ ] A test fails when a `toJSON()` entry reads a different field than its key
-- [ ] A test fails when a serialized key's backing store is not reactive
-- [ ] Each of the three is mutation-verified against the unmutated tree, and the
-      control is green
-- [ ] The guard's own docstring states exactly what it does and does not check
+      **(open — the load-side guard)**
+- [x] A test fails when a `toJSON()` entry reads a different field than its key
+- [x] A test fails when a serialized key's backing store is not reactive
+- [x] Both are mutation-verified against the unmutated tree, and the control is
+      green
+- [x] The guard's own docstring states exactly what it does and does not check,
+      including that it only runs in the browser-condition Vitest project
 
 ## Out of scope
 
@@ -99,5 +153,9 @@ Those are the decomposition work in FEAT-0342; this is the guard it would need.
 - `src/stores/settings.svelte.ts` — `toJSON()`, `applyCoreFields`, the `$effect`
 - `src/stores/settings.persistenceContract.test.ts` — the guard, and the
   blind spots its docstring names
+- `src/stores/settings.reactivityContract.component.test.ts` — the runtime half
+  that closes them
+- `src/stores/entitlement.svelte.ts:34-35` — where `isPro` and
+  `isProLicenseActive` actually live
 - BUG-0652 — made the save side checkable
 - FEAT-0342 — the decomposition this is a precondition for
