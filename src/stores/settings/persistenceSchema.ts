@@ -266,14 +266,20 @@ export const LOAD_BODY_KEYS: readonly string[] = [
 
 /**
  * Keys `load()` assigns directly that the schema carries no load entry for:
- * the encryption flag and the encrypted blobs. Mirrors `LOAD_BODY_KEYS` —
- * the load-contract test fails if any of these stops being assigned, so a
- * stored encrypted profile can never silently load as unencrypted.
+ * the encryption flag, the lock flag, and the encrypted blobs. Mirrors
+ * `LOAD_BODY_KEYS` — the load-contract test fails if any of these stops
+ * being assigned, so a stored encrypted profile can never silently load as
+ * unencrypted. Note the pin proves the assignment lines exist, not that
+ * they fire: the `encryptedSecrets` line is conditional on the blob being
+ * present. `isLocked` follows `isEncrypted` out of `applyAccounts`; pinning
+ * it keeps the two from silently diverging.
  */
 export const LOAD_SECRET_KEYS: readonly string[] = [
     "isEncrypted",
+    "isLocked",
     "encryptedAccountKeys",
     "encryptedProviderConfigs",
+    "encryptedSecrets",
 ];
 
 /** What the manager reads a field from when serializing. */
@@ -468,6 +474,10 @@ export function loadCustomValue(
             );
             return;
         case "fireConfig":
+            // Flat today (four scalar tunables — verified), so the top-level
+            // spread is a complete copy. If a nested object ever joins this
+            // shape, clone it like `mergeGalaxySettings`: a spread would hand
+            // live state the live default.
             target.set("fireConfig", {
                 ...defaults.fireConfig,
                 ...(merged.fireConfig || {}),

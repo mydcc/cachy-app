@@ -287,9 +287,17 @@ describe("FEAT-0012 — one seam", () => {
         // (`const mode = paperState.enabled; if (mode) …`) is invisible to
         // every spelling matcher. What catches it is the read count — every
         // new read of the mode breaks the nine below — so an alias cannot
-        // arrive quietly, only explicitly.
+        // arrive quietly, only explicitly. All three spellings of the same
+        // trick (direct, bracket, destructured) are pinned to zero; the
+        // first alias of any shape fails here.
         expect(`const mode = paperState.enabled;\nif (mode) { live(); }`.match(ifBranch)).toBeNull();
-        expect(tradeDomainWire.match(/=\s*paperState\.enabled/g) ?? []).toHaveLength(0);
+        expect(`const mode = paperState['enabled'];\nif (mode) { live(); }`.match(ifBranch)).toBeNull();
+        expect(`const { enabled: mode } = paperState;\nif (mode) { live(); }`.match(ifBranch)).toBeNull();
+        expect(tradeDomainWire.match(/=\s*paperState\.enabled\b/g) ?? []).toHaveLength(0);
+        expect(tradeDomainWire.match(/=\s*paperState\[\s*['"]enabled['"]\s*\]/g) ?? []).toHaveLength(0);
+        expect(
+            tradeDomainWire.match(/\{\s*enabled\s*(?::\s*[A-Za-z_$][\w$]*)?\s*\}\s*=\s*paperState\b/g) ?? [],
+        ).toHaveLength(0);
     });
 
     it("reaches the transport with an identical payload in both modes", async () => {

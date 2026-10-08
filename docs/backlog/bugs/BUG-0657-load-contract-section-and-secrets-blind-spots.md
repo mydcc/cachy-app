@@ -73,9 +73,9 @@ behaviour. This item adds pins, not new load semantics.
 
 ## Acceptance criteria
 
-- [ ] A test fails when the `loadSchemaEntries` section arguments of the two apply drivers are swapped
-- [ ] A test fails when the `isEncrypted` / encrypted-blob assignment in `load()` is removed
-- [ ] Both tests pass with the fix; `loadContract`, `persistenceContract`, `settings.security`, `storage_hardening` suites stay green
+- [x] A test fails when the `loadSchemaEntries` section arguments of the two apply drivers are swapped (`routes each apply driver to its own section` — proven red by swap)
+- [x] A test fails when the `isEncrypted` / encrypted-blob assignment in `load()` is removed (`assigns the encryption flag and blobs` — proven red per key; covers `isEncrypted`, `isLocked`, `encryptedAccountKeys`, `encryptedProviderConfigs`, `encryptedSecrets`. Note the pin proves the lines exist, not that the conditional `encryptedSecrets` line fires)
+- [x] Both tests pass with the fix; `loadContract`, `persistenceContract`, `settings.security`, `storage_hardening` suites stay green
 
 ## Links
 

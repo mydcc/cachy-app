@@ -63,10 +63,10 @@ changing load semantics rides separately, not silently in this fix.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the aliasing (mutate reset/loaded galaxy nested object → default contaminated) and fails without the fix
-- [ ] The test passes with the fix; `structuredClone` used in both galaxy paths
-- [ ] The `backgroundOpacity` pin fails against a hardcoded value (non-`1` default fixture) and passes reading the default
-- [ ] Settings reset/persistence suites stay green
+- [x] Tests reproduce the aliasing (reset path, merge path, and every object-valued manager init) and fail without the fix — all proven red by removing the clone
+- [x] `structuredClone` used in both galaxy paths (reset + merge) and in all 14 object-valued manager inits (plus the previously spread-only `aiAllowedActions` and `feeRates` unified onto it)
+- [x] The `backgroundOpacity` pin fails against a hardcoded value (non-`1` default fixture) and passes reading the default
+- [x] Settings reset/persistence suites stay green
 
 ## Links
 

@@ -67,9 +67,12 @@ without an owner.
 
 ## Fix
 
-- M2: extend the gate scan with an account-settings allowlist (types plus
-  the no-pass rationale), or a companion test pinning the allowed
-  `/api/account-settings` types.
+- M2: extend the gate scan with an account-settings allowlist (done —
+  10 justified paths), plus a companion pin on the closed payload
+  contract (`closes the write lane…` asserts the exact 4
+  `AccountSettingsRequestSchema` actions and rejects order actions).
+  Unknown-action strings remain scanner-dark by construction; the schema
+  fails them closed at validation instead.
 - M3: negative controls in the mutation suite (ternary + alias-boolean at
   minimum), or widen the matcher to `isPaperMode()` / `paperState.enabled`
   in if/ternary position.
@@ -84,11 +87,11 @@ without an owner.
 
 ## Acceptance criteria
 
-- [ ] A synthetic order-like write via `exchangeSignedFetch` without a pass fails the gate scan; the three real account-settings call sites stay green
-- [ ] A ternary-form and an alias-boolean-form paper branch are flagged by the seam suite
-- [ ] A contract test enumerates every `or`-mode key; adding an `or` key without documenting its aliasing fails
-- [ ] FEAT-0342 numbers corrected; `TRANSPORT_OWNER` carries the move-with-me comment
-- [ ] Gate, seam, and settings suites stay green
+- [x] A synthetic order-like write via `exchangeSignedFetch` without a pass fails the gate scan (pre-existing synthetics: `flags a mutating order sent through the signing primitive directly` — proven; plus the new path test fails on any unjustified path, proven red by probe file)
+- [x] A ternary-form paper branch is flagged (`routingTernary` — proven red by probe file in `trade/`); alias-boolean forms are pinned to zero in all three spellings (direct, bracket, destructured) via the read-count compensation — they are *counted*, not *flagged*, which the seam test documents as a deliberate limit
+- [x] A contract test enumerates every `or`-mode key (`inventories every or-mode key` — proven red by adding an unlisted `or` row); object-valued subset pinned exactly
+- [x] FEAT-0342 numbers corrected (marked as spec-time estimates with pointer to measured sizes); `TRANSPORT_OWNER` carries the move-with-me comment
+- [x] Gate, seam, and settings suites stay green
 
 ## Links
 

@@ -481,15 +481,33 @@ describe("FEAT-0068 — ungated envelope paths are allowlisted, not invisible", 
             // assertion above owns that file; a new ungated direct call
             // inside it with a known action still fails there.
             if (relative === TRANSPORT_OWNER) continue;
-            const lines = readFileSync(file, "utf8").split("\n");
+            const text = readFileSync(file, "utf8");
+            const lines = text.split("\n");
+            // Local aliases of the primitive (`const send = exchangeSignedFetch`)
+            // reach the same envelope without naming it at the call site.
+            // File-scoped (not block-scoped like the gate scan above): alias
+            // names are rare enough that overreach is the smaller risk here.
+            const aliases = new Set<string>();
+            for (const line of lines) {
+                const binding = line.match(
+                    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:[A-Za-z_$][\w$]*\.)*exchangeSignedFetch\b/,
+                );
+                if (binding && binding[1] !== "exchangeSignedFetch") aliases.add(binding[1]);
+            }
+            const sitePattern = new RegExp(
+                `\\b(?:exchangeSignedFetch${[...aliases].map((a) => `|${a}`).join("")})\\s*(?:<[^>]*>)?\\s*\\(`,
+            );
             for (let i = 0; i < lines.length; i++) {
-                if (!/\bexchangeSignedFetch\s*(?:<[^>]*>)?\s*\(/.test(lines[i])) continue;
+                if (!sitePattern.test(lines[i])) continue;
                 // The primitive's own definition, not a call site.
                 if (/function\s+exchangeSignedFetch/.test(lines[i])) continue;
                 const tail = lines.slice(i, i + 30).join("\n");
                 const args = argumentText(tail);
                 if (/(?:^|[^A-Za-z0-9_$])pass(?:[^A-Za-z0-9_$]|$)/.test(args)) continue;
-                const cachyPath = tail.match(/cachyPath:\s*"([^"]+)"/)?.[1];
+                // Either quote style; a query suffix addresses the same
+                // route, so it looks up by its bare path.
+                const rawPath = tail.match(/cachyPath:\s*["']([^"']+)["']/)?.[1];
+                const cachyPath = rawPath?.split("?")[0];
                 if (!cachyPath || !(cachyPath in UNGATED_ENVELOPE_ALLOWLIST)) {
                     unlisted.push({ file: relative, line: i + 1, excerpt: lines[i].trim() });
                 }
@@ -501,5 +519,58 @@ describe("FEAT-0068 — ungated envelope paths are allowlisted, not invisible", 
                 .map((b) => `  ${b.file}:${b.line}  ${b.excerpt}`)
                 .join("\n")}`,
         ).toEqual([]);
+    });
+
+    it("closes the write lane to exactly the four declared account actions", async () => {
+        // The path test above cannot see *what* travels an allowlisted path:
+        // an order-like write under a previously unknown action string would
+        // pass it. This pins the other half — the payload contract is a
+        // closed enum, validated before dispatch on the client
+        // (`accountSettingRequest`) and again on the route, so a smuggled
+        // action fails closed instead of travelling.
+        const { AccountSettingsRequestSchema } = await import(
+            "../../types/accountSettingsSchemas"
+        );
+
+        // Exact inventory: a fifth action fails here until it is justified.
+        // Reads `.def` (public in Zod 4); a Zod major bump that moves it
+        // fails loudly here rather than silently.
+        const declared = AccountSettingsRequestSchema.options
+            .map(
+                (option) =>
+                    (
+                        (option as unknown as { shape: { type: unknown } })
+                            .shape.type as unknown as { def: { values: string[] } }
+                    ).def.values,
+            )
+            .flat()
+            .sort();
+        expect(declared).toEqual([
+            "adjust-position-margin",
+            "change-leverage",
+            "change-margin-mode",
+            "change-position-mode",
+        ]);
+
+        // The four declared actions validate; everything else — including
+        // order actions routed through the write lane — does not.
+        const valid = [
+            { type: "change-leverage", exchange: "bitunix", symbol: "BTCUSDT", leverage: 10 },
+            { type: "change-margin-mode", exchange: "bitunix", symbol: "BTCUSDT", marginMode: "CROSS" },
+            { type: "change-position-mode", exchange: "bitunix", positionMode: "HEDGE" },
+            { type: "adjust-position-margin", exchange: "bitunix", symbol: "BTCUSDT", amount: "10" },
+        ];
+        for (const payload of valid) {
+            expect(
+                AccountSettingsRequestSchema.safeParse(payload).success,
+                `${payload.type} must stay accepted`,
+            ).toBe(true);
+        }
+        for (const type of ["place-order", "close-position", "set-leverage", "change-leverage-2", ""]) {
+            expect(
+                AccountSettingsRequestSchema.safeParse({ type, exchange: "bitunix" }).success,
+                `${type || "(empty)"} must stay rejected`,
+            ).toBe(false);
+        }
     });
 });
