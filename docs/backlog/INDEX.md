@@ -2,9 +2,9 @@
 
 # Backlog index
 
-531 items. How to read and add them: [README.md](README.md).
+532 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · 🟡 in-progress 1 · ✅ done 453 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 26 · 🟡 in-progress 1 · ✅ done 453 · ⛔ dropped 1
 
 ---
 
@@ -420,6 +420,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · 🟡 in-pr
 | [BUG-0651](bugs/BUG-0651-refusal-not-announced-to-screen-readers.md) | The refusal that blocks the order is never announced to a screen reader | P2 | 📋 specced | ui |
 | [BUG-0653](bugs/BUG-0653-persistence-contract-blind-spots.md) | The settings persistence contract is checked by name, and only on the save side | P2 | 🟡 in-progress | persistence |
 | [BUG-0655](bugs/BUG-0655-rss-filter-unreachable-but-live.md) | rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01 | P2 | ✅ done | ui |
+| [BUG-0656](bugs/BUG-0656-scanner-loses-write-sites.md) | The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment | P2 | 📋 specced | persistence |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -897,6 +898,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · 🟡 in-pr
 | [BUG-0651](bugs/BUG-0651-refusal-not-announced-to-screen-readers.md) | The refusal that blocks the order is never announced to a screen reader | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0653](bugs/BUG-0653-persistence-contract-blind-spots.md) | The settings persistence contract is checked by name, and only on the save side | P2 | 🟡 in-progress | none | community, pro, private | A | none | — |
 | [BUG-0655](bugs/BUG-0655-rss-filter-unreachable-but-live.md) | rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01 | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0656](bugs/BUG-0656-scanner-loses-write-sites.md) | The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment | P2 | 📋 specced | none | community, pro, private | A | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -1136,4 +1138,4 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · 🟡 in-pr
 
 ---
 
-Next free number: **0656**
+Next free number: **0657**

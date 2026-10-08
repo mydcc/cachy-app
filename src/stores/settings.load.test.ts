@@ -594,4 +594,25 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
     expect(settings.pnlViewMode).toBe("percent");
     expect(settings.toJSON().pnlViewMode).toBe("percent");
   });
+
+  // BUG-0653, the load side. All three are declared in `defaultSettings`, read
+  // by `toJSON()` and written by `CalculationSettings.svelte` -- and none of
+  // them was assigned by the load path, so a user's change was written on
+  // every save and reverted to the default on the next reload.
+  //
+  // The stored values are chosen so that they cannot coincide with the
+  // defaults. Restoring a field to the value it already had proves nothing.
+  it.each([
+    ["marketAnalysisInterval", 12345],
+    ["pauseAnalysisOnBlur", false],
+    ["analysisTimeframes", ["SENTINEL"]],
+  ])("loads a stored %s and roundtrips toJSON", (key, stored) => {
+    localStorageMock.setItem(STORAGE_KEY, JSON.stringify({ [key]: stored }));
+
+    const settings = new SettingsManager() as unknown as Record<string, unknown>;
+    expect(settings[key]).toEqual(stored);
+    expect(
+      (settings.toJSON() as unknown as Record<string, unknown>)[key],
+    ).toEqual(stored);
+  });
 });
