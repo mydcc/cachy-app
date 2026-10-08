@@ -6227,7 +6227,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0656",
     "title": "The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment",
     "type": "bug",
-    "status": "specced",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "fix/settings-load-merge",
     "priority": "P2",
     "milestone": "none",
     "editions": [

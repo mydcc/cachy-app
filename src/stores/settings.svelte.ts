@@ -1660,11 +1660,11 @@ export class SettingsManager {
     this._marketMode = merged.marketMode || defaultSettings.marketMode;
     this.analyzeAllFavorites =
       merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
-    this.marketAnalysisInterval =
-      merged.marketAnalysisInterval ?? defaultSettings.marketAnalysisInterval;
     // Restored here, not in applyMarketMode: load() assigns _marketMode
     // directly and so never fires that setter, which left these three
     // serialized by toJSON() and reset to their defaults on every reload.
+    this.marketAnalysisInterval =
+      merged.marketAnalysisInterval ?? defaultSettings.marketAnalysisInterval;
     this.pauseAnalysisOnBlur =
       merged.pauseAnalysisOnBlur ?? defaultSettings.pauseAnalysisOnBlur;
     this.analysisTimeframes =
