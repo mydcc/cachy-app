@@ -22,6 +22,10 @@ Despite previous decomposition efforts (FEAT-0190), several files remain excessi
 
 These monolithic files violate clean architecture principles, making maintenance and concurrent development difficult.
 
+(Sizes above are spec-time estimates. Measured sizes at slice start live in
+the Status notes below — tradeService 3102, apiService 1247 lines; the
+estimates undercount because the files kept growing after the spec.)
+
 ## Fix
 Decompose these files into smaller, focused modules or sub-components.
 For `VisualsTab.svelte`, extract repeated markup into smaller components like `<ColorPickerSection>` and `<VisualGroup>`, or drive the UI via a data configuration schema.

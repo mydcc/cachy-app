@@ -43,7 +43,10 @@ import { ROUTE_SIGNING_PLAN } from "../../utils/exchange/restSigningPlan";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SRC = path.join(REPO_ROOT, "src");
 
-/** The transport, and the only file allowed to call it without a pass. */
+/** The transport, and the only file allowed to call it without a pass.
+ * Move-with-me: if the transport or this check ever leaves this file, the
+ * pairing (and the TRANSPORT_OWNER skip in the allowlist describe below)
+ * moves with it. */
 const TRANSPORT_OWNER = path.join("src", "services", "tradeService.ts");
 
 /**
