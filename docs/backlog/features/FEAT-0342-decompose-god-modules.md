@@ -2,7 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: feature/feat-0342-slice-f-resets
 parent: FEAT-0341
 ---
 
@@ -37,6 +39,29 @@ For the services, split responsibilities by domain (e.g., splitting `apiService`
 
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
+
+## Status note (2026-10-08, slice F in progress, branch `feature/feat-0342-slice-f-resets`)
+
+`src/stores/settings/resets.ts` (new) holds `resetGalaxy` / `resetTradeFlow`
+/ `resetChart` as pure functions over a caller-supplied target — no I/O, no
+store reads, no runes — following the `accounts.ts` precedent. The three
+`SettingsManager` methods keep their names and signatures and delegate with
+`this`, so the reactive assignments stay on the manager and the autosave
+`$effect` keeps tracking every field through `toJSON()` (same reason slice E
+is risky and F is not). No `save()` was added: the methods never called it,
+the effect persists the assignments.
+
+Two behaviours are pinned by the new `resets.test.ts` because a careless
+extraction would flip them: `backgroundBlur` resets to literal 0 while
+`defaultSettings` ships 5, and galaxy is a shallow spread while trade-flow is
+a `structuredClone`. Verified: new `resets.test.ts` (4 tests, RED-proven on
+the blur pin), all 14 `src/stores/settings` suites (202 tests),
+`settings.security.test.ts` (15, incl. the resetChart round-trip) and
+`ChartTab.component.test.ts` (3) pass unedited.
+
+**Still open.** Slice E (field mapping behind a schema, `toJSON()` +
+`applyCoreFields()` + `applyDisplayFields()` = 474 lines) — own PR, human
+review, round-trip guard first.
 
 ## Status note (2026-10-08, slice D merged in PR #3955)
 

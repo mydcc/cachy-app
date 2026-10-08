@@ -49,6 +49,7 @@ import {
   type ExchangeProvider,
   type LegacyCredentialShape,
 } from "./settings/accounts";
+import { resetChart, resetGalaxy, resetTradeFlow } from "./settings/resets";
 import {
   ensureProviderRegistryState,
   redactUserProviders,
@@ -850,33 +851,16 @@ export class SettingsManager {
   }
 
   resetGalaxySettings() {
-    this.galaxySettings = {
-      ...defaultSettings.galaxySettings,
-    };
-    this.backgroundOpacity = 1;
-    this.backgroundBlur = 0;
+    resetGalaxy(this, defaultSettings);
   }
 
   resetTradeFlowSettings() {
-    this.tradeFlowSettings = structuredClone(defaultSettings.tradeFlowSettings);
+    resetTradeFlow(this, defaultSettings);
   }
 
   /** Restores every Settings → Chart field to its default (reset button). */
   resetChartSettings() {
-    this.chartPriceScaleMode = defaultSettings.chartPriceScaleMode;
-    this.chartAutoScale = defaultSettings.chartAutoScale;
-    this.chartInvertScale = defaultSettings.chartInvertScale;
-    this.chartDecimalsMode = defaultSettings.chartDecimalsMode;
-    this.chartFixedDecimals = defaultSettings.chartFixedDecimals;
-    this.chartShowGrid = defaultSettings.chartShowGrid;
-    this.chartLastValueVisible = defaultSettings.chartLastValueVisible;
-    this.chartCandleBorders = defaultSettings.chartCandleBorders;
-    this.chartWatermark = defaultSettings.chartWatermark;
-    this.chartCrosshairMode = defaultSettings.chartCrosshairMode;
-    this.chartCrosshairStyle = defaultSettings.chartCrosshairStyle;
-    this.chartSecondsVisible = defaultSettings.chartSecondsVisible;
-    this.chartFixEdges = defaultSettings.chartFixEdges;
-    this.chartCountdownEnabled = defaultSettings.chartCountdownEnabled;
+    resetChart(this, defaultSettings);
   }
 
   // Market & Performance State
