@@ -6132,6 +6132,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0649-stop-note-promises-an-unavailable-fallback.md"
   },
   {
+    "id": "BUG-0650",
+    "title": "A validation error is set and erased in the same tick, so the trader never sees it",
+    "type": "bug",
+    "status": "in-progress",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0650-erased-validation-error",
+    "file": "bugs/BUG-0650-validation-error-erased-in-same-tick.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

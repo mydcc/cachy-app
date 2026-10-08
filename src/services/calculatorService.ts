@@ -164,8 +164,13 @@ export class CalculatorService {
 
     if (validationResult.status === CONSTANTS.STATUS_INVALID) {
       trackCustomEvent("Calculation", "Error", validationResult.message);
-      this.uiManager.showError(validationResult.message || "");
+      // BUG-0650 — clear first, then explain. In the other order `clearResults`
+      // ends in `hideError()` and withdraws the message in the same synchronous
+      // block, so the reason existed for less time than a frame and the trader
+      // saw the figures disappear without being told why. Both effects are still
+      // wanted; only their sequence was wrong.
       this.clearResults();
+      this.uiManager.showError(validationResult.message || "");
       return true; // Stop
     }
 
