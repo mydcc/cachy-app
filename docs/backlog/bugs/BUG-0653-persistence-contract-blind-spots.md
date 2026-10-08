@@ -38,20 +38,27 @@ Two gaps remain, both confirmed by mutation against the guard as merged:
 verified clean.
 
 - *Load side unguarded* — deleting both lines of the `rssFilterBySymbol` merge
-  step left the contract test **and** `settings.load.test.ts` at **32/32 green**
-  after BUG-0652. The field would then be written on every save and never read
-  back. BUG-0652 closed this for that one field with two round-trip tests in
-  `settings.load.test.ts`; the class is still unguarded, and the other ~170 keys
-  were not audited.
+  step left the contract test **and** `settings.load.test.ts` fully green after
+  BUG-0652: **32 of 32**, measured on the pre-fix tree, which carried 4 guard
+  tests and 28 load tests. On `develop` today the same two files are 5 + 33 = 38,
+  and the mutation now goes red. The field would have been written on every save
+  and never read back. BUG-0652 closed this for that one field with five
+  round-trip tests; the class is still unguarded, and the other ~170 keys were
+  not audited.
 - *Name check is blind to the wrong field* — changing `showSidebars: this.showSidebars`
-  to `showSidebars: this.showTooltips` left the guard **4/4 green**. `showSidebars`
+  to `showSidebars: this.showTooltips` left the guard green: **4 of 4** on the
+  pre-fix tree, and still **5 of 5** on `develop`, re-measured. `showSidebars`
   becomes invisible to the autosave effect — the identical defect to the one
   BUG-0652 fixes — and `showTooltips` is tracked twice.
 - *Name check is blind to a non-reactive backing field* — a field declared in
   `defaultSettings` and emitted by `toJSON()` through an accessor pair, whose
-  backing field is a plain field rather than `$state`, also left the guard
-  **4/4 green**. The effect cannot track it either. The class already has this
-  shape (`private _apiProvider` behind `get/set apiProvider`).
+  backing field is a plain field rather than `$state`, would also leave the
+  guard green. The effect cannot track such a field. **This one is
+  hypothetical: no instance exists in the class today.** The two accessor
+  pairs that do exist, `_apiProvider` (`settings.svelte.ts:411`) and
+  `_marketMode` (`:884`), are both `$state`, so the effect tracks them. The
+  first draft of this item cited `_apiProvider` as an instance; it is not one,
+  and the citation was removed rather than softened.
 
 ## Cause
 
