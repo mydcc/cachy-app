@@ -10,8 +10,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: fix/bug-0648-stale-submit
+branch: fix/bug-0648-stale-summary
 ---
 
 # Clearing the stop leaves the previous calculation standing
@@ -123,10 +122,14 @@ refuse when they disagree, which closes the money path without deciding the
 
 - [x] `PlaceOrderPanel.submit()` cannot send a quantity, price, stop or target
       that `data` holds but `tradeState` no longer does
-- [ ] Clearing the stop stops the summary from showing the previous `SIZE`,
-      `MARGIN` and `STOP` — or is documented as intentional, with the reason
-- [ ] A summary that renders while `dashboard.promptForData` is displayed is
-      either impossible or explained on screen
+- [x] Clearing the stop stops the summary from showing the previous `SIZE`,
+      `MARGIN` and `STOP` — **documented as intentional**, per the second half of
+      the Resolution: the figures stay and are labelled not current. Nulling them
+      instead was rejected because a refused recalculation happens on ordinary
+      keystrokes, not only on mistakes — see that section for the traced path
+- [x] A summary that renders while `dashboard.promptForData` is displayed is
+      either impossible or explained on screen — the standing note *is* that
+      explanation, and it renders inside the same block
 - [x] A test reproduces the defect: a successful calculation, then the stop
       cleared, then a submit — and fails without the fix, naming the stale field
 - [~] The gate's remediation instruction in `orderGate.unplaceableStop` is
@@ -252,38 +255,62 @@ them for the wrong reason. The false-green trap has a second face.
   one remaining error (`marketWatcher.bench.ts`, `Property 'bench' does not exist
   on type 'TestContext'`) is pre-existing and not in this diff.
 
-## Still open — the second half
+## Second half — the figures now say they are not current
 
-**The gate's remediation is still not reachable, and this does not change that.**
-Clearing the stop now refuses at the panel instead of at the gate, but it still
-refuses, because `data` never clears. The trader cannot yet place the
-deliberately unprotected entry the refusal tells them to place.
+The summary keeps showing the figures and marks them, using the very same
+`staleInputs` that `submit()` refuses on. One predicate, so the numbers on
+screen and the send decision cannot disagree — which is the shape of the defect
+this item was filed for.
 
-What the fix changes is that the refusal can no longer send a stop they removed.
-That is the money-path half, and it is the half that was reachable without a
-product decision.
+**Why the figures were not blanked instead.** `currentTradeData` never clears on
+a refused recalculation, and nulling it there would drop the figures on ordinary
+keystrokes, not only on mistakes — traced to three concrete paths: a zero
+`accountSize`/`riskPercentage`/`entryPrice` yields `STATUS_INCOMPLETE` (typing
+`0.5` into risk puts a literal `0` in the store for one tick); a stop `<= 0` does
+too; and editing the entry price on a long that already has a stop walks through
+values where `entry <= stop`, which is `INVALID`.
 
-The other half is visible: **should the summary blank when a recalculation is
-refused?** That is a product decision about what the trader sees mid-edit, not a
-safety one, so it is not taken here.
+The cost is not literal blankness — the `{:else}` renders `orderEntry.notReady`,
+so the trader reads a message rather than an empty area. The cost is the flicker
+and the loss of the last good figures.
 
-The groundwork is already established, so whoever takes it does not start from
-zero — `currentTradeData` has exactly two readers outside the store:
+The `INVALID` path is what made this sharper: the calculator wrote its error
+message and erased it in the same tick, so on that path this note was the only
+thing on screen at all. BUG-0650 fixes the erasure; the note is what the trader
+had in the meantime.
 
-- `PlaceOrderPanel.svelte:143` — the only consumer of the values
-- `app.ts:203` — already null-safe (`?.positionSize?.gt(0)`), and refusing with
-  `errors.invalidTrade` is the right answer when there is no valid calculation
+Labelling is the smaller harm, and this paragraph is the trade the remaining
+work has to weigh.
+
+**What this does not fix, stated plainly.** The dead end is unchanged: clearing
+the stop on Bitget still yields an incomplete recalculation, `data` still keeps
+the old stop, and the order is still refused. What changed is that the panel
+now says so *before* the click instead of only after it, and no longer shows
+figures that look sendable while refusing to send them.
+
+So the acceptance criterion "the gate's remediation is reachable" is still not
+met. The remaining decision is exactly the one taken here, only not taken to the
+end: whether `currentTradeData` should be nulled when the inputs disagree, which
+would make the remediation reachable and blank the summary mid-edit at the same
+time. That trade is still open and still wants a human.
+
+## Groundwork for whoever takes the rest
+
+`currentTradeData` has exactly two readers outside the store:
+
+- `PlaceOrderPanel.svelte` — the only consumer of the values
+- `app.ts` — already null-safe (`?.positionSize?.gt(0)`), and refusing with
+  `errors.invalidTrade` is the right answer when there is no valid calculation.
+  Note `addTrade` copies `currentTradeData` into the journal verbatim, with no
+  staleness check, so a trader who clears a stop and journals the trade records
+  the stop they removed. Same open question, third reader, not reachable from
+  the panel fix
 
 One caller is outside this panel: the alert engine places through the same
-service (`stores/alerts.svelte.ts:300`), which is why the guard could not simply
+service (`stores/alerts.svelte.ts`), which is why the guard could not simply
 move down into `orderPlacementService`. That path builds its plan from market
-state rather than from a form, so the stale-form hazard is specific to the panel —
-but a service-level check remains the stricter home if the inputs ever grow.
-
-So nulling it on a refused calculation appears to be safe; what is undecided is
-whether blanking the summary is the behaviour a trader wants. `BUG-0649` is the
-neighbour here: the panel's own note now says "clear the stop", and until this
-half lands, clearing it is a dead end.
+state rather than from a form, so the stale-form hazard is specific to the panel
+— but a service-level check remains the stricter home if the inputs ever grow.
 
 ## Links
 

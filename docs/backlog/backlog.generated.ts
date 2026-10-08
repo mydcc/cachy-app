@@ -2986,8 +2986,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "assignee": "opencode",
-    "branch": "fix/bug-0648-stale-submit",
+    "branch": "fix/bug-0648-stale-summary",
     "file": "bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md"
   },
   {
@@ -6149,6 +6148,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "branch": "fix/bug-0650-erased-validation-error",
     "file": "bugs/BUG-0650-validation-error-erased-in-same-tick.md"
+  },
+  {
+    "id": "BUG-0651",
+    "title": "The refusal that blocks the order is never announced to a screen reader",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0651-refusal-not-announced-to-screen-readers.md"
   },
   {
     "id": "FEAT-0019",

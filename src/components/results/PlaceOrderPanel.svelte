@@ -560,7 +560,15 @@
      * it compares the payload against the intent, and both come from `data`.
      */
     if (staleInputs) {
-      uiState.showError($_("orderEntry.errors.staleCalculation"));
+      // Composed, not restated: the clause naming the disagreement lives once,
+      // in the note. Two keys in two languages saying the same thing is four
+      // strings to keep in sync, and the persistent note and the click refusal
+      // would eventually disagree on screen.
+      uiState.showError(
+        $_("orderEntry.errors.staleCalculation", {
+          values: { reason: $_("orderEntry.notes.staleCalculation") },
+        }),
+      );
       return;
     }
 
@@ -813,6 +821,21 @@
       <div><dt>{$_("orderEntry.summary.entry")}</dt><dd>{formatDynamicDecimal(data.entryPrice, meta?.quotePrecision ?? 2)}</dd></div>
       <div><dt>{$_("orderEntry.summary.stop")}</dt><dd>{formatDynamicDecimal(data.stopLossPrice, meta?.quotePrecision ?? 2)}</dd></div>
     </dl>
+
+    <!--
+      BUG-0648, second half. This is the same comparison `submit()` refuses on,
+      so the figures on screen and the send decision can no longer disagree.
+
+      The numbers stay. Blanking the summary would empty it on every keystroke
+      while a recalculation is briefly incomplete — worse than showing them
+      labelled, because a trader who can see that a figure is old can act on it,
+      while a trader staring at an empty panel cannot tell that anything was
+      calculated at all. Same reasoning as the BUG-0649 note below: state it
+      here, where the numbers are, not only on the click that was refused.
+    -->
+    {#if staleInputs}
+      <p class="note warn">{$_("orderEntry.notes.staleCalculation")}</p>
+    {/if}
 
     <!--
       BUG-0649. Which note depends on both capability flags, and the gate reads

@@ -4443,7 +4443,8 @@
       "unprotectedEntry": "This exchange cannot carry a stop on an entry — neither attached to the entry nor as a separate order, so there is no way to place one. Clear the stop to send the order deliberately unprotected.",
       "firstTargetOnly": "This exchange accepts one take-profit per order, so only your first target is attached. The rest stay in the calculator.",
       "balanceUnmeasured": "Balance not loaded — the venue decides whether this order is funded.",
-      "liveMarginShortfall": "Needs {actual} margin but only {limit} is free — the gate will refuse this order."
+      "liveMarginShortfall": "Needs {actual} margin but only {limit} is free — the gate will refuse this order.",
+      "staleCalculation": "Not current — these figures and the order they would produce no longer match what the form says."
     },
     "confirm": {
       "titleLive": "Place this order?",
@@ -4472,7 +4473,7 @@
       "targetMissing": "The entry and its stop are in place, but the take-profit is not.",
       "tradingUnavailable": "Trading is unavailable for this symbol.",
       "metadataLoading": "Loading trading pair details...",
-      "staleCalculation": "Nothing was sent. The figures above come from an earlier calculation that no longer matches the entry, stop, targets or leverage now set in the form. Check those inputs before sending an order.",
+      "staleCalculation": "Nothing was sent. {reason} Check those inputs before sending an order.",
       "belowMinTradeVolume": "Order size is below minimum trade volume ({min}).",
       "exceedsMaxOrderVolume": "Order size exceeds maximum order volume ({max}).",
       "accountUnverified": "Credentials unverified — the private account is still being checked.",

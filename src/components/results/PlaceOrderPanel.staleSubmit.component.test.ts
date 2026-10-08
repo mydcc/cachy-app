@@ -277,6 +277,8 @@ beforeEach(() => {
     split.inputs.leverage = "10";
     split.inputs.accountSize = "10000";
     split.inputs.risk = "1";
+    split.calculated.symbol = "BTCUSDT";
+    split.calculated.tradeType = "long";
     // Symbol and direction too: leaving them out lets "symbol changed" leak into
     // every later case and fail them for the wrong reason — the same trap as the
     // false green, wearing the other face.
@@ -292,9 +294,13 @@ afterEach(() => {
     host.remove();
 });
 
-async function submit() {
+async function mountPanel(): Promise<void> {
     component = mount(PlaceOrderPanel, { target: host }) as never;
     await settle();
+}
+
+async function submit() {
+    await mountPanel();
     const button = host.querySelector<HTMLButtonElement>("button.submit-btn");
     if (!button) throw new Error("submit button not rendered");
     if (button.disabled) {
@@ -317,7 +323,72 @@ function expectRefusal() {
     expect(showErrorMock).toHaveBeenCalledWith(
         expect.stringContaining("Nothing was sent"),
     );
+    // "Nothing was sent" lives in the template, so it holds whether or not
+    // `{reason}` was substituted. Pin the substitution itself, or a dropped
+    // `values` argument ships a literal `{reason}` to the trader.
+    expect(showErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining(lookup("orderEntry.notes.staleCalculation")),
+    );
 }
+
+/** Mounts without submitting — for assertions about what the panel shows. */
+async function render(): Promise<string> {
+    await mountPanel();
+    return host.textContent ?? "";
+}
+
+describe("BUG-0648 — the summary says when its figures are no longer current", () => {
+    it("labels the figures and keeps showing them", async () => {
+        split.inputs.stop = "";
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleCalculation"));
+        // The figures themselves must survive: blanking them would empty the
+        // summary on every keystroke while a recalculation is briefly
+        // incomplete, and a trader cannot act on a panel that shows nothing.
+        expect(text).toContain(lookup("orderEntry.summary.size"));
+    });
+
+    it("shows no label while the calculation still matches the inputs", async () => {
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.summary.size"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    it("labels them for a take-profit leg the trader deleted", async () => {
+        split.calculatedTargets = ["65000"];
+        split.inputTargets = [];
+
+        expect(await render()).toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    it("labels them for a leverage the trader changed after the calculation", async () => {
+        split.inputs.leverage = "20";
+
+        expect(await render()).toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    /*
+     * The note must track the predicate, not a hand-picked subset of it. These
+     * five each have a submit-side case, so narrowing the note's own condition
+     * later — to the stop, say — would otherwise fail nothing here.
+     */
+    const remainingArms: ReadonlyArray<readonly [string, () => void]> = [
+        ["entry price", () => (split.inputs.entry = "61000")],
+        ["account size", () => (split.inputs.accountSize = "20000")],
+        ["risk percentage", () => (split.inputs.risk = "2")],
+        ["symbol", () => (split.inputs.symbol = "ETHUSDT")],
+        ["direction", () => (split.inputs.tradeType = "short")],
+    ];
+
+    it.each(remainingArms)("labels them for a changed %s", async (_name, change) => {
+        change();
+
+        expect(await render()).toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+});
 
 describe("BUG-0648 — a submit may not send what the inputs no longer state", () => {
     it("places what the calculation says, and sends exactly that", async () => {

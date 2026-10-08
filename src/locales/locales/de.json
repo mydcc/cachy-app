@@ -4443,7 +4443,8 @@
       "unprotectedEntry": "Diese Börse kann einen Stop an einem Einstieg nicht tragen — weder am Einstieg noch als separate Order. Es gibt also keinen Weg, ihn zu platzieren. Leere das Stop-Feld, um die Order bewusst ungeschützt zu senden.",
       "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner.",
       "balanceUnmeasured": "Kontostand nicht geladen — die Börse entscheidet, ob diese Order gedeckt ist.",
-      "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen."
+      "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen.",
+      "staleCalculation": "Nicht aktuell — diese Werte und die daraus entstehende Order passen nicht mehr zu den Angaben im Formular."
     },
     "confirm": {
       "titleLive": "Diese Order platzieren?",
@@ -4472,7 +4473,7 @@
       "targetMissing": "Einstieg und Stop liegen an, der Take-Profit jedoch nicht.",
       "tradingUnavailable": "Handel ist für dieses Symbol nicht verfügbar.",
       "metadataLoading": "Lade Handelspaar-Details...",
-      "staleCalculation": "Es wurde nichts gesendet. Die Werte oben stammen aus einer früheren Berechnung und passen nicht mehr zu Einstieg, Stop, Zielen oder Hebel im Formular. Prüfe diese Eingaben, bevor du eine Order sendest.",
+      "staleCalculation": "Es wurde nichts gesendet. {reason} Prüfe diese Eingaben, bevor du eine Order sendest.",
       "belowMinTradeVolume": "Positionsgröße liegt unter dem Mindesthandelsvolumen ({min}).",
       "exceedsMaxOrderVolume": "Positionsgröße überschreitet das maximale Ordervolumen ({max}).",
       "accountUnverified": "Zugangsdaten nicht bestätigt — Privatkonto wird geprüft.",

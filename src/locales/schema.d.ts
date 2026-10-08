@@ -3656,6 +3656,7 @@ export type TranslationKey =
   | "orderEntry.notes.firstTargetOnly"
   | "orderEntry.notes.balanceUnmeasured"
   | "orderEntry.notes.liveMarginShortfall"
+  | "orderEntry.notes.staleCalculation"
   | "orderEntry.confirm.titleLive"
   | "orderEntry.confirm.titlePaper"
   | "orderEntry.confirm.message"
