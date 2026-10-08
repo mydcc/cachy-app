@@ -26,7 +26,7 @@
 import { migrateAccounts } from "../stores/settings/accounts";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 vi.mock("$app/env", () => ({ browser: true, dev: true }));
 
@@ -159,6 +159,24 @@ describe("FEAT-0012 — paper mode reaches no network", () => {
 describe("FEAT-0012 — one seam", () => {
     it("branches on the mode exactly once, at the transport", () => {
         const source = readFileSync("src/services/tradeService.ts", "utf8");
+        // FEAT-0342 (slice C) moved the TP/SL read into its own module, and a
+        // service may not import stores — so the mode it depends on arrives
+        // as a port. The scan has to look at both files, or it stops seeing
+        // the FEAT-0327 credential guard altogether.
+        const tpSl = readFileSync("src/services/trade/tpSlService.ts", "utf8");
+
+        // The whole trade domain, not just the file the seam happens to live
+        // in today. `if (paperState.enabled)` used to be the only way to
+        // branch on the mode; a module that reads it through a port has its
+        // own spelling of the same `if`. Scoping the scan to one file would
+        // let a second live/paper branch walk into a sibling module and sit
+        // there unnoticed — which is the whole failure this test exists for.
+        const tradeDomain = [
+            source,
+            ...readdirSync("src/services/trade")
+                .filter((f) => f.endsWith(".ts") && !f.includes(".test."))
+                .map((f) => readFileSync(`src/services/trade/${f}`, "utf8")),
+        ].join("\n");
 
         // Two branches, and the test names both — the count alone would let
         // a third appear by pushing one of these out of the file.
@@ -182,19 +200,41 @@ describe("FEAT-0012 — one seam", () => {
         // intent and onto the gate-pass context so the transport can compare
         // them, two read the balance *for* the mode so the gate measures an
         // open/add against what the trader is actually trading against
-        // (BUG-0565), one relaxes a credential guard (FEAT-0327) in front of a
-        // read that goes through the seam and therefore needs no credentials,
-        // one refuses a bot-stamped order while paper is off (BUG-0494), and
-        // one re-reads the mode immediately before a write is dispatched
-        // (BUG-0551) so a mode switched mid-signing cannot reach the venue.
-        // None of them changes what the request is: the provenance refusal
-        // stops a paper-only order from reaching the live branch, the
-        // dispatch re-check can only refuse, neither ever routes anything.
+        // (BUG-0565), one refuses a bot-stamped order while paper is off
+        // (BUG-0494), and one re-reads the mode immediately before a write is
+        // dispatched (BUG-0551) so a mode switched mid-signing cannot reach
+        // the venue. One more — the FEAT-0327 credential relaxation — moved
+        // to the TP/SL module and is counted there. None of them changes what
+        // the request is: the provenance refusal stops a paper-only order
+        // from reaching the live branch, the dispatch re-check can only
+        // refuse, neither ever routes anything.
         expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(9);
+
+        // FEAT-0327: exactly one read relaxes a credential guard, because it
+        // goes through the paper seam and therefore needs no credentials. It
+        // used to read the mode and the keys itself; now it takes both as
+        // ports, so the guard is matched by its new shape and the wiring is
+        // pinned separately — a mode read that reaches the TP/SL module from
+        // anywhere but that one port is not the guard this is counting.
         expect(
-            source.match(/if \(!paperState\.enabled && \(!keys\?\.key/g) ?? [],
+            tpSl.match(/if \(!ports\.isPaperMode\(\) && !hasKeys\)/g) ?? [],
         ).toHaveLength(1);
+        expect(source.match(/isPaperMode: \(\) => paperState\.enabled/g) ?? []).toHaveLength(1);
+        expect(source.match(/hasActiveKeys: \(\) => \{/g) ?? []).toHaveLength(1);
         expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(3);
+
+        // …and the domain-wide backstop for the branch invariant itself. Every
+        // `if` anywhere in `src/services/trade{,/}` whose condition reads the
+        // mode is one of the three the assertions above already account for:
+        // the two named branches plus the FEAT-0327 credential relaxation. A
+        // fourth — in any file, under either spelling — is a live/paper
+        // branch that decides what a request does instead of what it carries,
+        // which is exactly what FEAT-0012 rules out.
+        expect(
+            tradeDomain.match(
+                /if \(!?paperState\.enabled\)|if \(!?ports\.isPaperMode\(\)/g,
+            ) ?? [],
+        ).toHaveLength(3);
     });
 
     it("reaches the transport with an identical payload in both modes", async () => {
