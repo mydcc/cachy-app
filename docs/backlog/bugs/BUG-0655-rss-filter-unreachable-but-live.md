@@ -2,9 +2,7 @@
 id: BUG-0655
 title: rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/drop-dead-settings-fields
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
