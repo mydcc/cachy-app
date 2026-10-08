@@ -2,9 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
-assignee: opencode
-branch: refactor/feat0342-slice-d
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -39,6 +37,56 @@ For the services, split responsibilities by domain (e.g., splitting `apiService`
 
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
+
+## Status note (2026-10-08, slice D merged in PR #3955)
+
+`tradeService.ts`: 2492 → **2232** lines. `src/services/trade/accountSettings.ts`
+(516 lines) now holds `fetchLeverageMarginMode`, `fetchPositionMode`,
+`changeLeverage`, `changeMarginMode`, `changePositionMode`,
+`adjustPositionMargin` and the private `accountSettingRequest`,
+`readBackUntilApplied` and `warnUnconfirmed`. The public signatures are
+unchanged, so the 28 tests in `tradeService_accountSettings.test.ts` pass
+without being edited. `READ_BACK_ATTEMPTS` / `READ_BACK_DELAYS_MS` moved with
+the lane — nothing else used them.
+
+**This lane is deliberately not gated, and that must survive future moves.**
+It reaches the venue through `exchangeSignedFetch` rather than
+`signedRequest`, because account settings are not orders and therefore carry
+no FEAT-0011 gate pass. Routing them through `signedRequest` would need a
+pass they cannot produce, or a hole in `assertGatePass`. For the same reason
+`accountSettingRequest` refuses outright in paper mode (FEAT-0068):
+`paperExchange` simulates orders and has no notion of leverage or margin
+mode, so there is nothing on the far side to change.
+
+`warnUnconfirmed` is a port rather than a toast call. A first cut translated
+the message inside the module, which put svelte-i18n on the failure path of
+every read-back that gives up — under this test file's mocks the store's
+value is not callable at that point, and nine tests failed. Handing the owner
+a callback is also what `tpSlService` does with its message keys.
+
+The paper-mode seam guard followed the code: the FEAT-0068 refusal now sits
+in the module and reads the mode through its port, so it is named there and
+its `throw` is matched too, while the domain-wide backstop still counts all
+three branches under either spelling. Three mutations turn it red.
+
+**Still open.** Slices E and F, both on `settings.svelte.ts` (2166 lines,
+untouched so far):
+
+- **E — field mapping behind a schema.** `toJSON()` (187) +
+  `applyCoreFields()` (142) + `applyDisplayFields()` (145) = 474 lines. The
+  riskiest step in this item, because it touches credential serialisation
+  (BUG-0280 redaction, BUG-0519 encryption-failure aggregation). Needs its
+  own PR with human review, and a round-trip guard that forces every key of
+  `defaultSettings` in both directions — a key missing from either direction
+  is silent data loss on the next save.
+- **F — thin out the delegation.** `accountFor` / `addAccount` /
+  `renameAccount` / `removeAccount` already delegate to
+  `src/stores/settings/accounts.ts`; the three `reset*` methods become pure
+  functions over a target in `src/stores/settings/resets.ts`.
+
+The `$effect` in the constructor treats `toJSON()` as the dependency tracker,
+so fields that move into another store stop being observed and autosave dies
+for them without an error. Slice E has to deal with that, not route around it.
 
 ## Status note (2026-10-08, slices A–C merged in PR #3948)
 
