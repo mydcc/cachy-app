@@ -2,9 +2,7 @@
 id: BUG-0656
 title: The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment
 type: bug
-status: in-progress
-assignee: opencode
-branch: fix/settings-load-merge
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]

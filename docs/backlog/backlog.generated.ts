@@ -6189,9 +6189,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0653",
     "title": "The settings persistence contract is checked by name, and only on the save side",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/settings-load-merge",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6227,9 +6225,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0656",
     "title": "The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment",
     "type": "bug",
-    "status": "in-progress",
-    "assignee": "opencode",
-    "branch": "fix/settings-load-merge",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
