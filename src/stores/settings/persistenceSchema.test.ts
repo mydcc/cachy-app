@@ -69,6 +69,23 @@ function loadTarget(): LoadTarget & { values: Record<string, unknown> } {
 }
 
 describe("persistence schema exactness", () => {
+    it("cannot be mutated at runtime, so one key table really is the source", () => {
+        // `readonly` is compile-time only. Both directions of the round trip
+        // iterate this array, so a push at runtime would silently split it in
+        // two — the exact failure the schema table exists to prevent.
+        expect(() => {
+            (PERSISTENCE_SCHEMA as unknown as unknown[]).push({
+                key: "smuggled",
+                save: "direct",
+                load: "coalesce",
+                section: "core",
+            });
+        }).toThrow(TypeError);
+        expect(Object.isFrozen(PERSISTENCE_SCHEMA)).toBe(true);
+        expect(Object.isFrozen(PERSISTENCE_SCHEMA[0])).toBe(true);
+        expect(PERSISTENCE_SCHEMA.map((f) => f.key)).not.toContain("smuggled");
+    });
+
     it("covers every declared setting on save, plus the five storage keys", () => {
         // Arrange
         const saveKeys = PERSISTENCE_SCHEMA.map((field) => field.key).sort();

@@ -82,7 +82,7 @@ export interface FieldSchema {
  * covers every declared setting except the three `load()` assigns directly
  * (`accounts`, `activeAccountId`, `apiProvider` via `_apiProvider`).
  */
-export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = [
+export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = Object.freeze([
     { key: "apiProvider", save: "direct", load: null, section: null },
     { key: "appAccessToken", save: "direct", load: "coalesce", section: "core" },
     { key: "marketAnalysisInterval", save: "direct", load: "coalesce", section: "core" },
@@ -255,7 +255,10 @@ export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = [
     { key: "chartCountdownEnabled", save: "direct", load: "coalesce", section: "core" },
     { key: "enableDockingCentered", save: "direct", load: "coalesce", section: "display" },
     { key: "dockingPosition", save: "direct", load: "coalesce", section: "display" },
-];
+    // Both levels. `Object.freeze` on the mapped array alone freezes the
+    // elements but leaves the array pushable, which a test caught: the extra
+    // row then shifted every later assertion in the same run.
+].map((field) => Object.freeze(field)));
 
 /** Keys `load()` assigns directly, so the schema carries no load entry. */
 export const LOAD_BODY_KEYS: readonly string[] = [

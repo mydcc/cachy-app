@@ -215,7 +215,16 @@ function sourceFiles(dir = SRC, found: string[] = []): string[] {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-            if (entry.name === "tests" || entry.name === "node_modules") continue;
+            // Compared as a path, not as a directory name. Skipping by name
+            // means any future `src/services/foo/tests/` holding a production
+            // file would be skipped silently — the same unexamined-region
+            // shape the seam inventory was closed for.
+            if (
+                entry.name === "node_modules" ||
+                full === path.join(SRC, "tests")
+            ) {
+                continue;
+            }
             sourceFiles(full, found);
             continue;
         }
