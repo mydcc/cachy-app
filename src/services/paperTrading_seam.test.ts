@@ -164,6 +164,7 @@ describe("FEAT-0012 — one seam", () => {
         // as a port. The scan has to look at both files, or it stops seeing
         // the FEAT-0327 credential guard altogether.
         const tpSl = readFileSync("src/services/trade/tpSlService.ts", "utf8");
+        const accountSettings = readFileSync("src/services/trade/accountSettings.ts", "utf8");
 
         // The whole trade domain, not just the file the seam happens to live
         // in today. `if (paperState.enabled)` used to be the only way to
@@ -189,12 +190,22 @@ describe("FEAT-0012 — one seam", () => {
         //      seam: `paperExchange` simulates orders and has no notion of
         //      leverage or margin mode, so there is nothing on the far side
         //      to change and the write is refused rather than pretended.
+        // One here, not two. The second branch it used to name — FEAT-0068's
+        // account-settings refusal — moved to ./trade/accountSettings with
+        // the rest of that lane, and it reads the mode through its port, so it
+        // no longer matches this spelling. It is named where it now lives
+        // below; the domain-wide backstop still counts all three together.
         const branches = source.match(/if \(paperState\.enabled\)[\s\S]{0,220}/g) ?? [];
-        expect(branches).toHaveLength(2);
+        expect(branches).toHaveLength(1);
         expect(branches.filter((b) => b.includes("paperExchange.handle"))).toHaveLength(1);
+
+        // FEAT-0068's refusal, in the module it moved to. The count alone
+        // would pass if the throw were deleted and any unrelated
+        // `if (ports.isPaperMode())` took its place, so the body is named too.
         expect(
-            branches.filter((b) => b.includes("exchange.accountSettings.paperMode")),
+            accountSettings.match(/if \(ports\.isPaperMode\(\)\)/g) ?? [],
         ).toHaveLength(1);
+        expect(accountSettings).toContain('throw new Error("exchange.accountSettings.paperMode")');
 
         // The remaining reads are not branches: they record the mode onto the
         // intent and onto the gate-pass context so the transport can compare
@@ -219,7 +230,11 @@ describe("FEAT-0012 — one seam", () => {
         expect(
             tpSl.match(/if \(!ports\.isPaperMode\(\) && !hasKeys\)/g) ?? [],
         ).toHaveLength(1);
-        expect(source.match(/isPaperMode: \(\) => paperState\.enabled/g) ?? []).toHaveLength(1);
+        // Two, not one: the TP/SL credential relaxation and the account-settings
+        // refusal each get the mode handed to them as a port, and both ports
+        // are wired to the same read here. A third would be a module asking for
+        // the mode a way this file cannot see.
+        expect(source.match(/isPaperMode: \(\) => paperState\.enabled/g) ?? []).toHaveLength(2);
         expect(source.match(/hasActiveKeys: \(\) => \{/g) ?? []).toHaveLength(1);
         expect(source.match(/paperMode: paperState\.enabled/g) ?? []).toHaveLength(3);
 

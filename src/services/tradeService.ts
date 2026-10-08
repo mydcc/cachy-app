@@ -39,7 +39,6 @@ import { effectsState } from "../stores/effects.svelte";
 import { safeJsonParse } from "../utils/safeJson";
 import {
     PositionRawSchema,
-    BitunixLeverageMarginModeSchema,
     BitunixPositionTierResponseSchema,
 } from "../types/apiSchemas";
 import type { OMSOrderSide } from "./omsTypes";
@@ -53,7 +52,7 @@ import { unwrapApiEnvelope, formatApiNum, parseDecimal } from "../utils/utils";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountEpoch } from "./accountEpoch.svelte";
-import { accountReadOrder, leverageReadOrder, positionsReadOrder } from "./accountReadOrder";
+import { positionsReadOrder } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
 import {
@@ -77,13 +76,10 @@ import {
     type Venue,
 } from "../utils/exchange/restSigningPlan";
 import {
-    buildAccountQueryParams,
-    buildLeverageMarginModeQueryParams,
     buildOrderDetailQueryParams,
     buildPositionsQueryParams,
     buildTpslWriteBody,
 } from "../utils/exchange/venueQueries";
-import { AccountSettingsRequestSchema } from "../types/accountSettingsSchemas";
 
 // Error shapes and order parameter contracts live in ./trade/* (FEAT-0342);
 // re-exported here so existing importers keep working.
@@ -109,6 +105,7 @@ import {
     type PlacePositionTpSlParams,
     type PlaceTpSlParams,
 } from "./trade/tpSlService";
+import { createAccountSettingsService } from "./trade/accountSettings";
 
 /**
  * The credentials of an account that does not exist.
@@ -117,23 +114,6 @@ import {
  * mutated it would silently poison both.
  */
 const EMPTY_KEYS: Readonly<ApiKeys> = Object.freeze({ key: "", secret: "" });
-
-/**
- * Attempts for a post-write read-back, the immediate one included
- * (BUG-0409).
- */
-const READ_BACK_ATTEMPTS = 3;
-
-/**
- * Gaps before the second and third attempt.
- *
- * Two numbers rather than a formula: a venue that has not settled within
- * ~2.7 s of a confirmed write will not settle at ~3 s either, and a trader
- * watching a chip must not be left in front of an open-ended backoff. Whoever
- * widens this owes the request-budget arithmetic — the venue allows 10 req/s
- * per endpoint and every other account read is event-driven.
- */
-const READ_BACK_DELAYS_MS = [700, 2000];
 
 /**
  * The context a request is about to be sent under, read now.
@@ -209,6 +189,50 @@ class TradeService {
         },
         isPaperMode: () => paperState.enabled,
         activeSymbol: () => tradeState.symbol,
+    });
+
+    /**
+     * Leverage, margin mode, position mode and isolated-margin adjustments.
+     *
+     * The one lane that is deliberately *not* gated: these are account
+     * settings rather than orders, so they carry no FEAT-0011 pass and refuse
+     * in paper mode instead of pretending. That is the whole reason this lane
+     * does not go through `signedRequest`; see `accountSettingRequest`.
+     */
+    private readonly accountSettings = createAccountSettingsService({
+        activeVenue: () => settingsState.apiProvider,
+        activeKeys: (provider) =>
+            keysForActiveAccount(
+                settingsState.accounts,
+                settingsState.activeAccountId,
+                provider,
+            ),
+        sessionFetch: () =>
+            this.dispatchUnderSession(accountEpoch.current(), readDispatchContext()),
+        isPaperMode: () => paperState.enabled,
+        applyRemoteLeverageMargin: (leverage, marginMode) => {
+            tradeState.remoteLeverage = leverage;
+            tradeState.remoteMarginMode = marginMode;
+            // FEAT-0011 measures staleness from here. Stamped only on a
+            // successful read, so a failed refresh leaves the previous
+            // timestamp to age out rather than looking freshly confirmed.
+            tradeState.remoteAccountStateAt = Date.now();
+        },
+        readRemoteMarginMode: () => tradeState.remoteMarginMode,
+        setPositionMode: (mode) => accountState.setPositionMode(mode),
+        readPositionMode: () => accountState.positionMode,
+        setMarginModeVerifying: (busy) => {
+            accountState.marginModeVerifying = busy;
+        },
+        setPositionModeVerifying: (busy) => {
+            accountState.positionModeVerifying = busy;
+        },
+        requestSync: () => accountState.requestSync(),
+        // The toast lives here, not in the module: translation is the owner's
+        // job, exactly as the order gate's refusal keys are translated in
+        // `gatedRequest` rather than where the refusal is raised.
+        warnUnconfirmed: () =>
+            toastService.warning(get(_)("exchange.accountSettings.notConfirmed")),
     });
 
     // Helper to sign and send requests to backend
@@ -465,51 +489,7 @@ class TradeService {
     // already reads for its "synced with API" indicator but which nothing
     // has ever set until now.
     public async fetchLeverageMarginMode(symbol: string): Promise<void> {
-        const provider = settingsState.apiProvider;
-        if (provider !== "bitunix") return; // Bitget equivalent: follow the M2 adapter shape
-        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-        if (!keys?.key || !keys?.secret) return;
-
-        // FEAT-0026. These three fields are what the FEAT-0011 gate ages: it
-        // asks "is this recent enough", never "is this the account I am
-        // signing for". A late response writing them would look freshly
-        // confirmed while describing the account the trader just left.
-        //
-        // BUG-0412's ordering rides on the same ticket, in its own lane: this
-        // read has five-plus triggers (symbol selection, the order-submit
-        // stale gate, post-write read-backs) and the read-back below fires it
-        // repeatedly on purpose, so overlapping answers are the normal case
-        // here rather than the exception.
-        const ticket = leverageReadOrder.begin();
-
-        try {
-            const response = await exchangeSignedFetch({
-                cachyPath: "/api/leverage-margin-mode",
-                keys: { apiKey: keys.key, apiSecret: keys.secret },
-                fetchFn: appFetch,
-                payload: { exchange: provider, symbol },
-                queryParams: buildLeverageMarginModeQueryParams({ symbol }),
-            });
-            const json = await response.json();
-            const { data } = unwrapApiEnvelope<Record<string, unknown>>(json);
-            if (!data) return;
-
-            const validation = BitunixLeverageMarginModeSchema.safeParse(data);
-            if (!validation.success) {
-                logger.error("network", "[TradeService] Invalid leverage/margin-mode response", validation.error.issues);
-                return;
-            }
-            if (!leverageReadOrder.mayApply(ticket)) return;
-
-            tradeState.remoteLeverage = new Decimal(validation.data.leverage);
-            tradeState.remoteMarginMode = validation.data.marginMode;
-            // FEAT-0011 measures staleness from here. Stamped only on a
-            // successful read, so a failed refresh leaves the previous
-            // timestamp to age out rather than looking freshly confirmed.
-            tradeState.remoteAccountStateAt = Date.now();
-        } catch (e) {
-            logger.debug("api", "[TradeService] fetchLeverageMarginMode failed", e);
-        }
+        return this.accountSettings.fetchLeverageMarginMode(symbol);
     }
 
     /**
@@ -522,134 +502,7 @@ class TradeService {
      * leaves the previous value alone.
      */
     public async fetchPositionMode(): Promise<void> {
-        const provider = settingsState.apiProvider || "bitunix";
-        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-        if (!keys?.key || !keys?.secret) return;
-
-        // BUG-0412: this read competes with PositionsSidebar's two mounted
-        // instances for the same store field, so the ticket has to be taken
-        // here — before the first `await` — rather than at the write.
-        const ticket = accountReadOrder.begin();
-
-        // Paper mode answers from the simulated book, exactly like
-        // PositionsSidebar: paperExchange simulates orders only and knows
-        // no venue margin modes, so there is no live read to take here.
-        const paper = paperAccountFeed();
-        if (paper) {
-            if (!accountReadOrder.mayApply(ticket)) return;
-            accountState.setPositionMode(paper.accountInfo().positionMode);
-            return;
-        }
-
-        try {
-            // FEAT-0405 A5 — this read used to carry the secret, and its failure
-            // is swallowed by every caller (`.catch(() => {})` in
-            // ExchangeAccountControls), which is exactly how an unmigrated call
-            // site here would present: position mode silently stuck on its
-            // default. Signing it in the browser is what keeps that quiet.
-            const response = await exchangeSignedFetch({
-                cachyPath: "/api/account",
-                keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
-                venue: provider,
-                payload: { exchange: provider },
-                queryParams: buildAccountQueryParams(provider),
-                headers: { "X-Provider": provider },
-                fetchFn: appFetch,
-            });
-            const json = await response.json();
-            const { data } = unwrapApiEnvelope<{ positionMode?: unknown }>(json);
-            if (!data) return;
-            // Leaves the "a failed read changes nothing" contract above
-            // intact: only a read that actually produced a snapshot claims
-            // the ordering slot.
-            if (!accountReadOrder.mayApply(ticket)) return;
-
-            accountState.setPositionMode(
-                typeof data.positionMode === "string" ? data.positionMode : undefined,
-            );
-        } catch (e) {
-            logger.debug("api", "[TradeService] fetchPositionMode failed", e);
-        }
-    }
-
-    /*
-     * FEAT-0068 — the account-settings write transport.
-     *
-     * Deliberately separate from `signedRequest`: none of these is an order,
-     * so none carries a FEAT-0011 gate pass, and routing them through the
-     * order transport would either need a pass they cannot produce or a hole
-     * in `assertGatePass`. They are still writes, which is why they throw on
-     * failure rather than resolving quietly the way the account *reads* above
-     * do — a leverage change that reported nothing would leave the trader
-     * sizing a position against a number the exchange never accepted.
-     *
-     * FEAT-0405 A5: the credential rides as a pre-signed envelope like every
-     * other migrated route, so the secret never leaves the device.
-     *
-     * Paper mode never reaches the network. `paperExchange` simulates orders,
-     * not account settings; there is nothing on the far side to change, so
-     * this refuses instead of pretending.
-     */
-    private async accountSettingRequest(
-        payload: Record<string, unknown>,
-    ): Promise<unknown> {
-        if (paperState.enabled) {
-            throw new Error("exchange.accountSettings.paperMode");
-        }
-
-        const provider = settingsState.apiProvider;
-        const keys = keysForActiveAccount(settingsState.accounts, settingsState.activeAccountId, provider);
-        if (!keys?.key || !keys?.secret) {
-            throw new Error("apiErrors.missingCredentials");
-        }
-
-        // BUG-0551: this lane signs and dispatches on its own, so it carries
-        // its own re-check. The paper guard above has the same gap it was
-        // written to close — the switch that happens while the signature is
-        // being computed is not the one it can see.
-        const context = readDispatchContext();
-
-        // Parsed here as well as in the route, and for the same reason the route
-        // parses: `marginCoin` carries a default and `amount` a transform, so the
-        // two sides only build the same bytes if they build from the same parsed
-        // payload. Signing the raw object instead would be refused as
-        // `PRESIGNED_DIVERGENCE` before anything left Cachy.
-        const parsed = AccountSettingsRequestSchema.safeParse({ exchange: provider, ...payload });
-        if (!parsed.success) {
-            const details = parsed.error.issues
-                .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-                .join(", ");
-            throw new BitunixApiError("VALIDATION_ERROR", "apiErrors.generic", details);
-        }
-
-        const response = await exchangeSignedFetch({
-            cachyPath: "/api/account-settings",
-            keys: { apiKey: keys.key, apiSecret: keys.secret, passphrase: keys.passphrase },
-            method: "POST",
-            // Named rather than inferred: the route resolves its venue from the
-            // body, and the envelope itself carries only credentials.
-            venue: provider,
-            fetchFn: this.dispatchUnderSession(accountEpoch.current(), context),
-            headers: { "X-Provider": provider },
-            payload: parsed.data,
-        });
-
-        const text = await response.text();
-        let data: Record<string, unknown> = {};
-        try {
-            data = safeJsonParse(text);
-        } catch {
-            if (!response.ok) throw new BitunixApiError(response.status, "apiErrors.invalidResponse");
-        }
-
-        const code = data.code as string | number | undefined;
-        if (!response.ok || (code !== undefined && String(code) !== "0")) {
-            const rawMsg = String(data.error || data.msg || "Unknown API Error");
-            logger.debug("api", `[TradeService] Account setting rejected: ${rawMsg}`);
-            throw new BitunixApiError(code ?? response.status ?? -1, "apiErrors.generic", rawMsg);
-        }
-
-        return data.data ?? null;
+        return this.accountSettings.fetchPositionMode();
     }
 
     /**
@@ -666,17 +519,7 @@ class TradeService {
      * exchange said so on a second, independent read.
      */
     public async changeLeverage(symbol: string, leverage: Decimal): Promise<void> {
-        if (!leverage.isFinite() || !leverage.isInteger() || leverage.lte(0)) {
-            throw new Error("apiErrors.invalidAmount");
-        }
-        // Leverage is already validated as finite, integer, and positive.
-        // Converting to native number for the wire protocol.
-        await this.accountSettingRequest({
-            type: "change-leverage",
-            symbol,
-            leverage: +leverage,
-        });
-        await this.fetchLeverageMarginMode(symbol);
+        return this.accountSettings.changeLeverage(symbol, leverage);
     }
 
     /**
@@ -689,80 +532,7 @@ class TradeService {
         symbol: string,
         marginMode: "ISOLATION" | "CROSS",
     ): Promise<void> {
-        await this.accountSettingRequest({ type: "change-margin-mode", symbol, marginMode });
-
-        accountState.marginModeVerifying = true;
-        try {
-            const outcome = await this.readBackUntilApplied(
-                () => this.fetchLeverageMarginMode(symbol),
-                () =>
-                    normalizeMarginMode(tradeState.remoteMarginMode) ===
-                    normalizeMarginMode(marginMode),
-            );
-            if (outcome === "unconfirmed") this.warnUnconfirmed();
-        } finally {
-            accountState.marginModeVerifying = false;
-        }
-    }
-
-    /**
-     * Read one account setting back until the venue reports what was written
-     * (BUG-0409).
-     *
-     * The write returning 200 is not the same as the change being readable.
-     * A single immediate re-read can land inside the venue's own propagation
-     * window and answer with the pre-write value — captured live: an
-     * `/api/account` body still saying `HEDGE` seconds after a confirmed
-     * `ONE_WAY` write, with the broker app already showing `ONE_WAY`. The
-     * chip then showed the old mode and nothing ever corrected it, so the
-     * trader's next write diffed against a value that was never current.
-     *
-     * Bounded and finite on purpose: this is a read-back for one write, not a
-     * poller. It stops the moment the venue agrees, gives up after
-     * `READ_BACK_ATTEMPTS`, and abandons immediately if the account is
-     * switched underneath — the answer would describe an account the trader
-     * has left.
-     *
-     * Returns how the read-back ended. `confirmed` and `unconfirmed`
-     * both mean the account is still the trader's own — only then may the
-     * caller warn. `switched` means the account moved underneath: warning
-     * about the previous account's value would blame the venue for a read
-     * that no longer belongs to this session. It deliberately does not
-     * decide beyond that: the caller knows which control the trader is
-     * looking at.
-     */
-    private async readBackUntilApplied(
-        read: () => Promise<void>,
-        isApplied: () => boolean,
-    ): Promise<"confirmed" | "unconfirmed" | "switched"> {
-        const session = accountEpoch.current();
-
-        for (let attempt = 0; attempt < READ_BACK_ATTEMPTS; attempt++) {
-            if (attempt > 0) {
-                await new Promise((resolve) =>
-                    setTimeout(resolve, READ_BACK_DELAYS_MS[attempt - 1]),
-                );
-                if (!accountEpoch.isCurrent(session)) return "switched";
-            }
-            await read();
-            if (!accountEpoch.isCurrent(session)) return "switched";
-            if (isApplied()) return "confirmed";
-        }
-        return "unconfirmed";
-    }
-
-    /**
-     * Say out loud that the venue never confirmed the change.
-     *
-     * The alternative this replaces was a `logger` line: the write succeeded,
-     * the toast said so, and the chip kept the old value with nothing to
-     * distinguish "the exchange is slow" from "Cachy is broken". The displayed
-     * value stays whatever the venue last reported — it is not overwritten
-     * with what was requested, because that would be the optimistic write
-     * FEAT-0068 exists to avoid.
-     */
-    private warnUnconfirmed(): void {
-        toastService.warning(get(_)("exchange.accountSettings.notConfirmed"));
+        return this.accountSettings.changeMarginMode(symbol, marginMode);
     }
 
     /**
@@ -788,20 +558,7 @@ class TradeService {
      * cannot be an older answer than the one already applied.
      */
     public async changePositionMode(positionMode: "ONE_WAY" | "HEDGE"): Promise<void> {
-        await this.accountSettingRequest({ type: "change-position-mode", positionMode });
-
-        accountState.positionModeVerifying = true;
-        try {
-            const outcome = await this.readBackUntilApplied(
-                () => this.fetchPositionMode(),
-                () => (accountState.positionMode ?? "").toUpperCase() === positionMode,
-            );
-            if (outcome === "unconfirmed") this.warnUnconfirmed();
-        } finally {
-            accountState.positionModeVerifying = false;
-        }
-
-        accountState.requestSync();
+        return this.accountSettings.changePositionMode(positionMode);
     }
 
     /**
@@ -820,24 +577,7 @@ class TradeService {
         side?: "LONG" | "SHORT";
         positionId?: string;
     }): Promise<void> {
-        const { symbol, amount, side, positionId } = params;
-        if (!amount.isFinite() || amount.isZero()) {
-            throw new Error("apiErrors.invalidAmount");
-        }
-        if (!side && !positionId) {
-            throw new Error("apiErrors.invalidAmount");
-        }
-        // All financial calculations are complete; converting to string for the
-        // wire protocol with full precision.
-        const amountStr = amount.toFixed(amount.decimalPlaces() ?? 0);
-        await this.accountSettingRequest({
-            type: "adjust-position-margin",
-            symbol,
-            amount: amountStr,
-            ...(side ? { side } : {}),
-            ...(positionId ? { positionId } : {}),
-        });
-        accountState.requestSync();
+        return this.accountSettings.adjustPositionMargin(params);
     }
 
     /**

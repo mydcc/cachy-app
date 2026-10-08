@@ -2,7 +2,9 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: specced
+status: in-progress
+assignee: opencode
+branch: refactor/feat0342-slice-d
 priority: P2
 milestone: none
 editions: [community, pro, private]
