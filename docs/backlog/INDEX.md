@@ -4,15 +4,7 @@
 
 527 items. How to read and add them: [README.md](README.md).
 
-<<<<<<< HEAD
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 26 · ✅ done 450 · ⛔ dropped 1
-=======
-<<<<<<< HEAD
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 26 · ✅ done 450 · ⛔ dropped 1
-=======
-Counts by status: 💡 idea 27 · 📋 specced 21 · 🟢 ready 27 · 🟡 in-progress 1 · ✅ done 448 · ⛔ dropped 1
->>>>>>> d67f93ca0 (refactor(trade): split four domains out of tradeService)
->>>>>>> dbd66d33f (refactor(trade): split four domains out of tradeService)
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 26 · 🟡 in-progress 1 · ✅ done 450 · ⛔ dropped 1
 
 ---
 
