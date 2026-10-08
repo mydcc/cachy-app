@@ -20,7 +20,7 @@ import type { Handle } from "@sveltejs/kit/hooks";
 import { building } from "$app/env";
 import { logger } from "#lib/server/logger.js";
 import { i18nReady } from "./locales/i18n";
-import { SECURITY_HEADERS } from "../server-headers.js";
+import { SECURITY_HEADERS, cspHasNonce } from "../server-headers.js";
 
 // --- Global Console Interceptor for CachyLog ---
 // Redirects all server-side console logs to the centralized logger and SSE stream
@@ -115,10 +115,13 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
 
   // Single source of truth stays server-headers.js (shared with Express).
   // SvelteKit's nonce CSP (kit.csp.mode "auto") must win wherever present —
-  // overwriting it would strip nonces and break app.html scripts.
+  // overwriting it would strip nonces and break app.html scripts. A policy
+  // that carries no nonce is incomplete, not special: kit.csp.mode "auto"
+  // always emits one, so no nonce means SvelteKit did not provide a policy
+  // here at all and the shared static fallback has to take over.
   for (const [name, value] of SECURITY_HEADERS) {
     if (name === "Content-Security-Policy") {
-      if (!response.headers.has("Content-Security-Policy")) {
+      if (!cspHasNonce(response.headers.get("Content-Security-Policy"))) {
         response.headers.set(name, value);
       }
     } else {

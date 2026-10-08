@@ -42,13 +42,51 @@ export const SECURITY_HEADERS = [
  * strips the nonces, the browser blocks every inline script including
  * kit.start(), and the app stays blank (SSR is disabled, so nothing renders
  * without the client bootstrap).
+ *
+ * Exported because the nonce question is not local to the Express server:
+ * src/hooks.server.ts needs the identical answer, and keeping two copies of
+ * "does this policy carry a nonce" is how one side later tightens its check
+ * while the other silently keeps the looser one.
  * @param {unknown} value a header value in any Node shape
  * @returns {boolean}
  */
-function cspHasNonce(value) {
+export function cspHasNonce(value) {
   if (typeof value === "string") return value.includes("nonce-");
   if (Array.isArray(value)) return value.some((entry) => cspHasNonce(entry));
   return false;
+}
+
+/**
+ * res.writeHead() is the only place explicit headers reach the wire, and Node
+ * accepts a plain object or an array there — not a Web API Headers instance.
+ * Headers keeps its entries in an internal slot and exposes no own enumerable
+ * properties, so Node's enumeration of the argument finds nothing and silently
+ * drops every header the caller put in it, security headers included.
+ * Verified against the pinned Node version: the response carries neither the
+ * caller's own headers nor anything applySecurityHeaders() had staged.
+ * Normalizing to a plain object here is what makes the overlay meaningful.
+ * @param {unknown} headers the headers argument of a writeHead() call
+ * @returns {Record<string, string | string[]> | null} null when the argument is not a Headers instance
+ */
+function toNodeHeaders(headers) {
+  if (typeof Headers === "undefined" || !(headers instanceof Headers)) {
+    return null;
+  }
+  /** @type {Record<string, string | string[]>} */
+  const normalized = {};
+  headers.forEach((value, name) => {
+    // Headers folds repeated names (Set-Cookie) into separate entries with the
+    // same key; Node wants a string[] there, so collect instead of overwrite.
+    const existing = normalized[name];
+    if (existing === undefined) {
+      normalized[name] = value;
+    } else if (Array.isArray(existing)) {
+      existing.push(value);
+    } else {
+      normalized[name] = [existing, value];
+    }
+  });
+  return normalized;
 }
 
 /**
@@ -155,6 +193,8 @@ export function overlaySecurityHeaders(explicit) {
  * policies survive. A Content-Security-Policy carrying `nonce-…` tokens
  * (SvelteKit's per-request policy) is preserved on both paths: stripping it
  * would block the inline bootstrap scripts and leave a blank app.
+ * A Web API Headers instance is normalized to a plain Node header object
+ * first, because Node otherwise discards the argument wholesale.
  * Idempotent: safe to call when the middleware already applied the headers,
  * since setHeader overwrites identical values. Preserves `this`, all
  * writeHead overloads, and the return value of the original.
@@ -164,7 +204,19 @@ export function wrapWriteHead(res) {
   const originalWriteHead = res.writeHead;
   res.writeHead = function (...args) {
     applySecurityHeaders(res);
-    overlaySecurityHeaders(args.find((arg) => arg !== null && typeof arg === "object"));
+    // writeHead(status[, statusMessage][, headers]) — the headers object is the
+    // first non-null object argument, never the first argument, so a statusCode
+    // alone or a "OK" message both leave this at -1.
+    const headersIndex = args.findIndex(
+      (arg) => arg !== null && typeof arg === "object",
+    );
+    if (headersIndex !== -1) {
+      const normalized = toNodeHeaders(args[headersIndex]);
+      if (normalized !== null) {
+        args[headersIndex] = normalized;
+      }
+      overlaySecurityHeaders(args[headersIndex]);
+    }
     return originalWriteHead.apply(this, args);
   };
 }
