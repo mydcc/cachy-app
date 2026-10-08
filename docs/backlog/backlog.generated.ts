@@ -6150,6 +6150,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0650-validation-error-erased-in-same-tick.md"
   },
   {
+    "id": "BUG-0651",
+    "title": "The refusal that blocks the order is never announced to a screen reader",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0651-refusal-not-announced-to-screen-readers.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",

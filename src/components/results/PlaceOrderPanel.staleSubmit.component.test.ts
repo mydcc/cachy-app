@@ -323,6 +323,12 @@ function expectRefusal() {
     expect(showErrorMock).toHaveBeenCalledWith(
         expect.stringContaining("Nothing was sent"),
     );
+    // "Nothing was sent" lives in the template, so it holds whether or not
+    // `{reason}` was substituted. Pin the substitution itself, or a dropped
+    // `values` argument ships a literal `{reason}` to the trader.
+    expect(showErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining(lookup("orderEntry.notes.staleCalculation")),
+    );
 }
 
 /** Mounts without submitting — for assertions about what the panel shows. */
