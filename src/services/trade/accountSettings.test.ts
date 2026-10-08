@@ -45,13 +45,28 @@ vi.mock("../../utils/exchange/browserSigning", () => ({
     exchangeSignedFetch: exchangeSignedFetchMock,
 }));
 
+const appFetchMock = vi.hoisted(() => vi.fn());
 vi.mock("../../lib/appAuth", () => ({
-    appFetch: vi.fn(),
+    appFetch: appFetchMock,
     appAuthHeaders: () => ({}),
 }));
 
+const loggerMock = vi.hoisted(() => ({
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+}));
 vi.mock("../logger", () => ({
-    logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+    logger: loggerMock,
+}));
+
+// `paperAccountFeed()` answers from the simulated book when paper mode is on
+// (`paperState.enabled ? feed : null`). Hoisted so each test chooses: default
+// `null` (live read path), a feed object for the paper-book path.
+const paperAccountFeedMock = vi.hoisted(() => vi.fn());
+vi.mock("../paperAccountFeed", () => ({
+    paperAccountFeed: paperAccountFeedMock,
 }));
 
 /** A venue response shaped like the real envelope, `Response`-like enough for
@@ -70,13 +85,17 @@ function okBody(data: unknown) {
 /**
  * Ports that fail loudly on anything they are not supposed to reach, so an
  * unexpected call is an assertion failure rather than a silent pass.
+ *
+ * Typed as `AccountSettingsPorts` with no cast: adding a 13th required port
+ * to the interface fails compilation here until a default is added, which is
+ * what keeps this builder load-bearing as the port-contract seam over time.
  */
-function makePorts(overrides: Partial<AccountSettingsPorts> = {}) {
+function makePorts(overrides: Partial<AccountSettingsPorts> = {}): AccountSettingsPorts {
     const unexpected = (name: string) => () => {
         throw new Error(`port ${name} should not have been reached`);
     };
-    const ports = {
-        activeVenue: () => "bitunix" as const,
+    const ports: AccountSettingsPorts = {
+        activeVenue: () => "bitunix",
         activeKeys: () => ({ key: "test-key-1234", secret: "test-secret" }),
         sessionFetch: unexpected("sessionFetch"),
         isPaperMode: () => false,
@@ -89,13 +108,30 @@ function makePorts(overrides: Partial<AccountSettingsPorts> = {}) {
         requestSync: vi.fn(),
         warnUnconfirmed: vi.fn(),
         ...overrides,
-    } as unknown as AccountSettingsPorts;
+    };
     return ports;
+}
+
+/** A session-bound fetch that works: consultation is observable, travel succeeds. */
+function workingSessionFetch(): AccountSettingsPorts["sessionFetch"] {
+    return vi.fn(async () => new Response(JSON.stringify({ ok: true })));
+}
+
+/** Reset every mock handle this file owns (hoisted above). */
+function resetMocks(): void {
+    exchangeSignedFetchMock.mockReset();
+    appFetchMock.mockReset();
+    paperAccountFeedMock.mockReset();
+    paperAccountFeedMock.mockReturnValue(null);
+    loggerMock.log.mockReset();
+    loggerMock.warn.mockReset();
+    loggerMock.error.mockReset();
+    loggerMock.debug.mockReset();
 }
 
 describe("accountSettings paper-mode refusal (FEAT-0068)", () => {
     beforeEach(() => {
-        exchangeSignedFetchMock.mockReset();
+        resetMocks();
     });
 
     afterEach(() => {
@@ -104,9 +140,14 @@ describe("accountSettings paper-mode refusal (FEAT-0068)", () => {
 
     it("refuses every write before the fetch port is consulted", async () => {
         // `sessionFetch` throws if reached, so a write that tried to travel
-        // would surface as that error instead of the refusal.
+        // would surface as that error instead of the refusal — and the
+        // explicit non-call assertion below names the property rather than
+        // relying on the error text.
+        const sessionFetch = vi.fn((): Promise<Response> => {
+            throw new Error("port sessionFetch should not have been reached");
+        });
         const service = createAccountSettingsService(
-            makePorts({ isPaperMode: () => true }),
+            makePorts({ isPaperMode: () => true, sessionFetch }),
         );
 
         await expect(
@@ -130,6 +171,7 @@ describe("accountSettings paper-mode refusal (FEAT-0068)", () => {
         // no notion of leverage or margin mode, so there is nothing on the far
         // side to change.
         expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
+        expect(sessionFetch).not.toHaveBeenCalled();
     });
 
     it("still reads in paper mode — a refusal applies to writes, not reads", async () => {
@@ -152,11 +194,28 @@ describe("accountSettings paper-mode refusal (FEAT-0068)", () => {
             "ISOLATION",
         );
     });
+
+    it("still reads position mode in paper mode — via the simulated book", async () => {
+        // `fetchPositionMode` takes the paper-book branch (not a paper
+        // refusal): `paperExchange` simulates orders only, so there is no
+        // live position mode to read — but the mode chip still needs a value.
+        paperAccountFeedMock.mockReturnValue({
+            accountInfo: () => ({ positionMode: "HEDGE" }),
+        });
+        const ports = makePorts({ isPaperMode: () => true });
+        const service = createAccountSettingsService(ports);
+
+        await service.fetchPositionMode();
+
+        expect(ports.setPositionMode).toHaveBeenCalledWith("HEDGE");
+        // No live read was taken for it.
+        expect(exchangeSignedFetchMock).not.toHaveBeenCalled();
+    });
 });
 
 describe("accountSettings unconfirmed-write warning (BUG-0409)", () => {
     beforeEach(() => {
-        exchangeSignedFetchMock.mockReset();
+        resetMocks();
     });
 
     afterEach(() => {
@@ -166,20 +225,38 @@ describe("accountSettings unconfirmed-write warning (BUG-0409)", () => {
     it("warns when the venue never reports the written state, and stays silent when it does", async () => {
         // The write itself answers first, then the read-back keeps answering
         // with the pre-write value — the propagation window BUG-0409 captured.
+        // The read payload carries the full venue shape (`symbol`,
+        // `marginCoin`): without them the schema validation drops the read
+        // before the predicate ever sees it, and the test would pin the stub
+        // instead of the venue.
         exchangeSignedFetchMock.mockImplementation(async (req: { cachyPath: string }) => {
             if (req.cachyPath === "/api/leverage-margin-mode") {
-                return okBody({ leverage: "10", marginMode: "CROSS" });
+                return okBody({
+                    symbol: "BTCUSDT",
+                    marginCoin: "USDT",
+                    leverage: "10",
+                    marginMode: "CROSS",
+                });
             }
             return okBody({ code: "0", msg: "success" });
         });
+        const sessionFetch = workingSessionFetch();
         const ports = makePorts({
             readRemoteMarginMode: () => "CROSS",
-            sessionFetch: vi.fn() as unknown as AccountSettingsPorts["sessionFetch"],
+            sessionFetch,
         });
         const service = createAccountSettingsService(ports);
 
         await service.changeMarginMode("BTCUSDT", "CROSS");
 
+        // The write travelled through the session-bound fetch (the positive
+        // half of the refusal contract: reads *and* writes consult it).
+        expect(sessionFetch).toHaveBeenCalledTimes(1);
+        // The read leg is live: the venue's confirmation reached the display.
+        expect(ports.applyRemoteLeverageMargin).toHaveBeenCalledWith(
+            new Decimal(10),
+            "CROSS",
+        );
         // The venue confirmed the new margin mode, so there is nothing to warn
         // about — the warning exists to tell "the exchange is slow" apart from
         // "Cachy is broken", and firing it here would train the user to ignore it.
@@ -190,20 +267,45 @@ describe("accountSettings unconfirmed-write warning (BUG-0409)", () => {
         // Every read-back answers with the value the trader was already seeing.
         exchangeSignedFetchMock.mockImplementation(async (req: { cachyPath: string }) => {
             if (req.cachyPath === "/api/leverage-margin-mode") {
-                return okBody({ leverage: "10", marginMode: "ISOLATION" });
+                return okBody({
+                    symbol: "BTCUSDT",
+                    marginCoin: "USDT",
+                    leverage: "10",
+                    marginMode: "ISOLATION",
+                });
             }
             return okBody({ code: "0", msg: "success" });
         });
         const warnUnconfirmed = vi.fn();
+        const sessionFetch = workingSessionFetch();
         const ports = makePorts({
             warnUnconfirmed,
             readRemoteMarginMode: () => "ISOLATION",
-            sessionFetch: vi.fn() as unknown as AccountSettingsPorts["sessionFetch"],
+            sessionFetch,
         });
         const service = createAccountSettingsService(ports);
 
-        await service.changeMarginMode("BTCUSDT", "CROSS");
+        // The delays are trader-noticeable by design (`READ_BACK_DELAYS_MS`),
+        // so real timers would cost ~2.7s of wall-clock per run: advance fake
+        // time until the warning fires, then let the call settle.
+        vi.useFakeTimers();
+        try {
+            const pending = service.changeMarginMode("BTCUSDT", "CROSS");
+            for (let round = 0; round < 10 && warnUnconfirmed.mock.calls.length === 0; round++) {
+                await vi.advanceTimersByTimeAsync(10_000);
+            }
+            await pending;
+        } finally {
+            vi.useRealTimers();
+        }
 
+        expect(sessionFetch).toHaveBeenCalledTimes(1);
+        // The read leg is live (stale, but live): the warning answers a real
+        // venue value, not a dead read.
+        expect(ports.applyRemoteLeverageMargin).toHaveBeenCalledWith(
+            new Decimal(10),
+            "ISOLATION",
+        );
         expect(warnUnconfirmed).toHaveBeenCalledTimes(1);
         // The displayed value stays whatever the venue last reported rather
         // than the requested one — the optimistic write FEAT-0068 rules out.
@@ -211,5 +313,51 @@ describe("accountSettings unconfirmed-write warning (BUG-0409)", () => {
             expect.anything(),
             "CROSS",
         );
+        // The warn path is quiet: no log line competes with the user-visible
+        // warning (which exists precisely so "slow exchange" and "broken
+        // app" stay distinguishable).
+        expect(loggerMock.debug).not.toHaveBeenCalled();
+        expect(loggerMock.warn).not.toHaveBeenCalled();
+        expect(loggerMock.error).not.toHaveBeenCalled();
+    });
+
+    it("warns when a position-mode write is never confirmed", async () => {
+        // The second warn site (`changePositionMode`): the read-back runs
+        // `fetchPositionMode`, whose paper-book branch answers from the
+        // simulated account. It keeps answering the pre-write mode.
+        paperAccountFeedMock.mockReturnValue({
+            accountInfo: () => ({ positionMode: "HEDGE" }),
+        });
+        exchangeSignedFetchMock.mockResolvedValue(okBody({ code: "0", msg: "success" }));
+        const warnUnconfirmed = vi.fn();
+        const setPositionMode = vi.fn();
+        const sessionFetch = workingSessionFetch();
+        const ports = makePorts({
+            warnUnconfirmed,
+            setPositionMode,
+            readPositionMode: () => "HEDGE",
+            sessionFetch,
+        });
+        const service = createAccountSettingsService(ports);
+
+        vi.useFakeTimers();
+        try {
+            const pending = service.changePositionMode("ONE_WAY");
+            for (let round = 0; round < 10 && warnUnconfirmed.mock.calls.length === 0; round++) {
+                await vi.advanceTimersByTimeAsync(10_000);
+            }
+            await pending;
+        } finally {
+            vi.useRealTimers();
+        }
+
+        expect(sessionFetch).toHaveBeenCalledTimes(1);
+        // The read leg ran (the book was consulted on every attempt)…
+        expect(setPositionMode).toHaveBeenCalledWith("HEDGE");
+        // …never confirmed the write, and said so exactly once.
+        expect(warnUnconfirmed).toHaveBeenCalledTimes(1);
+        expect(loggerMock.debug).not.toHaveBeenCalled();
+        expect(loggerMock.warn).not.toHaveBeenCalled();
+        expect(loggerMock.error).not.toHaveBeenCalled();
     });
 });

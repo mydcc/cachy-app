@@ -269,40 +269,86 @@ describe("persistence schema exactness", () => {
             isProLicenseActive: false,
         } as unknown as Settings;
 
-        // Act
-        const isProTarget = loadTarget();
-        loadCustomValue("isPro", isProTarget, merged, defaults, undefined);
-        const licenseTarget = loadTarget();
-        loadCustomValue("isProLicenseActive", licenseTarget, merged, defaults, undefined);
+        // Act — one shared target, as production does (`applySchemaLoad`
+        // reuses a single `LoadTarget` across all fields).
+        const shared = loadTarget();
+        loadCustomValue("isPro", shared, merged, defaults, undefined);
+        loadCustomValue("isProLicenseActive", shared, merged, defaults, undefined);
 
         // Assert — `SettingsManager` has no `isPro` field; it lives on
         // `this.entitlement`. A `target.set("isPro", …)` here would create an
         // inert own property that nothing reads, resetting the entitlement on
         // every reload while both this file and the contract test stay green.
-        expect(isProTarget.entitlement.isPro).toBe(true);
-        expect(licenseTarget.entitlement.isProLicenseActive).toBe(true);
-        expect(isProTarget.values).toEqual({});
-        expect(licenseTarget.values).toEqual({});
+        // Separate targets would hide one key clobbering the other.
+        expect(shared.entitlement).toEqual({ isPro: true, isProLicenseActive: true });
+        expect(shared.values).toEqual({});
     });
 
     it("redacts credentials on the accounts save row whatever the source holds", () => {
-        // Arrange — a live profile with real keys, as BUG-0280 describes.
+        // Arrange — a live profile with real keys on both venues, as BUG-0280
+        // describes. The bitget account carries a passphrase: `redactAccounts`
+        // keys its blanking off `account.exchange` (`blankKeysFor`), and a
+        // fixture without `exchange` always takes the non-bitget branch —
+        // which cannot tell "passphrase blanked" from "passphrase leaked".
         const live = [
             {
                 id: "bitunix-main",
                 name: "Main",
-                keys: { key: "sk-real-key", secret: "sk-real-secret" },
+                exchange: "bitunix",
+                keys: { key: "sk-test-bitunix-key", secret: "sk-test-bitunix-secret" },
+            },
+            {
+                id: "bitget-main",
+                name: "Secondary",
+                exchange: "bitget",
+                keys: {
+                    key: "sk-test-bitget-key",
+                    secret: "sk-test-bitget-secret",
+                    passphrase: "sk-test-bitget-passphrase",
+                },
             },
         ];
+        const before = structuredClone(live);
 
         // Act
-        const saved = saveCustomValue("accounts", saveSource({ accounts: live }));
+        const saved = saveCustomValue("accounts", saveSource({ accounts: live })) as {
+            id: string;
+            name: string;
+            exchange: string;
+            keys: Record<string, string>;
+        }[];
 
         // Assert — the placeholders are what reaches localStorage; the real
         // material must not appear anywhere in the serialized payload.
         const serialized = JSON.stringify(saved);
-        expect(serialized).not.toContain("sk-real-key");
-        expect(serialized).not.toContain("sk-real-secret");
+        for (const secret of [
+            "sk-test-bitunix-key",
+            "sk-test-bitunix-secret",
+            "sk-test-bitget-key",
+            "sk-test-bitget-secret",
+            "sk-test-bitget-passphrase",
+        ]) {
+            expect(serialized).not.toContain(secret);
+        }
+        // Identity survives, credentials do not — and the bitget shape keeps
+        // its `passphrase: ""` slot (dropping the key would change the
+        // persisted shape, which a restore notices long after the change).
+        expect(saved[0]).toEqual({
+            id: "bitunix-main",
+            name: "Main",
+            exchange: "bitunix",
+            keys: { key: "", secret: "" },
+        });
+        expect(saved[1]).toEqual({
+            id: "bitget-main",
+            name: "Secondary",
+            exchange: "bitget",
+            keys: { key: "", secret: "", passphrase: "" },
+        });
+        // The live profile is untouched: the redactor returns new objects,
+        // and the only thing protecting live keys in production is the
+        // snapshot copy one layer up — this pins the purity half of that.
+        expect(live).toEqual(before);
     });
 
     it("redacts provider keys on the userProviders save row", () => {
@@ -314,10 +360,16 @@ describe("persistence schema exactness", () => {
                 flavor: "openai-chat",
                 baseUrl: "https://example.invalid",
                 model: "m",
-                apiKey: "sk-provider-secret",
+                apiKey: "sk-test-provider-secret",
                 allowServerRelay: false,
+                // A field the redactor does not know: under a spread it would
+                // ride into the persisted payload untouched. `redactAccounts`
+                // rebuilds field-by-field and is immune to this class; the
+                // provider redactor must be held to the same shape.
+                clientSecret: "sk-test-probe-secret",
             },
         ];
+        const before = structuredClone(live);
 
         // Act
         const saved = saveCustomValue(
@@ -325,8 +377,23 @@ describe("persistence schema exactness", () => {
             saveSource({ userProviders: live }),
         );
 
-        // Assert
-        expect(JSON.stringify(saved)).not.toContain("sk-provider-secret");
+        // Assert — neither the known credential nor the unknown extra field
+        // survives serialization, and the live profile is untouched.
+        const serialized = JSON.stringify(saved);
+        expect(serialized).not.toContain("sk-test-provider-secret");
+        expect(serialized).not.toContain("sk-test-probe-secret");
+        expect(saved).toEqual([
+            {
+                id: "p1",
+                label: "Custom",
+                flavor: "openai-chat",
+                baseUrl: "https://example.invalid",
+                model: "m",
+                apiKey: "",
+                allowServerRelay: false,
+            },
+        ]);
+        expect(live).toEqual(before);
     });
 });
 

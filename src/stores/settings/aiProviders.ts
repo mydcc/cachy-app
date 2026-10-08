@@ -288,11 +288,26 @@ export function buildUserProvider(existing: readonly ProviderConfig[]): Provider
 /**
  * Providers with credentials blanked, for the serialization that `toJSON()`
  * emits. Only `apiKey` is cleared; everything the UI binds to survives.
+ *
+ * Rebuilt field-by-field rather than spread: a spread would carry any future
+ * secret-bearing field straight into the persisted payload, and the save
+ * pin could not tell. This mirrors `sanitizeUserProviders` below (which
+ * already rebuilds on load) and `redactAccounts` (which rebuilds via
+ * `blankKeysFor`) — both directions agree on the shape, so neither can
+ * smuggle a field past the other.
  */
 export function redactUserProviders(
   providers: readonly ProviderConfig[],
 ): ProviderConfig[] {
-  return providers.map((provider) => ({ ...provider, apiKey: "" }));
+  return providers.map((provider) => ({
+    id: provider.id,
+    label: provider.label,
+    flavor: provider.flavor,
+    baseUrl: provider.baseUrl,
+    model: provider.model,
+    apiKey: "",
+    allowServerRelay: provider.allowServerRelay,
+  }));
 }
 
 /**

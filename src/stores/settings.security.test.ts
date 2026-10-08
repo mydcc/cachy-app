@@ -18,7 +18,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LEGACY_ACCOUNT_IDS } from "./settings/accounts";
-import { SettingsManager } from "./settings.svelte";
+import { defaultSettings, SettingsManager } from "./settings.svelte";
 import { cryptoService } from "../services/cryptoService";
 
 // Mock browser environment
@@ -375,6 +375,15 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
     expect(settingsState.backgroundBlur).toBe(0);
     expect(settingsState.backgroundOpacity).toBe(1);
     expect(settingsState.galaxySettings.camPos).not.toEqual({ x: 9, y: 9, z: 9 });
+    // Fidelity, not just call-through: the reset restores the shipped
+    // defaults wholesale (deep-equal, not "changed somehow"), and the live
+    // object shares no reference with the default — an in-place edit after
+    // the reset must not rewrite the default for the rest of the session
+    // (the `mergeGalaxySettings` aliasing class).
+    expect(settingsState.galaxySettings).toEqual(defaultSettings.galaxySettings);
+    expect(settingsState.galaxySettings).not.toBe(defaultSettings.galaxySettings);
+    settingsState.galaxySettings.camPos.x = 12345;
+    expect(defaultSettings.galaxySettings.camPos.x).not.toBe(12345);
 
     settingsState.tradeFlowSettings = { speed: 42 } as never;
     settingsState.resetTradeFlowSettings();
