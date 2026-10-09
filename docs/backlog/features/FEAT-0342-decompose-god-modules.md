@@ -2,7 +2,8 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: ready
+status: in-progress
+assignee: opencode
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -13,7 +14,21 @@ depends_on: []
 parent: FEAT-0341
 ---
 
-## Status note (2026-10-09, step 3 — branch `feature/0342-trade-flashclose-modify`)
+## Status note (2026-10-09, step 3 rest — branch `feature/0342-trade-rest-lanes`)
+
+Claimed (`assignee: opencode`): extracting the four remaining lanes
+`placeOrder`, `addToPosition`, `closePosition`, `closeAllPositions` into
+`src/services/trade/`, same pattern as the merged flashClose/modifyOrder
+lanes (verbatim bodies, store reads as ports, thin delegates kept).
+Proven: all existing facade suites green unedited through the facade,
+17 new lane tests green and each RED-proven by mutation (18 mutations),
+seam inventory narrowed 9→8 (two identical balance-mode branches folded
+into one `usdtBalance()` helper), ESLint and `svelte-check` clean (only
+the known local `marketWatcher.bench.ts` stale-env artifact). With these
+four lanes `tradeService.ts` holds no order path anymore — only the
+manager (ports, session, gate) plus thin delegates.
+
+## Status note (2026-10-09, step 3 — merged as #3993)
 
 The `in-progress` claim (`assignee: opencode`) is released: the two lanes
 are implemented and waiting on review, and no session holds the item.
