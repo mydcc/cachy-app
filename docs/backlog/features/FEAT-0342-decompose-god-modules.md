@@ -4,6 +4,7 @@ title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
 status: in-progress
 assignee: opencode
+branch: feature/0342-trade-rest-lanes
 priority: P2
 milestone: none
 editions: [community, pro, private]

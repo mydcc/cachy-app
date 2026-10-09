@@ -7534,6 +7534,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "type": "feature",
     "status": "in-progress",
     "assignee": "opencode",
+    "branch": "feature/0342-trade-rest-lanes",
     "priority": "P2",
     "milestone": "none",
     "editions": [
