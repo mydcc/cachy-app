@@ -56,8 +56,9 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0018](0018-user-directed-egress-of-class-a-announcements.md) | A trader may point an announcement at a service they own, and Cachy must say what that costs | Accepted |
 | [0019](0019-multi-provider-registry-and-credential-transit.md) | User-managed AI providers, wire-format flavors, and the credential-transit boundary | Accepted |
 | [0020](0020-automation-envelope-promotion-and-simulate-bots.md) | Promotion derives a bot, and simulate bots submit through the gate | Proposed |
-| [0021](0021-decimal-money-boundary-display-stays-f64.md) | The decimal money boundary stops where the display does | Accepted |
+| [0021](0021-decimal-money-boundary-display-stays-f64.md) | The decimal money boundary stops where the display does | Proposed |
 | [0022](0022-cache-key-from-normalized-request.md) | A cache key is derived from a normalized request, not from the URL | Proposed |
 | [0023](0023-bitget-uta-only.md) | Bitget speaks UTA only; Classic is refused, not ported | Proposed |
+| [0024](0024-settings-store-split-behind-facade.md) | The settings store splits behind a facade, gated on explicit autosave ownership | Accepted |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._
