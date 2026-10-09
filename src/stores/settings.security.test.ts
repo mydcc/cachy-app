@@ -18,7 +18,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { LEGACY_ACCOUNT_IDS } from "./settings/accounts";
-import { SettingsManager } from "./settings.svelte";
+import { defaultSettings, SettingsManager } from "./settings.svelte";
 import { cryptoService } from "../services/cryptoService";
 
 // Mock browser environment
@@ -356,5 +356,37 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
     expect(settingsState.chartWatermark).toBe(false);
     expect(settingsState.chartSecondsVisible).toBe(false);
     expect(settingsState.chartCountdownEnabled).toBe(false);
+  });
+
+  // `resets.test.ts` pins what `resetGalaxy` / `resetTradeFlow` compute. It
+  // cannot see whether the `SettingsManager` methods still call them: inline
+  // the assignments back into the manager and that file stays green while the
+  // blur pin — which rests on `backgroundBlur` resetting to literal 0 against a
+  // shipped default of 5 — loses its only production caller. This is the
+  // assertion that keeps slice F load-bearing.
+  it("the manager's reset methods still delegate to the extracted helpers", () => {
+    settingsState.backgroundBlur = 9;
+    settingsState.backgroundOpacity = 0.3;
+    settingsState.galaxySettings = { camPos: { x: 9, y: 9, z: 9 } } as never;
+
+    settingsState.resetGalaxySettings();
+
+    // 0, not defaultSettings' 5 — the pin `resets.test.ts` guards.
+    expect(settingsState.backgroundBlur).toBe(0);
+    expect(settingsState.backgroundOpacity).toBe(1);
+    expect(settingsState.galaxySettings.camPos).not.toEqual({ x: 9, y: 9, z: 9 });
+    // Fidelity, not just call-through: the reset restores the shipped
+    // defaults wholesale (deep-equal, not "changed somehow"), and the live
+    // object shares no reference with the default — an in-place edit after
+    // the reset must not rewrite the default for the rest of the session
+    // (the `mergeGalaxySettings` aliasing class).
+    expect(settingsState.galaxySettings).toEqual(defaultSettings.galaxySettings);
+    expect(settingsState.galaxySettings).not.toBe(defaultSettings.galaxySettings);
+    settingsState.galaxySettings.camPos.x = 12345;
+    expect(defaultSettings.galaxySettings.camPos.x).not.toBe(12345);
+
+    settingsState.tradeFlowSettings = { speed: 42 } as never;
+    settingsState.resetTradeFlowSettings();
+    expect(settingsState.tradeFlowSettings.speed).not.toBe(42);
   });
 });

@@ -82,7 +82,12 @@ export interface FieldSchema {
  * covers every declared setting except the three `load()` assigns directly
  * (`accounts`, `activeAccountId`, `apiProvider` via `_apiProvider`).
  */
-export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = [
+export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = Object.freeze(([
+    // Frozen at both levels on the way out (see the closing lines): the
+    // inner `.map(Object.freeze)` freezes each row, the outer
+    // `Object.freeze` freezes the array itself. One level alone is half a
+    // lock — rows mutable or array pushable — and a runtime push would
+    // silently split the save/load tables the schema exists to keep as one.
     { key: "apiProvider", save: "direct", load: null, section: null },
     { key: "appAccessToken", save: "direct", load: "coalesce", section: "core" },
     { key: "marketAnalysisInterval", save: "direct", load: "coalesce", section: "core" },
@@ -255,14 +260,19 @@ export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = [
     { key: "chartCountdownEnabled", save: "direct", load: "coalesce", section: "core" },
     { key: "enableDockingCentered", save: "direct", load: "coalesce", section: "display" },
     { key: "dockingPosition", save: "direct", load: "coalesce", section: "display" },
-];
+    // Both levels (see the opening lines): the inner `.map(Object.freeze)`
+    // freezes each row, the outer `Object.freeze` freezes the array itself.
+    // The `as` keeps the rows contextually typed: without it the literal
+    // widens (`key: string`) before `.map` runs, and the outer `freeze`
+    // cannot narrow it back.
+] as FieldSchema[]).map((field) => Object.freeze(field)));
 
 /** Keys `load()` assigns directly, so the schema carries no load entry. */
-export const LOAD_BODY_KEYS: readonly string[] = [
+export const LOAD_BODY_KEYS: readonly string[] = Object.freeze([
     "accounts",
     "activeAccountId",
     "apiProvider",
-];
+]);
 
 /**
  * Keys `load()` assigns directly that the schema carries no load entry for:
@@ -274,13 +284,13 @@ export const LOAD_BODY_KEYS: readonly string[] = [
  * present. `isLocked` follows `isEncrypted` out of `applyAccounts`; pinning
  * it keeps the two from silently diverging.
  */
-export const LOAD_SECRET_KEYS: readonly string[] = [
+export const LOAD_SECRET_KEYS: readonly string[] = Object.freeze([
     "isEncrypted",
     "isLocked",
     "encryptedAccountKeys",
     "encryptedProviderConfigs",
     "encryptedSecrets",
-];
+]);
 
 /** What the manager reads a field from when serializing. */
 export interface SaveSource {
