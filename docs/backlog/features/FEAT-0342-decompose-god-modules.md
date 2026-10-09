@@ -2,7 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,6 +12,11 @@ adr: none
 depends_on: []
 parent: FEAT-0341
 ---
+
+## Status note (2026-10-09, AC re-audit — branch `docs/0342-re-audit-ac-verdicts`)
+
+The re-audit is the closing contribution: all five AC boxes are checked on
+evidence, so the item flips to `done` in this PR. Claim released.
 
 ## Status note (2026-10-09, ADR-0024 decision 3 — merged)
 
@@ -153,19 +158,52 @@ the real coupling, so the Fix text was rewritten to describe what shipped.
       not by this item** — it was 1934 lines when this item was specced (`fe96e160b`);
       the split to 77 landed in `1dc976ff3` (PR #2720) four days later, in work that
       never touched this file. No FEAT-0342 PR has edited `VisualsTab.svelte`.
-- [ ] `tradeService.ts` is split into domain-specific services. **Partial**: 3102 → 2232
-      lines, seven lanes extracted and thin-delegated back through a retained façade, but
-      still one class carrying ≥9 domains (`signedRequest` 242, `flashClosePosition` 260,
-      `modifyOrder` 225 raw lines).
-- [ ] `settings.svelte.ts` is refactored into smaller isolated state stores. **Not
-      started.** What shipped is the *other* half of the target below — the persistence
-      coordinator. `SettingsManager` is still a single `$state` holder; see the
-      blocker recorded in the AC-3 note.
+- [x] `tradeService.ts` is split into domain-specific services. **Met
+      (re-audited 2026-10-09; the facade retains delegation verbosity — 1146
+      lines, see caveat above):** 3102 → 1146 lines. All order paths
+      live in domain lanes under `src/services/trade/` — `accountSettings`,
+      `positionLifecycle`, `tpSlService`, `flashClose`, `modifyOrder`,
+      `placeOrder`, `addToPosition`, `closePosition`, `closeAllPositions`
+      (plus `payloadCodec`/`tradeParams`/`tradeErrors`/`dispatchSession`/
+      `pairMeta` infrastructure) — each kept as a thin delegate on the
+      facade, so no consumer needed changes (facade-compatible). What remains
+      on the class is transport (`signedRequest`/`gatedRequest`, deliberately
+      centralised as the FEAT-0011 enforcement point), session handling, the
+      account-setting reads/writes, and the port wiring — plus two thin
+      transport shells that never left (`cancelOrder`: validation plus a
+      direct gate call; `getOrderDetail`: query params plus a direct transport
+      call; neither carries domain logic). The file is still long because
+      delegation is verbose (~24 thin one-line delegates plus the transport
+      and session surface), not because domains are entangled.
+- [x] `settings.svelte.ts` is refactored into smaller isolated state stores. **Met
+      with recorded exception (re-audited 2026-10-09):** `display` (65 fields)
+      and `core` (97 fields) live in isolated sub-stores
+      (`src/stores/settings/display.svelte.ts`, `core.svelte.ts`) behind the
+      facade; the manager keeps every name via delegating getters/setters, so
+      no consumer needed changes (facade-compatible). The account cluster stays on the manager as
+      coordinator by ADR-0024 decision 3 (accepted with #3995; 11 owned
+      `$state` fields: 7 persisted `section: null` rows, 4 transient
+      lock/counter flags). The "What blocks AC 3" analysis below is kept as
+      the historical record — the blockers resolved as follows: (1) the
+      facade kept all 97 consumer files compiling unchanged, so no consumer
+      rewrite was needed; (2) `update()` was deleted in #3988; (3–4) never
+      materialised as feared, because coordination stayed centralised — one
+      tracking effect with one mute flag (`effectActive`), one storage
+      listener, and per-store load routing (`applyDisplayFields`,
+      `applyCoreFields`, `applySchemaLoad`). The residual risks ADR-0024
+      records in its consequences still apply to future changes.
 - [x] `apiService.ts` is divided. 1247 → 69 lines across `src/services/api/`.
-- [ ] All existing unit tests pass, and new tests are written for the extracted modules.
-      **Partial**: suites green (583 unit + 3 reactivity-contract), but four extracted
-      modules ship without a colocated test — `trade/tradeParams`, `api/apiErrors`,
-      `api/rateLimiter`, `api/requestManager`.
+- [x] All existing unit tests pass, and new tests are written for the extracted modules.
+      **Met (re-audited 2026-10-09):** the four previously untested modules
+      now ship colocated suites — `trade/tradeParams`, `api/apiErrors`,
+      `api/rateLimiter`, `api/requestManager` (all four landed in #3989;
+      `trade/tradeErrors` was already covered since #3623) — every trade lane
+      ships its own suite (`flashClose`, `modifyOrder`, `placeOrder`,
+      `addToPosition`, `closePosition`, `closeAllPositions`), each RED-proven
+      by mutation in its lane PR (#3993: 28 mutations, #3994: 30), and the
+      settings reactivity/persistence/load contracts plus the seam and
+      gate-bypass guards were green in CI at their merge
+      (#3990/#3991/#3993/#3994).
 
 ### What blocks AC 3
 
@@ -214,6 +252,9 @@ the settings-store split, which was never started for the reason recorded
 under "What blocks AC 3". Its draft lives in ADR-0024 (PR #3986): explicit
 tracking ownership first, field moves second — or a conscious decision to
 leave the class whole. Merging this PR does not close that question.
+(*Superseded 2026-10-09: display/core moved in #3990/#3991, the account
+cluster decided in ADR-0024 decision 3 (#3995) — see the re-audit verdicts
+above.*)
 
 ## Status note (2026-10-08, review closeout — branch `fix/feat-0342-closeout-security`)
 
