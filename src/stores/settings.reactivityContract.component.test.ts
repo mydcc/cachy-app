@@ -224,6 +224,50 @@ describe("settings reactivity contract", () => {
     ).toEqual([]);
   });
 
+  it("schedules a save for in-place mutations through delegated getters", () => {
+    // The reassignment loop above passes even through a copying getter (the
+    // setter still fires and saves). In-place edits (`arr.push`, `obj.k =
+    // v`) are the class a copy breaks: the live state never changes, the
+    // effect reads nothing new, and the edit is gone on reload. This test
+    // proves the delegating getters hand out the live `$state` proxy, for
+    // every object-valued field — the facade PRs made copying getters
+    // possible for the first time, so this guard starts with them.
+    const inert: string[] = [];
+
+    for (const key of SETTINGS_KEYS) {
+      const owner = ownerOf(settings, key);
+      const current: unknown = owner[key];
+      if (typeof current !== "object" || current === null) continue;
+      saveSpy.mockClear();
+
+      if (Array.isArray(current)) {
+        current.push("__sentinel__");
+      } else {
+        (current as Record<string, unknown>).__sentinel__ = true;
+      }
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+      if (saveSpy.mock.calls.length === 0) inert.push(key);
+
+      // Restore in place, then let that save land too (same timer hygiene
+      // as the reassignment loop above).
+      if (Array.isArray(current)) {
+        current.pop();
+      } else {
+        delete (current as Record<string, unknown>).__sentinel__;
+      }
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    }
+
+    expect(
+      inert,
+      `in-place edits to these settings scheduled no save — the getter ` +
+        `may be handing out a copy instead of live state: ${inert.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("keeps scheduling saves when toJSON is memoised", () => {
     // ADR-0024 decision 1: the autosave effect must not depend on
     // `toJSON()`. A memoised serializer returns a cached object without

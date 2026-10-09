@@ -27,6 +27,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SettingsManager } from "./settings.svelte";
+import { MARKET_MODE_WIRE_KEY } from "./settings/persistenceSchema";
 import { cryptoService } from "../services/cryptoService";
 import { VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
 
@@ -614,5 +615,31 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
     expect(
       (settings.toJSON() as unknown as Record<string, unknown>)[key],
     ).toEqual(stored);
+  });
+
+  it("restores marketMode without firing the setter (ADR-0024 core move)", () => {
+    // Regression: `marketMode` load bypasses the setter on purpose
+    // (`loadCustomValue` writes `_marketMode` directly so `applyMarketMode`
+    // does not overwrite the four profile fields on boot). After the core
+    // move that key must land in the sub-store — an inert own property on
+    // the manager would silently reset the mode on every reload.
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        marketMode: "performance",
+        marketAnalysisInterval: 300,
+      }),
+    );
+
+    const settings = new SettingsManager();
+    expect(settings.marketMode).toBe("performance");
+    // The setter would have forced these to the performance profile (0,
+    // false, false, false) — the stored values must survive instead.
+    expect(settings.marketAnalysisInterval).toBe(300);
+    expect(settings.toJSON().marketMode).toBe("performance");
+    // The wire key must not materialize as an own property: the getter
+    // would never read it, and the mode would reset on every reload.
+    expect(MARKET_MODE_WIRE_KEY in settings).toBe(false);
+    settings.destroy();
   });
 });

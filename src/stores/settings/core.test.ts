@@ -14,41 +14,39 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- * Inventory for the display sub-store (ADR-0024 decision 2).
+ * Inventory for the core sub-store (ADR-0024 decision 2, second group).
  *
- * 66 `PERSISTENCE_SCHEMA` rows carry `section: "display"`, but only 65 of
- * them are display-owned `$state`: `isProLicenseActive` lives on the
- * entitlement collaborator. This test pins that subtraction from all three
- * sides — schema, store, facade — so a 67th display row without a home
- * fails here by name instead of as silent data loss. The reactivity
- * contract would catch the omission too, but only as an inert field,
- * never naming the missing home.
+ * 98 `PERSISTENCE_SCHEMA` rows carry `section: "core"`, but only 97 of
+ * them are core-owned `$state`: `isPro` lives on the entitlement
+ * collaborator. This test pins that subtraction from all three sides —
+ * schema, store, facade — so a 99th core row without a home fails here by
+ * name instead of as silent data loss.
  */
 
 import { describe, expect, it } from "vitest";
 import { expectTypeOf } from "vitest";
 import { SettingsManager } from "../settings.svelte";
 import { PERSISTENCE_SCHEMA } from "./persistenceSchema";
-import { DisplaySettingsStore } from "./display.svelte";
+import { CoreSettingsStore } from "./core.svelte";
 import type { Settings } from "./settingsTypes";
 
-/** Display schema rows owned by another object, not by a settings store. */
-const HELD_ELSEWHERE = new Set(["isProLicenseActive"]);
+/** Core schema rows owned by another object, not by a settings store. */
+const HELD_ELSEWHERE = new Set(["isPro"]);
 
-describe("display sub-store inventory", () => {
-    it("holds exactly the display-owned schema keys", () => {
+describe("core sub-store inventory", () => {
+    it("holds exactly the core-owned schema keys", () => {
         const expected = PERSISTENCE_SCHEMA.filter(
-            (field) => field.section === "display" && !HELD_ELSEWHERE.has(field.key),
+            (field) => field.section === "core" && !HELD_ELSEWHERE.has(field.key),
         )
             .map((field) => field.key)
             .sort();
         expect(expected.length).toBeGreaterThan(0);
-        expect(Object.keys(new DisplaySettingsStore()).sort()).toEqual(expected);
+        expect(Object.keys(new CoreSettingsStore()).sort()).toEqual(expected);
     });
 
     it("exposes every held field through a delegating getter and setter", () => {
         const missing: string[] = [];
-        const storeKeys = Object.keys(new DisplaySettingsStore());
+        const storeKeys = Object.keys(new CoreSettingsStore());
         for (const key of storeKeys) {
             const descriptor = Object.getOwnPropertyDescriptor(
                 SettingsManager.prototype,
@@ -58,16 +56,19 @@ describe("display sub-store inventory", () => {
         }
         expect(
             missing,
-            `these display fields have no delegating accessor — consumers ` +
+            `these core fields have no delegating accessor — consumers ` +
                 `would read a missing property instead of live state: ${missing.join(", ")}`,
         ).toEqual([]);
     });
 
     it("matches Settings field types exactly", () => {
-        // Same guard as the core inventory: names are runtime-pinned,
-        // strictness is compile-time-pinned (see there for the rationale).
-        expectTypeOf<DisplaySettingsStore>().toEqualTypeOf<
-            Pick<Settings, keyof DisplaySettingsStore>
+        // The runtime inventory pins names; this pins strictness. A
+        // widened or narrowed store field (dropped `| undefined`, widened
+        // literal union) compiles clean through the `as unknown as Settings`
+        // cast in `toJSON()` and fails no runtime test — but changes
+        // load/save semantics at the boundary. This fails at typecheck.
+        expectTypeOf<CoreSettingsStore>().toEqualTypeOf<
+            Pick<Settings, keyof CoreSettingsStore>
         >();
     });
 });
