@@ -58,8 +58,7 @@ import {
   resolveApiProvider,
 } from "./settings/migrations";
 import {
-    loadCustomValue,
-    loadPlainValue,
+    applySchemaField,
     loadSchemaEntries,
     PERSISTENCE_SCHEMA,
     saveCustomValue,
@@ -1547,8 +1546,18 @@ export class SettingsManager {
         }
       }
 
-      this.applyCoreFields(merged);
-      this.applyDisplayFields(merged, parsed);
+      // A schema-level failure — an unknown `save`/`load` mode, a `case` that
+      // does not exist — is a programming error, not corrupt storage. Letting
+      // it reach the catch below would overwrite the user's entire profile
+      // with defaults, turning a one-line typo into silent total data loss
+      // (Class A). Scoped here: log unconditionally and carry on, so a single
+      // bad row costs that field instead of the profile.
+      try {
+        this.applyCoreFields(merged);
+        this.applyDisplayFields(merged, parsed);
+      } catch (schemaError) {
+        console.error("[Settings] Persistence schema load failed:", schemaError);
+      }
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("[Settings] Load failed, using defaults:", e);
@@ -1589,11 +1598,11 @@ export class SettingsManager {
       entitlement: this.entitlement,
     };
     for (const field of fields) {
-      if (field.load === "custom") {
-        loadCustomValue(field.key, target, merged, defaultSettings, rawParsed);
-      } else if (field.load !== null) {
-        target.set(field.key, loadPlainValue(field, merged, defaultSettings));
-      }
+      // Per-row isolation lives in `applySchemaField` (never throws): a bad
+      // row costs exactly that field, not the remainder of the section. The
+      // load()-level catch below stays as the backstop for anything thrown
+      // outside this loop (`ensureProviderRegistry`, the drivers themselves).
+      applySchemaField(target, field, merged, defaultSettings, rawParsed);
     }
   }
 

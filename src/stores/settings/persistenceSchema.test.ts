@@ -15,13 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
 import { defaultSettings, SETTINGS_KEYS } from "../settings.svelte";
 import {
+    applySchemaField,
     LOAD_BODY_KEYS,
+    LOAD_SECRET_KEYS,
     loadCustomValue,
     loadSchemaEntries,
     mergeBurnChannels,
@@ -31,9 +33,11 @@ import {
     normalizeStoredPriceScaleMode,
     PERSISTENCE_SCHEMA,
     saveCustomValue,
+    type FieldSchema,
     type LoadTarget,
     type SaveSource,
 } from "./persistenceSchema";
+import { stripNonCode } from "./sourceScan";
 import type { Settings } from "./settingsTypes";
 
 /**
@@ -69,6 +73,30 @@ function loadTarget(): LoadTarget & { values: Record<string, unknown> } {
 }
 
 describe("persistence schema exactness", () => {
+    it("cannot be mutated at runtime, so one key table really is the source", () => {
+        // `readonly` is compile-time only. Both directions of the round trip
+        // iterate this array, so a push at runtime would silently split it in
+        // two — the exact failure the schema table exists to prevent.
+        expect(() => {
+            (PERSISTENCE_SCHEMA as unknown as unknown[]).push({
+                key: "smuggled",
+                save: "direct",
+                load: "coalesce",
+                section: "core",
+            });
+        }).toThrow(TypeError);
+        expect(Object.isFrozen(PERSISTENCE_SCHEMA)).toBe(true);
+        expect(Object.isFrozen(PERSISTENCE_SCHEMA[0])).toBe(true);
+        // Every row, not just the first: a partial freeze (all but one row)
+        // would pass the assertions above while leaving a writable hole.
+        expect(PERSISTENCE_SCHEMA.every(Object.isFrozen)).toBe(true);
+        // The sibling key tables live under the same threat model (a runtime
+        // push silently splitting a contract), so they carry the same lock.
+        expect(Object.isFrozen(LOAD_BODY_KEYS)).toBe(true);
+        expect(Object.isFrozen(LOAD_SECRET_KEYS)).toBe(true);
+        expect(PERSISTENCE_SCHEMA.map((f) => f.key)).not.toContain("smuggled");
+    });
+
     it("covers every declared setting on save, plus the five storage keys", () => {
         // Arrange
         const saveKeys = PERSISTENCE_SCHEMA.map((field) => field.key).sort();
@@ -117,18 +145,39 @@ describe("persistence schema exactness", () => {
             fileURLToPath(new URL("../settings.svelte.ts", import.meta.url)),
             "utf8",
         );
+        // Comments are blanked before the scan. The first version of this test
+        // matched the raw source, and `[^;]*` happily spanned a comment — so
+        // both of these passed while stating the opposite of the guard:
+        //
+        //   favoriteSymbols = $state(
+        //     // structuredClone here once Svelte proxies tolerate it
+        //     defaultSettings.favoriteSymbols,
+        //   );
+        //
+        //   logSettings = $state<Record<string, unknown>>({
+        //     // structuredClone is not needed for scalars
+        //     ...defaultSettings.logSettings,
+        //   });
+        //
+        // The second is the nested-aliasing defect `mergeGalaxySettings` was
+        // written to fix. A scanner that trusts a lexical token across a
+        // comment is the shape of bug this repo has already paid for once (an
+        // apostrophe in a comment silently dropped nine write sites).
+        const code = stripNonCode(source);
 
         // Assert — every object-valued init wraps the default in
-        // structuredClone. A new object setting without the clone fails
-        // here before its first in-place edit can rewrite the default.
+        // structuredClone, *as the argument* rather than as a word that
+        // happens to appear somewhere in the statement. A new object setting
+        // without the clone fails here before its first in-place edit can
+        // rewrite the default.
         expect(objectKeys.length).toBeGreaterThan(0);
         for (const key of objectKeys) {
             const init =
-                source.match(new RegExp(`\\b${key} = \\$state[^;]*;`))?.[0] ?? "";
+                code.match(new RegExp(`\\b${key} = \\$state[^;]*;`))?.[0] ?? "";
             expect(
                 init,
                 `${key} init hands live state the live default object — wrap it in structuredClone`,
-            ).toMatch(/structuredClone/);
+            ).toMatch(/=\s*\$state[^(]*\(\s*structuredClone\(/);
         }
     });
 
@@ -198,6 +247,11 @@ describe("persistence schema exactness", () => {
         const store: Record<string, unknown> = { accounts: [], userProviders: [] };
 
         // Act + Assert — every custom row dispatches without throwing.
+        //
+        // This proves a `case` label exists and nothing more: the custom arms
+        // only ever throw from their `default:`, so a row mutated to compute
+        // something else entirely still passes here. The load side is pinned by
+        // value in the tests below; the save side by the redaction test.
         for (const field of PERSISTENCE_SCHEMA) {
             if (field.save === "custom") {
                 expect(() =>
@@ -210,6 +264,163 @@ describe("persistence schema exactness", () => {
                 ).not.toThrow();
             }
         }
+    });
+
+    it("loads marketMode into the private field, never through the setter", () => {
+        // Arrange
+        const target = loadTarget();
+        const merged = { marketMode: "advanced" } as unknown as Settings;
+        const defaults = { marketMode: "simple" } as unknown as Settings;
+
+        // Act
+        loadCustomValue("marketMode", target, merged, defaults, undefined);
+
+        // Assert — `_marketMode` on purpose. `load()` must not fire the
+        // `marketMode` setter, because that setter calls `applyMarketMode`,
+        // which overwrites `marketAnalysisInterval`, `enableNewsAnalysis`,
+        // `showMarketActivity` and `analyzeAllFavorites` with profile-level
+        // values on every load. Writing the public name instead keeps this file
+        // green while those four fields are silently reset each boot.
+        expect(target.values._marketMode).toBe("advanced");
+        expect(target.values).not.toHaveProperty("marketMode");
+    });
+
+    it("loads entitlement onto the entitlement store, not as a Settings field", () => {
+        // Arrange
+        const merged = {
+            isPro: true,
+            isProLicenseActive: true,
+        } as unknown as Settings;
+        const defaults = {
+            isPro: false,
+            isProLicenseActive: false,
+        } as unknown as Settings;
+
+        // Act — one shared target, as production does (`applySchemaLoad`
+        // reuses a single `LoadTarget` across all fields).
+        const shared = loadTarget();
+        loadCustomValue("isPro", shared, merged, defaults, undefined);
+        loadCustomValue("isProLicenseActive", shared, merged, defaults, undefined);
+
+        // Assert — `SettingsManager` has no `isPro` field; it lives on
+        // `this.entitlement`. A `target.set("isPro", …)` here would create an
+        // inert own property that nothing reads, resetting the entitlement on
+        // every reload while both this file and the contract test stay green.
+        // Separate targets would hide one key clobbering the other.
+        expect(shared.entitlement).toEqual({ isPro: true, isProLicenseActive: true });
+        expect(shared.values).toEqual({});
+    });
+
+    it("redacts credentials on the accounts save row whatever the source holds", () => {
+        // Arrange — a live profile with real keys on both venues, as BUG-0280
+        // describes. The bitget account carries a passphrase: `redactAccounts`
+        // keys its blanking off `account.exchange` (`blankKeysFor`), and a
+        // fixture without `exchange` always takes the non-bitget branch —
+        // which cannot tell "passphrase blanked" from "passphrase leaked".
+        const live = [
+            {
+                id: "bitunix-main",
+                name: "Main",
+                exchange: "bitunix",
+                keys: { key: "sk-test-bitunix-key", secret: "sk-test-bitunix-secret" },
+            },
+            {
+                id: "bitget-main",
+                name: "Secondary",
+                exchange: "bitget",
+                keys: {
+                    key: "sk-test-bitget-key",
+                    secret: "sk-test-bitget-secret",
+                    passphrase: "sk-test-bitget-passphrase",
+                },
+            },
+        ];
+        const before = structuredClone(live);
+
+        // Act
+        const saved = saveCustomValue("accounts", saveSource({ accounts: live })) as {
+            id: string;
+            name: string;
+            exchange: string;
+            keys: Record<string, string>;
+        }[];
+
+        // Assert — the placeholders are what reaches localStorage; the real
+        // material must not appear anywhere in the serialized payload.
+        const serialized = JSON.stringify(saved);
+        for (const secret of [
+            "sk-test-bitunix-key",
+            "sk-test-bitunix-secret",
+            "sk-test-bitget-key",
+            "sk-test-bitget-secret",
+            "sk-test-bitget-passphrase",
+        ]) {
+            expect(serialized).not.toContain(secret);
+        }
+        // Identity survives, credentials do not — and the bitget shape keeps
+        // its `passphrase: ""` slot (dropping the key would change the
+        // persisted shape, which a restore notices long after the change).
+        expect(saved[0]).toEqual({
+            id: "bitunix-main",
+            name: "Main",
+            exchange: "bitunix",
+            keys: { key: "", secret: "" },
+        });
+        expect(saved[1]).toEqual({
+            id: "bitget-main",
+            name: "Secondary",
+            exchange: "bitget",
+            keys: { key: "", secret: "", passphrase: "" },
+        });
+        // The live profile is untouched: the redactor returns new objects,
+        // and the only thing protecting live keys in production is the
+        // snapshot copy one layer up — this pins the purity half of that.
+        expect(live).toEqual(before);
+    });
+
+    it("redacts provider keys on the userProviders save row", () => {
+        // Arrange
+        const live = [
+            {
+                id: "p1",
+                label: "Custom",
+                flavor: "openai-chat",
+                baseUrl: "https://example.invalid",
+                model: "m",
+                apiKey: "sk-test-provider-secret",
+                allowServerRelay: false,
+                // A field the redactor does not know: under a spread it would
+                // ride into the persisted payload untouched. `redactAccounts`
+                // rebuilds field-by-field and is immune to this class; the
+                // provider redactor must be held to the same shape.
+                clientSecret: "sk-test-probe-secret",
+            },
+        ];
+        const before = structuredClone(live);
+
+        // Act
+        const saved = saveCustomValue(
+            "userProviders",
+            saveSource({ userProviders: live }),
+        );
+
+        // Assert — neither the known credential nor the unknown extra field
+        // survives serialization, and the live profile is untouched.
+        const serialized = JSON.stringify(saved);
+        expect(serialized).not.toContain("sk-test-provider-secret");
+        expect(serialized).not.toContain("sk-test-probe-secret");
+        expect(saved).toEqual([
+            {
+                id: "p1",
+                label: "Custom",
+                flavor: "openai-chat",
+                baseUrl: "https://example.invalid",
+                model: "m",
+                apiKey: "",
+                allowServerRelay: false,
+            },
+        ]);
+        expect(live).toEqual(before);
     });
 });
 
@@ -336,5 +547,63 @@ describe("persistence schema mergers", () => {
 
         // Assert
         expect((target.values["favoriteSymbols"] as string[]).length).toBeLessThanOrEqual(12);
+    });
+
+    it("isolates a bad schema row: it costs that field, not the section", () => {
+        // Arrange — a row with an unknown load mode, the only realistic
+        // trigger (a typo in the table, not in user data), between two valid
+        // rows. The load loop assigns incrementally, so if this threw, every
+        // later row would keep its constructor default — and the armed
+        // autosave would persist that half-applied mix ~500ms later.
+        const consoleError = vi
+            .spyOn(console, "error")
+            .mockImplementation(() => {});
+        try {
+            const target = loadTarget();
+            const merged = {
+                backgroundBlur: 7,
+                backgroundOpacity: 0.4,
+            } as unknown as Settings;
+            const defaults = {
+                backgroundBlur: 5,
+                backgroundOpacity: 1,
+            } as unknown as Settings;
+            const badRow = {
+                key: "backgroundBlur",
+                save: "direct",
+                load: "bogus",
+                section: "display",
+            } as unknown as FieldSchema;
+            const goodRow = PERSISTENCE_SCHEMA.find(
+                (field) => field.key === "backgroundOpacity",
+            )!;
+
+            // Act — apply in schema order: good, bad, good.
+            const first = applySchemaField(
+                target,
+                PERSISTENCE_SCHEMA.find(
+                    (field) => field.key === "backgroundBlur",
+                )!,
+                merged,
+                defaults,
+            );
+            const bad = applySchemaField(target, badRow, merged, defaults);
+            const last = applySchemaField(target, goodRow, merged, defaults);
+
+            // Assert — the bad row reports failure without throwing, the rows
+            // around it applied, and the bad field kept its prior (default)
+            // value rather than a partial write.
+            expect(first).toBe(true);
+            expect(bad).toBe(false);
+            expect(last).toBe(true);
+            expect(target.values.backgroundBlur).toBe(7);
+            expect(target.values.backgroundOpacity).toBe(0.4);
+            expect(consoleError).toHaveBeenCalledWith(
+                expect.stringContaining("backgroundBlur"),
+                expect.anything(),
+            );
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 });

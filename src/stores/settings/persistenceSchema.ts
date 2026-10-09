@@ -82,7 +82,12 @@ export interface FieldSchema {
  * covers every declared setting except the three `load()` assigns directly
  * (`accounts`, `activeAccountId`, `apiProvider` via `_apiProvider`).
  */
-export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = [
+export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = Object.freeze(([
+    // Frozen at both levels on the way out (see the closing lines): the
+    // inner `.map(Object.freeze)` freezes each row, the outer
+    // `Object.freeze` freezes the array itself. One level alone is half a
+    // lock — rows mutable or array pushable — and a runtime push would
+    // silently split the save/load tables the schema exists to keep as one.
     { key: "apiProvider", save: "direct", load: null, section: null },
     { key: "appAccessToken", save: "direct", load: "coalesce", section: "core" },
     { key: "marketAnalysisInterval", save: "direct", load: "coalesce", section: "core" },
@@ -255,14 +260,19 @@ export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = [
     { key: "chartCountdownEnabled", save: "direct", load: "coalesce", section: "core" },
     { key: "enableDockingCentered", save: "direct", load: "coalesce", section: "display" },
     { key: "dockingPosition", save: "direct", load: "coalesce", section: "display" },
-];
+    // Both levels (see the opening lines): the inner `.map(Object.freeze)`
+    // freezes each row, the outer `Object.freeze` freezes the array itself.
+    // The `as` keeps the rows contextually typed: without it the literal
+    // widens (`key: string`) before `.map` runs, and the outer `freeze`
+    // cannot narrow it back.
+] as FieldSchema[]).map((field) => Object.freeze(field)));
 
 /** Keys `load()` assigns directly, so the schema carries no load entry. */
-export const LOAD_BODY_KEYS: readonly string[] = [
+export const LOAD_BODY_KEYS: readonly string[] = Object.freeze([
     "accounts",
     "activeAccountId",
     "apiProvider",
-];
+]);
 
 /**
  * Keys `load()` assigns directly that the schema carries no load entry for:
@@ -274,13 +284,13 @@ export const LOAD_BODY_KEYS: readonly string[] = [
  * present. `isLocked` follows `isEncrypted` out of `applyAccounts`; pinning
  * it keeps the two from silently diverging.
  */
-export const LOAD_SECRET_KEYS: readonly string[] = [
+export const LOAD_SECRET_KEYS: readonly string[] = Object.freeze([
     "isEncrypted",
     "isLocked",
     "encryptedAccountKeys",
     "encryptedProviderConfigs",
     "encryptedSecrets",
-];
+]);
 
 /** What the manager reads a field from when serializing. */
 export interface SaveSource {
@@ -556,4 +566,38 @@ export function loadSchemaEntries(section: "core" | "display"): FieldSchema[] {
     return PERSISTENCE_SCHEMA.filter(
         (field) => field.section === section && field.load !== null,
     );
+}
+
+/**
+ * Applies one schema row to the target. Never throws: a schema programming
+ * error (unknown save/load mode, missing custom case) is a defect in the
+ * table, not in the user's data, and the load loop assigns incrementally —
+ * letting it propagate would skip every later row and leave those fields at
+ * constructor defaults, which the armed autosave would persist ~500ms later.
+ * Returns `false` for the skipped row so the failure is observable beyond
+ * the log line; the row keeps its default instead of the stored value, which
+ * is the smallest possible blast radius. Logs unconditionally — a programming
+ * error needs production visibility, not a DEV-only whisper.
+ */
+export function applySchemaField(
+    target: LoadTarget,
+    field: FieldSchema,
+    merged: Settings,
+    defaults: Settings,
+    rawParsed?: Partial<Settings>,
+): boolean {
+    try {
+        if (field.load === "custom") {
+            loadCustomValue(field.key, target, merged, defaults, rawParsed);
+        } else if (field.load !== null) {
+            target.set(field.key, loadPlainValue(field, merged, defaults));
+        }
+        return true;
+    } catch (rowError) {
+        console.error(
+            `[Settings] Persistence schema load failed for ${field.key}:`,
+            rowError,
+        );
+        return false;
+    }
 }

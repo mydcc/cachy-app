@@ -44,6 +44,11 @@ export const SENSITIVE_KEYS: (keyof Settings)[] = [
   "openaiApiKey",
   "geminiApiKey",
   "anthropicApiKey",
+  // Was the one credential that shipped outside this list and therefore
+  // reached `localStorage` as plaintext (`persistenceSchema` writes it
+  // `save: "direct"`). `backupService` blanked it by hand, which is the tell
+  // that the omission was known rather than intended.
+  "openrouterApiKey",
   "discordBotToken",
   "newsApiKey",
   "cryptoPanicApiKey",
@@ -349,7 +354,24 @@ export class SecretsLoader {
 
     if (!canEncrypt) {
       for (const key of SENSITIVE_KEYS) {
-        // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
+        // Scoped to the one migration key, deliberately: the other ten have
+        // always been blanked here, and that fail-closed scrubber stays byte
+        // for byte. `openrouterApiKey` is the exception because it shipped
+        // outside this list, so a legacy profile can hold it as plaintext —
+        // redacting that here would destroy the only copy, because this
+        // session has no key to re-encrypt it with. It survives until the next
+        // `canEncrypt` pass, which is the same window in which it becomes
+        // ciphertext. (A generic "keep whatever has no blob" rule would read
+        // cleaner, but it would turn the scrubber fail-open for all eleven
+        // keys to serve a migration exactly one of them needs.)
+        if (key !== "openrouterApiKey") {
+          // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
+          data[key] = "";
+          continue;
+        }
+        const protectedAlready =
+          data.encryptedSecrets !== undefined && key in data.encryptedSecrets;
+        if (!protectedAlready) continue;
         data[key] = "";
       }
       return 0;
@@ -360,6 +382,13 @@ export class SecretsLoader {
       const value = data[key];
 
       if (typeof value === "string" && value.length > 0) {
+        // Whether a stale blob exists *before* this attempt: dropping it on
+        // failure (BUG-0519) is correct when it does, because keeping it
+        // would resurrect a superseded credential. When it does not — a
+        // legacy plaintext key failing its very first encryption — blanking
+        // would destroy the only copy, so the value survives for a retry and
+        // the failure is still counted.
+        const hadBlob = key in data.encryptedSecrets!;
         try {
           const blob = await cryptoService.encrypt(value, encryptionPassword);
           data.encryptedSecrets![key] = blob;
@@ -368,9 +397,11 @@ export class SecretsLoader {
         } catch (err) {
           failures++;
           console.error(`[Settings] Failed to encrypt ${key}:`, err);
-          delete data.encryptedSecrets![key];
-          // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
-          data[key] = "";
+          if (hadBlob) {
+            delete data.encryptedSecrets![key];
+            // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
+            data[key] = "";
+          }
         }
       }
     });

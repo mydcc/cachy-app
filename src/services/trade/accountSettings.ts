@@ -494,8 +494,10 @@ export function createAccountSettingsService(
             throw new Error("apiErrors.invalidAmount");
         }
         // All financial calculations are complete; converting to string for the
-        // wire protocol with full precision.
-        const amountStr = amount.toFixed(amount.decimalPlaces() ?? 0);
+        // wire protocol with full precision. `toFixed()` with no argument
+        // emits the value's own precision in normal notation, which is what
+        // the venue expects — no rounding, no exponential form.
+        const amountStr = amount.toFixed();
         await accountSettingRequest(ports, {
             type: "adjust-position-margin",
             symbol,
