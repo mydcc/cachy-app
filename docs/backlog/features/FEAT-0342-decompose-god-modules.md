@@ -2,9 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
-assignee: opencode
-branch: docs/0342-re-audit-ac-verdicts
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -17,10 +15,8 @@ parent: FEAT-0341
 
 ## Status note (2026-10-09, AC re-audit — branch `docs/0342-re-audit-ac-verdicts`)
 
-Claimed (`assignee: opencode`): re-auditing the AC-2/AC-3/AC-5 verdicts
-against the merged tree (tradeService 1146 lines, 9 domain lanes;
-display/core isolated, account coordinator decided; all lane + contract
-suites green). Numbers re-measured, not carried over.
+The re-audit is the closing contribution: all five AC boxes are checked on
+evidence, so the item flips to `done` in this PR. Claim released.
 
 ## Status note (2026-10-09, ADR-0024 decision 3 — merged)
 
