@@ -2,7 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,8 +11,6 @@ data_class: none
 adr: none
 depends_on: []
 parent: FEAT-0341
-assignee: opencode
-branch: fix/feat-0342-closeout-security
 ---
 
 ## Problem
@@ -88,6 +86,21 @@ rather than partly delivered.
 
 - Changing the functionality of the settings or trading logic.
 - Splitting every file in the project (only the ones explicitly listed).
+
+## Status note (2026-10-09, claim released after the closeout merges)
+
+The `in-progress` claim (`assignee: opencode`, branch
+`fix/feat-0342-closeout-security`) is released: that branch merged, and the
+stale-claim gate rightly refuses a merged branch holding an item. Status is
+back to `ready` — waiting on a human, not on more slicing.
+
+What landed since: the credential hardening, guard blind-spot closures,
+schema-invariant pins, the position-lifecycle extraction (`tradeService.ts`
+2232 → ~1977) and the guard/doc debt (PRs #3981–#3985). What is open is AC 3,
+the settings-store split, which was never started for the reason recorded
+under "What blocks AC 3". Its draft lives in ADR-0024 (PR #3986): explicit
+tracking ownership first, field moves second — or a conscious decision to
+leave the class whole. Merging this PR does not close that question.
 
 ## Status note (2026-10-08, review closeout — branch `fix/feat-0342-closeout-security`)
 
