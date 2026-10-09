@@ -372,7 +372,6 @@ export class SecretsLoader {
         const protectedAlready =
           data.encryptedSecrets !== undefined && key in data.encryptedSecrets;
         if (!protectedAlready) continue;
-        // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
         data[key] = "";
       }
       return 0;
