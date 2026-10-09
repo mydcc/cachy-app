@@ -2,7 +2,9 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: ready
+status: in-progress
+assignee: opencode
+branch: docs/0342-account-cluster-decision
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,6 +14,16 @@ adr: none
 depends_on: []
 parent: FEAT-0341
 ---
+
+## Status note (2026-10-09, ADR-0024 decision 3 — branch `docs/0342-account-cluster-decision`)
+
+Claimed (`assignee: opencode`): proposing the account-cluster decision in
+ADR-0024 (decision 3, acceptance on merge). The proposal: the account
+cluster (`apiProvider`, accounts, credentials) stays on the manager as
+coordinator — 11 owned `$state` fields (7 persisted `section: null` rows,
+4 transient lock/counter flags), atomic identity writes, Class A lock
+orchestration. No code moves. The AC-3 verdict in this item still records
+the pre-split audit and is left to a re-audit pass, not edited here.
 
 ## Status note (2026-10-09, step 3 rest — merged)
 

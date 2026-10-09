@@ -1,14 +1,16 @@
 # ADR-0024: Split the settings store behind a facade, gated on explicit autosave ownership
 
-- **Status:** Proposed → Decision 1 accepted and implemented (declared tracking list, `update()` deleted — PR "feat(settings): declare autosave tracking ownership explicitly"). Decision 2 in progress: `display` section moved behind the facade first (`DisplaySettingsStore`, 65 fields); `core` section moved second (`CoreSettingsStore`, 97 fields, `marketMode` setter side effect preserved, load bypass routed into the sub-store). Pending: account cluster.
+- **Status:** Proposed → Decision 1 accepted and implemented (declared tracking list, `update()` deleted — PR "feat(settings): declare autosave tracking ownership explicitly"). Decision 2 implemented for `display` (65 fields) and `core` (97 fields). Decision 3 proposed by this amendment (acceptance on merge — Deciders line unchanged): the account cluster stays on the manager as coordinator (11 owned `$state` fields: 7 persisted schema rows with `section: null`, 4 transient lock/counter fields).
 - **Date:** 2026-10-08
 - **Deciders:** _undecided — this draft is the input, not the decision_
 
 ## Context
 
 FEAT-0342 acceptance criterion 3 asks for `settings.svelte.ts` to become
-"smaller isolated state stores". It is **not started**, and the status notes on
-that item are explicit that it was never attempted rather than half-finished.
+"smaller isolated state stores". At the time of writing (2026-10-08) it was
+**not started**, and the status notes on
+that item were explicit that it was never attempted rather than half-finished.
+(Historical snapshot — display and core have since moved; see Status.)
 
 At `ef199e7ae` the file is 1774 lines holding one `SettingsManager` class
 (`settings.svelte.ts:412-1753`) with 172 `$state` fields. Slices E and F moved
@@ -72,7 +74,7 @@ removing whether or not the split ever happens.
 
 ## Decision
 
-Two decisions, in this order. The second is gated on the first.
+Three decisions, in this order. The second and third are gated on the first.
 
 **1. Autosave ownership becomes explicit, before any field moves.**
 
@@ -96,6 +98,57 @@ fields; the coordinator reads them all.
 caller, and keeping a flat `Object.assign` facade over nested stores would
 recreate the coupling this is meant to remove.
 
+**3. The account cluster stays on the manager as coordinator.**
+
+What stays is 11 owned `$state` fields in three groups
+(`settings.svelte.ts`, measured on the `develop` tip after the display and
+core moves):
+
+- Venue and account identity: the private `_apiProvider` backing field
+  (schema key `apiProvider`, `:128`), `accounts` and `activeAccountId`
+  (`:297-298`).
+- Persisted credential state: `encryptedAccountKeys`,
+  `encryptedProviderConfigs`, `encryptedSecrets`, `isEncrypted`
+  (`:1426-1430`). (`credentialSchemaVersion` is a further `section: null`
+  schema row, but a migration-dispatch key, not `$state` — out of scope.)
+- Transient lock and counter state: `isLocked`, `decryptionFailures`,
+  `encryptionFailures`, `deviceKeyLost` (`:1430-1448`). These have no schema
+  row at all — by the `tracking.ts` definition untracked, which is correct
+  for session-only flags and counters that must never be saved.
+
+Three measured reasons, each of which a move would break:
+
+1. The schema leaves the persisted group unpartitioned. All seven persisted
+   fields are `PERSISTENCE_SCHEMA` rows with `section: null`
+   (`persistenceSchema.ts` `:91-117`, `:150`) — the partition scheme
+   decision 2 is built on assigns them no store. Giving them one now would
+   invent a third partition beside the schema, the exact move the rejected
+   "split by feature domain" alternative warns against.
+2. The identity fields are written atomically, never singly. The
+   `apiProvider` setter reconciles `activeAccountId` to the account on the
+   new venue (`:134-155`); `setActiveAccount` writes both together
+   (`:751-752`) because a reader that saw one without the other would
+   resolve credentials for the wrong venue. Across stores those become
+   cross-store writes — the shape the "what is now forbidden" list already
+   rules out.
+3. The credential group is lock orchestration, not settings. It moves only
+   with the `secretsLoader` handshake (FEAT-0197 PR 3) and the lock/unlock
+   paths; splitting state from handshake across a store boundary puts Class A
+   material on the seam with the most traffic.
+
+The four transient fields predate the "no `$state` outside a schema row"
+rule and are its deliberate exception class, not its violation: the rule
+forbids adding an *unlisted, would-be-persisted* field, whose writes would
+silently vanish. A session flag with no row can vanish from nothing — there
+is no save path that could carry it. Any future *persisted* account field
+joins the coordinator rows (`section: null`, tracked, manager-owned) rather
+than opening a third store.
+
+What this costs is stated plainly: `SettingsManager` keeps 11 owned fields
+(down from 172) plus the delegating getters, the tracking list, `load()` /
+`apply*()` orchestration and the storage listener. The file stays large
+because delegation is verbose, not because state is shared.
+
 ## Consequences
 
 ### What this enables
@@ -106,7 +159,10 @@ recreate the coupling this is meant to remove.
   Anyone can touch `toJSON()` without fear, which is the precondition for the
   rest of the schema work.
 - The schema's `section` column stops being a driver detail and becomes the
-  store partition, so adding a setting means one row and no wiring.
+  store partition (for `core`/`display` rows), so adding a setting means one
+  row and no wiring. The `section: null` coordinator rows are the stated
+  exception: they are partitioned to the manager by decision 3, not to a
+  third store.
 
 ### What this costs
 
@@ -143,8 +199,8 @@ recreate the coupling this is meant to remove.
 ## Alternatives considered
 
 **Leave the class whole and stop asking.** Rejected: it is the honest option,
-and it is what the FEAT-0342 status notes currently imply by not attempting
-AC 3. But the fragility in decision 1 is a bug independent of the split — a
+and it is what the FEAT-0342 status notes implied at the time by not
+attempting AC 3. But the fragility in decision 1 is a bug independent of the split — a
 memoised `toJSON()` breaks the store today with no test to catch it. Doing
 decision 1 alone is worth it even if decision 2 is deferred forever.
 
