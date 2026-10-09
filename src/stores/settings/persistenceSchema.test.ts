@@ -26,6 +26,7 @@ import {
     LOAD_SECRET_KEYS,
     loadCustomValue,
     loadSchemaEntries,
+    MARKET_MODE_WIRE_KEY,
     mergeBurnChannels,
     mergeFeeRates,
     mergeGalaxySettings,
@@ -277,7 +278,7 @@ describe("persistence schema exactness", () => {
         }
     });
 
-    it("loads marketMode into the private field, never through the setter", () => {
+    it("emits the marketMode wire key the manager routes into core, never through the setter", () => {
         // Arrange
         const target = loadTarget();
         const merged = { marketMode: "advanced" } as unknown as Settings;
@@ -286,13 +287,15 @@ describe("persistence schema exactness", () => {
         // Act
         loadCustomValue("marketMode", target, merged, defaults, undefined);
 
-        // Assert — `_marketMode` on purpose. `load()` must not fire the
-        // `marketMode` setter, because that setter calls `applyMarketMode`,
-        // which overwrites `marketAnalysisInterval`, `enableNewsAnalysis`,
-        // `showMarketActivity` and `analyzeAllFavorites` with profile-level
-        // values on every load. Writing the public name instead keeps this file
-        // green while those four fields are silently reset each boot.
-        expect(target.values._marketMode).toBe("advanced");
+        // Assert — `MARKET_MODE_WIRE_KEY` on purpose. `load()` must not fire
+        // the `marketMode` setter, because that setter calls
+        // `applyMarketMode`, which overwrites `marketAnalysisInterval`,
+        // `enableNewsAnalysis`, `showMarketActivity` and `analyzeAllFavorites`
+        // with profile-level values on every load. The manager's
+        // `LoadTarget.set` routes the wire key into the core sub-store;
+        // writing the public name instead keeps this file green while those
+        // four fields are silently reset each boot.
+        expect(target.values[MARKET_MODE_WIRE_KEY]).toBe("advanced");
         expect(target.values).not.toHaveProperty("marketMode");
     });
 

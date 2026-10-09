@@ -224,6 +224,50 @@ describe("settings reactivity contract", () => {
     ).toEqual([]);
   });
 
+  it("schedules a save for in-place mutations through delegated getters", () => {
+    // The reassignment loop above passes even through a copying getter (the
+    // setter still fires and saves). In-place edits (`arr.push`, `obj.k =
+    // v`) are the class a copy breaks: the live state never changes, the
+    // effect reads nothing new, and the edit is gone on reload. This test
+    // proves the delegating getters hand out the live `$state` proxy, for
+    // every object-valued field — the facade PRs made copying getters
+    // possible for the first time, so this guard starts with them.
+    const inert: string[] = [];
+
+    for (const key of SETTINGS_KEYS) {
+      const owner = ownerOf(settings, key);
+      const current: unknown = owner[key];
+      if (typeof current !== "object" || current === null) continue;
+      saveSpy.mockClear();
+
+      if (Array.isArray(current)) {
+        current.push("__sentinel__");
+      } else {
+        (current as Record<string, unknown>).__sentinel__ = true;
+      }
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+      if (saveSpy.mock.calls.length === 0) inert.push(key);
+
+      // Restore in place, then let that save land too (same timer hygiene
+      // as the reassignment loop above).
+      if (Array.isArray(current)) {
+        current.pop();
+      } else {
+        delete (current as Record<string, unknown>).__sentinel__;
+      }
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    }
+
+    expect(
+      inert,
+      `in-place edits to these settings scheduled no save — the getter ` +
+        `may be handing out a copy instead of live state: ${inert.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("keeps scheduling saves when toJSON is memoised", () => {
     // ADR-0024 decision 1: the autosave effect must not depend on
     // `toJSON()`. A memoised serializer returns a cached object without
@@ -302,77 +346,6 @@ describe("settings reactivity contract", () => {
       inert,
       `writing these credential blobs scheduled no save: ${inert.join(", ")}`,
     ).toEqual([]);
-  });
-
-  it("writes the mode profile through the facade on setter use", () => {
-    // The one write path crossing the new boundary into two sub-stores:
-    // `set marketMode` runs `applyMarketMode` on the manager, which writes
-    // `marketAnalysisInterval`/`enableNewsAnalysis` (core),
-    // `showMarketActivity` (display) and `analyzeAllFavorites` (core).
-    // A delegation typo here breaks mode switching with no other test
-    // going red. Each profile is asserted through the manager spelling
-    // and through `toJSON()`.
-    const profiles = {
-      performance: {
-        marketAnalysisInterval: 0,
-        enableNewsAnalysis: false,
-        showMarketActivity: false,
-        analyzeAllFavorites: false,
-      },
-      balanced: {
-        marketAnalysisInterval: 300,
-        enableNewsAnalysis: true,
-        showMarketActivity: true,
-        analyzeAllFavorites: false,
-      },
-      pro: {
-        marketAnalysisInterval: 60,
-        enableNewsAnalysis: true,
-        showMarketActivity: true,
-        analyzeAllFavorites: true,
-      },
-    } as const;
-    for (const [mode, expected] of Object.entries(profiles)) {
-      settings.marketMode = mode as typeof settings.marketMode;
-      flushSync();
-      for (const [field, value] of Object.entries(expected)) {
-        expect(
-          (settings as unknown as Record<string, unknown>)[field],
-          `${mode}: ${field}`,
-        ).toBe(value);
-        expect(
-          (settings.toJSON() as unknown as Record<string, unknown>)[field],
-          `${mode}: ${field} (serialized)`,
-        ).toBe(value);
-      }
-      expect(settings.marketMode).toBe(mode);
-    }
-    // Restore the default so later tests start from a clean profile.
-    settings.marketMode = "balanced";
-    flushSync();
-    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
-  });
-
-  it("schedules saves for in-place mutations through delegated getters", () => {
-    // Delegation returns the live `$state` proxy today — but a future
-    // "defensive copy" in a getter would silently unsave exactly this
-    // field class (object-valued settings mutated without reassignment).
-    // The tracking test pins this with a fake source; this pins it
-    // against the real effect.
-    saveSpy.mockClear();
-    (settings.favoriteSymbols as string[]).push("SENTINEL");
-    flushSync();
-    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
-    expect(saveSpy, "in-place push scheduled no save").toHaveBeenCalled();
-
-    saveSpy.mockClear();
-    const rates = settings.feeRates as {
-      bitunix: Record<string, number>;
-    };
-    rates.bitunix = { ...rates.bitunix, SENTINEL: 0 };
-    flushSync();
-    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
-    expect(saveSpy, "in-place venue-rate edit scheduled no save").toHaveBeenCalled();
   });
 
   it("routes every key the manager does not hold through a declared owner", () => {

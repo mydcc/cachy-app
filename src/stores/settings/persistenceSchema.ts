@@ -337,6 +337,18 @@ export interface LoadTarget {
 }
 
 /**
+ * Wire key the marketMode loader addresses the manager with. `load()` must
+ * never fire the `marketMode` setter (it would `applyMarketMode` and
+ * overwrite the four profile fields on every boot), so the loader bypasses
+ * the public name and the manager's `LoadTarget.set` routes this key into
+ * the core sub-store. One constant, two users (`loadCustomValue` below and
+ * `applySchemaLoad` in `settings.svelte.ts`) — a rename on one side without
+ * the other falls through to an inert own property and silently resets the
+ * mode on every boot, so the sharing is the guard.
+ */
+export const MARKET_MODE_WIRE_KEY = "_marketMode";
+
+/**
  * Custom save values. Everything else is `direct` (scalar read, keeps the
  * autosave `$effect` tracking the field), `snapshot` (`$state.snapshot` for
  * arrays/objects) or `spread` (`aiAllowedActions`).
@@ -489,11 +501,11 @@ export function loadCustomValue(
             target.set("aiAllowedActions", sanitizeAllowedActions(merged.aiAllowedActions));
             return;
         case "marketMode":
-            // Assigned to the private field directly: load() never fires the
-            // `marketMode` setter, so going through it would apply the mode.
-            // Routed by `SettingsManager.applySchemaLoad` into
-            // `CoreSettingsStore` (never through the setter).
-            target.set("_marketMode", merged.marketMode || defaults.marketMode);
+            // Assigned behind the public name directly: load() never fires
+            // the `marketMode` setter, so going through it would apply the
+            // mode. The manager routes `MARKET_MODE_WIRE_KEY` into the core
+            // sub-store (see `applySchemaLoad`).
+            target.set(MARKET_MODE_WIRE_KEY, merged.marketMode || defaults.marketMode);
             return;
         case "chartPriceScaleMode":
             target.set(

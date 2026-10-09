@@ -53,6 +53,7 @@ import {
 import {
     applySchemaField,
     loadSchemaEntries,
+    MARKET_MODE_WIRE_KEY,
     PERSISTENCE_SCHEMA,
     readSerializedField,
     type FieldSchema,
@@ -2025,16 +2026,16 @@ export class SettingsManager {
   ) {
     const target: LoadTarget = {
       set: (key, value) => {
-        // `_marketMode` is the one key the load path addresses behind the
-        // public name: `loadCustomValue("marketMode")` writes it directly so
-        // `load()` never fires the setter (which would `applyMarketMode`
-        // and overwrite the four profile fields on every boot). The state
-        // lives in the core sub-store since ADR-0024 decision 2 — routing
-        // here keeps the bypass working without resurrecting a manager
-        // field, and without touching the setter contract the schema test
-        // pins (`loads marketMode into the private field, never through
-        // the setter`).
-        if (key === "_marketMode") {
+        // `MARKET_MODE_WIRE_KEY` is the one key the load path addresses
+        // behind the public name: `loadCustomValue("marketMode")` writes it
+        // directly so `load()` never fires the setter (which would
+        // `applyMarketMode` and overwrite the four profile fields on every
+        // boot). The state lives in the core sub-store since ADR-0024
+        // decision 2 — routing here keeps the bypass working without
+        // resurrecting a manager field, and without touching the setter
+        // contract the schema test pins (emits the wire key, never through
+        // the setter).
+        if (key === MARKET_MODE_WIRE_KEY) {
           this.core.marketMode = value as MarketMode;
           return;
         }
