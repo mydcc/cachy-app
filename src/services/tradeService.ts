@@ -26,7 +26,6 @@ import { Decimal } from "decimal.js";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
-import { RetryPolicy } from "../utils/retryPolicy";
 import { toastService } from "./toastService.svelte";
 import { _ } from "../locales/i18n";
 import { get } from "svelte/store";
@@ -39,7 +38,6 @@ import { safeJsonParse } from "../utils/safeJson";
 import {
     BitunixPositionTierResponseSchema,
 } from "../types/apiSchemas";
-import type { OMSOrderSide } from "./omsTypes";
 import type { NormalizedOrder, NormalizedPosition } from "../types/exchange";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
@@ -57,9 +55,7 @@ import {
     orderGate,
     assertGatePass,
     accountFingerprint,
-    translateRefusal,
     OrderRefusedError,
-    mismatch,
     mutatingActionOf,
     BOT_PAPER_ONLY_MESSAGE_KEY,
     type GatePass,
@@ -104,6 +100,8 @@ import {
 } from "./trade/tpSlService";
 import { createAccountSettingsService } from "./trade/accountSettings";
 import { createPositionLifecycleService } from "./trade/positionLifecycle";
+import { createFlashCloseService, buildCloseOrderFields } from "./trade/flashClose";
+import { createModifyOrderService } from "./trade/modifyOrder";
 
 /**
  * The credentials of an account that does not exist.
@@ -261,6 +259,48 @@ class TradeService {
         // `gatedRequest` rather than where the refusal is raised.
         warnUnconfirmed: () =>
             toastService.warning(get(_)("exchange.accountSettings.notConfirmed")),
+    });
+
+    /**
+     * Full-close lane (see ./trade/flashClose). Every write goes through the
+     * gate port, which is the same `gatedRequest` the order paths use.
+     */
+    private readonly flashClose = createFlashCloseService({
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        displayedAccount: () => this.displayedAccount(),
+        ensurePositionFreshness: (symbol, side) =>
+            this.ensurePositionFreshness(symbol, side),
+        bitgetUtaCloseFields: (positionSide) => this.bitgetUtaCloseFields(positionSide),
+        cancelAllOrders: (symbol, throwOnError, onBehalfOf) =>
+            this.cancelAllOrders(symbol, throwOnError, onBehalfOf),
+        refreshPositionsForProvider: () => this.refreshPositionsForProvider(),
+        activeVenue: () => settingsState.apiProvider || "bitunix",
+        lastPrice: (symbol) => marketState.data[symbol]?.lastPrice || new Decimal(0),
+        triggerDuckEvent: (event) => effectsState.triggerDuckEvent(event),
+        t: (key, options) =>
+            (
+                get(_) as (
+                    key: string,
+                    options?: { values?: Record<string, string> },
+                ) => string
+            )(key, options),
+        notifyFailure: (msg) =>
+            toastService.error(
+                get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey, {
+                    values: { msg },
+                }),
+            ),
+    });
+
+    /**
+     * Safe-amend lane (see ./trade/modifyOrder). Same gate port, same rule:
+     * no second route to a state-mutating request.
+     */
+    private readonly orderModify = createModifyOrderService({
+        getOrderDetail: (orderId, clientId) => this.getOrderDetail(orderId, clientId),
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        activeVenue: () => settingsState.apiProvider || "bitunix",
+        accountSizeText: () => tradeState.accountSize,
     });
 
     // Helper to sign and send requests to backend
@@ -666,6 +706,10 @@ class TradeService {
     }
 
     /**
+     * Full-close of one position with optimistic rollback.
+     *
+     * The lane lives in ./trade/flashClose; this facade keeps the signature.
+     *
      * @param confirmedAt When the user confirmed, as `Date.now()` — FEAT-0024.
      *   Omitted when no confirmation was needed. If the policy requires one and
      *   this is absent, the gate refuses rather than sending: a caller that
@@ -676,259 +720,7 @@ class TradeService {
         positionSide: "long" | "short",
         confirmedAt?: number,
     ) {
-        let clientOrderId = "";
-        try {
-            // 1. Get fresh position
-            const position = await this.ensurePositionFreshness(symbol, positionSide);
-
-            if (!position) {
-                throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
-            }
-
-            // 2. Execute Close
-            // True execution direction, for local optimistic-order bookkeeping
-            // only — the API payload's own `side` matches the position side
-            // instead (not inverted); see buildCloseOrderFields.
-            const side: OMSOrderSide = positionSide === "long" ? "sell" : "buy";
-            const { side: apiSide, tradeSide, positionId } = this.buildCloseOrderFields(
-                positionSide,
-                position.positionId,
-            );
-
-            // CRITICAL: Use exact amount from OMS
-            if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
-                logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-                throw new Error("apiErrors.invalidAmount");
-            }
-
-            const qty = position.amount.toString();
-
-            logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
-
-            // Retrieve current market price for optimistic UI feedback
-            const currentPrice = marketState.data[symbol]?.lastPrice || new Decimal(0);
-
-            /*
-             * Minted before the intent because the generic payload carries it,
-             * but NOT yet assigned to `clientOrderId`: that variable is the
-             * catch block's signal that an optimistic order exists and needs
-             * rolling back. Assigning it here would send the recovery path
-             * chasing an order that was never added.
-             */
-            // Intentionally unguarded: exchange signing already requires crypto.subtle /
-            // a secure context — see docs/adr/0013-client-side-exchange-signing.md.
-            const candidateOrderId = "opt-" + crypto.randomUUID().replace(/-/g, "").slice(0, 28);
-
-            const provider = settingsState.apiProvider || "bitunix";
-            const intent: PartialIntent =
-                provider === "bitunix" && position.positionId
-                    ? {
-                          kind: "reduce",
-                          endpoint: "/api/orders",
-                          payload: {
-                              type: "flash-close-position",
-                              symbol,
-                              positionId: position.positionId,
-                          },
-                          displayed: { symbol, positionId: position.positionId },
-                          confirmAs: "flash-close-position",
-                          confirmedAt,
-                      }
-                    : {
-                          kind: "reduce",
-                          endpoint: "/api/orders",
-                          payload: {
-                              type: "place-order",
-                              symbol,
-                              side: apiSide,
-                              orderType: "MARKET",
-                              qty,
-                              reduceOnly: true,
-                              clientOrderId: candidateOrderId,
-                              tradeSide,
-                              positionId,
-                              // BUG-0597: UTA names the side it closes. Bitunix
-                              // keeps the position-side convention untouched.
-                              ...(settingsState.apiProvider === "bitget"
-                                ? this.bitgetUtaCloseFields(positionSide)
-                                : {}),
-                          },
-                          displayed: {
-                              symbol,
-                              side: apiSide,
-                              positionAmount: position.amount,
-                              fullClose: true,
-                              positionId,
-                          },
-                          /*
-                           * The payload says `place-order` because that is what
-                           * this venue understands, but the user pressed flash
-                           * close and that is the policy they configured.
-                           * Without this the prompt would appear on Bitunix and
-                           * not on Bitget — a difference no user asked for.
-                           */
-                          confirmAs: "flash-close-position",
-                          confirmedAt,
-                      };
-
-            /*
-             * BUG-0331. Verified BEFORE anything below has a side effect.
-             *
-             * The cancel further down removes this position's stop-loss and
-             * take-profit, which is right when the close then happens and
-             * dangerous when it does not: a refusal afterwards leaves the
-             * trader holding an open position with its protection gone, at the
-             * moment they were trying to get out. That is strictly worse than
-             * the state they started in, and it applied to every refusal the
-             * gate can issue — the kill switch, a risk limit, a price
-             * mismatch, a stale account read, an unsupported venue.
-             *
-             * `verify` is pure and documented as safe to call twice, so asking
-             * here costs nothing and changes nothing: `gatedRequest` still runs
-             * the same verification, and this cannot approve anything the gate
-             * would refuse. It only moves the refusal to before the damage.
-             */
-            orderGate.verifyOrThrow(completeIntent(intent, this.displayedAccount()));
-
-            // Past this line the function has side effects to undo on failure.
-            clientOrderId = candidateOrderId;
-
-            // OPTIMISTIC UPDATE
-            omsService.addOptimisticOrder({
-                id: clientOrderId,
-                clientOrderId,
-                symbol,
-                side: side,
-                type: "market",
-                status: "pending",
-                price: currentPrice,
-                amount: position.amount,
-                filledAmount: new Decimal(0),
-                timestamp: Date.now(),
-                _isOptimistic: true
-            });
-
-            /*
-             * BUG-0586 (product decision 2026-10-05: close-then-cancel). The
-             * close is dispatched BEFORE the resting stops are cancelled, so
-             * a refusal from `gatedRequest` — risk limits, kill switch, or
-             * the dispatch guard's session check — lands while the position
-             * is still protected: the cancel below never runs, and the catch
-             * removes the optimistic order as terminal (a refusal never
-             * leaves the device, so there is nothing to reconcile).
-             *
-             * Residual risk, accepted with the decision: a stop placed after
-             * the dispatch and before the cancel can fill against the close,
-             * and in hedge mode that fill opens a reverse position rather
-             * than flattening one. That window is inherent to close-first;
-             * the alternative (cancel-first) left a refused close open AND
-             * unprotected, which is strictly worse at the moment the trader
-             * was trying to get out.
-             */
-            const result = await this.gatedRequest(intent);
-
-            /*
-             * Cleanup AFTER the close. A resting stop that survives the fill
-             * would otherwise stay live on a flat position — or fight the
-             * next entry on the symbol.
-             *
-             * Carries the flash close's own authorisation: `cancel-all`
-             * confirms by default, and without this the gate refuses a cleanup
-             * the user already agreed to when they confirmed the close.
-             *
-             * A cancel failure here must not fail the close: the position is
-             * already flat, so this is a cleanup problem, not an execution
-             * one. It is logged CRITICAL because resting stops may still be
-             * live and need the trader's attention.
-             */
-            try {
-                await this.cancelAllOrders(symbol, true, {
-                    action: "flash-close-position",
-                    confirmedAt,
-                });
-            } catch (cancelError) {
-                logger.error("market", `[FlashClose] CRITICAL: Close succeeded but failed to cancel open orders for ${symbol}. Resting stops may still be live.`, cancelError);
-            }
-
-            const pnlVal = position.unrealizedPnl ?? new Decimal(0);
-            effectsState.triggerDuckEvent({
-                type: pnlVal.isNegative() ? "trade_loss" : "trade_win",
-                pnl: pnlVal,
-            });
-
-            return { success: true, data: result };
-
-        } catch (e: unknown) {
-            // Use rawMessage for display when available (human-readable API text),
-            // fall back to e.message for non-API errors (e.g. "tradeErrors.positionNotFound").
-            // A gate refusal (FEAT-0011) names the field that disagreed and
-            // is already translatable, so it wins over both.
-            const msg = e instanceof OrderRefusedError
-                ? translateRefusal(e.refusal, get(_) as (key: string, options?: { values?: Record<string, string> }) => string)
-                : (e instanceof BitunixApiError && e.rawMessage) ? e.rawMessage : (e instanceof Error ? e.message : String(e));
-
-            // Handle Optimistic Order Rollback/Recovery
-            if (clientOrderId) {
-                logger.warn("market", `[FlashClose] Request failed. Handling optimistic order ${clientOrderId}.`, e);
-
-                const isApiErr = (err: unknown): err is { status?: number, code?: string } =>
-                    typeof err === "object" && err !== null && ("status" in err || "code" in err);
-
-                const isTerminalError =
-                    // BUG-0586: a refusal is raised *before* the bytes leave —
-                    // the gate's own checks, and the dispatch guard's
-                    // `beforeAttempt` hook, both run ahead of `fetch`. So this
-                    // is not an unknown outcome to be reconciled later; the
-                    // venue never saw it. Classifying it as indeterminate
-                    // parked the close in the OMS as `_isUnconfirmed`, which
-                    // reads as "a close is out there we cannot see" for a
-                    // request that provably did not go out.
-                    (e instanceof OrderRefusedError) ||
-                    (e instanceof BitunixApiError) ||
-                    (e instanceof Error && (
-                        e.message.includes("400") ||
-                        e.message.includes("401") ||
-                        e.message.includes("403") ||
-                        (isApiErr(e) && e.code === "VALIDATION_ERROR") ||
-                        (isApiErr(e) && e.status === 400) ||
-                        (isApiErr(e) && e.status === 401) ||
-                        (isApiErr(e) && e.status === 403)
-                    ));
-
-                if (isTerminalError) {
-                     logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
-                     omsService.removeOrder(clientOrderId);
-                } else {
-                     // Indeterminate state (Timeout / Network Error)
-                     const order = omsService.getOrder(clientOrderId);
-                     if (order) {
-                         order._isUnconfirmed = true;
-                         omsService.updateOrder(order);
-                     }
-                }
-
-                // Trigger background sync
-                (async () => {
-                    try {
-                        await RetryPolicy.execute(() => this.refreshPositionsForProvider(), {
-                            maxAttempts: 5,
-                            initialDelayMs: 500,
-                            maxDelayMs: 5000,
-                            name: "FlashClose Recovery Sync"
-                        });
-                    } catch (err) {
-                        logger.error("market", `[FlashClose] CRITICAL: All recovery sync attempts failed.`, err);
-                    }
-                })();
-            }
-
-            // [FIX] Notify User & Prevent Crash
-            logger.error("market", `[FlashClose] Failed: ${msg}`, e);
-            toastService.error(get(_)("trade.flashCloseFailed" as import("../locales/schema").TranslationKey, { values: { msg } }));
-
-            // Return failure object instead of throwing
-            return { success: false, error: msg };
-        }
+        return this.flashClose.flashClosePosition(symbol, positionSide, confirmedAt);
     }
 
     public async cancelOrder(symbol: string, orderId: string) {
@@ -980,34 +772,6 @@ class TradeService {
              logger.warn("market", `[Trade] Failed to cancel orders${symbol ? ` for ${symbol}` : ""}`, e);
              if (throwOnError) throw e;
         }
-    }
-
-    /**
-     * Bitunix's place_order/batch_order docs (docs/bitunix-api/07_trade.md:
-     * 32/583) list `tradeSide` as unconditionally `Required: true` — the
-     * "nur im Hedge-Modus erforderlich" wording only describes when the
-     * value matters for disambiguation, not when the field may be omitted.
-     * BUG-0062 trusted the wording and only sent `tradeSide`/`positionId`
-     * when `positionMode === "hedge"`, falling back to the old
-     * inverted-`side`-only shape otherwise — confirmed live (BUG-0063) that
-     * this fallback still 500s with "must not be null" on a ONE_WAY
-     * account, so it was never a working shape to begin with. `positionId`
-     * is documented as required whenever `tradeSide = CLOSE`, again with no
-     * Hedge-only qualifier, so it's sent unconditionally too. `side`
-     * matches the position's own side (BUY closes a long, SELL closes a
-     * short) per the documented request example — not inverted — since
-     * `tradeSide`/`positionId` now carry the open/close and which-position
-     * disambiguation in all modes.
-     */
-    private buildCloseOrderFields(
-        positionSide: "long" | "short",
-        positionId: string | undefined,
-    ): { side: "BUY" | "SELL"; tradeSide: "CLOSE"; positionId?: string } {
-        return {
-            side: positionSide === "long" ? "BUY" : "SELL",
-            tradeSide: "CLOSE",
-            positionId,
-        };
     }
 
     /**
@@ -1437,7 +1201,7 @@ class TradeService {
             throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
         }
 
-        const { side, tradeSide, positionId } = this.buildCloseOrderFields(
+        const { side, tradeSide, positionId } = buildCloseOrderFields(
             positionSide,
             position.positionId,
         );
@@ -1680,229 +1444,13 @@ class TradeService {
         );
     }
 
+    /**
+     * Safe amend by re-reading the live order first.
+     *
+     * The lane lives in ./trade/modifyOrder; this facade keeps the signature.
+     */
     public async modifyOrder(params: ModifyOrderParams) {
-        if (!params.orderId && !params.clientId) {
-            throw new Error("Either orderId or clientId must be provided to modify order");
-        }
-
-        // AC 3: Safe Modify — Synchronous call to get_order_detail first
-        const liveOrder = await this.getOrderDetail(params.orderId, params.clientId);
-        if (!liveOrder) {
-            throw new Error(TRADE_ERRORS.ORDER_NOT_FOUND);
-        }
-
-        const symbol = params.symbol || liveOrder.symbol;
-
-        /*
-         * A quantity the caller did not ask for is not sent to Bitget. UTA's
-         * modify takes qty and/or price, and whether its `qty` replaces or adds
-         * is unverified — open question 6 in
-         * `docs/bitget-api/15_uta_writes.md`. Under delta semantics a price-only
-         * modify would inflate the order on every price step, and each step
-         * would look correct to the caller; under replace semantics the field
-         * was a no-op anyway. Omitting it is correct under both, so the
-         * question does not have to be answered first to be safe.
-         *
-         * Bitunix keeps the backfill: its `modify_order` lists `qty` as
-         * required and calls it an "exchange requirement" that Cachy satisfies
-         * from the live order (`docs/bitunix-api/07_trade.md:529`), so a
-         * price-only amend would be refused there.
-         *
-         * The position-size guards below still read `liveOrder.amount`
-         * independently — a price change moves notional, so the cap has to be
-         * measured against the resting size whether or not `qty` travels.
-         */
-        const qty =
-            params.qty !== undefined
-                ? formatApiNum(params.qty)
-                : settingsState.apiProvider === "bitget"
-                  ? undefined
-                  : liveOrder.amount;
-        const price = params.price !== undefined ? formatApiNum(params.price) : (liveOrder.price || undefined);
-        /*
-         * A corrupt price is not a missing one, but it is equally
-         * unverifiable: refuse typed (translated at the call site) instead of
-         * letting `new Decimal` throw raw past the gate. A falsy venue price
-         * stays "no entry given", as before.
-         */
-        let entryPrice: Decimal | undefined;
-        const rawEntry = params.price !== undefined ? params.price : liveOrder.price;
-        if (rawEntry) {
-            let parsed: Decimal | undefined;
-            try {
-                const candidate = new Decimal(rawEntry);
-                parsed = candidate.isFinite() ? candidate : undefined;
-            } catch {
-                parsed = undefined;
-            }
-            if (parsed === undefined) {
-                throw new OrderRefusedError(mismatch(
-                    "entryPrice",
-                    "a readable price",
-                    String(rawEntry),
-                ));
-            }
-            entryPrice = parsed;
-        }
-
-        const payload: Record<string, unknown> = {
-            type: "modify-order",
-            orderId: params.orderId || liveOrder.orderId,
-            clientId: params.clientId || liveOrder.clientId,
-            symbol,
-            qty,
-            price,
-            tpPrice: params.tpPrice !== undefined ? formatApiNum(params.tpPrice) : (liveOrder.tpPrice || undefined),
-            tpStopType: params.tpStopType || liveOrder.tpStopType,
-            tpOrderType: params.tpOrderType || liveOrder.tpOrderType,
-            slPrice: params.slPrice !== undefined ? formatApiNum(params.slPrice) : (liveOrder.slPrice || undefined),
-            slStopType: params.slStopType || liveOrder.slStopType,
-            slOrderType: params.slOrderType || liveOrder.slOrderType,
-        };
-
-        if (params.tpOrderPrice !== undefined) payload.tpOrderPrice = formatApiNum(params.tpOrderPrice);
-        if (params.slOrderPrice !== undefined) payload.slOrderPrice = formatApiNum(params.slOrderPrice);
-
-        // Account equity for the percentage position-size cap — the same
-        // tradeState the order panel reads (BUG-0548). Unparseable means the
-        // cap is unmeasurable and an enlarging amendment refuses rather than
-        // passing unmeasured (BUG-0508).
-        let accountSize: Decimal | undefined;
-        try {
-            const parsed = new Decimal(tradeState.accountSize);
-            accountSize = parsed.isFinite() && parsed.gt(0) ? parsed : undefined;
-        } catch {
-            accountSize = undefined;
-        }
-
-        // The displayed side of a modify is what the caller asked for, before
-        // formatApiNum() touched it. Comparing the formatted payload back
-        // against the raw request is what catches a serialisation defect —
-        // the exact failure mode that produced the float bug in the order
-        // payload and the `response.json()`-corrupted order IDs.
-        /*
-         * Same fail-closed reading as entryPrice above, for the remaining
-         * raw constructions in this hunk: a stated but corrupt level or
-         * quantity refuses typed instead of throwing raw past the gate. An
-         * absent quantity stays undefined — the gate refuses a stated
-         * payload quantity without a displayed one as missing qty.inputs.
-         */
-        let stopLossPrice: Decimal | undefined;
-        if (params.slPrice !== undefined) {
-            try {
-                const parsed = new Decimal(params.slPrice);
-                stopLossPrice = parsed.isFinite() ? parsed : undefined;
-            } catch {
-                stopLossPrice = undefined;
-            }
-            if (stopLossPrice === undefined) {
-                throw new OrderRefusedError(mismatch(
-                    "stopLoss",
-                    "a readable price",
-                    String(params.slPrice),
-                ));
-            }
-        }
-        let takeProfits: Decimal[] | undefined;
-        if (params.tpPrice !== undefined) {
-            let parsed: Decimal | undefined;
-            try {
-                const candidate = new Decimal(params.tpPrice);
-                parsed = candidate.isFinite() ? candidate : undefined;
-            } catch {
-                parsed = undefined;
-            }
-            if (parsed === undefined) {
-                throw new OrderRefusedError(mismatch(
-                    "takeProfit",
-                    "a readable price",
-                    String(params.tpPrice),
-                ));
-            }
-            takeProfits = [parsed];
-        }
-        let modifyQuantity: Decimal | undefined;
-        const rawQty = params.qty !== undefined ? params.qty : liveOrder.amount;
-        if (rawQty !== undefined && rawQty !== null && rawQty !== "") {
-            try {
-                const parsed = new Decimal(rawQty);
-                modifyQuantity = parsed.isFinite() ? parsed : undefined;
-            } catch {
-                modifyQuantity = undefined;
-            }
-            if (modifyQuantity === undefined) {
-                throw new OrderRefusedError(mismatch(
-                    "modifyQuantity",
-                    "a readable quantity",
-                    String(rawQty),
-                ));
-            }
-        }
-        //
-        // The size the order carried before this amendment — the gate only
-        // knows an amendment enlarges exposure by comparing the new quantity
-        // against this one (BUG-0548). A corrupt live reading must not throw
-        // raw past the gate: undefined feeds the fail-closed increase path
-        // instead.
-        //
-        // `amount` is the order's TOTAL size, not its resting remainder, and a
-        // partial fill does not shrink it. Bitunix is verified: the mirror
-        // documents `qty` as "Quantity (base coin)" and `tradeQty` as the
-        // filled amount, and both examples hold `qty` at 1 while `tradeQty` is
-        // 0.5 — one of them explicitly `PART_FILLED`
-        // (docs/bitunix-api/07_trade.md). So `previousQuantity` is the
-        // pre-amendment total either way.
-        //
-        // Which means the baseline must NOT be "hardened" by adding `filled`:
-        // that would double-count the executed portion and push the baseline
-        // above the real order size, making a genuine increase read as a
-        // shrink more often than before, not less.
-        //
-        // Not verified, and deliberately not claimed: for Bitget this reads
-        // `size` as the total, which the mirror does document — but the mirror
-        // has no partial-fill example, so that Bitget keeps `size` across one
-        // is read off the normalised payload, not off a spec. Bitget's wire
-        // format is already flagged unverified in BUG-0580, and BUG-0589
-        // records what the same gap costs on the sibling field: the Bitget
-        // normaliser reads `filledQty`, which the mirror never mentions (it
-        // documents `baseVolume`), so `NormalizedOrder.filled` is most likely
-        // always "0" there. That does not reach this gate, which reads `amount`
-        // and not `filled` — but it is why nothing above leans on `filled`.
-        //
-        // The live read still races the gate by construction — one round trip,
-        // no user action in between — so the residual is accepted rather than
-        // locked, and a stale-high reading fails toward the increase path. The
-        // corrupt cases are handled rather than assumed: undefined, null, NaN,
-        // infinite, zero and negative all route to the increase path in
-        // `isQuantityIncreasingModify`.
-        let liveAmount: Decimal | undefined;
-        try {
-            liveAmount = new Decimal(liveOrder.amount);
-        } catch {
-            liveAmount = undefined;
-        }
-        return await this.gatedRequest({
-            kind: "modify",
-            endpoint: "/api/orders",
-            payload,
-            displayed: {
-                symbol: typeof symbol === "string" ? symbol : undefined,
-                orderId: params.orderId,
-                entryPrice,
-                positionSide: liveOrder.side,
-                stopLossPrice,
-                takeProfits,
-                // The quantity the caller asked for, or the live order read
-                // this request was merged with — the gate compares the
-                // payload back against it (BUG-0505).
-                modifyQuantity,
-                // The size the resting order had before this amendment — the
-                // gate only knows an amendment enlarges exposure by comparing
-                // the new quantity against this one (BUG-0548).
-                previousQuantity: liveAmount,
-                accountSize,
-            },
-        });
+        return this.orderModify.modifyOrder(params);
     }
 
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
