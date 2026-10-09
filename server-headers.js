@@ -57,6 +57,35 @@ export function cspHasNonce(value) {
 }
 
 /**
+ * Check if the given value is a Web API Headers instance or a duck-typed
+ * Headers object (e.g. across VM contexts or custom implementations).
+ *
+ * Capability, not pedigree: the tag alone (`Symbol.toStringTag` or
+ * `Object.prototype.toString`) proves nothing, and calling `.set`/`.forEach`
+ * on a tag-only object would throw where the old code took the safe
+ * plain-object path. All four methods must exist.
+ *
+ * Duck-typed implementations must honor the Headers contract: `get`/`has`/
+ * `set` are case-insensitive on names, and `get` returns nullish (never
+ * throws) for absent names. `overlaySecurityHeaders` additionally requires a
+ * working `set` — it verifies one header took effect and throws otherwise
+ * rather than silently dropping the security overlay.
+ * @param {unknown} headers
+ * @returns {boolean}
+ */
+function isHeadersInstance(headers) {
+  if (typeof headers !== "object" || headers === null) return false;
+  if (typeof Headers !== "undefined" && headers instanceof Headers) return true;
+  const h = /** @type {Record<string, unknown>} */ (headers);
+  return (
+    typeof h.set === "function" &&
+    typeof h.get === "function" &&
+    typeof h.has === "function" &&
+    typeof h.forEach === "function"
+  );
+}
+
+/**
  * res.writeHead() is the only place explicit headers reach the wire, and Node
  * accepts a plain object or an array there — not a Web API Headers instance.
  * Headers keeps its entries in an internal slot and exposes no own enumerable
@@ -66,15 +95,15 @@ export function cspHasNonce(value) {
  * caller's own headers nor anything applySecurityHeaders() had staged.
  * Normalizing to a plain object here is what makes the overlay meaningful.
  * @param {unknown} headers the headers argument of a writeHead() call
- * @returns {Record<string, string | string[]> | null} null when the argument is not a Headers instance
+ * @returns {Record<string, string | string[]> | null} null when the argument is neither a Headers instance nor a duck-typed equivalent (see isHeadersInstance)
  */
 function toNodeHeaders(headers) {
-  if (typeof Headers === "undefined" || !(headers instanceof Headers)) {
+  if (!isHeadersInstance(headers)) {
     return null;
   }
   /** @type {Record<string, string | string[]>} */
   const normalized = {};
-  headers.forEach((value, name) => {
+  /** @type {Headers} */ (headers).forEach((value, name) => {
     // Headers folds repeated names (Set-Cookie) into separate entries with the
     // same key; Node wants a string[] there, so collect instead of overwrite.
     const existing = normalized[name];
@@ -112,7 +141,9 @@ export function applySecurityHeaders(res) {
  * security headers. Cache-Control is not part of SECURITY_HEADERS, so
  * per-asset cache policies survive untouched.
  * Handles every Node header shape: plain objects, flat arrays
- * ([name, value, ...]) and arrays of pairs ([[name, value], ...]).
+ * ([name, value, ...]) and arrays of pairs ([[name, value], ...]) — plus
+ * Web API Headers instances and duck-typed equivalents (cross-realm or
+ * custom, see isHeadersInstance), which are mutated in place via `.set()`.
  * Array-form headers are mutated in place, preserving their shape.
  * Exception: a Content-Security-Policy that already carries `nonce-…` tokens
  * (SvelteKit's per-request policy, see cspHasNonce) is left untouched —
@@ -122,6 +153,33 @@ export function applySecurityHeaders(res) {
  */
 export function overlaySecurityHeaders(explicit) {
   if (explicit === null || typeof explicit !== "object") {
+    return;
+  }
+  if (isHeadersInstance(explicit)) {
+    const headers = /** @type {Headers} */ (explicit);
+    for (const [name, value] of SECURITY_HEADERS) {
+      // No `.has()` probe: `get()` returns nullish for absent names (part of
+      // the duck contract above), and `cspHasNonce` already reads that as
+      // "no nonce, overwrite".
+      if (
+        name === "Content-Security-Policy" &&
+        cspHasNonce(headers.get("Content-Security-Policy"))
+      ) {
+        continue;
+      }
+      headers.set(name, value);
+    }
+    // Fail closed, not open: a `set()` that silently drops (frozen or stub
+    // implementation) would leave the response without security headers and
+    // no error. HSTS is always set above (no nonce carve-out applies to it),
+    // so its absence proves the overlay did not take effect.
+    if (
+      !String(headers.get("Strict-Transport-Security") ?? "").includes("max-age")
+    ) {
+      throw new TypeError(
+        "overlaySecurityHeaders: Headers-like object did not retain the security overlay (set() is a no-op?)",
+      );
+    }
     return;
   }
   if (Array.isArray(explicit)) {
