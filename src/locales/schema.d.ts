@@ -3853,4 +3853,5 @@ export type TranslationKey =
   | "charts.tradesCount"
   | "charts.tradesLabel"
   | "charts.pnlLabel"
-  | "charts.topLabel";
+  | "charts.topLabel"
+  | "settings.tabs.cloud";

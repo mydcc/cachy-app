@@ -4711,5 +4711,6 @@
     "tradesLabel": "Trades:",
     "pnlLabel": "PnL:",
     "topLabel": "Top:"
-  }
+  },
+  "settings.tabs.cloud": "Cloud"
 }
