@@ -1,7 +1,8 @@
 # Architecture
 
 Where things are and what they are for. Written from the tree as it stands on
-2026-09-28; it replaces `module-overview.md`, which described the layout before
+2026-09-28; updated 2026-10-09 for FEAT-0342 (trade lanes, settings facade —
+see below). It replaces `module-overview.md`, which described the layout before
 the folder refactor and pointed at files that no longer exist.
 
 If this document and the code disagree, the code is right and this is a bug —
@@ -73,7 +74,9 @@ browser                                                 server (SvelteKit node a
 One store per topic, tests beside them. `*.svelte.ts` because they use runes.
 
 `trade`, `results`, `market` (plus `market/` helpers), `account`, `journal`,
-`settings` (plus `settings/` helpers), `preset`, `notes`, `favorites`,
+`settings` (plus `settings/` helpers — `settingsTypes`, `persistenceSchema`,
+`tracking`, `secretsLoader`, `migrations`, `accounts`, `aiProviders`,
+`resets`, `sourceScan`, and the `core`/`display` sub-stores), `preset`, `notes`, `favorites`,
 `analysis`, `indicator`, `news`, `ai`, `chat`, `modal`, `ui`, `effects`,
 `quiz`, `fireStore`, `alerts`, `alertPanel`, `drawings`, `externalChannels`,
 `confirmationPolicy`, `entitlement`,
@@ -83,15 +86,26 @@ One store per topic, tests beside them. `*.svelte.ts` because they use runes.
 credentials encrypted with the device key (IndexedDB-backed, with a canary that
 detects a lost key instead of decrypting to garbage).
 
+`settings.svelte.ts` is a facade since FEAT-0342 /
+[ADR-0024](adr/0024-settings-store-split-behind-facade.md): the `display`
+(65 fields) and `core` (97 fields) schema groups live in the
+`DisplaySettingsStore` / `CoreSettingsStore` sub-stores, and autosave tracking
+is a declared list in `tracking.ts` (generated from the schema, not a
+`toJSON()` side effect). The manager keeps every field name via delegating
+getters/setters, so consumers keep importing `settings.svelte.ts` unchanged (facade-compatible). The
+account cluster (`apiProvider`, accounts, credentials) deliberately stays on
+the manager as coordinator — atomic identity writes, Class A lock
+orchestration.
+
 ### `src/services/` — logic and I/O
 
-After `components/`, the largest module directory — 138 non-test `.ts` modules
+After `components/`, the largest module directory — 152 non-test `.ts` modules
 with tests alongside. The groups that matter:
 
 | Group | Modules | Note |
 | --- | --- | --- |
 | **Exchange boundary** | `src/services/exchange/` (`types.ts`, `bitunixAdapter.ts`, `bitgetAdapter.ts`, `registry.ts`, `errors.ts`) | The one interface every venue sits behind. Components, stores and calculations import `services/exchange` and nothing venue-specific — enforced by `src/tests/architecture/exchange_boundary.test.ts`. A verb the venue cannot perform is refused here before it travels: reads resolve empty, writes throw `ExchangeUnsupportedError` — [ADR-0008](adr/0008-refuse-unsupported-verbs-before-they-travel.md), enforced verb by verb in `src/services/exchange/unsupportedVerbs.test.ts`. [FEAT-0016](backlog/features/FEAT-0016-exchange-adapter-interface.md), [ADR-0007](adr/0007-exchange-adapter-boundary.md) |
-| **Exchange implementations** | `bitunixWs.ts`, `bitgetWs.ts`, `tradeService.ts`, `syncService.ts`, `apiService.ts`, `connectionManager.ts` | What the adapters delegate to. `connectionManager` keeps the connection lifecycle; moving each socket behind its own adapter is [FEAT-0227](backlog/features/FEAT-0227-adapter-owns-its-socket.md) |
+| **Exchange implementations** | `bitunixWs.ts`, `bitgetWs.ts`, `tradeService.ts` (+ `trade/` lanes), `syncService.ts`, `apiService.ts`, `connectionManager.ts` | What the adapters delegate to. `connectionManager` keeps the connection lifecycle; moving each socket behind its own adapter is [FEAT-0227](backlog/features/FEAT-0227-adapter-owns-its-socket.md). `tradeService.ts` is a facade since FEAT-0342: the order paths live in `src/services/trade/` lanes (`tradeErrors`, `tradeParams`, `payloadCodec`, `dispatchSession`, `pairMeta`, `tpSlService`, `accountSettings`, `positionLifecycle`, `flashClose`, `modifyOrder`, `placeOrder`, `addToPosition`, `closePosition`, `closeAllPositions`) and the manager keeps thin delegates (facade-compatible, no consumer needed changes). `signedRequest` stays on the manager deliberately — it is the FEAT-0011 enforcement point |
 | **Order state** | `omsService.ts`, `rmsService.ts` | Order and risk management. `rmsService` holds the risk limits and the kill switch and reports them to the gate — [FEAT-0013](backlog/features/FEAT-0013-risk-limits-and-kill-switch.md) |
 | **Order audit** | `orderAuditService.ts` | Append-only local record of every submission attempt, refusals included. Class A, redacted before writing — [FEAT-0015](backlog/features/FEAT-0015-order-audit-trail.md) |
 | **Paper trading** | `paperExchange.ts`, `paperTradingService.ts` | A simulated exchange behind the transport. Live and paper differ at one call site in `tradeService.signedRequest` — [FEAT-0012](backlog/features/FEAT-0012-paper-trading-mode.md) |
