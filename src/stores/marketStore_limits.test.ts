@@ -17,7 +17,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from "vitest";
-import type { Settings } from "./settings.svelte";
 
 vi.mock("$app/env", () => ({
   browser: true,
@@ -61,7 +60,7 @@ describe("MarketStore Limits", () => {
     if (marketState) {
         marketState.destroy();
         // Restore settings
-        settingsState.update((s: Settings) => ({ ...s, marketCacheSize: originalCacheSize }));
+        settingsState.marketCacheSize = originalCacheSize;
     }
     vi.useRealTimers();
   });
@@ -71,7 +70,7 @@ describe("MarketStore Limits", () => {
     const market = marketState!;
 
     // Set low limit
-    settingsState.update((s: Settings) => ({ ...s, marketCacheSize: 2 }));
+    settingsState.marketCacheSize = 2;
 
     // Add 3 symbols
     market.updateTicker("BTCUSDT", { lastPrice: "50000" });
@@ -98,7 +97,7 @@ describe("MarketStore Limits", () => {
     const market = marketState!;
 
     // Start with limit 2
-    settingsState.update((s: Settings) => ({ ...s, marketCacheSize: 2 }));
+    settingsState.marketCacheSize = 2;
 
     market.updateTicker("A", { lastPrice: "1" });
     await vi.advanceTimersByTimeAsync(300);
@@ -108,7 +107,7 @@ describe("MarketStore Limits", () => {
     expect(Object.keys(market.data).length).toBe(2);
 
     // Increase limit to 3
-    settingsState.update((s: Settings) => ({ ...s, marketCacheSize: 3 }));
+    settingsState.marketCacheSize = 3;
 
     market.updateTicker("C", { lastPrice: "3" });
     await vi.advanceTimersByTimeAsync(300);

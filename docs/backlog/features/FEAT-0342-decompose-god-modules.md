@@ -13,6 +13,23 @@ depends_on: []
 parent: FEAT-0341
 ---
 
+## Status note (2026-10-09, ADR-0024 decision 1 implemented — branch `feature/0342-explicit-autosave-tracking`)
+
+The `in-progress` claim (`assignee: opencode`) is released: the tracking work
+is implemented and waiting on review, and no session holds the item. Status is
+back to `ready`.
+
+What this step delivered (decision 1 of ADR-0024, no field moved): the autosave
+`$effect` iterates a declared tracking list (`src/stores/settings/tracking.ts`,
+generated from `PERSISTENCE_SCHEMA`) instead of calling `toJSON()`. The reads
+are identical by construction — `readSerializedField` serves both paths, so a
+memoised or restructured `toJSON()` can no longer silently un-save the store.
+`update()` is deleted (zero production callers; `marketStore_limits.test.ts`
+writes the field directly). Proven: the reactivity contract gains a
+memoised-`toJSON` test that goes red on the old effect, and `tracking.test.ts`
+fails on a missing group. AC 3 itself is still open — field moves behind the
+facade are step 2, gated on this step landing.
+
 ## Problem
 Despite previous decomposition efforts (FEAT-0190), several files remain excessively large ("God Modules"):
 - `src/components/settings/tabs/VisualsTab.svelte` (1934 lines at speccing)

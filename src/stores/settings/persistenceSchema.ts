@@ -299,6 +299,30 @@ export interface SaveSource {
     entitlement: { isPro: boolean; isProLicenseActive: boolean };
 }
 
+/**
+ * Reads one serialized field with exactly the depth `toJSON()` uses.
+ *
+ * ADR-0024 decision 1: the autosave `$effect` must track the same reads the
+ * save performs, but that ownership has to be *declared*, not an emergent
+ * side effect of calling `toJSON()`. Both `toJSON()` and the tracking pass in
+ * `tracking.ts` call this function, so the two can never drift apart — a
+ * memoised or restructured `toJSON()` cannot silently un-save a field,
+ * because the effect no longer depends on it.
+ */
+export function readSerializedField(field: FieldSchema, source: SaveSource): unknown {
+    switch (field.save) {
+        case "direct":
+            return source.read(field.key);
+        case "snapshot":
+            return source.snapshot(source.read(field.key));
+        case "spread":
+            // Only `aiAllowedActions` uses this mode.
+            return [...(source.read(field.key) as string[])];
+        case "custom":
+            return saveCustomValue(field.key, source);
+    }
+}
+
 /** Where the load path writes a restored field. */
 export interface LoadTarget {
     set(key: string, value: unknown): void;

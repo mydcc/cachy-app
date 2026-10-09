@@ -61,10 +61,12 @@ import {
     applySchemaField,
     loadSchemaEntries,
     PERSISTENCE_SCHEMA,
-    saveCustomValue,
+    readSerializedField,
     type FieldSchema,
     type LoadTarget,
+    type SaveSource,
 } from "./settings/persistenceSchema";
+import { trackAutosaveReads } from "./settings/tracking";
 
 // Domain types and presets live in ./settings/settingsTypes (FEAT-0342);
 // re-exported here so existing importers keep working.
@@ -1063,9 +1065,19 @@ export class SettingsManager {
         $effect(() => {
           if (!this.effectActive) return;
 
-          // Track ALL properties by calling toJSON()
-          // This ensures any property change triggers the effect
-          this.toJSON();
+          // Declared tracking (ADR-0024 decision 1): iterate the schema's
+          // field list explicitly instead of calling `toJSON()`. The reads
+          // are identical by construction (`readSerializedField` serves
+          // both), but the effect no longer depends on `toJSON()` — a
+          // memoised or restructured serializer cannot silently un-save
+          // the store anymore.
+          const self = this as unknown as Record<keyof Settings, unknown>;
+          trackAutosaveReads({
+            read: <K extends keyof Settings>(key: K): Settings[K] =>
+              self[key] as Settings[K],
+            snapshot: <T>(value: T): T => $state.snapshot(value) as T,
+            entitlement: this.entitlement,
+          });
 
           untrack(() => {
             // Debounce saves to prevent excessive writes
@@ -1705,40 +1717,21 @@ export class SettingsManager {
     // `isProLicenseActive` live on `this.entitlement`), so the dynamic read
     // goes through one cast instead of pretending the index is typed.
     const self = this as unknown as Record<keyof Settings, unknown>;
+    const source: SaveSource = {
+      read: <K extends keyof Settings>(key: K): Settings[K] =>
+        self[key] as Settings[K],
+      // `$state.snapshot` returns `Snapshot<T>`; the old literal code
+      // passed snapshots straight into `Settings`-typed positions, so
+      // the cast preserves exactly that boundary.
+      snapshot: <T>(value: T): T => $state.snapshot(value) as T,
+      entitlement: this.entitlement,
+    };
     for (const field of PERSISTENCE_SCHEMA) {
-      switch (field.save) {
-        case "direct":
-          out[field.key] = self[field.key];
-          break;
-        case "snapshot":
-          out[field.key] = $state.snapshot(self[field.key]);
-          break;
-        case "spread":
-          // Only `aiAllowedActions` uses this mode.
-          out[field.key] = [...(self[field.key] as string[])];
-          break;
-        case "custom":
-          out[field.key] = saveCustomValue(field.key, {
-            read: <K extends keyof Settings>(key: K): Settings[K] =>
-              self[key] as Settings[K],
-            // `$state.snapshot` returns `Snapshot<T>`; the old literal code
-            // passed snapshots straight into `Settings`-typed positions, so
-            // the cast preserves exactly that boundary.
-            snapshot: <T>(value: T): T => $state.snapshot(value) as T,
-            entitlement: this.entitlement,
-          });
-          break;
-      }
+      out[field.key] = readSerializedField(field, source);
     }
     // Conformance is enforced by `persistenceSchema.test.ts` (save exactness),
     // not by this cast: a row missing from the table fails there by name.
     return out as unknown as Settings;
-  }
-
-  update(fn: (s: Settings) => Partial<Settings>) {
-    const current = this.toJSON();
-    const updates = fn(current);
-    Object.assign(this, updates);
   }
 
   destroy() {
