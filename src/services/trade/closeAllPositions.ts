@@ -54,13 +54,13 @@ export interface CloseAllPositionsPorts {
         leftover: string[];
         unverified: boolean;
         symbol?: string;
-    }): never;
+    }): void;
     /** The single-close lane; the fallback path flattens through it. */
     closePosition(params: ClosePositionParams): Promise<unknown>;
     /** Cached book for the no-keys best-effort path (owner-side). */
     cachedPositions(): OMSPosition[];
     /** Catch-tail: generic failure toast, then throws (owner-side). */
-    reportCloseAllFailure(symbol: string | undefined, cause: unknown): never;
+    reportCloseAllFailure(symbol: string | undefined, cause: unknown): void;
 }
 
 export function createCloseAllPositionsService(ports: CloseAllPositionsPorts) {
@@ -91,6 +91,11 @@ export function createCloseAllPositionsService(ports: CloseAllPositionsPorts) {
                         unverified,
                         symbol,
                     });
+                    // Unreachable under the port contract (the report
+                    // throws) — the fallthrough guard if a future port ever
+                    // returns instead: never report success while anything
+                    // remains open.
+                    throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
                 }
                 return result;
             }
@@ -142,6 +147,8 @@ export function createCloseAllPositionsService(ports: CloseAllPositionsPorts) {
                     unverified,
                     symbol,
                 });
+                // Same fallthrough guard as the native path above.
+                throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
             }
 
             return results;
@@ -152,6 +159,8 @@ export function createCloseAllPositionsService(ports: CloseAllPositionsPorts) {
             if (e instanceof Error && e.message === TRADE_ERRORS.CLOSE_ALL_FAILED) throw e;
             logger.error("market", "[CloseAll] Failed to close all positions", e);
             ports.reportCloseAllFailure(symbol, e);
+            // Same fallthrough guard: the report throws under its contract.
+            throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED, { cause: e });
         }
     }
     return { closeAllPositions };

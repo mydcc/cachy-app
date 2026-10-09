@@ -965,6 +965,7 @@ class TradeService {
         throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED, { cause });
     }
 
+    /** Attempt id — see ./trade/placeOrder. */
     public newClientOrderId(): string {
         return mintClientOrderId();
     }
@@ -992,14 +993,17 @@ class TradeService {
         return venue.timeInForce.length > 0 ? "GTC" : undefined;
     }
 
+    /** Risk-sized entry — see ./trade/placeOrder. */
     public async placeOrder(params: PlaceOrderParams) {
         return this.orderOpen.placeOrder(params);
     }
 
+    /** Scale-in — see ./trade/addToPosition. */
     public async addToPosition(params: AddToPositionParams) {
         return this.orderAdd.addToPosition(params);
     }
 
+    /** Partial or full close — see ./trade/closePosition. */
     public async closePosition(params: ClosePositionParams) {
         return this.orderClose.closePosition(params);
     }
@@ -1059,6 +1063,7 @@ class TradeService {
         throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
     }
 
+    /** Flatten — see ./trade/closeAllPositions. */
     public async closeAllPositions(symbol?: string) {
         return this.orderCloseAll.closeAllPositions(symbol);
     }

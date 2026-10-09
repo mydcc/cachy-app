@@ -111,8 +111,7 @@ describe("addToPosition lane", () => {
         expect(gatedRequest).not.toHaveBeenCalled();
     });
 
-    it("sends kind add with the stated quantity and the attributable stop", async () => {
-        const seen: unknown[] = [];
+    it("sends kind add with the stated quantity and the attributable stop", async () => {        const seen: unknown[] = [];
         const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
             seen.push(intent);
             return { code: "0" };
@@ -153,5 +152,101 @@ describe("addToPosition lane", () => {
         expect((intent.displayed["accountSize"] as Decimal).toString()).toBe("10000");
         expect(intent.displayed["availableMarginAt"]).toBe(123);
         expect(intent.displayed["accountStateAt"]).toBe(456);
+    });
+
+    it("refuses a limit add without a usable price before reading anything", async () => {
+        const ensurePositionFreshness = vi.fn();
+        const gatedRequest = vi.fn();
+        const svc = createAddToPositionService(
+            ports({ ensurePositionFreshness, gatedRequest }),
+        );
+
+        await expect(
+            svc.addToPosition({
+                symbol: "BTCUSDT",
+                positionSide: "long",
+                amount: new Decimal("0.1"),
+                orderType: "LIMIT",
+            }),
+        ).rejects.toThrow("apiErrors.invalidPrice");
+        expect(ensurePositionFreshness).not.toHaveBeenCalled();
+        expect(gatedRequest).not.toHaveBeenCalled();
+    });
+
+    it("measures a limit add against its limit price", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createAddToPositionService(ports({ gatedRequest }));
+
+        await svc.addToPosition({
+            symbol: "BTCUSDT",
+            positionSide: "long",
+            amount: new Decimal("0.1"),
+            orderType: "LIMIT",
+            price: new Decimal(49500),
+        });
+
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as { displayed: Record<string, unknown> };
+        // A limit add fills at its limit — the mark is not the estimate.
+        expect((intent.displayed["entryPrice"] as Decimal).toString()).toBe("49500");
+    });
+
+    it("falls back to the entry when the venue omits the mark", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createAddToPositionService(
+            ports({
+                gatedRequest,
+                ensurePositionFreshness: async () => ({
+                    ...position(),
+                    markPrice: undefined,
+                }),
+            }),
+        );
+
+        await svc.addToPosition({
+            symbol: "BTCUSDT",
+            positionSide: "long",
+            amount: new Decimal("0.1"),
+        });
+
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as { displayed: Record<string, unknown> };
+        // Stated, never silently zero: the entry is the closest honest
+        // stand-in when no mark is quoted.
+        expect((intent.displayed["entryPrice"] as Decimal).toString()).toBe("50000");
+    });
+
+    it("adds UTA open fields on bitget", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createAddToPositionService(
+            ports({
+                gatedRequest,
+                activeVenue: () => "bitget",
+                bitgetUtaOpenFields: (direction) => ({
+                    posSide: direction === "BUY" ? ("LONG" as const) : ("SHORT" as const),
+                }),
+            }),
+        );
+
+        await svc.addToPosition({
+            symbol: "BTCUSDT",
+            positionSide: "long",
+            amount: new Decimal("0.1"),
+        });
+
+        const intent = seen[0] as { payload: Record<string, unknown> };
+        expect(intent.payload["posSide"]).toBe("LONG");
     });
 });

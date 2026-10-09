@@ -86,6 +86,7 @@ describe("placeOrder lane", () => {
         const { clientId } = await svc.placeOrder(params());
 
         expect(clientId).toMatch(/^cachy-/);
+        expect(seen).toHaveLength(1);
         const intent = seen[0] as { payload: Record<string, unknown> };
         expect(intent.payload["clientId"]).toBe(clientId);
     });
@@ -101,6 +102,7 @@ describe("placeOrder lane", () => {
         const { clientId } = await svc.placeOrder(params({ clientId: "retry-1" }));
 
         expect(clientId).toBe("retry-1");
+        expect(seen).toHaveLength(1);
         const intent = seen[0] as { payload: Record<string, unknown> };
         expect(intent.payload["clientId"]).toBe("retry-1");
     });
@@ -180,9 +182,35 @@ describe("placeOrder lane", () => {
 
         await svc.placeOrder(params());
 
+        expect(seen).toHaveLength(1);
         const intent = seen[0] as { payload: Record<string, unknown> };
         expect(intent.payload).not.toHaveProperty("posSide");
         expect(bitgetUtaOpenFields).not.toHaveBeenCalled();
+    });
+
+    it("carries the take-profit and stop order prices when stated", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createPlaceOrderService(ports({ gatedRequest }));
+
+        // A silently dropped TP order price leaves the leg unprotected —
+        // the carryover is pinned, not assumed.
+        await svc.placeOrder(
+            params({
+                takeProfit: { price: new Decimal(55000), orderPrice: new Decimal(54900) },
+                stopLoss: { price: new Decimal(49000) },
+            }),
+        );
+
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as { payload: Record<string, unknown> };
+        expect(intent.payload["tpPrice"]).toBe("55000");
+        expect(intent.payload["tpOrderPrice"]).toBe("54900");
+        expect(intent.payload["slPrice"]).toBe("49000");
+        expect(intent.payload).not.toHaveProperty("slOrderPrice");
     });
 });
 

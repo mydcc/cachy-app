@@ -32,7 +32,6 @@ import {
     type CloseAllPositionsPorts,
 } from "./closeAllPositions";
 import { TRADE_ERRORS } from "./tradeErrors";
-import type { NormalizedPosition } from "../../types/exchange";
 
 const loggerMock = vi.hoisted(() => ({
     log: vi.fn(),
@@ -134,9 +133,9 @@ describe("closeAllPositions lane", () => {
             ports({
                 activeVenue: () => "bitget",
                 readFreshPositions: async () => [
-                    { symbol: "BTCUSDT", side: "LONG" },
-                    { symbol: "ETHUSDT", side: "SHORT" },
-                ] as NormalizedPosition[],
+                    { symbol: "BTCUSDT", side: "LONG", marginMode: "CROSS" },
+                    { symbol: "ETHUSDT", side: "SHORT", marginMode: "ISOLATED" },
+                ],
                 closePosition,
                 verifyFlat: async () => ({ leftover: [], unverified: false }),
                 reportFlattenShortfall: () => {
@@ -175,5 +174,113 @@ describe("closeAllPositions lane", () => {
         );
         expect(reported).toEqual([["BTCUSDT", cause]]);
         expect(reportFlattenShortfall).not.toHaveBeenCalled();
+    });
+
+    it("treats an unconfirmable run as a shortfall even with no leftovers", async () => {
+        const gatedRequest = vi.fn(async () => ({ code: "0" }));
+        const reportFlattenShortfall = vi.fn((args: unknown): never => {
+            throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED, { cause: args });
+        });
+        const svc = createCloseAllPositionsService(
+            ports({
+                gatedRequest,
+                verifyFlat: async () => ({ leftover: [], unverified: true }),
+                reportFlattenShortfall,
+            }),
+        );
+
+        // The second half of the `|| unverified` disjunction: nothing
+        // provably open, but flat unconfirmable — still no success.
+        await expect(svc.closeAllPositions()).rejects.toThrow(
+            TRADE_ERRORS.CLOSE_ALL_FAILED,
+        );
+        expect(reportFlattenShortfall).toHaveBeenCalledWith(
+            expect.objectContaining({ unverified: true }),
+        );
+    });
+
+    it("falls back to the cached book when no read is possible", async () => {
+        const closed: unknown[] = [];
+        const closePosition = vi.fn(async (params: unknown) => {
+            closed.push(params);
+            return { code: "0" };
+        });
+        const cachedPositions = vi.fn(() => [
+            { symbol: "BTCUSDT", side: "LONG", marginMode: "CROSS" },
+        ]);
+        const svc = createCloseAllPositionsService(
+            ports({
+                activeVenue: () => "bitget",
+                readFreshPositions: async () => null,
+                cachedPositions,
+                closePosition,
+                verifyFlat: async () => ({ leftover: [], unverified: false }),
+                reportFlattenShortfall: () => {
+                    throw new Error("should stay flat");
+                },
+            }),
+        );
+
+        // No keys to sign with: proceed on the cache best-effort (the
+        // closes then refuse at signing) rather than flattening blind.
+        await svc.closeAllPositions();
+
+        expect(cachedPositions).toHaveBeenCalled();
+        expect(closed).toEqual([
+            { symbol: "BTCUSDT", positionSide: "long", forceFullClose: true },
+        ]);
+    });
+
+    it("never reports success when a shortfall report returns instead of throwing", async () => {
+        const gatedRequest = vi.fn(async () => ({ code: "0" }));
+        const reportFlattenShortfall = vi.fn(() => {});
+        const svc = createCloseAllPositionsService(
+            ports({
+                gatedRequest,
+                verifyFlat: async () => ({ leftover: ["ETHUSDT"], unverified: false }),
+                reportFlattenShortfall,
+            }),
+        );
+
+        // Contract violation by the port (typed void, implemented to
+        // throw): the lane's fallthrough guard still refuses.
+        await expect(svc.closeAllPositions()).rejects.toThrow(
+            TRADE_ERRORS.CLOSE_ALL_FAILED,
+        );
+    });
+
+    it("never reports success on the fallback when a shortfall report returns", async () => {
+        const closePosition = vi.fn(async () => ({ code: "0" }));
+        const reportFlattenShortfall = vi.fn(() => {});
+        const svc = createCloseAllPositionsService(
+            ports({
+                activeVenue: () => "bitget",
+                readFreshPositions: async () => [
+                    { symbol: "BTCUSDT", side: "LONG", marginMode: "CROSS" },
+                ],
+                closePosition,
+                verifyFlat: async () => ({ leftover: [], unverified: true }),
+                reportFlattenShortfall,
+            }),
+        );
+
+        await expect(svc.closeAllPositions()).rejects.toThrow(
+            TRADE_ERRORS.CLOSE_ALL_FAILED,
+        );
+    });
+
+    it("never resolves when the catch-tail report returns instead of throwing", async () => {
+        const cause = new Error("boom");
+        const gatedRequest = vi.fn(async (): Promise<unknown> => {
+            throw cause;
+        });
+        const reportCloseAllFailure = vi.fn(() => {});
+        const svc = createCloseAllPositionsService(
+            ports({ gatedRequest, reportCloseAllFailure }),
+        );
+
+        await expect(svc.closeAllPositions()).rejects.toThrow(
+            TRADE_ERRORS.CLOSE_ALL_FAILED,
+        );
     });
 });

@@ -181,4 +181,62 @@ describe("closePosition lane", () => {
         expect(intent.displayed["minTradeVolume"]).toBeInstanceOf(Decimal);
         expect(notified).toEqual(["trade_loss"]);
     });
+
+    it("adds UTA close fields on bitget", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createClosePositionService(
+            ports({
+                gatedRequest,
+                activeVenue: () => "bitget",
+                bitgetUtaCloseFields: (positionSide) => ({
+                    side: positionSide === "long" ? ("SELL" as const) : ("BUY" as const),
+                    posSide: positionSide === "long" ? ("LONG" as const) : ("SHORT" as const),
+                    reduceOnly: true,
+                }),
+            }),
+        );
+
+        await svc.closePosition({
+            symbol: "BTCUSDT",
+            positionSide: "long",
+            forceFullClose: true,
+        });
+
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as { payload: Record<string, unknown> };
+        // UTA names the side it closes; bitunix keeps its convention.
+        expect(intent.payload["side"]).toBe("SELL");
+        expect(intent.payload["posSide"]).toBe("LONG");
+        expect(intent.payload["reduceOnly"]).toBe(true);
+    });
+
+    it("treats a partial amount with full-close intent as a partial", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createClosePositionService(ports({ gatedRequest }));
+
+        // The guard passes on the explicit amount; the full-vs-partial
+        // decision still measures against the position, not the flag.
+        await svc.closePosition({
+            symbol: "BTCUSDT",
+            positionSide: "long",
+            amount: new Decimal("0.1"),
+            forceFullClose: true,
+        });
+
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as {
+            payload: Record<string, unknown>;
+            displayed: Record<string, unknown>;
+        };
+        expect(intent.payload["qty"]).toBe("0.1");
+        expect(intent.displayed["fullClose"]).toBe(false);
+    });
 });
