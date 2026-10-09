@@ -13,6 +13,20 @@ depends_on: []
 parent: FEAT-0341
 ---
 
+## Status note (2026-10-09, ADR-0024 decision 3 — merged)
+
+The `in-progress` claim (`assignee: opencode`) is released: the decision-3
+amendment is implemented and waiting on merge, and no session holds the item.
+Status is back to `ready`.
+
+Claimed (`assignee: opencode`): proposing the account-cluster decision in
+ADR-0024 (decision 3, acceptance on merge). The proposal: the account
+cluster (`apiProvider`, accounts, credentials) stays on the manager as
+coordinator — 11 owned `$state` fields (7 persisted `section: null` rows,
+4 transient lock/counter flags), atomic identity writes, Class A lock
+orchestration. No code moves. The AC-3 verdict in this item still records
+the pre-split audit and is left to a re-audit pass, not edited here.
+
 ## Status note (2026-10-09, step 3 rest — merged)
 
 The four remaining lanes are implemented, reviewed (swarm, no HIGH+) and
