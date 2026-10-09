@@ -2,9 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
-assignee: opencode
-branch: docs/0342-account-cluster-decision
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -15,7 +13,11 @@ depends_on: []
 parent: FEAT-0341
 ---
 
-## Status note (2026-10-09, ADR-0024 decision 3 — branch `docs/0342-account-cluster-decision`)
+## Status note (2026-10-09, ADR-0024 decision 3 — merged)
+
+The `in-progress` claim (`assignee: opencode`) is released: the decision-3
+amendment is implemented and waiting on merge, and no session holds the item.
+Status is back to `ready`.
 
 Claimed (`assignee: opencode`): proposing the account-cluster decision in
 ADR-0024 (decision 3, acceptance on merge). The proposal: the account
