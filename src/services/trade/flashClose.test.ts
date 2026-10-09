@@ -276,6 +276,96 @@ describe("flashClose lane", () => {
         expect(omsState.orders.size).toBe(0);
     });
 
+    it("removes the optimistic order when the gate rejects after dispatch", async () => {
+        const refreshPositionsForProvider = vi.fn().mockResolvedValue(undefined);
+        const gatedRequest = vi.fn().mockRejectedValue(
+            new OrderRefusedError({
+                field: "mode",
+                reason: "unsupported",
+                messageKey: "k",
+                values: {},
+            }),
+        );
+        const notified: string[] = [];
+        const svc = createFlashCloseService(
+            ports({
+                gatedRequest,
+                cancelAllOrders: async () => {},
+                refreshPositionsForProvider,
+                t: (key: string) => `T:${key}`,
+                notifyFailure: (msg) => {
+                    notified.push(msg);
+                },
+            }),
+        );
+
+        const result = await svc.flashClosePosition("BTCUSDT", "long");
+
+        // BUG-0586: a refusal never leaves the device, so there is nothing
+        // to reconcile — remove, don't park. And the refusal is translated
+        // through the `t` port, not reported raw.
+        expect(result.success).toBe(false);
+        expect(omsState.orders.size).toBe(0);
+        expect(refreshPositionsForProvider).toHaveBeenCalled();
+        expect(notified).toEqual(["T:k"]);
+    });
+
+    it("refuses a negative-size position before anything has a side effect", async () => {
+        const cancelAllOrders = vi.fn();
+        const gatedRequest = vi.fn();
+        const svc = createFlashCloseService(
+            ports({
+                cancelAllOrders,
+                gatedRequest,
+                ensurePositionFreshness: async () => ({
+                    ...position(),
+                    amount: new Decimal("-0.5"),
+                }),
+            }),
+        );
+
+        const result = await svc.flashClosePosition("BTCUSDT", "long");
+
+        expect(result).toEqual({ success: false, error: "apiErrors.invalidAmount" });
+        expect(gatedRequest).not.toHaveBeenCalled();
+        expect(cancelAllOrders).not.toHaveBeenCalled();
+        expect(omsState.orders.size).toBe(0);
+    });
+
+    it("falls back to the place-order envelope when bitunix has no position id", async () => {
+        const seen: unknown[] = [];
+        const activeVenue = vi.fn(() => "bitunix" as const);
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createFlashCloseService(
+            ports({
+                gatedRequest,
+                cancelAllOrders: async () => ({}),
+                activeVenue,
+                ensurePositionFreshness: async () => ({
+                    ...position(),
+                    positionId: undefined,
+                }),
+            }),
+        );
+
+        await svc.flashClosePosition("BTCUSDT", "long");
+
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as { payload: Record<string, unknown> };
+        // Without a position id the venue-native close cannot address the
+        // position, so the lane takes the generic close with the
+        // position-side convention — and no UTA fields.
+        expect(intent.payload["type"]).toBe("place-order");
+        expect(intent.payload["side"]).toBe("BUY");
+        expect(intent.payload).not.toHaveProperty("posSide");
+        // One decision, one read: the envelope branch and the UTA spread
+        // must agree, so the venue is read exactly once per close.
+        expect(activeVenue).toHaveBeenCalledTimes(1);
+    });
+
     it("sends the venue-native close on bitunix", async () => {
         const seen: unknown[] = [];
         const ducked: unknown[] = [];

@@ -250,4 +250,40 @@ describe("modifyOrder lane", () => {
         expect((intent.displayed["previousQuantity"] as Decimal).toString()).toBe("0.5");
         expect((intent.displayed["accountSize"] as Decimal).toString()).toBe("10000");
     });
+
+    it("refuses a missing live order without reaching the gate", async () => {
+        const gatedRequest = vi.fn();
+        const svc = createModifyOrderService(
+            ports({ getOrderDetail: async () => null, gatedRequest }),
+        );
+
+        await expect(svc.modifyOrder({ orderId: "o1" })).rejects.toThrow(
+            "tradeErrors.orderNotFound",
+        );
+        expect(gatedRequest).not.toHaveBeenCalled();
+    });
+
+    it("refuses a corrupt take-profit order price typed instead of sending garbage", async () => {
+        const gatedRequest = vi.fn();
+        const svc = createModifyOrderService(
+            ports({ getOrderDetail: async () => liveOrder(), gatedRequest }),
+        );
+
+        await expect(
+            svc.modifyOrder({ orderId: "o1", tpOrderPrice: "not-a-price" }),
+        ).rejects.toBeInstanceOf(OrderRefusedError);
+        expect(gatedRequest).not.toHaveBeenCalled();
+    });
+
+    it("refuses a corrupt stop order price typed instead of sending garbage", async () => {
+        const gatedRequest = vi.fn();
+        const svc = createModifyOrderService(
+            ports({ getOrderDetail: async () => liveOrder(), gatedRequest }),
+        );
+
+        await expect(
+            svc.modifyOrder({ orderId: "o1", slOrderPrice: "not-a-price" }),
+        ).rejects.toBeInstanceOf(OrderRefusedError);
+        expect(gatedRequest).not.toHaveBeenCalled();
+    });
 });

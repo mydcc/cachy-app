@@ -209,7 +209,11 @@ async function flashClosePosition(
                           positionId,
                           // BUG-0597: UTA names the side it closes. Bitunix
                           // keeps the position-side convention untouched.
-                          ...(ports.activeVenue() === "bitget"
+                          // Single read: `provider` above is the venue this
+                          // intent is built for — a second port read here
+                          // could disagree with it if the setting changed
+                          // mid-flight and mix the envelopes.
+                          ...(provider === "bitget"
                             ? ports.bitgetUtaCloseFields(positionSide)
                             : {}),
                       },

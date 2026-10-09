@@ -30,8 +30,8 @@ deliberately (FEAT-0011 enforcement point). Store reads arrive as ports
 the flash-close lane — `closePosition` imports it rather than duplicating the
 BUG-0062/0063 contract. Proven: all 112 flashClose/modifyOrder suites green
 unedited through the facade, 41 architecture guard tests green (gate-bypass
-scan now covers both lanes, seam inventory unchanged at 9), 11 new lane tests
-green and each RED-proven by mutation, ESLint and `svelte-check` clean (only
+scan now covers both lanes, seam inventory unchanged at 9), 18 new lane tests
+green and each RED-proven by mutation (28 mutations), ESLint and `svelte-check` clean (only
 the known local `marketWatcher.bench.ts` stale-env artifact). Still open:
 `placeOrder`, `addToPosition`, `closePosition`, `closeAllPositions` lanes.
 

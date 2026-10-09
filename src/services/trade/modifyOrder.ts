@@ -36,8 +36,12 @@ import type { TpSlVenue } from "./tpSlService";
 import type { PartialIntent } from "./payloadCodec";
 
 export interface ModifyOrderPorts {
-    /** Live order read; the amend is merged over it, never built blind. */
-    getOrderDetail(orderId?: string, clientId?: string): Promise<NormalizedOrder>;
+    /**
+     * Live order read; the amend is merged over it, never built blind.
+     * Nullable: a missing order refuses as ORDER_NOT_FOUND, and the port
+     * type says so rather than leaving the `!liveOrder` check dead.
+     */
+    getOrderDetail(orderId?: string, clientId?: string): Promise<NormalizedOrder | null>;
     /** The order gate. The amend goes through it — there is no other path. */
     gatedRequest: <T>(intent: PartialIntent) => Promise<T>;
     /** The venue the UI is configured for; decides the qty backfill. */
@@ -131,8 +135,47 @@ async function modifyOrder(params: ModifyOrderParams) {
         slOrderType: params.slOrderType || liveOrder.slOrderType,
     };
 
-    if (params.tpOrderPrice !== undefined) payload.tpOrderPrice = formatApiNum(params.tpOrderPrice);
-    if (params.slOrderPrice !== undefined) payload.slOrderPrice = formatApiNum(params.slOrderPrice);
+    /*
+     * Same fail-closed reading as entryPrice above, for the limit order
+     * prices of the TP/SL legs: a stated but corrupt level refuses typed
+     * instead of travelling as a garbage string the gate never sees.
+     * Labelled with the leg they belong to — the gate has no finer
+     * vocabulary, and the existing translations cover both.
+     */
+    if (params.tpOrderPrice !== undefined) {
+        let parsed: Decimal | undefined;
+        try {
+            const candidate = new Decimal(params.tpOrderPrice);
+            parsed = candidate.isFinite() ? candidate : undefined;
+        } catch {
+            parsed = undefined;
+        }
+        if (parsed === undefined) {
+            throw new OrderRefusedError(mismatch(
+                "takeProfit",
+                "a readable price",
+                String(params.tpOrderPrice),
+            ));
+        }
+        payload.tpOrderPrice = formatApiNum(params.tpOrderPrice);
+    }
+    if (params.slOrderPrice !== undefined) {
+        let parsed: Decimal | undefined;
+        try {
+            const candidate = new Decimal(params.slOrderPrice);
+            parsed = candidate.isFinite() ? candidate : undefined;
+        } catch {
+            parsed = undefined;
+        }
+        if (parsed === undefined) {
+            throw new OrderRefusedError(mismatch(
+                "stopLoss",
+                "a readable price",
+                String(params.slOrderPrice),
+            ));
+        }
+        payload.slOrderPrice = formatApiNum(params.slOrderPrice);
+    }
 
     // Account equity for the percentage position-size cap — the same
     // tradeState the order panel reads (BUG-0548). Unparseable means the
