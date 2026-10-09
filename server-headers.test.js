@@ -498,4 +498,79 @@ describe('wrapWriteHead', () => {
     expect(map.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(map.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
   });
+
+  it('normalizes a foreign-realm-shaped Headers (instanceof-false, native methods, tag)', () => {
+    // The observable shape of a genuine cross-realm Headers: `instanceof`
+    // fails here, the tag reads "[object Headers]", and the four methods are
+    // the native ones (case-insensitive, (value, name) arity). Delegation to
+    // a real backing instance reproduces exactly what the code touches —
+    // a second VM realm would only differ in a constructor identity the code
+    // never reads (a bare `node:vm` context has no Headers global at all).
+    const backing = new Headers([['content-type', 'text/html']]);
+    const foreign = {
+      [Symbol.toStringTag]: 'Headers',
+      set: (k, v) => backing.set(k, v),
+      get: (k) => backing.get(k),
+      has: (k) => backing.has(k),
+      forEach: (cb, thisArg) => backing.forEach(cb, thisArg),
+    };
+    expect(foreign instanceof Headers).toBe(false);
+    expect(Object.prototype.toString.call(foreign)).toBe('[object Headers]');
+
+    const res = mockRes();
+    const originalWriteHead = vi.fn();
+    res.writeHead = originalWriteHead;
+    wrapWriteHead(res);
+
+    res.writeHead(200, foreign);
+
+    const passed = originalWriteHead.mock.calls[0][1];
+    expect(passed).not.toBeInstanceOf(Headers);
+    expect(passed['content-type']).toBe('text/html');
+    expect(passed['Strict-Transport-Security']).toBe('max-age=31536000; includeSubDomains; preload');
+    expect(passed['X-Frame-Options']).toBe('SAMEORIGIN');
+  });
+
+  it('preserves a nonce-carrying CSP on the duck-typed path', () => {
+    const noncePolicy = "script-src 'self' 'nonce-abc123'";
+    const map = new Map([['content-security-policy', noncePolicy]]);
+    const duckHeaders = {
+      set(k, v) { map.set(k.toLowerCase(), v); },
+      get(k) { return map.get(k.toLowerCase()) ?? null; },
+      has(k) { return map.has(k.toLowerCase()); },
+      forEach(cb) { map.forEach((v, k) => cb(v, k, this)); },
+    };
+
+    overlaySecurityHeaders(duckHeaders);
+
+    // Overwriting this would strip the nonces and leave a blank app.
+    expect(map.get('content-security-policy')).toBe(noncePolicy);
+    expect(map.get('strict-transport-security')).toBe('max-age=31536000; includeSubDomains; preload');
+  });
+
+  it('does not treat a tag-only object as Headers (no methods, no throw)', () => {
+    // A bare `[object Headers]` tag without the four methods takes the
+    // plain-object path, exactly as before the duck-typing support.
+    const spoofed = {
+      [Symbol.toStringTag]: 'Headers',
+      'x-custom': 'val',
+    };
+    expect(Object.prototype.toString.call(spoofed)).toBe('[object Headers]');
+
+    expect(() => overlaySecurityHeaders(spoofed)).not.toThrow();
+    expect(spoofed['Strict-Transport-Security']).toBe('max-age=31536000; includeSubDomains; preload');
+  });
+
+  it('throws instead of silently dropping headers when set() is a no-op', () => {
+    const frozen = {
+      set() {},
+      get() { return null; },
+      has() { return false; },
+      forEach() {},
+    };
+
+    // Fail closed: a silent no-op would leave the response without security
+    // headers and no error. The throw names the broken contract.
+    expect(() => overlaySecurityHeaders(frozen)).toThrow(/did not retain the security overlay/);
+  });
 });
