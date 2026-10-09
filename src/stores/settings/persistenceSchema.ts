@@ -320,6 +320,13 @@ export function readSerializedField(field: FieldSchema, source: SaveSource): unk
             return [...(source.read(field.key) as string[])];
         case "custom":
             return saveCustomValue(field.key, source);
+        default: {
+            // Exhaustive by construction: a future fifth `SaveMode` fails
+            // loudly here — in save AND tracking — instead of emitting
+            // `undefined` for its rows, which would be silent data loss.
+            const _exhaustive: never = field.save;
+            throw new Error(`persistence schema: no save reader for ${_exhaustive}`);
+        }
     }
 }
 

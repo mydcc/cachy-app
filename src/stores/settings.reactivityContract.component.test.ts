@@ -264,6 +264,46 @@ describe("settings reactivity contract", () => {
     vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
   });
 
+  it("schedules a save when an encrypted credential blob is written", () => {
+    // The per-field loop above iterates `SETTINGS_KEYS` (user settings) only.
+    // The encrypted blob rows are live reactive writes whose save-scheduling
+    // was proven solely by the stub-fed `tracking.test.ts` — which cannot
+    // observe a real `$state` subscription failure. These are the rows where
+    // a missed save costs credentials, so they get the real effect.
+    //
+    // Deliberately untracked and NOT covered here: `credentialSchemaVersion`
+    // (a constant — `saveCustomValue` never reads the manager) and
+    // `isEncrypted` (written by `applyAccounts` on load, never by the user;
+    // no write means no save to miss).
+    const blobs = [
+      "encryptedAccountKeys",
+      "encryptedSecrets",
+      "encryptedProviderConfigs",
+    ] as const;
+    const inert: string[] = [];
+
+    for (const key of blobs) {
+      const owner = settings as unknown as Record<string, unknown>;
+      const before = owner[key];
+      saveSpy.mockClear();
+
+      owner[key] = differentValue(before);
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+      if (saveSpy.mock.calls.length === 0) inert.push(key);
+
+      owner[key] = before;
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    }
+
+    expect(
+      inert,
+      `writing these credential blobs scheduled no save: ${inert.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("routes every key the manager does not hold through a declared owner", () => {
     const unmapped = SETTINGS_KEYS.filter(
       // `in`, not hasOwn: $state class fields live on the prototype, so an

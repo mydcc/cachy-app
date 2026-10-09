@@ -50,14 +50,20 @@ import {
  * single key table — so a setting without a schema row is untracked by
  * definition, and the exactness test in `persistenceSchema.test.ts` is what
  * refuses to let that happen.
- *
- * The `fields` parameter exists for the contract test: passing a subset
- * proves a missing group schedules no save for its fields, which is the
- * failure mode this module exists to make loud.
  */
-export function trackAutosaveReads(
+export function trackAutosaveReads(source: SaveSource): void {
+    trackAutosaveReadsForFields(source, PERSISTENCE_SCHEMA);
+}
+
+/**
+ * Test-only entry: the `fields` parameter proves a missing group schedules
+ * no save for its fields (`tracking.test.ts`), which is the failure mode
+ * this module exists to make loud. Production must never pass a subset —
+ * the manager calls `trackAutosaveReads`, which always covers the schema.
+ */
+export function trackAutosaveReadsForFields(
     source: SaveSource,
-    fields: readonly FieldSchema[] = PERSISTENCE_SCHEMA,
+    fields: readonly FieldSchema[],
 ): void {
     for (const field of fields) {
         readSerializedField(field, source);

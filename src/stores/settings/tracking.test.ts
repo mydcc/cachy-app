@@ -18,8 +18,8 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { PERSISTENCE_SCHEMA, type SaveSource } from "./persistenceSchema";
-import { trackAutosaveReads } from "./tracking";
+import { PERSISTENCE_SCHEMA, readSerializedField, type SaveSource } from "./persistenceSchema";
+import { trackAutosaveReads, trackAutosaveReadsForFields } from "./tracking";
 
 function saveSource(read: (key: string) => unknown): SaveSource {
     return {
@@ -60,20 +60,82 @@ describe("declared autosave tracking", () => {
         expect([...seen].sort()).toEqual(expected);
     });
 
-    it("reads with save depth: snapshot fields go through the snapshot read", () => {
+    it("reads every snapshot row through the snapshot read, per row", () => {
+        // A `snapshot`→`direct` flip of a single row (e.g. `accounts`, whose
+        // in-place credential edits must keep scheduling saves) stayed green
+        // under a "snapshot called at least once" assertion. Pin every row.
         const snapshot = vi.fn(<T>(value: T): T => value);
+        const values = new Map<string, unknown>();
         const source: SaveSource = {
-            read: (() => []) as SaveSource["read"],
+            read: ((key: string) => {
+                // Array-shaped reads for the rows whose saver iterates:
+                // the two redactors map, the spread row spreads.
+                const value =
+                    key === "accounts" ||
+                    key === "userProviders" ||
+                    key === "aiAllowedActions"
+                        ? []
+                        : { key };
+                values.set(key, value);
+                return value;
+            }) as SaveSource["read"],
             snapshot,
             entitlement: { isPro: false, isProLicenseActive: false },
         };
         trackAutosaveReads(source);
-        // At least one snapshot-mode row exists today; if the schema ever
-        // drops the last one, tracking degrades to shallow reads and this
-        // test must be rewritten, not deleted.
         const snapshotRows = PERSISTENCE_SCHEMA.filter((f) => f.save === "snapshot");
         expect(snapshotRows.length).toBeGreaterThan(0);
-        expect(snapshot).toHaveBeenCalled();
+        const missing = snapshotRows
+            .map((f) => f.key)
+            .filter(
+                (key) =>
+                    !snapshot.mock.calls.some(([value]) => value === values.get(key)),
+            );
+        expect(
+            missing,
+            `these snapshot rows bypassed the snapshot read: ${missing.join(", ")}`,
+        ).toEqual([]);
+    });
+
+    it("pins which rows are snapshot mode, so a flip is conscious", () => {
+        // The per-row test above reads the modes from the schema it checks,
+        // so a `snapshot`→`direct` flip changes expectation and behavior
+        // together and stays green. This pins the assignment itself: the
+        // rows below are the object-valued fields the UI mutates in place,
+        // and shallow-tracking them loses nested edits silently. A mode
+        // change must edit this list deliberately, not slip through.
+        const snapshotKeys = PERSISTENCE_SCHEMA.filter((f) => f.save === "snapshot")
+            .map((f) => f.key)
+            .sort();
+        expect(snapshotKeys).toEqual(
+            [
+                "analysisTimeframes",
+                "customHotkeys",
+                "customRssFeeds",
+                "discordChannels",
+                "favoriteSymbols",
+                "favoriteTimeframes",
+                "feeRates",
+                "fireConfig",
+                "galaxySettings",
+                "logSettings",
+                "rssPresets",
+                "tradeFlowSettings",
+            ].sort(),
+        );
+    });
+
+    it("copies the spread row instead of aliasing it", () => {
+        // `aiAllowedActions` is the only spread row. Tracking must observe
+        // the copy the save persists, not the live array — an aliased read
+        // would track the reference while the save writes a copy.
+        const live = ["rule-a"];
+        const source = saveSource(() => live);
+        const row = PERSISTENCE_SCHEMA.find((f) => f.save === "spread")!;
+        expect(row.key).toBe("aiAllowedActions");
+        const out = readSerializedField(row, source);
+        expect(out).toEqual(["rule-a"]);
+        expect(out).not.toBe(live);
     });
 
     it("a group missing from the list schedules no read for its fields", () => {
@@ -84,7 +146,7 @@ describe("declared autosave tracking", () => {
         const seen = new Set<string>();
         const source = stubSource(seen);
         const omitted = PERSISTENCE_SCHEMA[0]!.key;
-        trackAutosaveReads(
+        trackAutosaveReadsForFields(
             source,
             PERSISTENCE_SCHEMA.filter((f) => f.key !== omitted),
         );
