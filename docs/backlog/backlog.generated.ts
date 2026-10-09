@@ -7514,7 +7514,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0341",
     "title": "Epic: Q3 Codebase Modernization & Tech Debt",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [

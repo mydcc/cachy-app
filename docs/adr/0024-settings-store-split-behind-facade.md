@@ -1,8 +1,9 @@
 # ADR-0024: Split the settings store behind a facade, gated on explicit autosave ownership
 
-- **Status:** Proposed → Decision 1 accepted and implemented (declared tracking list, `update()` deleted — PR "feat(settings): declare autosave tracking ownership explicitly"). Decision 2 implemented for `display` (65 fields) and `core` (97 fields). Decision 3 proposed by this amendment (acceptance on merge — Deciders line unchanged): the account cluster stays on the manager as coordinator (11 owned `$state` fields: 7 persisted schema rows with `section: null`, 4 transient lock/counter fields).
+- **Status:** Accepted
 - **Date:** 2026-10-08
-- **Deciders:** _undecided — this draft is the input, not the decision_
+- **Amended:** 2026-10-09 — decision 3 added after decisions 1 and 2 had already landed
+- **Deciders:** Accepted in review on the pull request that carried each decision: #3988 (decision 1, `feat(settings): declare autosave tracking ownership explicitly`), #3990 and #3991 (decision 2, `feat(settings): move display section behind a facade` then `…core section…`), #3995 (decision 3, `docs(adr): decide the account cluster stays on the manager`). All four squashed under `mydcc`; the merge of each is the acceptance point.
 
 ## Context
 

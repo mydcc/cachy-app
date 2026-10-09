@@ -2,7 +2,7 @@
 id: FEAT-0341
 title: "Epic: Q3 Codebase Modernization & Tech Debt"
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -11,6 +11,13 @@ data_class: none
 adr: none
 depends_on: []
 ---
+
+## Status note (2026-10-09, epic closed)
+
+All eight children are `status: done`, so the epic flips to `done` and every
+acceptance box is checked. The last child, FEAT-0342, closed on its AC
+re-audit in PR #3996; the settings split it ran under is
+[ADR-0024](../../adr/0024-settings-store-split-behind-facade.md).
 
 ## Problem
 The codebase contains several areas of accumulated technical debt that violate the core principles outlined in `AGENTS.md` and `CLAUDE.md`, or severely impact maintainability. 
@@ -28,7 +35,7 @@ The following items are part of this Epic:
 - **FEAT-0353**: Extract hardcoded UI strings to i18n dictionary (P2)
 
 ## Acceptance criteria
-- [ ] FEAT-0342 is done
+- [x] FEAT-0342 is done
 - [x] FEAT-0343 is done
 - [x] FEAT-0344 is done
 - [x] FEAT-0345 is done
