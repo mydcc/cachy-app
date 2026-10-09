@@ -73,14 +73,16 @@ browser                                                 server (SvelteKit node a
 
 One store per topic, tests beside them. `*.svelte.ts` because they use runes.
 
-`trade`, `results`, `market` (plus `market/` helpers), `account`, `journal`,
+`trade`, `results`, `market` (plus `market/` helpers), `account`,
+`accountVerification`, `journal`,
 `settings` (plus `settings/` helpers — `settingsTypes`, `persistenceSchema`,
 `tracking`, `secretsLoader`, `migrations`, `accounts`, `aiProviders`,
 `resets`, `sourceScan`, and the `core`/`display` sub-stores), `preset`, `notes`, `favorites`,
 `analysis`, `indicator`, `news`, `ai`, `chat`, `modal`, `ui`, `effects`,
 `quiz`, `fireStore`, `alerts`, `alertPanel`, `drawings`, `externalChannels`,
-`confirmationPolicy`, `entitlement`,
-`notifications`, `onboarding`, `paperTrading`, `riskLimits`, `tpsl`.
+`externalDeliveryLog`, `confirmationPolicy`, `entitlement`,
+`notifications`, `notificationSound`, `onboarding`, `paperTrading`,
+`riskLimits`, `tpsl`.
 
 `settings/secretsLoader.ts` is the sensitive one: it holds `SENSITIVE_KEYS`, the
 credentials encrypted with the device key (IndexedDB-backed, with a canary that
