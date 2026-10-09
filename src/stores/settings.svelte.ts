@@ -188,6 +188,8 @@ export class SettingsManager {
   // structuredClone like every other object-valued init (see `accounts`).
   feeRates = $state(structuredClone(defaultSettings.feeRates));
   hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
+  /** Display section (ADR-0024 decision 2): 65 display-owned `$state` fields live here (66 display schema rows minus entitlement-owned `isProLicenseActive`); the getters/setters below keep `settingsState.<field>` working. Private on purpose — consumers use the manager spelling, never `settingsState.display.*`. Declared above `entitlement` so no lazy closure can ever observe it uninitialised. */
+  private readonly display = new DisplaySettingsStore();
   /**
    * Edition/entitlement state (isPro, isProLicenseActive, the capability
    * map) lives in its own store (FEAT-0197 PR 2) -- this is the one accessor
@@ -203,8 +205,6 @@ export class SettingsManager {
   );
   /** Encrypted-credential handling and the secretsReady handshake (FEAT-0197 PR 3). */
   private readonly secretsLoader = new SecretsLoader();
-  /** Display section (ADR-0024 decision 2): 65 schema fields live here; the getters/setters below keep `settingsState.<field>` working. */
-  readonly display = new DisplaySettingsStore();
   get glassBlur(): DisplaySettingsStore["glassBlur"] {
     return this.display.glassBlur;
   }
@@ -844,14 +844,14 @@ export class SettingsManager {
     this.display.visualQuality = v;
   }
 
-  get fireConfig(): Settings["fireConfig"] {
+  get fireConfig(): DisplaySettingsStore["fireConfig"] {
     return this.display.fireConfig;
   }
-  set fireConfig(v: Settings["fireConfig"]) {
+  set fireConfig(v: DisplaySettingsStore["fireConfig"]) {
     this.display.fireConfig = v;
   }
 
-  updateFireConfig(newConfig: Partial<Settings["fireConfig"]>) {
+  updateFireConfig(newConfig: Partial<DisplaySettingsStore["fireConfig"]>) {
     this.fireConfig = { ...this.fireConfig, ...newConfig };
   }
 

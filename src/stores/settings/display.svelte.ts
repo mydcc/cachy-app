@@ -16,10 +16,18 @@
  *
  * Display settings sub-store — ADR-0024 decision 2, first group.
  *
- * Holds the 65 `section: "display"` schema fields that used to be `$state`
- * members of `SettingsManager`. `SettingsManager` keeps its name and shape:
- * every field stays reachable as `settingsState.<field>` through a
- * delegating getter/setter, so the 97 consumer files do not change.
+ * Holds the 65 display-owned `$state` fields: 66 `PERSISTENCE_SCHEMA` rows
+ * carry `section: "display"`, but `isProLicenseActive` lives on the
+ * entitlement collaborator (never a manager field), so 65 land here. An
+ * inventory test below the schema pins that subtraction — a 67th display
+ * row without a store field fails there, not as silent data loss.
+ * `SettingsManager` keeps all 65 names via delegating getters/setters, so
+ * the 97 consumer files do not change.
+ *
+ * Import rule for sub-stores: defaults and types come from
+ * `./settingsTypes` only, never from `settings.svelte.ts` (the manager
+ * imports this module — importing it back would be a module cycle).
+ * `defaultSettings` moved to `settingsTypes.ts` for exactly this reason.
  *
  * Ownership rules (ADR-0024 "What is now forbidden"):
  * - no sub-store reads `settingsState` — coordination goes through ports;
@@ -27,10 +35,6 @@
  * - every field here has a `PERSISTENCE_SCHEMA` row (the tracking list in
  *   `tracking.ts` is generated from the schema, so an unlisted field would
  *   silently stop being saved).
- *
- * The constructor takes the shipped defaults as a parameter instead of
- * importing them: `defaultSettings` lives in `settings.svelte.ts`, which
- * imports this module — importing it back would be a module cycle.
  */
 
 import type { VisualQuality } from "../../lib/three/quality";
@@ -42,6 +46,7 @@ import type {
     BackgroundAnimationPreset,
     BackgroundType,
     HeatmapMode,
+    Settings,
     TradeFlowSettings,
 } from "./settingsTypes";
 
@@ -86,7 +91,9 @@ export class DisplaySettingsStore {
   );
   ambientToplineBursts = $state<boolean>(defaultSettings.ambientToplineBursts);
   visualQuality = $state<VisualQuality>(defaultSettings.visualQuality);
-  fireConfig = $state(structuredClone(defaultSettings.fireConfig));
+  fireConfig = $state<Settings["fireConfig"]>(
+    structuredClone(defaultSettings.fireConfig),
+  );
   fontFamily = $state<string>(defaultSettings.fontFamily);
   showMarketOverviewLinks = $state<boolean>(
     defaultSettings.showMarketOverviewLinks,
@@ -137,7 +144,9 @@ export class DisplaySettingsStore {
     defaultSettings.backgroundAnimationIntensity,
   );
   videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
-  galaxySettings = $state(structuredClone(defaultSettings.galaxySettings));
+  galaxySettings = $state<Settings["galaxySettings"]>(
+    structuredClone(defaultSettings.galaxySettings),
+  );
   // Cloned, not aliased: `$state` proxies the object it is handed, so passing
   // `defaultSettings.tradeFlowSettings` directly would let every slider write
   // through into the defaults and leave the reset button restoring the user's
@@ -148,7 +157,9 @@ export class DisplaySettingsStore {
   );
   enableTelemetry = $state<boolean>(defaultSettings.enableTelemetry);
   enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
-  logSettings = $state(structuredClone(defaultSettings.logSettings));
+  logSettings = $state<Settings["logSettings"]>(
+    structuredClone(defaultSettings.logSettings),
+  );
   // Social Media
   discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
   discordChannels = $state<string[]>(structuredClone(defaultSettings.discordChannels));
