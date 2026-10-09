@@ -483,51 +483,29 @@ class TradeService {
         return data as T;
     }
 
-    // Read-only: current leverage + margin mode for a symbol, straight from
-    // the exchange (not the local calculator input). Populates
-    // tradeState.remoteLeverage/remoteMarginMode, which GeneralInputs.svelte
-    // already reads for its "synced with API" indicator but which nothing
-    // has ever set until now.
+    /** Read-only: current leverage + margin mode for a symbol. Rationale and
+     *  read contract: see ./trade/accountSettings.fetchLeverageMarginMode. */
     public async fetchLeverageMarginMode(symbol: string): Promise<void> {
         return this.accountSettings.fetchLeverageMarginMode(symbol);
     }
 
-    /**
-     * Read-only: the account-wide position mode (FEAT-0068), straight from
-     * the exchange. Populates `accountState.positionMode`, which
-     * ExchangeAccountControls reads for its mode chip — previously only
-     * PositionsSidebar's snapshot fed it, so the chip showed "—" wherever
-     * the sidebar never fetched. Same silent-read contract as
-     * `fetchLeverageMarginMode`: no keys, stale session or failed request
-     * leaves the previous value alone.
-     */
+    /** Read-only: the account-wide position mode (FEAT-0068), straight from the
+     * exchange. What populates the mode chip is on
+     * ./trade/accountSettings.fetchPositionMode. */
     public async fetchPositionMode(): Promise<void> {
         return this.accountSettings.fetchPositionMode();
     }
 
-    /**
-     * Leverage for one symbol, on the exchange (FEAT-0068).
-     *
-     * The range check against the pair's own `minLeverage`/`maxLeverage` is
-     * the caller's — `marketState.symbolMeta` holds it and this service does
-     * not read the UI's stores for validation. What is enforced here is that
-     * the value is a whole number the endpoint can take.
-     *
-     * Confirmation comes from re-reading the exchange, not from the response
-     * body: `fetchLeverageMarginMode` is what updates
-     * `tradeState.remoteLeverage`, so the indicator turns green because the
-     * exchange said so on a second, independent read.
-     */
+    /** Leverage for one symbol, on the exchange (FEAT-0068).
+     * Rationale and the read-back contract: see
+     * ./trade/accountSettings.changeLeverage. */
     public async changeLeverage(symbol: string, leverage: Decimal): Promise<void> {
         return this.accountSettings.changeLeverage(symbol, leverage);
     }
 
-    /**
-     * Margin mode for one symbol (FEAT-0068). The exchange refuses this while
-     * the symbol carries a position or a resting order; the UI disables the
-     * control in that case, and the refusal below is what happens when the
-     * two disagree.
-     */
+    /** Margin mode for one symbol (FEAT-0068). The venue refuses this while
+     * positions are open; the full rule and the read-back contract are on
+     * ./trade/accountSettings.changeMarginMode. */
     public async changeMarginMode(
         symbol: string,
         marginMode: "ISOLATION" | "CROSS",
@@ -535,42 +513,14 @@ class TradeService {
         return this.accountSettings.changeMarginMode(symbol, marginMode);
     }
 
-    /**
-     * Position mode for the whole futures account (FEAT-0068) — ONE_WAY or
-     * HEDGE. Takes no symbol: the endpoint does not.
-     *
-     * Read back twice, on purpose.
-     *
-     * `fetchPositionMode()` is the one that must happen: it writes the field
-     * the mode chip reads, and it belongs to this service, so it runs whether
-     * or not anything else is on screen. `requestSync()` used to be the only
-     * refresh here, and it is a *no-op* unless `PositionsSidebar` is mounted
-     * to register the callback — so a trader with the sidebar hidden saw the
-     * toast, the broker applied the change, and the chip kept the old value
-     * until a reload (BUG-0410).
-     *
-     * `requestSync()` stays because the mode is reported on the account *and*
-     * on every position, and both views have to stop disagreeing — but it is
-     * now the extra, not the mechanism.
-     *
-     * Ordering is not load-bearing: overlapping account reads are sequenced
-     * by `accountReadOrder` (BUG-0412), so whichever of the two lands last
-     * cannot be an older answer than the one already applied.
-     */
+    /** Position mode for the whole futures account (FEAT-0068). Rationale and
+     * read-back contract: see ./trade/accountSettings.changePositionMode. */
     public async changePositionMode(positionMode: "ONE_WAY" | "HEDGE"): Promise<void> {
         return this.accountSettings.changePositionMode(positionMode);
     }
 
-    /**
-     * Adds or withdraws margin on one isolated position (FEAT-0068). A
-     * positive amount adds, a negative one withdraws — the exchange's own
-     * convention, kept rather than split into two verbs so the sign the
-     * trader sees is the sign that travels.
-     *
-     * Nothing is written optimistically. The position's new margin arrives on
-     * the private WebSocket position channel, with `requestSync()` as the
-     * fallback for a socket that is not connected.
-     */
+    /** Adds or withdraws margin on one isolated position (FEAT-0068). The full
+     * rule is on ./trade/accountSettings.adjustPositionMargin. */
     public async adjustPositionMargin(params: {
         symbol: string;
         amount: Decimal;
