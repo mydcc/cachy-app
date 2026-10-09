@@ -224,6 +224,86 @@ describe("settings reactivity contract", () => {
     ).toEqual([]);
   });
 
+  it("keeps scheduling saves when toJSON is memoised", () => {
+    // ADR-0024 decision 1: the autosave effect must not depend on
+    // `toJSON()`. A memoised serializer returns a cached object without
+    // reading any field — under the old `this.toJSON()` tracking that
+    // silently un-saved every write, with no test going red. Stub the
+    // serializer and prove a write still schedules a save.
+    //
+    // One write is not enough to prove it: the effect subscribed to every
+    // field during construction, so the first write after memoising still
+    // fires from that stale subscription (and the run itself unsubscribes
+    // everything, since the mock reads nothing). The burn-in cycle below
+    // spends that subscription first — only the measured write counts.
+    const cached = settings.toJSON();
+    vi.spyOn(settings, "toJSON").mockReturnValue(cached);
+
+    const owner = ownerOf(settings, "showSidebars");
+    const before = owner["showSidebars"];
+    owner["showSidebars"] = differentValue(before);
+    flushSync();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    owner["showSidebars"] = before;
+    flushSync();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    saveSpy.mockClear();
+
+    owner["showSidebars"] = differentValue(before);
+    flushSync();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+    expect(
+      saveSpy,
+      "a memoised toJSON must not un-save the store: tracking reads " +
+        "go through the declared list, not the serializer",
+    ).toHaveBeenCalled();
+
+    owner["showSidebars"] = before;
+    flushSync();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+  });
+
+  it("schedules a save when an encrypted credential blob is written", () => {
+    // The per-field loop above iterates `SETTINGS_KEYS` (user settings) only.
+    // The encrypted blob rows are live reactive writes whose save-scheduling
+    // was proven solely by the stub-fed `tracking.test.ts` — which cannot
+    // observe a real `$state` subscription failure. These are the rows where
+    // a missed save costs credentials, so they get the real effect.
+    //
+    // Deliberately untracked and NOT covered here: `credentialSchemaVersion`
+    // (a constant — `saveCustomValue` never reads the manager) and
+    // `isEncrypted` (written by `applyAccounts` on load, never by the user;
+    // no write means no save to miss).
+    const blobs = [
+      "encryptedAccountKeys",
+      "encryptedSecrets",
+      "encryptedProviderConfigs",
+    ] as const;
+    const inert: string[] = [];
+
+    for (const key of blobs) {
+      const owner = settings as unknown as Record<string, unknown>;
+      const before = owner[key];
+      saveSpy.mockClear();
+
+      owner[key] = differentValue(before);
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+      if (saveSpy.mock.calls.length === 0) inert.push(key);
+
+      owner[key] = before;
+      flushSync();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    }
+
+    expect(
+      inert,
+      `writing these credential blobs scheduled no save: ${inert.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("routes every key the manager does not hold through a declared owner", () => {
     const unmapped = SETTINGS_KEYS.filter(
       // `in`, not hasOwn: $state class fields live on the prototype, so an
