@@ -13,6 +13,22 @@ depends_on: []
 parent: FEAT-0341
 ---
 
+## Status note (2026-10-09, ADR-0024 decision 2 started — branch `feature/0342-settings-facade-display`)
+
+The `in-progress` claim (`assignee: opencode`) is released: the display-group
+move is implemented and waiting on review, and no session holds the item.
+Status is back to `ready`.
+
+What this step delivered: the 65 `section: "display"` schema fields moved
+from `SettingsManager` into `DisplaySettingsStore`
+(`src/stores/settings/display.svelte.ts`); the manager keeps all 65 names via
+delegating getters/setters, so no consumer file changed. `defaultSettings`
+moved to `settingsTypes.ts` (re-exported, zero importer churn) so sub-stores
+can initialise without a module cycle. Proven: reactivity contract,
+persistence exactness, load/security/burn suites green; a broken delegation
+goes red by field name; `svelte-check` and ESLint clean. Still open: `core`
+(99 fields) and the account cluster — same pattern, next PRs.
+
 ## Status note (2026-10-09, missing module suites — branch `feature/0342-missing-module-tests`)
 
 The `in-progress` claim (`assignee: opencode`) is released: the four suites
