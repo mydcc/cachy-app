@@ -50,7 +50,7 @@ import { formatApiNum } from "../utils/utils";
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountEpoch } from "./accountEpoch.svelte";
-import { positionsReadOrder } from "./accountReadOrder";
+import { positionsReadOrder, type AccountReadTicket } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
 import { roundDownToStep } from "../lib/calculators/partialClose";
 import {
@@ -180,7 +180,11 @@ class TradeService {
         hydratePositions: (positions, source) =>
             accountState.hydratePositions(positions, source),
         beginPositionsRead: () => positionsReadOrder.begin(),
-        mayApplyPositionsRead: (ticket) => positionsReadOrder.mayApply(ticket),
+        // The port types the ticket as opaque `unknown`; the facade reattaches
+        // the brand. A bare `(ticket) => …` leaves it `unknown`, which the
+        // branded `mayApply` rejects — the cast is the seam between the two.
+        mayApplyPositionsRead: (ticket) =>
+            positionsReadOrder.mayApply(ticket as AccountReadTicket),
     });
 
     /**
