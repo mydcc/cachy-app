@@ -13,6 +13,12 @@ depends_on: []
 parent: FEAT-0341
 ---
 
+## Status note (2026-10-09, missing module suites — branch `feature/0342-missing-module-tests`)
+
+The `in-progress` claim (`assignee: opencode`) is released: the four suites
+are implemented and waiting on review, and no session holds the item. Status
+is back to `ready`.
+
 ## Status note (2026-10-09, ADR-0024 decision 1 implemented — branch `feature/0342-explicit-autosave-tracking`)
 
 The `in-progress` claim (`assignee: opencode`) is released: the tracking work
