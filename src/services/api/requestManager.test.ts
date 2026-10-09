@@ -112,6 +112,10 @@ describe("requestManager", () => {
 
     it(
         "drains high priority before normal when saturated",
+        // Fail fast: a priority regression would otherwise hang `await
+        // high` until the runner default timeout (~20 s seen in the RED
+        // run) instead of going red here.
+        { timeout: 5_000 },
         async () => {
         const gates: Array<(value: string) => void> = [];
         const gated = () =>
@@ -159,10 +163,6 @@ describe("requestManager", () => {
         await normal;
         expect(order).toEqual(["high", "normal"]);
         await Promise.all(blockers);
-        },
-        // Fail fast: a priority regression would otherwise hang `await
-        // high` until the runner default timeout (~20 s seen in the RED
-        // run) instead of going red here.
-        { timeout: 5_000 },
+        }
     );
 });
