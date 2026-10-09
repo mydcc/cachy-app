@@ -456,4 +456,46 @@ describe('wrapWriteHead', () => {
     expect(call[2]['content-type']).toBe('text/html');
     expect(call[2]['X-Frame-Options']).toBe('SAMEORIGIN');
   });
+
+  it('normalizes duck-typed Headers objects from cross-realm or custom environments', () => {
+    const res = mockRes();
+    const originalWriteHead = vi.fn();
+    res.writeHead = originalWriteHead;
+    wrapWriteHead(res);
+
+    const map = new Map([['content-type', 'text/html'], ['x-duck', 'quack']]);
+    const duckHeaders = {
+      set(k, v) { map.set(k.toLowerCase(), v); },
+      get(k) { return map.get(k.toLowerCase()); },
+      has(k) { return map.has(k.toLowerCase()); },
+      forEach(cb) { map.forEach((v, k) => cb(v, k, this)); },
+    };
+
+    res.writeHead(200, duckHeaders);
+
+    const passed = originalWriteHead.mock.calls[0][1];
+    expect(passed).not.toBeInstanceOf(Headers);
+    expect(passed['content-type']).toBe('text/html');
+    expect(passed['x-duck']).toBe('quack');
+    expect(passed['Strict-Transport-Security']).toBe('max-age=31536000; includeSubDomains; preload');
+    expect(passed['X-Frame-Options']).toBe('SAMEORIGIN');
+  });
+
+  it('overlaySecurityHeaders mutates duck-typed Headers objects correctly', () => {
+    const map = new Map([['x-custom', 'val']]);
+    const duckHeaders = {
+      set(k, v) { map.set(k, v); },
+      get(k) { return map.get(k); },
+      has(k) { return map.has(k); },
+      forEach(cb) { map.forEach((v, k) => cb(v, k, this)); },
+    };
+
+    overlaySecurityHeaders(duckHeaders);
+
+    expect(map.get('x-custom')).toBe('val');
+    expect(map.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains; preload');
+    expect(map.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(map.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(map.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
 });

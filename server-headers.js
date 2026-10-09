@@ -57,6 +57,25 @@ export function cspHasNonce(value) {
 }
 
 /**
+ * Check if the given value is a Web API Headers instance or a duck-typed
+ * Headers object (e.g. across VM contexts or custom implementations).
+ * @param {unknown} headers
+ * @returns {boolean}
+ */
+function isHeadersInstance(headers) {
+  if (typeof headers !== "object" || headers === null) return false;
+  if (typeof Headers !== "undefined" && headers instanceof Headers) return true;
+  const h = /** @type {Record<string, unknown>} */ (headers);
+  return (
+    (typeof h.set === "function" &&
+      typeof h.get === "function" &&
+      typeof h.has === "function" &&
+      typeof h.forEach === "function") ||
+    Object.prototype.toString.call(headers) === "[object Headers]"
+  );
+}
+
+/**
  * res.writeHead() is the only place explicit headers reach the wire, and Node
  * accepts a plain object or an array there — not a Web API Headers instance.
  * Headers keeps its entries in an internal slot and exposes no own enumerable
@@ -69,12 +88,12 @@ export function cspHasNonce(value) {
  * @returns {Record<string, string | string[]> | null} null when the argument is not a Headers instance
  */
 function toNodeHeaders(headers) {
-  if (typeof Headers === "undefined" || !(headers instanceof Headers)) {
+  if (!isHeadersInstance(headers)) {
     return null;
   }
   /** @type {Record<string, string | string[]>} */
   const normalized = {};
-  headers.forEach((value, name) => {
+  /** @type {Headers} */ (headers).forEach((value, name) => {
     // Headers folds repeated names (Set-Cookie) into separate entries with the
     // same key; Node wants a string[] there, so collect instead of overwrite.
     const existing = normalized[name];
@@ -122,6 +141,20 @@ export function applySecurityHeaders(res) {
  */
 export function overlaySecurityHeaders(explicit) {
   if (explicit === null || typeof explicit !== "object") {
+    return;
+  }
+  if (isHeadersInstance(explicit)) {
+    const headers = /** @type {Headers} */ (explicit);
+    for (const [name, value] of SECURITY_HEADERS) {
+      if (
+        name === "Content-Security-Policy" &&
+        headers.has("Content-Security-Policy") &&
+        cspHasNonce(headers.get("Content-Security-Policy"))
+      ) {
+        continue;
+      }
+      headers.set(name, value);
+    }
     return;
   }
   if (Array.isArray(explicit)) {
