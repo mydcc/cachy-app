@@ -567,3 +567,37 @@ export function loadSchemaEntries(section: "core" | "display"): FieldSchema[] {
         (field) => field.section === section && field.load !== null,
     );
 }
+
+/**
+ * Applies one schema row to the target. Never throws: a schema programming
+ * error (unknown save/load mode, missing custom case) is a defect in the
+ * table, not in the user's data, and the load loop assigns incrementally —
+ * letting it propagate would skip every later row and leave those fields at
+ * constructor defaults, which the armed autosave would persist ~500ms later.
+ * Returns `false` for the skipped row so the failure is observable beyond
+ * the log line; the row keeps its default instead of the stored value, which
+ * is the smallest possible blast radius. Logs unconditionally — a programming
+ * error needs production visibility, not a DEV-only whisper.
+ */
+export function applySchemaField(
+    target: LoadTarget,
+    field: FieldSchema,
+    merged: Settings,
+    defaults: Settings,
+    rawParsed?: Partial<Settings>,
+): boolean {
+    try {
+        if (field.load === "custom") {
+            loadCustomValue(field.key, target, merged, defaults, rawParsed);
+        } else if (field.load !== null) {
+            target.set(field.key, loadPlainValue(field, merged, defaults));
+        }
+        return true;
+    } catch (rowError) {
+        console.error(
+            `[Settings] Persistence schema load failed for ${field.key}:`,
+            rowError,
+        );
+        return false;
+    }
+}
