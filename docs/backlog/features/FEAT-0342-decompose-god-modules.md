@@ -2,9 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
-assignee: opencode
-branch: feature/0342-trade-flashclose-modify
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -17,7 +15,11 @@ parent: FEAT-0341
 
 ## Status note (2026-10-09, step 3 — branch `feature/0342-trade-flashclose-modify`)
 
-Work in progress (`assignee: opencode`): `flashClosePosition` (~260 lines)
+The `in-progress` claim (`assignee: opencode`) is released: the two lanes
+are implemented and waiting on review, and no session holds the item.
+Status is back to `ready`.
+
+What this step delivered: `flashClosePosition` (~260 lines)
 and `modifyOrder` (~225 lines) move from `TradeService` into
 `src/services/trade/flashClose.ts` and `src/services/trade/modifyOrder.ts`
 (`tradeService.ts` 1955 → ~1510 lines); the manager keeps both names as thin
