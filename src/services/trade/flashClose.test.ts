@@ -114,11 +114,6 @@ function ports(overrides: Partial<FlashClosePorts> = {}): FlashClosePorts {
             paperMode: false,
         }),
         ensurePositionFreshness: async () => position(),
-        buildCloseOrderFields: (positionSide, positionId) => ({
-            side: positionSide === "long" ? "BUY" : "SELL",
-            tradeSide: "CLOSE" as const,
-            positionId,
-        }),
         bitgetUtaCloseFields: () => {
             throw new Error("unexpected bitgetUtaCloseFields");
         },
@@ -172,19 +167,26 @@ describe("flashClose lane", () => {
 
     it("removes the optimistic order on a terminal API failure", async () => {
         const gatedRequest = vi.fn().mockRejectedValue(new BitunixApiError(400, "x"));
+        const notified: string[] = [];
         const svc = createFlashCloseService(
             ports({
                 gatedRequest,
                 cancelAllOrders: async () => {},
+                notifyFailure: (msg) => {
+                    notified.push(msg);
+                },
             }),
         );
 
         const result = await svc.flashClosePosition("BTCUSDT", "long");
 
         // A refusal-shaped failure proves the venue answered: nothing is in
-        // flight, so the optimistic order is removed, not parked.
+        // flight, so the optimistic order is removed, not parked — and the
+        // trader is told exactly what the lane reports.
         expect(result.success).toBe(false);
         expect(omsState.orders.size).toBe(0);
+        expect(notified).toHaveLength(1);
+        expect(notified[0]).toBe((result as { error: string }).error);
     });
 
     it("parks the optimistic order and syncs on an indeterminate failure", async () => {
@@ -230,22 +232,83 @@ describe("flashClose lane", () => {
         expect(notified).toHaveLength(0);
     });
 
+    it("refuses a missing position before anything has a side effect", async () => {
+        const cancelAllOrders = vi.fn();
+        const gatedRequest = vi.fn();
+        const svc = createFlashCloseService(
+            ports({
+                cancelAllOrders,
+                gatedRequest,
+                ensurePositionFreshness: async () => undefined,
+            }),
+        );
+
+        const result = await svc.flashClosePosition("BTCUSDT", "long");
+
+        expect(result).toEqual({
+            success: false,
+            error: "tradeErrors.positionNotFound",
+        });
+        expect(gatedRequest).not.toHaveBeenCalled();
+        expect(cancelAllOrders).not.toHaveBeenCalled();
+        expect(omsState.orders.size).toBe(0);
+    });
+
+    it("refuses a zero-size position before anything has a side effect", async () => {
+        const cancelAllOrders = vi.fn();
+        const gatedRequest = vi.fn();
+        const svc = createFlashCloseService(
+            ports({
+                cancelAllOrders,
+                gatedRequest,
+                ensurePositionFreshness: async () => ({
+                    ...position(),
+                    amount: new Decimal(0),
+                }),
+            }),
+        );
+
+        const result = await svc.flashClosePosition("BTCUSDT", "long");
+
+        expect(result).toEqual({ success: false, error: "apiErrors.invalidAmount" });
+        expect(gatedRequest).not.toHaveBeenCalled();
+        expect(cancelAllOrders).not.toHaveBeenCalled();
+        expect(omsState.orders.size).toBe(0);
+    });
+
     it("sends the venue-native close on bitunix", async () => {
         const seen: unknown[] = [];
+        const ducked: unknown[] = [];
         const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
             seen.push(intent);
             return { code: "0" };
         });
+        const cancelAllOrders = vi.fn().mockResolvedValue({});
         const svc = createFlashCloseService(
-            ports({ gatedRequest, cancelAllOrders: async () => ({}) }),
+            ports({
+                gatedRequest,
+                cancelAllOrders,
+                triggerDuckEvent: (event) => {
+                    ducked.push(event);
+                },
+            }),
         );
 
-        await svc.flashClosePosition("BTCUSDT", "long");
+        await svc.flashClosePosition("BTCUSDT", "long", 12345);
 
         expect(seen).toHaveLength(1);
         const intent = seen[0] as { payload: Record<string, unknown> };
         expect(intent.payload["type"]).toBe("flash-close-position");
         expect(intent.payload["positionId"]).toBe("pos-1");
+        // The stop-cancel carries the close's own authorisation, so the gate
+        // does not ask twice for one confirmed action.
+        expect(cancelAllOrders).toHaveBeenCalledWith("BTCUSDT", true, {
+            action: "flash-close-position",
+            confirmedAt: 12345,
+        });
+        // Positive unrealised PnL reports a win with the position's figure.
+        expect(ducked).toHaveLength(1);
+        expect(ducked[0]).toMatchObject({ type: "trade_win" });
     });
 
     it("sends UTA fields on bitget", async () => {

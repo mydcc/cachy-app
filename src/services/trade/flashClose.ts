@@ -56,11 +56,6 @@ export interface FlashClosePorts {
         symbol: string,
         positionSide: "long" | "short",
     ): Promise<OMSPosition | undefined>;
-    /** Pure close-payload fields (Bitunix position-side convention). */
-    buildCloseOrderFields(
-        positionSide: "long" | "short",
-        positionId: string | undefined,
-    ): { side: "BUY" | "SELL"; tradeSide: "CLOSE"; positionId?: string };
     /** UTA close fields; reads the remote margin mode and position mode. */
     bitgetUtaCloseFields(positionSide: "long" | "short"): {
         side: "BUY" | "SELL";

@@ -270,7 +270,6 @@ class TradeService {
         displayedAccount: () => this.displayedAccount(),
         ensurePositionFreshness: (symbol, side) =>
             this.ensurePositionFreshness(symbol, side),
-        buildCloseOrderFields,
         bitgetUtaCloseFields: (positionSide) => this.bitgetUtaCloseFields(positionSide),
         cancelAllOrders: (symbol, throwOnError, onBehalfOf) =>
             this.cancelAllOrders(symbol, throwOnError, onBehalfOf),

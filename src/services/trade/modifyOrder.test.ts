@@ -150,6 +150,82 @@ describe("modifyOrder lane", () => {
         expect(gatedRequest).not.toHaveBeenCalled();
     });
 
+    it("refuses a corrupt stop price typed instead of throwing raw past the gate", async () => {
+        const gatedRequest = vi.fn();
+        const svc = createModifyOrderService(
+            ports({ getOrderDetail: async () => liveOrder(), gatedRequest }),
+        );
+
+        await expect(
+            svc.modifyOrder({ orderId: "o1", slPrice: "not-a-price" }),
+        ).rejects.toBeInstanceOf(OrderRefusedError);
+        expect(gatedRequest).not.toHaveBeenCalled();
+    });
+
+    it("refuses a corrupt take-profit typed instead of throwing raw past the gate", async () => {
+        const gatedRequest = vi.fn();
+        const svc = createModifyOrderService(
+            ports({ getOrderDetail: async () => liveOrder(), gatedRequest }),
+        );
+
+        await expect(
+            svc.modifyOrder({ orderId: "o1", tpPrice: "not-a-price" }),
+        ).rejects.toBeInstanceOf(OrderRefusedError);
+        expect(gatedRequest).not.toHaveBeenCalled();
+    });
+
+    it("refuses a corrupt quantity typed instead of throwing raw past the gate", async () => {
+        const gatedRequest = vi.fn();
+        const svc = createModifyOrderService(
+            ports({ getOrderDetail: async () => liveOrder(), gatedRequest }),
+        );
+
+        await expect(
+            svc.modifyOrder({ orderId: "o1", qty: "not-a-quantity" }),
+        ).rejects.toBeInstanceOf(OrderRefusedError);
+        expect(gatedRequest).not.toHaveBeenCalled();
+    });
+
+    it("marks the cap unmeasurable when equity is unreadable", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createModifyOrderService(
+            ports({
+                getOrderDetail: async () => liveOrder(),
+                gatedRequest,
+                accountSizeText: () => "garbage",
+            }),
+        );
+
+        await svc.modifyOrder({ orderId: "o1", price: new Decimal("51000") });
+
+        // Fail-closed: an unparseable equity travels as absent, and the gate
+        // refuses what it cannot measure rather than passing it unmeasured.
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as { displayed: Record<string, unknown> };
+        expect(intent.displayed["accountSize"]).toBeUndefined();
+    });
+
+    it("falls back to the live order symbol when none is given", async () => {
+        const seen: unknown[] = [];
+        const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
+            seen.push(intent);
+            return { code: "0" };
+        });
+        const svc = createModifyOrderService(
+            ports({ getOrderDetail: async () => liveOrder(), gatedRequest }),
+        );
+
+        await svc.modifyOrder({ orderId: "o1", price: new Decimal("51000") });
+
+        expect(seen).toHaveLength(1);
+        const intent = seen[0] as { payload: Record<string, unknown> };
+        expect(intent.payload["symbol"]).toBe("BTCUSDT");
+    });
+
     it("hands the gate the resting size and equity for the cap checks", async () => {
         const seen: unknown[] = [];
         const gatedRequest = vi.fn().mockImplementation(async (intent: unknown) => {
