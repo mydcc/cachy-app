@@ -7532,7 +7532,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0342",
     "title": "Decompose remaining god modules (VisualsTab, tradeService)",
     "type": "feature",
-    "status": "ready",
+    "status": "in-progress",
+    "assignee": "opencode",
+    "branch": "feature/0342-trade-flashclose-modify",
     "priority": "P2",
     "milestone": "none",
     "editions": [

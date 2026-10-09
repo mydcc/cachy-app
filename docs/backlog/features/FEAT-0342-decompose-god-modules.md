@@ -2,7 +2,9 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: ready
+status: in-progress
+assignee: opencode
+branch: feature/0342-trade-flashclose-modify
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,6 +14,24 @@ adr: none
 depends_on: []
 parent: FEAT-0341
 ---
+
+## Status note (2026-10-09, step 3 — branch `feature/0342-trade-flashclose-modify`)
+
+Work in progress (`assignee: opencode`): `flashClosePosition` (~260 lines)
+and `modifyOrder` (~225 lines) move from `TradeService` into
+`src/services/trade/flashClose.ts` and `src/services/trade/modifyOrder.ts`
+(`tradeService.ts` 1955 → ~1510 lines); the manager keeps both names as thin
+delegates, so no consumer file changed. `signedRequest` stays put
+deliberately (FEAT-0011 enforcement point). Store reads arrive as ports
+(services may not import stores); toasts/translation stay owner-side per the
+`accountSettings` precedent. `buildCloseOrderFields` is pure and moves with
+the flash-close lane — `closePosition` imports it rather than duplicating the
+BUG-0062/0063 contract. Proven: all 112 flashClose/modifyOrder suites green
+unedited through the facade, 41 architecture guard tests green (gate-bypass
+scan now covers both lanes, seam inventory unchanged at 9), 11 new lane tests
+green and each RED-proven by mutation, ESLint and `svelte-check` clean (only
+the known local `marketWatcher.bench.ts` stale-env artifact). Still open:
+`placeOrder`, `addToPosition`, `closePosition`, `closeAllPositions` lanes.
 
 ## Status note (2026-10-09, ADR-0024 decision 2 phase B — branch `feature/0342-settings-facade-core`)
 
