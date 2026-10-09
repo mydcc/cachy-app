@@ -210,9 +210,12 @@ describe("FEAT-0012 — one seam", () => {
 
         // The remaining reads are not branches: they record the mode onto the
         // intent and onto the gate-pass context so the transport can compare
-        // them, two read the balance *for* the mode so the gate measures an
-        // open/add against what the trader is actually trading against
-        // (BUG-0565), one refuses a bot-stamped order while paper is off
+        // them, one shared helper reads the balance *for* the mode so the
+        // gate measures an open/add against what the trader is actually
+        // trading against (BUG-0565) — placeOrder and addToPosition used to
+        // carry one copy each, and the FEAT-0342 rest-lane extraction folded
+        // both into `usdtBalance()`, so the seam is narrower, not wider —,
+        // one refuses a bot-stamped order while paper is off
         // (BUG-0494), and one re-reads the mode immediately before a write is
         // dispatched (BUG-0551) so a mode switched mid-signing cannot reach
         // the venue. One more — the FEAT-0327 credential relaxation — moved
@@ -220,7 +223,7 @@ describe("FEAT-0012 — one seam", () => {
         // the request is: the provenance refusal stops a paper-only order
         // from reaching the live branch, the dispatch re-check can only
         // refuse, neither ever routes anything.
-        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(9);
+        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(8);
 
         // FEAT-0327: exactly one read relaxes a credential guard, because it
         // goes through the paper seam and therefore needs no credentials. It
@@ -318,7 +321,7 @@ describe("FEAT-0012 — one seam", () => {
             ["src/services/paperJournalService.ts", 1],
             ["src/services/paperTradingService.ts", 5],
             ["src/services/rmsService.ts", 1],
-            ["src/services/tradeService.ts", 9],
+            ["src/services/tradeService.ts", 8],
         ]);
 
         // Reworded reads of the same mode across the layer. The trade-domain

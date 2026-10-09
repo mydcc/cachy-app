@@ -39,18 +39,19 @@ import {
     BitunixPositionTierResponseSchema,
 } from "../types/apiSchemas";
 import type { NormalizedOrder, NormalizedPosition } from "../types/exchange";
+import type { OMSPosition } from "./omsTypes";
 import { appFetch } from "../lib/appAuth";
 import { paperState } from "../stores/paperTrading.svelte";
 import { paperAccountFeed } from "./paperAccountFeed";
 import { paperExchange } from "./paperExchange";
 import { capabilitiesOf } from "./exchangeCapabilities";
-import { formatApiNum } from "../utils/utils";
+
 import { accountState } from "../stores/account.svelte";
 import { keysForActiveAccount, activeAccountFor } from "../stores/settings/accounts";
 import { accountEpoch } from "./accountEpoch.svelte";
 import { positionsReadOrder, type AccountReadTicket } from "./accountReadOrder";
 import { normalizeMarginMode } from "../utils/marginMode";
-import { roundDownToStep } from "../lib/calculators/partialClose";
+
 import {
     orderGate,
     assertGatePass,
@@ -80,6 +81,7 @@ export { BitunixApiError, TradeError, TRADE_ERRORS } from "./trade/tradeErrors";
 export type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
 import { BitunixApiError, TRADE_ERRORS } from "./trade/tradeErrors";
 import type { TpSlOrder, PlaceOrderParams, ModifyOrderParams } from "./trade/tradeParams";
+import type { TradingPairInfo } from "../stores/market/types";
 // Payload validation/serialization and the intent builder (FEAT-0342). The
 // intent builder takes the account half as an argument rather than reading
 // the store itself: a service must not import stores.
@@ -100,8 +102,12 @@ import {
 } from "./trade/tpSlService";
 import { createAccountSettingsService } from "./trade/accountSettings";
 import { createPositionLifecycleService } from "./trade/positionLifecycle";
-import { createFlashCloseService, buildCloseOrderFields } from "./trade/flashClose";
+import { createFlashCloseService } from "./trade/flashClose";
 import { createModifyOrderService } from "./trade/modifyOrder";
+import { createPlaceOrderService, newClientOrderId as mintClientOrderId } from "./trade/placeOrder";
+import { createAddToPositionService, type AddToPositionParams } from "./trade/addToPosition";
+import { createClosePositionService, type ClosePositionParams } from "./trade/closePosition";
+import { createCloseAllPositionsService } from "./trade/closeAllPositions";
 
 /**
  * The credentials of an account that does not exist.
@@ -301,6 +307,66 @@ class TradeService {
         gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
         activeVenue: () => settingsState.apiProvider || "bitunix",
         accountSizeText: () => tradeState.accountSize,
+    });
+    /**
+     * Open lane (see ./trade/placeOrder). Same gate port, same rule:
+     * no second route to a state-mutating request.
+     */
+    private readonly orderOpen = createPlaceOrderService({
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        effectFor: (effect) => this.effectFor(effect),
+        bitgetUtaOpenFields: (direction) => this.bitgetUtaOpenFields(direction),
+        activeVenue: () => settingsState.apiProvider || "bitunix",
+        lookupSymbolMeta: (symbol) => this.lookupSymbolMeta(symbol),
+        usdtBalance: () => this.usdtBalance(),
+    });
+
+    /**
+     * Add lane (see ./trade/addToPosition). `kind: "add"`, verified against
+     * the previewed quantity — never routed through the open lane.
+     */
+    private readonly orderAdd = createAddToPositionService({
+        ensurePositionFreshness: (symbol, side) =>
+            this.ensurePositionFreshness(symbol, side),
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        effectFor: (effect) => this.effectFor(effect),
+        bitgetUtaOpenFields: (direction) => this.bitgetUtaOpenFields(direction),
+        activeVenue: () => settingsState.apiProvider || "bitunix",
+        lookupSymbolMeta: (symbol) => this.lookupSymbolMeta(symbol),
+        usdtBalance: () => this.usdtBalance(),
+        accountSizeText: () => this.accountSizeText(),
+        remoteAccountStateAt: () => this.remoteAccountStateAt(),
+        restingStopPrice: (symbol, side, positionId) =>
+            this.restingStopPrice(symbol, side, positionId),
+    });
+
+    /**
+     * Single-close lane (see ./trade/closePosition). Shares the side
+     * contract with the flash-close lane via `buildCloseOrderFields`.
+     */
+    private readonly orderClose = createClosePositionService({
+        ensurePositionFreshness: (symbol, side) =>
+            this.ensurePositionFreshness(symbol, side),
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        bitgetUtaCloseFields: (positionSide) => this.bitgetUtaCloseFields(positionSide),
+        activeVenue: () => settingsState.apiProvider || "bitunix",
+        lookupSymbolMeta: (symbol) => this.lookupSymbolMeta(symbol),
+        notifyTradeResult: (kind, pnl) => this.notifyTradeResult(kind, pnl),
+    });
+
+    /**
+     * Close-all lane (see ./trade/closeAllPositions). The single-close lane
+     * arrives as a port; the toast-carrying reports stay owner-side.
+     */
+    private readonly orderCloseAll = createCloseAllPositionsService({
+        activeVenue: () => settingsState.apiProvider || "bitunix",
+        gatedRequest: <T,>(intent: PartialIntent) => this.gatedRequest<T>(intent),
+        readFreshPositions: (provider) => this.readFreshPositions(provider),
+        verifyFlat: (provider, symbol) => this.verifyFlat(provider, symbol),
+        reportFlattenShortfall: (args) => this.reportFlattenShortfall(args),
+        closePosition: (params) => this.closePosition(params),
+        cachedPositions: () => this.cachedPositions(),
+        reportCloseAllFailure: (symbol, cause) => this.reportCloseAllFailure(symbol, cause),
     });
 
     // Helper to sign and send requests to backend
@@ -840,49 +906,70 @@ class TradeService {
     }
 
     /**
-     * Generates the client order ID for one submission attempt.
-     *
-     * FEAT-0069's open question was whether this should be random per attempt
-     * or derived deterministically so a crash-and-reload can rediscover an
-     * in-flight order. Neither pure form works:
-     *
-     * - Purely random, regenerated on every retry, defeats the entire point.
-     *   A retry after an ambiguous response is exactly when idempotency
-     *   matters, and a fresh ID there doubles the order.
-     * - Derived from the order's content collides on purpose. Two deliberate
-     *   identical entries — the same symbol, side, size and price, which is
-     *   ordinary when scaling in — would produce the same ID, and the second
-     *   would be rejected as a duplicate of an order the trader meant to
-     *   place.
-     *
-     * So the unit is the *attempt*, not the content: random per attempt, and
-     * `placeOrder` accepts one back so a retry of that attempt reuses it.
-     * Rediscovery after a crash comes from the FEAT-0015 audit trail, which
-     * already persists the id alongside everything else about the attempt —
-     * rather than from a second persistence mechanism that could disagree
-     * with it.
+     * Instrument metadata for the size guards, best-effort: a partial whose
+     * metadata never loaded states no minimum, and the gate refuses it
+     * rather than approving an unmeasurable size (BUG-0509, BUG-0501).
      */
-    public newClientOrderId(): string {
-        // Bitunix caps clientId at 64 chars (07_trade.md); this is ~30.
-        // Intentionally unguarded: exchange signing already requires crypto.subtle /
-        // a secure context — see docs/adr/0013-client-side-exchange-signing.md.
-        const stamp = Date.now().toString(36);
-        const rand = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-        return `cachy-${stamp}-${rand}`;
+    private lookupSymbolMeta(symbol: string): TradingPairInfo | undefined {
+        return marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
     }
 
     /**
-     * Opens or adds to a position — FEAT-0069.
-     *
-     * Everything the exchange accepts in one request goes in one request:
-     * the entry, its stop and its target. A position that exists before its
-     * protective orders do is unprotected for as long as the second request
-     * takes, and that second request can fail.
-     *
-     * The intent is `open`, so this is the path on which the FEAT-0011 gate's
-     * size recomputation, leverage and margin-mode checks, and FEAT-0013's
-     * risk limits and kill switch all actually apply.
+     * The settlement asset's free balance (USDT-M only), read for the
+     * active mode only (BUG-0565). A mismatch — or no measurement at all —
+     * hands the gate `undefined`, and the existing unmeasured path engages
+     * (BUG-0511, recorded as `availableMarginUnmeasured`).
      */
+    private usdtBalance(): { available: Decimal; at: number } | undefined {
+        const reading = accountState.readUsdtBalance(paperState.enabled ? "paper" : "live");
+        return reading ? { available: reading.available, at: reading.at } : undefined;
+    }
+
+    /** Raw account-size text; the lane parses it (BUG-0508). */
+    private accountSizeText(): string {
+        return tradeState.accountSize;
+    }
+
+    /** When the venue last confirmed leverage and margin mode. */
+    private remoteAccountStateAt(): number | undefined {
+        return tradeState.remoteAccountStateAt;
+    }
+
+    /** The position's resting stop, scoped by id (BUG-0510, BUG-0524). */
+    private restingStopPrice(
+        symbol: string,
+        side: "long" | "short",
+        positionId?: string | null,
+    ): Decimal | null {
+        return tpSlState.restingStopPrice(symbol, side, positionId);
+    }
+
+    /** Duck-event fan-out for a closed trade; effects are owner-side. */
+    private notifyTradeResult(kind: "trade_win" | "trade_loss", pnl: Decimal): void {
+        effectsState.triggerDuckEvent({ type: kind, pnl });
+    }
+
+    /** Cached book for the no-keys best-effort close-all path. */
+    private cachedPositions(): OMSPosition[] {
+        return omsService.getPositions();
+    }
+
+    /**
+     * Catch-tail of the close-all path: the generic failure toast, then the
+     * throw. Translation is the owner's job, exactly as the order gate's
+     * refusal keys are translated in `gatedRequest`.
+     */
+    private reportCloseAllFailure(symbol: string | undefined, cause: unknown): never {
+        const failedSymbols = symbol || "all";
+        toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }));
+        throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED, { cause });
+    }
+
+    /** Attempt id — see ./trade/placeOrder. */
+    public newClientOrderId(): string {
+        return mintClientOrderId();
+    }
+
     /**
      * The time in force to put on a limit order.
      *
@@ -906,375 +993,19 @@ class TradeService {
         return venue.timeInForce.length > 0 ? "GTC" : undefined;
     }
 
+    /** Risk-sized entry — see ./trade/placeOrder. */
     public async placeOrder(params: PlaceOrderParams) {
-        const orderType = params.orderType ?? "MARKET";
-        const clientId = params.clientId ?? this.newClientOrderId();
-        const meta = params.symbol
-            ? marketState?.symbolMeta?.[normalizeSymbol(params.symbol, settingsState.apiProvider || "bitunix")]
-            : undefined;
-
-        // The venue fills whole multiples of the instrument's step, so a raw
-        // calculator result that lands between steps is refused there — after
-        // the user has already confirmed. Round down to the step before it
-        // travels; the gate still refuses the volume limits (BUG-0380).
-        const stepSize =
-            params.displayed.stepSize ??
-            (meta?.basePrecision !== undefined
-                ? new Decimal(10).pow(-meta.basePrecision)
-                : undefined);
-        const qty = stepSize
-            ? roundDownToStep(new Decimal(params.qty), stepSize)
-            : params.qty;
-
-        // formatApiNum everywhere: a price serialised as "1e-7" is rejected
-        // by the exchange, and a native float here would undo the precision
-        // the calculator spent effort producing.
-        const payload: Record<string, unknown> = {
-            type: "place-order",
-            symbol: params.symbol,
-            side: params.side,
-            orderType,
-            qty: formatApiNum(qty),
-            price: params.price !== undefined ? formatApiNum(params.price) : undefined,
-            reduceOnly: params.reduceOnly ?? false,
-            clientId,
-            // Omitted for MARKET by the route too; not sending it at all
-            // keeps the audit record honest about what went out.
-            effect: orderType === "MARKET" ? undefined : this.effectFor(params.effect),
-            tradeSide: params.tradeSide,
-            positionId: params.positionId,
-            // BUG-0597: direction implies the position side on opens.
-            ...(settingsState.apiProvider === "bitget"
-              ? this.bitgetUtaOpenFields(params.side)
-              : {}),
-        };
-
-        if (params.takeProfit) {
-            payload.tpPrice = formatApiNum(params.takeProfit.price);
-            payload.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
-            payload.tpOrderType = params.takeProfit.orderType ?? "MARKET";
-            if (params.takeProfit.orderPrice !== undefined) {
-                payload.tpOrderPrice = formatApiNum(params.takeProfit.orderPrice);
-            }
-        }
-
-        if (params.stopLoss) {
-            payload.slPrice = formatApiNum(params.stopLoss.price);
-            payload.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
-            payload.slOrderType = params.stopLoss.orderType ?? "MARKET";
-            if (params.stopLoss.orderPrice !== undefined) {
-                payload.slOrderPrice = formatApiNum(params.stopLoss.orderPrice);
-            }
-        }
-
-        // The free USDT balance the trader is spending from — read for the
-        // active mode only (BUG-0565). Live wallet and the paper account
-        // hydrate the same store, so an ambient read would measure against
-        // whichever writer ran last. A mismatch (or no measurement at all)
-        // hands the gate `undefined`, and the existing unmeasured path
-        // engages (BUG-0511, recorded as `availableMarginUnmeasured`).
-        // Settlement is currently USDT-M only, so USDT free is the whole
-        // spendable balance until multi-collateral arrives.
-        const balanceForMode = accountState.readUsdtBalance(
-            paperState.enabled ? "paper" : "live",
-        );
-
-        const result = await this.gatedRequest({
-            kind: "open",
-            endpoint: "/api/orders",
-            payload,
-            origin: params.origin,
-            displayed: {
-                symbol: params.symbol,
-                side: params.side,
-                ...params.displayed,
-                // Present, the gate measures the open's required margin
-                // against it; absent or non-finite, it skips the measurement
-                // as before (BUG-0511, recorded as
-                // `availableMarginUnmeasured`). Stamped alongside the value
-                // so the two can never disagree — the stamp itself is
-                // informational, no gate consumes it as a freshness check:
-                // a stale-high reading approves and the venue rejects, a
-                // stale-low reading refuses early. Neither creates funds —
-                // the venue stays final.
-                availableMargin: balanceForMode?.available,
-                availableMarginAt: balanceForMode?.at,
-                stepSize,
-                minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
-                maxLimitOrderVolume: meta?.maxLimitOrderVolume ? new Decimal(meta.maxLimitOrderVolume) : undefined,
-                maxMarketOrderVolume: meta?.maxMarketOrderVolume ? new Decimal(meta.maxMarketOrderVolume) : undefined,
-                symbolStatus: meta?.symbolStatus,
-                isApiSupported: meta?.isApiSupported,
-            },
-        });
-
-        // Returned so a caller retrying an ambiguous failure can reuse the
-        // same id rather than minting a new one.
-        return { clientId, result };
+        return this.orderOpen.placeOrder(params);
     }
 
-    /**
-     * Adds to an open position — FEAT-0334.
-     *
-     * An opening order in the direction the position already faces, so it
-     * carries `tradeSide: "OPEN"` and never `reduceOnly`. It is *not* routed
-     * through `placeOrder`: that path is for a risk-sized entry, and the gate
-     * verifies its quantity by re-deriving it from account size, risk and stop
-     * distance. An add has no new stop to divide by, so it travels as
-     * `kind: "add"` and is verified against the quantity the panel previewed
-     * plus available margin — see `OrderIntentKind` in `orderGate.ts`.
-     *
-     * The confirmation is `place-order`'s. An add is an order placement, and
-     * FEAT-0024's catalogue already has a key for that; minting a second one
-     * for a case the gate enforces structurally would dilute the catalogue
-     * rather than tighten it.
-     *
-     * The position is re-read before the payload is built, so the size, entry
-     * and mark the gate compares against are the venue's current figures and
-     * not whatever the panel was showing when the trader started typing.
-     */
-    public async addToPosition(params: {
-        symbol: string;
-        positionSide: "long" | "short";
-        amount: Decimal;
-        orderType?: "LIMIT" | "MARKET";
-        price?: Decimal;
-        effect?: PlaceOrderParams["effect"];
-        clientId?: string;
-        confirmedAt?: number;
-    }) {
-        const { symbol, positionSide, amount } = params;
-        const orderType = params.orderType ?? "MARKET";
-
-        if (!amount || !amount.isFinite() || amount.lte(0)) {
-            throw new Error("apiErrors.invalidAmount");
-        }
-        if (orderType === "LIMIT" && (!params.price || params.price.lte(0))) {
-            throw new Error("apiErrors.invalidPrice");
-        }
-
-        // Fresh, not remembered: an add sized against a position that has
-        // since been partly liquidated is an add against a different trade.
-        const position = await this.ensurePositionFreshness(symbol, positionSide);
-        if (!position) {
-            throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
-        }
-
-        const clientId = params.clientId ?? this.newClientOrderId();
-        const meta = marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
-
-        /*
-         * Where the add is expected to fill, used for the margin check only.
-         * A limit add fills at its limit; a market add is estimated at the
-         * mark, and where the venue omits the mark the entry is the closest
-         * honest stand-in — an estimate that is stated, never one that is
-         * silently zero.
-         */
-        const fillPrice =
-            orderType === "LIMIT" && params.price
-                ? params.price
-                : position.markPrice && position.markPrice.gt(0)
-                    ? position.markPrice
-                    : position.entryPrice;
-
-        // The settlement asset's free balance (USDT-M only), read for the
-        // active mode only (BUG-0565) — see placeOrder above. This only
-        // carries the reading — the refusal decision lives in `checkMargin`
-        // (orderGate.ts), which refuses the add when the balance has not
-        // loaded, since margin is its only ceiling (BUG-0511).
-        const balanceForMode = accountState.readUsdtBalance(
-            paperState.enabled ? "paper" : "live",
-        );
-        const availableMargin = balanceForMode?.available;
-        const availableMarginAt = balanceForMode?.at;
-
-        // Account equity for the percentage position-size cap — the same
-        // tradeState the order panel reads. Unparseable means the cap is
-        // unmeasurable and the add refuses rather than passing unmeasured
-        // (BUG-0508).
-        let accountSize: Decimal | undefined;
-        try {
-            accountSize = new Decimal(tradeState.accountSize);
-        } catch {
-            accountSize = undefined;
-        }
-
-        const payload: Record<string, unknown> = {
-            type: "place-order",
-            symbol,
-            // `side` names the direction of the exposure, the same convention
-            // `buildCloseOrderFields` follows; `tradeSide` says whether it is
-            // being opened or closed.
-            side: positionSide === "long" ? "BUY" : "SELL",
-            orderType,
-            qty: formatApiNum(amount),
-            price: orderType === "LIMIT" && params.price ? formatApiNum(params.price) : undefined,
-            reduceOnly: false,
-            clientId,
-            effect: orderType === "MARKET" ? undefined : this.effectFor(params.effect),
-            tradeSide: "OPEN",
-            positionId: position.positionId,
-            // BUG-0597: direction implies the position side on opens.
-            ...(settingsState.apiProvider === "bitget"
-              ? this.bitgetUtaOpenFields(positionSide === "long" ? "BUY" : "SELL")
-              : {}),
-        };
-
-        const result = await this.gatedRequest({
-            kind: "add",
-            endpoint: "/api/orders",
-            payload,
-            confirmAs: "place-order",
-            confirmedAt: params.confirmedAt,
-            displayed: {
-                symbol,
-                side: positionSide === "long" ? "BUY" : "SELL",
-                // The quantity the panel previewed and the trader agreed to.
-                // The gate has no second way to derive this, which is exactly
-                // why it is stated rather than recomputed.
-                addQuantity: amount,
-                entryPrice: fillPrice,
-                positionAmount: position.amount,
-                positionId: position.positionId,
-                // For the percentage position-size cap (BUG-0508).
-                accountSize,
-                // The venue-reported average entry before the add, so the
-                // gate measures the resulting position's stop risk from
-                // displayed inputs rather than trusting constructor math.
-                positionEntryPrice: position.entryPrice,
-                // The position's resting stop when one is safely
-                // attributable, so the loss-per-trade limit can measure the
-                // add against the resulting position (BUG-0510). A dedicated
-                // field: `stopLossPrice` would claim the request carries a
-                // stop it never sends. Read from the cache, never fetched
-                // here: the add dialog warms it before this can run, and a
-                // fetch inside the order path would race the gate. Cold cache
-                // means no stop known, which the limit treats as
-                // unmeasurable, not unprotected. Scoped to this position by
-                // id (BUG-0524) — in hedge mode the first LOSS leg is an
-                // arbitrary side's stop.
-                restingStopPrice: tpSlState.restingStopPrice(symbol, positionSide, position.positionId) ?? undefined,
-                leverage: position.leverage,
-                marginMode: position.marginMode === "isolated" ? "ISOLATION" : "CROSS",
-                availableMargin,
-                availableMarginAt,
-                /*
-                 * When the venue last confirmed this account's leverage and
-                 * margin mode. The gate refuses an add on a read older than
-                 * MAX_ACCOUNT_STATE_AGE_MS, the same as it does an open,
-                 * because an add opens exposure too.
-                 *
-                 * Read from `tradeState` — the same source `PlaceOrderPanel`
-                 * hands to `placeOrder` — rather than stamped `Date.now()`
-                 * here. Stamping it locally would satisfy the freshness check
-                 * with the time this code ran instead of the time the exchange
-                 * answered, which is a check that always passes and therefore
-                 * is not a check.
-                 */
-                accountStateAt: tradeState.remoteAccountStateAt,
-                stepSize:
-                    meta?.basePrecision !== undefined
-                        ? new Decimal(10).pow(-meta.basePrecision)
-                        : undefined,
-                minTradeVolume: meta?.minTradeVolume ? new Decimal(meta.minTradeVolume) : undefined,
-                maxLimitOrderVolume: meta?.maxLimitOrderVolume
-                    ? new Decimal(meta.maxLimitOrderVolume)
-                    : undefined,
-                maxMarketOrderVolume: meta?.maxMarketOrderVolume
-                    ? new Decimal(meta.maxMarketOrderVolume)
-                    : undefined,
-                symbolStatus: meta?.symbolStatus,
-                isApiSupported: meta?.isApiSupported,
-            },
-        });
-
-        return { clientId, result };
+    /** Scale-in — see ./trade/addToPosition. */
+    public async addToPosition(params: AddToPositionParams) {
+        return this.orderAdd.addToPosition(params);
     }
 
-    public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal, forceFullClose?: boolean }) {
-        const { symbol, positionSide, amount, forceFullClose } = params;
-
-        // 1. Get fresh position
-        const position = await this.ensurePositionFreshness(symbol, positionSide);
-
-        if (!position) {
-            throw new Error(TRADE_ERRORS.POSITION_NOT_FOUND);
-        }
-
-        const { side, tradeSide, positionId } = buildCloseOrderFields(
-            positionSide,
-            position.positionId,
-        );
-
-        // Use explicit amount or full position amount
-        // If explicit amount is provided, use it.
-        if (!amount && !forceFullClose) {
-             logger.error("market", `[ClosePosition] No amount specified and forceFullClose is false. Aborting close for ${symbol} ${positionSide}`);
-             throw new Error("apiErrors.invalidAmount");
-        }
-
-        const qty = amount ? amount.toString() : position.amount.toString();
-
-        // A close that names the full amount explicitly is still a full close.
-        // `!amount` alone got this wrong for every caller that passes the size
-        // it read off the position — which is what the positions panel does —
-        // and the distinction now decides whether the gate applies its step-size
-        // rule (FEAT-0256). Declaring a full close as partial would refuse an
-        // exit from a position whose size is not a whole multiple of the current
-        // step, i.e. lock the trader in.
-        const closesEverything = !amount || amount.eq(position.amount);
-
-        // Metadata is best-effort for the step size; the minimum is a
-        // precondition for a partial close. A partial whose instrument
-        // metadata never loaded states no minimum, and the gate refuses it
-        // rather than approving an unmeasurable size (BUG-0509, BUG-0501).
-        // Full closes stay exempt — a position under the minimum must still
-        // be closable.
-        const meta = marketState?.symbolMeta?.[normalizeSymbol(symbol, settingsState.apiProvider || "bitunix")];
-        const stepSize =
-            meta?.basePrecision !== undefined
-                ? new Decimal(10).pow(-meta.basePrecision)
-                : undefined;
-
-        logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
-
-        const pnlVal = position.unrealizedPnl ?? new Decimal(0);
-        effectsState.triggerDuckEvent({
-            type: pnlVal.isNegative() ? "trade_loss" : "trade_win",
-            pnl: pnlVal,
-        });
-
-        return this.gatedRequest({
-            kind: "reduce",
-            endpoint: "/api/orders",
-            payload: {
-                type: "place-order",
-                symbol,
-                side,
-                orderType: "MARKET",
-                qty,
-                reduceOnly: true,
-                tradeSide,
-                positionId,
-                // BUG-0597: UTA names the side it closes (transactional
-                // direction + posSide). Bitunix keeps its convention untouched.
-                ...(settingsState.apiProvider === "bitget"
-                  ? this.bitgetUtaCloseFields(positionSide)
-                  : {}),
-            },
-            displayed: {
-                symbol,
-                side,
-                // The ceiling comes from the position re-read above, not from
-                // the caller's `amount` — comparing the caller's number
-                // against itself would prove nothing.
-                positionAmount: position.amount,
-                fullClose: closesEverything,
-                stepSize,
-                minTradeVolume: meta?.minTradeVolume ?? undefined,
-                positionId,
-            },
-        });
+    /** Partial or full close — see ./trade/closePosition. */
+    public async closePosition(params: ClosePositionParams) {
+        return this.orderClose.closePosition(params);
     }
 
     /**
@@ -1332,97 +1063,9 @@ class TradeService {
         throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED);
     }
 
+    /** Flatten — see ./trade/closeAllPositions. */
     public async closeAllPositions(symbol?: string) {
-        logger.log("market", `[CloseAll] Closing all positions${symbol ? ` for ${symbol}` : ""}`);
-        try {
-            const provider = settingsState.apiProvider || "bitunix";
-            if (provider === "bitunix") {
-                const result = await this.gatedRequest({
-                    kind: "bulk",
-                    endpoint: "/api/orders",
-                    payload: {
-                        type: "close-all-positions",
-                        symbol: symbol || undefined,
-                    },
-                    displayed: symbol ? { symbol } : {},
-                });
-                // The venue enumerates, so the work list cannot be stale —
-                // but a mid-flatten race (opened during the run) and a
-                // partial fill apply to this path too. Same guarantee as the
-                // fallback: no success reported while anything remains open.
-                const { leftover, unverified } = await this.verifyFlat(provider, symbol);
-                if (leftover.length > 0 || unverified) {
-                    this.reportFlattenShortfall({
-                        failedCount: 0,
-                        failedSymbols: [],
-                        leftover,
-                        unverified,
-                        symbol,
-                    });
-                }
-                return result;
-            }
-
-            /*
-             * Fallback for non-Bitunix providers (BUG-0514): no verified
-             * native bulk-close is wired. Bitget documents
-             * POST /api/v2/mix/order/close-positions ("Flash Close Position",
-             * symbol optional) and the UTA API documents an account-wide
-             * close — but neither wire format is verified against the venue
-             * (no local reference, no sandbox run), and BUG-0001 is the
-             * standing reminder not to guess an exchange's wire format for a
-             * call that closes real positions. FEAT-0525 pins the full Bitget
-             * reference; until then the loop below over an exchange-fresh
-             * list is the complete path, not a placeholder.
-             */
-            // A failed read throws FETCH_FAILED: flattening blind and
-            // reporting success is the defect. No keys means no read is
-            // possible — proceed on the cache best-effort (the closes then
-            // refuse at signing) and let verification report unverified.
-            const fresh = await this.readFreshPositions(provider);
-            const toClose = (fresh ?? omsService.getPositions())
-                .filter((p) => !symbol || p.symbol === symbol)
-                .map((p) => ({
-                    symbol: p.symbol,
-                    positionSide: (p.side.toLowerCase() === "short" ? "short" : "long") as
-                        "long" | "short",
-                }));
-            const promises = toClose.map((p) =>
-                this.closePosition({ symbol: p.symbol, positionSide: p.positionSide, forceFullClose: true }),
-            );
-            const results = await Promise.allSettled(promises);
-
-            const failures = results.filter((r) => r.status === "rejected");
-            const failedSymbols = [
-                ...new Set(
-                    results
-                        .map((r, i) => r.status === "rejected" ? (toClose[i]?.symbol ?? `position[${i}]`) : null)
-                        .filter((s): s is string => s !== null),
-                ),
-            ];
-
-            const { leftover, unverified } = await this.verifyFlat(provider, symbol);
-            if (failures.length > 0 || leftover.length > 0 || unverified) {
-                this.reportFlattenShortfall({
-                    failedCount: failures.length,
-                    failedSymbols,
-                    leftover,
-                    unverified,
-                    symbol,
-                });
-            }
-
-            return results;
-        } catch (e: unknown) {
-            // Already reported specifically above (failed/leftover/unverified
-            // toast) — rethrow untouched so the trader is not toasted twice,
-            // once with names and once without.
-            if (e instanceof Error && e.message === TRADE_ERRORS.CLOSE_ALL_FAILED) throw e;
-            logger.error("market", "[CloseAll] Failed to close all positions", e);
-            const failedSymbols = symbol || "all";
-            toastService.error(get(_)("trade.closeAllFailed" as import("../locales/schema").TranslationKey, { values: { failedSymbols } }));
-            throw new Error(TRADE_ERRORS.CLOSE_ALL_FAILED, { cause: e });
-        }
+        return this.orderCloseAll.closeAllPositions(symbol);
     }
 
     public async getOrderDetail(orderId?: string, clientId?: string): Promise<NormalizedOrder> {
