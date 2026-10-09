@@ -9,7 +9,7 @@
 
 import { untrack } from "svelte";
 import { browser } from "$app/env";
-import { CONSTANTS, VENUE_DEFAULT_FEE_RATES } from "../lib/constants";
+import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
 import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
@@ -26,17 +26,12 @@ import {
   apiKeyHasMaterial,
 } from "./settings/secretsLoader";
 import type { SwitchAuthorization } from "../lib/confirmationPolicy";
-import type { VisualQuality } from "../lib/three/quality";
 import type { AiAnalysisMode } from "../types/ai";
 import { safeLocalStorage } from "../utils/storageWrapper";
-import {
-  AI_ALLOWED_ACTIONS_DEFAULT,
-} from "../lib/ai/actionPolicy";
 import {
   accountForExchange,
   blankKeysFor,
   defaultAccountName,
-  defaultAccountState,
   activeAccountFor,
   keysForActiveAccount,
   buildAccount,
@@ -67,6 +62,7 @@ import {
     type SaveSource,
 } from "./settings/persistenceSchema";
 import { trackAutosaveReads } from "./settings/tracking";
+import { DisplaySettingsStore } from "./settings/display.svelte";
 
 // Domain types and presets live in ./settings/settingsTypes (FEAT-0342);
 // re-exported here so existing importers keep working.
@@ -75,21 +71,14 @@ import type {
   PositionViewMode,
   PnlViewMode,
   AiProvider,
-  BackgroundType,
-  BackgroundAnimationPreset,
-  AnimationIntensity,
   AnalysisDepth,
-  AmbientToplineMode,
-  AmbientToplineIntensity,
   MarketMode,
   BrokenAlertReport,
   TechnicalsUpdateMode,
-  HeatmapMode,
   ChartPriceScaleMode,
   ChartCrosshairMode,
   ChartCrosshairStyle,
   ChartDecimalsMode,
-  TradeFlowSettings,
   Settings,
 } from "./settings/settingsTypes";
 export type {
@@ -119,279 +108,8 @@ export type {
 } from "./settings/settingsTypes";
 export { TECHNICALS_UPDATE_PRESETS, MAX_FAVORITE_SYMBOLS } from "./settings/settingsTypes";
 
-/**
- * Read-only export for contract tests (or-mode inventory, save/load parity):
- * importing the manager would pull the reactive graph into a node test, but
- * the defaults themselves are a plain module-level object. Never mutate —
- * several tests assert the live defaults are still pristine.
- */
-export const defaultSettings: Settings = {
-  apiProvider: "bitunix",
-  appAccessToken: "",
-  marketAnalysisInterval: 60,
-  pauseAnalysisOnBlur: true,
-  analysisTimeframes: ["1h", "4h"],
-  autoUpdatePriceInput: true,
-  autoFetchBalance: false,
-  showSidebars: true,
-  showTooltips: true,
-  showTechnicals: false,
-  showIndicatorParams: false,
-  technicalsFullHeight: false,
-  hideUnfilledOrders: false,
-  journalPaperTrades: true,
-  showStalePriceBadge: true,
-  positionViewMode: "detailed",
-  pnlViewMode: "value",
-  isPro: false,
-  feePreference: "taker",
-  // Fresh per-venue copies, not the module constant: a future
-  // reset-to-defaults must never hand out (and later mutate) the shared
-  // VENUE_DEFAULT_FEE_RATES objects (FEAT-0253 review finding).
-  feeRates: {
-    bitunix: { ...VENUE_DEFAULT_FEE_RATES.bitunix },
-    bitget: { ...VENUE_DEFAULT_FEE_RATES.bitget },
-  },
-  hotkeyMode: "mode2",
-  customHotkeys: {},
-  ...defaultAccountState(),
-  favoriteTimeframes: ["5m", "15m", "1h", "4h"],
-  favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
-  syncRsiTimeframe: true,
-  imgbbApiKey: "25e953ac23d0704c1adc548c9a61b382",
-  imgbbExpiration: 0,
-  isDeepDiveUnlocked: false,
-  // Class B defaults per ADR-0001: off, and pointing at a local module rather
-  // than at any Cachy-operated server. Turning it on is a deliberate act.
-  cloudEnabled: false,
-  cloudHost: "http://127.0.0.1:3000",
-  cloudDbName: "cachy-server",
-  cloudToken: "",
-  sidePanelMode: "ai",
-  chatStyle: "minimal",
-  customSystemPrompt: "",
-  aiProvider: "gemini",
-  openaiApiKey: "",
-  openaiModel: "gpt-4o",
-  openaiBaseUrl: "",
-  geminiApiKey: "",
-  geminiModel: "gemini-1.5-flash",
-  geminiBaseUrl: "",
-  anthropicApiKey: "",
-  anthropicModel: "claude-sonnet-5",
-  anthropicBaseUrl: "",
-  ollamaBaseUrl: "http://localhost:11434",
-  ollamaModel: "",
-  openrouterApiKey: "",
-  openrouterModel: "",
-  openrouterBaseUrl: "",
-  userProviders: [],
-  activeProviderId: "",
-  analysisDepth: "standard",
-  aiConfirmActions: false,
-  aiAllowSettingsChanges: false,
-  aiAllowedActions: [...AI_ALLOWED_ACTIONS_DEFAULT],
-  aiTradeHistoryLimit: 50,
-  aiShareTradeContext: false,
-  aiAnalysisMode: "risk" as AiAnalysisMode,
-  showSpinButtons: "hover",
-  disclaimerAccepted: false,
-  useUtcDateParsing: true,
-  forceEnglishTechnicalTerms: false,
-  debugMode: false,
-  syncFavorites: true,
-  confirmTradeDeletion: true,
-  confirmBulkDeletion: true,
-  maxPrivateNotes: 50,
-  aiConfirmClear: true,
-  fontFamily: "Inter",
-  cryptoPanicApiKey: "",
-  newsApiKey: "",
-  cryptoPanicPlan: "developer",
-  cryptoPanicFilter: "important",
-  newsOpenBehavior: "smart",
-  enableNewsAnalysis: true,
-  cmcApiKey: "",
-  enableCmcContext: false,
-  showMarketOverviewLinks: true,
-  showMarketOverview: true,
-  showMarketActivity: true,
-  showMarketSentiment: true,
-  showSidebarActivity: true,
-  showTechnicalsSummary: true,
-  showTechnicalsConfluence: true,
-  showTechnicalsVolatility: true,
-  showTechnicalsOscillators: true,
-  showTechnicalsMAs: true,
-  showTechnicalsAdvanced: true,
-  showTechnicalsSignals: true,
-  showTechnicalsPivots: true,
-  showTvLink: true,
-  showCgHeatLink: true,
-  heatmapMode: "coinglass_new_tab",
-  showBrokerLink: true,
-  rssPresets: ["coindesk", "cointelegraph"],
-  customRssFeeds: [],
-  rssFilterBySymbol: false,
-  isProLicenseActive: false,
-  enableGlassmorphism: false,
-  glassBlur: 8,
-  glassSaturate: 100,
-  glassOpacity: 0.7,
-  backgroundType: "none",
-  backgroundUrl: null,
-  backgroundOpacity: 1.0,
-  backgroundBlur: 5,
-  backgroundAnimationPreset: "none",
-  backgroundAnimationIntensity: "medium",
-  videoPlaybackSpeed: 1.0,
-  tradeFlowSettings: {
-    speed: 0.8,
-    particleCount: 3000,
-    size: 0.08,
-    spread: 1.0,
-    layout: "grid",
-    colorMode: "theme",
-    customColorUp: "#00ff88",
-    customColorDown: "#ff4444",
-    minVolume: 0,
-    // New Settings (V3)
-    flowMode: "equalizer",
-    gridWidth: 80,
-    gridLength: 160,
-    enableAtmosphere: true,
-    atmosphereIntensity: 1.0,
-    atmosphereSpeed: 1.0,
-    enableRotation: false,
-    volumeScale: 1.0,
-    persistenceDuration: 60,
-    cameraHeight: 80,
-    cameraDistance: 120,
-    cameraPositionX: 0,
-    cameraRotationX: 0,
-    cameraRotationY: 0,
-    cameraRotationZ: 0,
-    tradeFlowSource: "live",
-    volatilitySource: "atr",
-    moodSource: "sentiment",
-    galaxyFlow: {
-      particleCount: 20000,
-      particleSize: 6.0,
-      radius: 60,
-      branches: 3,
-      spin: 1.0,
-      randomness: 1.0,
-      randomnessPower: 3.0,
-      concentrationPower: 1.5,
-      rotationSpeed: 0.1,
-      galaxyRot: { x: 0, y: 0, z: 0 },
-      camPos: { x: 0, y: 2, z: 5 },
-      autoCenter: true,
-      enableGyroscope: false,
-      marketReactivity: 1.0,
-      sentimentTint: 0.35,
-      activityRotation: 1.0,
-      priceAxis: true,
-      atrBands: true,
-      atrBandWidth: 1.0,
-      atrBandStrength: 1.0,
-    },
-  } as TradeFlowSettings,
-  galaxySettings: {
-    particleCount: 20000,
-    particleSize: 0.5,
-    radius: 5,
-    branches: 3,
-    spin: 1.0,
-    randomness: 1.0,
-    randomnessPower: 3.0,
-    concentrationPower: 1.5,
-    camPos: { x: 0, y: 2, z: 5 },
-    galaxyRot: { x: 0, y: 0, z: 0 },
-    autoCenter: true,
-    enableGyroscope: false,
-    rotationSpeed: 0.1,
-  },
-  enableTelemetry: true,
-  enableNetworkLogs: false,
-  logSettings: {
-    technicals: false,
-    network: false,
-    ai: true,
-    market: false,
-    general: true,
-    governance: true,
-    technicalsVerbose: false,
-  },
-  discordBotToken: "",
-  discordChannels: [],
-
-  enableBurningBorders: false,
-  borderEffect: "fire",
-  borderEffectColorMode: "interactive",
-  borderEffectCustomColor: "#ff8800",
-  burningBordersIntensity: "medium",
-  burnCharts: false,
-  burnModals: false,
-  burnChannels: false,
-  burnMarketOverviewTiles: true,
-  burnFlashCards: true,
-  burnJournal: false,
-  fireConfig: {
-    speed: 1.0,
-    turbulence: 1.0,
-    thickness: 20.0,
-    coreHeat: 0.8,
-  },
-
-  enableAmbientTopline: false,
-  ambientToplineMode: "symbol_orderflow",
-  ambientToplineIntensity: "standard",
-  ambientToplineBursts: true,
-
-  visualQuality: "auto",
-
-  marketMode: "balanced",
-  analyzeAllFavorites: false, // Default to top 4 only for balanced
-  marketCacheSize: 20, // Default LRU cache size
-
-  // Alert Defaults
-  brokenAlertReport: "notify",
-
-  // Technicals Performance Defaults
-  technicalsUpdateMode: "balanced",
-  technicalsUpdateInterval: undefined,
-  technicalsCacheSize: 20,
-  technicalsCacheTTL: 60, // 1 minute
-  maxTechnicalsHistory: 750,
-  enableIndicatorOptimization: true,
-  chartHistoryLimit: 2000,
-  chartRenderIntervalMs: 0,
-  repairTimeframe: "15m",
-
-  // Chart view defaults = the previous hard-coded CandleChartView behavior
-  chartPriceScaleMode: "log",
-  chartAutoScale: true,
-  chartInvertScale: false,
-  chartDecimalsMode: "auto",
-  chartFixedDecimals: 2,
-  chartShowGrid: true,
-  chartLastValueVisible: true,
-  chartCandleBorders: false,
-  chartWatermark: false,
-  chartCrosshairMode: "normal",
-  chartCrosshairStyle: "solid",
-  chartSecondsVisible: false,
-  chartFixEdges: false,
-  chartCountdownEnabled: false,
-
-  // Core indicators enabled by default
-  // Removed enabledIndicators (handled via indicatorState instead)
-  autoTrading: false,
-  multiAccount: false,
-  enableDockingCentered: true,
-  dockingPosition: "top",
-};
+import { defaultSettings } from "./settings/settingsTypes";
+export { defaultSettings };
 
 /**
  * The keys `defaultSettings` declares, frozen at module load.
@@ -411,14 +129,12 @@ export const defaultSettings: Settings = {
 export const SETTINGS_KEYS = Object.freeze(Object.keys(defaultSettings));
 
 export class SettingsManager {
-  // Cloned, not aliased: `$state` proxies the object it is handed, so passing
-  // `defaultSettings.tradeFlowSettings` directly would let every slider write
-  // through into the defaults and leave the reset button restoring the user's
-  // own edits. The nested `galaxyFlow` object makes that failure permanent,
-  // since a shallow spread elsewhere would keep sharing it by reference.
-  tradeFlowSettings = $state<TradeFlowSettings>(
-    structuredClone(defaultSettings.tradeFlowSettings),
-  );
+  get tradeFlowSettings(): DisplaySettingsStore["tradeFlowSettings"] {
+    return this.display.tradeFlowSettings;
+  }
+  set tradeFlowSettings(v: DisplaySettingsStore["tradeFlowSettings"]) {
+    this.display.tradeFlowSettings = v;
+  }
   // Using $state for all properties
   private _apiProvider = $state<"bitunix" | "bitget">(
     defaultSettings.apiProvider,
@@ -487,9 +203,26 @@ export class SettingsManager {
   );
   /** Encrypted-credential handling and the secretsReady handshake (FEAT-0197 PR 3). */
   private readonly secretsLoader = new SecretsLoader();
-  glassBlur = $state<number>(defaultSettings.glassBlur);
-  glassSaturate = $state<number>(defaultSettings.glassSaturate);
-  glassOpacity = $state<number>(defaultSettings.glassOpacity);
+  /** Display section (ADR-0024 decision 2): 65 schema fields live here; the getters/setters below keep `settingsState.<field>` working. */
+  readonly display = new DisplaySettingsStore();
+  get glassBlur(): DisplaySettingsStore["glassBlur"] {
+    return this.display.glassBlur;
+  }
+  set glassBlur(v: DisplaySettingsStore["glassBlur"]) {
+    this.display.glassBlur = v;
+  }
+  get glassSaturate(): DisplaySettingsStore["glassSaturate"] {
+    return this.display.glassSaturate;
+  }
+  set glassSaturate(v: DisplaySettingsStore["glassSaturate"]) {
+    this.display.glassSaturate = v;
+  }
+  get glassOpacity(): DisplaySettingsStore["glassOpacity"] {
+    return this.display.glassOpacity;
+  }
+  set glassOpacity(v: DisplaySettingsStore["glassOpacity"]) {
+    this.display.glassOpacity = v;
+  }
 
   // Object-valued defaults are cloned, never aliased: handing live state a
   // reference into `defaultSettings` lets the next in-place edit rewrite the
@@ -556,17 +289,60 @@ export class SettingsManager {
 
   rssFilterBySymbol = $state<boolean>(defaultSettings.rssFilterBySymbol);
 
-  showSpinButtons = $state<boolean | "hover">(defaultSettings.showSpinButtons);
-  disclaimerAccepted = $state<boolean>(defaultSettings.disclaimerAccepted);
-  useUtcDateParsing = $state<boolean>(defaultSettings.useUtcDateParsing);
-  forceEnglishTechnicalTerms = $state<boolean>(
-    defaultSettings.forceEnglishTechnicalTerms,
-  );
-  debugMode = $state<boolean>(defaultSettings.debugMode);
-  syncFavorites = $state<boolean>(defaultSettings.syncFavorites);
-  confirmTradeDeletion = $state<boolean>(defaultSettings.confirmTradeDeletion);
-  confirmBulkDeletion = $state<boolean>(defaultSettings.confirmBulkDeletion);
-  fontFamily = $state<string>(defaultSettings.fontFamily);
+  get showSpinButtons(): DisplaySettingsStore["showSpinButtons"] {
+    return this.display.showSpinButtons;
+  }
+  set showSpinButtons(v: DisplaySettingsStore["showSpinButtons"]) {
+    this.display.showSpinButtons = v;
+  }
+  get disclaimerAccepted(): DisplaySettingsStore["disclaimerAccepted"] {
+    return this.display.disclaimerAccepted;
+  }
+  set disclaimerAccepted(v: DisplaySettingsStore["disclaimerAccepted"]) {
+    this.display.disclaimerAccepted = v;
+  }
+  get useUtcDateParsing(): DisplaySettingsStore["useUtcDateParsing"] {
+    return this.display.useUtcDateParsing;
+  }
+  set useUtcDateParsing(v: DisplaySettingsStore["useUtcDateParsing"]) {
+    this.display.useUtcDateParsing = v;
+  }
+  get forceEnglishTechnicalTerms(): DisplaySettingsStore["forceEnglishTechnicalTerms"] {
+    return this.display.forceEnglishTechnicalTerms;
+  }
+  set forceEnglishTechnicalTerms(v: DisplaySettingsStore["forceEnglishTechnicalTerms"]) {
+    this.display.forceEnglishTechnicalTerms = v;
+  }
+  get debugMode(): DisplaySettingsStore["debugMode"] {
+    return this.display.debugMode;
+  }
+  set debugMode(v: DisplaySettingsStore["debugMode"]) {
+    this.display.debugMode = v;
+  }
+  get syncFavorites(): DisplaySettingsStore["syncFavorites"] {
+    return this.display.syncFavorites;
+  }
+  set syncFavorites(v: DisplaySettingsStore["syncFavorites"]) {
+    this.display.syncFavorites = v;
+  }
+  get confirmTradeDeletion(): DisplaySettingsStore["confirmTradeDeletion"] {
+    return this.display.confirmTradeDeletion;
+  }
+  set confirmTradeDeletion(v: DisplaySettingsStore["confirmTradeDeletion"]) {
+    this.display.confirmTradeDeletion = v;
+  }
+  get confirmBulkDeletion(): DisplaySettingsStore["confirmBulkDeletion"] {
+    return this.display.confirmBulkDeletion;
+  }
+  set confirmBulkDeletion(v: DisplaySettingsStore["confirmBulkDeletion"]) {
+    this.display.confirmBulkDeletion = v;
+  }
+  get fontFamily(): DisplaySettingsStore["fontFamily"] {
+    return this.display.fontFamily;
+  }
+  set fontFamily(v: DisplaySettingsStore["fontFamily"]) {
+    this.display.fontFamily = v;
+  }
   cryptoPanicApiKey = $state<string | undefined>(
     defaultSettings.cryptoPanicApiKey,
   );
@@ -583,17 +359,35 @@ export class SettingsManager {
   enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
   cmcApiKey = $state<string | undefined>(defaultSettings.cmcApiKey);
   enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
-  showMarketOverviewLinks = $state<boolean>(
-    defaultSettings.showMarketOverviewLinks,
-  );
-  showMarketOverview = $state<boolean>(defaultSettings.showMarketOverview);
-  showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
+  get showMarketOverviewLinks(): DisplaySettingsStore["showMarketOverviewLinks"] {
+    return this.display.showMarketOverviewLinks;
+  }
+  set showMarketOverviewLinks(v: DisplaySettingsStore["showMarketOverviewLinks"]) {
+    this.display.showMarketOverviewLinks = v;
+  }
+  get showMarketOverview(): DisplaySettingsStore["showMarketOverview"] {
+    return this.display.showMarketOverview;
+  }
+  set showMarketOverview(v: DisplaySettingsStore["showMarketOverview"]) {
+    this.display.showMarketOverview = v;
+  }
+  get showMarketActivity(): DisplaySettingsStore["showMarketActivity"] {
+    return this.display.showMarketActivity;
+  }
+  set showMarketActivity(v: DisplaySettingsStore["showMarketActivity"]) {
+    this.display.showMarketActivity = v;
+  }
   marketAnalysisInterval = $state<number>(
     defaultSettings.marketAnalysisInterval,
   );
   pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
   analysisTimeframes = $state<string[]>(structuredClone(defaultSettings.analysisTimeframes));
-  showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
+  get showSidebarActivity(): DisplaySettingsStore["showSidebarActivity"] {
+    return this.display.showSidebarActivity;
+  }
+  set showSidebarActivity(v: DisplaySettingsStore["showSidebarActivity"]) {
+    this.display.showSidebarActivity = v;
+  }
   /**
    * The live account object for a venue, safe to bind a credential input to.
    *
@@ -774,90 +568,288 @@ export class SettingsManager {
     );
   }
 
-  showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
-  showTechnicalsSummary = $state<boolean>(
-    defaultSettings.showTechnicalsSummary,
-  );
-  showTechnicalsConfluence = $state<boolean>(
-    defaultSettings.showTechnicalsConfluence,
-  );
-  showTechnicalsVolatility = $state<boolean>(
-    defaultSettings.showTechnicalsVolatility,
-  );
-  showTechnicalsOscillators = $state<boolean>(
-    defaultSettings.showTechnicalsOscillators,
-  );
-  showTechnicalsMAs = $state<boolean>(defaultSettings.showTechnicalsMAs);
-  showTechnicalsAdvanced = $state<boolean>(
-    defaultSettings.showTechnicalsAdvanced,
-  );
-  showTechnicalsSignals = $state<boolean>(
-    defaultSettings.showTechnicalsSignals,
-  );
-  showTechnicalsPivots = $state<boolean>(defaultSettings.showTechnicalsPivots);
-  showTvLink = $state<boolean>(defaultSettings.showTvLink);
-  showCgHeatLink = $state<boolean>(defaultSettings.showCgHeatLink);
-  heatmapMode = $state<HeatmapMode>(defaultSettings.heatmapMode);
-  showBrokerLink = $state<boolean>(defaultSettings.showBrokerLink);
-  rssPresets = $state<string[]>(structuredClone(defaultSettings.rssPresets || []));
-  customRssFeeds = $state<string[]>(structuredClone(defaultSettings.customRssFeeds || []));
+  get showMarketSentiment(): DisplaySettingsStore["showMarketSentiment"] {
+    return this.display.showMarketSentiment;
+  }
+  set showMarketSentiment(v: DisplaySettingsStore["showMarketSentiment"]) {
+    this.display.showMarketSentiment = v;
+  }
+  get showTechnicalsSummary(): DisplaySettingsStore["showTechnicalsSummary"] {
+    return this.display.showTechnicalsSummary;
+  }
+  set showTechnicalsSummary(v: DisplaySettingsStore["showTechnicalsSummary"]) {
+    this.display.showTechnicalsSummary = v;
+  }
+  get showTechnicalsConfluence(): DisplaySettingsStore["showTechnicalsConfluence"] {
+    return this.display.showTechnicalsConfluence;
+  }
+  set showTechnicalsConfluence(v: DisplaySettingsStore["showTechnicalsConfluence"]) {
+    this.display.showTechnicalsConfluence = v;
+  }
+  get showTechnicalsVolatility(): DisplaySettingsStore["showTechnicalsVolatility"] {
+    return this.display.showTechnicalsVolatility;
+  }
+  set showTechnicalsVolatility(v: DisplaySettingsStore["showTechnicalsVolatility"]) {
+    this.display.showTechnicalsVolatility = v;
+  }
+  get showTechnicalsOscillators(): DisplaySettingsStore["showTechnicalsOscillators"] {
+    return this.display.showTechnicalsOscillators;
+  }
+  set showTechnicalsOscillators(v: DisplaySettingsStore["showTechnicalsOscillators"]) {
+    this.display.showTechnicalsOscillators = v;
+  }
+  get showTechnicalsMAs(): DisplaySettingsStore["showTechnicalsMAs"] {
+    return this.display.showTechnicalsMAs;
+  }
+  set showTechnicalsMAs(v: DisplaySettingsStore["showTechnicalsMAs"]) {
+    this.display.showTechnicalsMAs = v;
+  }
+  get showTechnicalsAdvanced(): DisplaySettingsStore["showTechnicalsAdvanced"] {
+    return this.display.showTechnicalsAdvanced;
+  }
+  set showTechnicalsAdvanced(v: DisplaySettingsStore["showTechnicalsAdvanced"]) {
+    this.display.showTechnicalsAdvanced = v;
+  }
+  get showTechnicalsSignals(): DisplaySettingsStore["showTechnicalsSignals"] {
+    return this.display.showTechnicalsSignals;
+  }
+  set showTechnicalsSignals(v: DisplaySettingsStore["showTechnicalsSignals"]) {
+    this.display.showTechnicalsSignals = v;
+  }
+  get showTechnicalsPivots(): DisplaySettingsStore["showTechnicalsPivots"] {
+    return this.display.showTechnicalsPivots;
+  }
+  set showTechnicalsPivots(v: DisplaySettingsStore["showTechnicalsPivots"]) {
+    this.display.showTechnicalsPivots = v;
+  }
+  get showTvLink(): DisplaySettingsStore["showTvLink"] {
+    return this.display.showTvLink;
+  }
+  set showTvLink(v: DisplaySettingsStore["showTvLink"]) {
+    this.display.showTvLink = v;
+  }
+  get showCgHeatLink(): DisplaySettingsStore["showCgHeatLink"] {
+    return this.display.showCgHeatLink;
+  }
+  set showCgHeatLink(v: DisplaySettingsStore["showCgHeatLink"]) {
+    this.display.showCgHeatLink = v;
+  }
+  get heatmapMode(): DisplaySettingsStore["heatmapMode"] {
+    return this.display.heatmapMode;
+  }
+  set heatmapMode(v: DisplaySettingsStore["heatmapMode"]) {
+    this.display.heatmapMode = v;
+  }
+  get showBrokerLink(): DisplaySettingsStore["showBrokerLink"] {
+    return this.display.showBrokerLink;
+  }
+  set showBrokerLink(v: DisplaySettingsStore["showBrokerLink"]) {
+    this.display.showBrokerLink = v;
+  }
+  get rssPresets(): DisplaySettingsStore["rssPresets"] {
+    return this.display.rssPresets;
+  }
+  set rssPresets(v: DisplaySettingsStore["rssPresets"]) {
+    this.display.rssPresets = v;
+  }
+  get customRssFeeds(): DisplaySettingsStore["customRssFeeds"] {
+    return this.display.customRssFeeds;
+  }
+  set customRssFeeds(v: DisplaySettingsStore["customRssFeeds"]) {
+    this.display.customRssFeeds = v;
+  }
 
-  // Background Customization
-  enableGlassmorphism = $state<boolean>(defaultSettings.enableGlassmorphism);
-  backgroundType = $state<BackgroundType>(defaultSettings.backgroundType);
-  backgroundUrl = $state<string | null>(defaultSettings.backgroundUrl);
-  backgroundOpacity = $state<number>(defaultSettings.backgroundOpacity);
-  backgroundBlur = $state<number>(defaultSettings.backgroundBlur);
-  backgroundAnimationPreset = $state<BackgroundAnimationPreset>(
-    defaultSettings.backgroundAnimationPreset,
-  );
-  backgroundAnimationIntensity = $state<AnimationIntensity>(
-    defaultSettings.backgroundAnimationIntensity,
-  );
-  videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
-  galaxySettings = $state(structuredClone(defaultSettings.galaxySettings));
-  enableTelemetry = $state<boolean>(defaultSettings.enableTelemetry);
-  enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
-  logSettings = $state(structuredClone(defaultSettings.logSettings));
+  get enableGlassmorphism(): DisplaySettingsStore["enableGlassmorphism"] {
+    return this.display.enableGlassmorphism;
+  }
+  set enableGlassmorphism(v: DisplaySettingsStore["enableGlassmorphism"]) {
+    this.display.enableGlassmorphism = v;
+  }
+  get backgroundType(): DisplaySettingsStore["backgroundType"] {
+    return this.display.backgroundType;
+  }
+  set backgroundType(v: DisplaySettingsStore["backgroundType"]) {
+    this.display.backgroundType = v;
+  }
+  get backgroundUrl(): DisplaySettingsStore["backgroundUrl"] {
+    return this.display.backgroundUrl;
+  }
+  set backgroundUrl(v: DisplaySettingsStore["backgroundUrl"]) {
+    this.display.backgroundUrl = v;
+  }
+  get backgroundOpacity(): DisplaySettingsStore["backgroundOpacity"] {
+    return this.display.backgroundOpacity;
+  }
+  set backgroundOpacity(v: DisplaySettingsStore["backgroundOpacity"]) {
+    this.display.backgroundOpacity = v;
+  }
+  get backgroundBlur(): DisplaySettingsStore["backgroundBlur"] {
+    return this.display.backgroundBlur;
+  }
+  set backgroundBlur(v: DisplaySettingsStore["backgroundBlur"]) {
+    this.display.backgroundBlur = v;
+  }
+  get backgroundAnimationPreset(): DisplaySettingsStore["backgroundAnimationPreset"] {
+    return this.display.backgroundAnimationPreset;
+  }
+  set backgroundAnimationPreset(v: DisplaySettingsStore["backgroundAnimationPreset"]) {
+    this.display.backgroundAnimationPreset = v;
+  }
+  get backgroundAnimationIntensity(): DisplaySettingsStore["backgroundAnimationIntensity"] {
+    return this.display.backgroundAnimationIntensity;
+  }
+  set backgroundAnimationIntensity(v: DisplaySettingsStore["backgroundAnimationIntensity"]) {
+    this.display.backgroundAnimationIntensity = v;
+  }
+  get videoPlaybackSpeed(): DisplaySettingsStore["videoPlaybackSpeed"] {
+    return this.display.videoPlaybackSpeed;
+  }
+  set videoPlaybackSpeed(v: DisplaySettingsStore["videoPlaybackSpeed"]) {
+    this.display.videoPlaybackSpeed = v;
+  }
+  get galaxySettings(): DisplaySettingsStore["galaxySettings"] {
+    return this.display.galaxySettings;
+  }
+  set galaxySettings(v: DisplaySettingsStore["galaxySettings"]) {
+    this.display.galaxySettings = v;
+  }
+  get enableTelemetry(): DisplaySettingsStore["enableTelemetry"] {
+    return this.display.enableTelemetry;
+  }
+  set enableTelemetry(v: DisplaySettingsStore["enableTelemetry"]) {
+    this.display.enableTelemetry = v;
+  }
+  get enableNetworkLogs(): DisplaySettingsStore["enableNetworkLogs"] {
+    return this.display.enableNetworkLogs;
+  }
+  set enableNetworkLogs(v: DisplaySettingsStore["enableNetworkLogs"]) {
+    this.display.enableNetworkLogs = v;
+  }
+  get logSettings(): DisplaySettingsStore["logSettings"] {
+    return this.display.logSettings;
+  }
+  set logSettings(v: DisplaySettingsStore["logSettings"]) {
+    this.display.logSettings = v;
+  }
 
-  // Social Media
-  discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
-  discordChannels = $state<string[]>(structuredClone(defaultSettings.discordChannels));
+  get discordBotToken(): DisplaySettingsStore["discordBotToken"] {
+    return this.display.discordBotToken;
+  }
+  set discordBotToken(v: DisplaySettingsStore["discordBotToken"]) {
+    this.display.discordBotToken = v;
+  }
+  get discordChannels(): DisplaySettingsStore["discordChannels"] {
+    return this.display.discordChannels;
+  }
+  set discordChannels(v: DisplaySettingsStore["discordChannels"]) {
+    this.display.discordChannels = v;
+  }
 
-  enableBurningBorders = $state<boolean>(defaultSettings.enableBurningBorders);
-  borderEffect = $state<"fire" | "glow">(
-    defaultSettings.borderEffect || "fire",
-  );
-  borderEffectColorMode = $state<
-    "theme" | "interactive" | "custom" | "classic"
-  >(defaultSettings.borderEffectColorMode);
-  borderEffectCustomColor = $state<string>(
-    defaultSettings.borderEffectCustomColor,
-  );
-  burningBordersIntensity = $state<AnimationIntensity>(
-    defaultSettings.burningBordersIntensity,
-  );
-  burnCharts = $state<boolean>(defaultSettings.burnCharts);
-  burnModals = $state<boolean>(defaultSettings.burnModals);
-  burnChannels = $state<boolean>(defaultSettings.burnChannels);
-  burnMarketOverviewTiles = $state<boolean>(
-    defaultSettings.burnMarketOverviewTiles,
-  );
-  burnFlashCards = $state<boolean>(defaultSettings.burnFlashCards);
-  burnJournal = $state<boolean>(defaultSettings.burnJournal);
+  get enableBurningBorders(): DisplaySettingsStore["enableBurningBorders"] {
+    return this.display.enableBurningBorders;
+  }
+  set enableBurningBorders(v: DisplaySettingsStore["enableBurningBorders"]) {
+    this.display.enableBurningBorders = v;
+  }
+  get borderEffect(): DisplaySettingsStore["borderEffect"] {
+    return this.display.borderEffect;
+  }
+  set borderEffect(v: DisplaySettingsStore["borderEffect"]) {
+    this.display.borderEffect = v;
+  }
+  get borderEffectColorMode(): DisplaySettingsStore["borderEffectColorMode"] {
+    return this.display.borderEffectColorMode;
+  }
+  set borderEffectColorMode(v: DisplaySettingsStore["borderEffectColorMode"]) {
+    this.display.borderEffectColorMode = v;
+  }
+  get borderEffectCustomColor(): DisplaySettingsStore["borderEffectCustomColor"] {
+    return this.display.borderEffectCustomColor;
+  }
+  set borderEffectCustomColor(v: DisplaySettingsStore["borderEffectCustomColor"]) {
+    this.display.borderEffectCustomColor = v;
+  }
+  get burningBordersIntensity(): DisplaySettingsStore["burningBordersIntensity"] {
+    return this.display.burningBordersIntensity;
+  }
+  set burningBordersIntensity(v: DisplaySettingsStore["burningBordersIntensity"]) {
+    this.display.burningBordersIntensity = v;
+  }
+  get burnCharts(): DisplaySettingsStore["burnCharts"] {
+    return this.display.burnCharts;
+  }
+  set burnCharts(v: DisplaySettingsStore["burnCharts"]) {
+    this.display.burnCharts = v;
+  }
+  get burnModals(): DisplaySettingsStore["burnModals"] {
+    return this.display.burnModals;
+  }
+  set burnModals(v: DisplaySettingsStore["burnModals"]) {
+    this.display.burnModals = v;
+  }
+  get burnChannels(): DisplaySettingsStore["burnChannels"] {
+    return this.display.burnChannels;
+  }
+  set burnChannels(v: DisplaySettingsStore["burnChannels"]) {
+    this.display.burnChannels = v;
+  }
+  get burnMarketOverviewTiles(): DisplaySettingsStore["burnMarketOverviewTiles"] {
+    return this.display.burnMarketOverviewTiles;
+  }
+  set burnMarketOverviewTiles(v: DisplaySettingsStore["burnMarketOverviewTiles"]) {
+    this.display.burnMarketOverviewTiles = v;
+  }
+  get burnFlashCards(): DisplaySettingsStore["burnFlashCards"] {
+    return this.display.burnFlashCards;
+  }
+  set burnFlashCards(v: DisplaySettingsStore["burnFlashCards"]) {
+    this.display.burnFlashCards = v;
+  }
+  get burnJournal(): DisplaySettingsStore["burnJournal"] {
+    return this.display.burnJournal;
+  }
+  set burnJournal(v: DisplaySettingsStore["burnJournal"]) {
+    this.display.burnJournal = v;
+  }
 
-  enableAmbientTopline = $state<boolean>(defaultSettings.enableAmbientTopline);
-  ambientToplineMode = $state<AmbientToplineMode>(
-    defaultSettings.ambientToplineMode,
-  );
-  ambientToplineIntensity = $state<AmbientToplineIntensity>(
-    defaultSettings.ambientToplineIntensity,
-  );
-  ambientToplineBursts = $state<boolean>(defaultSettings.ambientToplineBursts);
+  get enableAmbientTopline(): DisplaySettingsStore["enableAmbientTopline"] {
+    return this.display.enableAmbientTopline;
+  }
+  set enableAmbientTopline(v: DisplaySettingsStore["enableAmbientTopline"]) {
+    this.display.enableAmbientTopline = v;
+  }
+  get ambientToplineMode(): DisplaySettingsStore["ambientToplineMode"] {
+    return this.display.ambientToplineMode;
+  }
+  set ambientToplineMode(v: DisplaySettingsStore["ambientToplineMode"]) {
+    this.display.ambientToplineMode = v;
+  }
+  get ambientToplineIntensity(): DisplaySettingsStore["ambientToplineIntensity"] {
+    return this.display.ambientToplineIntensity;
+  }
+  set ambientToplineIntensity(v: DisplaySettingsStore["ambientToplineIntensity"]) {
+    this.display.ambientToplineIntensity = v;
+  }
+  get ambientToplineBursts(): DisplaySettingsStore["ambientToplineBursts"] {
+    return this.display.ambientToplineBursts;
+  }
+  set ambientToplineBursts(v: DisplaySettingsStore["ambientToplineBursts"]) {
+    this.display.ambientToplineBursts = v;
+  }
 
-  visualQuality = $state<VisualQuality>(defaultSettings.visualQuality);
+  get visualQuality(): DisplaySettingsStore["visualQuality"] {
+    return this.display.visualQuality;
+  }
+  set visualQuality(v: DisplaySettingsStore["visualQuality"]) {
+    this.display.visualQuality = v;
+  }
 
-  fireConfig = $state(structuredClone(defaultSettings.fireConfig));
+  get fireConfig(): Settings["fireConfig"] {
+    return this.display.fireConfig;
+  }
+  set fireConfig(v: Settings["fireConfig"]) {
+    this.display.fireConfig = v;
+  }
 
   updateFireConfig(newConfig: Partial<Settings["fireConfig"]>) {
     this.fireConfig = { ...this.fireConfig, ...newConfig };
@@ -933,10 +925,18 @@ export class SettingsManager {
   autoTrading = $state<boolean>(defaultSettings.autoTrading);
   multiAccount = $state<boolean>(defaultSettings.multiAccount);
 
-  enableDockingCentered = $state<boolean>(
-    defaultSettings.enableDockingCentered,
-  );
-  dockingPosition = $state<"top" | "bottom">(defaultSettings.dockingPosition);
+  get enableDockingCentered(): DisplaySettingsStore["enableDockingCentered"] {
+    return this.display.enableDockingCentered;
+  }
+  set enableDockingCentered(v: DisplaySettingsStore["enableDockingCentered"]) {
+    this.display.enableDockingCentered = v;
+  }
+  get dockingPosition(): DisplaySettingsStore["dockingPosition"] {
+    return this.display.dockingPosition;
+  }
+  set dockingPosition(v: DisplaySettingsStore["dockingPosition"]) {
+    this.display.dockingPosition = v;
+  }
 
   get marketMode() {
     return this._marketMode;

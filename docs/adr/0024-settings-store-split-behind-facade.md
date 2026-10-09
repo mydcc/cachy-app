@@ -1,6 +1,6 @@
 # ADR-0024: Split the settings store behind a facade, gated on explicit autosave ownership
 
-- **Status:** Proposed
+- **Status:** Proposed → Decision 1 accepted and implemented (declared tracking list, `update()` deleted — PR "feat(settings): declare autosave tracking ownership explicitly"). Decision 2 in progress: `display` section moved behind the facade first (`DisplaySettingsStore`, 65 fields); `core` and the account cluster pending.
 - **Date:** 2026-10-08
 - **Deciders:** _undecided — this draft is the input, not the decision_
 
