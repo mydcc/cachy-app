@@ -13,6 +13,26 @@ depends_on: []
 parent: FEAT-0341
 ---
 
+## Status note (2026-10-09, ADR-0024 decision 2 phase B — branch `feature/0342-settings-facade-core`)
+
+The `in-progress` claim (`assignee: opencode`) is released: the core-group
+move is implemented and waiting on review, and no session holds the item.
+Status is back to `ready`.
+
+What this step delivered: the 97 `section: "core"` schema fields moved
+from `SettingsManager` into `CoreSettingsStore`
+(`src/stores/settings/core.svelte.ts`); the manager keeps all 97 names via
+delegating getters/setters, so no consumer file changed. `marketMode` keeps
+its setter side effect on the manager while its state lives in the sub-store;
+the load bypass (`_marketMode`, never through the setter) is routed into the
+sub-store in `applySchemaLoad` — without that routing the mode would silently
+reset on every reload (caught during implementation, RED-proven regression
+test in `settings.load.test.ts`). Proven: inventory (`core.test.ts`,
+RED-proven by accessor removal), reactivity contract 5/5, 262 unit +
+contracts green, ChartTab component green, `svelte-check` and ESLint clean.
+Still open: the account cluster (`apiProvider`, accounts, credentials) —
+recommendation unchanged: it stays on the manager as coordinator.
+
 ## Status note (2026-10-09, ADR-0024 decision 2 started — branch `feature/0342-settings-facade-display`)
 
 The `in-progress` claim (`assignee: opencode`) is released: the display-group

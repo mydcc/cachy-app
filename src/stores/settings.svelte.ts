@@ -26,7 +26,6 @@ import {
   apiKeyHasMaterial,
 } from "./settings/secretsLoader";
 import type { SwitchAuthorization } from "../lib/confirmationPolicy";
-import type { AiAnalysisMode } from "../types/ai";
 import { safeLocalStorage } from "../utils/storageWrapper";
 import {
   accountForExchange,
@@ -47,7 +46,6 @@ import {
   ensureProviderRegistryState,
   redactUserProviders,
   sanitizeUserProviders,
-  type ProviderConfig,
 } from "./settings/aiProviders";
 import {
   resolveApiProvider,
@@ -63,22 +61,12 @@ import {
 } from "./settings/persistenceSchema";
 import { trackAutosaveReads } from "./settings/tracking";
 import { DisplaySettingsStore } from "./settings/display.svelte";
+import { CoreSettingsStore } from "./settings/core.svelte";
 
 // Domain types and presets live in ./settings/settingsTypes (FEAT-0342);
 // re-exported here so existing importers keep working.
 import type {
-  HotkeyMode,
-  PositionViewMode,
-  PnlViewMode,
-  AiProvider,
-  AnalysisDepth,
   MarketMode,
-  BrokenAlertReport,
-  TechnicalsUpdateMode,
-  ChartPriceScaleMode,
-  ChartCrosshairMode,
-  ChartCrosshairStyle,
-  ChartDecimalsMode,
   Settings,
 } from "./settings/settingsTypes";
 export type {
@@ -167,29 +155,106 @@ export class SettingsManager {
       // Let $effect handle saving, don't call save() directly
     }
   }
-  appAccessToken = $state<string>(defaultSettings.appAccessToken || "");
-  autoUpdatePriceInput = $state<boolean>(defaultSettings.autoUpdatePriceInput);
-  autoFetchBalance = $state<boolean>(defaultSettings.autoFetchBalance);
-  showSidebars = $state<boolean>(defaultSettings.showSidebars);
-  showTooltips = $state<boolean>(defaultSettings.showTooltips);
-  showTechnicals = $state<boolean>(defaultSettings.showTechnicals);
-  showIndicatorParams = $state<boolean>(defaultSettings.showIndicatorParams);
-  technicalsFullHeight = $state<boolean>(defaultSettings.technicalsFullHeight);
-  hideUnfilledOrders = $state<boolean>(defaultSettings.hideUnfilledOrders);
-  journalPaperTrades = $state<boolean>(defaultSettings.journalPaperTrades);
-  showStalePriceBadge = $state<boolean>(defaultSettings.showStalePriceBadge);
-  positionViewMode = $state<PositionViewMode | undefined>(
-    defaultSettings.positionViewMode,
-  );
-  pnlViewMode = $state<PnlViewMode>(defaultSettings.pnlViewMode);
-  feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
-  // Shallow clone: the $state proxy must not share object references with the
-  // module-level constant, or editing a rate here would rewrite the default.
-  // structuredClone like every other object-valued init (see `accounts`).
-  feeRates = $state(structuredClone(defaultSettings.feeRates));
-  hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
+  get appAccessToken(): CoreSettingsStore["appAccessToken"] {
+    return this.core.appAccessToken;
+  }
+  set appAccessToken(v: CoreSettingsStore["appAccessToken"]) {
+    this.core.appAccessToken = v;
+  }
+  get autoUpdatePriceInput(): CoreSettingsStore["autoUpdatePriceInput"] {
+    return this.core.autoUpdatePriceInput;
+  }
+  set autoUpdatePriceInput(v: CoreSettingsStore["autoUpdatePriceInput"]) {
+    this.core.autoUpdatePriceInput = v;
+  }
+  get autoFetchBalance(): CoreSettingsStore["autoFetchBalance"] {
+    return this.core.autoFetchBalance;
+  }
+  set autoFetchBalance(v: CoreSettingsStore["autoFetchBalance"]) {
+    this.core.autoFetchBalance = v;
+  }
+  get showSidebars(): CoreSettingsStore["showSidebars"] {
+    return this.core.showSidebars;
+  }
+  set showSidebars(v: CoreSettingsStore["showSidebars"]) {
+    this.core.showSidebars = v;
+  }
+  get showTooltips(): CoreSettingsStore["showTooltips"] {
+    return this.core.showTooltips;
+  }
+  set showTooltips(v: CoreSettingsStore["showTooltips"]) {
+    this.core.showTooltips = v;
+  }
+  get showTechnicals(): CoreSettingsStore["showTechnicals"] {
+    return this.core.showTechnicals;
+  }
+  set showTechnicals(v: CoreSettingsStore["showTechnicals"]) {
+    this.core.showTechnicals = v;
+  }
+  get showIndicatorParams(): CoreSettingsStore["showIndicatorParams"] {
+    return this.core.showIndicatorParams;
+  }
+  set showIndicatorParams(v: CoreSettingsStore["showIndicatorParams"]) {
+    this.core.showIndicatorParams = v;
+  }
+  get technicalsFullHeight(): CoreSettingsStore["technicalsFullHeight"] {
+    return this.core.technicalsFullHeight;
+  }
+  set technicalsFullHeight(v: CoreSettingsStore["technicalsFullHeight"]) {
+    this.core.technicalsFullHeight = v;
+  }
+  get hideUnfilledOrders(): CoreSettingsStore["hideUnfilledOrders"] {
+    return this.core.hideUnfilledOrders;
+  }
+  set hideUnfilledOrders(v: CoreSettingsStore["hideUnfilledOrders"]) {
+    this.core.hideUnfilledOrders = v;
+  }
+  get journalPaperTrades(): CoreSettingsStore["journalPaperTrades"] {
+    return this.core.journalPaperTrades;
+  }
+  set journalPaperTrades(v: CoreSettingsStore["journalPaperTrades"]) {
+    this.core.journalPaperTrades = v;
+  }
+  get showStalePriceBadge(): CoreSettingsStore["showStalePriceBadge"] {
+    return this.core.showStalePriceBadge;
+  }
+  set showStalePriceBadge(v: CoreSettingsStore["showStalePriceBadge"]) {
+    this.core.showStalePriceBadge = v;
+  }
+  get positionViewMode(): CoreSettingsStore["positionViewMode"] {
+    return this.core.positionViewMode;
+  }
+  set positionViewMode(v: CoreSettingsStore["positionViewMode"]) {
+    this.core.positionViewMode = v;
+  }
+  get pnlViewMode(): CoreSettingsStore["pnlViewMode"] {
+    return this.core.pnlViewMode;
+  }
+  set pnlViewMode(v: CoreSettingsStore["pnlViewMode"]) {
+    this.core.pnlViewMode = v;
+  }
+  get feePreference(): CoreSettingsStore["feePreference"] {
+    return this.core.feePreference;
+  }
+  set feePreference(v: CoreSettingsStore["feePreference"]) {
+    this.core.feePreference = v;
+  }
+  get feeRates(): CoreSettingsStore["feeRates"] {
+    return this.core.feeRates;
+  }
+  set feeRates(v: CoreSettingsStore["feeRates"]) {
+    this.core.feeRates = v;
+  }
+  get hotkeyMode(): CoreSettingsStore["hotkeyMode"] {
+    return this.core.hotkeyMode;
+  }
+  set hotkeyMode(v: CoreSettingsStore["hotkeyMode"]) {
+    this.core.hotkeyMode = v;
+  }
   /** Display section (ADR-0024 decision 2): 65 display-owned `$state` fields live here (66 display schema rows minus entitlement-owned `isProLicenseActive`); the getters/setters below keep `settingsState.<field>` working. Private on purpose — consumers use the manager spelling, never `settingsState.display.*`. Declared above `entitlement` so no lazy closure can ever observe it uninitialised. */
   private readonly display = new DisplaySettingsStore();
+  /** Core section (ADR-0024 decision 2): 97 core-owned `$state` fields live here (98 core schema rows minus entitlement-owned `isPro`); same facade pattern as `display`, same privacy rule. */
+  private readonly core = new CoreSettingsStore();
   /**
    * Edition/entitlement state (isPro, isProLicenseActive, the capability
    * map) lives in its own store (FEAT-0197 PR 2) -- this is the one accessor
@@ -230,64 +295,256 @@ export class SettingsManager {
   // reset aliasing — see `resetGalaxy`). Scalars need no clone.
   accounts = $state(structuredClone(defaultSettings.accounts));
   activeAccountId = $state<string>(defaultSettings.activeAccountId);
-  customHotkeys = $state(structuredClone(defaultSettings.customHotkeys));
-  favoriteTimeframes = $state(structuredClone(defaultSettings.favoriteTimeframes));
-  favoriteSymbols = $state(structuredClone(defaultSettings.favoriteSymbols));
+  get customHotkeys(): CoreSettingsStore["customHotkeys"] {
+    return this.core.customHotkeys;
+  }
+  set customHotkeys(v: CoreSettingsStore["customHotkeys"]) {
+    this.core.customHotkeys = v;
+  }
+  get favoriteTimeframes(): CoreSettingsStore["favoriteTimeframes"] {
+    return this.core.favoriteTimeframes;
+  }
+  set favoriteTimeframes(v: CoreSettingsStore["favoriteTimeframes"]) {
+    this.core.favoriteTimeframes = v;
+  }
+  get favoriteSymbols(): CoreSettingsStore["favoriteSymbols"] {
+    return this.core.favoriteSymbols;
+  }
+  set favoriteSymbols(v: CoreSettingsStore["favoriteSymbols"]) {
+    this.core.favoriteSymbols = v;
+  }
 
-  syncRsiTimeframe = $state<boolean>(defaultSettings.syncRsiTimeframe);
-  imgbbApiKey = $state<string>(defaultSettings.imgbbApiKey);
-  imgbbExpiration = $state<number>(defaultSettings.imgbbExpiration);
-  isDeepDiveUnlocked = $state<boolean | undefined>(
-    defaultSettings.isDeepDiveUnlocked,
-  );
+  get syncRsiTimeframe(): CoreSettingsStore["syncRsiTimeframe"] {
+    return this.core.syncRsiTimeframe;
+  }
+  set syncRsiTimeframe(v: CoreSettingsStore["syncRsiTimeframe"]) {
+    this.core.syncRsiTimeframe = v;
+  }
+  get imgbbApiKey(): CoreSettingsStore["imgbbApiKey"] {
+    return this.core.imgbbApiKey;
+  }
+  set imgbbApiKey(v: CoreSettingsStore["imgbbApiKey"]) {
+    this.core.imgbbApiKey = v;
+  }
+  get imgbbExpiration(): CoreSettingsStore["imgbbExpiration"] {
+    return this.core.imgbbExpiration;
+  }
+  set imgbbExpiration(v: CoreSettingsStore["imgbbExpiration"]) {
+    this.core.imgbbExpiration = v;
+  }
+  get isDeepDiveUnlocked(): CoreSettingsStore["isDeepDiveUnlocked"] {
+    return this.core.isDeepDiveUnlocked;
+  }
+  set isDeepDiveUnlocked(v: CoreSettingsStore["isDeepDiveUnlocked"]) {
+    this.core.isDeepDiveUnlocked = v;
+  }
 
-  cloudEnabled = $state<boolean>(defaultSettings.cloudEnabled);
-  cloudHost = $state<string>(defaultSettings.cloudHost);
-  cloudDbName = $state<string>(defaultSettings.cloudDbName);
-  cloudToken = $state<string>(defaultSettings.cloudToken);
-  sidePanelMode = $state<"chat" | "notes" | "ai">(
-    defaultSettings.sidePanelMode,
-  );
-  chatStyle = $state<"minimal" | "bubble" | "terminal">(
-    defaultSettings.chatStyle,
-  );
-  maxPrivateNotes = $state<number>(defaultSettings.maxPrivateNotes);
+  get cloudEnabled(): CoreSettingsStore["cloudEnabled"] {
+    return this.core.cloudEnabled;
+  }
+  set cloudEnabled(v: CoreSettingsStore["cloudEnabled"]) {
+    this.core.cloudEnabled = v;
+  }
+  get cloudHost(): CoreSettingsStore["cloudHost"] {
+    return this.core.cloudHost;
+  }
+  set cloudHost(v: CoreSettingsStore["cloudHost"]) {
+    this.core.cloudHost = v;
+  }
+  get cloudDbName(): CoreSettingsStore["cloudDbName"] {
+    return this.core.cloudDbName;
+  }
+  set cloudDbName(v: CoreSettingsStore["cloudDbName"]) {
+    this.core.cloudDbName = v;
+  }
+  get cloudToken(): CoreSettingsStore["cloudToken"] {
+    return this.core.cloudToken;
+  }
+  set cloudToken(v: CoreSettingsStore["cloudToken"]) {
+    this.core.cloudToken = v;
+  }
+  get sidePanelMode(): CoreSettingsStore["sidePanelMode"] {
+    return this.core.sidePanelMode;
+  }
+  set sidePanelMode(v: CoreSettingsStore["sidePanelMode"]) {
+    this.core.sidePanelMode = v;
+  }
+  get chatStyle(): CoreSettingsStore["chatStyle"] {
+    return this.core.chatStyle;
+  }
+  set chatStyle(v: CoreSettingsStore["chatStyle"]) {
+    this.core.chatStyle = v;
+  }
+  get maxPrivateNotes(): CoreSettingsStore["maxPrivateNotes"] {
+    return this.core.maxPrivateNotes;
+  }
+  set maxPrivateNotes(v: CoreSettingsStore["maxPrivateNotes"]) {
+    this.core.maxPrivateNotes = v;
+  }
 
-  customSystemPrompt = $state<string>(defaultSettings.customSystemPrompt);
-  aiProvider = $state<AiProvider>(defaultSettings.aiProvider);
-  // These three intentionally have no `import.meta.env.VITE_*_API_KEY`
-  // fallback. Vite inlines every VITE_-prefixed variable into the client bundle
-  // at build time, so such a default would serve the operator's AI keys as plain
-  // JavaScript to every visitor of a production build. AI keys are Class A data
-  // under ADR-0001: each user enters their own in Settings → AI, and it stays in
-  // that browser. See docs/archive/engineering-log-2026-h1.md item 24a.
-  openaiApiKey = $state<string>(defaultSettings.openaiApiKey);
-  openaiModel = $state<string>(defaultSettings.openaiModel);
-  openaiBaseUrl = $state<string>(defaultSettings.openaiBaseUrl);
-  geminiApiKey = $state<string>(defaultSettings.geminiApiKey);
-  geminiModel = $state<string>(defaultSettings.geminiModel);
-  geminiBaseUrl = $state<string>(defaultSettings.geminiBaseUrl);
-  anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey);
-  anthropicModel = $state<string>(defaultSettings.anthropicModel);
-  anthropicBaseUrl = $state<string>(defaultSettings.anthropicBaseUrl);
-  // No API key: Ollama is the user's own local (or self-hosted) instance.
-  ollamaBaseUrl = $state<string>(defaultSettings.ollamaBaseUrl);
-  ollamaModel = $state<string>(defaultSettings.ollamaModel);
-  openrouterApiKey = $state<string>(defaultSettings.openrouterApiKey);
-  openrouterModel = $state<string>(defaultSettings.openrouterModel);
-  openrouterBaseUrl = $state<string>(defaultSettings.openrouterBaseUrl);
-  userProviders = $state<ProviderConfig[]>(structuredClone(defaultSettings.userProviders));
-  activeProviderId = $state<string>(defaultSettings.activeProviderId);
-  analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
-  aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
-  aiAllowSettingsChanges = $state<boolean>(defaultSettings.aiAllowSettingsChanges);
-  aiAllowedActions = $state<string[]>(structuredClone(defaultSettings.aiAllowedActions));
-  aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
-  aiShareTradeContext = $state<boolean>(defaultSettings.aiShareTradeContext);
-  aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
-  aiAnalysisMode = $state<AiAnalysisMode>(defaultSettings.aiAnalysisMode);
+  get customSystemPrompt(): CoreSettingsStore["customSystemPrompt"] {
+    return this.core.customSystemPrompt;
+  }
+  set customSystemPrompt(v: CoreSettingsStore["customSystemPrompt"]) {
+    this.core.customSystemPrompt = v;
+  }
+  get aiProvider(): CoreSettingsStore["aiProvider"] {
+    return this.core.aiProvider;
+  }
+  set aiProvider(v: CoreSettingsStore["aiProvider"]) {
+    this.core.aiProvider = v;
+  }
+  get openaiApiKey(): CoreSettingsStore["openaiApiKey"] {
+    return this.core.openaiApiKey;
+  }
+  set openaiApiKey(v: CoreSettingsStore["openaiApiKey"]) {
+    this.core.openaiApiKey = v;
+  }
+  get openaiModel(): CoreSettingsStore["openaiModel"] {
+    return this.core.openaiModel;
+  }
+  set openaiModel(v: CoreSettingsStore["openaiModel"]) {
+    this.core.openaiModel = v;
+  }
+  get openaiBaseUrl(): CoreSettingsStore["openaiBaseUrl"] {
+    return this.core.openaiBaseUrl;
+  }
+  set openaiBaseUrl(v: CoreSettingsStore["openaiBaseUrl"]) {
+    this.core.openaiBaseUrl = v;
+  }
+  get geminiApiKey(): CoreSettingsStore["geminiApiKey"] {
+    return this.core.geminiApiKey;
+  }
+  set geminiApiKey(v: CoreSettingsStore["geminiApiKey"]) {
+    this.core.geminiApiKey = v;
+  }
+  get geminiModel(): CoreSettingsStore["geminiModel"] {
+    return this.core.geminiModel;
+  }
+  set geminiModel(v: CoreSettingsStore["geminiModel"]) {
+    this.core.geminiModel = v;
+  }
+  get geminiBaseUrl(): CoreSettingsStore["geminiBaseUrl"] {
+    return this.core.geminiBaseUrl;
+  }
+  set geminiBaseUrl(v: CoreSettingsStore["geminiBaseUrl"]) {
+    this.core.geminiBaseUrl = v;
+  }
+  get anthropicApiKey(): CoreSettingsStore["anthropicApiKey"] {
+    return this.core.anthropicApiKey;
+  }
+  set anthropicApiKey(v: CoreSettingsStore["anthropicApiKey"]) {
+    this.core.anthropicApiKey = v;
+  }
+  get anthropicModel(): CoreSettingsStore["anthropicModel"] {
+    return this.core.anthropicModel;
+  }
+  set anthropicModel(v: CoreSettingsStore["anthropicModel"]) {
+    this.core.anthropicModel = v;
+  }
+  get anthropicBaseUrl(): CoreSettingsStore["anthropicBaseUrl"] {
+    return this.core.anthropicBaseUrl;
+  }
+  set anthropicBaseUrl(v: CoreSettingsStore["anthropicBaseUrl"]) {
+    this.core.anthropicBaseUrl = v;
+  }
+  get ollamaBaseUrl(): CoreSettingsStore["ollamaBaseUrl"] {
+    return this.core.ollamaBaseUrl;
+  }
+  set ollamaBaseUrl(v: CoreSettingsStore["ollamaBaseUrl"]) {
+    this.core.ollamaBaseUrl = v;
+  }
+  get ollamaModel(): CoreSettingsStore["ollamaModel"] {
+    return this.core.ollamaModel;
+  }
+  set ollamaModel(v: CoreSettingsStore["ollamaModel"]) {
+    this.core.ollamaModel = v;
+  }
+  get openrouterApiKey(): CoreSettingsStore["openrouterApiKey"] {
+    return this.core.openrouterApiKey;
+  }
+  set openrouterApiKey(v: CoreSettingsStore["openrouterApiKey"]) {
+    this.core.openrouterApiKey = v;
+  }
+  get openrouterModel(): CoreSettingsStore["openrouterModel"] {
+    return this.core.openrouterModel;
+  }
+  set openrouterModel(v: CoreSettingsStore["openrouterModel"]) {
+    this.core.openrouterModel = v;
+  }
+  get openrouterBaseUrl(): CoreSettingsStore["openrouterBaseUrl"] {
+    return this.core.openrouterBaseUrl;
+  }
+  set openrouterBaseUrl(v: CoreSettingsStore["openrouterBaseUrl"]) {
+    this.core.openrouterBaseUrl = v;
+  }
+  get userProviders(): CoreSettingsStore["userProviders"] {
+    return this.core.userProviders;
+  }
+  set userProviders(v: CoreSettingsStore["userProviders"]) {
+    this.core.userProviders = v;
+  }
+  get activeProviderId(): CoreSettingsStore["activeProviderId"] {
+    return this.core.activeProviderId;
+  }
+  set activeProviderId(v: CoreSettingsStore["activeProviderId"]) {
+    this.core.activeProviderId = v;
+  }
+  get analysisDepth(): CoreSettingsStore["analysisDepth"] {
+    return this.core.analysisDepth;
+  }
+  set analysisDepth(v: CoreSettingsStore["analysisDepth"]) {
+    this.core.analysisDepth = v;
+  }
+  get aiConfirmActions(): CoreSettingsStore["aiConfirmActions"] {
+    return this.core.aiConfirmActions;
+  }
+  set aiConfirmActions(v: CoreSettingsStore["aiConfirmActions"]) {
+    this.core.aiConfirmActions = v;
+  }
+  get aiAllowSettingsChanges(): CoreSettingsStore["aiAllowSettingsChanges"] {
+    return this.core.aiAllowSettingsChanges;
+  }
+  set aiAllowSettingsChanges(v: CoreSettingsStore["aiAllowSettingsChanges"]) {
+    this.core.aiAllowSettingsChanges = v;
+  }
+  get aiAllowedActions(): CoreSettingsStore["aiAllowedActions"] {
+    return this.core.aiAllowedActions;
+  }
+  set aiAllowedActions(v: CoreSettingsStore["aiAllowedActions"]) {
+    this.core.aiAllowedActions = v;
+  }
+  get aiTradeHistoryLimit(): CoreSettingsStore["aiTradeHistoryLimit"] {
+    return this.core.aiTradeHistoryLimit;
+  }
+  set aiTradeHistoryLimit(v: CoreSettingsStore["aiTradeHistoryLimit"]) {
+    this.core.aiTradeHistoryLimit = v;
+  }
+  get aiShareTradeContext(): CoreSettingsStore["aiShareTradeContext"] {
+    return this.core.aiShareTradeContext;
+  }
+  set aiShareTradeContext(v: CoreSettingsStore["aiShareTradeContext"]) {
+    this.core.aiShareTradeContext = v;
+  }
+  get aiConfirmClear(): CoreSettingsStore["aiConfirmClear"] {
+    return this.core.aiConfirmClear;
+  }
+  set aiConfirmClear(v: CoreSettingsStore["aiConfirmClear"]) {
+    this.core.aiConfirmClear = v;
+  }
+  get aiAnalysisMode(): CoreSettingsStore["aiAnalysisMode"] {
+    return this.core.aiAnalysisMode;
+  }
+  set aiAnalysisMode(v: CoreSettingsStore["aiAnalysisMode"]) {
+    this.core.aiAnalysisMode = v;
+  }
 
-  rssFilterBySymbol = $state<boolean>(defaultSettings.rssFilterBySymbol);
+  get rssFilterBySymbol(): CoreSettingsStore["rssFilterBySymbol"] {
+    return this.core.rssFilterBySymbol;
+  }
+  set rssFilterBySymbol(v: CoreSettingsStore["rssFilterBySymbol"]) {
+    this.core.rssFilterBySymbol = v;
+  }
 
   get showSpinButtons(): DisplaySettingsStore["showSpinButtons"] {
     return this.display.showSpinButtons;
@@ -343,22 +600,54 @@ export class SettingsManager {
   set fontFamily(v: DisplaySettingsStore["fontFamily"]) {
     this.display.fontFamily = v;
   }
-  cryptoPanicApiKey = $state<string | undefined>(
-    defaultSettings.cryptoPanicApiKey,
-  );
-  newsApiKey = $state<string | undefined>(defaultSettings.newsApiKey);
-  cryptoPanicPlan = $state<"developer" | "growth" | "enterprise">(
-    defaultSettings.cryptoPanicPlan,
-  );
-  cryptoPanicFilter = $state<
-    "all" | "rising" | "hot" | "bullish" | "bearish" | "important" | "saved"
-  >(defaultSettings.cryptoPanicFilter);
-  newsOpenBehavior = $state<"smart" | "reader" | "new_tab" | "window">(
-    defaultSettings.newsOpenBehavior,
-  );
-  enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
-  cmcApiKey = $state<string | undefined>(defaultSettings.cmcApiKey);
-  enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
+  get cryptoPanicApiKey(): CoreSettingsStore["cryptoPanicApiKey"] {
+    return this.core.cryptoPanicApiKey;
+  }
+  set cryptoPanicApiKey(v: CoreSettingsStore["cryptoPanicApiKey"]) {
+    this.core.cryptoPanicApiKey = v;
+  }
+  get newsApiKey(): CoreSettingsStore["newsApiKey"] {
+    return this.core.newsApiKey;
+  }
+  set newsApiKey(v: CoreSettingsStore["newsApiKey"]) {
+    this.core.newsApiKey = v;
+  }
+  get cryptoPanicPlan(): CoreSettingsStore["cryptoPanicPlan"] {
+    return this.core.cryptoPanicPlan;
+  }
+  set cryptoPanicPlan(v: CoreSettingsStore["cryptoPanicPlan"]) {
+    this.core.cryptoPanicPlan = v;
+  }
+  get cryptoPanicFilter(): CoreSettingsStore["cryptoPanicFilter"] {
+    return this.core.cryptoPanicFilter;
+  }
+  set cryptoPanicFilter(v: CoreSettingsStore["cryptoPanicFilter"]) {
+    this.core.cryptoPanicFilter = v;
+  }
+  get newsOpenBehavior(): CoreSettingsStore["newsOpenBehavior"] {
+    return this.core.newsOpenBehavior;
+  }
+  set newsOpenBehavior(v: CoreSettingsStore["newsOpenBehavior"]) {
+    this.core.newsOpenBehavior = v;
+  }
+  get enableNewsAnalysis(): CoreSettingsStore["enableNewsAnalysis"] {
+    return this.core.enableNewsAnalysis;
+  }
+  set enableNewsAnalysis(v: CoreSettingsStore["enableNewsAnalysis"]) {
+    this.core.enableNewsAnalysis = v;
+  }
+  get cmcApiKey(): CoreSettingsStore["cmcApiKey"] {
+    return this.core.cmcApiKey;
+  }
+  set cmcApiKey(v: CoreSettingsStore["cmcApiKey"]) {
+    this.core.cmcApiKey = v;
+  }
+  get enableCmcContext(): CoreSettingsStore["enableCmcContext"] {
+    return this.core.enableCmcContext;
+  }
+  set enableCmcContext(v: CoreSettingsStore["enableCmcContext"]) {
+    this.core.enableCmcContext = v;
+  }
   get showMarketOverviewLinks(): DisplaySettingsStore["showMarketOverviewLinks"] {
     return this.display.showMarketOverviewLinks;
   }
@@ -377,11 +666,24 @@ export class SettingsManager {
   set showMarketActivity(v: DisplaySettingsStore["showMarketActivity"]) {
     this.display.showMarketActivity = v;
   }
-  marketAnalysisInterval = $state<number>(
-    defaultSettings.marketAnalysisInterval,
-  );
-  pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
-  analysisTimeframes = $state<string[]>(structuredClone(defaultSettings.analysisTimeframes));
+  get marketAnalysisInterval(): CoreSettingsStore["marketAnalysisInterval"] {
+    return this.core.marketAnalysisInterval;
+  }
+  set marketAnalysisInterval(v: CoreSettingsStore["marketAnalysisInterval"]) {
+    this.core.marketAnalysisInterval = v;
+  }
+  get pauseAnalysisOnBlur(): CoreSettingsStore["pauseAnalysisOnBlur"] {
+    return this.core.pauseAnalysisOnBlur;
+  }
+  set pauseAnalysisOnBlur(v: CoreSettingsStore["pauseAnalysisOnBlur"]) {
+    this.core.pauseAnalysisOnBlur = v;
+  }
+  get analysisTimeframes(): CoreSettingsStore["analysisTimeframes"] {
+    return this.core.analysisTimeframes;
+  }
+  set analysisTimeframes(v: CoreSettingsStore["analysisTimeframes"]) {
+    this.core.analysisTimeframes = v;
+  }
   get showSidebarActivity(): DisplaySettingsStore["showSidebarActivity"] {
     return this.display.showSidebarActivity;
   }
@@ -868,62 +1170,180 @@ export class SettingsManager {
     resetChart(this, defaultSettings);
   }
 
-  // Market & Performance State
-  private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
-  analyzeAllFavorites = $state<boolean>(defaultSettings.analyzeAllFavorites);
-  marketCacheSize = $state<number>(defaultSettings.marketCacheSize);
+  // Market & Performance State (owns no $state itself: `marketMode` state
+  // lives in the core sub-store, the getter/setter below keeps the side
+  // effect in `applyMarketMode` on the manager).
+  get analyzeAllFavorites(): CoreSettingsStore["analyzeAllFavorites"] {
+    return this.core.analyzeAllFavorites;
+  }
+  set analyzeAllFavorites(v: CoreSettingsStore["analyzeAllFavorites"]) {
+    this.core.analyzeAllFavorites = v;
+  }
+  get marketCacheSize(): CoreSettingsStore["marketCacheSize"] {
+    return this.core.marketCacheSize;
+  }
+  set marketCacheSize(v: CoreSettingsStore["marketCacheSize"]) {
+    this.core.marketCacheSize = v;
+  }
 
-  // Alerts State
-  brokenAlertReport = $state<BrokenAlertReport>(
-    defaultSettings.brokenAlertReport,
-  );
+  get brokenAlertReport(): CoreSettingsStore["brokenAlertReport"] {
+    return this.core.brokenAlertReport;
+  }
+  set brokenAlertReport(v: CoreSettingsStore["brokenAlertReport"]) {
+    this.core.brokenAlertReport = v;
+  }
 
-  // Technicals Performance State
-  technicalsUpdateMode = $state<TechnicalsUpdateMode>(
-    defaultSettings.technicalsUpdateMode,
-  );
-  technicalsUpdateInterval = $state<number | undefined>(
-    defaultSettings.technicalsUpdateInterval,
-  );
-  technicalsCacheSize = $state<number>(defaultSettings.technicalsCacheSize);
-  technicalsCacheTTL = $state<number>(defaultSettings.technicalsCacheTTL);
-  maxTechnicalsHistory = $state<number>(defaultSettings.maxTechnicalsHistory);
-  enableIndicatorOptimization = $state<boolean>(
-    defaultSettings.enableIndicatorOptimization,
-  );
-  chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
-  chartRenderIntervalMs = $state<number>(defaultSettings.chartRenderIntervalMs);
-  repairTimeframe = $state<string>(defaultSettings.repairTimeframe);
+  get technicalsUpdateMode(): CoreSettingsStore["technicalsUpdateMode"] {
+    return this.core.technicalsUpdateMode;
+  }
+  set technicalsUpdateMode(v: CoreSettingsStore["technicalsUpdateMode"]) {
+    this.core.technicalsUpdateMode = v;
+  }
+  get technicalsUpdateInterval(): CoreSettingsStore["technicalsUpdateInterval"] {
+    return this.core.technicalsUpdateInterval;
+  }
+  set technicalsUpdateInterval(v: CoreSettingsStore["technicalsUpdateInterval"]) {
+    this.core.technicalsUpdateInterval = v;
+  }
+  get technicalsCacheSize(): CoreSettingsStore["technicalsCacheSize"] {
+    return this.core.technicalsCacheSize;
+  }
+  set technicalsCacheSize(v: CoreSettingsStore["technicalsCacheSize"]) {
+    this.core.technicalsCacheSize = v;
+  }
+  get technicalsCacheTTL(): CoreSettingsStore["technicalsCacheTTL"] {
+    return this.core.technicalsCacheTTL;
+  }
+  set technicalsCacheTTL(v: CoreSettingsStore["technicalsCacheTTL"]) {
+    this.core.technicalsCacheTTL = v;
+  }
+  get maxTechnicalsHistory(): CoreSettingsStore["maxTechnicalsHistory"] {
+    return this.core.maxTechnicalsHistory;
+  }
+  set maxTechnicalsHistory(v: CoreSettingsStore["maxTechnicalsHistory"]) {
+    this.core.maxTechnicalsHistory = v;
+  }
+  get enableIndicatorOptimization(): CoreSettingsStore["enableIndicatorOptimization"] {
+    return this.core.enableIndicatorOptimization;
+  }
+  set enableIndicatorOptimization(v: CoreSettingsStore["enableIndicatorOptimization"]) {
+    this.core.enableIndicatorOptimization = v;
+  }
+  get chartHistoryLimit(): CoreSettingsStore["chartHistoryLimit"] {
+    return this.core.chartHistoryLimit;
+  }
+  set chartHistoryLimit(v: CoreSettingsStore["chartHistoryLimit"]) {
+    this.core.chartHistoryLimit = v;
+  }
+  get chartRenderIntervalMs(): CoreSettingsStore["chartRenderIntervalMs"] {
+    return this.core.chartRenderIntervalMs;
+  }
+  set chartRenderIntervalMs(v: CoreSettingsStore["chartRenderIntervalMs"]) {
+    this.core.chartRenderIntervalMs = v;
+  }
+  get repairTimeframe(): CoreSettingsStore["repairTimeframe"] {
+    return this.core.repairTimeframe;
+  }
+  set repairTimeframe(v: CoreSettingsStore["repairTimeframe"]) {
+    this.core.repairTimeframe = v;
+  }
 
-  // Chart view state
-  chartPriceScaleMode = $state<ChartPriceScaleMode>(
-    defaultSettings.chartPriceScaleMode,
-  );
-  chartAutoScale = $state<boolean>(defaultSettings.chartAutoScale);
-  chartInvertScale = $state<boolean>(defaultSettings.chartInvertScale);
-  chartDecimalsMode = $state<ChartDecimalsMode>(
-    defaultSettings.chartDecimalsMode,
-  );
-  chartFixedDecimals = $state<number>(defaultSettings.chartFixedDecimals);
-  chartShowGrid = $state<boolean>(defaultSettings.chartShowGrid);
-  chartLastValueVisible = $state<boolean>(
-    defaultSettings.chartLastValueVisible,
-  );
-  chartCandleBorders = $state<boolean>(defaultSettings.chartCandleBorders);
-  chartWatermark = $state<boolean>(defaultSettings.chartWatermark);
-  chartCrosshairMode = $state<ChartCrosshairMode>(
-    defaultSettings.chartCrosshairMode,
-  );
-  chartCrosshairStyle = $state<ChartCrosshairStyle>(
-    defaultSettings.chartCrosshairStyle,
-  );
-  chartSecondsVisible = $state<boolean>(defaultSettings.chartSecondsVisible);
-  chartFixEdges = $state<boolean>(defaultSettings.chartFixEdges);
-  chartCountdownEnabled = $state<boolean>(
-    defaultSettings.chartCountdownEnabled,
-  );
-  autoTrading = $state<boolean>(defaultSettings.autoTrading);
-  multiAccount = $state<boolean>(defaultSettings.multiAccount);
+  get chartPriceScaleMode(): CoreSettingsStore["chartPriceScaleMode"] {
+    return this.core.chartPriceScaleMode;
+  }
+  set chartPriceScaleMode(v: CoreSettingsStore["chartPriceScaleMode"]) {
+    this.core.chartPriceScaleMode = v;
+  }
+  get chartAutoScale(): CoreSettingsStore["chartAutoScale"] {
+    return this.core.chartAutoScale;
+  }
+  set chartAutoScale(v: CoreSettingsStore["chartAutoScale"]) {
+    this.core.chartAutoScale = v;
+  }
+  get chartInvertScale(): CoreSettingsStore["chartInvertScale"] {
+    return this.core.chartInvertScale;
+  }
+  set chartInvertScale(v: CoreSettingsStore["chartInvertScale"]) {
+    this.core.chartInvertScale = v;
+  }
+  get chartDecimalsMode(): CoreSettingsStore["chartDecimalsMode"] {
+    return this.core.chartDecimalsMode;
+  }
+  set chartDecimalsMode(v: CoreSettingsStore["chartDecimalsMode"]) {
+    this.core.chartDecimalsMode = v;
+  }
+  get chartFixedDecimals(): CoreSettingsStore["chartFixedDecimals"] {
+    return this.core.chartFixedDecimals;
+  }
+  set chartFixedDecimals(v: CoreSettingsStore["chartFixedDecimals"]) {
+    this.core.chartFixedDecimals = v;
+  }
+  get chartShowGrid(): CoreSettingsStore["chartShowGrid"] {
+    return this.core.chartShowGrid;
+  }
+  set chartShowGrid(v: CoreSettingsStore["chartShowGrid"]) {
+    this.core.chartShowGrid = v;
+  }
+  get chartLastValueVisible(): CoreSettingsStore["chartLastValueVisible"] {
+    return this.core.chartLastValueVisible;
+  }
+  set chartLastValueVisible(v: CoreSettingsStore["chartLastValueVisible"]) {
+    this.core.chartLastValueVisible = v;
+  }
+  get chartCandleBorders(): CoreSettingsStore["chartCandleBorders"] {
+    return this.core.chartCandleBorders;
+  }
+  set chartCandleBorders(v: CoreSettingsStore["chartCandleBorders"]) {
+    this.core.chartCandleBorders = v;
+  }
+  get chartWatermark(): CoreSettingsStore["chartWatermark"] {
+    return this.core.chartWatermark;
+  }
+  set chartWatermark(v: CoreSettingsStore["chartWatermark"]) {
+    this.core.chartWatermark = v;
+  }
+  get chartCrosshairMode(): CoreSettingsStore["chartCrosshairMode"] {
+    return this.core.chartCrosshairMode;
+  }
+  set chartCrosshairMode(v: CoreSettingsStore["chartCrosshairMode"]) {
+    this.core.chartCrosshairMode = v;
+  }
+  get chartCrosshairStyle(): CoreSettingsStore["chartCrosshairStyle"] {
+    return this.core.chartCrosshairStyle;
+  }
+  set chartCrosshairStyle(v: CoreSettingsStore["chartCrosshairStyle"]) {
+    this.core.chartCrosshairStyle = v;
+  }
+  get chartSecondsVisible(): CoreSettingsStore["chartSecondsVisible"] {
+    return this.core.chartSecondsVisible;
+  }
+  set chartSecondsVisible(v: CoreSettingsStore["chartSecondsVisible"]) {
+    this.core.chartSecondsVisible = v;
+  }
+  get chartFixEdges(): CoreSettingsStore["chartFixEdges"] {
+    return this.core.chartFixEdges;
+  }
+  set chartFixEdges(v: CoreSettingsStore["chartFixEdges"]) {
+    this.core.chartFixEdges = v;
+  }
+  get chartCountdownEnabled(): CoreSettingsStore["chartCountdownEnabled"] {
+    return this.core.chartCountdownEnabled;
+  }
+  set chartCountdownEnabled(v: CoreSettingsStore["chartCountdownEnabled"]) {
+    this.core.chartCountdownEnabled = v;
+  }
+  get autoTrading(): CoreSettingsStore["autoTrading"] {
+    return this.core.autoTrading;
+  }
+  set autoTrading(v: CoreSettingsStore["autoTrading"]) {
+    this.core.autoTrading = v;
+  }
+  get multiAccount(): CoreSettingsStore["multiAccount"] {
+    return this.core.multiAccount;
+  }
+  set multiAccount(v: CoreSettingsStore["multiAccount"]) {
+    this.core.multiAccount = v;
+  }
 
   get enableDockingCentered(): DisplaySettingsStore["enableDockingCentered"] {
     return this.display.enableDockingCentered;
@@ -938,13 +1358,13 @@ export class SettingsManager {
     this.display.dockingPosition = v;
   }
 
-  get marketMode() {
-    return this._marketMode;
+  get marketMode(): CoreSettingsStore["marketMode"] {
+    return this.core.marketMode;
   }
 
   set marketMode(v: MarketMode) {
-    if (v !== this._marketMode) {
-      this._marketMode = v;
+    if (v !== this.core.marketMode) {
+      this.core.marketMode = v;
       this.applyMarketMode(v);
     }
   }
@@ -1605,6 +2025,19 @@ export class SettingsManager {
   ) {
     const target: LoadTarget = {
       set: (key, value) => {
+        // `_marketMode` is the one key the load path addresses behind the
+        // public name: `loadCustomValue("marketMode")` writes it directly so
+        // `load()` never fires the setter (which would `applyMarketMode`
+        // and overwrite the four profile fields on every boot). The state
+        // lives in the core sub-store since ADR-0024 decision 2 — routing
+        // here keeps the bypass working without resurrecting a manager
+        // field, and without touching the setter contract the schema test
+        // pins (`loads marketMode into the private field, never through
+        // the setter`).
+        if (key === "_marketMode") {
+          this.core.marketMode = value as MarketMode;
+          return;
+        }
         (this as unknown as Record<string, unknown>)[key] = value;
       },
       entitlement: this.entitlement,

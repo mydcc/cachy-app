@@ -615,4 +615,27 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
       (settings.toJSON() as unknown as Record<string, unknown>)[key],
     ).toEqual(stored);
   });
+
+  it("restores marketMode without firing the setter (ADR-0024 core move)", () => {
+    // Regression: `marketMode` load bypasses the setter on purpose
+    // (`loadCustomValue` writes `_marketMode` directly so `applyMarketMode`
+    // does not overwrite the four profile fields on boot). After the core
+    // move that key must land in the sub-store — an inert own property on
+    // the manager would silently reset the mode on every reload.
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        marketMode: "performance",
+        marketAnalysisInterval: 300,
+      }),
+    );
+
+    const settings = new SettingsManager();
+    expect(settings.marketMode).toBe("performance");
+    // The setter would have forced these to the performance profile (0,
+    // false, false, false) — the stored values must survive instead.
+    expect(settings.marketAnalysisInterval).toBe(300);
+    expect(settings.toJSON().marketMode).toBe("performance");
+    settings.destroy();
+  });
 });

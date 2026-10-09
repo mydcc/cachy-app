@@ -145,10 +145,15 @@ describe("persistence schema exactness", () => {
             fileURLToPath(new URL("../settings.svelte.ts", import.meta.url)),
             "utf8",
         );
-        // Display-section fields live in the sub-store (ADR-0024 decision 2):
-        // scan both homes, since an init in either place must clone.
+        // Display- and core-section fields live in their sub-stores (ADR-0024
+        // decision 2): scan all three homes, since an init in any place
+        // must clone.
         const displaySource = readFileSync(
             fileURLToPath(new URL("./display.svelte.ts", import.meta.url)),
+            "utf8",
+        );
+        const coreSource = readFileSync(
+            fileURLToPath(new URL("./core.svelte.ts", import.meta.url)),
             "utf8",
         );
         // Comments are blanked before the scan. The first version of this test
@@ -169,7 +174,7 @@ describe("persistence schema exactness", () => {
         // written to fix. A scanner that trusts a lexical token across a
         // comment is the shape of bug this repo has already paid for once (an
         // apostrophe in a comment silently dropped nine write sites).
-        const code = stripNonCode(managerSource + "\n" + displaySource);
+        const code = stripNonCode(managerSource + "\n" + displaySource + "\n" + coreSource);
 
         // Assert — every object-valued init wraps the default in
         // structuredClone, *as the argument* rather than as a word that
