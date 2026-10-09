@@ -2,9 +2,7 @@
 id: FEAT-0342
 title: "Decompose remaining god modules (VisualsTab, tradeService)"
 type: feature
-status: in-progress
-assignee: opencode
-branch: feature/0342-trade-rest-lanes
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -15,7 +13,11 @@ depends_on: []
 parent: FEAT-0341
 ---
 
-## Status note (2026-10-09, step 3 rest — branch `feature/0342-trade-rest-lanes`)
+## Status note (2026-10-09, step 3 rest — merged)
+
+The four remaining lanes are implemented, reviewed (swarm, no HIGH+) and
+waiting on merge. Claim released, status back to `ready`; the account-cluster
+ADR decision is the next open point.
 
 Claimed (`assignee: opencode`): extracting the four remaining lanes
 `placeOrder`, `addToPosition`, `closePosition`, `closeAllPositions` into
