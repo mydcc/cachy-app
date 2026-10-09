@@ -491,6 +491,8 @@ export function loadCustomValue(
         case "marketMode":
             // Assigned to the private field directly: load() never fires the
             // `marketMode` setter, so going through it would apply the mode.
+            // Routed by `SettingsManager.applySchemaLoad` into
+            // `CoreSettingsStore` (never through the setter).
             target.set("_marketMode", merged.marketMode || defaults.marketMode);
             return;
         case "chartPriceScaleMode":

@@ -304,6 +304,77 @@ describe("settings reactivity contract", () => {
     ).toEqual([]);
   });
 
+  it("writes the mode profile through the facade on setter use", () => {
+    // The one write path crossing the new boundary into two sub-stores:
+    // `set marketMode` runs `applyMarketMode` on the manager, which writes
+    // `marketAnalysisInterval`/`enableNewsAnalysis` (core),
+    // `showMarketActivity` (display) and `analyzeAllFavorites` (core).
+    // A delegation typo here breaks mode switching with no other test
+    // going red. Each profile is asserted through the manager spelling
+    // and through `toJSON()`.
+    const profiles = {
+      performance: {
+        marketAnalysisInterval: 0,
+        enableNewsAnalysis: false,
+        showMarketActivity: false,
+        analyzeAllFavorites: false,
+      },
+      balanced: {
+        marketAnalysisInterval: 300,
+        enableNewsAnalysis: true,
+        showMarketActivity: true,
+        analyzeAllFavorites: false,
+      },
+      pro: {
+        marketAnalysisInterval: 60,
+        enableNewsAnalysis: true,
+        showMarketActivity: true,
+        analyzeAllFavorites: true,
+      },
+    } as const;
+    for (const [mode, expected] of Object.entries(profiles)) {
+      settings.marketMode = mode as typeof settings.marketMode;
+      flushSync();
+      for (const [field, value] of Object.entries(expected)) {
+        expect(
+          (settings as unknown as Record<string, unknown>)[field],
+          `${mode}: ${field}`,
+        ).toBe(value);
+        expect(
+          (settings.toJSON() as unknown as Record<string, unknown>)[field],
+          `${mode}: ${field} (serialized)`,
+        ).toBe(value);
+      }
+      expect(settings.marketMode).toBe(mode);
+    }
+    // Restore the default so later tests start from a clean profile.
+    settings.marketMode = "balanced";
+    flushSync();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+  });
+
+  it("schedules saves for in-place mutations through delegated getters", () => {
+    // Delegation returns the live `$state` proxy today — but a future
+    // "defensive copy" in a getter would silently unsave exactly this
+    // field class (object-valued settings mutated without reassignment).
+    // The tracking test pins this with a fake source; this pins it
+    // against the real effect.
+    saveSpy.mockClear();
+    (settings.favoriteSymbols as string[]).push("SENTINEL");
+    flushSync();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    expect(saveSpy, "in-place push scheduled no save").toHaveBeenCalled();
+
+    saveSpy.mockClear();
+    const rates = settings.feeRates as {
+      bitunix: Record<string, number>;
+    };
+    rates.bitunix = { ...rates.bitunix, SENTINEL: 0 };
+    flushSync();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+    expect(saveSpy, "in-place venue-rate edit scheduled no save").toHaveBeenCalled();
+  });
+
   it("routes every key the manager does not hold through a declared owner", () => {
     const unmapped = SETTINGS_KEYS.filter(
       // `in`, not hasOwn: $state class fields live on the prototype, so an

@@ -622,11 +622,19 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
     // does not overwrite the four profile fields on boot). After the core
     // move that key must land in the sub-store — an inert own property on
     // the manager would silently reset the mode on every reload.
+    //
+    // Every stored profile value is off-profile on purpose (performance
+    // forces 0/false/false/false): a stored value coinciding with the
+    // profile would pass even when clobbered. All four are asserted, not
+    // just one.
     localStorageMock.setItem(
       STORAGE_KEY,
       JSON.stringify({
         marketMode: "performance",
         marketAnalysisInterval: 300,
+        enableNewsAnalysis: true,
+        showMarketActivity: true,
+        analyzeAllFavorites: true,
       }),
     );
 
@@ -635,6 +643,9 @@ describe("SettingsManager -- BUG-0652 roundtrips", () => {
     // The setter would have forced these to the performance profile (0,
     // false, false, false) — the stored values must survive instead.
     expect(settings.marketAnalysisInterval).toBe(300);
+    expect(settings.enableNewsAnalysis).toBe(true);
+    expect(settings.showMarketActivity).toBe(true);
+    expect(settings.analyzeAllFavorites).toBe(true);
     expect(settings.toJSON().marketMode).toBe("performance");
     settings.destroy();
   });

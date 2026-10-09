@@ -26,9 +26,11 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { expectTypeOf } from "vitest";
 import { SettingsManager } from "../settings.svelte";
 import { PERSISTENCE_SCHEMA } from "./persistenceSchema";
 import { DisplaySettingsStore } from "./display.svelte";
+import type { Settings } from "./settingsTypes";
 
 /** Display schema rows owned by another object, not by a settings store. */
 const HELD_ELSEWHERE = new Set(["isProLicenseActive"]);
@@ -59,5 +61,13 @@ describe("display sub-store inventory", () => {
             `these display fields have no delegating accessor — consumers ` +
                 `would read a missing property instead of live state: ${missing.join(", ")}`,
         ).toEqual([]);
+    });
+
+    it("matches Settings field types exactly", () => {
+        // Same guard as the core inventory: names are runtime-pinned,
+        // strictness is compile-time-pinned (see there for the rationale).
+        expectTypeOf<DisplaySettingsStore>().toEqualTypeOf<
+            Pick<Settings, keyof DisplaySettingsStore>
+        >();
     });
 });

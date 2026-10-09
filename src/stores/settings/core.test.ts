@@ -24,9 +24,11 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { expectTypeOf } from "vitest";
 import { SettingsManager } from "../settings.svelte";
 import { PERSISTENCE_SCHEMA } from "./persistenceSchema";
 import { CoreSettingsStore } from "./core.svelte";
+import type { Settings } from "./settingsTypes";
 
 /** Core schema rows owned by another object, not by a settings store. */
 const HELD_ELSEWHERE = new Set(["isPro"]);
@@ -57,5 +59,16 @@ describe("core sub-store inventory", () => {
             `these core fields have no delegating accessor — consumers ` +
                 `would read a missing property instead of live state: ${missing.join(", ")}`,
         ).toEqual([]);
+    });
+
+    it("matches Settings field types exactly", () => {
+        // The runtime inventory pins names; this pins strictness. A
+        // widened or narrowed store field (dropped `| undefined`, widened
+        // literal union) compiles clean through the `as unknown as Settings`
+        // cast in `toJSON()` and fails no runtime test — but changes
+        // load/save semantics at the boundary. This fails at typecheck.
+        expectTypeOf<CoreSettingsStore>().toEqualTypeOf<
+            Pick<Settings, keyof CoreSettingsStore>
+        >();
     });
 });
