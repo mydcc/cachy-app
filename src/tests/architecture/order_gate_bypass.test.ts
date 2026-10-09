@@ -84,6 +84,223 @@ interface Bypass {
  */
 const DISPATCH_PRIMITIVES = ["signedRequest", "exchangeSignedFetch", "appFetch"];
 
+// Hoisted to module scope so the per-line scan does not recompile them per
+// call (hundreds of thousands of constructions over a whole-`src/` run).
+// They MUST stay `/g`-free: the block matcher below clones them into global
+// copies for `matchAll`, and a shared global regex would carry `lastIndex`
+// state across calls.
+const PRIMITIVE_ALTERNATION = "(?:signedRequest|exchangeSignedFetch|appFetch)";
+const IDENT = "[A-Za-z_$][\\w$]*";
+// Module-scope global copies for `matchAll` (the per-line scan must not
+// recompile them per call). Sharing a `/g` regex is safe here: `matchAll`
+// never advances the *passed* object's `lastIndex` (it clones internally),
+// and nothing in this file `.exec`s or `.test`s them.
+const PLAIN_ALIAS_G = new RegExp(
+    `(?:const|let|var)\\s+(${IDENT})\\s*=\\s*([\\w$\\s?.\\[\\]"']{0,120}?)\\b${PRIMITIVE_ALTERNATION}\\b`,
+    "g",
+);
+const DESTRUCTURE_PAIR_G = new RegExp(
+    `${PRIMITIVE_ALTERNATION}\\s*:\\s*(${IDENT})`,
+    "g",
+);
+const PARAM_FUNCTION_G = /function\s+[A-Za-z_$][\w$]*\s*\(([^()]*)\)/g;
+const PARAM_ARROW_G = /\(\s*\{([^}]*)\}\s*\)\s*=>/g;
+
+/**
+ * Every `{…}` group in the text that is followed by `=`, with the index just
+ * past its closing brace (the binding takes effect on that line). Brace-
+ * balanced in code (linear), not by regex: a lazy `\{.*?\}=` re-scans from
+ * every payload object in the block (quadratic), and a bounded `[^}]*` cannot
+ * see a Prettier-split destructure. Only `{…} =` positions can be
+ * destructuring bindings — an object literal passed as a call argument is
+ * followed by `)` or `,`, never `=`.
+ */
+function destructureGroups(text: string): { content: string; end: number }[] {
+    const groups: { content: string; end: number }[] = [];
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] !== "{") continue;
+        let depth = 0;
+        let j = i;
+        for (; j < text.length; j++) {
+            if (text[j] === "{") depth++;
+            else if (text[j] === "}") {
+                depth--;
+                if (depth === 0) break;
+            }
+        }
+        // Unbalanced tail: a later `{` may still form a valid group, so skip
+        // this one instead of aborting the whole scan. Note there is
+        // deliberately no `i = j` jump past a balanced group: on a whole
+        // file the first `{` is the outer scope, and jumping would skip every
+        // binding inside it. Groups nest rarely and files are kilobytes, so
+        // the re-scan costs nothing; correctness first.
+        if (depth !== 0) continue;
+        let k = j + 1;
+        while (k < text.length && /\s/.test(text[k])) k++;
+        if (text[k] === "=") groups.push({ content: text.slice(i + 1, j), end: j });
+    }
+    return groups;
+}
+
+interface FileBindings {
+    /** `lineOf` maps a match index to its 0-based line. */
+    lineOf: (index: number) => number;
+    plain: { name: string; line: number }[];
+    destructurePairs: { name: string; line: number }[];
+    params: { name: string; line: number }[];
+    hops: { name: string; rhs: string; line: number }[];
+}
+
+/**
+ * All alias bindings of one file, computed once. Per-line resolution then
+ * filters by the call's enclosing block instead of re-scanning text — the
+ * whole-`src/` scan stays in seconds. Semantics match the old per-line
+ * matcher exactly: a binding counts for a call iff its line lies inside the
+ * call's enclosing block slice.
+ */
+function collectBindings(source: string): FileBindings {
+    const lineStarts: number[] = [0];
+    for (let i = 0; i < source.length; i++) {
+        if (source[i] === "\n") lineStarts.push(i + 1);
+    }
+    const lineOf = (index: number): number => {
+        let lo = 0;
+        let hi = lineStarts.length - 1;
+        while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (lineStarts[mid] <= index) lo = mid;
+            else hi = mid - 1;
+        }
+        return lo;
+    };
+    const plain: FileBindings["plain"] = [];
+    const destructurePairs: FileBindings["destructurePairs"] = [];
+    const params: FileBindings["params"] = [];
+    const hops: FileBindings["hops"] = [];
+
+    for (const match of source.matchAll(PLAIN_ALIAS_G)) {
+        // See `transportNamesIn`: the text between `=` and the primitive must
+        // end in an access (`.`, `?.`, `[`, `["`, `['`), otherwise it is data
+        // that happens to name a primitive (string literal, call result).
+        const prefix = (match[2] ?? "").trimEnd();
+        if (
+            prefix === "" ||
+            prefix.endsWith(".") ||
+            prefix.endsWith("?.") ||
+            prefix.endsWith("[") ||
+            prefix.endsWith('["') ||
+            prefix.endsWith("['")
+        ) {
+            if (match[1] && !DISPATCH_PRIMITIVES.includes(match[1])) {
+                plain.push({ name: match[1], line: lineOf(match.index ?? 0) });
+            }
+        }
+    }
+    for (const group of destructureGroups(source)) {
+        const line = lineOf(group.end);
+        for (const pair of group.content.matchAll(DESTRUCTURE_PAIR_G)) {
+            if (pair[1] && !DISPATCH_PRIMITIVES.includes(pair[1])) {
+                destructurePairs.push({ name: pair[1], line });
+            }
+        }
+    }
+    const collectParams = (text: string, baseIndex: number) => {
+        for (const pair of text.matchAll(DESTRUCTURE_PAIR_G)) {
+            if (pair[1] && !DISPATCH_PRIMITIVES.includes(pair[1])) {
+                params.push({ name: pair[1], line: lineOf(baseIndex) });
+            }
+        }
+    };
+    for (const m of source.matchAll(PARAM_FUNCTION_G)) {
+        collectParams(m[1], m.index ?? 0);
+    }
+    for (const m of source.matchAll(PARAM_ARROW_G)) {
+        collectParams(m[1], m.index ?? 0);
+    }
+    // Transitive hops (`const s2 = s1`) are resolved per call against the
+    // names known there (fixpoint); collection only records candidates.
+    // The right-hand side must be a bare identifier — a longer access would
+    // be its own (non-)binding, and the negative lookahead keeps
+    // `= known.prop` (a value, not the transport) out.
+    const hopPattern = new RegExp(
+        `(?:const|let|var|,)\\s+(${IDENT})\\s*=\\s*(${IDENT})\\b(?!\\s*[\\w$]*\\s*\\.)`,
+        "g",
+    );
+    for (const m of source.matchAll(hopPattern)) {
+        if (m[1]) hops.push({ name: m[1], rhs: m[2], line: lineOf(m.index ?? 0) });
+    }
+    return { lineOf, plain, destructurePairs, params, hops };
+}
+
+/**
+ * Local `exchangeSignedFetch` bindings of one file, for the envelope
+ * allowlist scan below. File-scoped (not block-scoped like the gate scan):
+ * alias names are rare enough that overreach is the smaller risk here.
+ * Every spelling the gate scanner resolves has its mirror here — a hole in
+ * one scanner and not the other is how the same bypass class survived twice.
+ */
+function envelopeAliases(text: string): string[] {
+    const ESEF = "(?:exchangeSignedFetch)";
+    const names = new Set<string>();
+    const plain = new RegExp(
+        `(?:const|let|var)\\s+(${IDENT})\\s*=\\s*([\\w$\\s?.\\[\\]"']{0,120}?)\\b${ESEF}\\b`,
+        "g",
+    );
+    for (const match of text.matchAll(plain)) {
+        const prefix = (match[2] ?? "").trimEnd();
+        if (
+            prefix === "" ||
+            prefix.endsWith(".") ||
+            prefix.endsWith("?.") ||
+            prefix.endsWith("[") ||
+            prefix.endsWith('["') ||
+            prefix.endsWith("['")
+        ) {
+            if (match[1] !== "exchangeSignedFetch") names.add(match[1]);
+        }
+    }
+    const pair = new RegExp(`${ESEF}\\s*:\\s*(${IDENT})`, "g");
+    for (const group of destructureGroups(text)) {
+        for (const m of group.content.matchAll(pair)) {
+            if (m[1] !== "exchangeSignedFetch") names.add(m[1]);
+        }
+    }
+    for (const m of text.matchAll(/import\s*\{([^}]*)\}\s*from/g)) {
+        const asPair = new RegExp(`${ESEF}\\s+as\\s+(${IDENT})`, "g");
+        for (const p of m[1].matchAll(asPair)) {
+            if (p[1] !== "exchangeSignedFetch") names.add(p[1]);
+        }
+    }
+    for (const m of text.matchAll(PARAM_FUNCTION_G)) {
+        for (const p of m[1].matchAll(pair)) {
+            if (p[1] !== "exchangeSignedFetch") names.add(p[1]);
+        }
+    }
+    for (const m of text.matchAll(PARAM_ARROW_G)) {
+        for (const p of m[1].matchAll(pair)) {
+            if (p[1] !== "exchangeSignedFetch") names.add(p[1]);
+        }
+    }
+    const hop = new RegExp(
+        `(?:const|let|var|,)\\s+(${IDENT})\\s*=\\s*(${IDENT})\\b(?!\\s*[\\w$]*\\s*\\.)`,
+        "g",
+    );
+    const candidates: { name: string; rhs: string }[] = [];
+    for (const m of text.matchAll(hop)) {
+        candidates.push({ name: m[1], rhs: m[2] });
+    }
+    for (let pass = 0; pass < 10; pass++) {
+        const size = names.size;
+        for (const c of candidates) {
+            if (c.rhs === "exchangeSignedFetch" || names.has(c.rhs)) {
+                if (c.name !== "exchangeSignedFetch") names.add(c.name);
+            }
+        }
+        if (names.size === size) break;
+    }
+    return [...names];
+}
+
 /**
  * The primitives plus any local binding of one.
  *
@@ -97,39 +314,125 @@ const DISPATCH_PRIMITIVES = ["signedRequest", "exchangeSignedFetch", "appFetch"]
  * never touch the wire. The brace count is crude, but this file is a guard:
  * a crude scope that cannot over-reach beats a precise one nobody reads.
  */
-function transportNamesIn(lines: string[], line: number): string[] {
-    const names = new Set(DISPATCH_PRIMITIVES);
-    // `this.signedRequest` is covered by the general form — `this` is an
-    // ordinary identifier — so there is no `this\.` alternative to pair with
-    // it. Two ways to match the same text is what makes a repeated group
-    // backtrack, and this one runs over every source file in `src/`.
-    const alias =
-        /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:[A-Za-z_$][\w$]*\.)*(?:signedRequest|exchangeSignedFetch|appFetch)\b/;
+function transportNamesIn(
+    lines: string[],
+    line: number,
+    importAliases: string[] = [],
+    bindings?: FileBindings,
+    blockStart?: number,
+): string[] {
+    const names = new Set<string>([...DISPATCH_PRIMITIVES, ...importAliases]);
 
-    // Walk back to the start of the enclosing block, counting braces. A
-    // binding cannot reach past the block it was declared in, so neither may
-    // the name it introduces.
-    let depth = 0;
-    let start = 0;
-    for (let i = line - 1; i >= 0; i--) {
-        for (const ch of lines[i]) {
-            if (ch === "}") depth++;
-            else if (ch === "{") {
-                if (depth === 0) {
-                    start = i;
-                    break;
+    // Start of the enclosing block: precomputed per file by `findBypasses`
+    // (forward brace scan, linear). The fallback below is the same scan
+    // backwards, kept for direct unit use.
+    let start = blockStart ?? -1;
+    if (start < 0) {
+        let depth = 0;
+        start = 0;
+        for (let i = line - 1; i >= 0; i--) {
+            const text = lines[i];
+            for (let k = text.length - 1; k >= 0; k--) {
+                const ch = text[k];
+                if (ch === "}") depth++;
+                else if (ch === "{") {
+                    if (depth === 0) {
+                        start = i;
+                        break;
+                    }
+                    depth--;
                 }
-                depth--;
             }
+            if (depth === 0 && start > 0) break;
         }
-        if (depth === 0 && start > 0) break;
-        if (depth > 0) continue;
-        start = i;
     }
 
-    for (let i = start; i <= line; i++) {
-        const match = alias.exec(lines[i]);
-        if (match && !DISPATCH_PRIMITIVES.includes(match[1])) names.add(match[1]);
+    // Bindings come from the file-level collection (`collectBindings`, run
+    // once per file): a binding counts iff its line lies inside this call's
+    // enclosing slice. The transitive fixpoint runs over the same slice, so
+    // an alias bound in an *outer* block stays invisible here, exactly as the
+    // old per-line matcher behaved.
+    if (bindings) {
+        const inSlice = (bindingLine: number) =>
+            bindingLine >= start && bindingLine <= line;
+        for (const b of bindings.plain) {
+            if (inSlice(b.line)) names.add(b.name);
+        }
+        for (const b of bindings.destructurePairs) {
+            if (inSlice(b.line)) names.add(b.name);
+        }
+        for (const b of bindings.params) {
+            if (inSlice(b.line)) names.add(b.name);
+        }
+        for (let pass = 0; pass < 10; pass++) {
+            const size = names.size;
+            for (const hop of bindings.hops) {
+                if (inSlice(hop.line) && names.has(hop.rhs)) names.add(hop.name);
+            }
+            if (names.size === size) break;
+        }
+        return [...names];
+    }
+
+    // Fallback without a collection (kept for direct unit use): match over
+    // the joined slice. Slower per call; the repo-wide scan always passes
+    // `bindings`.
+    const block = lines.slice(start, line + 1).join("\n");
+    const paramLists: string[] = [];
+    for (const m of block.matchAll(PARAM_FUNCTION_G)) {
+        paramLists.push(m[1]);
+    }
+    for (const m of block.matchAll(PARAM_ARROW_G)) {
+        paramLists.push(m[1]);
+    }
+
+    const addAll = (matches: IterableIterator<RegExpMatchArray>) => {
+        for (const match of matches) {
+            if (match[1] && !DISPATCH_PRIMITIVES.includes(match[1])) names.add(match[1]);
+        }
+    };
+    for (const match of block.matchAll(PLAIN_ALIAS_G)) {
+        // The text between `=` and the primitive must end in an access —
+        // nothing (bare `= signedRequest`), `.`, `?.`, `[`, `["`, `['`.
+        // Anything else is data that happens to name a primitive: a string
+        // literal (`= "signedRequest"`), a call result (`= make("…")`), a
+        // comment. The bracket form (`x["signedRequest"]`) ends in `["` and
+        // passes here, so it needs no second pattern.
+        const prefix = match[2].trimEnd();
+        if (
+            prefix === "" ||
+            prefix.endsWith(".") ||
+            prefix.endsWith("?.") ||
+            prefix.endsWith("[") ||
+            prefix.endsWith('["') ||
+            prefix.endsWith("['")
+        ) {
+            if (!DISPATCH_PRIMITIVES.includes(match[1])) names.add(match[1]);
+        }
+    }
+    for (const group of destructureGroups(block)) {
+        // Every `{…} =` outside parameter lists is a declaration or an
+        // assignment destructure (`f({a: b} = c)` is not valid syntax), so
+        // both bind — and params are searched separately below.
+        addAll(group.content.matchAll(DESTRUCTURE_PAIR_G));
+    }
+    for (const params of paramLists) {
+        addAll(params.matchAll(DESTRUCTURE_PAIR_G));
+    }
+
+    // Transitive aliases: `const s2 = s1` where `s1` is already known. One
+    // more hop outruns every literal-based pattern, so resolve to a fixpoint
+    // (bounded: each pass must add at least one name, and names are finite).
+    const knownAlternation = () =>
+        `(?:${[...names].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`;
+    for (let pass = 0; pass < 10; pass++) {
+        const size = names.size;
+        const hop = new RegExp(
+            `(?:const|let|var|,)\\s+(${IDENT})\\s*=\\s*${knownAlternation()}\\b(?!\\s*[\\w$]*\\s*\\.)`,
+            "g",
+        );
+        addAll(block.matchAll(hop));
+        if (names.size === size) break;
     }
     return [...names];
 }
@@ -143,8 +446,39 @@ function findBypasses(source: string, file: string): Bypass[] {
     const found: Bypass[] = [];
     const lines = source.split("\n");
 
+    // Import renames bind a transport with no `=` and no `key:` at all
+    // (`import { appFetch as relay } from "…"`), and imports are file-scoped
+    // by nature — so the alias is too. Collected once per file, not per line.
+    const importAliases: string[] = [];
+    for (const m of source.matchAll(/import\s*\{([^}]*)\}\s*from/g)) {
+        const pairPattern = new RegExp(
+            `${PRIMITIVE_ALTERNATION}\\s+as\\s+(${IDENT})`,
+            "g",
+        );
+        for (const pair of m[1].matchAll(pairPattern)) {
+            if (!DISPATCH_PRIMITIVES.includes(pair[1])) importAliases.push(pair[1]);
+        }
+    }
+    // All other bindings likewise once per file (`collectBindings`); per-line
+    // resolution only filters by the call's enclosing slice.
+    const bindings = collectBindings(source);
+    // Enclosing-block start per line, forward brace scan (linear for the
+    // file). `starts[i]` is the innermost block open before line `i` — the
+    // same line the backwards walk-back finds, since balanced pairs on older
+    // lines cancel in both directions.
+    const starts: number[] = new Array(lines.length);
+    const openStack: number[] = [];
     for (let i = 0; i < lines.length; i++) {
-        const names = transportNamesIn(lines, i)
+        starts[i] = openStack.length > 0 ? openStack[openStack.length - 1] : 0;
+        for (let k = 0; k < lines[i].length; k++) {
+            const ch = lines[i][k];
+            if (ch === "{") openStack.push(i);
+            else if (ch === "}" && openStack.length > 0) openStack.pop();
+        }
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+        const names = transportNamesIn(lines, i, importAliases, bindings, starts[i])
             .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
             // Longest first, so `signedRequest` is not shadowed by a shorter
             // alias that happens to be a prefix of it.
@@ -350,6 +684,137 @@ describe("FEAT-0011 — the order transport is only reachable through the gate",
         expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
     });
 
+    // The same hole in the other spelling. `const { signedRequest: send } = ports`
+    // never writes `= <primitive>`, so the alias pattern alone cannot bind
+    // `send` to the transport, and the mutating order below reaches the wire
+    // ungated with every other assertion in this file still green.
+    it("flags a mutating order sent through a destructured transport alias", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const { signedRequest: send } = ports;
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    it("flags a mutating order through a destructured appFetch alias", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const { appFetch: relay } = ports;
+                return relay("/api/orders", { method: "POST", body: JSON.stringify({ action: "place-order" }) });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // Prettier splits long destructures across lines as a matter of course,
+    // and the project's own flow mandates `prettier --write` — so this shape
+    // can be produced by the project's own tooling, not by an adversary. A
+    // per-line scan never sees `{...primitive: name}` whole.
+    it("flags a mutating order through a multi-line destructured alias", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const {
+                    signedRequest: send,
+                } = ports;
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // One `exec` per line binds at most one name; the second transport on the
+    // same line stays an ordinary identifier and its mutating call walks
+    // through. Two renames on one line are formatting, not obfuscation.
+    it("flags mutating orders through both bindings of a two-rename line", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const { signedRequest: a, appFetch: b } = ports;
+                await a("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+                return b("/api/orders", { method: "POST", body: JSON.stringify({ action: "place-order" }) });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(2);
+    });
+
+    // Parameters bind without `const/let/var`, so the declaration patterns
+    // never fire — yet this is the first shape a ports-object refactor
+    // produces.
+    it("flags a mutating order through a destructured parameter", () => {
+        const bypassing = `
+            export async function sendIt({ signedRequest: send }) {
+                return send("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // `appFetch` and `exchangeSignedFetch` are directly importable, so a
+    // rename at the import binds a transport with no `=` and no `key:` at
+    // all. Imports are file-scoped by nature, so the alias is too.
+    it("flags a mutating order through an import alias", () => {
+        const bypassing = `
+            import { appFetch as relay } from "../lib/appAuth";
+            export async function sendIt() {
+                return relay("/api/orders", { method: "POST", body: JSON.stringify({ action: "place-order" }) });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // `?.` is idiomatic defensive access and `["…"]` a standard rewording;
+    // the dotted-chain pattern sees neither.
+    it("flags a mutating order through bracket and optional-chaining access", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const a = ports["signedRequest"];
+                const b = ports?.signedRequest;
+                await a("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+                return b("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(2);
+    });
+
+    // Both patterns require the primitive literal on the right-hand side, so
+    // one more hop outruns them: the tested single hop extended by one line.
+    it("flags a mutating order through an alias of an alias", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const s1 = ports.signedRequest;
+                const s2 = s1;
+                return s2("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // The third primitive in renamed form — the file tests the other two,
+    // and untested cells rot first.
+    it("flags a mutating order through a destructured exchangeSignedFetch alias", () => {
+        const bypassing = `
+            export async function sendIt(cfg) {
+                const { exchangeSignedFetch: send } = cfg;
+                return send({ cachyPath: "/api/orders", payload: { action: "place-order" } });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
+    // No rename needs no alias handling: the bare name is already in
+    // `DISPATCH_PRIMITIVES`. Pinned explicitly so a future "tightening" of
+    // that set cannot silently drop the shorthand form.
+    it("still flags the shorthand destructure with no rename", () => {
+        const bypassing = `
+            export async function sendIt(ports) {
+                const { signedRequest } = ports;
+                return signedRequest("/api/orders", { action: "place-order", symbol: "BTCUSDT" });
+            }
+        `;
+        expect(findBypasses(bypassing, "synthetic.ts")).toHaveLength(1);
+    });
+
     it("still leaves a read through any primitive alone", () => {
         const reads = `
             const rows = await appFetch("/api/orders", { method: "POST" });
@@ -479,8 +944,46 @@ describe("FEAT-0068 — ungated envelope paths are allowlisted, not invisible", 
         "/api/sync/positions-history": "Read: positions-history import.",
     };
 
-    it("sends no ungated envelope call to a path nobody justified", () => {
-        const unlisted: Bypass[] = [];
+    // Unit tests for `envelopeAliases` (defined above, next to
+    // `transportNamesIn`): the repo-wide scan below cannot take synthetic
+    // input, so its alias resolution is pinned here instead — every spelling
+    // the gate scanner learned gets its envelope mirror.
+    describe("envelopeAliases", () => {
+        it("resolves the plain, destructured, import and transitive forms", () => {
+            expect(
+                envelopeAliases(`const send = exchangeSignedFetch;`),
+            ).toEqual(["send"]);
+            expect(
+                envelopeAliases(`const { exchangeSignedFetch: send } = m;`),
+            ).toEqual(["send"]);
+            expect(
+                envelopeAliases(
+                    `import { exchangeSignedFetch as send } from "../utils/exchange/browserSigning";`,
+                ),
+            ).toEqual(["send"]);
+            expect(
+                envelopeAliases(
+                    `const s1 = exchangeSignedFetch;\nconst s2 = s1;`,
+                ).sort(),
+            ).toEqual(["s1", "s2"]);
+            expect(
+                envelopeAliases(
+                    `function f({ exchangeSignedFetch: send }) { return send; }`,
+                ),
+            ).toEqual(["send"]);
+        });
+
+        it("ignores other primitives and benign bindings", () => {
+            // Envelope-scoped: a `signedRequest` alias is the *gate* scan's
+            // property, not this one's.
+            expect(envelopeAliases(`const { signedRequest: send } = p;`)).toEqual([]);
+            expect(envelopeAliases(`const send = fetch;`)).toEqual([]);
+            expect(envelopeAliases(`const send = "exchangeSignedFetch";`)).toEqual([]);
+            expect(envelopeAliases(`no bindings here`)).toEqual([]);
+        });
+    });
+
+    it("sends no ungated envelope call to a path nobody justified", () => {        const unlisted: Bypass[] = [];
         for (const file of sourceFiles()) {
             const relative = path.relative(REPO_ROOT, file);
             // The transport fans every gated call out through one
@@ -492,19 +995,12 @@ describe("FEAT-0068 — ungated envelope paths are allowlisted, not invisible", 
             if (relative === TRANSPORT_OWNER) continue;
             const text = readFileSync(file, "utf8");
             const lines = text.split("\n");
-            // Local aliases of the primitive (`const send = exchangeSignedFetch`)
-            // reach the same envelope without naming it at the call site.
-            // File-scoped (not block-scoped like the gate scan above): alias
-            // names are rare enough that overreach is the smaller risk here.
-            const aliases = new Set<string>();
-            for (const line of lines) {
-                const binding = line.match(
-                    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:[A-Za-z_$][\w$]*\.)*exchangeSignedFetch\b/,
-                );
-                if (binding && binding[1] !== "exchangeSignedFetch") aliases.add(binding[1]);
-            }
+            // Local aliases of the primitive (`const send = exchangeSignedFetch`
+            // and every rewording `envelopeAliases` resolves) reach the same
+            // envelope without naming it at the call site.
+            const aliases = envelopeAliases(text);
             const sitePattern = new RegExp(
-                `\\b(?:exchangeSignedFetch${[...aliases].map((a) => `|${a}`).join("")})\\s*(?:<[^>]*>)?\\s*\\(`,
+                `\\b(?:exchangeSignedFetch${aliases.map((a) => `|${a}`).join("")})\\s*(?:<[^>]*>)?\\s*\\(`,
             );
             for (let i = 0; i < lines.length; i++) {
                 if (!sitePattern.test(lines[i])) continue;
