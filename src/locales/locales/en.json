@@ -1991,8 +1991,7 @@
       "maintenance": "Maintenance",
       "profile": "Profile & Design",
       "workspace": "Workspace & Sidebar",
-      "automation": "Automation",
-      "cloud": "Cloud"
+      "automation": "Automation"
     },
     "indicators": {
       "title": "Indicator Settings",
@@ -4712,5 +4711,8 @@
     "tradesLabel": "Trades:",
     "pnlLabel": "PnL:",
     "topLabel": "Top:"
+  },
+  "settings.tabs": {
+    "cloud": "Cloud"
   }
 }
