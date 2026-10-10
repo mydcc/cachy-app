@@ -302,12 +302,11 @@ export function createTpSlService(ports: TpSlPorts): TpSlService {
             },
             // BUG-0663: the policy action is `modify-order`; the wire action
             // `modify` is not a catalogue member and would ask about nothing.
-            // Attached only when the caller actually confirmed. The edit modal
-            // shares this function and has no dialog yet — naming the policy
-            // action on its requests would make the gate refuse them the
-            // moment a user switches the toggle on, bricking the modal behind
-            // a confirmation it cannot produce. That path stays exactly as
-            // unconfirmed as it is today until it learns to ask.
+            // Attached only when the caller actually confirmed. Both
+            // confirming callers — the chart drag (BUG-0663) and the edit
+            // modal (BUG-0666) — stamp `confirmedAt` via their dialogs; any
+            // other caller travels exactly as unconfirmed as before, so the
+            // gate refuses nothing it did not refuse already.
             ...(params.confirmedAt !== undefined
                 ? { confirmAs: "modify-order", confirmedAt: params.confirmedAt }
                 : {}),

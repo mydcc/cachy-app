@@ -366,4 +366,69 @@ describe("BUG-0666 — saving the edit modal obeys the modify-order policy", () 
         const [sent] = modifyTpSlOrder.mock.calls[0] as unknown as [Record<string, unknown>];
         expect("confirmedAt" in sent).toBe(false);
     });
+
+    it("validates first with the policy on: an invalid price shows the error, never the dialog", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        // A stop above the entry of a long is not a stop — validation must
+        // refuse before any snapshot exists to confirm.
+        render({ ...PLAN, planType: "LOSS", triggerPrice: "110" });
+        saveButton().click();
+        await settleAsync();
+
+        // Static template words only: this suite's i18n mock does not
+        // interpolate values, so the assertion cannot name the price.
+        expect(host.textContent).toContain("is not valid for this");
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        expect(dialogButton(lookup("settings.confirmations.dialog.confirm"))).toBeNull();
+    });
+
+    it("shows the dialog facts from the snapshot: symbol, level, and resized qty", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        render({ ...PLAN, qty: "0.5" });
+        saveButton().click();
+        await settleAsync();
+
+        expect(dialogButton(lookup("settings.confirmations.dialog.confirm"))).not.toBeNull();
+        const text = host.textContent ?? "";
+        expect(text).toContain("BTCUSDT");
+        expect(text).toContain(lookup("orderGate.fields.takeProfit"));
+        expect(text).toContain("110");
+        // The qty travels on the confirmation — so the dialog states it.
+        expect(text).toContain(lookup("orderGate.fields.qty"));
+        expect(text).toContain("0.5");
+    });
+
+    it("shows the stop-loss label for a LOSS plan", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        render({ ...PLAN, planType: "LOSS", triggerPrice: "90" });
+        saveButton().click();
+        await settleAsync();
+
+        expect(dialogButton(lookup("settings.confirmations.dialog.confirm"))).not.toBeNull();
+        expect(host.textContent).toContain(lookup("orderGate.fields.stopLoss"));
+    });
+
+    it("one snapshot is one attempt: a failed confirm leaves retry to a fresh Save", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        modifyTpSlOrder.mockRejectedValueOnce(new Error("boom"));
+        render();
+        saveButton().click();
+        await settleAsync();
+        dialogButton(lookup("settings.confirmations.dialog.confirm"))?.click();
+        await settleAsync();
+
+        // Failed: error on the form, dialog closed, snapshot consumed.
+        expect(host.textContent).toContain("boom");
+        expect(dialogButton(lookup("settings.confirmations.dialog.confirm"))).toBeNull();
+
+        // Retry is a fresh Save with a fresh snapshot — not a second confirm
+        // of the consumed one.
+        saveButton().click();
+        await settleAsync();
+        expect(dialogButton(lookup("settings.confirmations.dialog.confirm"))).not.toBeNull();
+        dialogButton(lookup("settings.confirmations.dialog.confirm"))?.click();
+        await settleAsync();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledTimes(2);
+    });
 });
