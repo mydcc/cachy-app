@@ -2734,6 +2734,8 @@
       "orderRefusedLevelNotSupported": "„{name}“ hat ausgelöst, aber nichts platziert: Diese Regel verlangt Live-Versand, der noch nicht verfügbar ist.",
       "orderRefusedNoLivePrice": "„{name}“ hat ausgelöst, aber nichts platziert: Es war kein Live-Preis verfügbar, um die Order zu dimensionieren.",
       "orderRefusedStaleAnchor": "„{name}“ hat ausgelöst, aber nichts platziert: Der Markt hat sich zu weit von der ausgelösten Kerze entfernt.",
+      "orderRefusedInFlight": "„{name}“ hat ausgelöst, aber nichts platziert: Die vorherige Order dieser Regel ist noch nicht abgeschlossen.",
+      "orderRefusedPositionOpen": "„{name}“ hat ausgelöst, aber nichts platziert: Auf diesem Symbol ist bereits eine Position in derselben Richtung offen.",
       "orderRefusedOther": "„{name}“ hat ausgelöst, aber nichts platziert."
     }
   },

@@ -46,6 +46,7 @@ import type { RuleDocument } from "../lib/rules/types";
 import { logger } from "../services/logger";
 import { toastService } from "../services/toastService.svelte";
 import { paperState } from "./paperTrading.svelte";
+import { accountState } from "./account.svelte";
 import { settingsState } from "./settings.svelte";
 import type { TranslationKey } from "../locales/schema";
 import type { BotOrderEnvironment, BotOrderRefusal } from "../services/alertEngine/botOrders";
@@ -290,6 +291,21 @@ function botOrderEnvironment(
         exchange: () => settingsState.apiProvider,
         closeAt,
         livePrice,
+        // FEAT-0488 — which book to ask depends on where this bot's own entry
+        // will land, and the two are not the same store.
+        //
+        // In paper mode `accountState.positions` is *hydrated from* the
+        // simulator's book (`paperAccountFeed.positions()` reads
+        // `paperState.positions`), but only on a refresh tick — while
+        // `paperState` itself is written synchronously the moment an entry
+        // fills. Reading the hydrated copy would leave exactly the window this
+        // guard exists to close: the first entry not yet mirrored, the second
+        // one through. So the book the simulator writes is the book a bot
+        // standing in paper mode asks about.
+        hasOpenPosition: (symbol, side) =>
+            (paperState.enabled ? paperState.positions : accountState.positions).some(
+                (p) => p.symbol === symbol && p.side === side,
+            ),
         // Imported at the moment an order is actually placed, not at startup.
         // `orderPlacementService` pulls the account and TP/SL stores in behind
         // it, and the alert engine starts on every session — including the
@@ -331,6 +347,11 @@ const BOT_REFUSAL_KEYS: Record<BotOrderRefusal, TranslationKey> = {
     "no-equity": "settings.automation.orderRefusedOther",
     "size-not-positive": "settings.automation.orderRefusedOther",
     "level-not-supported": "settings.automation.orderRefusedLevelNotSupported",
+    // FEAT-0488 — both of these are limits rather than faults. A bot that says
+    // nothing about why it stopped is the failure this channel exists to avoid,
+    // and neither reason is one the trader can see from the rule itself.
+    "submission-in-flight": "settings.automation.orderRefusedInFlight",
+    "position-already-open": "settings.automation.orderRefusedPositionOpen",
 };
 
 export function reportBotOrderRefusal(

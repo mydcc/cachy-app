@@ -101,6 +101,18 @@ function firingOf(rule: RuleDocument): RuleFiring {
   return { rule, verdict: { verdict: "fires" } as Verdict, anchorMs: ANCHOR_MS };
 }
 
+/**
+ * Let a submission settle all the way through — including FEAT-0488's in-flight
+ * guard releasing its slot in `finally`.
+ *
+ * The release is the last link in the promise chain, so a firing issued in the
+ * same tick as the previous one is refused as concurrent even though the
+ * previous submission is long done. Real firings arrive a whole trigger
+ * timeframe apart. A test that fires back to back has to say which of the two
+ * things it means, and this says "settled".
+ */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 function environment(overrides: Partial<BotOrderEnvironment> = {}) {
   const place = vi.fn(async () => ({
     entryPlaced: true,
@@ -114,6 +126,7 @@ function environment(overrides: Partial<BotOrderEnvironment> = {}) {
     exchange: () => "bitunix",
     closeAt: () => new Decimal("50000"),
     livePrice: () => new Decimal("50000"),
+    hasOpenPosition: () => false,
     place,
     ...overrides,
   };
@@ -211,6 +224,39 @@ describe("what a fired bot submits", () => {
     expect(await submitBotOrder(firingOf(botDocument("percent_of_equity", "1", null)), env)).toBe(
       "no-stop",
     );
+    expect(place).not.toHaveBeenCalled();
+  });
+
+  it("submits nothing while a position in that direction is already open", async () => {
+    const { env, place } = environment({ hasOpenPosition: () => true });
+
+    expect(await submitBotOrder(firingOf(botDocument()), env)).toBe("position-already-open");
+    expect(place).not.toHaveBeenCalled();
+  });
+
+  it("asks the position book about the direction the intent names", async () => {
+    // `Position.side` and `PaperPosition.side` are long/short; `OrderIntent.side`
+    // is buy/sell. This pins the mapping — a bot that asked about "buy" would
+    // pass a check the book can never answer, and the guard would be inert.
+    const hasOpenPosition = vi.fn(() => false);
+    const short = botDocument();
+    short.action.order!.side = "sell";
+    const { env, place } = environment({ hasOpenPosition });
+
+    expect(await submitBotOrder(firingOf(short), env)).toBeNull();
+
+    expect(hasOpenPosition).toHaveBeenCalledWith("BTCUSDT", "short");
+    expect(place).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the gate over the position the trader can fix by editing", async () => {
+    // Both are true here. The refusal ladder reports shape before state: a bot
+    // with paper trading switched off did not act because of the switch, and
+    // saying "your position is already open" sends the trader to the wrong
+    // control.
+    const { env, place } = environment({ paperEnabled: () => false, hasOpenPosition: () => true });
+
+    expect(await submitBotOrder(firingOf(botDocument()), env)).toBe("paper-trading-off");
     expect(place).not.toHaveBeenCalled();
   });
 
@@ -400,8 +446,14 @@ describe("the sink that wraps a firing", () => {
 
     // A 1m bot with paper trading off would otherwise produce a warning a
     // minute, which is a warning a trader learns to dismiss unread.
+    //
+    // Settled between firings, because a back-to-back second firing is refused
+    // for a *different* reason — FEAT-0488's in-flight guard — and this case is
+    // about the dedup of one reason, not about which reason a burst produces.
     sink(firing);
+    await settle();
     sink(firing);
+    await settle();
     sink(firing);
     await vi.waitFor(() => expect(onRefusal).toHaveBeenCalled());
 
@@ -447,6 +499,195 @@ describe("the sink that wraps a firing", () => {
     await vi.waitFor(() => expect(onRefusal).toHaveBeenCalled());
 
     expect(onRefusal).toHaveBeenCalledTimes(1);
+  });
+
+  it("never lets a level that does not submit reach the position book", async () => {
+    // AC: the reader is reachable only from the `simulate` path. A `notify` rule
+    // returns above it and a `send` rule returns on its own refusal, so a spy
+    // that throws on call is the assertion — it cannot fail quietly the way an
+    // ordinary call-count can.
+    const hasOpenPosition = vi.fn(() => {
+      throw new Error("the position book must not be read for a rule that does not submit");
+    });
+    const { env, place } = environment({ hasOpenPosition });
+    const onRefusal = vi.fn();
+    const sink = withBotOrders(vi.fn(), env, onRefusal);
+
+    // A `notify` rule produces no refusal of any kind, so there is nothing to
+    // wait for here — flushing the chain is the whole sequence.
+    const alert = botDocument();
+    alert.action = { consequence_level: "notify" };
+    sink(firingOf(alert));
+    await settle();
+    expect(onRefusal).not.toHaveBeenCalled();
+
+    const send = botDocument();
+    send.action = {
+      consequence_level: "send",
+      order: { side: "buy", size_basis: "base_quantity", size: "0.01" },
+    };
+    sink(firingOf(send));
+    await vi.waitFor(() => expect(onRefusal).toHaveBeenCalledTimes(1));
+
+    expect(onRefusal.mock.calls[0][1]).toBe("level-not-supported");
+    expect(hasOpenPosition).not.toHaveBeenCalled();
+    expect(place).not.toHaveBeenCalled();
+  });
+});
+
+describe("one submission in flight per rule — FEAT-0488", () => {
+  /**
+   * A `place` that stays pending until the test releases it, one gate per call.
+   *
+   * Two submissions in flight against the same rule is the case this guards;
+   * a `place` that resolves immediately can never produce it, so the control
+   * case below is what proves the guard is doing the work rather than the
+   * timing.
+   */
+  function pendingPlace() {
+    const gates: Array<() => void> = [];
+    const place = vi.fn(async () => {
+      await new Promise<void>((resolve) => gates.push(resolve));
+      return {
+        entryPlaced: true,
+        stopLoss: "attached" as const,
+        takeProfit: "none" as const,
+        unprotected: false,
+      };
+    });
+    return { place, release: (i: number) => gates[i]?.() };
+  }
+
+  it("places one order when two firings arrive before the first settles", async () => {
+    const { place, release } = pendingPlace();
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const onRefusal = vi.fn();
+    const sink = withBotOrders(vi.fn(), env, onRefusal);
+
+    sink(firingOf(botDocument()));
+    sink(firingOf(botDocument()));
+
+    await vi.waitFor(() => expect(onRefusal).toHaveBeenCalled());
+    expect(place).toHaveBeenCalledTimes(1);
+    expect(onRefusal.mock.calls[0][1]).toBe("submission-in-flight");
+
+    release(0);
+  });
+
+  it("still announces the firing it refused", async () => {
+    // A refusal that swallowed the announcement would leave a trader watching
+    // a bot that says nothing at all.
+    const { place, release } = pendingPlace();
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const inner = vi.fn();
+    const sink = withBotOrders(inner, env, () => {});
+
+    sink(firingOf(botDocument()));
+    sink(firingOf(botDocument()));
+    await Promise.resolve();
+
+    expect(inner).toHaveBeenCalledTimes(2);
+
+    release(0);
+  });
+
+  it("admits a later firing once the previous one has settled", async () => {
+    // The guard bounds concurrency, not the rule: a settled submission must
+    // leave no trace, or a rule would fire exactly once per session.
+    const { place, release } = pendingPlace();
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const sink = withBotOrders(vi.fn(), env, () => {});
+
+    sink(firingOf(botDocument()));
+    sink(firingOf(botDocument()));
+    await Promise.resolve();
+    release(0);
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(1));
+    await settle();
+
+    sink(firingOf(botDocument()));
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
+
+    release(1);
+  });
+
+  it("releases the guard when a submission rejects rather than returning", async () => {
+    // `.finally`, not `.then`. A throw that leaked the slot would silence the
+    // rule for the rest of the session, and a rule that never submits again
+    // looks exactly like a strategy that stopped finding setups.
+    let attempt = 0;
+    const place = vi.fn(async () => {
+      if (attempt++ === 0) throw new Error("venue refused");
+      return {
+        entryPlaced: true,
+        stopLoss: "attached" as const,
+        takeProfit: "none" as const,
+        unprotected: false,
+      };
+    });
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const onRefusal = vi.fn();
+    const sink = withBotOrders(vi.fn(), env, onRefusal);
+
+    sink(firingOf(botDocument()));
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(1));
+    await settle();
+
+    sink(firingOf(botDocument()));
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
+
+    // No in-flight refusal: a throw that never released the guard would show
+    // up here as one, and the log line is not what this test is about.
+    expect(onRefusal).not.toHaveBeenCalled();
+  });
+
+  it("bounds a rule's entries by what is open, not by what it opened itself", async () => {
+    // The count the exposure check exists to bound, driven over consecutive
+    // trigger closes. `hasOpenPosition` flips the way a real book does: after
+    // the first entry settles, the symbol carries that direction.
+    let open = false;
+    const placed: string[] = [];
+    const place = vi.fn(async (plan: { tradeType: string }) => {
+      placed.push(plan.tradeType);
+      open = true;
+      return {
+        entryPlaced: true,
+        stopLoss: "attached" as const,
+        takeProfit: "none" as const,
+        unprotected: false,
+      };
+    });
+    const { env } = environment({
+      place,
+      hasOpenPosition: () => open,
+    } as Partial<BotOrderEnvironment>);
+    const onRefusal = vi.fn();
+    const sink = withBotOrders(vi.fn(), env, onRefusal);
+
+    for (let i = 0; i < 8; i++) {
+      const rule = botDocument();
+      rule.frequency = "every_time";
+      sink(firingOf(rule));
+      // Let the whole chain settle, so the next firing races against nothing.
+      await settle();
+    }
+
+    expect(placed).toEqual(["long"]);
+    expect(onRefusal.mock.calls.at(-1)?.[1]).toBe("position-already-open");
+  });
+
+  it("refuses a bot that would stack onto a position it did not open", async () => {
+    // The case a per-rule memory cannot see: the position was already there
+    // when this rule first fired. Every other guard in this file would still
+    // pass it, which is exactly why this one exists.
+    const { env, place } = environment({ hasOpenPosition: () => true });
+    const onRefusal = vi.fn();
+
+    withBotOrders(vi.fn(), env, onRefusal)(firingOf(botDocument()));
+    await vi.waitFor(() => expect(onRefusal).toHaveBeenCalled());
+
+    expect(place).not.toHaveBeenCalled();
+    expect(onRefusal.mock.calls[0][1]).toBe("position-already-open");
   });
 });
 
@@ -502,6 +743,13 @@ describe("no second order on the same candle after a reload — BUG-0491", () =>
     expectFiring(verdict);
     sink({ rule, verdict, anchorMs });
     await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(1));
+    // FEAT-0488 — let that submission *settle*, not merely be called. The
+    // in-flight guard holds its slot until the promise chain drains, so a later
+    // firing issued in the same tick would be refused as concurrent. Real
+    // firings are a whole trigger timeframe apart; without this tick the test
+    // would be asserting the guard's timing rather than the anchor gate, and
+    // deleting the line would make it fail for a reason it never mentions.
+    await settle();
 
     // Reload: a fresh gate, the same rule still armed, the same candle still
     // newest. The gate withholds it, so the sink never runs and no second

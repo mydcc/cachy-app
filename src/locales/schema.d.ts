@@ -2378,6 +2378,8 @@ export type TranslationKey =
   | "settings.automation.orderRefusedLevelNotSupported"
   | "settings.automation.orderRefusedNoLivePrice"
   | "settings.automation.orderRefusedStaleAnchor"
+  | "settings.automation.orderRefusedInFlight"
+  | "settings.automation.orderRefusedPositionOpen"
   | "settings.automation.orderRefusedOther"
   | "positionsList.noOpenPositions"
   | "positionsList.closeAll"

@@ -2,7 +2,7 @@
 id: FEAT-0488
 title: Guard bot order submission against duplicates, stacking and unbounded repeat
 type: feature
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -73,22 +73,85 @@ a toast in both locales, and deduplicated per rule and reason for free.
 
 ## Acceptance criteria
 
-- [ ] A test fires one rule twice with the first submission still pending and asserts
+- [x] A test fires one rule twice with the first submission still pending and asserts
       exactly one order reaches `place()`
-- [ ] A test fires a bot while a position it opened is still open and asserts no second
+- [x] A test fires a bot while a position it opened is still open and asserts no second
       entry is submitted
-- [ ] A test fires a bot against a position that was **not** opened by that rule — already
+- [x] A test fires a bot against a position that was **not** opened by that rule — already
       open when the bot first fired — and asserts the same-direction entry is still refused
-- [ ] A test fires a bot across many consecutive trigger closes and asserts the number of
+- [x] A test fires a bot across many consecutive trigger closes and asserts the number of
       entries reaches one and stays there, which is the count the exposure check exists to
       bound
-- [ ] Each of the two refusals is a `BotOrderRefusal` member with a message in both
+- [x] Each of the two refusals is a `BotOrderRefusal` member with a message in both
       locales, enforced by the existing typed `BOT_REFUSAL_KEYS` record
-- [ ] Announcements are unchanged: `inner(firing)` still receives every firing, refused
+- [x] Announcements are unchanged: `inner(firing)` still receives every firing, refused
       submissions included
-- [ ] The paper-trading gate is untouched
-- [ ] The environment gains a position reader, and it is reachable only from the `simulate`
+- [x] The paper-trading gate is untouched
+- [x] The environment gains a position reader, and it is reachable only from the `simulate`
       path a bot rule is admitted through — a `notify` or `send` rule never reaches it
+
+## Implementation note — branch `feat/bot-order-submission-guard`
+
+Three decisions the proposal left open, settled against the code.
+
+**The exposure check sits in `submitBotOrder`, not in `withBotOrders`.** The
+proposal says to put both limits in `withBotOrders`, but the contrast that
+sentence draws is against *the loop* and *`orderPlacementService`* — neither of
+which is `submitBotOrder`. The in-flight guard genuinely belongs to
+`withBotOrders`, because the outstanding promise is the caller's and only the
+caller can release it. The exposure check carries no such constraint and belongs
+with the other nine refusals, so a direct caller of `submitBotOrder` is covered
+too. AC 8 still holds: `submitBotOrder` is reached only from `withBotOrders`
+after `isBot`, and both non-submitting levels return above it.
+
+**Which book the reader asks is mode-dependent, and this is the load-bearing
+detail.** `paperAccountFeed.positions()` reads `paperState.positions` and feeds
+`accountState.hydratePositions` — but on a refresh tick, while `paperState`
+itself is written synchronously the moment an entry fills
+(`paperExchange.ts::applyEntry`). Reading only `accountState.positions` in paper
+mode would reopen the exact window the guard exists to close: the first entry
+not yet mirrored, the second one through. So the reader asks
+`paperState.positions` when paper trading is on and `accountState.positions`
+otherwise — the book the bot's own order lands in. This reads like a
+simplification waiting to happen and is not one.
+
+**Refusal order is shape before state.** The exposure check sits after
+`no-order` / `paper-trading-off` / `reduce-only-unsupported` / `no-stop` and
+before `closeAt` / `livePrice`. A bot holding the position has a durable
+explanation, and one told `no-live-price` will go looking for a price problem
+that is not there; the reverse order reports a state fact for a rule the trader
+can fix by editing it.
+
+### What the tests had to change, and why it is not incidental
+
+The in-flight slot is released in `finally`, the last link in the promise
+chain. Four existing cases fired back-to-back firings and would now be refused
+as concurrent — including BUG-0491's anchor-gate case, whose second firing is a
+*later candle*. They now wait on a named `settle()` helper between firings.
+
+That is not the tests bending to the implementation. Real firings arrive a whole
+trigger timeframe apart, and the guard's whole claim is that it binds only
+submissions genuinely in flight. `settle()` says which of the two things a test
+means, and its comment says so, because deleting it makes four cases fail for a
+reason none of them mentions.
+
+One case is worth naming: `says why once per rule, not once per candle` fired
+three times in one tick and asserted a single message. That is now *two* —
+`paper-trading-off` and `submission-in-flight` — because the second firing is
+genuinely refused for a different reason. The case was changed to settle between
+firings rather than to accept two messages: the dedup it tests is per rule *and
+reason*, and accepting two would have quietly stopped testing it.
+
+### Verified, not asserted
+
+Each guard was removed in turn and the suite re-run. Removing the exposure check
+fails four cases; removing the in-flight guard fails two; collapsing the side
+mapping (`buy` / `sell` → `long` / `long`) fails two; moving the release out of
+`finally` into the refusal branch — which is what leaks the slot when a
+submission throws — fails one. A first attempt at that last mutation (swapping
+`finally` for a trailing `then`) changed nothing and taught the useful lesson:
+`.then().catch().then()` still releases, so the mutation has to be the one a
+careless implementation would actually write.
 
 ## Out of scope
 
