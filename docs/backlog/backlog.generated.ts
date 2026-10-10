@@ -3011,7 +3011,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0660",
     "title": "TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3023,6 +3023,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0660-tpsl-drag-paper-order-not-found.md"
   },
   {

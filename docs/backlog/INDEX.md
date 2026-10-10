@@ -4,7 +4,7 @@
 
 540 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 25 · ✅ done 461 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 25 · ✅ done 462 · ⛔ dropped 1
 
 ---
 
@@ -318,7 +318,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 25 · ✅ done 4
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | execution |
 | [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | execution |
 | [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | persistence |
-| [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | 📋 specced | exchange |
+| [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | ✅ done | exchange |
 | [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | 📋 specced | chart |
 | [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
@@ -755,7 +755,7 @@ Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 25 · ✅ done 4
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
