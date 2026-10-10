@@ -2,7 +2,7 @@
 id: FEAT-0488
 title: Guard bot order submission against duplicates, stacking and unbounded repeat
 type: feature
-status: ready
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: execution
 data_class: A
 adr: ADR-0012
 depends_on: []
+branch: feat/bot-order-submission-guard
+assignee: opencode
 ---
 
 # FEAT-0488 — Guard bot order submission against duplicates, stacking and unbounded repeat
