@@ -24,19 +24,30 @@
  * runs on `main` only; the prerelease branch still gets its version and its tag,
  * and the back-merge from main brings the stable state back over.
  *
- * ## Why the prerelease branch is not `develop`
+ * ## Why `develop` carries `enforce_admins: false`
  *
- * `develop` is protected with `enforce_admins: true` plus ten required status
- * checks, so semantic-release cannot push the release commit there at all: the
- * push authenticates and is then refused with `GH006` (BUG-0584). The
- * prerelease therefore runs on `release/beta`, a mirror of `develop` that no
- * protection touches, and the release commit reaches `develop` through a pull
- * request that satisfies the same checks as every other change. This mirrors
- * the split semantic-release documents for exactly this case.
+ * This was the deciding fact for the branch layout, so it is worth stating
+ * plainly rather than rediscovering.
  *
- * `sync-release-branch.yml` keeps `release/beta` pointed at `develop`. Both
- * branch names below are what semantic-release matches its CI-detected branch
- * against, so changing either name means changing the sync workflow too.
+ * `develop` had `enforce_admins: true` plus ten required status checks, which
+ * means semantic-release's push authenticated and was then refused with
+ * `GH006` (BUG-0584). The repair at the time was a `release/beta` mirror plus
+ * a pull request per release to carry the version bump back — fifteen such
+ * pull requests, each one needing a human merge, and each one able to break
+ * the pipeline by being squash-merged instead of merged.
+ *
+ * So `enforce_admins` is off, and the prerelease runs on `develop` directly,
+ * where it was before. **What that costs:** the repo owner, and any token
+ * acting as the owner, can push to `develop` without the ten required checks
+ * having run. There is no required PR review and no push restriction on the
+ * branch, so `enforce_admins` was the only thing standing between a direct
+ * push and those checks. That was the trade BUG-0584's fix chose and this
+ * change reverses.
+ *
+ * What it does *not* cost: a pull request into `develop` still runs all ten
+ * checks, and they are still required to merge. Only a direct admin push can
+ * skip them, and the only automation that pushes directly is semantic-release,
+ * which only ever adds `package.json` and `package-lock.json`.
  *
  * Branch detection uses GITHUB_REF_NAME, which Actions sets to the pushed branch
  * name. Outside CI the value is absent and we fall back to the full stable plugin
@@ -124,24 +135,20 @@ export default {
   branches: [
     "main",
     {
-      name: "release/beta",
+      name: "develop",
       prerelease: "beta",
-      // The beta tags predate this branch: they were published while the
-      // prerelease ran on `develop`, so they belong to the `develop` channel.
-      // Without this line the branch cannot find them and the counter
-      // restarts — the observed symptom was a release of 1.6.0-beta.1
-      // against a 1.6.0-beta.364 develop, twice.
+      // The channel line predates the branch rename and is still load-bearing.
+      // Every `1.6.0-beta.*` tag carries `{"channels":["develop"]}` in a git
+      // note, so a branch configured `channel: "develop"` matches them; without
+      // the line semantic-release falls back to the newest tag matching `[null]`
+      // — v1.5.0 — and restarts the counter. The observed symptom was a release
+      // of 1.6.0-beta.1 against a 1.6.0-beta.364 develop, twice.
       //
       // How a tag is bound to a channel (semantic-release v25):
       //
       //   index.js:209   addNote({channels: [nextRelease.channel]}, gitTag)
       //   git.js:252     pushes refs/notes/semantic-release-<tag>
       //   get-tags.js:29 channels = map.has(tag) ? map.get(tag).channels : [null]
-      //
-      // All 364 `1.6.0-beta.*` tags carry `{"channels":["develop"]}`. A branch
-      // configured `channel: "develop"` therefore matches them; without the
-      // line its own channel does not, and the newest tag matching `[null]` —
-      // v1.5.0 — becomes the starting point.
       //
       // Note the ref is PER TAG. `git notes --ref=refs/notes/semantic-release`
       // is always empty and looks like "the tags carry no channel", which is

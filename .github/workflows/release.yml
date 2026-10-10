@@ -2,20 +2,18 @@ name: Release
 
 on:
   push:
-    # `main` produces stable releases. The prerelease branch is `release/beta`,
-    # not `develop`, because `develop` is protected — see the branch comment in
-    # release.config.js and sync-release-branch.yml.
+    # `main` produces stable releases, `develop` produces prereleases. Both are
+    # pushed to directly by semantic-release, which is why `develop` carries
+    # `enforce_admins: false` — see the branch comment in release.config.js.
     #
     # This mirrors the split already used by deploy.sh via .deploy.conf
-    # (BRANCH_STABLE=main -> cachy.app, BRANCH_BETA=develop -> dev.cachy.app).
-    branches: [main, release/beta]
-    # The beta deploy still builds `develop` — deploy.sh's BRANCH_BETA is
-    # unchanged. The release branch exists only so semantic-release has
-    # somewhere it may push; the version bump reaches develop by pull request
-    # and is built from there like any other change.
+    # (BRANCH_STABLE=main -> cachy.app, BRANCH_BETA=develop -> dev.cachy.app):
+    # the branch that is built for dev.cachy.app is the branch that is
+    # versioned, so the version string on that site is the one in the tree.
+    branches: [main, develop]
   # Manual fallback to ship a release when automation was skipped (e.g. a merge
   # whose message quoted `[skip ci]` lines). Run it from the Actions tab on
-  # `release/beta` or `main`; dispatching on any other branch fails on purpose,
+  # `develop` or `main`; dispatching on any other branch fails on purpose,
   # in a step that names the reason.
   workflow_dispatch:
 
@@ -34,20 +32,19 @@ jobs:
     # release because of it.
     #
     # This guard is also what keeps the release loop closed. semantic-release
-    # pushes its own `chore(release):` commit to `release/beta`, which triggers
-    # this workflow again; that second run is skipped here.
+    # pushes its own `chore(release):` commit to the release branch, which
+    # triggers this workflow again; that second run is skipped here.
     #
-    # It deliberately does NOT use a `[skip ci]` marker in the commit message.
-    # The release commit travels to `develop` inside a pull request, and GitHub
-    # reads `[skip ci]` on a pull request's head commit as "do not run CI for
-    # this pull request" — which leaves the required status checks unreported
-    # and therefore unsatisfiable, so the merge waits forever on a check that
-    # was never started. The marker looks like a fix and is the opposite of one.
+    # The commit carries no `[skip ci]` marker. GitHub reads that marker on the
+    # pushed commit as "do not run CI", and a release commit is the one commit
+    # where skipping the suite is least defensible — it is what dev.cachy.app
+    # gets built from. The marker is not needed to break the loop; the title
+    # check above already does that.
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     permissions:
-      contents: write # create tags and the release commit on release/beta
+      contents: write # create tags and the release commit
       issues: write # comment on released issues
-      pull-requests: write # open the release pull request
+      pull-requests: write # open the stable back-merge pull request
     steps:
       - uses: actions/checkout@v6
         with:
@@ -63,8 +60,8 @@ jobs:
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "$REF_NAME" != "main" ] && [ "$REF_NAME" != "release/beta" ]; then
-            echo "::error::Release runs on 'main' (stable) or 'release/beta' (prerelease). '$REF_NAME' is neither — the prerelease lives on release/beta because develop carries branch protection."
+          if [ "$REF_NAME" != "main" ] && [ "$REF_NAME" != "develop" ]; then
+            echo "::error::Release runs on 'main' (stable) or 'develop' (prerelease). '$REF_NAME' is neither."
             exit 1
           fi
 
@@ -115,115 +112,13 @@ jobs:
           # Falls back to GITHUB_TOKEN so forks and local dry-runs keep
           # working without the secret.
           #
-          # On release/beta this push succeeds, where a direct push to the
-          # protected `develop` was refused with GH006.
+          # This push lands straight on the release branch. That requires
+          # `develop` to carry `enforce_admins: false`; with it on, the push
+          # authenticated and was refused with GH006 (BUG-0584), which is what
+          # the `release/beta` detour existed to work around. See the branch
+          # comment in release.config.js for what that setting now costs.
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: npx semantic-release
-
-      # Land the prerelease commit on develop through a pull request. Without
-      # this the version bump would exist only on release/beta, and the tag
-      # would name a commit that is not an ancestor of the branch dev.cachy.app
-      # is built from.
-      #
-      # The PAT, not GITHUB_TOKEN, and not for permissions. GitHub keys its
-      # workflow-approval gate on the actor that created the pull request: a PR
-      # opened with the default GITHUB_TOKEN is authored by github-actions[bot],
-      # which this repo's `approval_policy: first_time_contributors` treats as a
-      # first-time contributor even though the branch is in the same repository.
-      # Every run on the PR then sits in `action_required` until a human
-      # approves, the required checks never report a conclusion, and the
-      # auto-merge armed below can never be satisfied — so every release needs a
-      # human click. Opened with the PAT, the author is the repo owner, and the
-      # gate does not apply.
-      #
-      # This needs `pull-requests: write` on RELEASE_TOKEN. Without it the
-      # step falls back to GITHUB_TOKEN below and keeps working, so the
-      # pipeline does not depend on a secret's scopes being kept in step with
-      # this file.
-      - name: Propose the prerelease pull request
-        if: github.ref == 'refs/heads/release/beta'
-        env:
-          # `gh` prefers GH_TOKEN over GITHUB_TOKEN, so the pull request is
-          # opened as the token's owner. With the default GITHUB_TOKEN that
-          # owner is github-actions[bot], which is what the approval gate
-          # above keys on.
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          # Left on the automatic token deliberately: every `git` call in this
-          # step keeps using it, exactly as before, and it is also the value
-          # the fallback below drops back to.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch origin develop
-
-          # semantic-release had nothing to release, so release/beta carries no
-          # release commit and there is nothing to propose.
-          if git diff --quiet HEAD origin/develop; then
-            echo "No release commit on release/beta; nothing to propose."
-            exit 0
-          fi
-
-          number=$(gh pr list --head release/beta --base develop --state open \
-            --json number --jq '.[0].number // empty')
-          if [ -z "$number" ]; then
-            version=$(node -p "require('./package.json').version")
-            # `gh pr create` prints the URL on stdout and has no `--json` flag,
-            # unlike `gh pr list`. The number is the last path segment of the
-            # URL it prints.
-            #
-            # The body goes in a variable rather than inline so the fallback
-            # below can retry with the same text.
-            body="[no issue]
-
-          Automated prerelease commit for \`$version\`, proposed by the Release
-          workflow.
-
-          The tag was pushed by semantic-release. This pull request carries the
-          commit that tag points at, merged as a **merge commit** — a squash
-          would put an equal-but-different commit on \`develop\` and leave the
-          tag naming something that is not an ancestor of the branch."
-
-            if ! url=$(gh pr create --base develop --head release/beta \
-                --title "chore(release): $version" --body "$body" 2>&1); then
-              # RELEASE_TOKEN without `pull-requests: write` is a real state of
-              # this repo today, not a hypothetical: the tag is already pushed
-              # and the release commit is already on release/beta by the time
-              # this runs, so failing here strands the version bump with no pull
-              # request and no way back. Fall back to the automatic token, which
-              # can always open the pull request, and say plainly what was lost
-              # and how to fix it.
-              echo "::warning::RELEASE_TOKEN cannot open pull requests ($(printf '%s' "$url" | tr '\n' ' ')). Falling back to GITHUB_TOKEN. The release pull request will be authored by github-actions[bot] and will need a human approval before its checks run. Grant RELEASE_TOKEN 'pull-requests: write' to remove that."
-              export GH_TOKEN="$GITHUB_TOKEN"
-              url=$(gh pr create --base develop --head release/beta \
-                --title "chore(release): $version" --body "$body")
-            fi
-            number="${url##*/}"
-            echo "Opened release pull request #$number ($url)."
-          else
-            echo "Release pull request #$number is already open."
-          fi
-
-          # Merge commit, never squash — see the body above.
-          #
-          # `require_branches_to_be_up_to_date` is on (strict: true), so a
-          # develop push landing while this pull request waited would leave it
-          # permanently unmergeable on its own. Update the branch and re-arm
-          # auto-merge until GitHub accepts it; every iteration is a develop
-          # commit the release pull request has not seen yet.
-          for attempt in 1 2 3 4 5; do
-            if gh pr merge --auto --merge "$number" 2>/dev/null; then
-              echo "Auto-merge armed on #$number (attempt $attempt)."
-              exit 0
-            fi
-            echo "Auto-merge refused (attempt $attempt); updating the branch from develop."
-            gh pr update-branch "$number" 2>/dev/null || true
-          done
-          echo "::error::Could not arm auto-merge on release pull request #$number. It needs a human merge; the tag is already pushed."
-          exit 1
 
       # Fold main back into develop right after a stable release. Without this,
       # develop's prerelease counter (1.0.0-beta.N) keeps counting up from
@@ -231,30 +126,28 @@ jobs:
       # jumps ahead independently (e.g. main at 1.1.0, develop stuck offering
       # 1.0.0-beta.15) — the two never realign on their own.
       #
-      # This goes through a pull request for the same reason the prerelease
-      # does: `develop` has `enforce_admins: true`, so a direct push from a
-      # token that owns the repository is refused with GH006. That refusal is
-      # what left the release pipeline dead and unremarked for eight days
-      # (BUG-0584).
+      # A direct push would now be possible, since `develop` no longer
+      # enforces on admins. This stays on a pull request deliberately: the
+      # back-merge is the one release step that carries stable work into the
+      # prerelease line, and running it through the ten required checks is
+      # worth the click. The prerelease bump does not get that treatment —
+      # it is mechanical, touches two files, and happens on every merge.
       #
       # If main and develop have diverged in a way that actually conflicts, the
       # merge step fails loudly instead of proposing a broken merge — that case
       # needs a human, and CI turning red is the signal for it.
       #
-      # Same PAT, same reason as the prerelease step above: with the default
-      # GITHUB_TOKEN the pull request is authored by github-actions[bot] and
-      # every workflow on it waits for a human approval, so the back-merge
-      # would need the same click after each stable release.
+      # Same PAT, same reason as before: with the default GITHUB_TOKEN the pull
+      # request is authored by github-actions[bot] and every workflow on it
+      # waits for a human approval, so the back-merge would need a click after
+      # each stable release.
       #
-      # Not changed here yet. This path fires once per stable release rather
-      # than once per merge, and RELEASE_TOKEN is known to lack
-      # `pull-requests: write`, so the same PR-creation failure this file
-      # already hit on the prerelease path would strand the back-merge too.
-      # Fixing it means the same GH_TOKEN split and the same fallback as above;
-      # doing that to the rarely-exercised stable path without being able to
-      # test it is not worth the risk. Left on the automatic token, which can
-      # always open the pull request, at the cost of one human merge per
-      # stable release.
+      # RELEASE_TOKEN is known to lack `pull-requests: write`, so this runs on
+      # the automatic token and costs one human merge per stable release. This
+      # path fires once per stable release rather than once per merge; fixing
+      # the token scopes means the same GH_TOKEN split the prerelease step used
+      # to carry, and doing that to a rarely-exercised path without being able
+      # to test it is not worth the risk.
       - name: Propose the back-merge of main into develop
         if: github.ref == 'refs/heads/main'
         env:
