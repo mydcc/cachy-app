@@ -216,6 +216,30 @@
     );
   });
 
+  /**
+   * BUG-0648, remainder — name the cleared stop. `staleInputs` fires for every
+   * field the trader undid, but clearing the stop is the one the gate itself
+   * prescribes (`orderGate.unplaceableStop`), and the calculator cannot follow
+   * it there: `getAndValidateInputs` returns `STATUS_INCOMPLETE` for a
+   * non-positive stop, so no recalculation replaces `data` and the generic
+   * "check those inputs" reads as a dead end. This names the cause and the
+   * constraint instead of promising an input that helps.
+   *
+   * Narrow on purpose: a positive calculated stop against an empty or zeroed
+   * form stop, outside ATR mode (where the field is not the stop's source).
+   * `undefined` is not a claim — same rule as `stated` above — so a missing
+   * field never reads as a withdrawal.
+   */
+  const stopClearedStale = $derived.by(() => {
+    if (!data || !staleInputs) return false;
+    if (tradeState.stopLossPrice === undefined) return false;
+    if (tradeState.useAtrSl === true) return false;
+    return (
+      positiveDecimal(data.stopLossPrice) !== null &&
+      positiveDecimal(tradeState.stopLossPrice) === null
+    );
+  });
+
   let entryType = $state<OrderEntryType>("market");
   let timeInForce = $state<TimeInForce>("GTC");
   let submitting = $state(false);
@@ -566,7 +590,13 @@
       // would eventually disagree on screen.
       uiState.showError(
         $_("orderEntry.errors.staleCalculation", {
-          values: { reason: $_("orderEntry.notes.staleCalculation") },
+          values: {
+            reason: $_(
+              (stopClearedStale
+                ? "orderEntry.notes.staleStopCleared"
+                : "orderEntry.notes.staleCalculation") as TranslationKey,
+            ),
+          },
         }),
       );
       return;
@@ -851,7 +881,9 @@
       calculated at all. Same reasoning as the BUG-0649 note below: state it
       here, where the numbers are, not only on the click that was refused.
     -->
-    {#if staleInputs}
+    {#if stopClearedStale}
+      <p class="note warn">{$_("orderEntry.notes.staleStopCleared")}</p>
+    {:else if staleInputs}
       <p class="note warn">{$_("orderEntry.notes.staleCalculation")}</p>
     {/if}
 
