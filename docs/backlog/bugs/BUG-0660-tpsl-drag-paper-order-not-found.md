@@ -2,7 +2,7 @@
 id: BUG-0660
 title: TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: exchange
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0660 — TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound
@@ -67,6 +68,18 @@ orderId)?.sourceOrderId`) — no string surgery, correct for paper and
 any future non-numeric venue. Keep the BUG-0385 plan-ownership check.
 Leave the live Bitunix path untouched.
 
+**Done (opencode).** `handleTpSlDrop` now reads the base id from
+`tpSlState.orders.find(o => o.orderId === orderId)?.sourceOrderId`,
+falling back to `stripLegSuffix` when the store holds no such row. The
+fallback is what still covers the pruned / not-yet-hydrated /
+WebSocket-pushed leg (the WS split carries no `sourceOrderId`), so both
+halves of the contract stay. The hard constraint is honoured:
+`stripLegSuffix` is untouched and still strips a numeric base only.
+
+For a numeric venue row the store and the regex agree, so the live
+Bitunix path is behaviourally unchanged — asserted directly rather than
+assumed.
+
 **Hard constraint (security review ses_ede1a5491ffe): do NOT widen the
 `stripLegSuffix` regex to non-numeric bases.** The numeric guard is the
 control bounding the fallback: with it gone, any genuine venue order id
@@ -78,13 +91,13 @@ never as the id sent to a venue.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect (paper plan with TP+SL, drag leg id
+- [x] A test reproduces the defect (paper plan with TP+SL, drag leg id
       `paper-tpsl-N-tp` through the drop path) and fails without the fix
-- [ ] The test passes with the fix — the paper leg moves, no
+- [x] The test passes with the fix — the paper leg moves, no
       `orderNotFound` toast
-- [ ] Dragging a TP/SL line on a live Bitunix-shaped numeric id still
+- [x] Dragging a TP/SL line on a live Bitunix-shaped numeric id still
       sends the base row id (BUG-0386 regression covered)
-- [ ] A failed drag still logs `logger.warn("api", "TP/SL drag update
+- [x] A failed drag still logs `logger.warn("api", "TP/SL drag update
       failed", …)` and refetches via `tpSlState.invalidate()`
 
 ## Links

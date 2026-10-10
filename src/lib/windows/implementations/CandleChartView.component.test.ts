@@ -191,10 +191,14 @@ vi.mock("../../../services/paperAccountFeed", () => ({
 // spied on directly so the drop tests can assert against them without a
 // real network call.
 const modifyTpSlOrder = vi.hoisted(() => vi.fn().mockResolvedValue({}));
+// BUG-0660: the tpsl store hydrates through the same adapter, so the paper
+// regression below seeds the store the way production does — through
+// `fetchTpSlOrders`, not by reaching into private state.
+const fetchTpSlOrders = vi.hoisted(() => vi.fn());
 const activeExchangeMock = vi.hoisted(() =>
     vi.fn(() => ({
         supports: { tpSl: true },
-        trading: { modifyTpSlOrder },
+        trading: { modifyTpSlOrder, fetchTpSlOrders },
     })),
 );
 vi.mock("../../../services/exchange", () => ({
@@ -212,6 +216,7 @@ import { tpSlState } from "../../../stores/tpsl.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
 import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import { uiState } from "../../../stores/ui.svelte";
+import { logger } from "../../../services/logger";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -285,6 +290,10 @@ beforeEach(() => {
     settingsState.accountFor("bitunix").keys = { key: "", secret: "" };
     appFetchMock.mockReset();
     paperFeedMock.current = null;
+    // `clearAllMocks` drops call history, not implementations — restated per
+    // test so an unstubbed store hydration resolves to "no plans" instead of
+    // handing the store an `undefined` list.
+    fetchTpSlOrders.mockResolvedValue([]);
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -681,6 +690,10 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
 
     it("shows an error toast and still invalidates the cache when the modification is refused", async () => {
         modifyTpSlOrder.mockRejectedValueOnce(new Error("refused"));
+        // BUG-0386 added the log beside the toast because the toast alone gave
+        // no reproducible trace; BUG-0660 keeps that contract, so it is
+        // asserted rather than assumed to survive.
+        const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
         seedPositionAndPlans();
         component = mount(CandleChartView, {
             target: host,
@@ -697,6 +710,11 @@ describe("FEAT-0247 — dragging a chart TP/SL line", () => {
         dragSlLineTo(container, 90, 95);
         await settle();
 
+        expect(warnSpy).toHaveBeenCalledWith(
+            "api",
+            "TP/SL drag update failed",
+            expect.objectContaining({ error: "refused" }),
+        );
         expect(toastService.error).toHaveBeenCalled();
         expect(tpSlState.invalidate).toHaveBeenCalled();
     });
@@ -1511,5 +1529,159 @@ describe("BUG-0565 — chart hydrates from the paper feed in paper mode", () => 
         expect(accountState.positions.some((p) => p.positionId === "paper-1")).toBe(true);
         expect(accountState.openOrders.some((o) => o.orderId === "paper-o-1")).toBe(true);
         expect(accountState.snapshotMode).toBe("paper");
+    });
+});
+
+/*
+ * BUG-0660 — paper-mode TP/SL drag never worked.
+ *
+ * The live half of this was fixed by BUG-0386, which recovers the venue row id
+ * from the synthetic leg id by string surgery — `stripLegSuffix`, guarded to a
+ * **numeric** base, because Bitunix order ids are numeric. Paper plan rows are
+ * grouped under a non-numeric id (`paper-tpsl-3`), so the guard declined them,
+ * the leg id `paper-tpsl-3-tp` went to the venue verbatim, and
+ * `paperExchange.modifyTpSlPlan` — which matches on `planGroupId` — found
+ * nothing and threw `PAPER_NO_ORDER` / `tradeErrors.orderNotFound`.
+ *
+ * The fix is not a wider regex (see the hard constraint in the backlog item:
+ * a real venue id ending in `-tp`/`-sl` would then be truncated and sent to an
+ * endpoint that resolves orders by id alone). It is an exact lookup of the
+ * dragged line's own row in the store, which is where the venue row id already
+ * sits as `sourceOrderId` for every venue, numeric or not.
+ */
+describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the synthetic leg", () => {
+    const PAPER_GROUP = "paper-tpsl-3";
+
+    /*
+     * `vi.spyOn` implementations outlive the test that created them — the
+     * config sets `clearMocks: false` and there is no `restoreMocks` — so the
+     * FEAT-0247 block's `plansFor` / `ensureFresh` spies would otherwise still
+     * be in place here. This block needs the *real* store: the defect is
+     * precisely what the store knows and the drop path fails to use.
+     */
+    beforeEach(() => {
+        for (const method of [tpSlState.plansFor, tpSlState.ensureFresh, tpSlState.invalidate]) {
+            (method as unknown as { mockRestore?: () => void }).mockRestore?.();
+        }
+        // Re-spied so the post-drop refetch stays observable. A no-op keeps the
+        // drop from kicking a real fetch off behind the assertion; the real
+        // `ensureFresh` would early-return on the 30s freshness window anyway.
+        vi.spyOn(tpSlState, "invalidate").mockImplementation(() => {});
+    });
+
+    function seedPaperPosition() {
+        accountState.positions = [
+            {
+                positionId: "paper-1",
+                symbol: "BTCUSDT",
+                side: "long",
+                size: new Decimal(1),
+                entryPrice: new Decimal(100),
+                leverage: new Decimal(10),
+                unrealizedPnl: new Decimal(0),
+                margin: new Decimal(10),
+                marginMode: "ISOLATED",
+                liquidationPrice: new Decimal(80),
+                markPrice: new Decimal(100),
+                breakEvenPrice: new Decimal(100),
+                marginRate: new Decimal(0),
+                realizedPnl: new Decimal(0),
+            },
+        ] as never;
+    }
+
+    /**
+     * Hydrates the store the way production does — one venue row per plan,
+     * split into legs by `normalizeTpSlRow`, exactly as `paperExchange`'s
+     * `tpSlRows` emits them under a non-numeric group id.
+     */
+    async function seedPlanRow(baseId: string) {
+        fetchTpSlOrders.mockResolvedValue([
+            {
+                orderId: `${baseId}-tp`,
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "120",
+                status: "NEW",
+                sourceOrderId: baseId,
+                positionId: "paper-1",
+            },
+            {
+                orderId: `${baseId}-sl`,
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "90",
+                status: "NEW",
+                sourceOrderId: baseId,
+                positionId: "paper-1",
+            },
+        ]);
+        await tpSlState.ensureFresh();
+    }
+
+    async function mountWithPlanRow(baseId: string) {
+        seedPaperPosition();
+        await seedPlanRow(baseId);
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector<HTMLElement>(".chart-container");
+        if (!container) throw new Error("no chart container rendered");
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+        return container;
+    }
+
+    /** Price === Y in the fake series, so clientY picks the price. */
+    function dragLine(container: HTMLElement, fromY: number, toY: number) {
+        container.dispatchEvent(new MouseEvent("mousedown", { clientY: fromY, bubbles: true }));
+        container.dispatchEvent(new MouseEvent("mousemove", { clientY: toY, bubbles: true }));
+        window.dispatchEvent(new MouseEvent("mouseup"));
+    }
+
+    it("sends the plan row id when a paper leg is dragged", async () => {
+        const container = await mountWithPlanRow(PAPER_GROUP);
+
+        // TP rests at 120; drag it to 130 (above the entry at 100, so the
+        // direction is valid for a long).
+        dragLine(container, 120, 130);
+        await settle();
+
+        // The venue row id the paper simulator matches on `planGroupId`, not
+        // the synthetic `paper-tpsl-3-tp` leg id that produced the
+        // `orderNotFound` toast.
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: PAPER_GROUP,
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "130",
+            }),
+        );
+        expect(toastService.error).not.toHaveBeenCalled();
+        expect(tpSlState.invalidate).toHaveBeenCalled();
+    });
+
+    it("still sends the base row id for a numeric venue leg (BUG-0386)", async () => {
+        const container = await mountWithPlanRow("9001");
+
+        dragLine(container, 120, 130);
+        await settle();
+
+        // The store lookup and `stripLegSuffix` must agree here; if they ever
+        // diverge the live path silently addresses the wrong row.
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "130",
+            }),
+        );
     });
 });

@@ -813,10 +813,20 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         const leg = kind === "takeProfit" ? "tp" : "sl";
         // BUG-0386 / BUG-0384: `orderId` is the synthetic per-leg id
         // (`<baseId>-tp` / `<baseId>-sl`, BUG-0292) that only exists locally.
-        // The venue knows the row it was split from — send that id. Strip the
-        // leg suffix to recover the base row id instead of sending the leg id;
-        // for an already-base id (generic provider) this is a no-op.
-        const baseId = stripLegSuffix(orderId, leg);
+        // The venue knows the row it was split from — send that id.
+        //
+        // BUG-0660: recover it from the store by exact match on the dragged
+        // line's own id, where `normalizeTpSlRow` already recorded it as
+        // `sourceOrderId` for every venue. `stripLegSuffix` stays the fallback
+        // for rows no longer in the store — pruned, not hydrated, or pushed
+        // over the WebSocket, which carries no `sourceOrderId` — but it strips
+        // only a **numeric** base, so a paper row id (`paper-tpsl-3`) passed
+        // straight through and the leg id reached the venue verbatim. Widening
+        // that regex is not an option: a genuine venue id ending in `-tp`/`-sl`
+        // would then be truncated and sent to an endpoint that resolves orders
+        // by id alone, addressing the wrong row.
+        const storedRow = tpSlState.orders.find((o) => o.orderId === orderId);
+        const baseId = storedRow?.sourceOrderId ?? stripLegSuffix(orderId, leg);
         // BUG-0385: `plansFor()` is keyed by symbol alone, so when a position
         // plan and a pending bracket coexist it can return the *other* plan —
         // and the store can even shift between mousedown and mouseup. Only
