@@ -2,7 +2,7 @@
 id: BUG-0661
 title: Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: chart
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0661 — Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop
@@ -58,13 +59,38 @@ closure checks before writing `_orders`, and `ensureFresh` takes a
 post-mutation refetch fails, so "venue updated, display stale" is
 visible rather than silent.
 
+**Done (opencode).** Both halves, as described:
+
+- `invalidate()` bumps a `generation` counter; `ensureFresh` captures it
+  on the way out and drops the response — data *and* error — if a newer
+  read has superseded it. Cancelling the request was not an option:
+  there is no abort signal on this path, so refusing the write-back is
+  the cheaper guard.
+- `ensureFresh(now, force)` takes a `force` flag; the drag's `finally`
+  passes it, so a post-mutation read never joins an in-flight one. All
+  five other call sites pass nothing and keep the collapse behaviour.
+- `CandleChartView` renders `tpSlState.error` as a banner over the
+  chart (`role="status"`, `chartView.tpSlStale` in both locales).
+
+`reset()` bumps the generation too: a request issued against the state
+just discarded must not write it back.
+
+**Deliberately left open.** `orderPlacementService.readOrders`
+(`:508`) has the same shape — `invalidate()` then a non-forced
+`ensureFresh()` — and its comment already claims to bypass the cache
+window, which a non-forced read does not do while a request is in
+flight. It is `area: execution` and it feeds the placement confirmation,
+so widening this fix into it belongs in its own reviewed item. The
+generation guard already removes the *stale write* there; what remains is
+a deferred refresh, not a wrong one.
+
 ## Acceptance criteria
 
-- [ ] A test with an in-flight fetch at drop time reproduces the defect
+- [x] A test with an in-flight fetch at drop time reproduces the defect
       and fails without the fix (stale rows stamped fresh)
-- [ ] The test passes with the fix — the post-mutation read wins, no
+- [x] The test passes with the fix — the post-mutation read wins, no
       stale stamp
-- [ ] A failed post-mutation refetch is visible on the chart, not only
+- [x] A failed post-mutation refetch is visible on the chart, not only
       in the TP/SL tab
 
 ## Links

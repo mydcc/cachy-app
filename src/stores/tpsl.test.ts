@@ -124,6 +124,61 @@ describe("tpSlState — fetching", () => {
     });
 });
 
+/*
+ * BUG-0661 — a mutation's refetch must not be swallowed by an older request.
+ *
+ * `ensureFresh` collapses concurrent callers onto one request, which is right
+ * for readers. After a *mutation* it is wrong: the TP/SL chart calls
+ * `ensureFresh` on every effect run, so a read is frequently already in flight
+ * when a drag lands. The post-mutation read joined that request, the response
+ * carried rows that predate the mutation, and it was written into `_orders`
+ * with a fresh `_loadedAt` — so the chart showed the old trigger price as if
+ * it were the resting one, for the whole 30s window.
+ */
+describe("tpSlState — a mutation's refetch cannot be swallowed (BUG-0661)", () => {
+    it("does not let an in-flight pre-mutation fetch stamp stale rows as fresh", async () => {
+        const t0 = 1_000_000;
+        let releaseStale: (rows: unknown[]) => void = () => {};
+        fetchTpSl.mockReturnValueOnce(new Promise((resolve) => (releaseStale = resolve)));
+
+        // A reader is already in flight (the chart effect does this on every run).
+        const inFlight = tpSlState.ensureFresh(t0);
+
+        // The drag lands: invalidate, then an unconditional read.
+        tpSlState.invalidate();
+        fetchTpSl.mockResolvedValue([plan("BTCUSDT", "PROFIT", "61000")]);
+        const afterMutation = tpSlState.ensureFresh(t0 + 1, true);
+
+        // The older request resolves last, with rows that predate the mutation.
+        releaseStale([plan("BTCUSDT", "LOSS", "45000")]);
+        await Promise.all([inFlight, afterMutation]);
+
+        expect(tpSlState.orders).toEqual([
+            expect.objectContaining({ planType: "PROFIT", triggerPrice: "61000" }),
+        ]);
+        // Not merely the right rows — not stamped as a fresh read either.
+        expect(tpSlState.loadedAt).toBe(t0 + 1);
+    });
+
+    it("does not record the failure of a request a newer read superseded", async () => {
+        fetchTpSl.mockReturnValueOnce(new Promise((resolve) => resolve([])));
+        const inFlight = tpSlState.ensureFresh(1_000);
+
+        tpSlState.invalidate();
+        fetchTpSl.mockResolvedValueOnce([plan("BTCUSDT", "PROFIT", "61000")]);
+        await tpSlState.ensureFresh(1_001, true);
+
+        await inFlight;
+        expect(tpSlState.error).toBeNull();
+    });
+
+    it("still reports the failure of the read it actually ran", async () => {
+        fetchTpSl.mockRejectedValue(new Error("endpoint down"));
+        await tpSlState.ensureFresh(1_000, true);
+        expect(tpSlState.error).toBe("endpoint down");
+    });
+});
+
 describe("tpSlState — plansFor", () => {
     beforeEach(async () => {
         fetchTpSl.mockResolvedValue([

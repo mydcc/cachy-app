@@ -98,6 +98,11 @@ class TpSlManager {
     private _loadedAt: number | null = null;
     /** De-dupes concurrent callers so two consumers cannot double-fetch. */
     private inFlight: Promise<void> | null = null;
+    /**
+     * Bumped by `invalidate()`. A request captures it on the way out and may
+     * only write back if it still matches — see BUG-0661.
+     */
+    private generation = 0;
 
     get orders(): readonly TpSlOrder[] {
         return this._orders;
@@ -190,15 +195,32 @@ class TpSlManager {
      * call from a render path: concurrent calls share one request, and a
      * failure is recorded rather than thrown — a position card must still
      * render when the TP/SL endpoint is unavailable.
+     *
+     * `force` is for the caller that just changed something — a TP/SL drag,
+     * a cancel. Collapsing that read onto an in-flight request is right for
+     * two readers and wrong here: the outstanding request was issued *before*
+     * the mutation, so its response describes the old state (BUG-0661). A
+     * forced read therefore starts its own request and runs concurrently; the
+     * generation guard below decides which of the two may write.
      */
-    public async ensureFresh(now = Date.now()): Promise<void> {
-        if (this.inFlight) return this.inFlight;
-        if (this._loadedAt !== null && now - this._loadedAt < MAX_AGE_MS) return;
+    public async ensureFresh(now = Date.now(), force = false): Promise<void> {
+        if (!force) {
+            if (this.inFlight) return this.inFlight;
+            if (this._loadedAt !== null && now - this._loadedAt < MAX_AGE_MS) return;
+        }
 
-        this.inFlight = (async () => {
+        const generation = this.generation;
+        const request = (async () => {
             this._loading = true;
             try {
-                this._orders = await activeExchange().trading.fetchTpSlOrders("pending");
+                const orders = await activeExchange().trading.fetchTpSlOrders("pending");
+                // Superseded: `invalidate()` ran while this was in flight, so
+                // these rows predate the mutation it announced. Writing them
+                // would show the stale level *and* stamp it fresh for the whole
+                // window — the display would then contradict the venue with
+                // nothing saying so. That is BUG-0661.
+                if (generation !== this.generation) return;
+                this._orders = orders;
                 // Stamped with the caller's clock, not `Date.now()`, so the
                 // staleness check above and this always measure the same
                 // thing. Dating the window from the request rather than the
@@ -207,15 +229,24 @@ class TpSlManager {
                 this._loadedAt = now;
                 this._error = null;
             } catch (e) {
+                // Same reasoning as the data write: a failure of a superseded
+                // request says nothing about the state a newer read reports,
+                // and that read reports its own.
+                if (generation !== this.generation) return;
                 this._error = e instanceof Error ? e.message : String(e);
                 logger.debug("api", "[TpSl] Fetch failed", e);
             } finally {
-                this._loading = false;
-                this.inFlight = null;
+                // Only the request that still owns the slot may clear it — a
+                // forced read can be overtaken while this one settles.
+                if (this.inFlight === request) {
+                    this._loading = false;
+                    this.inFlight = null;
+                }
             }
         })();
 
-        return this.inFlight;
+        this.inFlight = request;
+        return request;
     }
 
     /**
@@ -263,9 +294,18 @@ class TpSlManager {
      * Marks the cache stale. Call after anything that changes plans — an
      * edit, a cancel, a position closing — so the next read refetches
      * instead of showing a plan that no longer exists.
+     *
+     * Also bumps the request generation (BUG-0661). Nulling `_loadedAt` alone
+     * only convinces the *next* caller to refetch; it does nothing about the
+     * request already in flight, which was issued against the pre-mutation
+     * state and would write its rows back over the fresh ones. Cancelling it
+     * is not an option either — there is no abort signal on this path, and a
+     * response can arrive at any time. Refusing to let a superseded request
+     * write is both cheaper and simpler.
      */
     public invalidate(): void {
         this._loadedAt = null;
+        this.generation++;
     }
 
     /** Drops everything. Used when the account or exchange changes. */

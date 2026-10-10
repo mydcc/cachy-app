@@ -4484,6 +4484,7 @@
     "loadingHistory": "LADE HISTORIE ...",
     "fetchingMarketData": "MARKTDATEN WERDEN GELADEN ...",
     "countdownLabel": "Countdown bis zur Kerzenschließung",
+    "tpSlStale": "TP/SL-Niveaus für {symbol} sind möglicherweise veraltet — die letzte Aktualisierung ist fehlgeschlagen: {msg}",
     "alert": {
       "menuLabel": "Warnung",
       "regionLabel": "Warn-Region",

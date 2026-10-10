@@ -909,8 +909,15 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             // Whether it succeeded or was refused, the on-chart line must
             // reflect the resting order's real price, not the dropped one —
             // refetch rather than trust the optimistic drag position.
+            //
+            // BUG-0661: `force` because this read follows a mutation. The
+            // chart effect asks on every run, so a request is usually already
+            // in flight — and that one was issued *before* this drop, so
+            // joining it would hand the chart back the old level. `invalidate()`
+            // bumps the store's generation, which stops the older response
+            // from writing over whatever this one fetches.
             tpSlState.invalidate();
-            void tpSlState.ensureFresh(Date.now());
+            void tpSlState.ensureFresh(Date.now(), true);
         }
     }
 
@@ -1569,6 +1576,24 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         oncontextmenu={handleChartContextMenu}
         onkeydown={handleChartKeydown}
     >
+        <!--
+          BUG-0661 — "the venue updated, the display did not" has to be
+          visible. `tpSlState.error` was rendered only in the TP/SL tab, so a
+          drag that succeeded while its refetch failed left the chart showing
+          a stale trigger price with nothing saying so. `role="status"` so a
+          screen reader announces it when it appears — the trader is looking at
+          a chart, not at a tab.
+        -->
+        {#if tpSlState.error}
+            <div
+                data-testid="tp-sl-stale"
+                role="status"
+                class="absolute top-2 left-2 z-20 max-w-[70%] rounded-lg border border-[var(--danger-color)] bg-[var(--bg-secondary)]/90 px-2 py-1 text-xs text-[var(--danger-color)] shadow-lg"
+            >
+                {$_("chartView.tpSlStale", { values: { symbol, msg: tpSlState.error } })}
+            </div>
+        {/if}
+
         <!--
           FEAT-0480 drawing tools. Deliberately a small overlay rather than a
           chart-wide toolbar: it sits above the canvas the drawings live on,
