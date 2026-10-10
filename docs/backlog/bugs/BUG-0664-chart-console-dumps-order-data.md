@@ -2,7 +2,7 @@
 id: BUG-0664
 title: CandleChartView dumps order ids and bracket prices to console on every tick
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: chart
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0664 — CandleChartView dumps order ids and bracket prices to console on every tick
@@ -46,10 +47,19 @@ A leftover FEAT-0247 diagnostic written through `console` instead of
 Route it through `logger.debug("api", …)` so it inherits the settings
 and DEV gates, or delete it — the diagnostic has served its purpose.
 
+**Done (opencode).** Routed through `logger.debug("api", …)`. The
+diagnostic itself is kept — it is still the only way to tell "the fields
+never arrived from the exchange" from "they arrived and something here
+drops them" — but it now sits behind both the DEV gate and the `api`
+category, which is off by default. Two tests in
+`CandleChartView.component.test.ts` pin the pair: nothing reaches the
+console with the category off, and the diagnostic still reports the
+bracket when it is on, so "delete it" cannot pass silently.
+
 ## Acceptance criteria
 
-- [ ] No raw `console.*` call emits order data on chart ticks
-- [ ] With API logging off, the console carries no order identifiers
+- [x] No raw `console.*` call emits order data on chart ticks
+- [x] With API logging off, the console carries no order identifiers
       or bracket levels from the chart
 
 ## Links

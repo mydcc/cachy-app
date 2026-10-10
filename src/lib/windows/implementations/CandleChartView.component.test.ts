@@ -998,6 +998,110 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
 });
 
 /*
+ * BUG-0664 — the FEAT-0247 bracket diagnostic leaked order data to the console.
+ *
+ * The price-lines effect dumped `orderId`, `tpPrice` and `slPrice` of every
+ * resting limit order through raw `console.debug` on every effect pass. That
+ * path honours neither the DEV gate nor the `api` log category (off by
+ * default), so it fired for users who never enabled API logging — and
+ * console output is routinely pasted into public bug reports, carrying order
+ * identifiers and bracket levels along with it.
+ *
+ * The pair below is the whole contract: with the category off nothing reaches
+ * the console, and with it on the diagnostic still works. The second test is
+ * what keeps the first honest — a fix that simply deleted the diagnostic
+ * would pass the first assertion while destroying the FEAT-0247 triage the
+ * comment above the call still describes.
+ */
+describe("BUG-0664 — resting-order bracket diagnostic honours the API logging gate", () => {
+    const ORDER_ID = "o-4242";
+
+    /** Every level a raw dump could escape through; `logger.log` uses console.log. */
+    function captureConsole() {
+        const captured: string[] = [];
+        const spies = (["debug", "log", "warn", "error"] as const).map((level) =>
+            vi.spyOn(console, level).mockImplementation((...args: unknown[]) => {
+                captured.push(
+                    args
+                        .map((a) => {
+                            if (typeof a === "string") return a;
+                            try {
+                                return JSON.stringify(a) ?? String(a);
+                            } catch {
+                                return String(a);
+                            }
+                        })
+                        .join(" "),
+                );
+            }),
+        );
+        return { captured, restore: () => spies.forEach((s) => s.mockRestore()) };
+    }
+
+    function seedBracketOrder() {
+        accountState.openOrders = [
+            {
+                orderId: ORDER_ID,
+                symbol: "BTCUSDT",
+                side: "buy",
+                type: "limit",
+                price: new Decimal(65000),
+                amount: new Decimal(1),
+                filled: new Decimal(0),
+                status: "NEW",
+                // The bracket the diagnostic exists to inspect (FEAT-0247).
+                tpPrice: "66000",
+                slPrice: "64000",
+                timestamp: Date.now(),
+            },
+        ] as never;
+    }
+
+    async function mountWithSeededBracket() {
+        seedBracketOrder();
+        const spy = captureConsole();
+        try {
+            component = mount(CandleChartView, {
+                target: host,
+                props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+            }) as never;
+            await settle();
+        } finally {
+            spy.restore();
+        }
+        return spy.captured.join("\n");
+    }
+
+    it("emits no order id or bracket level while API logging is off (the default)", async () => {
+        // The precondition, asserted rather than assumed: `api` is absent from
+        // the typed logSettings surface, so `!!logSettings["api"]` is false.
+        // Without this line the test could pass for the wrong reason — e.g.
+        // after someone turns the category on globally.
+        expect(settingsState.debugMode).toBe(false);
+        expect((settingsState.logSettings as Record<string, boolean>).api).toBeFalsy();
+
+        const output = await mountWithSeededBracket();
+
+        expect(output).not.toContain(ORDER_ID);
+        expect(output).not.toContain("66000");
+        expect(output).not.toContain("64000");
+    });
+
+    it("still reports the bracket when the user turns API logging on", async () => {
+        const previous = settingsState.logSettings;
+        settingsState.logSettings = { ...previous, api: true } as typeof previous;
+        try {
+            const output = await mountWithSeededBracket();
+
+            expect(output).toContain(ORDER_ID);
+        } finally {
+            settingsState.logSettings = previous;
+            settingsState.debugMode = false;
+        }
+    });
+});
+
+/*
  * BUG-0296 — history loading stays retryable.
  *
  * A transient kline fetch error used to be reported as `false` ("no more

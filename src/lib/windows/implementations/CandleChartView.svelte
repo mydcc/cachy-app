@@ -1360,8 +1360,16 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         // matching order, to tell apart "the fields never arrived from the
         // exchange/hydration" from "they arrived but something here drops
         // them" (falsy 0/empty-string, wrong symbol match, etc).
+        //
+        // BUG-0664: this ran on every effect pass through raw `console`,
+        // so order ids and bracket levels landed in the console even with
+        // API logging off — and console output is routinely pasted into
+        // public bug reports. `logger.debug` inherits the DEV gate and the
+        // `api` category (off by default), so the diagnostic only reaches
+        // the console when it was actually asked for.
         if (matchingOrders.length > 0) {
-            console.debug(
+            logger.debug(
+                "api",
                 "[CandleChartView] FEAT-0247: pending orders for symbol",
                 matchingOrders.map((o) => ({
                     orderId: o.orderId,
