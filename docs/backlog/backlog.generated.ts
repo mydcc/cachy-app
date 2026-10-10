@@ -3030,7 +3030,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0661",
     "title": "Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -3042,6 +3042,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md"
   },
   {

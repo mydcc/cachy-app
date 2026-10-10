@@ -3685,6 +3685,7 @@ export type TranslationKey =
   | "chartView.loadingHistory"
   | "chartView.fetchingMarketData"
   | "chartView.countdownLabel"
+  | "chartView.tpSlStale"
   | "chartView.alert.menuLabel"
   | "chartView.alert.regionLabel"
   | "chartView.alert.here"

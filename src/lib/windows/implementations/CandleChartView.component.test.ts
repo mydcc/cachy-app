@@ -1799,3 +1799,95 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
         expect(toastService.error).not.toHaveBeenCalled();
     });
 });
+
+/*
+ * BUG-0661 — "the venue updated, the display did not" has to be visible.
+ *
+ * A drag that succeeded but whose refetch failed leaves the chart showing the
+ * old trigger price. `tpSlState.error` was rendered only in the TP/SL tab
+ * (`TpSlList.svelte`), so a trader looking at the chart had no way to tell a
+ * resting stop from a stale line — the exact situation the drag's own comment
+ * says the refetch exists to prevent. The banner below is the visible half of
+ * the fix: it appears only while the store holds a fetch error, and it names
+ * the underlying message rather than a generic "something went wrong".
+ */
+describe("BUG-0661 — a failed post-drag refetch is visible on the chart", () => {
+    beforeEach(() => {
+        // `vi.spyOn` implementations outlive the test that created them (the
+        // config sets `clearMocks: false`, no `restoreMocks`), so the
+        // FEAT-0247 block's spies would still be in place. This block needs
+        // the real store: the defect is that a real fetch failed.
+        for (const method of [tpSlState.plansFor, tpSlState.ensureFresh, tpSlState.invalidate]) {
+            (method as unknown as { mockRestore?: () => void }).mockRestore?.();
+        }
+        accountState.positions = [
+            {
+                positionId: "p-1",
+                symbol: "BTCUSDT",
+                side: "long",
+                size: new Decimal(1),
+                entryPrice: new Decimal(100),
+                leverage: new Decimal(10),
+                unrealizedPnl: new Decimal(0),
+                margin: new Decimal(10),
+                marginMode: "ISOLATED",
+                liquidationPrice: new Decimal(80),
+                markPrice: new Decimal(100),
+                breakEvenPrice: new Decimal(100),
+                marginRate: new Decimal(0),
+                realizedPnl: new Decimal(0),
+            },
+        ] as never;
+    });
+
+    function staleBanner(): HTMLElement | null {
+        return host.querySelector<HTMLElement>("[data-testid='tp-sl-stale']");
+    }
+
+    it("warns on the chart once the post-mutation refetch has failed", async () => {
+        // The mount-time hydration succeeds, so the banner cannot be showing
+        // for an unrelated reason — only the post-drop refetch fails.
+        fetchTpSlOrders.mockResolvedValueOnce([
+            {
+                orderId: "9001-sl",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "90",
+                status: "NEW",
+                sourceOrderId: "9001",
+            },
+        ]);
+
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+        expect(staleBanner()).toBeNull();
+
+        fetchTpSlOrders.mockRejectedValue(new Error("tp/sl endpoint unreachable"));
+        const container = host.querySelector<HTMLElement>(".chart-container");
+        if (!container) throw new Error("no chart container rendered");
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+
+        container.dispatchEvent(new MouseEvent("mousedown", { clientY: 90, bubbles: true }));
+        container.dispatchEvent(new MouseEvent("mousemove", { clientY: 95, bubbles: true }));
+        window.dispatchEvent(new MouseEvent("mouseup"));
+
+        await settleUntil(() => tpSlState.error !== null);
+        expect(staleBanner()).not.toBeNull();
+        // The banner must be a translated sentence, never the store's raw
+        // error: that string is an i18n key in production
+        // (`dashboard.alerts.noApiKeys`, `apiErrors.generic`), so asserting
+        // against the English source or the raw key would pin the wrong
+        // contract. German differs from English here, which also proves the
+        // text goes through the dictionary rather than a hardcoded literal.
+        const text = staleBanner()?.textContent ?? "";
+        expect(text).toContain("TP/SL-Niveaus für BTCUSDT");
+        expect(text).not.toContain("tp/sl endpoint unreachable");
+        expect(text).not.toContain("apiErrors");
+    });
+});

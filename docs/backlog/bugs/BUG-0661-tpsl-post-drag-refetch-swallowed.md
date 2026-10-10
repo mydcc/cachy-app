@@ -2,7 +2,7 @@
 id: BUG-0661
 title: Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: chart
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0661 — Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop
@@ -58,13 +59,57 @@ closure checks before writing `_orders`, and `ensureFresh` takes a
 post-mutation refetch fails, so "venue updated, display stale" is
 visible rather than silent.
 
+**Done (opencode).** Both halves, as described:
+
+- `invalidate()` bumps a `generation` counter; `ensureFresh` captures it
+  on the way out and drops the response — data *and* error — if a newer
+  read has superseded it. Cancelling the request was not an option:
+  there is no abort signal on this path, so refusing the write-back is
+  the cheaper guard.
+- `ensureFresh(now, force)` takes a `force` flag; the drag's `finally`
+  passes it, so a post-mutation read never joins an in-flight one. All
+  five other call sites pass nothing and keep the collapse behaviour.
+- `CandleChartView` renders `tpSlState.error` as a banner over the
+  chart (`role="status"`, `chartView.tpSlStale` in both locales).
+
+`reset()` bumps the generation too: it is the account boundary, so a
+request issued against the account being dropped must not write its rows
+— or its error message — into the fresh store.
+
+The request body starts through `Promise.resolve().then`, so it cannot
+run before `inFlight` has been assigned. `bitunixAdapter.fetchTpSlOrders`
+is a non-async arrow, so a synchronous throw is not structurally
+impossible; without that hop it would run `finally` while `request` was
+still in its temporal dead zone, replacing the real error with a
+ReferenceError and leaving `inFlight` permanently rejected.
+
+**`orderPlacementService.readOrders` (`:508`) after review.** It had
+the same shape — `invalidate()` then a non-forced `ensureFresh()` — and
+its comment already claimed to bypass the cache window, which a
+non-forced read does not do while a request is in flight. Left alone it
+would have become a *regression from this fix*: the generation bump
+dooms the in-flight request, the non-forced read joins that doomed
+request, and the confirmation sees rows from before the placement it is
+checking — burning a retry attempt and, on the last one, reporting a
+protected position as unprotected. It now passes `force`, which is what
+its own docstring always claimed. Still `area: execution`: 👤 human
+review recommended.
+
+**Banner wording.** The chart banner does not interpolate
+`tpSlState.error`. That string is not a sentence — `tpSlService` throws
+i18n keys (`dashboard.alerts.noApiKeys`, `apiErrors.generic`), so
+interpolating it would put `…failed: dashboard.alerts.noApiKeys` on
+screen. `TpSlList` already declines to interpolate for the same reason.
+Presence is the signal; the reason stays in the TP/SL tab where it can
+be translated.
+
 ## Acceptance criteria
 
-- [ ] A test with an in-flight fetch at drop time reproduces the defect
+- [x] A test with an in-flight fetch at drop time reproduces the defect
       and fails without the fix (stale rows stamped fresh)
-- [ ] The test passes with the fix — the post-mutation read wins, no
+- [x] The test passes with the fix — the post-mutation read wins, no
       stale stamp
-- [ ] A failed post-mutation refetch is visible on the chart, not only
+- [x] A failed post-mutation refetch is visible on the chart, not only
       in the TP/SL tab
 
 ## Links

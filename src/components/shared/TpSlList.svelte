@@ -45,7 +45,7 @@
   let showEditModal = $state(false);
   let editingOrder: TpSlOrder | null = $state(null);
 
-  async function fetchOrders() {
+  async function fetchOrders(force = false) {
     if (!isActive) return;
 
     // The pending view shares its cache with the position cards (FEAT-0057),
@@ -53,7 +53,13 @@
     // history view is this component's alone — a closed plan can never belong
     // to an open position, so caching it would buy nothing.
     if (view === "pending") {
-      await tpSlState.ensureFresh();
+      // BUG-0661: `force` after a mutation. `invalidate()` bumps the store's
+      // request generation, which dooms any request already in flight — so a
+      // non-forced read would join that doomed request, be dropped, and render
+      // the pre-cancel cache as if the cancel had not happened. Callers that
+      // only open the tab leave it off, which is what keeps FEAT-0057's shared
+      // cache free.
+      await tpSlState.ensureFresh(Date.now(), force);
       orders = [...tpSlState.orders];
       error = tpSlState.error ? $_("apiErrors.failedToLoadOrders") : "";
       return;
@@ -84,9 +90,10 @@
       await activeExchange().trading.cancelTpSlOrder(order);
       toastService.success($_("dashboard.alerts.orderCancelled"));
       // The position cards read the same cache; leaving it stale would show
-      // a stop that no longer exists.
+      // a stop that no longer exists. Forced so the refresh cannot be
+      // swallowed by a request that started before the cancel (BUG-0661).
       tpSlState.invalidate();
-      fetchOrders(); // Refresh
+      fetchOrders(true); // Refresh
     } catch (e) {
       // A gate refusal (FEAT-0011) already names the field that disagreed,
       // and a venue refusal (FEAT-0229) already names what this exchange
@@ -114,7 +121,7 @@
     showEditModal = false;
     editingOrder = null;
     tpSlState.invalidate();
-    fetchOrders();
+    fetchOrders(true);
   }
 
   $effect(() => {
