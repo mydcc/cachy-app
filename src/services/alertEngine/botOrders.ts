@@ -139,7 +139,18 @@ export type BotOrderRefusal =
   | "stale-anchor-price"
   | "no-equity"
   | "size-not-positive"
-  | "level-not-supported";
+  | "level-not-supported"
+  | "submission-in-flight"
+  | "position-already-open";
+
+/**
+ * Which way a position on a symbol faces, as the position books spell it.
+ *
+ * `long`/`short`, not `OrderIntent["side"]` — `Position.side` and
+ * `PaperPosition.side` are both this pair, and a reader asked about `"buy"`
+ * would match nothing and pass everything.
+ */
+export type PositionSide = "long" | "short";
 
 /**
  * The store reads this module needs, as ports rather than imports.
@@ -161,6 +172,36 @@ export interface BotOrderEnvironment {
   closeAt: (symbol: string, timeframe: string, anchorMs: number) => Decimal | null;
   /** The freshest price the engine holds, or null when the series is not held. */
   livePrice: (symbol: string, timeframe: string) => Decimal | null;
+  /**
+   * Is a position on this symbol already open, facing this way?
+   *
+   * FEAT-0488 — this is the limit that bounds *how many* entries a bot may
+   * make. Nothing between "the conditions hold" and "an order is submitted"
+   * bounded the count, and `frequency: "every_time"` answers yes however often
+   * the rule has fired, so each entry was sized against an equity figure the
+   * previous one had already moved.
+   *
+   * It reads the book rather than remembering what this rule opened, and that
+   * is the whole point: a per-rule memory cannot see a position the trader
+   * opened by hand or that another rule opened, and stacking onto a foreign
+   * position is one of the two failures this port exists to stop.
+   *
+   * **One window is still open, and it is not this one to close.** The
+   * in-flight guard is keyed by rule id, and the rule loop dispatches firings
+   * synchronously in a loop over every rule on a close. So two *different* bot
+   * rules on the same symbol and direction, both firing on the same close,
+   * both read the book before either fill has landed and both submit; the
+   * simulator then averages the second into the first as one position at
+   * double the size. The count is still bounded — the next close sees the
+   * position and refuses — but that close is the fix, not this read.
+   *
+   * Closing it means reserving on `(symbol, side)` rather than on rule id,
+   * which is a behaviour change on a money path and belongs in its own review.
+   * `withBotOrders`' in-flight guard is deliberately left per-rule because the
+   * backlog item scopes it that way: the rate is already bounded by the
+   * evaluation gate, and only the count was unbounded.
+   */
+  hasOpenPosition: (symbol: string, side: PositionSide) => boolean;
   place: typeof orderPlacementService.placeEntryGroup;
 }
 
@@ -253,6 +294,18 @@ export async function submitBotOrder(
 
   if (!order.stop) return "no-stop";
 
+  // FEAT-0488 — after every shape refusal and before every market-state one.
+  // A bot that already holds the position has a durable explanation, and a
+  // trader who is told `no-live-price` instead will go looking for a price
+  // problem that is not there.
+  //
+  // Refused rather than sized smaller: the item asks for a limit, and a limit
+  // the trader did not write is not one. A bot that wants to scale into an open
+  // position is FEAT-0035's question, answered by a rule that says so.
+  if (env.hasOpenPosition(firing.rule.symbol, order.side === "buy" ? "long" : "short")) {
+    return "position-already-open";
+  }
+
   // BUG-0489 — the anchor close proves which candle the verdict belongs to,
   // and that is all it proves. A market order fills at the current price, so
   // quantity, stop and declared risk are computed from the live price. Sizing
@@ -330,6 +383,33 @@ export function withBotOrders(
 ): FiringSink {
   const reported = new Set<string>();
 
+  /**
+   * FEAT-0488 — one message per rule *and* reason.
+   *
+   * Shared by all three refusal paths so the in-flight guard cannot drift from
+   * the other two: a refusal that skipped this would toast once a candle.
+   */
+  const report = (firing: RuleFiring, refusal: BotOrderRefusal): void => {
+    const seen = `${firing.rule.id}:${refusal}`;
+    if (reported.has(seen)) return;
+    reported.add(seen);
+    onRefusal(firing, refusal);
+  };
+
+  /**
+   * FEAT-0488 — the rule ids with a submission still outstanding.
+   *
+   * One sink is built per engine start, so this is machine-wide: two closes
+   * arriving together (a backfill, a busy series) meet the same set.
+   *
+   * Released in `finally`, never in `then` or `catch`. A throw that leaked the
+   * slot would silence the rule for the rest of the session, and a rule that
+   * stops submitting looks exactly like a strategy that stopped finding setups.
+   * A `place` that never settles therefore stops the rule rather than stacking
+   * it — the failure direction is the safe one.
+   */
+  const inFlight = new Set<string>();
+
   return (firing) => {
     inner(firing);
     if (!isBot(firing.rule)) {
@@ -341,21 +421,24 @@ export function withBotOrders(
       // than the silent `return` below. Deliberately not submitted here:
       // this item must not become a foothold for live sending.
       if (firing.rule.action?.consequence_level === "send") {
-        const seen = `${firing.rule.id}:level-not-supported`;
-        if (reported.has(seen)) return;
-        reported.add(seen);
-        onRefusal(firing, "level-not-supported");
+        report(firing, "level-not-supported");
       }
       return;
     }
 
+    // Taken and checked synchronously, before `submitBotOrder` is entered: the
+    // promise it returns is precisely what "in flight" means, so a guard
+    // consulted after an `await` would already be one firing too late. Refused
+    // rather than queued — a rule's next firing is its own decision to make.
+    if (inFlight.has(firing.rule.id)) {
+      report(firing, "submission-in-flight");
+      return;
+    }
+    inFlight.add(firing.rule.id);
+
     void submitBotOrder(firing, env)
       .then((refusal) => {
-        if (!refusal) return;
-        const seen = `${firing.rule.id}:${refusal}`;
-        if (reported.has(seen)) return;
-        reported.add(seen);
-        onRefusal(firing, refusal);
+        if (refusal) report(firing, refusal);
       })
       .catch((e: unknown) => {
         // The order path throws for reasons a bot cannot fix — a refused gate,
@@ -366,6 +449,9 @@ export function withBotOrders(
           "alerts",
           `bot ${firing.rule.id} could not submit: ${e instanceof Error ? e.message : String(e)}`,
         );
+      })
+      .finally(() => {
+        inFlight.delete(firing.rule.id);
       });
   };
 }

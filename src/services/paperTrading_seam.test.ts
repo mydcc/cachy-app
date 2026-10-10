@@ -281,14 +281,19 @@ describe("FEAT-0012 — one seam", () => {
         // Scope, stated plainly: service-layer `.ts` files (which includes
         // `.svelte.ts` — that is load-bearing for the `accountSession` row).
         // Components and other stores read the mode too (seven components,
-        // `ai`/`alerts`/`settings` stores), and two of those are behavior,
+        // `ai`/`alerts`/`settings` stores), and three of those are behavior,
         // not labels: `PlaceOrderPanel.svelte` gates a credential-verification
-        // `$effect` on it, and `alerts.svelte.ts` carries a second mode port
-        // (`paperEnabled: () => paperState.enabled`). Those are known and
-        // accepted as out of scope here — display reads churn too fast for an
-        // inventory, and order routing outside services is still covered
-        // repo-wide by the gate scanner. If either ever routes an order, this
-        // comment is the place that lied.
+        // `$effect` on it, and `alerts.svelte.ts` carries two mode ports —
+        // `paperEnabled: () => paperState.enabled`, and the `hasOpenPosition`
+        // reader that picks which position book a bot's order lands in
+        // (FEAT-0488). That second one already routes an order; the port is
+        // dead while the paper gate holds, and goes live with FEAT-0035.
+        // Those are known and accepted as out of scope here — display reads
+        // churn too fast for an inventory, and order routing outside services
+        // is still covered repo-wide by the gate scanner. Note this scan only
+        // walks `src/services`, so a store-side reader cannot be caught by it.
+        // If any of these ever routes an order differently, this comment is the
+        // place that lied.
         const read = /paperState\.enabled\b/g;
         const found = new Map<string, number>();
         const toPosix = (p: string) => p.split(sep).join("/");

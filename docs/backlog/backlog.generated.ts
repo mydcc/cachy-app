@@ -4010,7 +4010,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "FEAT-0488",
     "title": "Guard bot order submission against duplicates, stacking and unbounded repeat",
     "type": "feature",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -4022,6 +4022,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "A",
     "adr": "ADR-0012",
     "depends_on": [],
+    "branch": "feat/bot-order-submission-guard",
+    "assignee": "opencode",
     "file": "features/FEAT-0488-bot-order-submission-guard.md"
   },
   {
