@@ -110,6 +110,19 @@ export const WIRED_ACTIONS: ReadonlySet<ConfirmableAction> = new Set<Confirmable
     // FEAT-0330. Its cleanup cancel borrows this same authorisation, so
     // `cancel-all` needs no separate wiring for the flash-close path.
     "flash-close-position",
+    // BUG-0663: a TP/SL chart drag is a modify. `/api/tpsl` carries it as
+    // the wire action `modify`, which is not a catalogue member, so the gate
+    // fell through to "no confirmation required" for every drag — the toggle
+    // did nothing on the one action it looked like it covered. The call site
+    // now names this action explicitly via `confirmAs` and passes the
+    // confirmation timestamp.
+    //
+    // `cancel` and `place` on the same endpoint stay unmapped on purpose:
+    // their call sites do not confirm, so declaring them wired would make the
+    // gate refuse those actions outright the moment a user switched the
+    // toggle on — unusable, not protected, which is exactly the failure this
+    // set exists to prevent.
+    "modify-order",
 ]);
 
 export type ConfirmationPolicy = Record<ConfirmableAction, boolean>;

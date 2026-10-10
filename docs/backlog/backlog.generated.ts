@@ -6374,7 +6374,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0663",
     "title": "TP/SL drag modify cannot be gated by the confirm-modifications policy",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P2",
     "milestone": "none",
     "editions": [
@@ -6386,6 +6386,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md"
   },
   {

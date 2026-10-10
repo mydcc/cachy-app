@@ -242,3 +242,57 @@ describe("createTpSlService — read ports", () => {
         expect(signedRequest.mock.calls[0][1]).toEqual({ action: "history" });
     });
 });
+
+/*
+ * BUG-0663 — the drag names its policy action, and nothing else changes.
+ *
+ * `/api/tpsl` carries the wire action `modify`, which is not a confirmation
+ * catalogue member, so the gate found nothing to ask about on a drag. The
+ * fix names `modify-order` via `confirmAs` — but only on requests that
+ * actually confirmed. The edit modal shares this function and has no dialog;
+ * naming the policy action on its requests would make the gate refuse them
+ * the moment a user switches the toggle on. These two tests pin both sides
+ * of that line.
+ */
+describe("BUG-0663 — modifyTpSlOrder confirmation intent", () => {
+    let svc: TpSlService;
+    let gatedRequest: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        const made = makePorts();
+        svc = createTpSlService(made.ports);
+        gatedRequest = made.gatedRequest;
+    });
+
+    function modifyParams(extra: Record<string, unknown> = {}) {
+        return {
+            orderId: "1",
+            symbol: "BTCUSDT",
+            planType: "LOSS",
+            triggerPrice: "49000",
+            ...extra,
+        } as never;
+    }
+
+    it("names the policy action and carries the timestamp when confirmed", async () => {
+        await svc.modifyTpSlOrder(modifyParams({ confirmedAt: 1720000000000 }));
+
+        expect(gatedRequest).toHaveBeenCalledTimes(1);
+        const [intent] = gatedRequest.mock.calls[0];
+        expect(intent.confirmAs).toBe("modify-order");
+        expect(intent.confirmedAt).toBe(1720000000000);
+    });
+
+    it("leaves the intent exactly as unconfirmed as before when not confirmed", async () => {
+        await svc.modifyTpSlOrder(modifyParams());
+
+        expect(gatedRequest).toHaveBeenCalledTimes(1);
+        const [intent] = gatedRequest.mock.calls[0];
+        // Absent, not undefined: the gate reads `confirmAs` to pick the
+        // policy question, and a present-but-undefined key would still route
+        // the question differently from a missing one in a spread merge.
+        expect("confirmAs" in intent).toBe(false);
+        expect("confirmedAt" in intent).toBe(false);
+    });
+});

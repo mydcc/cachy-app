@@ -45,6 +45,19 @@ export interface ModifyTpSlParams {
     stopType?: "LAST_PRICE" | "MARK_PRICE";
     context?: { side: "long" | "short"; entryPrice: Decimal };
     tickSize?: Decimal;
+    /**
+     * When the user confirmed, as `Date.now()` — BUG-0663.
+     *
+     * A chart drag is a modify the trader may not be looking at, so it obeys
+     * the `modify-order` policy. The wire action `/api/tpsl` carries is
+     * `"modify"`, which is not a catalogue member, so the gate would read the
+     * wire action and find nothing to ask about; `confirmAs` below names the
+     * policy action instead — but only on a request that confirmed. An
+     * unconfirmed request names nothing and travels exactly as before, which
+     * is what keeps the edit modal (same function, no dialog yet) working
+     * under the toggle until it learns to ask.
+     */
+    confirmedAt?: number;
 }
 
 export interface PlacePositionTpSlParams {
@@ -287,6 +300,17 @@ export function createTpSlService(ports: TpSlPorts): TpSlService {
                 orderId: params.orderId,
                 params: wire,
             },
+            // BUG-0663: the policy action is `modify-order`; the wire action
+            // `modify` is not a catalogue member and would ask about nothing.
+            // Attached only when the caller actually confirmed. The edit modal
+            // shares this function and has no dialog yet — naming the policy
+            // action on its requests would make the gate refuse them the
+            // moment a user switches the toggle on, bricking the modal behind
+            // a confirmation it cannot produce. That path stays exactly as
+            // unconfirmed as it is today until it learns to ask.
+            ...(params.confirmedAt !== undefined
+                ? { confirmAs: "modify-order", confirmedAt: params.confirmedAt }
+                : {}),
             displayed: {
                 symbol: params.symbol,
                 orderId: params.orderId,
