@@ -4170,7 +4170,7 @@
     "unsupportedOrderType": "Order abgelehnt: {exchange} unterstützt den Ordertyp {orderType} nicht. Die Order wurde nicht gesendet.",
     "unsupportedTimeInForce": "Order abgelehnt: {exchange} akzeptiert die Gültigkeit {timeInForce} nicht. Die Order wurde nicht gesendet.",
     "unsupportedTpSlAtEntry": "Order abgelehnt: {exchange} kann Take-Profit und Stop-Loss nicht mit der Einstiegsorder zusammen übernehmen. Sie wären stillschweigend verworfen worden und die Position wäre ungeschützt geöffnet worden.",
-    "unplaceableStop": "Order abgelehnt: {exchange} kann den Stop-Loss für diese Order nicht platzieren — weder zusammen mit der Einstiegsorder noch als separate Order. Die Order wurde nicht gesendet. Leere das Stop-Feld, um eine bewusst ungeschützte Entry zu platzieren.",
+    "unplaceableStop": "Order abgelehnt: {exchange} kann den Stop-Loss für diese Order nicht platzieren — weder zusammen mit der Einstiegsorder noch als separate Order. Die Order wurde nicht gesendet. Die Positionsgröße braucht einen Stop, daher lässt sich eine Entry ohne Stop hier nicht berechnen — nutze eine Venue, die den Stop tragen kann.",
     "unsupportedMultipleTakeProfits": "Order abgelehnt: {exchange} trägt nur ein Take-Profit-Ziel an der Einstiegsorder, es wurden aber {count} übergeben. Die überzähligen Ziele wären ohne Fehlermeldung verworfen worden."
   },
   "workerErrors": {
@@ -4438,11 +4438,12 @@
     },
     "notes": {
       "noAttachedProtection": "Diese Börse kann keinen Stop an den Einstieg anhängen. Der Stop wird als zweite Anfrage platziert, die Position ist also kurz ungeschützt — du wirst benachrichtigt, falls er nicht ankommt.",
-      "unprotectedEntry": "Diese Börse kann einen Stop an einem Einstieg nicht tragen — weder am Einstieg noch als separate Order. Es gibt also keinen Weg, ihn zu platzieren. Leere das Stop-Feld, um die Order bewusst ungeschützt zu senden.",
+      "unprotectedEntry": "Diese Börse kann einen Stop an einem Einstieg nicht tragen — weder am Einstieg noch als separate Order. Es gibt also keinen Weg, ihn zu platzieren. Die Positionsgröße braucht einen Stop, daher bleibt nach dem Leeren keine berechenbare Order auf dieser Venue.",
       "firstTargetOnly": "Diese Börse akzeptiert einen Take-Profit pro Order, daher wird nur dein erstes Ziel angehängt. Die übrigen bleiben im Rechner.",
       "balanceUnmeasured": "Kontostand nicht geladen — die Börse entscheidet, ob diese Order gedeckt ist.",
       "liveMarginShortfall": "Benötigt {actual} Margin, aber nur {limit} ist frei — das Gate wird diese Order ablehnen.",
-      "staleCalculation": "Nicht aktuell — diese Werte und die daraus entstehende Order passen nicht mehr zu den Angaben im Formular."
+      "staleCalculation": "Nicht aktuell — diese Werte und die daraus entstehende Order passen nicht mehr zu den Angaben im Formular.",
+      "staleStopCleared": "Nicht aktuell — der Stop wurde entfernt, aber diese Werte wurden mit Stop berechnet. Die Positionsgröße braucht einen Stop, daher hat das Leeren keine neue Berechnung erzeugt."
     },
     "confirm": {
       "titleLive": "Diese Order platzieren?",

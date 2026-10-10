@@ -339,7 +339,7 @@ async function render(): Promise<string> {
 
 describe("BUG-0648 — the summary says when its figures are no longer current", () => {
     it("labels the figures and keeps showing them", async () => {
-        split.inputs.stop = "";
+        split.inputs.entry = "61000";
 
         const text = await render();
 
@@ -357,6 +357,23 @@ describe("BUG-0648 — the summary says when its figures are no longer current",
         expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
     });
 
+    it("names the cleared stop when the figures were calculated with one", async () => {
+        split.inputs.stop = "";
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleStopCleared"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    it("keeps the generic label when the entry price moved", async () => {
+        split.inputs.entry = "61000";
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleCalculation"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleStopCleared"));
+    });
     it("labels them for a take-profit leg the trader deleted", async () => {
         split.calculatedTargets = ["65000"];
         split.inputTargets = [];
@@ -418,7 +435,13 @@ describe("BUG-0648 — a submit may not send what the inputs no longer state", (
 
         await submit();
 
-        expectRefusal();
+        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expect(showErrorMock).toHaveBeenCalledWith(
+            expect.stringContaining("Nothing was sent"),
+        );
+        expect(showErrorMock).toHaveBeenCalledWith(
+            expect.stringContaining(lookup("orderEntry.notes.staleStopCleared")),
+        );
     });
 
     it("does not place when the entry price moved and the calculation still holds the old one", async () => {

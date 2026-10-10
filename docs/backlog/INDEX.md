@@ -4,7 +4,7 @@
 
 542 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 24 · ✅ done 468 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 23 · ✅ done 469 · ⛔ dropped 1
 
 ---
 
@@ -316,7 +316,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 24 · ✅ done 4
 | [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | ✅ done | persistence |
 | [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | calculation |
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | execution |
-| [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | execution |
+| [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | ✅ done | execution |
 | [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | persistence |
 | [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | ✅ done | exchange |
 | [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | ✅ done | chart |
@@ -755,7 +755,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 24 · ✅ done 4
 | [BUG-0621](bugs/BUG-0621-restore-merges-instead-of-overwriting.md) | restoreFromBackup merges missing fields instead of overwriting | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0628](bugs/BUG-0628-meta-refetch-deadlock.md) | Panel refetch gated on calculator output deadlocks after a failed metadata fetch | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | ✅ done | none | community, pro, private | none | none | — |

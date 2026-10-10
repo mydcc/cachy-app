@@ -2,7 +2,7 @@
 id: BUG-0648
 title: Clearing the stop leaves the previous calculation standing, and the order is built from it
 type: bug
-status: ready
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
-branch: fix/bug-0648-stale-summary
+assignee: opencode
+branch: fix/bug-0648-stale-calculation
 ---
 
 # Clearing the stop leaves the previous calculation standing
@@ -132,10 +133,15 @@ refuse when they disagree, which closes the money path without deciding the
       explanation, and it renders inside the same block
 - [x] A test reproduces the defect: a successful calculation, then the stop
       cleared, then a submit — and fails without the fix, naming the stale field
-- [~] The gate's remediation instruction in `orderGate.unplaceableStop` is
-      reachable on a venue that cannot carry a stop — **still not**, and this
-      ships knowing it. The wrong order is gone; the route to the right one is
-      not. See the Resolution.
+- [x] The gate's remediation instruction in `orderGate.unplaceableStop` is
+      reachable on a venue that cannot carry a stop — **resolved as a copy fix
+      (2026-10-10, variant A): the instruction no longer promises an input the
+      calculator cannot follow.** `unplaceableStop` and the panel's
+      `unprotectedEntry` note now state that sizing needs a stop and point at a
+      venue that can carry it, instead of telling the trader to clear the stop.
+      A cleared stop additionally names itself: `stopClearedStale` shows
+      `staleStopCleared` (note + submit refusal reason) instead of the generic
+      mismatch, so the panel says *why* no recalculation replaced the figures.
 
 ## Evidence
 

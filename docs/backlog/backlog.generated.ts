@@ -2974,7 +2974,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0648",
     "title": "Clearing the stop leaves the previous calculation standing, and the order is built from it",
     "type": "bug",
-    "status": "ready",
+    "status": "done",
     "priority": "P1",
     "milestone": "none",
     "editions": [
@@ -2986,7 +2986,8 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
-    "branch": "fix/bug-0648-stale-summary",
+    "assignee": "opencode",
+    "branch": "fix/bug-0648-stale-calculation",
     "file": "bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md"
   },
   {
