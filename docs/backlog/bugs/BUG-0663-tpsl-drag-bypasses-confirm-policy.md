@@ -80,6 +80,16 @@ AC3 (`confirmAs` only when confirmed): the edit modal shares
 action and travel exactly as before. Pinned by a service-level test
 that fails if the attach ever becomes unconditional.
 
+**Residual, deliberately out of scope:** the toggle now reads as wired
+while the edit modal stays unwired — its requests resolve via the wire
+action and send unprompted with the toggle on, exactly as before this
+change. Wiring the modal (dialog + `confirmedAt`) is a separate task,
+not a fixup of this one: it touches another component's UX and its own
+tests. Likewise not taken: re-running the precheck at confirm time
+(the pending price freezes at drop; same shape as every confirm
+dialog in the app, including flash-close) and display-formatting the
+dialog's price string.
+
 ## Links
 
 - FEAT-0024 (confirmation policy), BUG-0660 (the drag path)

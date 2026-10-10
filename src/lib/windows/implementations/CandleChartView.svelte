@@ -919,6 +919,12 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
      */
     function submitTpSlModify(request: TpSlModifyRequest) {
         if (confirmationPolicyStore.requires("modify-order")) {
+            // A second drop while the dialog is open replaces the first —
+            // whose line already moved optimistically — so the superseded
+            // level is refetched back to truth before it is forgotten.
+            // Otherwise the chart would keep showing a price the venue never
+            // held, with no later correction scheduled for it.
+            if (pendingTpSlModify !== null) refreshTpSlLines();
             pendingTpSlModify = request;
             return;
         }
@@ -938,6 +944,15 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
      */
     function cancelPendingTpSlModify() {
         pendingTpSlModify = null;
+        refreshTpSlLines();
+    }
+
+    /**
+     * Puts the chart's TP/SL lines back on the venue's resting levels. The
+     * lines move optimistically on drop, so every path that does not end in
+     * a fresh fetch — cancel, supersede, success, refusal — converges here.
+     */
+    function refreshTpSlLines() {
         tpSlState.invalidate();
         void tpSlState.ensureFresh(Date.now(), true);
     }
@@ -954,7 +969,10 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                     entryPrice: request.entryPrice,
                 },
                 tickSize: request.tickSize,
-                confirmedAt,
+                // Absent when unconfirmed, not undefined: a present key
+                // travels through the adapters into the service, and the
+                // gate reads key presence when it picks the policy question.
+                ...(confirmedAt !== undefined ? { confirmedAt } : {}),
             });
             toastService.success(get(_)("trade.tpSlUpdated"));
         } catch (e: unknown) {
@@ -982,8 +1000,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             // joining it would hand the chart back the old level. `invalidate()`
             // bumps the store's generation, which stops the older response
             // from writing over whatever this one fetches.
-            tpSlState.invalidate();
-            void tpSlState.ensureFresh(Date.now(), true);
+            refreshTpSlLines();
         }
     }
 

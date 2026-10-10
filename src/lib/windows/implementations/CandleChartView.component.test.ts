@@ -2057,14 +2057,47 @@ describe("BUG-0663 — a TP/SL drag obeys the modify-order confirmation policy",
         await settle();
 
         expect(dialogButton("Bestätigen")).toBeNull();
-        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+        expect(modifyTpSlOrder).toHaveBeenCalledTimes(1);
+        const [sent] = modifyTpSlOrder.mock.calls[0];
+        expect(sent).toEqual(
             expect.objectContaining({
                 orderId: "9001",
                 symbol: "BTCUSDT",
                 planType: "LOSS",
                 triggerPrice: "95",
-                confirmedAt: undefined,
             }),
+        );
+        // `objectContaining({ confirmedAt: undefined })` cannot tell an
+        // absent key from an explicit undefined — and the distinction is the
+        // point, because a present-but-undefined key still routes the gate's
+        // question differently from a missing one in a spread merge.
+        expect("confirmedAt" in (sent as Record<string, unknown>)).toBe(false);
+        expect("confirmAs" in (sent as Record<string, unknown>)).toBe(false);
+    });
+
+    it("refetches the superseded level when a second drop replaces the first", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        const container = await mountWithPlan();
+
+        dragSl(container, 90, 95);
+        await settle();
+        expect(dialogButton("Bestätigen")).not.toBeNull();
+
+        // The first drop's line already moved optimistically. The second drop
+        // replaces the pending request — without a correction the chart would
+        // keep showing the first dragged price, which the venue never held.
+        const invalidate = vi.spyOn(tpSlState, "invalidate");
+        dragSl(container, 90, 97);
+        await settle();
+
+        expect(invalidate).toHaveBeenCalled();
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        dialogButton("Bestätigen")?.click();
+        await settle();
+
+        // Last wins: the dialog confirms the second drop's price, not the first's.
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({ triggerPrice: "97" }),
         );
     });
 });
