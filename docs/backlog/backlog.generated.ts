@@ -6248,9 +6248,10 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0651",
     "title": "The refusal that blocks the order is never announced to a screen reader",
     "type": "bug",
-    "status": "specced",
+    "status": "ready",
     "priority": "P2",
     "milestone": "none",
+    "created": "2026-10-07",
     "editions": [
       "community",
       "pro",
@@ -6260,6 +6261,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "branch": "fix/bug-0651-refusal-live-region",
     "file": "bugs/BUG-0651-refusal-not-announced-to-screen-readers.md"
   },
   {
