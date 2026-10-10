@@ -2101,3 +2101,155 @@ describe("BUG-0663 — a TP/SL drag obeys the modify-order confirmation policy",
         );
     });
 });
+
+/*
+ * BUG-0662 — a stale plan row was validated against the wrong position.
+ *
+ * `handleTpSlDrop` resolved the validation context by symbol and only
+ * consulted the plan when the symbol alone was ambiguous:
+ *
+ *     let position = candidates.length === 1 ? candidates[0] : undefined;
+ *     if (position === undefined && plan?.sourceOrderId === baseId && ...) { ... }
+ *
+ * The single-candidate shortcut therefore short-circuited the ownership
+ * check. With one open position on the symbol and a stale plan belonging
+ * to a *closed* one, the drop was validated against the open position's
+ * entry and side while `venueOrderId` resolved to the stale plan's row —
+ * landing a stop on the wrong side of its own entry, where it either fires
+ * at once or never fires.
+ *
+ * The gate cannot catch this: `tpSlService` builds the displayed
+ * `positionSide`/`entryPrice` from caller-supplied context and the gate
+ * validates the payload against that same value.
+ */
+describe("BUG-0662 — the drag validates against the plan's own position", () => {
+    beforeEach(() => {
+        // The FEAT-0247 and BUG-0660 blocks leave `vi.spyOn` implementations
+        // behind (`clearMocks: false`, no `restoreMocks`). This block needs the
+        // real store and the real position resolution.
+        for (const method of [tpSlState.plansFor, tpSlState.ensureFresh, tpSlState.invalidate]) {
+            (method as unknown as { mockRestore?: () => void }).mockRestore?.();
+        }
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    function openPosition(positionId: string, entry = 100) {
+        return {
+            positionId,
+            symbol: "BTCUSDT",
+            side: "long",
+            size: new Decimal(1),
+            entryPrice: new Decimal(entry),
+            leverage: new Decimal(10),
+            unrealizedPnl: new Decimal(0),
+            margin: new Decimal(10),
+            marginMode: "ISOLATED",
+            liquidationPrice: new Decimal(80),
+            markPrice: new Decimal(entry),
+            breakEvenPrice: new Decimal(entry),
+            marginRate: new Decimal(0),
+            realizedPnl: new Decimal(0),
+        };
+    }
+
+    /** One SL leg resting at 90, owned by `planPositionId` if one is named. */
+    async function hydrateSlLeg(planPositionId?: string) {
+        fetchTpSlOrders.mockResolvedValue([
+            {
+                orderId: "9001-sl",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "90",
+                status: "NEW",
+                sourceOrderId: "9001",
+                ...(planPositionId !== undefined ? { positionId: planPositionId } : {}),
+            },
+        ]);
+        await tpSlState.ensureFresh();
+    }
+
+    async function mountWithPositions(positions: unknown[], planPositionId?: string) {
+        accountState.positions = positions as never;
+        await hydrateSlLeg(planPositionId);
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector<HTMLElement>(".chart-container");
+        if (!container) throw new Error("no chart container rendered");
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+        return container;
+    }
+
+    /** Price === Y in the fake series, so clientY picks the price. */
+    function dragSl(container: HTMLElement, fromY: number, toY: number) {
+        container.dispatchEvent(new MouseEvent("mousedown", { clientY: fromY, bubbles: true }));
+        container.dispatchEvent(new MouseEvent("mousemove", { clientY: toY, bubbles: true }));
+        window.dispatchEvent(new MouseEvent("mouseup"));
+    }
+
+    it("refuses a drop whose plan belongs to a position that is no longer open", async () => {
+        // The only open position is `p-new`. The dragged plan belongs to
+        // `p-old`, which has since closed — so the symbol looks unambiguous
+        // while the plan's owner is gone. There is nothing to validate against.
+        const container = await mountWithPositions([openPosition("p-new")], "p-old");
+
+        dragSl(container, 90, 95);
+        await settle();
+
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        expect(toastService.error).toHaveBeenCalled();
+    });
+
+    it("validates against the position the plan names, not the symbol's only one", async () => {
+        // Hedge mode: two open positions on one symbol, plan owns `p-short`.
+        // A stop at 210 is wrong for the long (entry 100) and right for the
+        // short (entry 200), so this only proceeds when the plan's own
+        // position is the one consulted.
+        const container = await mountWithPositions(
+            [openPosition("p-long", 100), { ...openPosition("p-short", 200), side: "short" }],
+            "p-short",
+        );
+
+        dragSl(container, 90, 210);
+        await settle();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "210",
+                context: expect.objectContaining({ side: "short" }),
+            }),
+        );
+    });
+
+    it("still drops for a single open position when the plan names none (BUG-0662 AC3)", async () => {
+        // The venue does not always return a positionId on a plan row, so the
+        // single-candidate shortcut has to survive where there is no evidence
+        // to contradict it — otherwise this fix trades a wrong-position drop
+        // for a false refusal on every such plan.
+        const container = await mountWithPositions([openPosition("p-new")], undefined);
+
+        dragSl(container, 90, 95);
+        await settle();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "95",
+            }),
+        );
+    });
+});

@@ -863,23 +863,36 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         const plans = tpSlState.plansFor(normalizedSymbol);
         const plan = kind === "takeProfit" ? plans.profit : plans.loss;
         /*
-         * Hedge mode holds two legs on one symbol, so the symbol alone can
-         * resolve the wrong position — and the pre-check plus the gate would
-         * then validate the drop against the wrong entry and side. With a
-         * single candidate nothing changes; with several, only the position
-         * the trusted plan belongs to counts. No trusted plan, no position:
-         * the pre-check below refuses with the invalidTpSl toast.
+         * BUG-0662: the validation context is resolved from the **plan**, never
+         * from "the symbol's only position". The previous order — try the
+         * single candidate first, consult the plan only when the symbol was
+         * ambiguous — short-circuited the ownership proof: with one open
+         * position and a stale plan belonging to a closed one, the drop was
+         * checked against the open position's entry and side while
+         * `venueOrderId` addressed the stale plan's row. That lands a stop on
+         * the wrong side of its own entry, where it fires at once or never.
+         *
+         * The gate cannot see it: `tpSlService` builds the displayed
+         * `positionSide`/`entryPrice` from caller-supplied context and the
+         * order gate validates the payload against that same value, so the
+         * wrong context checks itself.
          */
         const candidates = accountState.positions.filter((p) => p.symbol === normalizedSymbol);
-        let position = candidates.length === 1 ? candidates[0] : undefined;
-        if (
-            position === undefined &&
-            plan?.sourceOrderId === baseId &&
-            plan.positionId !== undefined &&
-            plan.positionId !== null
-        ) {
-            const wanted = String(plan.positionId);
+        const owningPlan = plan?.sourceOrderId === baseId ? plan : undefined;
+        let position: (typeof candidates)[number] | undefined;
+        if (owningPlan?.positionId !== undefined && owningPlan.positionId !== null) {
+            // Proof: the plan names its position. If that position is gone the
+            // plan is stale and there is nothing to validate against — the
+            // pre-check below refuses with the invalidTpSl toast rather than
+            // measuring the drop against some other position.
+            const wanted = String(owningPlan.positionId);
             position = candidates.find((p) => String(p.positionId) === wanted);
+        } else if (candidates.length === 1) {
+            // No positionId to go on — the venue does not always return one —
+            // so this is the only evidence available. One candidate means no
+            // ambiguity to get wrong; refusing here instead would break every
+            // such plan for a protection the data cannot provide.
+            position = candidates[0];
         }
         const meta = marketState?.symbolMeta?.[normalizedSymbol];
         const tickSize =

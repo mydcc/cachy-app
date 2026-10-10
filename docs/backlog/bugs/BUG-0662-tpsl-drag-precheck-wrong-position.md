@@ -2,7 +2,7 @@
 id: BUG-0662
 title: TP/SL drag precheck validates against a position not proven to own the dragged plan
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0662 — TP/SL drag precheck validates against a position not proven to own the dragged plan
@@ -61,14 +62,39 @@ Optionally carry `positionId` into `ModifyTpSlParams` / `displayed` so
 the gate can cross-check order↔position the way `orderGate.ts:1085-1093`
 already does elsewhere.
 
+**Done (opencode).** The validation context now comes from the plan
+first, and the single-candidate shortcut only applies where there is
+nothing to contradict it:
+
+```ts
+const owningPlan = plan?.sourceOrderId === baseId ? plan : undefined;
+let position: NormalizedPosition | undefined;
+if (owningPlan?.positionId !== undefined && owningPlan.positionId !== null) {
+    position = candidates.find((p) => String(p.positionId) === String(owningPlan.positionId));
+} else if (candidates.length === 1) {
+    position = candidates[0];
+}
+```
+
+A plan that names a position is resolved by that name or refused; a plan
+that names none still falls back to the symbol's single candidate, since
+the venue does not always return one and refusing there would trade a
+wrong-position drop for a false refusal on every such plan.
+
+The `positionId` cross-check inside `ModifyTpSlParams` / `displayed` is
+**not** part of this change. It would harden the gate, but it touches
+every modify path's payload and the gate's own contract, and nothing
+here needs it to close this defect — the wrong context no longer reaches
+the gate in the first place. Left open deliberately rather than bundled.
+
 ## Acceptance criteria
 
-- [ ] A test with a stale plan row plus a different single open
+- [x] A test with a stale plan row plus a different single open
       position on the same symbol reproduces the defect and fails
       without the fix (drop validated against the wrong entry)
-- [ ] The test passes with the fix — drop refused or resolved to the
+- [x] The test passes with the fix — drop refused or resolved to the
       plan-owning position
-- [ ] Single-position non-hedge drags still work without a
+- [x] Single-position non-hedge drags still work without a
       `positionId` regression (no false refusals)
 
 ## Links
