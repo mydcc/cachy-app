@@ -85,6 +85,7 @@ vi.mock("./ModalFrame.svelte", async () => ({
 }));
 
 import TpSlEditModal from "./TpSlEditModal.svelte";
+import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
 
 const OPEN_POSITION = {
     positionId: "p-1",
@@ -250,5 +251,119 @@ describe("BUG-0553 — the plan edits against its own position id", () => {
         positions.current = [OPEN_POSITION];
         render({ ...PLAN });
         expect(slider()).not.toBeNull();
+    });
+});
+
+/*
+ * BUG-0666 — the edit modal obeyed no confirmation policy.
+ *
+ * Saving sent the modify straight through `modifyTpSlOrder` with no dialog
+ * and no timestamp, so with the `modify-order` toggle on the edit path
+ * stayed silent while the drag path (BUG-0663) asked. The policy store is
+ * the real one — the toggle a user flips has to be the thing under test.
+ */
+describe("BUG-0666 — saving the edit modal obeys the modify-order policy", () => {
+    beforeEach(() => {
+        positions.current = [OPEN_POSITION];
+    });
+
+    afterEach(() => {
+        confirmationPolicyStore.reset();
+    });
+
+    function dialogButton(label: string): HTMLButtonElement | null {
+        return (
+            [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+                (b) => b.textContent?.trim() === label,
+            ) ?? null
+        );
+    }
+
+    it("asks before sending when the policy requires it", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        render();
+        saveButton().click();
+        await settleAsync();
+
+        // The dispatch is asserted absent first: a test that only checks the
+        // dialog rendered would pass even if the mutation went out behind it.
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        expect(dialogButton(lookup("settings.confirmations.dialog.confirm"))).not.toBeNull();
+    });
+
+    it("sends the modify with the confirmation timestamp once confirmed", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        render();
+        saveButton().click();
+        await settleAsync();
+
+        dialogButton(lookup("settings.confirmations.dialog.confirm"))?.click();
+        await settleAsync();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledTimes(1);
+        const [sent] = modifyTpSlOrder.mock.calls[0];
+        expect(sent).toEqual(
+            expect.objectContaining({
+                orderId: "plan-1",
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "110",
+            }),
+        );
+        // The gate refuses without this, so absence must fail loudly here.
+        expect((sent as Record<string, unknown>).confirmedAt).toEqual(expect.any(Number));
+    });
+
+    it("sends nothing and stays on the form when the dialog is cancelled", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        render();
+        saveButton().click();
+        await settleAsync();
+
+        // The edit form has its own Cancel button with the same label, and
+        // the dialog renders after it — so the dialog's is the last match.
+        const cancels = [...host.querySelectorAll<HTMLButtonElement>("button")].filter(
+            (b) => b.textContent?.trim() === lookup("settings.confirmations.dialog.cancel"),
+        );
+        expect(cancels.length).toBe(2);
+        cancels[cancels.length - 1].click();
+        await settleAsync();
+
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        // Still editing: the form survived the cancelled confirm.
+        expect(saveButton()).not.toBeNull();
+    });
+
+    it("dispatches the Save-time numbers, not what was typed behind the dialog", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        render();
+        saveButton().click();
+        await settleAsync();
+
+        // The form stays open behind the dialog. Anything typed now never
+        // passed validation — the confirm must send the frozen snapshot.
+        const range = slider()!;
+        range.value = "60"; // would move the price to 103
+        range.dispatchEvent(new Event("input", { bubbles: true }));
+        settle();
+
+        dialogButton(lookup("settings.confirmations.dialog.confirm"))?.click();
+        await settleAsync();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledTimes(1);
+        const [sent] = modifyTpSlOrder.mock.calls[0];
+        expect((sent as Record<string, unknown>).triggerPrice).toBe("110");
+    });
+
+    it("sends straight through when the policy is off", async () => {
+        confirmationPolicyStore.setRequired("modify-order", false);
+        render();
+        saveButton().click();
+        await settleAsync();
+
+        expect(dialogButton(lookup("settings.confirmations.dialog.confirm"))).toBeNull();
+        expect(modifyTpSlOrder).toHaveBeenCalledTimes(1);
+        const [sent] = modifyTpSlOrder.mock.calls[0] as unknown as [Record<string, unknown>];
+        expect("confirmedAt" in sent).toBe(false);
     });
 });

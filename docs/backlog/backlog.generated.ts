@@ -6390,6 +6390,25 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md"
   },
   {
+    "id": "BUG-0666",
+    "title": "TP/SL edit modal modify bypasses the confirm-modifications policy",
+    "type": "bug",
+    "status": "done",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "file": "bugs/BUG-0666-tpsl-edit-modal-bypasses-confirm-policy.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
