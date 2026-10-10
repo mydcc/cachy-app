@@ -17,6 +17,19 @@ shipped: 1.6.0-beta.365
 
 # BUG-0584 — semantic-release cannot push; no release since 2026-09-20
 
+> **Superseded, 2026-10-10.** The `release/beta` detour that fixed this is
+> gone. `develop` now carries `enforce_admins: false` and semantic-release
+> pushes to `develop` directly, which is how it worked before 2026-10-01. The
+> root cause — a PAT whose push is refused with GH006 — is unchanged and still
+> present; it is now an accepted trade rather than something worked around. The
+> cost and the reasoning are in the branch comment in `release.config.js`;
+> this note exists so the next reader does not "fix" it a second time.
+>
+> The detour also carried its own failure: fifteen release pull requests, each
+> needing a human merge, and PR #3865 was squash-merged on 2026-10-05, which
+> orphaned tag `v1.6.0-beta.379` and wedged the pipeline until the tag was
+> repaired. Nothing detected that, because nothing enforced a merge method.
+
 ## Symptom
 
 Every push to `develop` has failed the `Release` workflow since 2026-09-20.
