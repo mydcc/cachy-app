@@ -4,7 +4,7 @@
 
 542 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 467 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 24 · 🟡 in-progress 1 · ✅ done 467 · ⛔ dropped 1
 
 ---
 
@@ -421,7 +421,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | ✅ done | security |
 | [BUG-0649](bugs/BUG-0649-stop-note-promises-an-unavailable-fallback.md) | The order form promises a stop will be placed separately on a venue that cannot place it | P2 | ✅ done | ui |
 | [BUG-0650](bugs/BUG-0650-validation-error-erased-in-same-tick.md) | A validation error is set and erased in the same tick, so the trader never sees it | P2 | ✅ done | ui |
-| [BUG-0651](bugs/BUG-0651-refusal-not-announced-to-screen-readers.md) | The refusal that blocks the order is never announced to a screen reader | P2 | 🟢 ready | ui |
+| [BUG-0651](bugs/BUG-0651-refusal-not-announced-to-screen-readers.md) | The refusal that blocks the order is never announced to a screen reader | P2 | 🟡 in-progress | ui |
 | [BUG-0653](bugs/BUG-0653-persistence-contract-blind-spots.md) | The settings persistence contract is checked by name, and only on the save side | P2 | ✅ done | persistence |
 | [BUG-0655](bugs/BUG-0655-rss-filter-unreachable-but-live.md) | rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01 | P2 | ✅ done | ui |
 | [BUG-0656](bugs/BUG-0656-scanner-loses-write-sites.md) | The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment | P2 | ✅ done | persistence |
@@ -909,7 +909,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0638](bugs/BUG-0638-server-sanitizer-test-covers-wrong-module.md) | server/sanitizer.test.ts tests a different module and stubs out the sanitizer it appears to cover | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0649](bugs/BUG-0649-stop-note-promises-an-unavailable-fallback.md) | The order form promises a stop will be placed separately on a venue that cannot place it | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0650](bugs/BUG-0650-validation-error-erased-in-same-tick.md) | A validation error is set and erased in the same tick, so the trader never sees it | P2 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0651](bugs/BUG-0651-refusal-not-announced-to-screen-readers.md) | The refusal that blocks the order is never announced to a screen reader | P2 | 🟢 ready | none | community, pro, private | none | none | — |
+| [BUG-0651](bugs/BUG-0651-refusal-not-announced-to-screen-readers.md) | The refusal that blocks the order is never announced to a screen reader | P2 | 🟡 in-progress | none | community, pro, private | none | none | — |
 | [BUG-0653](bugs/BUG-0653-persistence-contract-blind-spots.md) | The settings persistence contract is checked by name, and only on the save side | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0655](bugs/BUG-0655-rss-filter-unreachable-but-live.md) | rssFilterBySymbol is unreachable but still filters for users who set it before 2026-01 | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0656](bugs/BUG-0656-scanner-loses-write-sites.md) | The persistence guard's source scanner loses 9 real write sites to an apostrophe in a comment | P2 | ✅ done | none | community, pro, private | A | none | — |

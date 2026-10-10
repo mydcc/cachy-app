@@ -726,7 +726,18 @@
         toastService.success($_("orderEntry.placed"));
       }
     } catch (e) {
-      uiState.showError($_("orderEntry.errors.entryRejected"));
+      /*
+       * BUG-0651. This used to call `uiState.showError` as well. The `result`
+       * below renders the same string — `errorText` falls back to
+       * `orderEntry.errors.entryRejected` when there is no `errorKey`, and this
+       * branch sets no `errorKey` — into the outcome banner, which is
+       * `role="alert"`.
+       *
+       * Two channels, one message, and the shared error surface is polite
+       * while the banner is assertive: the trader heard the rejection twice.
+       * The banner is the one that stays visible until the next submission, and
+       * it is where they clicked, so it is the one worth keeping.
+       */
       result = {
         entryPlaced: false,
         stopLoss: "none",

@@ -2,7 +2,7 @@
 id: BUG-0651
 title: The refusal that blocks the order is never announced to a screen reader
 type: bug
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 created: "2026-10-07"
@@ -11,6 +11,7 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 branch: fix/bug-0651-refusal-live-region
 ---
 
@@ -210,27 +211,30 @@ rather than discovering it in review.
 
 ## Acceptance criteria
 
-- [ ] The container is present in the DOM **with no message**, and carries
+- [x] The container is present in the DOM **with no message**, and carries
       `role="status"` / `aria-live="polite"` on that empty state
-- [ ] A refusal from `submit()` is announced: after the stale-calculation guard
+- [x] A refusal from `submit()` is announced: after the stale-calculation guard
       fires, the region holds the text
-- [ ] No `aria-atomic` on the region, and the region contains nothing but the
+- [x] No `aria-atomic` on the region, and the region contains nothing but the
       message
-- [ ] Polite, not assertive — with the shared-surface reason recorded here, not
+- [x] Polite, not assertive — with the shared-surface reason recorded here, not
       only in a comment
-- [ ] The panel's own refusal banner keeps `role="alert"`; the rejection path
+- [x] The panel's own refusal banner keeps `role="alert"`; the rejection path
       does not announce the same failure twice
-- [ ] `dashboard.promptForData` written twice with identical text does not change
-      the region's content — **proven by a test**, not assumed from Svelte's
-      equality guard
-- [ ] A control case asserts that a *different* message **does** change the
-      region's content. A guard that cannot fail is worse than no guard; the
-      false-green trap in BUG-0648's fixture is the precedent
+- [~] `dashboard.promptForData` written twice with identical text does not change
+      the region's content — **asserted, but not fully pinned**. See Resolution
+      and Known limits. The old wording demanded a test that "cannot pass for
+      the wrong reason"; that turned out to be unachievable in this environment
+      and the wording was wrong, not the finding
+- [x] A control case asserts that a *different* message **does** change the
+      region's content, and a positive control proves the observer sees an
+      identical `nodeValue` write. A guard that cannot fail is worse than no
+      guard; the false-green trap in BUG-0648's fixture is the precedent
 - [ ] A manual screen-reader check is recorded (NVDA or VoiceOver), naming what
       was heard for the refusal and what was *not* heard for the guidance. Unit
       tests can prove the region and its content; they cannot prove an
       announcement
-- [ ] `npm run check` clean for every touched file; the components Vitest project
+- [x] `npm run check` clean for every touched file; the components Vitest project
       green for the new test
 
 ## Out of scope here, deliberately
@@ -263,18 +267,73 @@ Test names state the behaviour (`keeps the region in the DOM when there is no
 message`), not the function. Arrange-Act-Assert. Every assertion about
 announcement is paired with the control that proves the assertion can fail.
 
+## Resolution
+
+`src/components/shared/ErrorMessage.svelte` (~20 lines) owns the markup, and
+`+page.svelte` renders it. Five cases in
+`ErrorMessage.component.test.ts`, against the real `uiState`.
+
+**The region moved out of the grid.** It was the last item of
+`grid grid-cols-2 gap-x-8 gap-y-4`, wrapped in `{#if}`. Conditional, it was
+un-announceable; made permanent in place, it would have been a permanent empty
+grid row with a `gap-y-4` under it, on every load. Outside the grid the empty
+state is a zero-height block. The `md:col-span-2` went with it — it described a
+grid placement that no longer applies.
+
+**The double announcement is resolved.** `uiState.showError` is gone from the
+`catch` in `PlaceOrderPanel.svelte`. `errorText` falls back to
+`orderEntry.errors.entryRejected` when there is no `errorKey`, and that branch
+sets none — so the `role="alert"` outcome banner was already rendering the
+identical string. Two channels, one message, one assertive and one polite: the
+trader heard the rejection twice. The banner is kept because it is the one that
+stays visible until the next submission, and it is where they clicked.
+
+**The first draft of the mutation test was wrong, and the wrongness is the
+point.** It compared text *node identity*. Svelte's `set_text` mutates
+`nodeValue` on the same node, so identity survives whether or not the write was
+skipped — the assertion would have passed on a component that re-announced every
+keystroke. Replaced with a MutationObserver.
+
+**Then the observer was measured before it was trusted.** Two attempts to build
+a contradicting implementation — `{@html}` instead of the text write, and an
+`$effect` writing `nodeValue` unconditionally — both stayed green. Not because
+the tests are weak: happy-dom's `innerHTML` skips identical values, and the
+effect's own dependency tracking skips a run whose dependency did not change.
+Both skip for the same reason Svelte does, so nothing in this environment can
+be made to re-write an identical value.
+
+So the honest division of labour:
+
+| Claim | Proven by |
+|---|---|
+| The region exists, empty, polite, not atomic | test |
+| A refusal reaches it; a changed message replaces its text | test |
+| The observer would report a write if one happened | positive control in the test |
+| The identical write is **skipped** rather than performed with the same value | Svelte's `set_text` equality guard — a code-level fact, not a test |
+| A reader **hears** it | nothing yet; needs a human |
+
+The earlier wording of that acceptance criterion — "proven by a test, not
+assumed" — was not achievable. It is recorded as `[~]` rather than ticked.
+
+## Known limits
+
+- **No screen reader has run this.** Everything above is DOM state and code
+  reading. Whether NVDA or VoiceOver actually speak the refusal, and stay quiet
+  on the guidance, is unverified. This is the one criterion left open.
+- **The identical-write skip is environmental.** The same assertions would catch
+  an unconditional write in a real browser, where `innerHTML` always mutates.
+  Under happy-dom they would not.
+- **`aria-live="polite"` is reasoned, not experienced.** The argument is that
+  this surface also carries a per-keystroke message and that assertive would
+  interrupt constantly. If a reader turns out to announce `role="status"`
+  reliably enough that the guidance becomes audible on every keystroke, the
+  answer is to move the guidance to its own surface — deliberately not done here,
+  for the reasons in Fix step 3.
+
 ## Open questions
 
-1. **The `catch` double announcement** — drop `uiState.showError` at
-   `PlaceOrderPanel.svelte:729` and let the `role="alert"` outcome banner be the
-   single channel, or keep both and accept a repeat? Recommendation: drop it,
-   because the banner already renders the same message with stronger semantics
-   and the banner is the one that stays visible until the next submission.
-   Deciding this changes a behaviour that is not only about a11y, so it is named
-   rather than assumed.
-2. **Manual verification is not automatable.** Somebody has to run a screen
-   reader. If nobody can, the item should say so in its Resolution rather than
-   close on the unit tests alone.
+None blocking. The politeness question above stays open until somebody has run a
+screen reader.
 
 ## Links
 
