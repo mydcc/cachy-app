@@ -879,7 +879,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
          */
         const candidates = accountState.positions.filter((p) => p.symbol === normalizedSymbol);
         const owningPlan = plan?.sourceOrderId === baseId ? plan : undefined;
-        let position: NormalizedPosition | undefined;
+        let position: (typeof candidates)[number] | undefined;
         if (owningPlan?.positionId !== undefined && owningPlan.positionId !== null) {
             // Proof: the plan names its position. If that position is gone the
             // plan is stale and there is nothing to validate against — the
