@@ -2,9 +2,9 @@
 
 # Backlog index
 
-540 items. How to read and add them: [README.md](README.md).
+541 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 25 · ✅ done 463 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 25 · ✅ done 463 · ⛔ dropped 1
 
 ---
 
@@ -321,6 +321,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 25 · ✅ done 4
 | [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | ✅ done | exchange |
 | [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | ✅ done | chart |
 | [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | 📋 specced | execution |
+| [BUG-0665](bugs/BUG-0665-ws-push-strips-source-order-id.md) | A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -758,6 +759,7 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 25 · ✅ done 4
 | [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0665](bugs/BUG-0665-ws-push-strips-source-order-id.md) | A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -1154,4 +1156,4 @@ Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 25 · ✅ done 4
 
 ---
 
-Next free number: **0665**
+Next free number: **0666**

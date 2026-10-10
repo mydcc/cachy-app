@@ -3064,6 +3064,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md"
   },
   {
+    "id": "BUG-0665",
+    "title": "A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0665-ws-push-strips-source-order-id.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
