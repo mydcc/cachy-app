@@ -2,9 +2,9 @@
 
 # Backlog index
 
-535 items. How to read and add them: [README.md](README.md).
+540 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 460 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 27 · 🟢 ready 25 · ✅ done 460 · ⛔ dropped 1
 
 ---
 
@@ -318,6 +318,9 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | execution |
 | [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | execution |
 | [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | persistence |
+| [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | 📋 specced | exchange |
+| [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | 📋 specced | chart |
+| [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | 📋 specced | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
 | [FEAT-0316](features/FEAT-0316-mfi-vwap-psar-pivots-hma-in-wasm.md) | Implement MFI/VWAP/PSAR/Pivot states and proper HMA in technicals-wasm | P1 | ✅ done | calculation |
@@ -424,6 +427,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0657](bugs/BUG-0657-load-contract-section-and-secrets-blind-spots.md) | Load contract cannot see a core/display section swap or a dropped secrets assignment | P2 | ✅ done | persistence |
 | [BUG-0658](bugs/BUG-0658-galaxy-reset-shares-default-refs.md) | Galaxy reset hands live state a reference into the shared defaults | P2 | ✅ done | persistence |
 | [BUG-0659](bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md) | Textual guards accept reworded bypasses; or-mode aliasing has no owner | P2 | ✅ done | security |
+| [BUG-0663](bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md) | TP/SL drag modify cannot be gated by the confirm-modifications policy | P2 | 📋 specced | trade-panel |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -547,6 +551,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | deps |
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | security |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | persistence |
+| [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | 📋 specced | chart |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -750,6 +755,9 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0647](bugs/BUG-0647-bitget-modify-resends-resting-size.md) | A Bitget price-only modify re-sent the resting size, so delta semantics would inflate the order | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0648](bugs/BUG-0648-clearing-stop-keeps-stale-calculation.md) | Clearing the stop leaves the previous calculation standing, and the order is built from it | P1 | 🟢 ready | none | community, pro, private | none | none | — |
 | [BUG-0652](bugs/BUG-0652-settings-persistence-contract.md) | A settings field that toJSON() forgets is never saved, and nothing says so | P1 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0660](bugs/BUG-0660-tpsl-drag-paper-order-not-found.md) | TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0661](bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md) | Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop | P1 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
 | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) | Put every exchange behind one adapter interface | P1 | ✅ done | M2 | community, pro, private | none | ADR-0007 | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -905,6 +913,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0657](bugs/BUG-0657-load-contract-section-and-secrets-blind-spots.md) | Load contract cannot see a core/display section swap or a dropped secrets assignment | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0658](bugs/BUG-0658-galaxy-reset-shares-default-refs.md) | Galaxy reset hands live state a reference into the shared defaults | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0659](bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md) | Textual guards accept reworded bypasses; or-mode aliasing has no owner | P2 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0663](bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md) | TP/SL drag modify cannot be gated by the confirm-modifications policy | P2 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |
@@ -1074,6 +1083,7 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | none | community, pro, private | A | none | — |
+| [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | 📋 specced | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
@@ -1144,4 +1154,4 @@ Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 25 · ✅ done 4
 
 ---
 
-Next free number: **0660**
+Next free number: **0665**

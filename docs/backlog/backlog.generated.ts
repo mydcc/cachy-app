@@ -3008,6 +3008,60 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0652-settings-persistence-contract.md"
   },
   {
+    "id": "BUG-0660",
+    "title": "TP/SL chart drag fails in paper mode with tradeErrors.orderNotFound",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "exchange",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0660-tpsl-drag-paper-order-not-found.md"
+  },
+  {
+    "id": "BUG-0661",
+    "title": "Post-drag TP/SL refetch is swallowed by an in-flight fetch, chart reverts to stale stop",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0661-tpsl-post-drag-refetch-swallowed.md"
+  },
+  {
+    "id": "BUG-0662",
+    "title": "TP/SL drag precheck validates against a position not proven to own the dragged plan",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",
@@ -6295,6 +6349,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "opencode",
     "file": "bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md"
+  },
+  {
+    "id": "BUG-0663",
+    "title": "TP/SL drag modify cannot be gated by the confirm-modifications policy",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md"
   },
   {
     "id": "FEAT-0019",
@@ -9949,6 +10021,24 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "adr": "none",
     "depends_on": [],
     "file": "bugs/BUG-0654-drop-imgur-client-id.md"
+  },
+  {
+    "id": "BUG-0664",
+    "title": "CandleChartView dumps order ids and bracket prices to console on every tick",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "chart",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "file": "bugs/BUG-0664-chart-console-dumps-order-data.md"
   },
   {
     "id": "FEAT-0022",
