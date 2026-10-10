@@ -226,8 +226,8 @@ rather than discovering it in review.
       `role="status"` / `aria-live="polite"` on that empty state
 - [x] A refusal from `submit()` is announced: after the stale-calculation guard
       fires, the region holds the text
-- [x] No `aria-atomic` on the region, and the region contains nothing but the
-      message
+- [x] The region contains nothing but the message, so atomicity has nothing to
+      drag along
 - [x] Polite, not assertive — with the shared-surface reason recorded here, not
       only in a comment
 - [x] `aria-atomic="false"`, stated rather than inherited. `role="status"` carries
@@ -269,9 +269,33 @@ keystroke. Both halves, because the second is the reason `polite` was chosen.
 force a contradicting implementation — `{@html}` instead of the text write, and
 an `$effect` writing `nodeValue` unconditionally — both stayed green, because
 happy-dom's `innerHTML` and the effect's dependency tracking skip identical
-values for the same reason Svelte does. The skip therefore rests on Svelte's
-`set_text` equality guard, a code-level fact, and not on a test. The same
-assertions would catch an unconditional write in a real browser.
+values for the same reason Svelte does. The skip therefore rests on `$state`'s
+own equality check — `internal_set` compares against the old value and returns
+early on a match, so the template effect never re-runs and the text write is
+never reached — a code-level fact in Svelte's `sources.js`, and not on a test.
+An earlier version of this item credited `set_text`; the effect is never called
+at all. The same assertions would catch an unconditional write in a real browser.
+
+**A duplicate announcement is accepted here, and is not verified either way.**
+Both surfaces speak the rejection on the catch path — the live region politely,
+the outcome banner assertively. That is a deliberate trade, recorded in the
+Resolution: the banner is inside `{#if result}` and cannot be relied on, so the
+region is kept even though the duplication is possible. The three cases in
+`PlaceOrderPanel.staleSubmit.component.test.ts` pin each surface firing
+*independently* — neither fails if the other stops. So the suite proves both
+channels work and deliberately proves nothing about whether the trader hears
+the message twice, which depends on screen-reader behaviour no test here can
+reach. Anyone tightening this later must start from the unreliability of the
+banner, not from the duplication.
+
+**The message moved on screen.** It used to be the last child of the
+`grid-cols-1 md:grid-cols-2 gap-y-4` inputs grid, spanning both columns. It is
+now a full-width block between that grid and `#results`. The margin is applied
+conditionally so the permanently-present empty region adds no gap, and the
+empty-state case asserts the class is absent — but the change in *position* is
+visible and shipped under an accessibility ticket. The repo has no e2e
+coverage for this region, so it wants one look at a wide and a narrow window
+before merge.
 
 ## Out of scope here, deliberately
 
@@ -361,7 +385,7 @@ So the honest division of labour:
 | The region exists, empty, polite, not atomic | test |
 | A refusal reaches it; a changed message replaces its text | test |
 | The observer would report a write if one happened | positive control in the test |
-| The identical write is **skipped** rather than performed with the same value | Svelte's `set_text` equality guard — a code-level fact, not a test |
+| The identical write is **skipped** rather than performed with the same value | `$state`'s equality check in `internal_set` — a code-level fact, not a test |
 | A reader **hears** it | nothing yet; needs a human |
 
 The earlier wording of that acceptance criterion — "proven by a test, not

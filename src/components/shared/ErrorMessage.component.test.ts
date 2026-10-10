@@ -135,6 +135,12 @@ describe("ErrorMessage", () => {
         expect(region.getAttribute("role")).toBe("status");
         expect(region.getAttribute("aria-live")).toBe("polite");
 
+        // No margin while empty. The region is now in the DOM on every load, so
+        // a static `mt-4` would leave a permanent 1rem gap above the results —
+        // the same hole the region was moved out of the grid to avoid, arriving
+        // by a different road.
+        expect(region.classList.contains("mt-4")).toBe(false);
+
         // Not atomic, and stated rather than inherited. `role="status"` carries
         // an implicit `aria-atomic="true"`, so asserting the attribute is
         // *absent* would pass on a region that re-announces everything it holds
@@ -149,6 +155,42 @@ describe("ErrorMessage", () => {
         flushSync();
 
         expect(region.textContent).toBe(REFUSAL_TEXT);
+        // The counterpart to the empty-state assertion above: the margin exists
+        // only while there is a message to sit under.
+        expect(region.classList.contains("mt-4")).toBe(true);
+    });
+
+    /*
+     * The invariant the polite region depends on, and the one stated as a
+     * comment in `calculatorService.calculateAndDisplay`: every keystroke calls
+     * `hideError()` and, for incomplete input, `showError("dashboard.promptForData")`
+     * again. Both happen in one synchronous block there, and Svelte collapses
+     * them into a single flush — so the region is emptied and refilled within
+     * one tick, which is not two mutations.
+     *
+     * Nothing fails today if someone puts an `await` between those two calls in
+     * the service. This case pins the property at this seam, so it fails here
+     * first and points at the service comment that says the pair is
+     * load-bearing.
+     */
+    it("does not re-announce when the same guidance is hidden and re-shown in one tick", async () => {
+        uiState.showError(GUIDANCE);
+        const region = mountRegion();
+        await tick();
+
+        const mutations: MutationRecord[] = [];
+        const observer = new MutationObserver((records) => mutations.push(...records));
+        observer.observe(region, { childList: true, subtree: true, characterData: true });
+
+        uiState.hideError();
+        uiState.showError(GUIDANCE); // same tick — what calculatorService does
+        await tick();
+
+        observer.disconnect();
+        expect(mutations).toHaveLength(0);
+        // And the message survived the round trip, so zero mutations means
+        // "nothing was written", not "the region went blank".
+        expect(region.textContent).toBe(GUIDANCE_TEXT);
     });
 
     /*
@@ -187,9 +229,14 @@ describe("ErrorMessage", () => {
     // to force a contradicting implementation — `{@html}`, and an `$effect`
     // writing `nodeValue` — both stayed green here, because happy-dom's
     // `innerHTML` and the effect's own dependency tracking skip identical
-    // values for the same reason Svelte does. The skip itself rests on Svelte's
-    // `set_text` equality guard, which is a code-level fact; in a real browser
-    // the same assertions catch an unconditional write, because there an
+    // values for the same reason Svelte does.
+    //
+    // The skip is `$state`'s, not the template's: `internal_set` compares the
+    // new value with the old and returns early on an equal one, so the effect
+    // never re-runs and the text write is never reached. (An earlier version of
+    // this comment credited `set_text`; the effect is never called at all.)
+    // That is a code-level fact in Svelte's `sources.js`, not a test. In a real
+    // browser the same assertions catch an unconditional write, because there an
     // `innerHTML` assignment always mutates. See the item's Known limits.
     it("does not touch the DOM when the same message is written again", async () => {
         uiState.showError(GUIDANCE);
