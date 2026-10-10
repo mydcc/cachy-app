@@ -998,6 +998,136 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
 });
 
 /*
+ * BUG-0664 — the FEAT-0247 bracket diagnostic leaked order data to the console.
+ *
+ * The price-lines effect dumped `orderId`, `tpPrice` and `slPrice` of every
+ * resting limit order through raw `console.debug` on every effect pass. That
+ * path honours neither the DEV gate nor the `api` log category (off by
+ * default), so it fired for users who never enabled API logging — and
+ * console output is routinely pasted into public bug reports, carrying order
+ * identifiers and bracket levels along with it.
+ *
+ * The pair below is the whole contract: with the category off nothing reaches
+ * the console, and with it on the diagnostic still works. The second test is
+ * what keeps the first honest — a fix that simply deleted the diagnostic
+ * would pass the first assertion while destroying the FEAT-0247 triage the
+ * comment above the call still describes.
+ *
+ * Scope of the pair: it pins the **`api` category gate**, which is the one
+ * that addresses the privacy complaint. The `import.meta.env.DEV` gate in
+ * front of it cannot be exercised here — Vitest always runs with DEV truthy,
+ * so `logger.debug` takes its branch in both tests. Production reachability
+ * is a property of the build, not of this suite.
+ */
+describe("BUG-0664 — resting-order bracket diagnostic honours the API logging gate", () => {
+    const ORDER_ID = "o-4242";
+
+    /** Every level a raw dump could escape through; `logger.log` uses console.log. */
+    function captureConsole() {
+        const captured: string[] = [];
+        const spies = (["debug", "log", "warn", "error"] as const).map((level) =>
+            vi.spyOn(console, level).mockImplementation((...args: unknown[]) => {
+                captured.push(
+                    args
+                        .map((a) => {
+                            if (typeof a === "string") return a;
+                            try {
+                                return JSON.stringify(a) ?? String(a);
+                            } catch {
+                                return String(a);
+                            }
+                        })
+                        .join(" "),
+                );
+            }),
+        );
+        return { captured, restore: () => spies.forEach((s) => s.mockRestore()) };
+    }
+
+    function seedBracketOrder() {
+        accountState.openOrders = [
+            {
+                orderId: ORDER_ID,
+                symbol: "BTCUSDT",
+                side: "buy",
+                type: "limit",
+                price: new Decimal(65000),
+                amount: new Decimal(1),
+                filled: new Decimal(0),
+                status: "NEW",
+                // The bracket the diagnostic exists to inspect (FEAT-0247).
+                tpPrice: "66000",
+                slPrice: "64000",
+                timestamp: Date.now(),
+            },
+        ] as never;
+    }
+
+    async function mountWithSeededBracket() {
+        seedBracketOrder();
+        const spy = captureConsole();
+        try {
+            component = mount(CandleChartView, {
+                target: host,
+                props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+            }) as never;
+            await settle();
+            /*
+             * The price-lines effect is the one that holds the diagnostic, and
+             * the "off" test below asserts on a *negative*. If the effect had
+             * not run inside the capture window, that negative would hold for
+             * the wrong reason — the classic shape of a test that can never
+             * fail. The resting order's entry line proves it did run here,
+             * before the spies come back off.
+             */
+            expect(chart.priceLines.size).toBeGreaterThan(0);
+        } finally {
+            spy.restore();
+        }
+        return spy.captured.join("\n");
+    }
+
+    it("emits no order id or bracket level while the api category is off (the default)", async () => {
+        // The precondition, asserted rather than assumed: `api` is absent from
+        // the typed logSettings surface, so `!!logSettings["api"]` is false.
+        // Without this line the test could pass for the wrong reason — e.g.
+        // after someone turns the category on globally.
+        expect(settingsState.debugMode).toBe(false);
+        expect((settingsState.logSettings as Record<string, boolean>).api).toBeFalsy();
+
+        const output = await mountWithSeededBracket();
+
+        expect(output).not.toContain(ORDER_ID);
+        expect(output).not.toContain("66000");
+        expect(output).not.toContain("64000");
+    });
+
+    it("still reports the bracket when the api category is enabled", async () => {
+        /*
+         * No UI writes `logSettings` today — `api` is not even a declared key
+         * of the type — so this drives the gate the way a future toggle would,
+         * not the way a user can today.
+         */
+        const previousSettings = settingsState.logSettings;
+        const previousDebugMode = settingsState.debugMode;
+        settingsState.logSettings = { ...previousSettings, api: true } as typeof previousSettings;
+        try {
+            const output = await mountWithSeededBracket();
+
+            expect(output).toContain(ORDER_ID);
+            // The bracket levels are the diagnostic's actual subject — it
+            // exists to answer "did tpPrice/slPrice ever arrive?". Asserting
+            // only the id would let a change drop them unnoticed.
+            expect(output).toContain("66000");
+            expect(output).toContain("64000");
+        } finally {
+            settingsState.logSettings = previousSettings;
+            settingsState.debugMode = previousDebugMode;
+        }
+    });
+});
+
+/*
  * BUG-0296 — history loading stays retryable.
  *
  * A transient kline fetch error used to be reported as `false` ("no more

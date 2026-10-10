@@ -10026,7 +10026,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0664",
     "title": "CandleChartView dumps order ids and bracket prices to console on every tick",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -10038,6 +10038,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "data_class": "none",
     "adr": "none",
     "depends_on": [],
+    "assignee": "opencode",
     "file": "bugs/BUG-0664-chart-console-dumps-order-data.md"
   },
   {

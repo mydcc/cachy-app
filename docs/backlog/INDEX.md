@@ -4,7 +4,7 @@
 
 540 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 27 · 🟢 ready 25 · ✅ done 460 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 26 · 🟢 ready 25 · ✅ done 461 · ⛔ dropped 1
 
 ---
 
@@ -551,7 +551,7 @@ Counts by status: 💡 idea 27 · 📋 specced 27 · 🟢 ready 25 · ✅ done 4
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | deps |
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | security |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | persistence |
-| [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | 📋 specced | chart |
+| [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | ✅ done | chart |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -1083,7 +1083,7 @@ Counts by status: 💡 idea 27 · 📋 specced 27 · 🟢 ready 25 · ✅ done 4
 | [BUG-0639](bugs/BUG-0639-changelog-preset-needs-newer-writer.md) | conventional-changelog-conventionalcommits 10 cannot render with the installed writer | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |
