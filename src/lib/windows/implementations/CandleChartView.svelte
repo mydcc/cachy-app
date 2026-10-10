@@ -825,8 +825,19 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         // that regex is not an option: a genuine venue id ending in `-tp`/`-sl`
         // would then be truncated and sent to an endpoint that resolves orders
         // by id alone, addressing the wrong row.
-        const storedRow = tpSlState.orders.find((o) => o.orderId === orderId);
-        const baseId = storedRow?.sourceOrderId ?? stripLegSuffix(orderId, leg);
+        //
+        // Scoped by symbol like the rest of this handler: the store holds every
+        // symbol of the active account, and the trust placed in `sourceOrderId`
+        // should not be wider than the data this line was rendered from.
+        //
+        // `||`, not `??` — the same operator the other two consumers of this
+        // field use (`tpSlService.ts:237`, `TpSlEditModal.svelte:180`). The
+        // row passthrough in `normalizeTpSlRow` hands back whatever the venue
+        // sent when it already carries a `planType`, so an empty
+        // `sourceOrderId` is reachable in principle and must fall through
+        // rather than go to the venue as `orderId: ""`.
+        const storedRow = tpSlState.ordersFor(normalizedSymbol).find((o) => o.orderId === orderId);
+        const baseId = storedRow?.sourceOrderId || stripLegSuffix(orderId, leg);
         // BUG-0385: `plansFor()` is keyed by symbol alone, so when a position
         // plan and a pending bracket coexist it can return the *other* plan —
         // and the store can even shift between mousedown and mouseup. Only
@@ -861,6 +872,11 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         // which cannot see through the helper.
         if (!dropPassesPrecheck(kind, price, position, tickSize) || position === undefined) return;
         const venueOrderId =
+            // Redundant with `baseId` since the store-first resolution: when
+            // the plan owns the dragged line its `sourceOrderId` IS `baseId`,
+            // and otherwise the fallback already is. Kept as the statement of
+            // intent — the id sent to a venue must be the one the owning plan
+            // names, not whatever the dragged line happened to carry.
             plan?.sourceOrderId === baseId ? plan.sourceOrderId : baseId;
         try {
             await activeExchange().trading.modifyTpSlOrder({

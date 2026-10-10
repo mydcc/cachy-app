@@ -80,6 +80,14 @@ For a numeric venue row the store and the regex agree, so the live
 Bitunix path is behaviourally unchanged — asserted directly rather than
 assumed.
 
+Hardened during review: the lookup is scoped by symbol
+(`ordersFor(normalizedSymbol)`), and the fallback uses `||` rather than
+`??` so it matches the two other consumers of `sourceOrderId`
+(`tpSlService.ts`, `TpSlEditModal.svelte`) — the row passthrough in
+`normalizeTpSlRow` hands back whatever the venue sent when it already
+carries a `planType`, so an empty `sourceOrderId` must fall through
+rather than reach the venue as `orderId: ""`.
+
 **Hard constraint (security review ses_ede1a5491ffe): do NOT widen the
 `stripLegSuffix` regex to non-numeric bases.** The numeric guard is the
 control bounding the fallback: with it gone, any genuine venue order id

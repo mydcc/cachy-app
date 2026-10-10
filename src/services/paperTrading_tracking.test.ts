@@ -179,6 +179,21 @@ describe("FEAT-0327 — a simulated fill reaches the panel", () => {
         expect(plans).toHaveLength(2);
         expect(plans.find((p) => p.planType === "LOSS")?.triggerPrice).toBe("49000");
         expect(plans.find((p) => p.planType === "PROFIT")?.triggerPrice).toBe("52000");
+        /*
+         * Each leg must also name the row it was split from. That
+         * `sourceOrderId` is what the chart's TP/SL drag resolves back to
+         * (BUG-0660: the leg id alone addresses a row the simulator has never
+         * heard of), and this is the only place the *unnormalised* paper row
+         * crosses into `normalizeTpSlRow` — the chart test seeds past that
+         * boundary, so a change to which key carries the group id would leave
+         * it green while production stayed broken.
+         */
+        const profit = plans.find((p) => p.planType === "PROFIT");
+        const loss = plans.find((p) => p.planType === "LOSS");
+        expect(profit?.sourceOrderId).toBeTruthy();
+        expect(loss?.sourceOrderId).toBe(profit?.sourceOrderId);
+        expect(profit?.orderId).toBe(`${profit?.sourceOrderId}-tp`);
+        expect(loss?.orderId).toBe(`${loss?.sourceOrderId}-sl`);
         expect(appFetchMock).not.toHaveBeenCalled();
     });
 

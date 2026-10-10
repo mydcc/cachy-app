@@ -1569,6 +1569,19 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
         vi.spyOn(tpSlState, "invalidate").mockImplementation(() => {});
     });
 
+    /*
+     * `tpSlState` is a module-level singleton shared with the whole file. This
+     * block re-installs an `invalidate` spy that would otherwise stay on it
+     * permanently — harmless while this is the last describe, but a block
+     * appended below would then inherit a no-op `invalidate` and pass an
+     * `expect(...).toHaveBeenCalled()` for the wrong reason. Plain `vi.fn()`
+     * mocks (`fetchTpSlOrders`, `modifyTpSlOrder`) are untouched by this:
+     * `restoreAllMocks` only restores spies created with a restore callback.
+     */
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     function seedPaperPosition() {
         accountState.positions = [
             {
@@ -1619,9 +1632,40 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
         await tpSlState.ensureFresh();
     }
 
-    async function mountWithPlanRow(baseId: string) {
+    /**
+     * Two TP legs on one symbol: the dragged line's owner is not the first one.
+     * `plansFor` is first-pick per leg type (BUG-0524), so this is the shape
+     * where the BUG-0385 ownership comparison has to decide, not the store
+     * lookup alone — and where picking the wrong row would modify a real plan
+     * the trader never touched.
+     */
+    async function seedTwoTpRows() {
+        fetchTpSlOrders.mockResolvedValue([
+            {
+                orderId: `${PAPER_GROUP}-tp`,
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "120",
+                status: "NEW",
+                sourceOrderId: PAPER_GROUP,
+                positionId: "paper-1",
+            },
+            {
+                orderId: "paper-tpsl-4-tp",
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "125",
+                status: "NEW",
+                sourceOrderId: "paper-tpsl-4",
+                positionId: "paper-1",
+            },
+        ]);
+        await tpSlState.ensureFresh();
+    }
+
+    async function mountWithPlanRow(baseId: string, hydrate: () => Promise<void> = () => seedPlanRow(baseId)) {
         seedPaperPosition();
-        await seedPlanRow(baseId);
+        await hydrate();
         component = mount(CandleChartView, {
             target: host,
             props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
@@ -1663,6 +1707,7 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
                 triggerPrice: "130",
             }),
         );
+        expect(toastService.success).toHaveBeenCalled();
         expect(toastService.error).not.toHaveBeenCalled();
         expect(tpSlState.invalidate).toHaveBeenCalled();
     });
@@ -1683,5 +1728,74 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
                 triggerPrice: "130",
             }),
         );
+    });
+
+    it("falls back to the base row id when a WebSocket push erased sourceOrderId", async () => {
+        // `updateFromWs` rebuilds a leg from a fixed field list and does not
+        // carry `sourceOrderId`, so a pushed row is present in the store but
+        // carries nothing to resolve from. That is the one shape the store
+        // lookup cannot answer, and it is exactly what `stripLegSuffix` is
+        // still here for.
+        async function hydrateWithoutSourceOrderId() {
+            fetchTpSlOrders.mockResolvedValue([
+                {
+                    orderId: "9001-tp",
+                    symbol: "BTCUSDT",
+                    planType: "PROFIT",
+                    triggerPrice: "120",
+                    status: "NEW",
+                    // No sourceOrderId — as after a WS push.
+                },
+            ]);
+            await tpSlState.ensureFresh();
+        }
+        const container = await mountWithPlanRow("9001", hydrateWithoutSourceOrderId);
+
+        dragLine(container, 120, 130);
+        await settle();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "130",
+            }),
+        );
+    });
+
+    it("addresses the dragged line's own row when the store shifts under it (BUG-0385)", async () => {
+        const container = await mountWithPlanRow(PAPER_GROUP, seedTwoTpRows);
+
+        // Render time the chart drew the first-pick TP leg; at drop time the
+        // symbol now resolves to the *other* plan. This is the BUG-0385 shape,
+        // and the one combination neither the old tests nor the store lookup
+        // covered alone: the store holds the dragged row, `plansFor` names a
+        // different one. The drag must still address the line the trader
+        // actually moved, not the plan the symbol happens to resolve to.
+        vi.spyOn(tpSlState, "plansFor").mockReturnValue({
+            profit: {
+                orderId: "paper-tpsl-4-tp",
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "125",
+                status: "NEW",
+                sourceOrderId: "paper-tpsl-4",
+                positionId: "paper-1",
+            },
+        } as never);
+
+        dragLine(container, 120, 135);
+        await settle();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: PAPER_GROUP,
+                symbol: "BTCUSDT",
+                planType: "PROFIT",
+                triggerPrice: "135",
+            }),
+        );
+        expect(toastService.error).not.toHaveBeenCalled();
     });
 });
