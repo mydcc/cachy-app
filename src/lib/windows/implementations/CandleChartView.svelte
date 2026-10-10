@@ -1583,6 +1583,14 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
           a stale trigger price with nothing saying so. `role="status"` so a
           screen reader announces it when it appears — the trader is looking at
           a chart, not at a tab.
+
+          The store's `error` is deliberately NOT interpolated. It is not a
+          sentence: `tpSlService` throws i18n keys (`dashboard.alerts.noApiKeys`,
+          `apiErrors.generic`), so rendering it raw would put `…the last
+          refresh failed: dashboard.alerts.noApiKeys` on screen. `TpSlList`
+          already declines to interpolate for the same reason and shows a
+          generic string. Presence is the signal; the reason lives in the
+          TP/SL tab, where it can be translated properly.
         -->
         {#if tpSlState.error}
             <div
@@ -1590,7 +1598,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                 role="status"
                 class="absolute top-2 left-2 z-20 max-w-[70%] rounded-lg border border-[var(--danger-color)] bg-[var(--bg-secondary)]/90 px-2 py-1 text-xs text-[var(--danger-color)] shadow-lg"
             >
-                {$_("chartView.tpSlStale", { values: { symbol, msg: tpSlState.error } })}
+                {$_("chartView.tpSlStale", { values: { symbol } })}
             </div>
         {/if}
 

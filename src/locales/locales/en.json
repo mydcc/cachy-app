@@ -4484,7 +4484,7 @@
     "loadingHistory": "LOADING HISTORY ...",
     "fetchingMarketData": "FETCHING MARKET DATA ...",
     "countdownLabel": "Countdown to candle close",
-    "tpSlStale": "TP/SL levels for {symbol} may be out of date — the last refresh failed: {msg}",
+    "tpSlStale": "TP/SL levels for {symbol} may be out of date — the last refresh failed",
     "alert": {
       "menuLabel": "Alert",
       "regionLabel": "Alert Region",

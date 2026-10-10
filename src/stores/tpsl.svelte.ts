@@ -210,7 +210,16 @@ class TpSlManager {
         }
 
         const generation = this.generation;
-        const request = (async () => {
+        /*
+         * Started through `Promise.resolve().then` so the body cannot run
+         * before `this.inFlight` has been assigned. A synchronous throw inside
+         * it — `bitunixAdapter.fetchTpSlOrders` is a non-async arrow, so one is
+         * not structurally impossible — would otherwise run `finally` while
+         * `request` is still in its temporal dead zone, replacing the real
+         * error with a ReferenceError and leaving `inFlight` permanently
+         * rejected.
+         */
+        const request = Promise.resolve().then(async () => {
             this._loading = true;
             try {
                 const orders = await activeExchange().trading.fetchTpSlOrders("pending");
@@ -243,7 +252,7 @@ class TpSlManager {
                     this.inFlight = null;
                 }
             }
-        })();
+        });
 
         this.inFlight = request;
         return request;
@@ -308,11 +317,20 @@ class TpSlManager {
         this.generation++;
     }
 
-    /** Drops everything. Used when the account or exchange changes. */
+    /**
+     * Drops everything. Used when the account or exchange changes.
+     *
+     * Bumps the generation for the same reason `invalidate()` does: a request
+     * still in flight was issued against the account being dropped, and its
+     * response — rows *and* error message — would otherwise land in the fresh
+     * store stamped current. `reset()` is the account boundary, so this is the
+     * one path where writing the previous account's data is worst.
+     */
     public reset(): void {
         this._orders = [];
         this._loadedAt = null;
         this._error = null;
+        this.generation++;
     }
 }
 

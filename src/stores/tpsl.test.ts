@@ -177,6 +177,24 @@ describe("tpSlState — a mutation's refetch cannot be swallowed (BUG-0661)", ()
         await tpSlState.ensureFresh(1_000, true);
         expect(tpSlState.error).toBe("endpoint down");
     });
+
+    it("does not let an in-flight request write into a store that was reset", async () => {
+        // `reset()` is the account boundary. A request issued against the
+        // account being dropped must not land its rows (or its error) in the
+        // fresh store, where they would read as the new account's current
+        // plans.
+        let release: (rows: unknown[]) => void = () => {};
+        fetchTpSl.mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
+        const inFlight = tpSlState.ensureFresh(1_000);
+
+        tpSlState.reset();
+        release([plan("BTCUSDT", "PROFIT", "60000")]);
+        await inFlight;
+
+        expect(tpSlState.orders).toEqual([]);
+        expect(tpSlState.loadedAt).toBeNull();
+        expect(tpSlState.error).toBeNull();
+    });
 });
 
 describe("tpSlState — plansFor", () => {

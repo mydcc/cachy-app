@@ -1879,6 +1879,15 @@ describe("BUG-0661 — a failed post-drag refetch is visible on the chart", () =
 
         await settleUntil(() => tpSlState.error !== null);
         expect(staleBanner()).not.toBeNull();
-        expect(staleBanner()?.textContent ?? "").toContain("tp/sl endpoint unreachable");
+        // The banner must be a translated sentence, never the store's raw
+        // error: that string is an i18n key in production
+        // (`dashboard.alerts.noApiKeys`, `apiErrors.generic`), so asserting
+        // against the English source or the raw key would pin the wrong
+        // contract. German differs from English here, which also proves the
+        // text goes through the dictionary rather than a hardcoded literal.
+        const text = staleBanner()?.textContent ?? "";
+        expect(text).toContain("TP/SL-Niveaus für BTCUSDT");
+        expect(text).not.toContain("tp/sl endpoint unreachable");
+        expect(text).not.toContain("apiErrors");
     });
 });

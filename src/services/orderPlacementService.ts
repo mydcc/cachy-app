@@ -503,10 +503,18 @@ class OrderPlacementService {
      * Re-reads the exchange's plans for a symbol, bypassing the cache
      * window. The whole list, not first-pick per leg (BUG-0524): the
      * confirmation matches by position over all of them.
+     *
+     * `force` is what makes "bypassing the cache window" true. `invalidate()`
+     * bumps the store's request generation (BUG-0661), which dooms any request
+     * already in flight — a non-forced `ensureFresh` would then join that
+     * doomed request and return rows from a snapshot taken *before* the
+     * placement this confirmation is checking. The retry loop would burn an
+     * attempt on unchanged data and, on the final attempt, report a protected
+     * position as unprotected.
      */
     private async readOrders(symbol: string): Promise<TpSlOrder[]> {
         tpSlState.invalidate();
-        await tpSlState.ensureFresh();
+        await tpSlState.ensureFresh(Date.now(), true);
         return tpSlState.ordersFor(symbol);
     }
 
