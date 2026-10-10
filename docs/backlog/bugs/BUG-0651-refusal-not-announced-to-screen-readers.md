@@ -80,11 +80,20 @@ hideError() {
 
 ### Which refusals are silent, and which are not — this is the part that moved
 
-**Already announced.** The gate refusal renders through `result` into
-`PlaceOrderPanel.svelte:929-934`, which carries `role="alert"`. Same for the
-outcome at `:915` and the venue-unavailable block at `:857`. #3949 gave this
-banner its semantics, so the *original* filing's claim that "the one message
-that blocks the money path has none" no longer holds for the gate.
+**Already announced — but on an unreliable construct.** The gate refusal renders
+through `result` into `PlaceOrderPanel.svelte:929-934`, which carries
+`role="alert"`. Same for the outcome at `:915` and the venue-unavailable block
+at `:857`. #3949 gave this banner its semantics, so the *original* filing's
+claim that "the one message that blocks the money path has none" no longer
+holds for the gate.
+
+That does not make it sufficient, and the item nearly said so in the opposite
+direction. The banner lives inside `{#if result}`, and `result` is `null` until
+the submit assigns it — so on the first submission the alert node enters the
+accessibility tree together with its text, which is the construct this same
+Evidence section calls unreliable a few lines up. Applying one rule and then
+its opposite to two neighbouring blocks is what made the first cut of this fix
+delete the wrong line. Both surfaces are now kept; see Resolution.
 
 **Silent.** `PlaceOrderPanel.svelte:562-573`, the BUG-0648 guard:
 
@@ -197,8 +206,10 @@ rather than discovering it in review.
 5. **Decide the double announcement.** `PlaceOrderPanel.svelte:728-736` — the
    `catch` writes `uiState.showError("orderEntry.errors.entryRejected")` *and*
    sets `result`, so with the banner live a rejection would be spoken twice: once
-   assertively by the outcome banner, once politely by the banner. See open
-   questions.
+   assertively by the outcome banner, once politely by the live region. See open
+   questions. **Resolved the other way than this step assumed** — the banner is
+   inside `{#if result}`, so it does not reliably speak, and the deletion traded a
+   possible duplicate for a possible silence on the money path. See Resolution.
 
 6. **Extract a component for the markup.** `src/components/shared/ErrorMessage.svelte`,
    ~15 lines, owning the always-rendered region. `src/routes/+page.svelte` is
@@ -219,8 +230,16 @@ rather than discovering it in review.
       message
 - [x] Polite, not assertive — with the shared-surface reason recorded here, not
       only in a comment
-- [x] The panel's own refusal banner keeps `role="alert"`; the rejection path
-      does not announce the same failure twice
+- [x] `aria-atomic="false"`, stated rather than inherited. `role="status"` carries
+      an implicit `aria-atomic="true"`; asserting the attribute is *absent* would
+      have passed on a region that re-announces everything it holds
+- [x] The panel's own refusal banner keeps `role="alert"`, **and** the catch in
+      `submit()` still writes the shared surface — the banner is inside
+      `{#if result}` and does not reliably announce on a first submit, so the two
+      channels are not redundant. Three cases pin the catch path; see Resolution
+- [x] A rejected submit is pinned by a test that drives `submit()`, not by one
+      that pushes a string into the store — the earlier wording claimed that
+      composition and no test delivered it
 - [x] `dashboard.promptForData` written twice with identical text does not change
       the region's content — **asserted, but not fully pinned**. See Verification
       still owed, and Known limits. The old wording demanded a test that "cannot
@@ -297,13 +316,29 @@ grid row with a `gap-y-4` under it, on every load. Outside the grid the empty
 state is a zero-height block. The `md:col-span-2` went with it — it described a
 grid placement that no longer applies.
 
-**The double announcement is resolved.** `uiState.showError` is gone from the
-`catch` in `PlaceOrderPanel.svelte`. `errorText` falls back to
-`orderEntry.errors.entryRejected` when there is no `errorKey`, and that branch
-sets none — so the `role="alert"` outcome banner was already rendering the
-identical string. Two channels, one message, one assertive and one polite: the
-trader heard the rejection twice. The banner is kept because it is the one that
-stays visible until the next submission, and it is where they clicked.
+**The double announcement: first cut wrong, corrected.** The first version
+deleted `uiState.showError` from the `catch` in `PlaceOrderPanel.svelte`, on the
+reasoning that `errorText` falls back to `orderEntry.errors.entryRejected` when
+there is no `errorKey`, that branch sets none, and the `role="alert"` outcome
+banner therefore already renders the identical string — so two channels meant
+the trader heard it twice.
+
+That reasoning holds only if the banner speaks, and it is the weaker of the two
+claims. The banner lives inside `{#if result}`; `result` is `null` until this
+very catch block assigns it. On the first submission the alert node is inserted
+into the accessibility tree together with its text — the construct this item's
+own Evidence calls unreliable. So the deletion bought a *possible* duplicate in
+exchange for a *possible* silence, on the refusal that blocks a money path. The
+call is restored.
+
+Both surfaces are now deliberate: the live region is what can be relied on,
+because it is in the DOM before any message arrives; the banner is what stays on
+screen until the next submission. Three cases in
+`PlaceOrderPanel.staleSubmit.component.test.ts` pin the catch path — the shared
+surface receives the refusal, the banner renders it under `role="alert"`, and the
+banner carries the failure detail the shared surface cannot. Removing the
+`showError` call fails the first and leaves the other two green, so the region
+write is pinned independently of the banner rather than riding on it.
 
 **The first draft of the mutation test was wrong, and the wrongness is the
 point.** It compared text *node identity*. Svelte's `set_text` mutates
@@ -341,6 +376,24 @@ assumed" — was not achievable. It is recorded as `[~]` rather than ticked.
 - **The identical-write skip is environmental.** The same assertions would catch
   an unconditional write in a real browser, where `innerHTML` always mutates.
   Under happy-dom they would not.
+- **About twenty writers now reach a screen reader, not only an eye.** Roughly
+  twenty call sites write `uiState.showError`, and not all of them write a
+  translated, bounded, trader-facing sentence. `+layout.svelte` forwards
+  `window.error` and `unhandledrejection` messages verbatim,
+  `PositionsSidebar.svelte` puts a cancel-order response in, `JournalContent`
+  puts an upload failure in. Those strings were rendered before this change and
+  are *spoken* after it. Because the region is polite they queue rather than
+  interrupt, so the cost is crowding, not noise-over-crowding-out. Auditing
+  every writer for announcement-worthiness is its own item and was not done
+  here.
+- **A round-trip translation guard was tried and reverted.** The cast
+  `uiState.errorMessage as TranslationKey` is unchecked and `errorMessage` is a
+  plain `string`, so `PlaceOrderPanel.detailText`'s pattern was copied over as
+  apparent insurance. Removing the round trip left every test green —
+  svelte-i18n already echoes exactly the values the guard would have passed
+  through, so it was a no-op with a security-flavoured comment attached. Reverted;
+  what remains is the inline lookup that `+page.svelte` had before this change,
+  plus one test pinning that raw third-party text reaches the trader as written.
 - **`aria-live="polite"` is reasoned, not experienced.** The argument is that
   this surface also carries a per-keystroke message and that assertive would
   interrupt constantly. If a reader turns out to announce `role="status"`

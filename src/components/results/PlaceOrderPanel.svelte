@@ -727,17 +727,24 @@
       }
     } catch (e) {
       /*
-       * BUG-0651. This used to call `uiState.showError` as well. The `result`
-       * below renders the same string — `errorText` falls back to
-       * `orderEntry.errors.entryRejected` when there is no `errorKey`, and this
-       * branch sets no `errorKey` — into the outcome banner, which is
-       * `role="alert"`.
+       * BUG-0651. The outcome banner below renders the same string —
+       * `errorText` falls back to `orderEntry.errors.entryRejected` when there
+       * is no `errorKey`, and this branch sets none.
        *
-       * Two channels, one message, and the shared error surface is polite
-       * while the banner is assertive: the trader heard the rejection twice.
-       * The banner is the one that stays visible until the next submission, and
-       * it is where they clicked, so it is the one worth keeping.
+       * It is not enough on its own, so this call stays. The banner lives
+       * inside `{#if result}`, and `result` is null until the moment this
+       * block assigns it — so on the first submission the alert node is
+       * inserted into the accessibility tree together with its text. That is
+       * the construct live-region guidance calls unreliable: some readers stay
+       * silent when the node and its content arrive at once. The shared error
+       * surface is the opposite case — permanently in the DOM, text only
+       * changes — which is why it is the one that can be relied on here.
+       *
+       * If both ever do speak, the trader hears the rejection twice: once
+       * polite and queued, once assertive. That is the trade, taken knowingly
+       * against a refusal that otherwise can go unheard on the money path.
        */
+      uiState.showError($_("orderEntry.errors.entryRejected"));
       result = {
         entryPlaced: false,
         stopLoss: "none",

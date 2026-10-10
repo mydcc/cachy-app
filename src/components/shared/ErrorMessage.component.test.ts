@@ -135,10 +135,11 @@ describe("ErrorMessage", () => {
         expect(region.getAttribute("role")).toBe("status");
         expect(region.getAttribute("aria-live")).toBe("polite");
 
-        // Not atomic: the region holds nothing but the message, so there is no
-        // unrelated content for atomicity to drag along, and only changed text
-        // is announced.
-        expect(region.hasAttribute("aria-atomic")).toBe(false);
+        // Not atomic, and stated rather than inherited. `role="status"` carries
+        // an implicit `aria-atomic="true"`, so asserting the attribute is
+        // *absent* would pass on a region that re-announces everything it holds
+        // — the opposite of the guarantee. The value has to be "false".
+        expect(region.getAttribute("aria-atomic")).toBe("false");
     });
 
     it("announces the refusal text when an error is shown", () => {
@@ -148,6 +149,27 @@ describe("ErrorMessage", () => {
         flushSync();
 
         expect(region.textContent).toBe(REFUSAL_TEXT);
+    });
+
+    /*
+     * Not every writer puts a key in `uiState.errorMessage`: `+layout.svelte`
+     * forwards `window.error` and `unhandledrejection` messages verbatim,
+     * `PositionsSidebar` puts a cancel-order response in, `JournalContent` puts
+     * an upload failure in. This pins that such text reaches the trader as
+     * written instead of as a dotted path.
+     *
+     * It pins the *behaviour*, not the mechanism — svelte-i18n echoes a key it
+     * does not know, and that is what makes this hold. A round-trip guard was
+     * tried in the component as extra insurance; removing it left this test
+     * green, which is how it was found to be a no-op and reverted.
+     */
+    it("shows third-party text as written rather than as a dotted key", () => {
+        const region = mountRegion();
+
+        uiState.showError("Cancel failed: order not found");
+        flushSync();
+
+        expect(region.textContent).toBe("Cancel failed: order not found");
     });
 
     // The property that makes the per-keystroke guidance safe. `clearResults`
