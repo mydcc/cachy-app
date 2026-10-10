@@ -1365,8 +1365,14 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         // so order ids and bracket levels landed in the console even with
         // API logging off — and console output is routinely pasted into
         // public bug reports. `logger.debug` inherits the DEV gate and the
-        // `api` category (off by default), so the diagnostic only reaches
-        // the console when it was actually asked for.
+        // `api` category, so the diagnostic now needs both to be on.
+        //
+        // In practice that means dev builds only: `logger.debug` returns
+        // before it ever consults the category, so a released build never
+        // emits it and `debugMode` cannot bring it back. That is the intended
+        // outcome — a triage signal is not worth reprinting order ids and
+        // bracket levels into every user's console — but do not expect this
+        // line in a bug report pasted from a production build.
         if (matchingOrders.length > 0) {
             logger.debug(
                 "api",

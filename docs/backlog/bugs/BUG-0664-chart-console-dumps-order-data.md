@@ -50,11 +50,21 @@ and DEV gates, or delete it — the diagnostic has served its purpose.
 **Done (opencode).** Routed through `logger.debug("api", …)`. The
 diagnostic itself is kept — it is still the only way to tell "the fields
 never arrived from the exchange" from "they arrived and something here
-drops them" — but it now sits behind both the DEV gate and the `api`
-category, which is off by default. Two tests in
-`CandleChartView.component.test.ts` pin the pair: nothing reaches the
-console with the category off, and the diagnostic still reports the
-bracket when it is on, so "delete it" cannot pass silently.
+drops them" — but it now sits behind the `api` category, which is off
+by default. Two tests in `CandleChartView.component.test.ts` pin the
+pair: nothing reaches the console with the category off, and the
+diagnostic still reports the bracket when it is on, so "delete it"
+cannot pass silently.
+
+**Reachability note.** `logger.debug` returns on `import.meta.env.DEV`
+before it ever consults the category, so in a released build this
+diagnostic does not run at all — and `debugMode` cannot bring it back.
+That is deliberate: a triage signal is not worth reprinting order ids
+and bracket levels into every user's console, which is what this item is
+about. Do not expect this line in a bug report pasted from a production
+build. `api` also has no user-facing switch today (it is not a declared
+key of `Settings["logSettings"]`), so the "on" test drives the gate the
+way a future toggle would rather than the way a user can today.
 
 ## Acceptance criteria
 

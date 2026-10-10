@@ -1012,6 +1012,12 @@ describe("FEAT-0247 — chart-only pending order hydration", () => {
  * what keeps the first honest — a fix that simply deleted the diagnostic
  * would pass the first assertion while destroying the FEAT-0247 triage the
  * comment above the call still describes.
+ *
+ * Scope of the pair: it pins the **`api` category gate**, which is the one
+ * that addresses the privacy complaint. The `import.meta.env.DEV` gate in
+ * front of it cannot be exercised here — Vitest always runs with DEV truthy,
+ * so `logger.debug` takes its branch in both tests. Production reachability
+ * is a property of the build, not of this suite.
  */
 describe("BUG-0664 — resting-order bracket diagnostic honours the API logging gate", () => {
     const ORDER_ID = "o-4242";
@@ -1066,13 +1072,22 @@ describe("BUG-0664 — resting-order bracket diagnostic honours the API logging 
                 props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
             }) as never;
             await settle();
+            /*
+             * The price-lines effect is the one that holds the diagnostic, and
+             * the "off" test below asserts on a *negative*. If the effect had
+             * not run inside the capture window, that negative would hold for
+             * the wrong reason — the classic shape of a test that can never
+             * fail. The resting order's entry line proves it did run here,
+             * before the spies come back off.
+             */
+            expect(chart.priceLines.size).toBeGreaterThan(0);
         } finally {
             spy.restore();
         }
         return spy.captured.join("\n");
     }
 
-    it("emits no order id or bracket level while API logging is off (the default)", async () => {
+    it("emits no order id or bracket level while the api category is off (the default)", async () => {
         // The precondition, asserted rather than assumed: `api` is absent from
         // the typed logSettings surface, so `!!logSettings["api"]` is false.
         // Without this line the test could pass for the wrong reason — e.g.
@@ -1087,16 +1102,27 @@ describe("BUG-0664 — resting-order bracket diagnostic honours the API logging 
         expect(output).not.toContain("64000");
     });
 
-    it("still reports the bracket when the user turns API logging on", async () => {
-        const previous = settingsState.logSettings;
-        settingsState.logSettings = { ...previous, api: true } as typeof previous;
+    it("still reports the bracket when the api category is enabled", async () => {
+        /*
+         * No UI writes `logSettings` today — `api` is not even a declared key
+         * of the type — so this drives the gate the way a future toggle would,
+         * not the way a user can today.
+         */
+        const previousSettings = settingsState.logSettings;
+        const previousDebugMode = settingsState.debugMode;
+        settingsState.logSettings = { ...previousSettings, api: true } as typeof previousSettings;
         try {
             const output = await mountWithSeededBracket();
 
             expect(output).toContain(ORDER_ID);
+            // The bracket levels are the diagnostic's actual subject — it
+            // exists to answer "did tpPrice/slPrice ever arrive?". Asserting
+            // only the id would let a change drop them unnoticed.
+            expect(output).toContain("66000");
+            expect(output).toContain("64000");
         } finally {
-            settingsState.logSettings = previous;
-            settingsState.debugMode = false;
+            settingsState.logSettings = previousSettings;
+            settingsState.debugMode = previousDebugMode;
         }
     });
 });
