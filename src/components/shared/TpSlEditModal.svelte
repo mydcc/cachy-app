@@ -215,6 +215,10 @@
     if (confirmationPolicyStore.requires("modify-order")) {
       pendingSave = snapshot;
       confirming = true;
+      // A previous attempt's error belongs to that attempt, not to what the
+      // dialog is asking about — clear it so cancelling the dialog does not
+      // surface a stale failure as if it just happened.
+      error = "";
       return;
     }
     await dispatchSave(snapshot);
@@ -265,8 +269,10 @@
     // The gate's own field labels, so the dialog reads in the same
     // vocabulary as the refusal it is guarding against (BUG-0663).
     // From the frozen snapshot, not the live form — what the dialog shows
-    // is exactly what the confirm dispatches.
-    return [
+    // is exactly what the confirm dispatches, including a resized leg:
+    // a qty the dialog never displayed must never be dispatched on its
+    // confirmation.
+    const facts = [
       { label: get(_)("orderGate.fields.symbol"), value: snapshot.symbol },
       {
         label:
@@ -276,6 +282,10 @@
         value: snapshot.triggerPrice,
       },
     ];
+    if (snapshot.qty !== undefined) {
+      facts.push({ label: get(_)("orderGate.fields.qty"), value: snapshot.qty });
+    }
+    return facts;
   });
 </script>
 
@@ -373,9 +383,11 @@
 
 <!--
   BUG-0666: saving obeys the modify-order confirmation policy. A sibling of
-  the edit frame rather than nested in it — each registers its own window,
-  and the form stays open (and live — the facts above derive from it)
-  behind the dialog. Cancelling returns to the form with nothing sent.
+  the edit frame rather than nested in it — each registers its own window.
+  The form is disabled while confirming, and the facts derive from the
+  frozen snapshot, not the live form — so what the dialog shows is exactly
+  what the confirm dispatches. Cancelling returns to the form with nothing
+  sent.
 -->
 <ConfirmActionModal
   isOpen={confirming}

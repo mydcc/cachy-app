@@ -68,8 +68,9 @@ safe to add without touching the drag.
 **Done (opencode).** `handleSave` validates exactly as before, then —
 when the policy requires `modify-order` — opens a `ConfirmActionModal`
 as a sibling of the edit frame instead of dispatching. The dialog shows
-the symbol and the new level in the gate's own field labels, derived
-live from the form; confirm dispatches with the stamped `confirmedAt`
+the symbol, the new level, and — when the leg was resized — the new
+size, in the gate's own field labels, all taken from the frozen
+snapshot; confirm dispatches with the stamped `confirmedAt`
 (and the service names `modify-order` via the conditional attach from
 BUG-0663), cancel returns to the untouched form. The `onsuccess` close
 flow and the validation order are unchanged, and the pre-existing
