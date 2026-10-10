@@ -201,6 +201,18 @@ const activeExchangeMock = vi.hoisted(() =>
         trading: { modifyTpSlOrder, fetchTpSlOrders },
     })),
 );
+
+/*
+ * BUG-0663: `ConfirmActionModal` renders through `ModalFrame`, which registers
+ * a window with the shared `WindowManager` and renders nothing under a bare
+ * component mount. The house stand-in (`PassthroughModalFrame`) renders the
+ * dialog's own content inline instead, so this suite drives the real modal —
+ * real facts, real buttons, real timestamp — without the window layer. Same
+ * seam as the modal's own suite.
+ */
+vi.mock("../../../components/shared/ModalFrame.svelte", async () => ({
+    default: (await import("../../../tests/helpers/PassthroughModalFrame.svelte")).default,
+}));
 vi.mock("../../../services/exchange", () => ({
     activeExchange: activeExchangeMock,
 }));
@@ -217,6 +229,7 @@ import { settingsState } from "../../../stores/settings.svelte";
 import { alertPanelState } from "../../../stores/alertPanel.svelte";
 import { uiState } from "../../../stores/ui.svelte";
 import { logger } from "../../../services/logger";
+import { confirmationPolicyStore } from "../../../stores/confirmationPolicy.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -1889,5 +1902,202 @@ describe("BUG-0661 — a failed post-drag refetch is visible on the chart", () =
         expect(text).toContain("TP/SL-Niveaus für BTCUSDT");
         expect(text).not.toContain("tp/sl endpoint unreachable");
         expect(text).not.toContain("apiErrors");
+    });
+});
+
+/*
+ * BUG-0663 — a chart TP/SL drag is a modify, and the settings toggle that
+ * covers modifications did nothing to it.
+ *
+ * `/api/tpsl` carries the wire action `modify`, which is not a member of the
+ * confirmation catalogue, so the gate read the policy off the wire and found
+ * nothing to ask about: one gesture, no dialog, mutation gone. The UI
+ * implied a protection that structurally could not exist for this action.
+ *
+ * The policy store is the real one here — the toggle a user actually flips
+ * has to be the thing under test, or the test only proves a mock is wired.
+ */
+describe("BUG-0663 — a TP/SL drag obeys the modify-order confirmation policy", () => {
+    beforeEach(() => {
+        for (const method of [tpSlState.plansFor, tpSlState.ensureFresh, tpSlState.invalidate]) {
+            (method as unknown as { mockRestore?: () => void }).mockRestore?.();
+        }
+        accountState.positions = [
+            {
+                positionId: "p-1",
+                symbol: "BTCUSDT",
+                side: "long",
+                size: new Decimal(1),
+                entryPrice: new Decimal(100),
+                leverage: new Decimal(10),
+                unrealizedPnl: new Decimal(0),
+                margin: new Decimal(10),
+                marginMode: "ISOLATED",
+                liquidationPrice: new Decimal(80),
+                markPrice: new Decimal(100),
+                breakEvenPrice: new Decimal(100),
+                marginRate: new Decimal(0),
+                realizedPnl: new Decimal(0),
+            },
+        ] as never;
+    });
+
+    afterEach(() => {
+        confirmationPolicyStore.reset();
+        vi.restoreAllMocks();
+    });
+
+    async function mountWithPlan() {
+        fetchTpSlOrders.mockResolvedValue([
+            {
+                orderId: "9001-sl",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "90",
+                status: "NEW",
+                sourceOrderId: "9001",
+                positionId: "p-1",
+            },
+        ]);
+        await tpSlState.ensureFresh();
+        component = mount(CandleChartView, {
+            target: host,
+            props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
+        }) as never;
+        await settle();
+
+        const container = host.querySelector<HTMLElement>(".chart-container");
+        if (!container) throw new Error("no chart container rendered");
+        vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+            top: 0, left: 0, bottom: 300, right: 300, width: 300, height: 300, x: 0, y: 0,
+            toJSON: () => ({}),
+        } as DOMRect);
+        return container;
+    }
+
+    function dragSl(container: HTMLElement, fromY: number, toY: number) {
+        container.dispatchEvent(new MouseEvent("mousedown", { clientY: fromY, bubbles: true }));
+        container.dispatchEvent(new MouseEvent("mousemove", { clientY: toY, bubbles: true }));
+        window.dispatchEvent(new MouseEvent("mouseup"));
+    }
+
+    /*
+     * The dialog's buttons by their German labels — which differ from the
+     * English source, so a hardcoded English string cannot match. The modal
+     * renders inline through the passthrough frame, so `host` is the scope.
+     */
+    function dialogButton(label: string): HTMLButtonElement | null {
+        return (
+            [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+                (b) => b.textContent?.trim() === label,
+            ) ?? null
+        );
+    }
+
+    it("asks before sending when the policy requires it", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        const container = await mountWithPlan();
+
+        dragSl(container, 90, 95);
+        await settle();
+
+        // Nothing sent yet, and the dialog is up. Asserting only that a modal
+        // rendered would pass even if the mutation went out behind it, so the
+        // dispatch is checked absent first.
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        expect(dialogButton("Bestätigen")).not.toBeNull();
+    });
+
+    it("sends the modify with the confirmation timestamp once confirmed", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        const container = await mountWithPlan();
+
+        dragSl(container, 90, 95);
+        await settle();
+        dialogButton("Bestätigen")?.click();
+        await settle();
+
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "95",
+                // The gate refuses the action without this, so an absent
+                // timestamp fails loudly here rather than at the venue.
+                confirmedAt: expect.any(Number),
+            }),
+        );
+    });
+
+    it("sends nothing and refetches when the dialog is cancelled", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        const container = await mountWithPlan();
+
+        dragSl(container, 90, 95);
+        await settle();
+        const cancel = dialogButton("Abbrechen");
+        if (!cancel) throw new Error("no cancel button rendered");
+        // This block runs against the real store (spies restored in
+        // `beforeEach`), so the refetch assertion installs its own spy —
+        // before the click, not after.
+        const invalidate = vi.spyOn(tpSlState, "invalidate");
+        cancel.click();
+        await settle();
+
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        expect(invalidate).toHaveBeenCalled();
+    });
+
+    it("sends straight through when the policy is off", async () => {
+        confirmationPolicyStore.setRequired("modify-order", false);
+        const container = await mountWithPlan();
+
+        dragSl(container, 90, 95);
+        await settle();
+
+        expect(dialogButton("Bestätigen")).toBeNull();
+        expect(modifyTpSlOrder).toHaveBeenCalledTimes(1);
+        const [sent] = modifyTpSlOrder.mock.calls[0];
+        expect(sent).toEqual(
+            expect.objectContaining({
+                orderId: "9001",
+                symbol: "BTCUSDT",
+                planType: "LOSS",
+                triggerPrice: "95",
+            }),
+        );
+        // `objectContaining({ confirmedAt: undefined })` cannot tell an
+        // absent key from an explicit undefined — and the distinction is the
+        // point, because a present-but-undefined key still routes the gate's
+        // question differently from a missing one in a spread merge.
+        expect("confirmedAt" in (sent as Record<string, unknown>)).toBe(false);
+        expect("confirmAs" in (sent as Record<string, unknown>)).toBe(false);
+    });
+
+    it("refetches the superseded level when a second drop replaces the first", async () => {
+        confirmationPolicyStore.setRequired("modify-order", true);
+        const container = await mountWithPlan();
+
+        dragSl(container, 90, 95);
+        await settle();
+        expect(dialogButton("Bestätigen")).not.toBeNull();
+
+        // The first drop's line already moved optimistically. The second drop
+        // replaces the pending request — without a correction the chart would
+        // keep showing the first dragged price, which the venue never held.
+        const invalidate = vi.spyOn(tpSlState, "invalidate");
+        dragSl(container, 90, 97);
+        await settle();
+
+        expect(invalidate).toHaveBeenCalled();
+        expect(modifyTpSlOrder).not.toHaveBeenCalled();
+        dialogButton("Bestätigen")?.click();
+        await settle();
+
+        // Last wins: the dialog confirms the second drop's price, not the first's.
+        expect(modifyTpSlOrder).toHaveBeenCalledWith(
+            expect.objectContaining({ triggerPrice: "97" }),
+        );
     });
 });

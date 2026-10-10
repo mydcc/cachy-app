@@ -54,6 +54,23 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
     import { activeExchange } from "../../../services/exchange";
     import { toastService } from "../../../services/toastService.svelte";
     import { logger } from "../../../services/logger";
+    // BUG-0663: the drag obeys the modify-order confirmation policy.
+    import { confirmationPolicyStore } from "../../../stores/confirmationPolicy.svelte";
+    import ConfirmActionModal from "../../../components/shared/ConfirmActionModal.svelte";
+
+    /** One confirmed-or-immediate TP/SL modify, as the drag built it. */
+    interface TpSlModifyRequest {
+        orderId: string;
+        symbol: string;
+        planType: "PROFIT" | "LOSS";
+        triggerPrice: string;
+        side: "long" | "short";
+        entryPrice: Decimal;
+        tickSize?: Decimal;
+    }
+
+    /** The awaiting-confirmation drag, or null when none is. BUG-0663. */
+    let pendingTpSlModify = $state<TpSlModifyRequest | null>(null);
     import { appFetch } from "../../appAuth";
     import { exchangeSignedFetch } from "../../../utils/exchange/browserSigning";
     import {
@@ -878,17 +895,84 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             // intent — the id sent to a venue must be the one the owning plan
             // names, not whatever the dragged line happened to carry.
             plan?.sourceOrderId === baseId ? plan.sourceOrderId : baseId;
+        submitTpSlModify({
+            orderId: venueOrderId,
+            symbol: normalizedSymbol,
+            planType,
+            triggerPrice: price.toString(),
+            side: position.side,
+            entryPrice: position.entryPrice,
+            tickSize,
+        });
+    }
+
+    /**
+     * Sends the modify, or asks first — BUG-0663.
+     *
+     * A chart drag is one gesture with no second look, on a mutation that is
+     * unrecoverable once the venue has it, so it obeys the `modify-order`
+     * policy like any other modification. It did not before: `/api/tpsl`
+     * carries the wire action `modify`, which is not a catalogue member, so
+     * the gate read the policy off the wire and found nothing to ask about.
+     * A settings toggle that covers an action but changes nothing on it is
+     * worse than no toggle.
+     */
+    function submitTpSlModify(request: TpSlModifyRequest) {
+        if (confirmationPolicyStore.requires("modify-order")) {
+            // A second drop while the dialog is open replaces the first —
+            // whose line already moved optimistically — so the superseded
+            // level is refetched back to truth before it is forgotten.
+            // Otherwise the chart would keep showing a price the venue never
+            // held, with no later correction scheduled for it.
+            if (pendingTpSlModify !== null) refreshTpSlLines();
+            pendingTpSlModify = request;
+            return;
+        }
+        void dispatchTpSlModify(request);
+    }
+
+    function confirmPendingTpSlModify(confirmedAt: number) {
+        const request = pendingTpSlModify;
+        pendingTpSlModify = null;
+        if (request) void dispatchTpSlModify(request, confirmedAt);
+    }
+
+    /**
+     * Nothing was sent — but the price line moved optimistically on drop, so
+     * the chart is showing a level the venue does not hold. Same correction as
+     * a failed modify: refetch rather than trust the dragged position.
+     */
+    function cancelPendingTpSlModify() {
+        pendingTpSlModify = null;
+        refreshTpSlLines();
+    }
+
+    /**
+     * Puts the chart's TP/SL lines back on the venue's resting levels. The
+     * lines move optimistically on drop, so every path that does not end in
+     * a fresh fetch — cancel, supersede, success, refusal — converges here.
+     */
+    function refreshTpSlLines() {
+        tpSlState.invalidate();
+        void tpSlState.ensureFresh(Date.now(), true);
+    }
+
+    async function dispatchTpSlModify(request: TpSlModifyRequest, confirmedAt?: number) {
         try {
             await activeExchange().trading.modifyTpSlOrder({
-                orderId: venueOrderId,
-                symbol: normalizedSymbol,
-                planType,
-                triggerPrice: price.toString(),
+                orderId: request.orderId,
+                symbol: request.symbol,
+                planType: request.planType,
+                triggerPrice: request.triggerPrice,
                 context: {
-                    side: position.side,
-                    entryPrice: position.entryPrice,
+                    side: request.side,
+                    entryPrice: request.entryPrice,
                 },
-                tickSize,
+                tickSize: request.tickSize,
+                // Absent when unconfirmed, not undefined: a present key
+                // travels through the adapters into the service, and the
+                // gate reads key presence when it picks the policy question.
+                ...(confirmedAt !== undefined ? { confirmedAt } : {}),
             });
             toastService.success(get(_)("trade.tpSlUpdated"));
         } catch (e: unknown) {
@@ -896,8 +980,8 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             // BUG-0386: the toast alone gave no reproducible trace — log the
             // failed mutation (payload + error) before surfacing it.
             logger.warn("api", "TP/SL drag update failed", {
-                orderId: venueOrderId,
-                planType,
+                orderId: request.orderId,
+                planType: request.planType,
                 error: msg,
             });
             toastService.error(
@@ -916,10 +1000,26 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
             // joining it would hand the chart back the old level. `invalidate()`
             // bumps the store's generation, which stops the older response
             // from writing over whatever this one fetches.
-            tpSlState.invalidate();
-            void tpSlState.ensureFresh(Date.now(), true);
+            refreshTpSlLines();
         }
     }
+
+    const pendingTpSlFacts = $derived.by(() => {
+        const request = pendingTpSlModify;
+        if (!request) return [];
+        // The gate's own field labels, so the dialog reads in the same
+        // vocabulary as the refusal it is guarding against.
+        return [
+            { label: get(_)("orderGate.fields.symbol"), value: request.symbol },
+            {
+                label:
+                    request.planType === "PROFIT"
+                        ? get(_)("orderGate.fields.takeProfit")
+                        : get(_)("orderGate.fields.stopLoss"),
+                value: request.triggerPrice,
+            },
+        ];
+    });
 
     async function loadMore() {
         if (isLoadingHistory || allHistoryLoaded) return;
@@ -1603,6 +1703,21 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
         {/if}
 
         <!--
+          BUG-0663: a chart drag obeys the modify-order confirmation policy.
+          Until now the settings toggle read as though it covered this action
+          and changed nothing about it — `/api/tpsl` carries the wire action
+          `modify`, which is not a policy action, so the gate found nothing to
+          ask about. The drag now stops here and asks.
+        -->
+    <ConfirmActionModal
+        isOpen={pendingTpSlModify !== null}
+        action="modify-order"
+        facts={pendingTpSlFacts}
+        onconfirm={confirmPendingTpSlModify}
+        oncancel={cancelPendingTpSlModify}
+    />
+
+    <!--
           FEAT-0480 drawing tools. Deliberately a small overlay rather than a
           chart-wide toolbar: it sits above the canvas the drawings live on,
           and it is the only affordance that says drawing mode is armed.

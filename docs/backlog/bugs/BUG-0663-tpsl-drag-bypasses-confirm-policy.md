@@ -2,7 +2,7 @@
 id: BUG-0663
 title: TP/SL drag modify cannot be gated by the confirm-modifications policy
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,7 @@ area: trade-panel
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
 ---
 
 # BUG-0663 — TP/SL drag modify cannot be gated by the confirm-modifications policy
@@ -52,11 +53,42 @@ only by the side/tick precheck.
 
 ## Acceptance criteria
 
-- [ ] The decision is recorded in the file (no "not decided yet")
-- [ ] Either a drag modify prompts when the policy requires it, or the
+- [x] The decision is recorded in the file (no "not decided yet")
+- [x] Either a drag modify prompts when the policy requires it, or the
       settings hint plus a code comment state that drag modifies are
       intentionally unconfirmable
-- [ ] No other wire action changes its confirm behaviour
+- [x] No other wire action changes its confirm behaviour
+
+**Done (opencode) — decision (a): the drag prompts.** `handleTpSlDrop`
+routes through `submitTpSlModify`: when the policy requires
+`modify-order`, the drop stops and a `ConfirmActionModal` asks, carrying
+the symbol and the new TP/SL level in the gate's own field labels; the
+confirmation timestamp travels as `confirmedAt` and the intent names the
+policy action via `confirmAs: "modify-order"` (the wire action `modify`
+is not a catalogue member, so the gate would otherwise find nothing to
+ask about). Cancelling refetches instead of dispatching, because the
+price line moved optimistically on drop.
+
+`"modify-order"` joined `WIRED_ACTIONS` so `requires()` returns the
+user's choice. `cancel` and `place` on the same endpoint stay unmapped
+on purpose: their call sites do not confirm, and declaring them wired
+would make the gate refuse those actions outright once the toggle is
+on — unusable, not protected.
+
+AC3 (`confirmAs` only when confirmed): the edit modal shares
+`modifyTpSlOrder` and has no dialog, so its requests name no policy
+action and travel exactly as before. Pinned by a service-level test
+that fails if the attach ever becomes unconditional.
+
+**Residual, deliberately out of scope:** the toggle now reads as wired
+while the edit modal stays unwired — its requests resolve via the wire
+action and send unprompted with the toggle on, exactly as before this
+change. Wiring the modal (dialog + `confirmedAt`) is a separate task,
+not a fixup of this one: it touches another component's UX and its own
+tests. Likewise not taken: re-running the precheck at confirm time
+(the pending price freezes at drop; same shape as every confirm
+dialog in the app, including flash-close) and display-formatting the
+dialog's price string.
 
 ## Links
 

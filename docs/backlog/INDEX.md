@@ -4,7 +4,7 @@
 
 541 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 25 · ✅ done 463 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 24 · 🟢 ready 25 · ✅ done 464 · ⛔ dropped 1
 
 ---
 
@@ -428,7 +428,7 @@ Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 25 · ✅ done 4
 | [BUG-0657](bugs/BUG-0657-load-contract-section-and-secrets-blind-spots.md) | Load contract cannot see a core/display section swap or a dropped secrets assignment | P2 | ✅ done | persistence |
 | [BUG-0658](bugs/BUG-0658-galaxy-reset-shares-default-refs.md) | Galaxy reset hands live state a reference into the shared defaults | P2 | ✅ done | persistence |
 | [BUG-0659](bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md) | Textual guards accept reworded bypasses; or-mode aliasing has no owner | P2 | ✅ done | security |
-| [BUG-0663](bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md) | TP/SL drag modify cannot be gated by the confirm-modifications policy | P2 | 📋 specced | trade-panel |
+| [BUG-0663](bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md) | TP/SL drag modify cannot be gated by the confirm-modifications policy | P2 | ✅ done | trade-panel |
 | [FEAT-0044](features/FEAT-0044-modalframe-through-window-manager.md) | Make ModalFrame an adapter over WindowFrame instead of a second implementation | P2 | ✅ done | ui |
 | [FEAT-0045](features/FEAT-0045-academy-as-window-type.md) | Register the Trading Academy as its own window type | P2 | ✅ done | ui |
 | [FEAT-0046](features/FEAT-0046-sidepanel-onto-window-manager.md) | Move the SidePanel onto the window manager and drop interactjs | P2 | ✅ done | ui |
@@ -915,7 +915,7 @@ Counts by status: 💡 idea 27 · 📋 specced 25 · 🟢 ready 25 · ✅ done 4
 | [BUG-0657](bugs/BUG-0657-load-contract-section-and-secrets-blind-spots.md) | Load contract cannot see a core/display section swap or a dropped secrets assignment | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0658](bugs/BUG-0658-galaxy-reset-shares-default-refs.md) | Galaxy reset hands live state a reference into the shared defaults | P2 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0659](bugs/BUG-0659-guard-hardening-allowlist-and-seam-negatives.md) | Textual guards accept reworded bypasses; or-mode aliasing has no owner | P2 | ✅ done | none | community, pro, private | A | none | — |
-| [BUG-0663](bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md) | TP/SL drag modify cannot be gated by the confirm-modifications policy | P2 | 📋 specced | none | community, pro, private | none | none | — |
+| [BUG-0663](bugs/BUG-0663-tpsl-drag-bypasses-confirm-policy.md) | TP/SL drag modify cannot be gated by the confirm-modifications policy | P2 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0019](features/FEAT-0019-agentic-web-search.md) | Let the assistant research the web when it needs to | P2 | 💡 idea | M8 | pro, private | C | none | [FEAT-0016](features/FEAT-0016-exchange-adapter-interface.md) |
 | [FEAT-0025](features/FEAT-0025-trading-notifications.md) | Notify on fills, margin thresholds and connection loss | P2 | ✅ done | M3 | community, pro, private | A | none | — |
 | [FEAT-0028](features/FEAT-0028-indicator-alerts.md) | Alerts on indicator conditions | P2 | ✅ done | M4 | community, pro, private | A | ADR-0012 | [FEAT-0027](features/FEAT-0027-alert-engine.md), [FEAT-0387](features/FEAT-0387-expose-rule-evaluator.md), [FEAT-0389](features/FEAT-0389-super-alert-panel.md) |

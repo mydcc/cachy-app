@@ -328,6 +328,8 @@ export interface TradingPort {
         stopType?: "LAST_PRICE" | "MARK_PRICE";
         context?: { side: "long" | "short"; entryPrice: Decimal };
         tickSize?: Decimal;
+        /** Moment the human agreed, as `Date.now()` — BUG-0663. */
+        confirmedAt?: number;
     }): Promise<unknown>;
 
     /** Creates the one position-wide TP/SL plan a position may carry (FEAT-0070). */
