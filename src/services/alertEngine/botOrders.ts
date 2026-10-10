@@ -185,6 +185,21 @@ export interface BotOrderEnvironment {
    * is the whole point: a per-rule memory cannot see a position the trader
    * opened by hand or that another rule opened, and stacking onto a foreign
    * position is one of the two failures this port exists to stop.
+   *
+   * **One window is still open, and it is not this one to close.** The
+   * in-flight guard is keyed by rule id, and the rule loop dispatches firings
+   * synchronously in a loop over every rule on a close. So two *different* bot
+   * rules on the same symbol and direction, both firing on the same close,
+   * both read the book before either fill has landed and both submit; the
+   * simulator then averages the second into the first as one position at
+   * double the size. The count is still bounded — the next close sees the
+   * position and refuses — but that close is the fix, not this read.
+   *
+   * Closing it means reserving on `(symbol, side)` rather than on rule id,
+   * which is a behaviour change on a money path and belongs in its own review.
+   * `withBotOrders`' in-flight guard is deliberately left per-rule because the
+   * backlog item scopes it that way: the rate is already bounded by the
+   * evaluation gate, and only the count was unbounded.
    */
   hasOpenPosition: (symbol: string, side: PositionSide) => boolean;
   place: typeof orderPlacementService.placeEntryGroup;

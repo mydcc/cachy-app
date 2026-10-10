@@ -104,16 +104,28 @@ with the other nine refusals, so a direct caller of `submitBotOrder` is covered
 too. AC 8 still holds: `submitBotOrder` is reached only from `withBotOrders`
 after `isBot`, and both non-submitting levels return above it.
 
-**Which book the reader asks is mode-dependent, and this is the load-bearing
-detail.** `paperAccountFeed.positions()` reads `paperState.positions` and feeds
-`accountState.hydratePositions` — but on a refresh tick, while `paperState`
-itself is written synchronously the moment an entry fills
-(`paperExchange.ts::applyEntry`). Reading only `accountState.positions` in paper
-mode would reopen the exact window the guard exists to close: the first entry
-not yet mirrored, the second one through. So the reader asks
-`paperState.positions` when paper trading is on and `accountState.positions`
-otherwise — the book the bot's own order lands in. This reads like a
-simplification waiting to happen and is not one.
+**Which book the reader asks is mode-dependent — and the live arm is dead code
+today.** `paperAccountFeed.positions()` reads `paperState.positions` and feeds
+`accountState.hydratePositions`, but on a refresh tick, while `paperState` is
+written synchronously when an entry fills (`paperExchange.ts::applyEntry`).
+
+The obvious conclusion — "the paper arm is the load-bearing one, the live arm is
+defensive" — is right for the wrong reason, and an earlier revision of this note
+stated it that way. **`accountState.positions` is never read at all today**:
+`submitBotOrder` refuses with `paper-trading-off` before it reaches the reader,
+from the same `paperState.enabled`, with no `await` between the two reads. The
+paper arm is taken because the gate already returned, not because the branch
+prefers it.
+
+It stays for FEAT-0035, which lifts the paper gate. What the reader would need
+then, and does not have: `p.symbol === symbol` compares raw while
+`firing.rule.symbol` is normalized on the way in — the convention lives in
+`lib/calculators/tpsl.ts`. Latent today, live the moment that gate lifts.
+
+Both branches are pinned by `src/stores/alerts_botEnvironment.test.ts`, which
+required exporting `botOrderEnvironment`. The discriminating cases are the two
+"ignores the other book" ones: a reader consulting both books, or always reading
+one, fails there.
 
 **Refusal order is shape before state.** The exposure check sits after
 `no-order` / `paper-trading-off` / `reduce-only-unsupported` / `no-stop` and
@@ -122,17 +134,33 @@ explanation, and one told `no-live-price` will go looking for a price problem
 that is not there; the reverse order reports a state fact for a rule the trader
 can fix by editing it.
 
+### The window this item does not close
+
+The in-flight guard is keyed by rule id, and `ruleEvaluationLoop` dispatches
+firings synchronously in a loop over every rule on a close. Two *different* bot
+rules on the same symbol and direction firing on the same close therefore both
+read the book before either fill has landed, and both submit; the simulator
+averages the second into the first as one position at double size.
+
+The count is still bounded — the next close sees the position and refuses — but
+that close is what fixes it, not the read. Closing the window means reserving on
+`(symbol, side)` instead of on rule id, which is a behaviour change on a money
+path and was deliberately left for its own review rather than folded in here.
+Recorded in `hasOpenPosition`'s doc comment so the next reader sees it where the
+claim is made.
+
 ### What the tests had to change, and why it is not incidental
 
 The in-flight slot is released in `finally`, the last link in the promise
-chain. Four existing cases fired back-to-back firings and would now be refused
-as concurrent — including BUG-0491's anchor-gate case, whose second firing is a
-*later candle*. They now wait on a named `settle()` helper between firings.
+chain. **Two** pre-existing cases fired back-to-back firings and would now be
+refused as concurrent — `says why once per rule, not once per candle` and
+BUG-0491's anchor-gate case, whose second firing is a *later candle*. They now
+wait on a named `settle()` helper between firings.
 
 That is not the tests bending to the implementation. Real firings arrive a whole
 trigger timeframe apart, and the guard's whole claim is that it binds only
 submissions genuinely in flight. `settle()` says which of the two things a test
-means, and its comment says so, because deleting it makes four cases fail for a
+means, and its comment says so, because deleting it makes those cases fail for a
 reason none of them mentions.
 
 One case is worth naming: `says why once per rule, not once per candle` fired
@@ -141,6 +169,10 @@ three times in one tick and asserted a single message. That is now *two* —
 genuinely refused for a different reason. The case was changed to settle between
 firings rather than to accept two messages: the dedup it tests is per rule *and
 reason*, and accepting two would have quietly stopped testing it.
+
+A third pre-existing case fires back-to-back and was deliberately left alone:
+`reports the send-level refusal once per rule` returns above `inFlight.add`, so
+it never consults the guard and still passes unchanged.
 
 ### Verified, not asserted
 
@@ -152,6 +184,22 @@ submission throws — fails one. A first attempt at that last mutation (swapping
 `finally` for a trailing `then`) changed nothing and taught the useful lesson:
 `.then().catch().then()` still releases, so the mutation has to be the one a
 careless implementation would actually write.
+
+**A second pass, after review, found the one that mattered.** Replacing the
+`Set<string>` keyed by rule id with a single `let busy = false` passed every
+test in the file — because `botDocument()` hardcoded one rule id and no case
+used two. "One submission *per rule id*" is the entire reason it is a Set: two
+independent bots are two slots, and a single flag would serialise them against
+each other with a green suite. There is now a case that fires two differently
+named rules before either settles and asserts both reach `place()`, and the
+mutation fails exactly that one.
+
+The store-side branch selection was mutated the same way: always-paper,
+always-live, and consult-both each fail their discriminator; dropping the side
+comparison fails two. A first mutation there was a no-op by construction
+(`"long".startsWith("l")`, `"short".startsWith("s")`) and caught nothing — the
+mutation has to be one that changes behaviour, which is the same lesson the
+first mutation set taught twice.
 
 ## Out of scope
 

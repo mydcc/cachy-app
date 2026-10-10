@@ -280,8 +280,12 @@ export function firingMessage(rule: RuleDocument): string {
  * deliberately no live equivalent: this item stops at `simulate`, and a bot
  * that could read the funded account would be one line away from sizing against
  * it.
+ *
+ * Exported for the store-side test that covers `hasOpenPosition` — the port
+ * whose whole correctness rests on which book it reads, and which no test
+ * reached while this stayed private.
  */
-function botOrderEnvironment(
+export function botOrderEnvironment(
     closeAt: BotOrderEnvironment["closeAt"],
     livePrice: BotOrderEnvironment["livePrice"],
 ): BotOrderEnvironment {
@@ -292,25 +296,41 @@ function botOrderEnvironment(
         closeAt,
         livePrice,
         // FEAT-0488 — which book to ask depends on where this bot's own entry
-        // will land, and the two are not the same store.
+        // lands, and the two are not the same store.
         //
-        // In paper mode `accountState.positions` is *hydrated from* the
-        // simulator's book (`paperAccountFeed.positions()` reads
-        // `paperState.positions`), but only on a refresh tick — while
-        // `paperState` itself is written synchronously the moment an entry
-        // fills. Reading the hydrated copy would leave exactly the window this
-        // guard exists to close: the first entry not yet mirrored, the second
-        // one through. So the book the simulator writes is the book a bot
-        // standing in paper mode asks about.
+        // **The live arm does not execute today**, and that is worth stating
+        // rather than implying otherwise: `submitBotOrder` refuses with
+        // `paper-trading-off` before it ever calls this, from the same
+        // `paperState.enabled`, with no `await` between the two reads. So today
+        // the guard always reads the paper book. The branch is here for
+        // FEAT-0035, which lifts the paper gate — and it is the arm that will
+        // matter there, because the live branch compares `symbol` raw while
+        // `firing.rule.symbol` is normalized on the way in (the convention is
+        // in `lib/calculators/tpsl.ts`). Normalize both sides when that arm
+        // goes live.
+        //
+        // Why the paper book rather than `accountState` in paper mode, for
+        // whoever reads this while the live arm is dead:
+        // `accountState.positions` is *hydrated from* the simulator
+        // (`paperAccountFeed.positions()` reads `paperState.positions`), but
+        // only on a refresh tick, while `paperState` is written synchronously
+        // the moment an entry fills (`paperExchange.ts::applyEntry`). A reader
+        // pointed at the hydrated copy would miss the first entry in the tick
+        // before it lands — which is the same one-tick window the in-flight
+        // guard closes for a single rule.
         hasOpenPosition: (symbol, side) =>
             (paperState.enabled ? paperState.positions : accountState.positions).some(
                 (p) => p.symbol === symbol && p.side === side,
             ),
         // Imported at the moment an order is actually placed, not at startup.
-        // `orderPlacementService` pulls the account and TP/SL stores in behind
-        // it, and the alert engine starts on every session — including the
-        // overwhelming majority that never arm a bot. Deferring it keeps the
-        // order path out of that startup entirely.
+        // `orderPlacementService` pulls the TP/SL stores and the trade service
+        // in behind it, and the alert engine starts on every session —
+        // including the overwhelming majority that never arm a bot. Deferring
+        // it keeps the order path out of that startup entirely.
+        //
+        // The account store itself is no longer part of that argument: this
+        // module imports it directly for `hasOpenPosition` above, and it was
+        // already in the eager graph on `develop` by other paths.
         place: async (plan) => {
             const { orderPlacementService } = await import("../services/orderPlacementService");
             return orderPlacementService.placeEntryGroup(plan);

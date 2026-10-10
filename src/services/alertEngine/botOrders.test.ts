@@ -97,8 +97,8 @@ function botDocument(
   };
 }
 
-function firingOf(rule: RuleDocument): RuleFiring {
-  return { rule, verdict: { verdict: "fires" } as Verdict, anchorMs: ANCHOR_MS };
+function firingOf(rule: RuleDocument, anchorMs = ANCHOR_MS): RuleFiring {
+  return { rule, verdict: { verdict: "fires" } as Verdict, anchorMs };
 }
 
 /**
@@ -643,8 +643,11 @@ describe("one submission in flight per rule — FEAT-0488", () => {
 
   it("bounds a rule's entries by what is open, not by what it opened itself", async () => {
     // The count the exposure check exists to bound, driven over consecutive
-    // trigger closes. `hasOpenPosition` flips the way a real book does: after
-    // the first entry settles, the symbol carries that direction.
+    // trigger closes — a new anchor each time, which is what a 1m bot on a
+    // busy series actually produces. `hasOpenPosition` flips the way a real
+    // book does: after the first entry settles, the symbol carries that
+    // direction.
+    const STEP_MS = 3_600_000;
     let open = false;
     const placed: string[] = [];
     const place = vi.fn(async (plan: { tradeType: string }) => {
@@ -667,13 +670,16 @@ describe("one submission in flight per rule — FEAT-0488", () => {
     for (let i = 0; i < 8; i++) {
       const rule = botDocument();
       rule.frequency = "every_time";
-      sink(firingOf(rule));
+      sink(firingOf(rule, ANCHOR_MS + i * STEP_MS));
       // Let the whole chain settle, so the next firing races against nothing.
       await settle();
     }
 
     expect(placed).toEqual(["long"]);
-    expect(onRefusal.mock.calls.at(-1)?.[1]).toBe("position-already-open");
+    // One refusal, not eight: `reported` keeps each reason to one message per
+    // rule, and a bot refusing eight times needs to say it once.
+    expect(onRefusal).toHaveBeenCalledTimes(1);
+    expect(onRefusal.mock.calls[0][1]).toBe("position-already-open");
   });
 
   it("refuses a bot that would stack onto a position it did not open", async () => {
@@ -688,6 +694,32 @@ describe("one submission in flight per rule — FEAT-0488", () => {
 
     expect(place).not.toHaveBeenCalled();
     expect(onRefusal.mock.calls[0][1]).toBe("position-already-open");
+  });
+
+  it("admits two independent rules at the same time", async () => {
+    // The in-flight guard is a `Set` keyed by rule id, and that is the whole
+    // reason it is a Set: two bots are two slots. A future "simplification" to
+    // a single busy flag would serialise independent bots against each other —
+    // and every other case in this file would stay green, because they all use
+    // one rule. Verified by replacing the Set with a boolean: 34 passed.
+    const { place, release } = pendingPlace();
+    const { env } = environment({ place } as Partial<BotOrderEnvironment>);
+    const onRefusal = vi.fn();
+    const sink = withBotOrders(vi.fn(), env, onRefusal);
+
+    const first = botDocument();
+    first.id = "bot-a";
+    const second = botDocument();
+    second.id = "bot-b";
+
+    sink(firingOf(first));
+    sink(firingOf(second));
+
+    await vi.waitFor(() => expect(place).toHaveBeenCalledTimes(2));
+    expect(onRefusal).not.toHaveBeenCalled();
+
+    release(0);
+    release(1);
   });
 });
 
