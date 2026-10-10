@@ -1748,6 +1748,7 @@ export type TranslationKey =
   | "settings.tabs.profile"
   | "settings.tabs.workspace"
   | "settings.tabs.automation"
+  | "settings.tabs.cloud"
   | "settings.indicators.title"
   | "settings.indicators.general"
   | "settings.indicators.precision"
@@ -3853,5 +3854,4 @@ export type TranslationKey =
   | "charts.tradesCount"
   | "charts.tradesLabel"
   | "charts.pnlLabel"
-  | "charts.topLabel"
-  | "settings.tabs.cloud";
+  | "charts.topLabel";
