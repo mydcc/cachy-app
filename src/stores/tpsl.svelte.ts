@@ -228,7 +228,18 @@ class TpSlManager {
                 // would show the stale level *and* stamp it fresh for the whole
                 // window — the display would then contradict the venue with
                 // nothing saying so. That is BUG-0661.
-                if (generation !== this.generation) return;
+                if (generation !== this.generation) {
+                    // Not silent: "the venue updated, the display did not" is
+                    // exactly the symptom this guard exists to prevent, and a
+                    // drop with no trace is the one failure mode that cannot be
+                    // diagnosed after the fact. `debug` level, and bounded by
+                    // real mutations — the chart effect alone never mismatches.
+                    logger.debug("api", "[TpSl] superseded response dropped", {
+                        generation,
+                        current: this.generation,
+                    });
+                    return;
+                }
                 this._orders = orders;
                 // Stamped with the caller's clock, not `Date.now()`, so the
                 // staleness check above and this always measure the same
@@ -241,7 +252,13 @@ class TpSlManager {
                 // Same reasoning as the data write: a failure of a superseded
                 // request says nothing about the state a newer read reports,
                 // and that read reports its own.
-                if (generation !== this.generation) return;
+                if (generation !== this.generation) {
+                    logger.debug("api", "[TpSl] superseded failure dropped", {
+                        generation,
+                        current: this.generation,
+                    });
+                    return;
+                }
                 this._error = e instanceof Error ? e.message : String(e);
                 logger.debug("api", "[TpSl] Fetch failed", e);
             } finally {

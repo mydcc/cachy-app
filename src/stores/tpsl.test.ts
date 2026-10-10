@@ -149,9 +149,17 @@ describe("tpSlState — a mutation's refetch cannot be swallowed (BUG-0661)", ()
         fetchTpSl.mockResolvedValue([plan("BTCUSDT", "PROFIT", "61000")]);
         const afterMutation = tpSlState.ensureFresh(t0 + 1, true);
 
-        // The older request resolves last, with rows that predate the mutation.
+        /*
+         * The newer read has to land FIRST. Releasing the stale response before
+         * awaiting means it writes first and the fresh read overwrites it —
+         * which makes the assertions below hold whether or not the generation
+         * guard exists, i.e. a test that cannot fail. The real race is the
+         * older response arriving last, because only then does it threaten to
+         * overwrite what the trader should now be seeing.
+         */
+        await afterMutation;
         releaseStale([plan("BTCUSDT", "LOSS", "45000")]);
-        await Promise.all([inFlight, afterMutation]);
+        await inFlight;
 
         expect(tpSlState.orders).toEqual([
             expect.objectContaining({ planType: "PROFIT", triggerPrice: "61000" }),
@@ -161,21 +169,55 @@ describe("tpSlState — a mutation's refetch cannot be swallowed (BUG-0661)", ()
     });
 
     it("does not record the failure of a request a newer read superseded", async () => {
-        fetchTpSl.mockReturnValueOnce(new Promise((resolve) => resolve([])));
+        /*
+         * Ordering matters here, twice over. The superseded request must
+         * actually REJECT — a resolved promise never enters the catch — and it
+         * must do so *after* the newer read has landed. An immediate rejection
+         * would be overwritten by the newer read's `this._error = null`, and
+         * the assertion would pass with the catch-side guard deleted. Same
+         * shape as the success case above, which releases its stale response
+         * last for the same reason.
+         */
+        let rejectStale: (reason: Error) => void = () => {};
+        fetchTpSl.mockReturnValueOnce(
+            new Promise((_resolve, reject) => (rejectStale = reject)),
+        );
         const inFlight = tpSlState.ensureFresh(1_000);
 
         tpSlState.invalidate();
         fetchTpSl.mockResolvedValueOnce([plan("BTCUSDT", "PROFIT", "61000")]);
         await tpSlState.ensureFresh(1_001, true);
 
-        await inFlight;
+        rejectStale(new Error("stale boom"));
+
+        // Swallowed, not rethrown: the store's contract is that a failure is
+        // recorded rather than thrown.
+        await expect(inFlight).resolves.toBeUndefined();
         expect(tpSlState.error).toBeNull();
+        expect(tpSlState.orders).toHaveLength(1);
     });
 
-    it("still reports the failure of the read it actually ran", async () => {
+    it("still records a failure the store itself reported", async () => {
         fetchTpSl.mockRejectedValue(new Error("endpoint down"));
-        await tpSlState.ensureFresh(1_000, true);
+        await tpSlState.ensureFresh(1_000);
         expect(tpSlState.error).toBe("endpoint down");
+    });
+
+    it("refetches on a forced read even while the freshness window is open", async () => {
+        // The production shape of the drag: the previous read settled seconds
+        // ago, so the window is open and nothing has been invalidated. `force`
+        // has to bypass the window too, not just the in-flight check — a
+        // regression dropping it from the staleness guard would leave every
+        // other test here green.
+        const t0 = 1_000_000;
+        fetchTpSl.mockResolvedValue([plan("BTCUSDT", "PROFIT", "60000")]);
+        await tpSlState.ensureFresh(t0);
+        expect(fetchTpSl).toHaveBeenCalledTimes(1);
+
+        await tpSlState.ensureFresh(t0 + 1, true);
+
+        expect(fetchTpSl).toHaveBeenCalledTimes(2);
+        expect(tpSlState.loadedAt).toBe(t0 + 1);
     });
 
     it("does not let an in-flight request write into a store that was reset", async () => {
