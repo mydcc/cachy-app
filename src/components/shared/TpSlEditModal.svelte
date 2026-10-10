@@ -29,6 +29,9 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
   import { validateTpSlPrice, normalizePositionSide, resolveTpSlPosition, type TpSlContext, type FeeRates } from "../../lib/calculators/tpsl";
+  // BUG-0666: saving obeys the modify-order confirmation policy.
+  import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
+  import ConfirmActionModal from "./ConfirmActionModal.svelte";
 
   interface Props {
     order: TpSlOrder | null;
@@ -50,6 +53,26 @@
   });
   let loading = $state(false);
   let error = $state("");
+  /** Awaiting confirmation — the edit form stays open behind the dialog. BUG-0666. */
+  let confirming = $state(false);
+  /**
+   * The validated save, frozen at Save-click for the dialog to confirm.
+   *
+   * The form stays live behind the dialog and `order` is a prop the parent
+   * can null or swap at any time, so confirming must consume this snapshot —
+   * never the live form or the live prop. Otherwise typing behind the open
+   * dialog (or a parent swapping the order) would dispatch numbers that
+   * never passed validation, or throw on a nulled order.
+   */
+  let pendingSave: {
+    orderId: string;
+    symbol: string;
+    planType: "PROFIT" | "LOSS";
+    triggerPrice: string;
+    qty?: string;
+    context?: { side: "long" | "short"; entryPrice: Decimal };
+    tickSize: Decimal;
+  } | null = $state(null);
 
   /*
    * FEAT-0254: the slider's PnL and ROI modes are arithmetic *about a
@@ -169,23 +192,49 @@
       return;
     }
 
+    // BUG-0666: the modify goes out unconfirmed unless the dialog asked.
+    // Validation runs first and the confirm second. The validated payload
+    // is frozen into `pendingSave` here — the confirm consumes the snapshot,
+    // so nothing typed behind the open dialog (or swapped by the parent)
+    // can reach the venue unvalidated.
+    const snapshot = {
+      // `sourceOrderId` first (BUG-0292): on a normalised plan, `orderId`
+      // is the leg id this app invented ("123-tp") and the venue has never
+      // seen it. The row id it was split from is the one that modifies
+      // something.
+      orderId: order.sourceOrderId || order.orderId || order.id || order.planId || "",
+      symbol: order.symbol,
+      planType: order.planType,
+      triggerPrice: String(triggerPrice),
+      context: position
+        ? { side: position.side, entryPrice: position.entryPrice }
+        : undefined,
+      tickSize,
+      qty: amount ? String(amount) : undefined,
+    };
+    if (confirmationPolicyStore.requires("modify-order")) {
+      pendingSave = snapshot;
+      confirming = true;
+      return;
+    }
+    await dispatchSave(snapshot);
+  }
+
+  async function dispatchSave(
+    snapshot: NonNullable<typeof pendingSave>,
+    confirmedAt?: number,
+  ) {
+    // Choke point for both paths: a second confirm queued before the dialog
+    // teardown flushes must not open a second flight.
+    if (loading) return;
     loading = true;
     error = "";
 
     try {
       await activeExchange().trading.modifyTpSlOrder({
-        // `sourceOrderId` first (BUG-0292): on a normalised plan, `orderId` is
-        // the leg id this app invented ("123-tp") and the venue has never seen
-        // it. The row id it was split from is the one that modifies something.
-        orderId: order.sourceOrderId || order.orderId || order.id || order.planId || "",
-        symbol: order.symbol,
-        planType: order.planType,
-        triggerPrice: String(triggerPrice),
-        context: position
-          ? { side: position.side, entryPrice: position.entryPrice }
-          : undefined,
-        tickSize,
-        qty: amount ? String(amount) : undefined,
+        ...snapshot,
+        // Absent when unconfirmed, not undefined — see BUG-0663.
+        ...(confirmedAt !== undefined ? { confirmedAt } : {}),
       });
       onsuccess?.();
     } catch (e: unknown) {
@@ -196,6 +245,38 @@
       loading = false;
     }
   }
+
+  function confirmSave(stamped: number) {
+    const snapshot = pendingSave;
+    pendingSave = null;
+    confirming = false;
+    if (!snapshot) return;
+    void dispatchSave(snapshot, stamped);
+  }
+
+  function cancelSave() {
+    pendingSave = null;
+    confirming = false;
+  }
+
+  const confirmFacts = $derived.by(() => {
+    const snapshot = pendingSave;
+    if (!snapshot) return [];
+    // The gate's own field labels, so the dialog reads in the same
+    // vocabulary as the refusal it is guarding against (BUG-0663).
+    // From the frozen snapshot, not the live form — what the dialog shows
+    // is exactly what the confirm dispatches.
+    return [
+      { label: get(_)("orderGate.fields.symbol"), value: snapshot.symbol },
+      {
+        label:
+          snapshot.planType === "PROFIT"
+            ? get(_)("orderGate.fields.takeProfit")
+            : get(_)("orderGate.fields.stopLoss"),
+        value: snapshot.triggerPrice,
+      },
+    ];
+  });
 </script>
 
 <ModalFrame
@@ -228,7 +309,7 @@
         {tickSize}
         price={triggerDecimal}
         fees={feeRates}
-        disabled={loading}
+        disabled={loading || confirming}
         onChange={(next) => (triggerPrice = next.toString())}
       />
     {:else}
@@ -244,6 +325,7 @@
           type="number"
           step="any"
           bind:value={triggerPrice}
+          disabled={loading || confirming}
           class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
         />
       </div>
@@ -261,6 +343,7 @@
         type="number"
         step="any"
         bind:value={amount}
+        disabled={loading || confirming}
         class="w-full bg-[var(--bg-primary)] border border-[var(--input-border-color)] rounded p-2 text-[var(--text-primary)]"
       />
     </div>
@@ -273,17 +356,31 @@
       <button
         class="px-3 py-1.5 rounded text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
         onclick={() => onclose?.()}
-        disabled={loading}
+        disabled={loading || confirming}
       >
         {$_("common.cancel")}
       </button>
       <button
         class="px-3 py-1.5 rounded text-xs font-bold text-white bg-[var(--accent-color)] hover:bg-opacity-90 disabled:opacity-50"
         onclick={handleSave}
-        disabled={loading}
+        disabled={loading || confirming}
       >
         {loading ? $_("common.save") + "..." : $_("common.save")}
       </button>
     </div>
   </div>
 </ModalFrame>
+
+<!--
+  BUG-0666: saving obeys the modify-order confirmation policy. A sibling of
+  the edit frame rather than nested in it — each registers its own window,
+  and the form stays open (and live — the facts above derive from it)
+  behind the dialog. Cancelling returns to the form with nothing sent.
+-->
+<ConfirmActionModal
+  isOpen={confirming}
+  action="modify-order"
+  facts={confirmFacts}
+  onconfirm={confirmSave}
+  oncancel={cancelSave}
+/>
