@@ -75,6 +75,16 @@ export class CalculatorService {
    */
   public calculateAndDisplay(): void {
     try {
+      /*
+       * BUG-0651. `hideError` here and the `showError` that `clearResults`
+       * performs for incomplete input are load-bearing as a pair: the shared
+       * error surface is an `aria-live` region (components/shared/
+       * ErrorMessage.svelte), and only because both happen in the same tick
+       * does Svelte collapse them into one flush. If they end up separated —
+       * an `await` between them, or a caller that hides and re-shows across a
+       * tick — the region is emptied and refilled on every keystroke and the
+       * guidance is re-announced each time. Keep them synchronous.
+       */
       this.uiManager.hideError();
       // Access state directly
       const currentTradeState = tradeState;

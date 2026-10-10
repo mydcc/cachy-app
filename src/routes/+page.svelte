@@ -24,6 +24,7 @@
   import TradeSetupInputs from "../components/inputs/TradeSetupInputs.svelte";
   import TakeProfitTargets from "../components/inputs/TakeProfitTargets.svelte";
   import VisualBar from "../components/shared/VisualBar.svelte";
+  import ErrorMessage from "../components/shared/ErrorMessage.svelte";
   import { themes, themeIcons, icons } from "../lib/constants";
   import { APP_VERSION } from "../lib/version";
   import { app } from "../services/app";
@@ -38,7 +39,6 @@
   import { _, locale } from "../locales/i18n"; // Import locale
   import { formatDynamicDecimal } from "../utils/utils";
   import { trackClick } from "../actions/tracking";
-  import type { TranslationKey } from "../locales/schema";
 
   import SummaryResults from "../components/results/SummaryResults.svelte";
   import PlaceOrderPanel from "../components/results/PlaceOrderPanel.svelte";
@@ -482,15 +482,14 @@
       </div>
     </div>
 
-    {#if uiState.showErrorMessage}
-      <div
-        id="error-message"
-        class="text-center text-sm font-medium mt-4 md:col-span-2"
-        style:color="var(--danger-color)"
-      >
-        {$_(uiState.errorMessage as TranslationKey)}
-      </div>
-    {/if}
+    <!--
+      BUG-0651. Sits outside the grid above on purpose. It used to be the last
+      grid item, wrapped in `{#if}` — which made it both un-announceable (the
+      container appeared together with its first message) and, once made
+      permanent, a permanent empty grid row with a `gap-y-4` under it. Outside
+      the grid the empty state is a zero-height block and costs nothing.
+    -->
+    <ErrorMessage />
 
     <section id="results" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
       <div>

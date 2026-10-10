@@ -536,3 +536,50 @@ describe("BUG-0648 — a submit may not send what the inputs no longer state", (
         expectRefusal();
     });
 });
+
+describe("BUG-0651 — a rejected submit reaches a surface a screen reader will speak", () => {
+    /*
+     * `uiState.showError` is mocked in this file, so these cases assert on the
+     * *call* rather than on rendered text. That is the seam the shared error
+     * surface provides: it is permanently in the DOM, so the write into it is
+     * what makes the announcement. Asserting the call is asserting the region
+     * received the message.
+     *
+     * The banner is checked as well, and not as a substitute. It lives inside
+     * `{#if result}`, so on the first submit its node arrives together with its
+     * text — the construct live-region guidance calls unreliable. Both surfaces
+     * exist on purpose; neither one alone is pinned as sufficient.
+     */
+    beforeEach(() => {
+        placeEntryGroupMock.mockRejectedValue(new Error("signature rejected"));
+    });
+
+    afterEach(() => {
+        placeEntryGroupMock.mockReset();
+    });
+
+    it("writes the refusal into the shared live region", async () => {
+        await submit();
+
+        expect(showErrorMock).toHaveBeenCalledWith(
+            lookup("orderEntry.errors.entryRejected"),
+        );
+    });
+
+    it("also renders the assertive banner, for as long as it stays on screen", async () => {
+        await submit();
+
+        const alert = host.querySelector<HTMLElement>('[role="alert"]');
+        expect(alert).not.toBeNull();
+        // The banner is `entryRejected` only when no `errorKey` was set — this
+        // catch branch sets none, so `errorText` falls back to it. Assert the
+        // string, or a banner that appears with the wrong wording passes.
+        expect(alert?.textContent ?? "").toContain(lookup("orderEntry.errors.entryRejected"));
+    });
+
+    it("carries the failure detail, which the shared surface cannot", async () => {
+        await submit();
+
+        expect(host.textContent ?? "").toContain("signature rejected");
+    });
+});
