@@ -1991,7 +1991,8 @@
       "maintenance": "Maintenance",
       "profile": "Profile & Design",
       "workspace": "Workspace & Sidebar",
-      "automation": "Automation"
+      "automation": "Automation",
+      "cloud": "Cloud"
     },
     "indicators": {
       "title": "Indicator Settings",
