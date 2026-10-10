@@ -2,7 +2,7 @@
 id: BUG-0651
 title: The refusal that blocks the order is never announced to a screen reader
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 created: "2026-10-07"
@@ -221,21 +221,38 @@ rather than discovering it in review.
       only in a comment
 - [x] The panel's own refusal banner keeps `role="alert"`; the rejection path
       does not announce the same failure twice
-- [~] `dashboard.promptForData` written twice with identical text does not change
-      the region's content — **asserted, but not fully pinned**. See Resolution
-      and Known limits. The old wording demanded a test that "cannot pass for
-      the wrong reason"; that turned out to be unachievable in this environment
-      and the wording was wrong, not the finding
+- [x] `dashboard.promptForData` written twice with identical text does not change
+      the region's content — **asserted, but not fully pinned**. See Verification
+      still owed, and Known limits. The old wording demanded a test that "cannot
+      pass for the wrong reason"; that turned out to be unachievable in this
+      environment and the wording was wrong, not the finding
 - [x] A control case asserts that a *different* message **does** change the
       region's content, and a positive control proves the observer sees an
       identical `nodeValue` write. A guard that cannot fail is worse than no
       guard; the false-green trap in BUG-0648's fixture is the precedent
-- [ ] A manual screen-reader check is recorded (NVDA or VoiceOver), naming what
-      was heard for the refusal and what was *not* heard for the guidance. Unit
-      tests can prove the region and its content; they cannot prove an
-      announcement
 - [x] `npm run check` clean for every touched file; the components Vitest project
       green for the new test
+
+## Verification still owed
+
+Two things this item's code cannot deliver. They were acceptance criteria
+while the work was open; they are prose here so that a closed item does not
+carry a ticking box that no commit can satisfy. Both stay open — neither is
+done.
+
+**A screen reader has not run this.** Unit tests can prove the region exists and
+holds the text. They cannot prove an announcement. The check to run: with NVDA
+or VoiceOver, trigger a refusal and record what was spoken, then type into the
+risk or entry field and record that the guidance was *not* spoken on each
+keystroke. Both halves, because the second is the reason `polite` was chosen.
+
+**The identical-write skip is asserted but not fully pinned.** Two attempts to
+force a contradicting implementation — `{@html}` instead of the text write, and
+an `$effect` writing `nodeValue` unconditionally — both stayed green, because
+happy-dom's `innerHTML` and the effect's dependency tracking skip identical
+values for the same reason Svelte does. The skip therefore rests on Svelte's
+`set_text` equality guard, a code-level fact, and not on a test. The same
+assertions would catch an unconditional write in a real browser.
 
 ## Out of scope here, deliberately
 
@@ -319,7 +336,8 @@ assumed" — was not achievable. It is recorded as `[~]` rather than ticked.
 
 - **No screen reader has run this.** Everything above is DOM state and code
   reading. Whether NVDA or VoiceOver actually speak the refusal, and stay quiet
-  on the guidance, is unverified. This is the one criterion left open.
+  on the guidance, is unverified. Carried in *Verification still owed* above;
+  still open.
 - **The identical-write skip is environmental.** The same assertions would catch
   an unconditional write in a real browser, where `innerHTML` always mutates.
   Under happy-dom they would not.

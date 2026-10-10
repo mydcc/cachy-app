@@ -39,7 +39,6 @@
   import { _, locale } from "../locales/i18n"; // Import locale
   import { formatDynamicDecimal } from "../utils/utils";
   import { trackClick } from "../actions/tracking";
-  import type { TranslationKey } from "../locales/schema";
 
   import SummaryResults from "../components/results/SummaryResults.svelte";
   import PlaceOrderPanel from "../components/results/PlaceOrderPanel.svelte";
