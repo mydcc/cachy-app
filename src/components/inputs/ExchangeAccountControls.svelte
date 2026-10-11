@@ -22,8 +22,15 @@
   This component emits TWO sibling columns (leverage, margin/position) with no
   wrapper of its own, so the parent can lay them out in one row beside its own
   fee column. Svelte allows multiple roots; that is what is being used here.
-  It emits nothing at all where the venue declares no `accountSettings`
-  support, and the row then simply has one fewer column.
+
+  BUG-0668 — the columns render on every venue, including ones that declare
+  no `accountSettings` support. UTA offers no set-leverage / set-margin /
+  set-position-mode endpoint at all, so on Bitget there is nothing to switch
+  *to*; but hiding the chips too left traders blind on money-relevant
+  settings. Read-only chips show venue values where the store has them and
+  honest unknown markers where it has none, and the mode chip names the
+  venue's own interface as the place to switch. No write path is reachable
+  from the read-only state.
 
   NOTHING HERE SENDS ON A CLICK. Both chips open a dialog that collects a
   draft, and only its Confirm reaches the exchange. Every write in this
@@ -82,6 +89,14 @@ import { Decimal } from "decimal.js";
 
   /** The venue's own declaration (FEAT-0229) — not a venue-name test. */
   const supported = $derived(activeExchange().supports.accountSettings);
+
+  /**
+   * BUG-0668 — display without writes. `supported` stays the gate for every
+   * write below; it no longer gates visibility. On a read-only venue the
+   * leverage chip edits the local planning value (the pre-existing localOnly
+   * path, same as paper mode) and the mode chip never opens its dialog.
+   */
+  const readOnly = $derived(!supported);
 
   const symbol = $derived(tradeState.symbol ?? "");
   const venueSymbol = $derived(
@@ -422,9 +437,14 @@ import { Decimal } from "decimal.js";
     const pair = `${margin} \u2022 ${pos}`;
     // The tooltip keeps naming both values even when one is blanked in the
     // chip: hiding the pairing is the point, hiding the reason is not.
-    return modesSkewed
+    const base = modesSkewed
       ? `${pair}\n${$_("exchange.accountSettings.halvesOutOfSync")}`
       : pair;
+    // BUG-0668 — on a read-only venue the tooltip also says where switching
+    // actually happens, because this chip will never offer it.
+    return readOnly
+      ? `${base}\n${$_("exchange.unsupported.accountSettings", { values: { exchange: venueName } })}`
+      : base;
   });
 
   const positionModeReason = $derived.by(() => {
@@ -659,7 +679,6 @@ import { Decimal } from "decimal.js";
   }
 </script>
 
-{#if supported}
   <!-- Leverage column. Gated by nothing; see the header comment. -->
   <div class="flex flex-col gap-1 min-w-0">
     <span class="text-[11px] font-medium text-[var(--text-secondary)]"
@@ -702,7 +721,10 @@ import { Decimal } from "decimal.js";
       disabled={busy !== ""}
       title={$_("exchange.accountSettings.modeTitle")}
       onclick={() => {
-        if (busy) return;
+        // BUG-0668 — read-only venue: the dialog behind this chip could only
+        // refuse (the adapter has no write to call), so it never opens. The
+        // tooltip above says where to switch instead.
+        if (busy || readOnly) return;
         // BUG-2: the dialog seeds its drafts once from the chip's sources,
         // so re-read before opening — the next open (and the chip itself)
         // then shows what the exchange holds right now, not last reload.
@@ -773,7 +795,6 @@ import { Decimal } from "decimal.js";
       onconfirm={confirmModes}
     />
   {/if}
-{/if}
 
 <style>
   /*

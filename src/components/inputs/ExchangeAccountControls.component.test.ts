@@ -696,18 +696,15 @@ describe("FEAT-0068 — leverage on an open position is confirmed, not blocked",
     });
 });
 
-describe("FEAT-0068 — a venue without these endpoints offers no controls", () => {
-    it("renders nothing where the adapter declares no support", async () => {
-        // Not a disabled control here: the refusal a trader would need to
-        // read belongs to the venue (`exchange.unsupported.accountSettings`),
-        // and offering dead chips on every Bitget session is noise, not
-        // information. The parent's row simply has one fewer column.
+describe("FEAT-0068 — a venue without these endpoints offers no writes", () => {
+    it("renders read-only chips instead of nothing (see BUG-0668)", async () => {
+        // Superseded 2026-10-11: hiding the chips left traders blind on
+        // money-relevant settings. The chips render; the writes stay refused.
         supportsMock.accountSettings = false;
         await render();
 
-        expect(button("btn-leverage-chip")).toBeNull();
-        expect(button("btn-mode-chip")).toBeNull();
-        expect(host.textContent?.trim()).toBe("");
+        expect(button("btn-leverage-chip")).not.toBeNull();
+        expect(button("btn-mode-chip")).not.toBeNull();
     });
 });
 
@@ -951,6 +948,60 @@ describe("BUG-0409 — returning to the tab re-reads both halves", () => {
         window.dispatchEvent(new Event("focus"));
         await settle();
 
+        expect(accountPort.fetchPositionMode).not.toHaveBeenCalled();
+    });
+});
+
+describe("BUG-0668 — a venue without these endpoints still shows read-only chips", () => {
+    beforeEach(() => {
+        settings.apiProvider = "bitget";
+        supportsMock.accountSettings = false;
+    });
+
+    it("renders leverage and mode chips instead of nothing", async () => {
+        await render();
+
+        expect(button("btn-leverage-chip")).not.toBeNull();
+        expect(button("btn-mode-chip")).not.toBeNull();
+    });
+
+    it("marks unknown halves instead of guessing", async () => {
+        // Empty Bitget account: no positions, so holdMode never arrived and
+        // no remote leverage or margin mode was ever read.
+        tradeStateMock.remoteLeverage = undefined;
+        tradeStateMock.remoteMarginMode = undefined;
+        accountStateMock.positionMode = undefined;
+        await render();
+
+        // Leverage falls back to the local planning value; modes stay unknown.
+        expect(button("btn-leverage-chip")?.textContent).toContain("20x");
+        expect(button("btn-mode-chip")?.textContent).toContain("—");
+    });
+
+    it("opens no dialog and sends nothing from the mode chip", async () => {
+        await render();
+        await openModeModal();
+
+        expect(button("btn-mode-confirm")).toBeNull();
+        expect(accountPort.changeMarginMode).not.toHaveBeenCalled();
+        expect(accountPort.changePositionMode).not.toHaveBeenCalled();
+    });
+
+    it("names the venue app as the place to switch", async () => {
+        await render();
+
+        const title =
+            button("btn-mode-chip")?.querySelector("span[title]")?.getAttribute("title") ?? "";
+        expect(title).toContain("Bitget");
+    });
+
+    it("shows the positions lane holdMode once a position exists", async () => {
+        // hydratePositions feeds positionMode from holdMode at the store
+        // level, so the right half works without any account-settings read.
+        accountStateMock.positionMode = "HEDGE";
+        await render();
+
+        expect(button("btn-mode-chip")?.textContent).toContain("Hedge");
         expect(accountPort.fetchPositionMode).not.toHaveBeenCalled();
     });
 });
