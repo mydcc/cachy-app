@@ -128,6 +128,7 @@ vi.mock("../../locales/i18n", async () => {
 
 import PositionsSidebar from "./PositionsSidebar.svelte";
 import { accountEpoch } from "../../services/accountEpoch.svelte";
+import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
 import { webcrypto } from "node:crypto";
 
 Object.defineProperty(globalThis, "crypto", { value: webcrypto, configurable: true });
@@ -181,18 +182,38 @@ async function settle(budgetMs = 200) {
     flushSync();
 }
 
-async function settleUntil(condition: () => boolean, budgetMs = 3000): Promise<void> {
+async function settleUntil(condition: () => boolean, budgetMs = 3000, label = "condition"): Promise<void> {
     const deadline = Date.now() + budgetMs;
     while (Date.now() < deadline) {
         flushSync();
         if (condition()) return;
         await new Promise((resolve) => setTimeout(resolve, 0));
     }
-    throw new Error("settleUntil: condition never held");
+    throw new Error(`settleUntil(${label}): never held (last probeCount=${probeCount()})`);
 }
 
 function probeCount(): number {
     return host.querySelectorAll('[data-testid="probe-symbol"]').length;
+}
+
+/*
+ * Four dialogs receive the position, the flash confirm does not
+ * (`PositionsSidebar.svelte` passes it `isOpen`/`action`/`facts`, never a
+ * position) — so four probes read BTCUSDT and one reads "none". Asserting
+ * contents catches a dialog that lost its position (it would read "none",
+ * shifting the balance to 3+2) or a missing flash probe. It does not pin
+ * which of the four position dialogs is which: with a single fixture
+ * position they all read identically, so a swap among them stays invisible.
+ */
+function probeSymbols(): string[] {
+    return [...host.querySelectorAll('[data-testid="probe-symbol"]')]
+        .map((element) => element.textContent?.trim() ?? "")
+        .sort();
+}
+
+function expectAllDialogsOpen(): void {
+    expect(probeCount()).toBe(5);
+    expect(probeSymbols()).toEqual(["BTCUSDT", "BTCUSDT", "BTCUSDT", "BTCUSDT", "none"]);
 }
 
 const DIALOG_TRIGGERS = [
@@ -208,6 +229,10 @@ beforeEach(() => {
     resetVenueCapabilities();
     resetAccountFetchSingleflightForTest();
     accountState.reset();
+    // Load-bearing precondition: the flash dialog only opens when the policy
+    // requires confirmation (`handleFlashClose`). Defaulted on, but never
+    // leave a dialog the suite must open to a default that can drift.
+    confirmationPolicyStore.setRequired("flash-close-position", true);
     venueCapabilities.tpSlStandalone = true;
     venueCapabilities.addToPosition = true;
     host = document.createElement("div");
@@ -228,7 +253,7 @@ async function mountWithAllDialogsOpen(): Promise<void> {
             props: { activeAccountId: "acc-1" },
         }) as never,
     );
-    await settleUntil(() => host.querySelector('[data-testid="open-close"]') !== null);
+    await settleUntil(() => host.querySelector('[data-testid="open-close"]') !== null, 3000, "position row renders");
     // Every trigger must exist: a missing button would click nothing and the
     // count below would assert about a dialog that was never opened.
     for (const testid of DIALOG_TRIGGERS) {
@@ -237,26 +262,42 @@ async function mountWithAllDialogsOpen(): Promise<void> {
         button.click();
         flushSync();
     }
+    // The clicks are sync but the probe renders are not guaranteed on the
+    // same flush (derived position resolution, modal mount) — wait for the
+    // renders, not a wall-clock budget, so a lagging dialog fails loudly
+    // here instead of flaking the count below.
+    await settleUntil(() => probeCount() === 5, 3000, "all five dialogs render");
 }
 
 describe("FEAT-0023 — an epoch change clears every open position dialog", () => {
     it("control: all five dialogs open and stay open without a rotation", async () => {
         await mountWithAllDialogsOpen();
 
-        expect(probeCount()).toBe(5);
+        expectAllDialogsOpen();
         await settle();
-        expect(probeCount()).toBe(5);
+        expectAllDialogsOpen();
     });
 
     it("rotating the epoch closes every dialog by clearing its id", async () => {
         await mountWithAllDialogsOpen();
-        expect(probeCount()).toBe(5);
+        expectAllDialogsOpen();
 
         // What a provider change runs: provider setter → providerChanged →
-        // accountSession.reset → accountEpoch.rotate → this effect.
+        // accountSession.reset → accountEpoch.rotate → this effect. Only the
+        // tail link runs here, deliberately: the position list stays live,
+        // so an empty probe set proves the id-clearing and nothing else.
         accountEpoch.rotate("venue-switch");
-        await settle();
+        await settleUntil(() => probeCount() === 0, 3000, "all dialogs close");
 
         expect(probeCount()).toBe(0);
+        // Stability, not an instant: a second settle proves no stale id
+        // re-opens its dialog in the near term — a guard against a delayed
+        // async reopen, not a simulated switch-back (positions stay live
+        // throughout, so no repopulation cycle runs here). The position
+        // row itself must still render, or the zero above could mean an
+        // empty list rather than cleared ids.
+        await settle();
+        expect(probeCount()).toBe(0);
+        expect(host.querySelector('[data-testid="open-close"]')).not.toBeNull();
     });
 });

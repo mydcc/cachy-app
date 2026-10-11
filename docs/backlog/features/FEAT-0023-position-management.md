@@ -88,8 +88,9 @@ gate.
 
   It holds today and is pinned since 2026-10-11 by
   `PositionsSidebar.epochDialogs.component.test.ts`: all five dialogs open,
-  `accountEpoch.rotate("venue-switch")` runs the provider-change chain, and
-  none survives. Not fixed in
+  the rotate→effect tail link of the provider-change chain runs
+  (`accountEpoch.rotate("venue-switch")`, positions intentionally left live),
+  and none survives. Not fixed in
   [#3710](https://github.com/mydcc/cachy-app/pull/3710) because it is a
   pre-existing dependency, not part of the gate being added.
 
