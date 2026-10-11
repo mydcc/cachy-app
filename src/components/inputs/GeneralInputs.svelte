@@ -27,8 +27,6 @@
   import { toDecimalOrNull } from "../../lib/fees/deriveFeeRates";
 
   import { untrack } from "svelte";
-  import { numberInput } from "../../utils/inputUtils";
-  import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { paperState } from "../../stores/paperTrading.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { _ } from "../../locales/i18n";
