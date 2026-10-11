@@ -27,19 +27,13 @@ name: Release
 #
 # Deliberately absent, with the reason:
 #
-<<<<<<< HEAD
-#   * No conflict resolution. Conflicts in the generated backlog index
-#     (`docs/backlog/INDEX.md` and its two companions) resolve by rebasing and
-#     re-running `node scripts/backlog-index.mjs` — a human or agent step.
-=======
 #   * No conflict resolution. The version that did pushed with the automatic
-#     token, and GitHub's recursion guard turns such pushes into workflow runs
-#     parked in `action_required` — every PR the bot touched then waited for a
-#     human approval, so it created the block it could not pass. The conflict it
-#     kept hitting was in the generated backlog index (`docs/backlog/INDEX.md`
+#     token, and the runs it triggered were parked in `action_required` (the
+#     `approval_policy` note above) — every PR the bot touched then waited for
+#     a human approval, so it created the block it could not pass. The conflict
+#     it kept hitting was in the generated backlog index (`docs/backlog/INDEX.md`
 #     and its two companions); those files are no longer tracked at all, so
 #     there is nothing left for two PRs to conflict on.
->>>>>>> 6399edf1b (chore(backlog): stop tracking the generated index)
 #
 #   * No pull-request comments. The merge box already says the branch is out of
 #     date; saying it again in 145 lines of shell per push was noise, and that
