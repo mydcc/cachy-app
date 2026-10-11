@@ -51,7 +51,7 @@ if [[ "$HEALTH_STATUS" != "200" ]]; then
 fi
 
 # --- 2. Security headers ---
-HEADERS=$(curl -sI "$PRODUCTION_URL" || echo "")
+HEADERS=$(curl -sIL "$PRODUCTION_URL" || echo "")
 for h in "Strict-Transport-Security" "Content-Security-Policy" "X-Content-Type-Options" "X-Frame-Options" "Referrer-Policy"; do
   if ! echo "$HEADERS" | grep -qi "^$h:"; then
     ISSUES+=("Fehlender Security-Header: $h")
