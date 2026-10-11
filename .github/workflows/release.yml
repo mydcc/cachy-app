@@ -1,31 +1,35 @@
 name: Release
 
-# semantic-release on every push to develop (prerelease) or main (stable), plus
-# the one follow-up a release needs: bringing the open pull requests back up to
-# date.
+# semantic-release on every push to develop (prerelease) or main (stable).
 #
-# Why that second part lives here. semantic-release pushes its own
-# `chore(release):` commit to the branch it just released — measured at ~38 s
-# after the merge it belongs to. Under `strict=true` a pull request cannot merge
-# until it is up to date with `develop`, so that commit put every other open PR
-# behind before its own checks could finish. With two PRs in flight the second
-# could never land without a manual rebase, on every single merge.
+# It pushes its own `chore(release):` commit to the branch it just released —
+# measured at ~38 s after the merge it belongs to. Under `strict=true` that put
+# every other open pull request behind before its own checks could finish, so
+# with two PRs in flight the second could never land without a manual rebase.
 #
-# `gh pr update-branch` is that rebase, done server-side (a merge; nothing is
-# pushed). It is attempted for every open PR and a failure is ignored, which
-# covers all three cases without a compare step: already current, just updated,
-# or a real conflict this must not touch. It needs `pull-requests: write`, not
-# `contents: write`.
+# The remedy for that is GitHub's native merge queue on `develop`, not a step in
+# this workflow. A step calling `gh pr update-branch` was tried here and removed
+# on 2026-10-11, for a reason that is worth keeping written down:
+#
+#   * With the automatic token it recreated the parked-run failure the deleted
+#     stale-PR workflow had hit. Observed 2026-10-11: the release run updated PR
+#     #4026, and the runs it triggered on the new head were created but held in
+#     `action_required` instead of starting. The cause is this repo's Actions
+#     `approval_policy: first_time_contributors` — `github-actions[bot]` is
+#     caught by it. The same call from a human's `gh` login ran normally. So the
+#     step rewrote every open PR's head and left its checks waiting for an
+#     approval nobody knew to give: the block it was meant to remove.
+#
+#   * It also wrote a bot merge commit into every open branch, which that
+#     branch's next rebase or force-push then has to reconcile. Rebase
+#     automation that mutates other people's branches is itself a source of the
+#     conflicts it claims to fix.
 #
 # Deliberately absent, with the reason:
 #
-#   * No conflict resolution. The version that did pushed with the automatic
-#     token, and GitHub's recursion guard turns such pushes into workflow runs
-#     parked in `action_required` — every PR the bot touched then waited for a
-#     human approval, so it created the block it could not pass. The conflict it
-#     kept hitting is in the generated backlog index (`docs/backlog/INDEX.md`
-#     and its two companions); regenerating after a rebase fixes it, and that
-#     stays a human or agent step.
+#   * No conflict resolution. Conflicts in the generated backlog index
+#     (`docs/backlog/INDEX.md` and its two companions) resolve by rebasing and
+#     re-running `node scripts/backlog-index.mjs` — a human or agent step.
 #
 #   * No pull-request comments. The merge box already says the branch is out of
 #     date; saying it again in 145 lines of shell per push was noise, and that
@@ -124,29 +128,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: npx semantic-release
 
-      - name: Bring the open pull requests back up to date
-        # The release commit just moved this branch; see the header. A failure is
-        # expected and ignored — a branch that is already current, or one whose
-        # merge would conflict, is left exactly as it is.
-        if: github.ref == 'refs/heads/develop'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          OWNER: ${{ github.repository_owner }}
-        run: |
-          set -uo pipefail
-          prs=$(gh pr list --base develop --state open --limit 100 \
-            --json number,isDraft,headRepositoryOwner \
-            --jq '.[] | select(.isDraft == false)
-                      | select(.headRepositoryOwner.login == env.OWNER) | .number')
-          for pr in $prs; do
-            if gh pr update-branch "$pr" >/dev/null 2>&1; then
-              echo "Updated #$pr"
-            else
-              echo "#$pr unchanged (already current, or it conflicts)"
-            fi
-          done
-
       - name: Propose the back-merge of main into develop
         # Fold main back into develop after a stable release. Without this,
         # develop's prerelease counter (1.0.0-beta.N) keeps counting up from
@@ -205,5 +186,13 @@ jobs:
             echo "Back-merge pull request #$number is already open."
           fi
 
+          # Arming is idempotent and needs no passing checks, so a failure here
+          # is not "the checks have not reported yet" — it is a real permission
+          # or API problem, and the message says which token this step actually
+          # uses. It stays a warning rather than an error on purpose: the
+          # release has already shipped by this point, and a red run would make
+          # `release-failure-alert.yml` announce a failed release that did not
+          # fail. The PR is bot-authored, so `audit.yml` skips it and it always
+          # needs a human to merge anyway.
           gh pr merge --auto --merge "$number" \
-            || echo "::notice::#${number} needs a human merge — RELEASE_TOKEN is known to lack \`pull-requests: write\`."
+            || echo "::warning::#${number} could not be armed for auto-merge — merge it by hand. Note: this step uses GITHUB_TOKEN, and the pull request is bot-authored, so audit.yml skips its checks."

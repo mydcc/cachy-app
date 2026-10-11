@@ -21,9 +21,11 @@
  * the base branch introduced after the PR forked.
  *
  * This is the mechanism half of BUG-0447. Two individually reasonable
- * mechanisms compose into a data-loss path: `auto-update-prs.yml` keeps agent
- * PR branches current by merging `develop` into them, and the agent does not
- * fetch those merges before its next push. It commits a full tree snapshot
+ * mechanisms compose into a data-loss path: an agent PR branch is brought up
+ * to date by merging `develop` into it (by hand, or by pressing GitHub's
+ * "Update branch"; the release workflow no longer does this — see the header
+ * of `release.yml`), and the agent does not fetch that merge before its next
+ * push. It commits a full tree snapshot
  * from its own stale checkout, which git records as an ordinary commit that
  * happens to undo every merged change. Squash-merge then flattens the result
  * into one commit whose title describes only the intended change, so review
@@ -268,7 +270,7 @@ function main() {
 
     // The PR's first commit: the oldest commit reachable from head but not
     // from base, following first parents so base merges pulled into the
-    // branch (e.g. by auto-update-prs.yml) do not move the fork point.
+    // branch (e.g. by a manual "Update branch") do not move the fork point.
     const first = git("rev-list", "--reverse", "--first-parent", `${base}..${head}`, "--")
         .split("\n")
         .map((l) => l.trim())

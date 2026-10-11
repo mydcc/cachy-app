@@ -55,7 +55,9 @@ had changed since that base, the agent's snapshot overwrote.
 
 Two individually reasonable mechanisms compose into a data-loss path:
 
-1. `auto-update-prs.yml` keeps agent PR branches current by merging `develop` in.
+1. An agent PR branch is brought up to date by merging `develop` into it — at
+   the time by `auto-update-prs.yml`, today by hand or by pressing GitHub's
+   "Update branch" (that workflow is gone; see `release.yml`'s header).
 2. The agent does not fetch those merges before its next push. It commits a full tree
    snapshot from its own stale checkout, which git records as an ordinary commit that
    happens to undo every merged change.
@@ -80,17 +82,22 @@ What remains is the mechanism, so the next snapshot push fails instead of mergin
 - Cheaper complement: fail an agent-authored PR (`jules-*` head ref) whose diff touches
   files its first commit did not, beyond the generated backlog index.
 
-Do not fix this by turning off `auto-update-prs.yml`: stale branches are what produces
-conflicting backlog indices in the first place.
+Do not fix this by turning off `auto-update-prs.yml` (the workflow that did this
+at the time): stale branches are what produces conflicting backlog indices in the
+first place.
 
-> Later note (2026-10-11): that workflow no longer exists. It kept pushing to
-> PR branches with the automatic token, which parked its own workflow runs in
+> Later note (2026-10-11, updated the same day): that workflow no longer exists,
+> and neither does the step that briefly replaced it. It kept pushing to PR
+> branches with the automatic token, which parked its own workflow runs in
 > `action_required` and made every PR it touched need a human approval — so it
-> was cut back to reporting, and then removed entirely. `release.yml` now
-> fast-forwards open PRs server-side (`gh pr update-branch`) after a release
-> commit; it never resolves a conflict. The warning above still holds in
-> substance: the fix for a stale-branch revert is a freshness check, not a
-> bot with write access to the branch.
+> was cut back to reporting, and then removed. `release.yml` then tried
+> `gh pr update-branch` with the same token and reproduced the parking exactly
+> (this repo sets `approval_policy: first_time_contributors`, which catches
+> `github-actions[bot]`), so that step is gone as well. Nothing updates a PR
+> branch automatically now; GitHub's native merge queue on `develop` is the
+> intended answer, and it needs no bot with write access. The warning above
+> still holds in substance: the fix for a stale-branch revert is a freshness
+> check, not a bot that rewrites other people's branches.
 
 ## Acceptance criteria
 
