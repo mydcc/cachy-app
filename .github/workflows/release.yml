@@ -1,20 +1,49 @@
 name: Release
 
+# semantic-release on every push to develop (prerelease) or main (stable), plus
+# the one follow-up a release needs: bringing the open pull requests back up to
+# date.
+#
+# Why that second part lives here. semantic-release pushes its own
+# `chore(release):` commit to the branch it just released — measured at ~38 s
+# after the merge it belongs to. Under `strict=true` a pull request cannot merge
+# until it is up to date with `develop`, so that commit put every other open PR
+# behind before its own checks could finish. With two PRs in flight the second
+# could never land without a manual rebase, on every single merge.
+#
+# `gh pr update-branch` is that rebase, done server-side (a merge; nothing is
+# pushed). It is attempted for every open PR and a failure is ignored, which
+# covers all three cases without a compare step: already current, just updated,
+# or a real conflict this must not touch. It needs `pull-requests: write`, not
+# `contents: write`.
+#
+# Deliberately absent, with the reason:
+#
+#   * No conflict resolution. The version that did pushed with the automatic
+#     token, and GitHub's recursion guard turns such pushes into workflow runs
+#     parked in `action_required` — every PR the bot touched then waited for a
+#     human approval, so it created the block it could not pass. The conflict it
+#     kept hitting is in the generated backlog index (`docs/backlog/INDEX.md`
+#     and its two companions); regenerating after a rebase fixes it, and that
+#     stays a human or agent step.
+#
+#   * No pull-request comments. The merge box already says the branch is out of
+#     date; saying it again in 145 lines of shell per push was noise, and that
+#     whole file is gone.
+
 on:
   push:
-    # `main` produces stable releases, `develop` produces prereleases. Both are
-    # pushed to directly by semantic-release, which is why `develop` carries
-    # `enforce_admins: false` — see the branch comment in release.config.js.
+    # `main` produces stable releases, `develop` prereleases. Both are pushed to
+    # directly by semantic-release, which is why `develop` carries
+    # `enforce_admins: false` (see the branch comment in release.config.js).
     #
-    # This mirrors the split already used by deploy.sh via .deploy.conf
-    # (BRANCH_STABLE=main -> cachy.app, BRANCH_BETA=develop -> dev.cachy.app):
-    # the branch that is built for dev.cachy.app is the branch that is
-    # versioned, so the version string on that site is the one in the tree.
+    # This mirrors deploy.sh's split via .deploy.conf (BRANCH_STABLE=main ->
+    # cachy.app, BRANCH_BETA=develop -> dev.cachy.app): the branch built for
+    # dev.cachy.app is the branch that is versioned, so the version string on
+    # that site is the one in the tree.
     branches: [main, develop]
   # Manual fallback to ship a release when automation was skipped (e.g. a merge
-  # whose message quoted `[skip ci]` lines). Run it from the Actions tab on
-  # `develop` or `main`; dispatching on any other branch fails on purpose,
-  # in a step that names the reason.
+  # whose message quoted `[skip ci]` lines).
   workflow_dispatch:
 
 # Prevent two releases from racing each other and producing duplicate tags.
@@ -26,44 +55,36 @@ jobs:
   release:
     name: semantic-release
     runs-on: ubuntu-latest
-    # Skip the release commit semantic-release pushes itself. This matches the
-    # commit title, not the whole message: a merge quoting beta
-    # `chore(release): …` lines in its body once silently skipped a stable
-    # release because of it.
+    # Skip the release commit semantic-release pushes itself: that is what
+    # closes the loop. Matched on the title only — a merge quoting beta
+    # `chore(release):` lines in its body once silently skipped a stable release.
     #
-    # This guard is also what keeps the release loop closed. semantic-release
-    # pushes its own `chore(release):` commit to the release branch, which
-    # triggers this workflow again; that second run is skipped here.
-    #
-    # The commit carries no `[skip ci]` marker. GitHub reads that marker on the
-    # pushed commit as "do not run CI", and a release commit is the one commit
-    # where skipping the suite is least defensible — it is what dev.cachy.app
-    # gets built from. The marker is not needed to break the loop; the title
-    # check above already does that.
+    # No `[skip ci]` marker on that commit, deliberately: GitHub reads the
+    # marker as "do not run CI", and a release commit is the one commit where
+    # skipping the suite is least defensible — it is what dev.cachy.app is built
+    # from.
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
     permissions:
-      contents: write # create tags and the release commit
+      contents: write # tag and push the release commit
       issues: write # comment on released issues
-      pull-requests: write # open the stable back-merge pull request
+      pull-requests: write # open the back-merge PR, and update stale ones
     steps:
+      - name: Refuse a manual run on a branch that is not a release branch
+        # Only reachable through workflow_dispatch. semantic-release would fail
+        # on its own with a less specific message; this names the cause.
+        if: github.event_name == 'workflow_dispatch' && github.ref_name != 'main' && github.ref_name != 'develop'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          echo "::error::Release runs on 'main' (stable) or 'develop' (prerelease). '$REF_NAME' is neither."
+          exit 1
+
       - uses: actions/checkout@v6
         with:
           # semantic-release needs the full history and all tags to work out
           # which commits are new since the last release.
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Refuse a dispatch on a branch that is not a release branch
-        # Only reachable through workflow_dispatch. semantic-release would fail
-        # on its own with a less specific message; this names the actual cause.
-        if: github.event_name == 'workflow_dispatch'
-        env:
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          if [ "$REF_NAME" != "main" ] && [ "$REF_NAME" != "develop" ]; then
-            echo "::error::Release runs on 'main' (stable) or 'develop' (prerelease). '$REF_NAME' is neither."
-            exit 1
-          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -74,81 +95,75 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Sync moving deploy tags
+      - name: Prepare the tags semantic-release will push
         # deploy-build.yml force-recreates the rolling tags deploy-beta,
-        # deploy-beta-previous and deploy-stable on every build. Those moving
-        # tags make the plain `git fetch --tags` that semantic-release performs
-        # fail with "would clobber existing tag". Force-fetch all tags to update
-        # the local tags first so semantic-release's own fetch is a no-op.
-        run: git fetch --tags --force
-
-      # R1: semantic-release's push is hard-coded to `git push --tags`
-      # (lib/git.js: `execa("git", ["push", "--tags", "--", repositoryUrl])`),
-      # which offers no way to restrict it to the version tag. It therefore also
-      # pushes the moving deploy tags, and rejects the run when they moved on
-      # the remote in between — observed as
-      # `! [rejected] deploy-beta-previous -> deploy-beta-previous (already
-      # exists)`, which is what kept the first release on this branch failing.
-        #
-        # Deleting them locally removes them from that push. The remote copies
-        # are untouched: `deploy-beta-previous` is the rollback artifact
-        # deploy-build.yml recreates on every build, and nothing here writes to
-        # the remote.
-      - name: Drop moving deploy tags from the local repository
+        # deploy-beta-previous and deploy-stable on every build. semantic-release
+        # pushes every tag it can see (`git push --tags`), and a moving tag it
+        # does not know about rejects the entire push — the first release on this
+        # branch failed with `! [rejected] deploy-beta-previous (already
+        # exists)`. Fetch so the local copies are current, then drop them:
+        # deleting them locally removes them from that push. The remote copies
+        # are untouched — `deploy-beta-previous` is the rollback artifact
+        # deploy-build.yml recreates on every build.
         run: |
+          git fetch --tags --force
           for tag in deploy-beta deploy-beta-previous deploy-stable; do
-            if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
-              git tag -d "$tag"
-              echo "Removed local $tag so the release push does not carry it."
-            fi
+            git tag -d "$tag" 2>/dev/null || true
           done
-          echo "Local tags now: $(git tag --list 'v*' | wc -l) version tags."
 
       - name: Run semantic-release
         env:
           # RELEASE_TOKEN (when present) is the repo owner's fine-grained PAT.
-          # It must be valid: a set-but-invalid value fails harder than an
-          # absent one, because the `||` fallback never fires (BUG-0584).
-          # Falls back to GITHUB_TOKEN so forks and local dry-runs keep
-          # working without the secret.
+          # A set-but-invalid value fails harder than an absent one, because the
+          # `||` fallback never fires (BUG-0584). Falls back to GITHUB_TOKEN so
+          # forks and local dry-runs keep working without the secret.
           #
-          # This push lands straight on the release branch. That requires
-          # `develop` to carry `enforce_admins: false`; with it on, the push
-          # authenticated and was refused with GH006 (BUG-0584), which is what
-          # the `release/beta` detour existed to work around. See the branch
-          # comment in release.config.js for what that setting now costs.
+          # This push lands straight on the release branch, which requires
+          # `develop` to carry `enforce_admins: false`; with it on, the push was
+          # refused with GH006 (BUG-0584).
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: npx semantic-release
 
-      # Fold main back into develop right after a stable release. Without this,
-      # develop's prerelease counter (1.0.0-beta.N) keeps counting up from
-      # whatever it was when main last branched off, while main's stable version
-      # jumps ahead independently (e.g. main at 1.1.0, develop stuck offering
-      # 1.0.0-beta.15) — the two never realign on their own.
-      #
-      # A direct push would now be possible, since `develop` no longer
-      # enforces on admins. This stays on a pull request deliberately: the
-      # back-merge is the one release step that carries stable work into the
-      # prerelease line, and running it through the ten required checks is
-      # worth the click. The prerelease bump does not get that treatment —
-      # it is mechanical, touches two files, and happens on every merge.
-      #
-      # If main and develop have diverged in a way that actually conflicts, the
-      # merge step fails loudly instead of proposing a broken merge — that case
-      # needs a human, and CI turning red is the signal for it.
-      #
-      # Same PAT, same reason as before: with the default GITHUB_TOKEN the pull
-      # request is authored by github-actions[bot] and every workflow on it
-      # waits for a human approval, so the back-merge would need a click after
-      # each stable release.
-      #
-      # RELEASE_TOKEN is known to lack `pull-requests: write`, so this runs on
-      # the automatic token and costs one human merge per stable release. This
-      # path fires once per stable release rather than once per merge; fixing
-      # the token scopes means the same GH_TOKEN split the prerelease step used
-      # to carry, and doing that to a rarely-exercised path without being able
-      # to test it is not worth the risk.
+      - name: Bring the open pull requests back up to date
+        # The release commit just moved this branch; see the header. A failure is
+        # expected and ignored — a branch that is already current, or one whose
+        # merge would conflict, is left exactly as it is.
+        if: github.ref == 'refs/heads/develop'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -uo pipefail
+          prs=$(gh pr list --base develop --state open --limit 100 \
+            --json number,isDraft,headRepositoryOwner \
+            --jq '.[] | select(.isDraft == false)
+                      | select(.headRepositoryOwner.login == env.OWNER) | .number')
+          for pr in $prs; do
+            if gh pr update-branch "$pr" >/dev/null 2>&1; then
+              echo "Updated #$pr"
+            else
+              echo "#$pr unchanged (already current, or it conflicts)"
+            fi
+          done
+
       - name: Propose the back-merge of main into develop
+        # Fold main back into develop after a stable release. Without this,
+        # develop's prerelease counter (1.0.0-beta.N) keeps counting up from
+        # whatever it was when main last branched off while main's stable version
+        # jumps ahead independently — the two never realign on their own.
+        #
+        # A direct push would be possible now that develop no longer enforces on
+        # admins. This stays a pull request deliberately: the back-merge is the
+        # one release step that carries stable work into the prerelease line, and
+        # running it through the required checks is worth the click.
+        #
+        # If main and develop have diverged in a way that actually conflicts, the
+        # merge below fails loudly instead of proposing a broken merge.
+        #
+        # Auto-merge is armed once rather than retried: "Bring the open pull
+        # requests back up to date" above already keeps this PR current after
+        # every prerelease, which is what the retry loop used to work around.
         if: github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -158,8 +173,6 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-
           git fetch origin main develop
           git checkout -B "$branch" origin/develop
           git merge origin/main --no-edit -m "chore(release): back-merge main into develop"
@@ -170,13 +183,14 @@ jobs:
             exit 0
           fi
 
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force-with-lease origin "$branch"
+
           number=$(gh pr list --head "$branch" --base develop --state open \
             --json number --jq '.[0].number // empty')
           if [ -z "$number" ]; then
             # `gh pr create` prints the URL on stdout and has no `--json` flag,
-            # unlike `gh pr list`. The number is the last path segment of the
-            # URL it prints.
+            # unlike `gh pr list`. The number is its last path segment.
             url=$(gh pr create \
               --base develop \
               --head "$branch" \
@@ -191,13 +205,5 @@ jobs:
             echo "Back-merge pull request #$number is already open."
           fi
 
-          for attempt in 1 2 3 4 5; do
-            if gh pr merge --auto --merge "$number" 2>/dev/null; then
-              echo "Auto-merge armed on #$number (attempt $attempt)."
-              exit 0
-            fi
-            echo "Auto-merge refused (attempt $attempt); updating the branch from develop."
-            gh pr update-branch "$number" 2>/dev/null || true
-          done
-          echo "::error::Could not arm auto-merge on back-merge pull request #$number. It needs a human merge."
-          exit 1
+          gh pr merge --auto --merge "$number" \
+            || echo "::notice::#${number} needs a human merge — RELEASE_TOKEN is known to lack \`pull-requests: write\`."

@@ -169,11 +169,11 @@ jobs:
 
       # No bots: a PR that touches files under docs/backlog/ must carry the
       # regenerated index (INDEX.md + backlog.generated.*) itself — nothing
-      # regenerates it after the merge anymore. BUG-0225 (per-PR index churn
-      # conflicts) stays answered by auto-update-prs.yml, which auto-resolves
-      # generated-only conflicts on open PRs; any residue resolves by merging
-      # develop and re-running `node scripts/backlog-index.mjs` (~1 s, no
-      # install needed). PRs that touch no backlog files skip this silently.
+      # regenerates it after the merge anymore. A generated-only conflict
+      # resolves by merging develop and re-running `node scripts/backlog-index.mjs`
+      # (~1 s, no install needed). `release.yml` fast-forwards open PRs that the
+      # release commit left behind; it never resolves a conflict. PRs that touch
+      # no backlog files skip this silently.
       - name: Require fresh backlog index when backlog files change
         if: github.event_name == 'pull_request'
         run: |
