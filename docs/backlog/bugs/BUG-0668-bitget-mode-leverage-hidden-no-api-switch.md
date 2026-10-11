@@ -106,8 +106,14 @@ write-safety invariant. Three findings were fixed in the same PR before merge:
    binding — a second editor for one field on a money-relevant panel. Two
    parent comments claimed the opposite and were corrected.
 
-Finding 2 (the leverage chip shows the local planning value with no marker) is
-open as a product decision and deliberately unchanged.
+Finding 2 (the leverage chip shows the local planning value with no marker) was
+decided in favour of the trader on 2026-10-11 and fixed in the same PR: the
+chip now carries a visible `local` mark next to the value. It sits in the
+markup rather than a tooltip, because hover text explains nothing on touch or
+keyboard, and because on a venue that reports nothing the local number is what
+the sizing maths reads — reading it as the account's leverage misprices the
+liquidation estimate. The marker drops once the venue reports its own leverage,
+and paper trading stays unmarked because no account sits behind it.
 
 ## Links
 

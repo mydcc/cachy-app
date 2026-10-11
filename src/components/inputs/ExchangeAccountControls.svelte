@@ -404,6 +404,13 @@ import { Decimal } from "decimal.js";
    */
   const localOnly = $derived(paperState.enabled || remoteLeverage === undefined);
 
+  /**
+   * BUG-0668 — mark a value the venue never confirmed. Paper trading is left
+   * unmarked on purpose: there is no account behind it to misread, and it
+   * already announces itself elsewhere.
+   */
+  const showLocalMarker = $derived(localOnly && !paperState.enabled);
+
   const shownLeverage = $derived.by(() => {
     if (!localOnly && remoteLeverage !== undefined) return remoteLeverage.toString();
     const raw = tradeState.leverage;
@@ -700,6 +707,21 @@ import { Decimal } from "decimal.js";
         {$_("exchange.accountSettings.pending")}
       {:else}
         <span class="font-semibold">{shownLeverage ? shownLeverage + "x" : "—"}</span>
+        {#if showLocalMarker}
+          <!--
+            The number the sizing maths reads is not the number the venue
+            holds, and on a venue that reports nothing it never will be. The
+            marker travels with the value rather than living in a tooltip:
+            hover text is no explanation to a touch or keyboard user, and
+            reading "20x" as the account's leverage misprices the
+            liquidation estimate (BUG-0668).
+          -->
+          <span
+            class="ml-1 text-[11px] font-medium text-[var(--text-secondary)]"
+            title={$_("exchange.accountSettings.leverageLocalOnly")}
+            >{$_("exchange.accountSettings.leverageLocal")}</span
+          >
+        {/if}
       {/if}
     </button>
   </div>

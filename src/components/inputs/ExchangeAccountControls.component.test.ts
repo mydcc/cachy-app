@@ -1047,9 +1047,41 @@ describe("BUG-0668 — a venue without these endpoints still shows read-only chi
         supportsMock.accountSettings = true;
         await render();
 
-        const chip = button("btn-mode-chip");
+        const chip = button("btn-leverage-chip");
         expect(chip?.getAttribute("aria-haspopup")).toBe("dialog");
         expect(chip?.getAttribute("aria-expanded")).toBe("false");
         expect(chip?.getAttribute("aria-disabled")).toBeNull();
+    });
+
+    it("marks a leverage the venue never confirmed", async () => {
+        // The number the sizing maths reads is not the number the account
+        // holds. Reading it as the account's leverage misprices the
+        // liquidation estimate, so it says so without a click.
+        tradeStateMock.remoteLeverage = undefined;
+        tradeStateMock.leverage = "20";
+        await render();
+
+        const chip = button("btn-leverage-chip")?.textContent ?? "";
+        expect(chip).toContain("20x");
+        expect(chip).toContain("local");
+    });
+
+    it("drops the marker once the venue reports its own leverage", async () => {
+        supportsMock.accountSettings = true;
+        tradeStateMock.remoteLeverage = 25;
+        await render();
+
+        const chip = (button("btn-leverage-chip")?.textContent ?? "").trim();
+        expect(chip).toBe("25x");
+    });
+
+    it("leaves paper trading unmarked — no account is behind it", async () => {
+        paperStateMock.enabled = true;
+        tradeStateMock.remoteLeverage = undefined;
+        tradeStateMock.leverage = "20";
+        await render();
+
+        const chip = (button("btn-leverage-chip")?.textContent ?? "").trim();
+        expect(chip).toBe("20x");
     });
 });

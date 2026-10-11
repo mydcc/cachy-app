@@ -4366,6 +4366,7 @@
       "leverageNeedsValue": "Enter a whole-number leverage first",
       "leverageEdit": "Adjust leverage",
       "leverageRange": "{min}x to {max}x",
+      "leverageLocal": "local",
       "leverageLocalOnly": "Local only — without a broker value nothing is sent to the exchange.",
       "leverageAnytime": "Leverage can be adjusted at any time — including with an open position and resting orders.",
       "leverageDecrease": "Decrease leverage",
