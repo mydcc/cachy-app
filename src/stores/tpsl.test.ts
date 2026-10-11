@@ -36,9 +36,7 @@ vi.mock("../services/tradeService", () => ({
     tradeService: { fetchTpSlOrders: fetchTpSl },
 }));
 
-import { tpSlState, readTpSlOrders, MAX_AGE_MS } from "./tpsl.svelte";
-import { paperState } from "./paperTrading.svelte";
-import { settingsState } from "./settings.svelte";
+import { tpSlState, MAX_AGE_MS } from "./tpsl.svelte";
 import { normalizeTpSlRows } from "../services/tpslNormalize";
 
 function plan(symbol: string, planType: string, triggerPrice: string, id = "1") {
@@ -528,37 +526,5 @@ describe("tpSlState — against the venue's actual response shape (BUG-0292)", (
         await tpSlState.ensureFresh();
 
         expect(tpSlState.plansFor("BTCUSDT").profit?.sourceOrderId).toBe("123");
-    });
-});
-
-/*
- * BUG-0669 — the read that confirms every placed entry.
- *
- * On Bitget the adapter answers the venue's capability question with an empty
- * list, which is true in the live world and false in paper: the simulator
- * holds the plan a paper entry booked. Reading it as empty is what reported a
- * protected simulated position as unprotected.
- */
-describe("readTpSlOrders — the plans a paper entry really holds", () => {
-    it("goes through the paper seam instead of the venue's empty answer", async () => {
-        // Bitget is the venue whose adapter answers empty. On Bitunix the two
-        // paths are indistinguishable — its adapter delegates to the same
-        // service — so the venue has to be named for this to prove anything.
-        settingsState.apiProvider = "bitget";
-        fetchTpSl.mockResolvedValue([{ orderId: "paper-plan-1" }]);
-
-        // Live: the adapter's capability answer, and the mock is never reached.
-        await expect(readTpSlOrders("pending")).resolves.toEqual([]);
-        expect(fetchTpSl).not.toHaveBeenCalled();
-
-        paperState.setEnabled(true);
-        try {
-            await expect(readTpSlOrders("pending")).resolves.toEqual([
-                { orderId: "paper-plan-1" },
-            ]);
-            expect(fetchTpSl).toHaveBeenCalledWith("pending");
-        } finally {
-            paperState.setEnabled(false);
-        }
     });
 });

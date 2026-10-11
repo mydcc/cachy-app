@@ -45,9 +45,12 @@ commit on this branch did) merely swaps one refusal for the next:
 4. `bitgetAdapter.trading.fetchTpSlOrders` resolved `[]` on `SUPPORTS.tpSl ===
    false` without reaching the simulator, so the confirmation read after every
    entry could not see a stop that really was booked. The adapter's answer is
-   correct for the world it asks about, and the adapter may not read the mode
-   (services must not import stores — `eslint.config.js`), so the decision
-   belongs one layer up.
+   correct for the question it asks, and both obvious ways to make it
+   paper-aware are closed by architecture guards: a service may not read a
+   store (`eslint.config.js`), a store may not import `tradeService`
+   (`src/tests/architecture/exchange_boundary.test.ts`). The mode therefore
+   reaches the adapter the way `tpSlService` already receives it — through the
+   service that owns the seam.
 
 The paper seam itself is correct: `tradeService.ts:458` stops the request, and
 `paperExchange` books attached protection as a real plan row
@@ -66,16 +69,16 @@ and paper attaches the protection so the simulator really books it:
   live request.
 - `orderPlacementService.ts` — `attach = caps.tpSlAtEntry || paperState.enabled`
   so the stop rides on the entry payload, which is how `paperExchange` books it.
-- `stores/tpsl.svelte.ts` — a `readTpSlOrders` helper that reads through the
-  paper seam when nothing is sent and leaves the venue-guarded adapter read for
-  live. Both callers use it (`tpsl.svelte.ts`'s `ensureFresh`, which is what
-  `orderPlacementService.confirmProtection` reads, and `TpSlList.svelte`), so
-  the decision exists once.
+- `tradeService.ts` — a `paperMode` accessor, so a venue adapter can tell "this
+  venue has no wired route" from "nothing would be sent anyway".
+- `exchange/bitgetAdapter.ts` — the TP/SL read delegates when
+  `tradeService.paperMode`, instead of resolving `[]`. That is the read
+  `orderPlacementService.confirmProtection` makes after every entry.
 - `PlaceOrderPanel.svelte` — the unplaceable-stop warning is suppressed in
   paper, because a warning the gate will not act on is the BUG-0649 defect.
-- `paperTrading_seam.test.ts` — the new mode read in `orderPlacementService`
-  registered in the inventory, which is the guard that exists to make this
-  deliberate.
+- `paperTrading_seam.test.ts` — the new mode read registered in the seam
+  inventory, which is the guard that exists to make this deliberate, plus an
+  assertion that the accessor follows the seam's own store.
 
 Leave alone: live Bitget (still refuses — the venue genuinely cannot carry the
 stop), TP/SL placement modes, the paper simulator, and the read-side controls
@@ -92,9 +95,10 @@ stop), TP/SL placement modes, the paper simulator, and the read-side controls
       (`orderPlacementService.gateIntegration.test.ts`) and `paperExchange`
       books attached protection as a plan row (existing
       `paperExchange.test.ts:327`)
-- [x] The confirmation read finds it — `readTpSlOrders` goes through the paper
-      seam instead of the adapter's empty answer (`stores/tpsl.test.ts`,
-      Bitget named so the two paths are distinguishable)
+- [x] The confirmation read finds it — the adapter delegates when
+      `tradeService.paperMode` (`unsupportedVerbs.test.ts`, Bitget named so the
+      two paths are distinguishable), and the accessor is pinned to the store
+      the seam branches on (`paperTrading_seam.test.ts`)
 - [x] A live Bitget entry with a stop is still refused as `unplaceableStop`
 - [x] The trade panel shows no "unplaceable stop" warning in paper mode, and
       still shows it live

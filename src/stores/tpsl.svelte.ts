@@ -44,32 +44,8 @@
 
 import { Decimal } from "decimal.js";
 import { activeExchange, type TpSlOrder } from "../services/exchange";
-import { tradeService } from "../services/tradeService";
-import { paperState } from "./paperTrading.svelte";
 import { logger } from "../services/logger";
 import { planSideMatchesEntry } from "../services/tpslNormalize";
-
-/**
- * The pending plans for a symbol — the simulator's when nothing is sent.
- *
- * BUG-0669. The adapter answers a venue-capability question (`SUPPORTS.tpSl`)
- * and answers it correctly: Bitget has no wired route, so it resolves empty
- * without asking anyone. In paper mode that answer describes the wrong world.
- * The plans exist in the paper book even though the venue has no route for
- * them, and `orderPlacementService` confirms every entry by reading them back
- * — so the empty answer told it that a simulated entry's stop was missing and
- * reported a protected position as unprotected.
- *
- * The paper branch goes through `tradeService`, whose read is already
- * paper-aware and answers from the simulator over the same seam every other
- * request uses (`tradeService.ts`'s paper seam; `createTpSlService`'s
- * credential guard is skipped in paper for the same reason).
- */
-export function readTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
-    return paperState.enabled
-        ? tradeService.fetchTpSlOrders(view)
-        : activeExchange().trading.fetchTpSlOrders(view);
-}
 
 /**
  * How long a fetched set is treated as current. Plans change when the user
@@ -246,7 +222,7 @@ class TpSlManager {
         const request = Promise.resolve().then(async () => {
             this._loading = true;
             try {
-                const orders = await readTpSlOrders("pending");
+                const orders = await activeExchange().trading.fetchTpSlOrders("pending");
                 // Superseded: `invalidate()` ran while this was in flight, so
                 // these rows predate the mutation it announced. Writing them
                 // would show the stale level *and* stamp it fresh for the whole

@@ -1096,6 +1096,24 @@ class TradeService {
         return this.orderModify.modifyOrder(params);
     }
 
+    /**
+     * Whether this service is currently simulating rather than calling out.
+     *
+     * Exposed so a venue adapter can tell "this venue has no wired route" from
+     * "nothing would be sent anyway" without reading the store itself — the
+     * adapter layer may not (`eslint.architecture.boundaries.js`), and a store
+     * may not import this service either
+     * (`src/tests/architecture/exchange_boundary.test.ts`). The seam this
+     * describes is the one in `signedRequest` below.
+     *
+     * BUG-0669: `bitgetAdapter.fetchTpSlOrders` answers `SUPPORTS.tpSl ? … : []`,
+     * which is true of the venue and false of paper, where the simulator holds
+     * the plan a paper entry booked.
+     */
+    public get paperMode(): boolean {
+        return paperState.enabled;
+    }
+
     public async fetchTpSlOrders(view: "pending" | "history" = "pending"): Promise<TpSlOrder[]> {
         return this.tpSl.fetchTpSlOrders(view);
     }

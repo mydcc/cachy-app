@@ -27,8 +27,9 @@
  * when nothing happened, which is the failure this file exists to prevent.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Decimal } from "decimal.js";
+import { paperState } from "../../stores/paperTrading.svelte";
 
 vi.mock("../logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -66,6 +67,11 @@ const tradeServiceMock = vi.hoisted(() => ({
     placePositionTpSl: vi.fn(async () => ({ ok: true })),
     placeTpSlOrder: vi.fn(async () => ({ ok: true })),
     fetchLeverageMarginMode: vi.fn(async () => undefined),
+    // The real accessor reads the store; this mirrors it so the adapter's
+    // BUG-0669 read is exercised through the same shape.
+    get paperMode() {
+        return paperState.enabled;
+    },
     fetchTradingPairInfo: vi.fn(async () => undefined),
     fetchPositionMode: vi.fn(async () => undefined),
     changeLeverage: vi.fn(async () => undefined),
@@ -85,6 +91,12 @@ const bitunix = () => getExchangeAdapter("bitunix");
 beforeEach(() => {
     vi.clearAllMocks();
     settings.apiProvider = "bitget";
+});
+
+afterEach(() => {
+    // Paper mode is global state; leaving it on would flip the parametrized
+    // "a read resolves empty" conformance sweep below.
+    paperState.setEnabled(false);
 });
 
 describe("FEAT-0229 — a write the venue cannot do never reaches the transport", () => {
@@ -131,6 +143,22 @@ describe("FEAT-0229 — a read resolves empty instead of throwing", () => {
     it("returns no TP/SL plans and raises nothing", async () => {
         await expect(bitget().trading.fetchTpSlOrders("pending")).resolves.toEqual([]);
         expect(tradeServiceMock.fetchTpSlOrders).not.toHaveBeenCalled();
+    });
+
+    /*
+     * BUG-0669 — empty is the true answer for a venue with no wired route, but
+     * not for paper, where the plans exist in the simulator's own book. The
+     * read decides on that difference through the service rather than by
+     * reading the store, so a stop really on the simulated position is not
+     * reported as missing.
+     */
+    it("delegates the TP/SL read when nothing would be sent", async () => {
+        paperState.setEnabled(true);
+
+        await expect(bitget().trading.fetchTpSlOrders("pending")).resolves.toEqual([
+            { orderId: "1" },
+        ]);
+        expect(tradeServiceMock.fetchTpSlOrders).toHaveBeenCalledWith("pending");
     });
 
     it("resolves the account reads locally rather than sending them", async () => {
