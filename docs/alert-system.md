@@ -5,7 +5,7 @@ machinery serves both an alarm and a bot.
 
 This document describes the **system**. The decision behind it lives in
 [`adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md`](adr/0012-a-strategy-is-checkable-data-not-code-and-not-a-model-s-opinion.md);
-the work is tracked in [`backlog/`](backlog/INDEX.md) under `area: alerts`. Neither
+the work is tracked in `docs/backlog/` under `area: alerts`. Neither
 is repeated here.
 
 ## One document, three surfaces
@@ -183,4 +183,4 @@ refusal channel (BUG-0487) — never silently dropped, never submitted.
 - [`adr/0018-…`](adr/0018-user-directed-egress-of-class-a-announcements.md) — why external channels are opt-in and unencrypted-at-rest by decision
 - [`adr/0001-local-first-boundary.md`](adr/0001-local-first-boundary.md) — why rules never leave the device
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — where the code lives
-- [`backlog/INDEX.md`](backlog/INDEX.md) — filter `area: alerts`
+- `backlog/INDEX.md` (generated; `npm run backlog:index`) — filter `area: alerts`

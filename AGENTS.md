@@ -80,7 +80,7 @@ Before marking a task completed: targeted tests for changed code must pass; CI c
 
 **Planning & Documentation:** `docs/README.md` is the map — why Cachy exists (`docs/VISION.md`), where code lives (`docs/ARCHITECTURE.md`), what ships when (`docs/MILESTONES.md` → `docs/ROADMAP.md`), what is worked on (`docs/backlog/INDEX.md`), what cannot change (`docs/adr/`), what needs human decision (`docs/TODO.md`).
 - **Link, never duplicate.** One fact lives in exactly one file.
-- New task → backlog entry from `docs/backlog/templates/` (`npm run backlog:check` validates). When a PR touches any `docs/backlog/` file, regenerate the index (`node scripts/backlog-index.mjs`) and commit it **in that PR** — CI fails on a stale index.
+- New task → backlog entry from `docs/backlog/templates/` (`npm run backlog:check` validates the front matter). The index (`docs/backlog/INDEX.md`, `backlog.generated.*`) is **generated on demand and not tracked** — run `node scripts/backlog-index.mjs` when you want to read it; never commit it.
 - New decision that constrains future work → ADR (`docs/adr/template.md`), not a paragraph somewhere.
 
 Architecture overview: `docs/architecture/cachy-architecture.dataflow.html` (source of truth is the JSON next to it; regenerate with `npm run arch`). Read it first when touching services, exchange integrations, or anything that changes data flows or the Local-First boundary — and update the diagram in the same PR when your change moves data between device, cloud, or exchanges.
