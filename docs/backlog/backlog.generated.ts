@@ -6481,6 +6481,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0666-tpsl-edit-modal-bypasses-confirm-policy.md"
   },
   {
+    "id": "BUG-0671",
+    "title": "No test drives a real modal through the window manager, so a dialog's visibility is unproven",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P2",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "ui",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0667"
+    ],
+    "file": "bugs/BUG-0671-no-test-drives-a-real-modal-through-the-window-manager.md"
+  },
+  {
     "id": "FEAT-0019",
     "title": "Let the assistant research the web when it needs to",
     "type": "feature",
