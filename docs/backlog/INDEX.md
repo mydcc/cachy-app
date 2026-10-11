@@ -4,7 +4,7 @@
 
 546 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 472 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 23 · ✅ done 473 · ⛔ dropped 1
 
 ---
 
@@ -557,7 +557,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 4
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | security |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | persistence |
 | [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | ✅ done | chart |
-| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | 📋 specced | security |
+| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | ✅ done | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -1095,7 +1095,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 4
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | 📋 specced | none | community, pro, private | A | none | [BUG-0667](bugs/BUG-0667-second-account-cannot-be-made-active.md) |
+| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0667](bugs/BUG-0667-second-account-cannot-be-made-active.md) |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |

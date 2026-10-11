@@ -10157,7 +10157,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0670",
     "title": "A revealed API key stays in the DOM when a modal opens over the settings pane",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -10171,6 +10171,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0667"
     ],
+    "assignee": "opencode",
+    "branch": "fix/revealed-key-outlives-a-modal",
+    "shipped": "unreleased",
     "file": "bugs/BUG-0670-revealed-key-outlives-a-modal.md"
   },
   {
