@@ -125,6 +125,8 @@ const split = vi.hoisted(() => ({
         leverage: "10",
         accountSize: "10000",
         risk: "1",
+        atr: false,
+        stopMissing: false,
     },
     /** Legs travel with the order, so a deleted leg is stale too. */
     calculatedTargets: [] as string[],
@@ -143,7 +145,10 @@ vi.mock("../../stores/trade.svelte", () => ({
             return split.inputs.entry;
         },
         get stopLossPrice() {
-            return split.inputs.stop;
+            return split.inputs.stopMissing ? undefined : split.inputs.stop;
+        },
+        get useAtrSl() {
+            return split.inputs.atr;
         },
         get targets() {
             return split.inputTargets.map((price) => ({ price, percentage: 100 }));
@@ -277,6 +282,8 @@ beforeEach(() => {
     split.inputs.leverage = "10";
     split.inputs.accountSize = "10000";
     split.inputs.risk = "1";
+    split.inputs.atr = false;
+    split.inputs.stopMissing = false;
     split.calculated.symbol = "BTCUSDT";
     split.calculated.tradeType = "long";
     // Symbol and direction too: leaving them out lets "symbol changed" leak into
@@ -374,6 +381,54 @@ describe("BUG-0648 — the summary says when its figures are no longer current",
         expect(text).toContain(lookup("orderEntry.notes.staleCalculation"));
         expect(text).not.toContain(lookup("orderEntry.notes.staleStopCleared"));
     });
+
+    it("names the cleared stop when it was zeroed rather than emptied", async () => {
+        split.inputs.stop = "0";
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleStopCleared"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    it("keeps the generic label when the stop moved to a different positive value", async () => {
+        split.inputs.stop = "57000";
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleCalculation"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleStopCleared"));
+    });
+
+    it("keeps the generic label when the stop was cleared and the entry moved too", async () => {
+        split.inputs.stop = "";
+        split.inputs.entry = "61000";
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleCalculation"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleStopCleared"));
+    });
+
+    it("keeps the generic label for a cleared stop in ATR mode", async () => {
+        split.inputs.stop = "";
+        split.inputs.atr = true;
+
+        const text = await render();
+
+        expect(text).toContain(lookup("orderEntry.notes.staleCalculation"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleStopCleared"));
+    });
+
+    it("shows no label when the stop field states nothing at all", async () => {
+        split.inputs.stopMissing = true;
+
+        const text = await render();
+
+        expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
+        expect(text).not.toContain(lookup("orderEntry.notes.staleStopCleared"));
+        expect(text).toContain(lookup("orderEntry.summary.size"));
+    });
     it("labels them for a take-profit leg the trader deleted", async () => {
         split.calculatedTargets = ["65000"];
         split.inputTargets = [];
@@ -444,6 +499,49 @@ describe("BUG-0648 — a submit may not send what the inputs no longer state", (
         );
     });
 
+    it("does not place when the stop was zeroed but the calculation still holds one", async () => {
+        split.inputs.stop = "0";
+
+        await submit();
+
+        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expect(showErrorMock).toHaveBeenCalledWith(
+            expect.stringContaining("Nothing was sent"),
+        );
+        expect(showErrorMock).toHaveBeenCalledWith(
+            expect.stringContaining(lookup("orderEntry.notes.staleStopCleared")),
+        );
+    });
+
+    it("refuses a cleared stop plus a moved entry with the generic reason", async () => {
+        split.inputs.stop = "";
+        split.inputs.entry = "61000";
+
+        await submit();
+
+        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expect(showErrorMock).toHaveBeenCalledWith(
+            expect.stringContaining(lookup("orderEntry.notes.staleCalculation")),
+        );
+        expect(showErrorMock).not.toHaveBeenCalledWith(
+            expect.stringContaining(lookup("orderEntry.notes.staleStopCleared")),
+        );
+    });
+
+    it("refuses a cleared stop in ATR mode with the generic reason", async () => {
+        split.inputs.stop = "";
+        split.inputs.atr = true;
+
+        await submit();
+
+        expect(placeEntryGroupMock).not.toHaveBeenCalled();
+        expect(showErrorMock).toHaveBeenCalledWith(
+            expect.stringContaining(lookup("orderEntry.notes.staleCalculation")),
+        );
+        expect(showErrorMock).not.toHaveBeenCalledWith(
+            expect.stringContaining(lookup("orderEntry.notes.staleStopCleared")),
+        );
+    });
     it("does not place when the entry price moved and the calculation still holds the old one", async () => {
         split.inputs.entry = "61000";
 

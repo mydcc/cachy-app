@@ -31,6 +31,7 @@ import { CONSTANTS } from "../lib/constants";
 import { APP_VERSION } from "../lib/version";
 import { modalState } from "../stores/modal.svelte";
 import { parseDecimal, generateId } from "../utils/utils";
+import { describeStaleness } from "../utils/tradeStaleness";
 import { safeJsonParse } from "../utils/safeJson";
 import type { JournalEntry } from "../stores/types";
 import type { JournalStatus } from "../stores/types";
@@ -200,7 +201,20 @@ export const app = {
 
   addTrade: async () => {
     const currentAppState = tradeState;
-    if (!currentAppState.currentTradeData?.positionSize?.gt(0)) {
+    const tradeData = currentAppState.currentTradeData;
+    if (!tradeData?.positionSize?.gt(0)) {
+      uiState.showError("errors.invalidTrade");
+      return;
+    }
+    /*
+     * BUG-0648 — journal what was calculated, not what the form has since
+     * become. Same predicate the order panel refuses on
+     * (`utils/tradeStaleness.ts`): recording the stale figures — including a
+     * stop the trader removed — would file a record later risk review trusts.
+     * Fail closed like the panel; the trader recalculates or restores the
+     * inputs, then journals.
+     */
+    if (describeStaleness(tradeData, currentAppState).stale) {
       uiState.showError("errors.invalidTrade");
       return;
     }

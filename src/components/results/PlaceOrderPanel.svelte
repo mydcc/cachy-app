@@ -69,6 +69,7 @@
   import { marketState, META_FETCH_RETRY_MS } from "../../stores/market.svelte";
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { formatDynamicDecimal, parseDecimal } from "../../utils/utils";
+  import { describeStaleness } from "../../utils/tradeStaleness";
   import type { TranslationKey } from "../../locales/schema";
 
   const exchange = $derived(settingsState.apiProvider);
@@ -86,7 +87,9 @@
    * carry no stop — an instruction that cannot be carried out, on the same
    * screen, for the same trader this defect was observed on. The gate would not
    * have refused either. That is this bug's own shape, reintroduced by its own
-   * fix: the panel saying something the gate will not act on.
+   * fix: the panel saying something the gate will not act on. (The instruction
+   * itself is gone since BUG-0648: sizing needs a stop, so no venue promises
+   * a cleared stop as a path anymore.)
    *
    * `$derived.by` because `data` is declared further down; the closure runs at
    * read time, once every binding is initialised.
@@ -95,26 +98,6 @@
     () => data?.stopLossPrice instanceof Decimal && data.stopLossPrice.gt(0),
   );
   const tifSupported = $derived(caps.timeInForce.length > 0);
-
-  /**
-   * The delta the calculator itself treats as "did not change"
-   * (`calculatorService.ts:429`). Named so the two cannot drift apart quietly.
-   */
-  const UNPERSISTED_PRICE_DELTA = new Decimal("0.000001");
-
-  /**
-   * A level the trader has stated, or `null` for none.
-   *
-   * `parseDecimal`, not the raw constructor: `TradeTargetSchema.price` carries no
-   * numeric refine (`trade.svelte.ts:159`), so any string can reach this, and a
-   * throw inside a `$derived` breaks the panel on every re-evaluation — the
-   * auto-update ticker would take it down, not just the click.
-   */
-  function positiveDecimal(value: Decimal | string | null | undefined): Decimal | null {
-    if (value === null || value === undefined || value === "") return null;
-    const parsed = value instanceof Decimal ? value : parseDecimal(value);
-    return parsed.isFinite() && parsed.gt(0) ? parsed : null;
-  }
 
   /**
    * BUG-0648 — `data` is the last calculation that *succeeded*, and nothing
@@ -129,116 +112,27 @@
    * Everywhere else the gate is the right place; this is the exception, and the
    * reason is structural rather than a matter of taste.
    *
-   * The comparison covers every field the calculation *consumes*, not the ones
-   * that happened to come to mind. `positionSize` and `requiredMargin` are
-   * functions of account size, risk percentage, entry price, stop, leverage and
-   * fees (`calculatorService.ts:478-492`), so guarding four of those six left
-   * the same defect one field over.
+   * The comparison itself lives in `utils/tradeStaleness.ts`, shared with the
+   * journal path (`app.addTrade`), so the two can never disagree on what
+   * counts as stale. It covers every field the calculation *consumes*, not
+   * the ones that happened to come to mind. `positionSize` and
+   * `requiredMargin` are functions of account size, risk percentage, entry
+   * price, stop, leverage and fees (`calculatorService.ts:478-492`), so
+   * guarding four of those six left the same defect one field over.
    */
-  const staleInputs = $derived.by(() => {
-    if (!data) return false;
-
-    /*
-     * `undefined` means the store states nothing here, which is not the same as
-     * stating "cleared": an empty field is a claim, a missing field is not one.
-     * These fields are `string | null` in production and never undefined, so the
-     * branch changes no runtime behaviour — it stops a partial test mock from
-     * reading as a withdrawal. Revisit it if they ever become genuinely
-     * optional: the guard would then silently stop covering them, with no type
-     * error to say so.
-     */
-    const stated = (value: string | null | undefined): string | null =>
-      value === undefined ? null : value;
-
-    /*
-     * The calculator skips the store write-back when the derived stop moved
-     * less than this (`calculatorService.ts:429`) and assigns `currentTradeData`
-     * regardless — so `data` can hold a stop the store never received. Comparing
-     * exactly would refuse that order forever, with no input that helps. Same
-     * tolerance, so "agree" means what the calculator meant by "changed".
-     */
-    const priceAgrees = (
-      calculated: Decimal | null | undefined,
-      value: string | Decimal | null | undefined,
-    ) => {
-      const claim = stated(value as string | null | undefined);
-      if (claim === null) return true;
-      const fromCalculation = positiveDecimal(calculated);
-      const fromInput = positiveDecimal(claim);
-      if (fromCalculation === null && fromInput === null) return true;
-      if (fromCalculation === null || fromInput === null) return false;
-      return fromCalculation
-        .minus(fromInput)
-        .abs()
-        .lte(UNPERSISTED_PRICE_DELTA);
-    };
-
-    /*
-     * Scalars are different: zero is a value here, not an absence, and an empty
-     * one is not a trader statement at all — an empty leverage makes the
-     * calculator substitute `DEFAULT_LEVERAGE`, which is exactly the source it
-     * read, so comparing that against zero would refuse every order until the
-     * trader typed a leverage they never wanted to change. Skip the empty case
-     * and compare the rest for what it is.
-     */
-    const scalarAgrees = (
-      calculated: Decimal | null | undefined,
-      value: string | null | undefined,
-    ) => {
-      const claim = stated(value);
-      if (claim === null || claim === "") return true;
-      if (calculated === null || calculated === undefined) return false;
-      return calculated.isFinite() && calculated.eq(parseDecimal(claim));
-    };
-
-    /*
-     * Take-profit legs travel with the order, so a leg the trader deleted or
-     * reordered has to count as stale too — same rule as the stop, per leg.
-     * `submit()` builds `takeProfits` from `data.targets` in order, so order is
-     * part of what gets sent, not a cosmetic detail.
-     */
-    const calculatedLegs = (data.targets ?? []).map((t) => positiveDecimal(t.price));
-    const inputLegs = (tradeState.targets ?? []).map((t) => t.price);
-    const sameLegs =
-      tradeState.targets === undefined ||
-      (calculatedLegs.length === inputLegs.length &&
-        calculatedLegs.every((leg, index) => priceAgrees(leg, inputLegs[index])));
-
-    return (
-      !priceAgrees(data.stopLossPrice, tradeState.stopLossPrice) ||
-      !priceAgrees(data.entryPrice, tradeState.entryPrice) ||
-      !scalarAgrees(data.leverage, tradeState.leverage) ||
-      !scalarAgrees(data.accountSize, tradeState.accountSize) ||
-      !scalarAgrees(data.riskPercentage, tradeState.riskPercentage) ||
-      !sameLegs ||
-      (tradeState.symbol !== undefined && data.symbol !== tradeState.symbol) ||
-      (tradeState.tradeType !== undefined && data.tradeType !== tradeState.tradeType)
-    );
-  });
-
+  const staleness = $derived.by(() => describeStaleness(data, tradeState));
+  const staleInputs = $derived(staleness.stale);
   /**
-   * BUG-0648, remainder — name the cleared stop. `staleInputs` fires for every
-   * field the trader undid, but clearing the stop is the one the gate itself
-   * prescribes (`orderGate.unplaceableStop`), and the calculator cannot follow
-   * it there: `getAndValidateInputs` returns `STATUS_INCOMPLETE` for a
-   * non-positive stop, so no recalculation replaces `data` and the generic
-   * "check those inputs" reads as a dead end. This names the cause and the
-   * constraint instead of promising an input that helps.
-   *
-   * Narrow on purpose: a positive calculated stop against an empty or zeroed
-   * form stop, outside ATR mode (where the field is not the stop's source).
-   * `undefined` is not a claim — same rule as `stated` above — so a missing
-   * field never reads as a withdrawal.
+   * One key for the summary note and the submit refusal reason, read in both
+   * spots, so what the panel shows and what the click refusal says cannot
+   * desync. Specific only when the cleared stop is the *sole* disagreement —
+   * any other moved field falls back to the generic mismatch.
    */
-  const stopClearedStale = $derived.by(() => {
-    if (!data || !staleInputs) return false;
-    if (tradeState.stopLossPrice === undefined) return false;
-    if (tradeState.useAtrSl === true) return false;
-    return (
-      positiveDecimal(data.stopLossPrice) !== null &&
-      positiveDecimal(tradeState.stopLossPrice) === null
-    );
-  });
+  const staleReasonKey = $derived(
+    (staleness.stopCleared
+      ? "orderEntry.notes.staleStopCleared"
+      : "orderEntry.notes.staleCalculation") as TranslationKey,
+  );
 
   let entryType = $state<OrderEntryType>("market");
   let timeInForce = $state<TimeInForce>("GTC");
@@ -585,18 +479,13 @@
      */
     if (staleInputs) {
       // Composed, not restated: the clause naming the disagreement lives once,
-      // in the note. Two keys in two languages saying the same thing is four
-      // strings to keep in sync, and the persistent note and the click refusal
-      // would eventually disagree on screen.
+      // in `staleReasonKey`, which the persistent note below reads too. Two
+      // keys in two languages saying the same thing is four strings to keep
+      // in sync, and the note and the click refusal would eventually disagree
+      // on screen.
       uiState.showError(
         $_("orderEntry.errors.staleCalculation", {
-          values: {
-            reason: $_(
-              (stopClearedStale
-                ? "orderEntry.notes.staleStopCleared"
-                : "orderEntry.notes.staleCalculation") as TranslationKey,
-            ),
-          },
+          values: { reason: $_(staleReasonKey) },
         }),
       );
       return;
@@ -881,10 +770,8 @@
       calculated at all. Same reasoning as the BUG-0649 note below: state it
       here, where the numbers are, not only on the click that was refused.
     -->
-    {#if stopClearedStale}
-      <p class="note warn">{$_("orderEntry.notes.staleStopCleared")}</p>
-    {:else if staleInputs}
-      <p class="note warn">{$_("orderEntry.notes.staleCalculation")}</p>
+    {#if staleInputs}
+      <p class="note warn">{$_(staleReasonKey)}</p>
     {/if}
 
     <!--

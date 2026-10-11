@@ -139,9 +139,16 @@ refuse when they disagree, which closes the money path without deciding the
       calculator cannot follow.** `unplaceableStop` and the panel's
       `unprotectedEntry` note now state that sizing needs a stop and point at a
       venue that can carry it, instead of telling the trader to clear the stop.
-      A cleared stop additionally names itself: `stopClearedStale` shows
+      A cleared stop additionally names itself: `stopCleared` shows
       `staleStopCleared` (note + submit refusal reason) instead of the generic
       mismatch, so the panel says *why* no recalculation replaced the figures.
+- [x] Review-swarm follow-ups (2026-10-11): the comparison lives in
+      `utils/tradeStaleness.ts`, shared by the panel and `app.addTrade` (a
+      stale journal is refused like a stale order); the specific note fires
+      only when the cleared stop is the sole disagreement (combined causes
+      stay generic); one `staleReasonKey` feeds note and refusal; ATR,
+      zeroed-stop, changed-positive, combined and missing-field cases are
+      pinned in both the helper unit test and the panel component test.
 
 ## Evidence
 

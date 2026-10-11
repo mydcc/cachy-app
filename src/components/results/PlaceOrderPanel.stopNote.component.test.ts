@@ -253,6 +253,7 @@ describe("BUG-0649 — the stop note names what the venue can actually do", () =
      * there is a stop to talk about. Answering only the first put "clear the
      * stop" on every Bitget entry that carries no stop at all: an instruction
      * that cannot be carried out, for a refusal the gate would never raise.
+     * (That instruction is gone since BUG-0648: sizing needs a stop.)
      */
     it("says nothing on a venue that cannot carry a stop when there is none", () => {
         capsMock.tpSlAtEntry = false;
