@@ -115,8 +115,12 @@ export function selectVariant(indexKey, index, req) {
   const available = index.get(indexKey);
   if (available === undefined) return null;
 
-  const variants = Object.keys(available);
-  const chosen = new Negotiator(req).encoding(variants, { preferred: variants });
+  // Enforce deterministic preferred encoding order: Brotli ('br') before Gzip ('gzip')
+  const availableKeys = Object.keys(available);
+  const preferred = VARIANTS.map(([encoding]) => encoding).filter((enc) =>
+    availableKeys.includes(enc),
+  );
+  const chosen = new Negotiator(req).encoding(preferred, { preferred });
   if (chosen === false || !Object.hasOwn(available, chosen)) return null;
 
   return { suffix: available[chosen], encoding: chosen };
