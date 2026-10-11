@@ -101,11 +101,20 @@ build_old_*/
 .htaccess
 .well-known/
 
-# Generated backlog index. Committed only by sync-backlog.yml directly to
-# develop/main after merge (see BUG-0225) — never as part of a feature PR.
-# Local runs of `npm run backlog:index` still write it for a quick preview;
-# this just stops it from being accidentally staged from a feature branch.
+# Generated backlog index. Not tracked: `node scripts/backlog-index.mjs`
+# (or `npm run backlog:index`) writes it on demand, in ~1 s with no install.
+#
+# It used to be tracked and required fresh in every backlog-touching PR. Two
+# such PRs in parallel then collided on it every time, because two lines of
+# the generated file change on every regeneration regardless of which item was
+# edited (BUG-0225). Both fixes for that have been tried and each reintroduced
+# the other's problem: a bot that committed it after the merge needed a
+# standing write credential and a retry loop, and requiring it in the PR made
+# conflicts a certainty. Not tracking it ends that trade — there is nothing
+# left for two PRs to disagree about.
 docs/backlog/INDEX.md
+docs/backlog/backlog.generated.ts
+docs/backlog/backlog.generated.json
 
 # Deployment configuration for one specific server. The template is tracked as
 # .deploy.conf.example; the filled-in file is not — it names that server's paths,

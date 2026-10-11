@@ -7,7 +7,7 @@ item that holds the actual requirements. If you are about to write a paragraph
 of detail here, it belongs in the item.
 
 - **Why this order:** [`MILESTONES.md`](MILESTONES.md)
-- **What each item requires:** [`backlog/INDEX.md`](backlog/INDEX.md)
+- **What each item requires:** `backlog/INDEX.md` (generated; `npm run backlog:index`)
 - **Decisions waiting on a person:** [`TODO.md`](TODO.md)
 
 > The previous roadmap — 4252 lines covering the engineering-foundation phase —
@@ -322,7 +322,7 @@ plan that could do real harm if built early.
 ## Unscheduled
 
 Real, wanted, not aimed at a release yet. In
-[`backlog/INDEX.md`](backlog/INDEX.md) under "Unscheduled":
+`backlog/INDEX.md` (generated) under "Unscheduled":
 [FEAT-0022](backlog/features/FEAT-0022-settings-search.md),
 [IDEA-0036](backlog/ideas/IDEA-0036-gamification-fork.md).
 

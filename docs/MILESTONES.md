@@ -44,7 +44,7 @@ planned cut is the **1.6.0** stable release from `main`.
 
 _Stand September 2026 (1.6.0-beta.364):_ all M0 and M1 backlog items are done, M2/M3 are partially
 delivered (the 1.5–1.6 trade-panel group). Item-level truth lives in
-[`backlog/INDEX.md`](backlog/INDEX.md); a milestone is only marked ✅ here once
+`backlog/INDEX.md` (generated on demand, not tracked); a milestone is only marked ✅ here once
 its exit criterion is proven, not when its items are ticked. Gate status: M0 gate (no open P0, check + suite + lint green) — pending proof; M1 gate (order gate + kill switch + audit trail) — pending proof.
 | **M4** | Alerting | `~1.7` → landed in `1.6.0` | 🟢 | Price, indicator and combined alerts fire locally and reliably |
 | **M5** | Community & whitelabel edition | `~1.8` | 🔒 M1–M3 | A serverless build is produced by CI and deployable without a database |

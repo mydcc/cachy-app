@@ -184,16 +184,19 @@ describe("check-pr-base-revert.mjs", () => {
         return { base: git(root, "rev-parse", "develop"), head: git(root, "rev-parse", "feat") };
     }
 
-    it("ignores regenerated backlog index churn (BUG-0447 review, PR #3297)", () => {
+    it("fails that shape on a backlog path too, now that the index is untracked", () => {
+        // This used to be the exclusion's own test: docs/backlog/INDEX.md was
+        // skipped because regenerating it rewrote a line the base had changed.
+        // The file is not tracked any more, so the shape is no longer
+        // legitimate for any path — including this one.
         const { base, head } = baseAndBranchRewriteOneLine("docs/backlog/INDEX.md");
 
         const result = runScript(root, base, head);
 
-        expect(result.status).toBe(0);
-        expect(result.output).toContain("keeps base-branch work intact");
+        expect(result.status).not.toBe(0);
     });
 
-    it("still fails that shape on a checked path, so the exclusion is narrow", () => {
+    it("still fails that shape on a checked path", () => {
         const { base, head } = baseAndBranchRewriteOneLine("src/notes.md");
 
         const result = runScript(root, base, head);

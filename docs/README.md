@@ -14,7 +14,7 @@ who it is for — if you are an agent starting a task, start here.
 | Know where the code lives | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | See the long-term plan | [`MILESTONES.md`](MILESTONES.md) |
 | Know what to build next | [`ROADMAP.md`](ROADMAP.md) |
-| Pick up a specific piece of work | [`backlog/INDEX.md`](backlog/INDEX.md) |
+| Pick up a specific piece of work | `docs/backlog/` and `npm run backlog:index` |
 | Know what I am not allowed to change | [`adr/`](adr/README.md) |
 | Find something waiting on a human | [`TODO.md`](TODO.md) |
 
@@ -100,8 +100,8 @@ way and documented in [`REPO-AUDIT.md`](REPO-AUDIT.md) and the
 
 - A new **decision** that constrains future work → an [ADR](adr/README.md).
   Copy `adr/template.md`, open it as `Proposed`.
-- A new **thing to build** → a [backlog item](backlog/README.md). Regenerate
-  `INDEX.md` (`npm run backlog:index`) and commit it in the same PR.
+- A new **thing to build** → a [backlog item](backlog/README.md). The index is
+  generated on demand (`npm run backlog:index`) and is not committed.
 - A new **choice for a human** → [`TODO.md`](TODO.md), with the "why it is here"
   line intact.
 - Anything else: ask whether it belongs in a document that already exists. It
