@@ -28,7 +28,7 @@
   import { toastService } from "../../services/toastService.svelte";
   import { OrderRefusedError } from "../../services/orderGate";
   import { getDisplayMessage } from "../../utils/errorUtils";
-  import { tpSlState } from "../../stores/tpsl.svelte";
+  import { tpSlState, readTpSlOrders } from "../../stores/tpsl.svelte";
 
   interface Props {
     isActive?: boolean;
@@ -68,7 +68,7 @@
     loading = true;
     error = "";
     try {
-      orders = await activeExchange().trading.fetchTpSlOrders(view);
+      orders = await readTpSlOrders(view);
     } catch (e) {
       console.error("TP/SL Global Error:", e);
       // Map error message using i18n key if available

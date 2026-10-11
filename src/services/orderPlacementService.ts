@@ -45,6 +45,7 @@
 import { Decimal } from "decimal.js";
 import { tradeService, type TpSlOrder } from "./tradeService";
 import { accountState } from "../stores/account.svelte";
+import { paperState } from "../stores/paperTrading.svelte";
 import { tpSlState } from "../stores/tpsl.svelte";
 import { capabilitiesOf, type OrderEntryType, type TimeInForce } from "./exchangeCapabilities";
 import { logger } from "./logger";
@@ -235,7 +236,16 @@ class OrderPlacementService {
         const wantsStop = plan.stopLossPrice.gt(0);
         const wantsTarget = plan.takeProfits.length > 0;
 
-        const attach = caps.tpSlAtEntry;
+        /*
+         * Paper mode carries the protection ON the entry, whatever the venue
+         * would do. The simulator books an attached stop as a real plan row
+         * (`paperExchange.attachEntryPlans`) and reads it back on request, so
+         * this is the difference between a rehearsed stop and a rehearsed
+         * entry that only looks protected. The venue's `tpSlAtEntry` answers
+         * a question paper never asks, because nothing leaves the browser —
+         * the same reading `orderGate.verify` gives it (BUG-0669).
+         */
+        const attach = caps.tpSlAtEntry || paperState.enabled;
 
         /*
          * BUG-0502 — before-image of the symbol's plans, taken before the

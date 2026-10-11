@@ -304,9 +304,11 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
             return intent;
         }
 
-        /** The same entry, but the venue is never contacted. */
+        /** The same entry in paper mode: the stop rides on the payload, as the
+         *  placement service now builds it, because `paperExchange` books
+         *  attached protection as a plan row of its own. */
         function paperEntryWithStop(): OrderIntent {
-            const intent = bitgetEntryWithStop();
+            const intent = openIntent("bitget", { slPrice: "49500" });
             intent.displayed.paperMode = true;
             return intent;
         }
@@ -360,6 +362,10 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
         it("lets a paper entry carry the stop a live Bitget entry cannot", () => {
             const verdict = orderGate.verify(paperEntryWithStop());
 
+            // The whole claim, not a proxy for it: the order has to be
+            // placeable, or the exemption merely swaps one refusal for
+            // another and the rehearsal stays blocked.
+            expect(verdict.approved).toBe(true);
             expect(verdict.checked).not.toContain("unplaceableStop");
             expect(verdict.refusal?.messageKey).not.toBe("orderGate.unplaceableStop");
         });

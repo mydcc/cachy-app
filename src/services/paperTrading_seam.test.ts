@@ -322,6 +322,7 @@ describe("FEAT-0012 — one seam", () => {
                 "See the scope note above for what this list does and does not cover.",
         ).toEqual([
             ["src/services/accountSession.svelte.ts", 1],
+            ["src/services/orderPlacementService.ts", 1],
             ["src/services/paperAccountFeed.ts", 1],
             ["src/services/paperJournalService.ts", 1],
             ["src/services/paperTradingService.ts", 5],

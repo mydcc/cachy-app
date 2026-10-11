@@ -93,6 +93,7 @@ vi.mock("../stores/tpsl.svelte", () => ({
 import { tradeService } from "./tradeService";
 import { orderPlacementService, type EntryPlan } from "./orderPlacementService";
 import { marketState } from "../stores/market.svelte";
+import { paperState } from "../stores/paperTrading.svelte";
 import { orderGate, registerKillSwitch, registerRiskLimitCheck, registerAuditRecorder } from "./orderGate";
 
 /** 1000 USDT account, 1 % risk, 500 stop distance → 10 / 500 = 0.02 BTC. */
@@ -123,6 +124,8 @@ let sent: Array<Record<string, unknown>> = [];
 beforeEach(() => {
     sent = [];
     settings.apiProvider = "bitunix";
+    // A paper case below turns this on; the rest of the file describes live.
+    paperState.setEnabled(false);
     settings.accounts = [
         {
             id: "bitunix",
@@ -236,6 +239,26 @@ describe("BUG-0297 — an entry on a venue that cannot attach protection", () =>
             expect(result.stopLoss).toBe("none");
             expect(result.unprotected).toBe(false);
             expect(sent).toHaveLength(1);
+        });
+
+        /*
+         * BUG-0669 — the same entry in paper mode. Nothing leaves the
+         * browser, so the venue's refusal does not apply, and the stop
+         * travels on the payload because that is how the simulator books it
+         * (`paperExchange.attachEntryPlans`). Leaving it off would place a
+         * simulated entry that only looks protected.
+         */
+        it("carries the stop on the payload when nothing is sent", async () => {
+            settings.apiProvider = "bitget";
+            paperState.setEnabled(true);
+
+            const result = await orderPlacementService.placeEntryGroup(
+                plan({ exchange: "bitget" }),
+            );
+
+            expect(result.refusal).toBeUndefined();
+            expect(result.entryPlaced).toBe(true);
+            expect(sent[0].slPrice).toBe("49500");
         });
     });
 
