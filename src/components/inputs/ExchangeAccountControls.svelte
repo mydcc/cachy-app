@@ -22,8 +22,15 @@
   This component emits TWO sibling columns (leverage, margin/position) with no
   wrapper of its own, so the parent can lay them out in one row beside its own
   fee column. Svelte allows multiple roots; that is what is being used here.
-  It emits nothing at all where the venue declares no `accountSettings`
-  support, and the row then simply has one fewer column.
+
+  BUG-0668 — the columns render on every venue, including ones that declare
+  no `accountSettings` support. UTA offers no set-leverage / set-margin /
+  set-position-mode endpoint at all, so on Bitget there is nothing to switch
+  *to*; but hiding the chips too left traders blind on money-relevant
+  settings. Read-only chips show venue values where the store has them and
+  honest unknown markers where it has none, and the mode chip names the
+  venue's own interface as the place to switch. No write path is reachable
+  from the read-only state.
 
   NOTHING HERE SENDS ON A CLICK. Both chips open a dialog that collects a
   draft, and only its Confirm reaches the exchange. Every write in this
@@ -82,6 +89,14 @@ import { Decimal } from "decimal.js";
 
   /** The venue's own declaration (FEAT-0229) — not a venue-name test. */
   const supported = $derived(activeExchange().supports.accountSettings);
+
+  /**
+   * BUG-0668 — display without writes. `supported` stays the gate for every
+   * write below; it no longer gates visibility. On a read-only venue the
+   * leverage chip edits the local planning value (the pre-existing localOnly
+   * path, same as paper mode) and the mode chip never opens its dialog.
+   */
+  const readOnly = $derived(!supported);
 
   const symbol = $derived(tradeState.symbol ?? "");
   const venueSymbol = $derived(
@@ -389,6 +404,13 @@ import { Decimal } from "decimal.js";
    */
   const localOnly = $derived(paperState.enabled || remoteLeverage === undefined);
 
+  /**
+   * BUG-0668 — mark a value the venue never confirmed. Paper trading is left
+   * unmarked on purpose: there is no account behind it to misread, and it
+   * already announces itself elsewhere.
+   */
+  const showLocalMarker = $derived(localOnly && !paperState.enabled);
+
   const shownLeverage = $derived.by(() => {
     if (!localOnly && remoteLeverage !== undefined) return remoteLeverage.toString();
     const raw = tradeState.leverage;
@@ -422,9 +444,14 @@ import { Decimal } from "decimal.js";
     const pair = `${margin} \u2022 ${pos}`;
     // The tooltip keeps naming both values even when one is blanked in the
     // chip: hiding the pairing is the point, hiding the reason is not.
-    return modesSkewed
+    const base = modesSkewed
       ? `${pair}\n${$_("exchange.accountSettings.halvesOutOfSync")}`
       : pair;
+    // BUG-0668 — on a read-only venue the tooltip also says where switching
+    // actually happens, because this chip will never offer it.
+    return readOnly
+      ? `${base}\n${$_("exchange.unsupported.accountSettings", { values: { exchange: venueName } })}`
+      : base;
   });
 
   const positionModeReason = $derived.by(() => {
@@ -659,7 +686,6 @@ import { Decimal } from "decimal.js";
   }
 </script>
 
-{#if supported}
   <!-- Leverage column. Gated by nothing; see the header comment. -->
   <div class="flex flex-col gap-1 min-w-0">
     <span class="text-[11px] font-medium text-[var(--text-secondary)]"
@@ -681,6 +707,21 @@ import { Decimal } from "decimal.js";
         {$_("exchange.accountSettings.pending")}
       {:else}
         <span class="font-semibold">{shownLeverage ? shownLeverage + "x" : "—"}</span>
+        {#if showLocalMarker}
+          <!--
+            The number the sizing maths reads is not the number the venue
+            holds, and on a venue that reports nothing it never will be. The
+            marker travels with the value rather than living in a tooltip:
+            hover text is no explanation to a touch or keyboard user, and
+            reading "20x" as the account's leverage misprices the
+            liquidation estimate (BUG-0668).
+          -->
+          <span
+            class="ml-1 text-[11px] font-medium text-[var(--text-secondary)]"
+            title={$_("exchange.accountSettings.leverageLocalOnly")}
+            >{$_("exchange.accountSettings.leverageLocal")}</span
+          >
+        {/if}
       {/if}
     </button>
   </div>
@@ -697,11 +738,25 @@ import { Decimal } from "decimal.js";
       type="button"
       class="chip"
       data-track-id="btn-mode-chip"
-      aria-haspopup="dialog"
-      aria-expanded={modeOpen}
+      aria-haspopup={readOnly ? undefined : "dialog"}
+      aria-expanded={readOnly ? undefined : modeOpen}
+      aria-disabled={readOnly ? "true" : undefined}
       disabled={busy !== ""}
       title={$_("exchange.accountSettings.modeTitle")}
       onclick={() => {
+        // BUG-0668 — read-only venue: the dialog behind this chip could only
+        // refuse (the adapter has no write to call), so it never opens. The
+        // chip still answers a tap, because a `title` tooltip is no
+        // explanation to a keyboard or touch user: say where to switch
+        // instead of going silent.
+        if (readOnly) {
+          toastService.error(
+            $_("exchange.unsupported.accountSettings", {
+              values: { exchange: venueName },
+            }),
+          );
+          return;
+        }
         if (busy) return;
         // BUG-2: the dialog seeds its drafts once from the chip's sources,
         // so re-read before opening — the next open (and the chip itself)
@@ -773,7 +828,6 @@ import { Decimal } from "decimal.js";
       onconfirm={confirmModes}
     />
   {/if}
-{/if}
 
 <style>
   /*

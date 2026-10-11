@@ -4366,6 +4366,7 @@
       "leverageNeedsValue": "Zuerst einen ganzzahligen Hebel eingeben",
       "leverageEdit": "Hebel anpassen",
       "leverageRange": "{min}x bis {max}x",
+      "leverageLocal": "lokal",
       "leverageLocalOnly": "Nur lokal — ohne Broker-Wert wird nichts an die Börse gesendet.",
       "leverageAnytime": "Der Hebel lässt sich jederzeit anpassen — auch bei offener Position und ruhenden Orders.",
       "leverageDecrease": "Hebel verringern",
