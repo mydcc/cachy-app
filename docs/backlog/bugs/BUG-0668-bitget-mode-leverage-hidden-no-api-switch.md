@@ -89,6 +89,26 @@ switching (BUG-0667).
 - Showing a locally stored "expected" mode as if it were venue truth
 - Order entry, TP/SL, WebSocket private channels
 
+## Review follow-ups (swarm, 2026-10-11)
+
+Four read-only reviewers found no CRITICAL/HIGH issue and confirmed the
+write-safety invariant. Three findings were fixed in the same PR before merge:
+
+1. The leverage chip's localOnly path on Bitget is now pinned by a test — it
+   was the only editor left for leverage there, and nothing covered the
+   configuration that matters.
+3. The mode chip no longer advertises a dialog it will never open
+   (`aria-haspopup`/`aria-expanded` gone, `aria-disabled` set) and answers the
+   tap with the venue message, because a `title` tooltip explains nothing on
+   touch or keyboard.
+4. `GeneralInputs`' `{#if !supported}` fallback leverage input is gone, along
+   with its `.fee-input` CSS, the now-unused `leverage` prop and the parent's
+   binding — a second editor for one field on a money-relevant panel. Two
+   parent comments claimed the opposite and were corrected.
+
+Finding 2 (the leverage chip shows the local planning value with no marker) is
+open as a product decision and deliberately unchanged.
+
 ## Links
 
 - FEAT-0068 — account settings panel this completes for Bitget display

@@ -716,15 +716,26 @@ import { Decimal } from "decimal.js";
       type="button"
       class="chip"
       data-track-id="btn-mode-chip"
-      aria-haspopup="dialog"
-      aria-expanded={modeOpen}
+      aria-haspopup={readOnly ? undefined : "dialog"}
+      aria-expanded={readOnly ? undefined : modeOpen}
+      aria-disabled={readOnly ? "true" : undefined}
       disabled={busy !== ""}
       title={$_("exchange.accountSettings.modeTitle")}
       onclick={() => {
         // BUG-0668 — read-only venue: the dialog behind this chip could only
         // refuse (the adapter has no write to call), so it never opens. The
-        // tooltip above says where to switch instead.
-        if (busy || readOnly) return;
+        // chip still answers a tap, because a `title` tooltip is no
+        // explanation to a keyboard or touch user: say where to switch
+        // instead of going silent.
+        if (readOnly) {
+          toastService.error(
+            $_("exchange.unsupported.accountSettings", {
+              values: { exchange: venueName },
+            }),
+          );
+          return;
+        }
+        if (busy) return;
         // BUG-2: the dialog seeds its drafts once from the chip's sources,
         // so re-read before opening — the next open (and the chip itself)
         // then shows what the exchange holds right now, not last reload.

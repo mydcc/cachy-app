@@ -1004,4 +1004,52 @@ describe("BUG-0668 — a venue without these endpoints still shows read-only chi
         expect(button("btn-mode-chip")?.textContent).toContain("Hedge");
         expect(accountPort.fetchPositionMode).not.toHaveBeenCalled();
     });
+
+    it("writes the local leverage and sends nothing", async () => {
+        // The localOnly path the Bitunix tests above already cover, in the
+        // configuration they never exercise: with the parent's fallback input
+        // gone (BUG-0668 review), this chip is the only leverage control here.
+        // A regression that let the write through would reach an adapter with
+        // no such endpoint.
+        tradeStateMock.remoteLeverage = undefined;
+        tradeStateMock.leverage = "20";
+        await render();
+        await openLeverageAndType("15");
+
+        button("btn-leverage-apply")?.click();
+        await settle();
+
+        expect(accountPort.changeLeverage).not.toHaveBeenCalled();
+        expect(tradeStateMock.leverage).toBe("15");
+    });
+
+    it("answers the tap with where to switch, not with silence", async () => {
+        await render();
+        await openModeModal();
+
+        // A `title` tooltip explains nothing on touch and is skipped by
+        // keyboard navigation, so the activation itself has to say it.
+        expect(toastMock.error).toHaveBeenCalledTimes(1);
+        expect(String(toastMock.error.mock.calls[0]?.[0])).toContain("Bitget");
+        expect(button("btn-mode-confirm")).toBeNull();
+    });
+
+    it("stops advertising a dialog it will never open", async () => {
+        await render();
+
+        const chip = button("btn-mode-chip");
+        expect(chip?.getAttribute("aria-haspopup")).toBeNull();
+        expect(chip?.getAttribute("aria-expanded")).toBeNull();
+        expect(chip?.getAttribute("aria-disabled")).toBe("true");
+    });
+
+    it("leaves the writable venue's chip exactly as it was", async () => {
+        supportsMock.accountSettings = true;
+        await render();
+
+        const chip = button("btn-mode-chip");
+        expect(chip?.getAttribute("aria-haspopup")).toBe("dialog");
+        expect(chip?.getAttribute("aria-expanded")).toBe("false");
+        expect(chip?.getAttribute("aria-disabled")).toBeNull();
+    });
 });
