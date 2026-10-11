@@ -15,8 +15,9 @@ permanently.
   flip check fails a PR whose `Fixes #N` points at a backlog issue without
   flipping it, and the freshness check fails a PR whose backlog files leave
   a stale index behind. On an index conflict between two backlog PRs, merge
-  `develop` and re-run the script (its output is deterministic);
-  `auto-update-prs.yml` auto-resolves generated-only conflicts on open PRs.
+  `develop` and re-run the script (its output is deterministic) — a conflict
+  is always resolved by hand. `release.yml` only fast-forwards a PR that the
+  release commit left behind; it never resolves one.
   See BUG-0225 for why the index used to be bot-owned.
 - **Typed Backlog Registry (Code & AST Tools):** [`backlog.generated.ts`](backlog.generated.ts) and [`backlog.generated.json`](backlog.generated.json) — generated alongside `INDEX.md` for fast symbol indexing by tools like jCodeMunch or type-safe programmatic access.
 - **When things get built:** [`../ROADMAP.md`](../ROADMAP.md).

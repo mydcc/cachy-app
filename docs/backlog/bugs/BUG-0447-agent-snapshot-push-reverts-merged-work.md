@@ -83,6 +83,15 @@ What remains is the mechanism, so the next snapshot push fails instead of mergin
 Do not fix this by turning off `auto-update-prs.yml`: stale branches are what produces
 conflicting backlog indices in the first place.
 
+> Later note (2026-10-11): that workflow no longer exists. It kept pushing to
+> PR branches with the automatic token, which parked its own workflow runs in
+> `action_required` and made every PR it touched need a human approval — so it
+> was cut back to reporting, and then removed entirely. `release.yml` now
+> fast-forwards open PRs server-side (`gh pr update-branch`) after a release
+> commit; it never resolves a conflict. The warning above still holds in
+> substance: the fix for a stale-branch revert is a freshness check, not a
+> bot with write access to the branch.
+
 ## Acceptance criteria
 
 - [ ] A test reproduces the defect: a fixture repo where a branch re-commits a stale
@@ -96,4 +105,4 @@ conflicting backlog indices in the first place.
 
 - PR #3202 — the merge that carried the revert
 - PR #3192, #3196, #3198, #3201, #3205, #3190, #3195, #3191 — the work it reverted
-- `.github/workflows/auto-update-prs.yml` — the base-merging half of the mechanism
+- `release.yml` — the base-merging half of the mechanism, as of 2026-10-11 (`auto-update-prs.yml`, which preceded it, is gone)
