@@ -118,15 +118,20 @@ function makeActiveButtons(): HTMLButtonElement[] {
 }
 
 /**
- * The open dialog's title, or null when none is open. The passthrough stub
- * carries the frame title as its `aria-label` rather than as text, so this
- * throws instead of answering "" — a missing dialog must not read as a
- * dialog without a heading.
+ * The open dialog's stub, or throws when none is open. The passthrough stub
+ * carries the frame title as its `aria-label` and the facts as its content,
+ * so this is where a dialog assertion belongs — a document-wide query would
+ * also match the account cards beside it.
  */
-function dialogHeading(): string {
-    const stub = host.querySelector('[data-testid="modal-frame-stub"]');
+function dialogStub(): HTMLElement {
+    const stub = host.querySelector<HTMLElement>('[data-testid="modal-frame-stub"]');
     if (!stub) throw new Error("no dialog is open");
-    return stub.getAttribute("aria-label") ?? "";
+    return stub;
+}
+
+/** The open dialog's title. */
+function dialogHeading(): string {
+    return dialogStub().getAttribute("aria-label") ?? "";
 }
 
 function buttonLabelled(label: string): HTMLButtonElement {
@@ -174,12 +179,15 @@ describe("AccountList", () => {
         makeActiveButtons()[1].click();
         flushSync();
 
-        // The dialog names both sides of the switch...
+        // Scoped to the dialog: "Main" and "Second" are also rendered by the
+        // account cards beside it, so a document-wide `toContain` would pass
+        // for a dialog that named no account at all.
+        const facts = dialogStub().textContent ?? "";
         expect(dialogHeading()).toContain("Switch account");
-        expect(host.textContent).toContain("Current account");
-        expect(host.textContent).toContain("Main");
-        expect(host.textContent).toContain("Switching to");
-        expect(host.textContent).toContain("Second");
+        expect(facts).toContain("Current account");
+        expect(facts).toContain("Main");
+        expect(facts).toContain("Switching to");
+        expect(facts).toContain("Second");
         // ...and nothing has travelled yet.
         expect(settings.setActiveAccount).not.toHaveBeenCalled();
     });

@@ -21,6 +21,7 @@
 */
 
 import type { WindowBase } from "./WindowBase.svelte";
+import { Z_LAYERS } from "./zLayers";
 import { ModalWindow } from "./implementations/ModalWindow.svelte";
 import { IframeWindow } from "./implementations/IframeWindow.svelte";
 // ChartWindow and ChannelWindow are imported dynamically in createFromData 
@@ -28,6 +29,12 @@ import { IframeWindow } from "./implementations/IframeWindow.svelte";
 
 const BASE_Z_INDEX = 11000;
 const MAX_SAFE_Z_INDEX = 1000000;
+/**
+ * Height of the reserved modal band (`Z_LAYERS.modal`). Modals are few and
+ * short-lived, and this keeps their ordinals clear of `Z_LAYERS.toast` above
+ * them however long a session runs.
+ */
+const MODAL_Z_SPAN = 1000;
 // Shared with WindowFrame.svelte's own geometry-save debounce (BUG-0042) so
 // there is one save cadence for window state, not two independent ones.
 export const SAVE_DEBOUNCE_MS = 500;
@@ -288,16 +295,12 @@ class WindowManager {
         // 4. Registration and activation.
         windowInstance.isMinimized = false;
         this._windows.push(windowInstance);
-        // BUG-0667: a modal is registered from inside the window that mounted
-        // it, and registering is not the user clicking elsewhere. Sweeping
-        // here closed that host -- the settings pane, which carries
-        // closeOnBlur -- in the same tick that registered the dialog, and
-        // unmounting the pane unmounted the dialog with it. That is why the
-        // account-switch confirm never appeared. Every other caller keeps
-        // the sweep: focus moving there is focus the user moved.
-        this.bringToFront(windowInstance.id, {
-            sweepCloseOnBlur: windowInstance.windowType !== "modal",
-        });
+        // BUG-0667: the sweep decision lives in `bringToFront`, which knows
+        // which window is taking focus. Registering a modal used to sweep its
+        // host — the settings pane — in the same tick, which unmounted the
+        // dialog with it. Every other caller keeps the sweep: focus moving to
+        // a plain window is focus the user moved.
+        this.bringToFront(windowInstance.id);
         this.saveSession();
     }
 
@@ -389,11 +392,21 @@ class WindowManager {
      * Updates stacking order and focus state.
      * Brings the specified window to the visual front.
      *
-     * `sweepCloseOnBlur` decides whether the closeOnBlur sweep runs here. It
-     * defaults to true -- a click on a window is a click away from the others.
-     * `open()` passes false when it registers a modal, because the modal was
-     * mounted *inside* one of those windows and the sweep would take its host
-     * with it (BUG-0667).
+     * A **modal** takes focus without dismissing anything: it is a blocking
+     * task on top of the window it was opened from, not the user moving on to
+     * another window. BUG-0422 stopped a modal from *being* swept; sweeping
+     * its host when the modal takes focus is the same defect seen from the
+     * other side — the account-switch confirm closed the settings pane that
+     * mounted it and unmounted itself before the trader could press Confirm
+     * (BUG-0667). So the default is "sweep unless the window taking focus is
+     * a modal"; `sweepCloseOnBlur` overrides that reading if a caller ever
+     * needs to.
+     *
+     * Modals also render in their own reserved band (`Z_LAYERS.modal`, above
+     * every ordinary window including a maximized one). A counter z-index let
+     * a maximized settings pane (≈1_020_000) draw over a compact dialog
+     * (~11_000) — the reported symptom on a viewport narrow enough for the
+     * pane to maximize itself.
      */
     bringToFront(id: string, options: { sweepCloseOnBlur?: boolean } = {}) {
         const win = this._windows.find(w => w.id === id);
@@ -404,7 +417,11 @@ class WindowManager {
                 this.normalizeZIndices(id);
             }
 
-            win.zIndex = this._nextZIndex++;
+            const ordinal = this._nextZIndex++;
+            win.zIndex =
+                win.windowType === "modal"
+                    ? Z_LAYERS.modal + (ordinal % MODAL_Z_SPAN)
+                    : ordinal;
             if (win.isMaximized) {
                 // .window-frame.maximized binds to maximizedZIndex, not
                 // zIndex directly (FEAT-0044) -- refresh it too, or focusing
@@ -422,7 +439,10 @@ class WindowManager {
             // closed the chip dialog mid-gesture, and the confirm died unseen
             // in the wake while its promise never settled. Click-outside and
             // Escape dismissal are unaffected -- they never went through here.
-            if (options.sweepCloseOnBlur ?? true) {
+            //
+            // BUG-0667: the same reasoning applies to the window a modal takes
+            // focus *from*. See the method comment.
+            if (options.sweepCloseOnBlur ?? win.windowType !== "modal") {
                 this._windows.filter(w => w.id !== id && w.closeOnBlur && w.windowType !== "modal")
                     .forEach(w => this.close(w.id));
             }
@@ -448,9 +468,16 @@ class WindowManager {
         // Reset base counter
         this._nextZIndex = BASE_Z_INDEX;
 
-        // Reassign new sequential Z-Indices
+        // Reassign new sequential Z-Indices. Modals keep their own band: the
+        // sort puts them last, so reassigning them from BASE_Z_INDEX would
+        // drop every dialog back under a maximized window (BUG-0667).
+        let modalOrdinal = 0;
         for (const win of sorted) {
             if (win.id === excludeId) continue;
+            if (win.windowType === "modal") {
+                win.zIndex = Z_LAYERS.modal + modalOrdinal++;
+                continue;
+            }
             win.zIndex = this._nextZIndex++;
         }
     }

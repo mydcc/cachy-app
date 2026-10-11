@@ -36,7 +36,8 @@ Observed 2026-10-11 on `dev.cachy.app` (screenshots IST-Zustand, Bild 3):
 
 ## Cause
 
-The confirmation dialog was destroyed by the window manager in the same tick it opened.
+The confirmation dialog was destroyed by the window manager — twice, at two
+different moments.
 
 1. `AccountList.handleSwitch` asks the policy first (`account-switch` defaults to `true` in `DEFAULT_CONFIRMATION_POLICY`, `src/lib/confirmationPolicy.ts:145`), so it sets `pendingSwitch` and mounts `ConfirmActionModal`.
 2. `ModalFrame` registers a `ModalFrameWindow` (`windowType: "modal"`) via `windowManager.open()`.
@@ -45,19 +46,67 @@ The confirmation dialog was destroyed by the window manager in the same tick it 
 
 So the trader clicked, the settings pane closed, and the dialog went with it — no dialog, no switch. The store was never at fault: `setActiveAccount` writes correctly and was tested already (`settings.credentialStore.test.ts:423`).
 
-Every modal opened from inside a window had this defect; the settings pane is simply the one that hosts a control which opens one.
+**And a second time, one interaction later.** `WindowFrame` calls
+`bringToFront(win.id)` on every `pointerdown`, so the first click *inside* the
+dialog — the Confirm click — swept the host again and unmounted the dialog
+before the click could land. Fixing only the registration left the trader with
+a visible dialog they could not use.
+
+Every modal opened from inside a window had this defect; the settings pane is
+simply the one that hosts a control which opens one.
 
 ## Fix
 
-`bringToFront()` takes `sweepCloseOnBlur`, and `open()` passes `false` when it registers a `modal`. Registering a modal is not the user clicking elsewhere — the modal was mounted inside the window the sweep would have dismissed. Every other call site keeps the sweep unchanged, so the settings pane still closes on a click away from it, and Escape/click-outside dismissal are untouched.
+The sweep rule moved to where the information is: `bringToFront` knows which
+window is taking focus, so its default became *sweep unless the window taking
+focus is a modal*. Two halves of one reading — BUG-0422 already said a modal is
+never swept; this says a modal taking focus dismisses nothing, because it is a
+blocking task on top of its host rather than the user moving on. That single
+rule covers registration and the pointer-down, so no call site has to remember
+it.
 
-Leave alone: credential encryption shape (FEAT-0333), active-account visibility on remaining surfaces (FEAT-0378), the `modal` singleton in `open()` (a second modal is still deduplicated by type — correct for now, unrelated to this defect).
+Modals also render in their own reserved band. `zLayers.ts` had always
+documented `modal: 1_030_000` above `windowMax: 1_020_000`, but nothing used
+it: a compact dialog kept a counter z-index (~11 000), so a **maximized**
+settings pane drew over it. The pane maximizes itself below 768 px
+(`isResponsive`, `edgeToEdgeBreakpoint`), so on a narrow viewport the reported
+symptom persisted. `bringToFront` and `normalizeZIndices` now both honor the
+band.
+
+Leave alone: credential encryption shape (FEAT-0333), active-account visibility
+on remaining surfaces (FEAT-0378), the sweep for every other focus change.
 
 ## Acceptance criteria
 
-- [x] A test reproduces the defect and fails without the fix — two accounts configured, activating the second opens the confirm dialog
-- [x] Two or more named accounts can be switched in either direction, with confirmation per FEAT-0024 (component test covers open → confirm → `setActiveAccount`, cancel, and the no-prompt policy)
-- [x] The confirm dialog survives its own registration inside the settings pane (`WindowManager.test.ts`, BUG-0667 block)
+- [x] A test reproduces the defect and fails without the fix — `WindowManager.test.ts` (BUG-0667 block): `expected false to be true` on `isOpen(settings.id)` immediately after a modal registers inside a `closeOnBlur` settings window, and again after the dialog is clicked
+- [x] Two or more named accounts can be switched in either direction, with confirmation per FEAT-0024 (component test covers open → confirm → `setActiveAccount`, cancel, and the no-prompt policy; the dialog's facts are asserted inside the dialog, not document-wide)
+- [x] The confirm dialog survives its own registration inside the settings pane
+- [x] It survives being clicked, and a maximized pane no longer draws over it
+- [x] A settings pane still closes when focus moves to a plain window — the sweep itself is unchanged
+
+## Review follow-ups (swarm, 2026-10-11)
+
+Four read-only reviewers ran on the first commit. Two found the pointer-down
+half independently, which is the fix above; the rest are recorded here.
+
+- **The exemption is broader than the modal's host** (accepted). Any modal
+  taking focus now suppresses the sweep, so a lingering settings pane stays
+  open behind an unrelated modal. That *is* the reading above — a modal is
+  blocking, so the user's attention has not moved — and `settings` is the only
+  non-modal type with `closeOnBlur`, so the blast radius is one pane. Left as
+  designed rather than narrowed to "the modal's own host", which the window
+  manager cannot know.
+- **A revealed credential now stays in the DOM** (follow-up, not fixed here).
+  `AccountCard`'s reveal state renders the key as plaintext, and the pane it
+  lives in no longer unmounts when a modal opens. It is a defense-in-depth
+  delta rather than a disclosure — the user had revealed it a moment earlier —
+  and hiding it needs a deliberate rule (clear on pane focus loss? on modal
+  open?), which is a product decision. Filed as its own item.
+- **The first commit's claim was wrong about modals being singletons.**
+  `WindowRegistry` gives the `modal` type `allowMultipleInstances: true`, so
+  ids are generated per dialog and nothing is deduplicated. The exemption keys
+  on `windowType`, so the fix was right, but the rationale was wrong and is
+  corrected here and in the test comment.
 - [x] A settings pane still closes when focus moves to a plain window — the sweep itself is unchanged
 - [x] The tests pass with the fix (74/74 window suite, 5/5 AccountList)
 - [x] German and English strings for any touched switch UI — none touched, so no new keys
