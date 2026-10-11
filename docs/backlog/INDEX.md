@@ -2,9 +2,9 @@
 
 # Backlog index
 
-545 items. How to read and add them: [README.md](README.md).
+546 items. How to read and add them: [README.md](README.md).
 
-Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 471 · ⛔ dropped 1
+Counts by status: 💡 idea 27 · 📋 specced 22 · 🟢 ready 23 · ✅ done 473 · ⛔ dropped 1
 
 ---
 
@@ -323,6 +323,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 4
 | [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | ✅ done | execution |
 | [BUG-0665](bugs/BUG-0665-ws-push-strips-source-order-id.md) | A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had | P1 | 📋 specced | execution |
 | [BUG-0667](bugs/BUG-0667-second-account-cannot-be-made-active.md) | Second exchange account cannot be made active, only the first account stays active | P1 | ✅ done | trade-panel |
+| [BUG-0668](bugs/BUG-0668-bitget-mode-leverage-hidden-no-api-switch.md) | Bitget mode and leverage chips are hidden, and UTA offers no API to switch them | P1 | ✅ done | trade-panel |
 | [BUG-0669](bugs/BUG-0669-paper-mode-stop-blocked-on-bitget.md) | Paper trading on Bitget cannot carry a stop, so the workflow cannot be rehearsed | P1 | ✅ done | execution |
 | [FEAT-0050](features/FEAT-0050-window-manager-test-coverage.md) | Put tests under the window manager before more surfaces depend on it | P1 | ✅ done | ui |
 | [FEAT-0253](features/FEAT-0253-fee-estimate-methodology.md) | Make the calculator's entry/exit fee estimate honest about what it assumes | P1 | ✅ done | calculator |
@@ -556,7 +557,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 4
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | security |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | persistence |
 | [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | ✅ done | chart |
-| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | 📋 specced | security |
+| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | ✅ done | security |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | ui |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | exchange |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | calculation |
@@ -765,6 +766,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 4
 | [BUG-0662](bugs/BUG-0662-tpsl-drag-precheck-wrong-position.md) | TP/SL drag precheck validates against a position not proven to own the dragged plan | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0665](bugs/BUG-0665-ws-push-strips-source-order-id.md) | A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had | P1 | 📋 specced | none | community, pro, private | none | none | — |
 | [BUG-0667](bugs/BUG-0667-second-account-cannot-be-made-active.md) | Second exchange account cannot be made active, only the first account stays active | P1 | ✅ done | none | community, pro, private | A | none | [FEAT-0026](features/FEAT-0026-multi-account.md) |
+| [BUG-0668](bugs/BUG-0668-bitget-mode-leverage-hidden-no-api-switch.md) | Bitget mode and leverage chips are hidden, and UTA offers no API to switch them | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0669](bugs/BUG-0669-paper-mode-stop-blocked-on-bitget.md) | Paper trading on Bitget cannot carry a stop, so the workflow cannot be rehearsed | P1 | ✅ done | none | community, pro, private | none | none | — |
 | [FEAT-0014](features/FEAT-0014-edition-build-targets.md) | Produce Community, Pro and Private builds from one tree | P1 | 📋 specced | M5 | community, pro, private | none | ADR-0003 | — |
 | [FEAT-0015](features/FEAT-0015-order-audit-trail.md) | Record every order submission attempt locally | P1 | ✅ done | M1 | community, pro, private | A | none | [FEAT-0011](features/FEAT-0011-preflight-order-verification.md) |
@@ -1093,7 +1095,7 @@ Counts by status: 💡 idea 27 · 📋 specced 23 · 🟢 ready 23 · ✅ done 4
 | [BUG-0645](bugs/BUG-0645-data-attributes-reach-analytics-tracker.md) | data-* attributes survive sanitizeHtml and GlobalTracker forwards data-track-* to analytics | P3 | ✅ done | none | community, pro, private | none | none | — |
 | [BUG-0654](bugs/BUG-0654-drop-imgur-client-id.md) | The imgurClientId setting has no consumer and has never had one | P3 | ✅ done | none | community, pro, private | A | none | — |
 | [BUG-0664](bugs/BUG-0664-chart-console-dumps-order-data.md) | CandleChartView dumps order ids and bracket prices to console on every tick | P3 | ✅ done | none | community, pro, private | none | none | — |
-| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | 📋 specced | none | community, pro, private | A | none | [BUG-0667](bugs/BUG-0667-second-account-cannot-be-made-active.md) |
+| [BUG-0670](bugs/BUG-0670-revealed-key-outlives-a-modal.md) | A revealed API key stays in the DOM when a modal opens over the settings pane | P3 | ✅ done | none | community, pro, private | A | none | [BUG-0667](bugs/BUG-0667-second-account-cannot-be-made-active.md) |
 | [FEAT-0022](features/FEAT-0022-settings-search.md) | Make settings findable with a search box | P3 | 💡 idea | none | community, pro, private | none | none | — |
 | [FEAT-0074](features/FEAT-0074-bitunix-funding-history.md) | Surface funding-rate history for a symbol | P3 | ✅ done | none | community, pro, private | C | none | — |
 | [FEAT-0075](features/FEAT-0075-bitunix-position-tiers.md) | Show maintenance-margin tier context next to an open position | P3 | 📋 specced | none | community, pro, private | C | none | — |

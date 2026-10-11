@@ -429,10 +429,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
       <div id="trade-setup-card">
-        <GeneralInputs
-          bind:tradeType={tradeState.tradeType}
-          bind:leverage={tradeState.leverage}
-        />
+        <GeneralInputs bind:tradeType={tradeState.tradeType} />
 
         <PortfolioInputs
           bind:accountSize={tradeState.accountSize}

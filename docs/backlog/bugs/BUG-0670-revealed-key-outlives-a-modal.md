@@ -2,7 +2,7 @@
 id: BUG-0670
 title: A revealed API key stays in the DOM when a modal opens over the settings pane
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,9 @@ area: security
 data_class: A
 adr: none
 depends_on: [BUG-0667]
+assignee: opencode
+branch: fix/revealed-key-outlives-a-modal
+shipped: unreleased
 ---
 
 # BUG-0670 — A revealed API key stays in the DOM when a modal opens over the settings pane
@@ -53,12 +56,30 @@ own defect.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect (revealed field still rendered after the
-      event the fix targets) and fails without the fix
-- [ ] The chosen rule is applied in exactly one place, not per field
-- [ ] Revealing is still a deliberate, single click, and copying a revealed
-      key still works
-- [ ] German and English strings if any copy changes
+- [x] A test reproduces the defect (revealed field still rendered after the
+      event the fix targets) and fails without the fix — proven RED 2026-10-11:
+      three of five cases fail with `expected 'text' to be 'password'`, and the
+      two that must stay green (reveal works, staying inside the card keeps it
+      revealed) do
+- [x] The chosen rule is applied in exactly one place, not per field — one
+      `onfocusout` on the card root, clearing the whole `shown` map
+- [x] Revealing is still a deliberate, single click, and copying a revealed
+      key still works — the toggle is untouched; nothing moves focus
+- [x] German and English strings if any copy changes — none changed
+
+## Fix as shipped
+
+`AccountCard` hangs one `onfocusout` on the card root (`:153`) and clears
+`shown` unless the incoming focus target is still inside the card. Focus was
+chosen over the `isFocused` window flag because it needs to know nothing about
+windows or modals — and it survives their redesign, which is what exposed this
+in the first place. A `relatedTarget` of `null` (the page background, another
+application) counts as leaving; staying inside is not leaving, so tabbing from
+a field to its own reveal button keeps the value on screen.
+
+`AccountCard.revealFocus.component.test.ts` is the guard; the load-bearing pair
+is "leaving hides" against "staying inside does not", which a rule that hid on
+every `focusout` would fail.
 
 ## Out of scope
 

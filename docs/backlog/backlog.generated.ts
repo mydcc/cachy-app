@@ -3107,6 +3107,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0667-second-account-cannot-be-made-active.md"
   },
   {
+    "id": "BUG-0668",
+    "title": "Bitget mode and leverage chips are hidden, and UTA offers no API to switch them",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "branch": "fix/bug-0668-bitget-mode-empty-account",
+    "shipped": "unreleased",
+    "file": "bugs/BUG-0668-bitget-mode-leverage-hidden-no-api-switch.md"
+  },
+  {
     "id": "BUG-0669",
     "title": "Paper trading on Bitget cannot carry a stop, so the workflow cannot be rehearsed",
     "type": "bug",
@@ -10136,7 +10157,7 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "id": "BUG-0670",
     "title": "A revealed API key stays in the DOM when a modal opens over the settings pane",
     "type": "bug",
-    "status": "specced",
+    "status": "done",
     "priority": "P3",
     "milestone": "none",
     "editions": [
@@ -10150,6 +10171,9 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [
       "BUG-0667"
     ],
+    "assignee": "opencode",
+    "branch": "fix/revealed-key-outlives-a-modal",
+    "shipped": "unreleased",
     "file": "bugs/BUG-0670-revealed-key-outlives-a-modal.md"
   },
   {

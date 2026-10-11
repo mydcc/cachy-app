@@ -56,8 +56,34 @@
      */
     let shown: Record<string, boolean> = $state({});
 
+    /** The card element, so `focusout` can tell "inside" from "gone". */
+    let card = $state<HTMLElement | null>(null);
+
     const fieldId = (part: string) => `account-${account.id}-${part}`;
     const toggle = (part: string) => (shown[part] = !shown[part]);
+
+    /**
+     * Hides every revealed field once focus leaves the card — BUG-0670.
+     *
+     * The reveal toggle renders a key as plaintext. Until the window manager
+     * stopped sweeping the settings pane (BUG-0667) that plaintext vanished
+     * with the pane the moment anything else opened; now the pane outlives a
+     * modal, so a revealed credential would sit on screen behind it, and
+     * after it, with nothing saying so.
+     *
+     * Focus is the right signal because it needs to know nothing about
+     * windows or modals: it is already the record of where the trader's
+     * attention is. Staying inside the card is not leaving it — tabbing from
+     * a field to its own reveal button must not hide what was just revealed.
+     * `relatedTarget === null` means focus went somewhere non-focusable
+     * (the page background, another application), which is the same "gone"
+     * case from this card's point of view.
+     */
+    function handleFocusOut(event: FocusEvent) {
+        const next = event.relatedTarget as Node | null;
+        if (next && card?.contains(next)) return;
+        shown = {};
+    }
 
     /**
      * What we actually know about these credentials — BUG-0560.
@@ -150,7 +176,7 @@
     </button>
 {/snippet}
 
-<div class="api-card" class:active={isActive}>
+<div class="api-card" class:active={isActive} bind:this={card} onfocusout={handleFocusOut}>
     <div class="header">
         <span class="font-bold text-sm">{account.name}</span>
         <div class="flex items-center gap-2">

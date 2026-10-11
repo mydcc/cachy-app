@@ -27,23 +27,19 @@
   import { toDecimalOrNull } from "../../lib/fees/deriveFeeRates";
 
   import { untrack } from "svelte";
-  import { numberInput } from "../../utils/inputUtils";
-  import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { paperState } from "../../stores/paperTrading.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { _ } from "../../locales/i18n";
 
   import { trackCustomEvent } from "../../services/trackingService";
-  import { activeExchange } from "../../services/exchange";
   import ExchangeAccountControls from "./ExchangeAccountControls.svelte";
 
 
   interface Props {
     tradeType: string;
-    leverage: string | number | null;
   }
 
-  let { tradeType = $bindable(), leverage = $bindable() }: Props = $props();
+  let { tradeType = $bindable() }: Props = $props();
 
   function setTradeType(type: string) {
     // Direct assignment instead of .update()
@@ -52,7 +48,6 @@
   }
 
   let remoteLev = $derived(tradeState.remoteLeverage);
-  const supported = $derived(activeExchange().supports.accountSettings);
 
   /*
    * FEAT-0328, decision 5 — one leverage, one source.
@@ -274,47 +269,18 @@
       FEAT-0328 — one labelled row: leverage, margin/position mode, fees.
 
       `ExchangeAccountControls` emits the first two columns as siblings and
-      nothing at all on a venue that declares no `accountSettings` support, so
-      the row simply narrows rather than showing dead controls.
+      renders them on every venue, read-only where the venue declares no
+      `accountSettings` support (BUG-0668).
 
-      Leverage no longer has an input of its own here. There is one leverage
-      per symbol on a perpetuals venue, so there is one control for it — the
-      chip — and the mirror effect above keeps `tradeState.leverage`, which the
-      sizing maths reads, equal to what the exchange holds.
+      Leverage has no input of its own here, on any venue. There is one
+      leverage per symbol on a perpetuals venue, so there is one control for
+      it — the chip — and the mirror effect above keeps `tradeState.leverage`,
+      which the sizing maths reads, equal to what the exchange holds. A
+      second editor for the same field was here for venues without a chip;
+      there are none left.
     -->
     <div class="flex flex-wrap items-end gap-3">
       <ExchangeAccountControls />
-
-      <!--
-        Fallback: venues with accountSettings: false (e.g., Bitget) have no
-        leverage chip. Restore the input here so users can still edit leverage
-        for calculator sizing. Sized to match the chip height.
-      -->
-      {#if !supported}
-        <div class="flex flex-col gap-1 min-w-0">
-          <label
-            for="leverage-fallback"
-            class="text-[11px] font-medium text-[var(--text-secondary)]"
-            >{$_("exchange.accountSettings.leverageEdit")}</label
-          >
-          <input
-            id="leverage-fallback"
-            name="leverage"
-            type="text"
-            inputmode="numeric"
-            data-track-id="input-leverage-fallback"
-            use:numberInput={{ maxDecimalPlaces: 0 }}
-            use:enhancedInput={{ step: 1, min: 1 }}
-            value={leverage ?? ""}
-            onchange={(e) => {
-              const val = (e.target as HTMLInputElement).value.trim();
-              leverage = val === "" ? null : val;
-            }}
-            class="fee-input w-full"
-            placeholder="1"
-          />
-        </div>
-      {/if}
 
       <!--
         Fees, read-only. FEAT-0253: Settings is the only place a rate is
@@ -369,21 +335,6 @@
    * renders beside it, so the row reads as one line rather than stacked
    * controls. Replaces the old input + two leg rows (~90px) with ~36px.
    */
-  .fee-input {
-    min-height: 2.25rem;
-    /* 3.5rem right leaves room for the role overlay; 0.6rem left not on scale */
-    padding: var(--space-2) 3.5rem var(--space-2) 0.6rem;
-    font-size: var(--text-xs);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    outline: none;
-    transition: border-color 0.15s ease;
-  }
-  .fee-input:focus {
-    border-color: var(--accent-color);
-  }
   .fee-summary {
     min-height: 2.25rem;
     display: flex;

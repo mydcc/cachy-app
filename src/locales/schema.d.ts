@@ -3590,6 +3590,7 @@ export type TranslationKey =
   | "exchange.accountSettings.leverageNeedsValue"
   | "exchange.accountSettings.leverageEdit"
   | "exchange.accountSettings.leverageRange"
+  | "exchange.accountSettings.leverageLocal"
   | "exchange.accountSettings.leverageLocalOnly"
   | "exchange.accountSettings.leverageAnytime"
   | "exchange.accountSettings.leverageDecrease"
