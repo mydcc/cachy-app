@@ -433,3 +433,104 @@ describe("WindowManager Escape and the alert side panel (FEAT-0389)", () => {
         openedIds.splice(openedIds.indexOf(panel.id), 1);
     });
 });
+
+/**
+ * BUG-0667 -- a modal opened *inside* a window must not take that window
+ * with it.
+ *
+ * `bringToFront()` sweeps every other `closeOnBlur` window, which is how a
+ * settings pane documents its own dismissal: click elsewhere, it closes.
+ * Registering a modal is not a click elsewhere, and neither is clicking the
+ * dialog itself. The account-switch confirm (FEAT-0026) is mounted from
+ * inside the settings pane, whose registry entry carries `closeOnBlur`, so
+ * the sweep closed the pane in the same tick that registered the dialog —
+ * and, before the second half of this fix, again on the first pointer-down
+ * inside the dialog. Unmounting the pane unmounts the dialog with it, so a
+ * trader who clicked "Make active" on a second account saw no dialog and no
+ * switch, or saw it and lost it on the way to Confirm.
+ */
+describe("WindowManager keeps the window a modal was opened from (BUG-0667)", () => {
+    /** Production shapes: an id-carrying settings window, a modal. */
+    function openSettingsHost() {
+        const settings = new TestWindow({ id: "settings", windowType: "settings" });
+        windowManager.open(settings);
+        openedIds.push(settings.id);
+        return settings;
+    }
+
+    /**
+     * No explicit id, like `ModalFrameWindow`. The registry gives the `modal`
+     * type `allowMultipleInstances: true`, so `WindowBase` does *not* pin the
+     * id to the windowType and each dialog carries a generated one — which is
+     * exactly why the exemption keys on `windowType` and not on an id.
+     */
+    function openModalFromHost() {
+        const modal = new TestWindow({ windowType: "modal" });
+        windowManager.open(modal);
+        openedIds.push(modal.id);
+        return modal;
+    }
+
+    it("leaves the settings pane open when a modal registers inside it", () => {
+        const settings = openSettingsHost();
+
+        const modal = openModalFromHost();
+
+        // Fails before the fix: the sweep closed the settings pane, which
+        // unmounted the dialog that had just been registered.
+        expect(windowManager.isOpen(settings.id)).toBe(true);
+        expect(windowManager.isOpen(modal.id)).toBe(true);
+    });
+
+    it("leaves it open when the dialog is clicked, not only when it opens", () => {
+        // `WindowFrame` calls `bringToFront(win.id)` on every pointer-down, so
+        // the registration exemption alone was not enough: the first click on
+        // Confirm swept the host and unmounted the dialog before the click
+        // could land. This is the shape of the reported symptom one
+        // interaction later, and nothing else in the suite reaches it.
+        const settings = openSettingsHost();
+        const modal = openModalFromHost();
+
+        windowManager.bringToFront(modal.id);
+
+        expect(windowManager.isOpen(settings.id)).toBe(true);
+        expect(windowManager.isOpen(modal.id)).toBe(true);
+    });
+
+    it("stacks the modal above the pane that opened it", () => {
+        const settings = openSettingsHost();
+
+        const modal = openModalFromHost();
+
+        // Otherwise the dialog renders behind the pane it belongs to.
+        expect(modal.zIndex).toBeGreaterThan(settings.zIndex);
+    });
+
+    it("stacks it above the pane even when the pane is maximized", () => {
+        // `WindowFrame` renders `isMaximized ? maximizedZIndex : zIndex`, and
+        // `maximizedZIndex` sits at Z_LAYERS.windowMax (~1_020_000). A plain
+        // counter z-index (~11_000) put the dialog behind a maximized pane —
+        // which is the reported symptom on any viewport narrow enough for the
+        // pane to maximize itself (`isResponsive`, breakpoint 768).
+        const settings = openSettingsHost();
+        settings.isMaximized = true;
+        settings.refreshMaximizedZIndex();
+
+        const modal = openModalFromHost();
+
+        expect(modal.zIndex).toBeGreaterThan(settings.maximizedZIndex);
+    });
+
+    it("still closes a settings pane when focus moves to a plain window", () => {
+        // The sweep itself must survive: only a modal taking focus is exempt,
+        // because a modal is a blocking task rather than the user moving on.
+        const settings = openSettingsHost();
+        const other = openTestWindow();
+
+        windowManager.bringToFront(other.id);
+
+        expect(windowManager.isOpen(settings.id)).toBe(false);
+        expect(windowManager.isOpen(other.id)).toBe(true);
+        openedIds.splice(openedIds.indexOf(settings.id), 1);
+    });
+});

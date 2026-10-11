@@ -3084,6 +3084,29 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0665-ws-push-strips-source-order-id.md"
   },
   {
+    "id": "BUG-0667",
+    "title": "Second exchange account cannot be made active, only the first account stays active",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "trade-panel",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "FEAT-0026"
+    ],
+    "assignee": "opencode",
+    "branch": "fix/bug-0667-account-switch",
+    "shipped": "unreleased",
+    "file": "bugs/BUG-0667-second-account-cannot-be-made-active.md"
+  },
+  {
     "id": "BUG-0669",
     "title": "Paper trading on Bitget cannot carry a stop, so the workflow cannot be rehearsed",
     "type": "bug",
@@ -10108,6 +10131,26 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "depends_on": [],
     "assignee": "opencode",
     "file": "bugs/BUG-0664-chart-console-dumps-order-data.md"
+  },
+  {
+    "id": "BUG-0670",
+    "title": "A revealed API key stays in the DOM when a modal opens over the settings pane",
+    "type": "bug",
+    "status": "specced",
+    "priority": "P3",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "security",
+    "data_class": "A",
+    "adr": "none",
+    "depends_on": [
+      "BUG-0667"
+    ],
+    "file": "bugs/BUG-0670-revealed-key-outlives-a-modal.md"
   },
   {
     "id": "FEAT-0022",
