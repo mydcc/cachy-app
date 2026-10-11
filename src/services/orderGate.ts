@@ -976,7 +976,20 @@ class OrderGate {
              */
             const stopRequested =
                 displayed.stopLossPrice !== undefined && displayed.stopLossPrice.gt(0);
-            if (stopRequested && !canCarryStopLoss(caps)) {
+            /*
+             * A paper order never reaches the venue: the request stops at
+             * `tradeService`'s paper seam, and `paperExchange` carries the
+             * plan in its own book. So the capability question does not
+             * apply to it — and answering it anyway refused the one workflow
+             * paper trading exists to rehearse. On Bitget, where no stop can
+             * be attached and none can be sent separately, that was every
+             * stop the trader wanted to practise.
+             *
+             * Live trading keeps the rule untouched: there the capability is
+             * the whole question.
+             */
+            const paperMode = displayed.paperMode === true;
+            if (stopRequested && !paperMode && !canCarryStopLoss(caps)) {
                 checked.push("unplaceableStop");
                 return refuse({
                     field: "stopLoss",

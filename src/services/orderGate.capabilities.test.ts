@@ -304,6 +304,13 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
             return intent;
         }
 
+        /** The same entry, but the venue is never contacted. */
+        function paperEntryWithStop(): OrderIntent {
+            const intent = bitgetEntryWithStop();
+            intent.displayed.paperMode = true;
+            return intent;
+        }
+
         it("refuses a Bitget entry carrying a stop before anything is sent", () => {
             const verdict = orderGate.verify(bitgetEntryWithStop());
             expect(verdict.approved).toBe(false);
@@ -341,6 +348,28 @@ describe("orderGate × exchange capabilities (FEAT-0017)", () => {
             const verdict = orderGate.verify(openIntent("bitget"));
             expect(verdict.refusal?.messageKey).not.toBe("orderGate.unplaceableStop");
             expect(verdict.checked).not.toContain("unplaceableStop");
+        });
+
+        /*
+         * Paper mode never reaches the venue: the request stops at
+         * `tradeService`'s paper seam, and `paperExchange` carries the plan
+         * in its own book (`place`, `place-position`, `cancel`, `modify`).
+         * Asking a venue capability about it refuses the one workflow paper
+         * trading exists to rehearse — and on Bitget that was every stop.
+         */
+        it("lets a paper entry carry the stop a live Bitget entry cannot", () => {
+            const verdict = orderGate.verify(paperEntryWithStop());
+
+            expect(verdict.checked).not.toContain("unplaceableStop");
+            expect(verdict.refusal?.messageKey).not.toBe("orderGate.unplaceableStop");
+        });
+
+        it("still refuses the same entry once paper mode is off", () => {
+            // The capability question is unchanged for a real request; only
+            // the simulated one is exempt.
+            const verdict = orderGate.verify(bitgetEntryWithStop());
+
+            expect(verdict.checked).toContain("unplaceableStop");
         });
 
         it("still refuses an attached stop on Bitget under the attachment rule", () => {
