@@ -12,7 +12,7 @@ on:
 
 # Release-bot guard.
 #
-# The prerelease pull request that `release.yml` opens is authored by
+# The back-merge pull request that `release.yml` opens is authored by
 # `github-actions[bot]`. This repo's Actions setting
 # `approval_policy: first_time_contributors` makes GitHub hold every
 # `pull_request` run from that actor in `action_required` instead of running
