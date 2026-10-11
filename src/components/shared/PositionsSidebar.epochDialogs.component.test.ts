@@ -182,14 +182,14 @@ async function settle(budgetMs = 200) {
     flushSync();
 }
 
-async function settleUntil(condition: () => boolean, budgetMs = 3000): Promise<void> {
+async function settleUntil(condition: () => boolean, budgetMs = 3000, label = "condition"): Promise<void> {
     const deadline = Date.now() + budgetMs;
     while (Date.now() < deadline) {
         flushSync();
         if (condition()) return;
         await new Promise((resolve) => setTimeout(resolve, 0));
     }
-    throw new Error("settleUntil: condition never held");
+    throw new Error(`settleUntil(${label}): never held (last probeCount=${probeCount()})`);
 }
 
 function probeCount(): number {
@@ -200,8 +200,10 @@ function probeCount(): number {
  * Four dialogs receive the position, the flash confirm does not
  * (`PositionsSidebar.svelte` passes it `isOpen`/`action`/`facts`, never a
  * position) — so four probes read BTCUSDT and one reads "none". Asserting
- * contents, not just the count, catches swapped ids: opening the close
- * dialog twice still yields five probes but the wrong symbols.
+ * contents catches a dialog that lost its position (it would read "none",
+ * shifting the balance to 3+2) or a missing flash probe. It does not pin
+ * which of the four position dialogs is which: with a single fixture
+ * position they all read identically, so a swap among them stays invisible.
  */
 function probeSymbols(): string[] {
     return [...host.querySelectorAll('[data-testid="probe-symbol"]')]
@@ -251,7 +253,7 @@ async function mountWithAllDialogsOpen(): Promise<void> {
             props: { activeAccountId: "acc-1" },
         }) as never,
     );
-    await settleUntil(() => host.querySelector('[data-testid="open-close"]') !== null);
+    await settleUntil(() => host.querySelector('[data-testid="open-close"]') !== null, 3000, "position row renders");
     // Every trigger must exist: a missing button would click nothing and the
     // count below would assert about a dialog that was never opened.
     for (const testid of DIALOG_TRIGGERS) {
@@ -264,7 +266,7 @@ async function mountWithAllDialogsOpen(): Promise<void> {
     // same flush (derived position resolution, modal mount) — wait for the
     // renders, not a wall-clock budget, so a lagging dialog fails loudly
     // here instead of flaking the count below.
-    await settleUntil(() => probeCount() === 5);
+    await settleUntil(() => probeCount() === 5, 3000, "all five dialogs render");
 }
 
 describe("FEAT-0023 — an epoch change clears every open position dialog", () => {
@@ -285,12 +287,13 @@ describe("FEAT-0023 — an epoch change clears every open position dialog", () =
         // tail link runs here, deliberately: the position list stays live,
         // so an empty probe set proves the id-clearing and nothing else.
         accountEpoch.rotate("venue-switch");
-        await settleUntil(() => probeCount() === 0);
+        await settleUntil(() => probeCount() === 0, 3000, "all dialogs close");
 
         expect(probeCount()).toBe(0);
-        // Stability, not an instant: the rotation also resets the fetch-once
-        // flags, so a second settle proves no stale id re-opens its dialog
-        // once data repopulates — the exact reopen this pins. The position
+        // Stability, not an instant: a second settle proves no stale id
+        // re-opens its dialog in the near term — a guard against a delayed
+        // async reopen, not a simulated switch-back (positions stay live
+        // throughout, so no repopulation cycle runs here). The position
         // row itself must still render, or the zero above could mean an
         // empty list rather than cleared ids.
         await settle();
