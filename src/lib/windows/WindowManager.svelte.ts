@@ -288,7 +288,16 @@ class WindowManager {
         // 4. Registration and activation.
         windowInstance.isMinimized = false;
         this._windows.push(windowInstance);
-        this.bringToFront(windowInstance.id);
+        // BUG-0667: a modal is registered from inside the window that mounted
+        // it, and registering is not the user clicking elsewhere. Sweeping
+        // here closed that host -- the settings pane, which carries
+        // closeOnBlur -- in the same tick that registered the dialog, and
+        // unmounting the pane unmounted the dialog with it. That is why the
+        // account-switch confirm never appeared. Every other caller keeps
+        // the sweep: focus moving there is focus the user moved.
+        this.bringToFront(windowInstance.id, {
+            sweepCloseOnBlur: windowInstance.windowType !== "modal",
+        });
         this.saveSession();
     }
 
@@ -379,8 +388,14 @@ class WindowManager {
     /**
      * Updates stacking order and focus state.
      * Brings the specified window to the visual front.
+     *
+     * `sweepCloseOnBlur` decides whether the closeOnBlur sweep runs here. It
+     * defaults to true -- a click on a window is a click away from the others.
+     * `open()` passes false when it registers a modal, because the modal was
+     * mounted *inside* one of those windows and the sweep would take its host
+     * with it (BUG-0667).
      */
-    bringToFront(id: string) {
+    bringToFront(id: string, options: { sweepCloseOnBlur?: boolean } = {}) {
         const win = this._windows.find(w => w.id === id);
         if (win) {
             // Normalize Z-Indices if we are approaching the safe integer limit
@@ -407,8 +422,10 @@ class WindowManager {
             // closed the chip dialog mid-gesture, and the confirm died unseen
             // in the wake while its promise never settled. Click-outside and
             // Escape dismissal are unaffected -- they never went through here.
-            this._windows.filter(w => w.id !== id && w.closeOnBlur && w.windowType !== "modal")
-                .forEach(w => this.close(w.id));
+            if (options.sweepCloseOnBlur ?? true) {
+                this._windows.filter(w => w.id !== id && w.closeOnBlur && w.windowType !== "modal")
+                    .forEach(w => this.close(w.id));
+            }
 
             // 2. Update focus state for remaining windows.
             this._windows.forEach(w => {

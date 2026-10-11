@@ -433,3 +433,68 @@ describe("WindowManager Escape and the alert side panel (FEAT-0389)", () => {
         openedIds.splice(openedIds.indexOf(panel.id), 1);
     });
 });
+
+/**
+ * BUG-0667 -- a modal opened *inside* a window must not take that window
+ * with it.
+ *
+ * `bringToFront()` sweeps every other `closeOnBlur` window, which is how a
+ * settings pane documents its own dismissal: click elsewhere, it closes.
+ * Registering a modal is not a click elsewhere. The account-switch confirm
+ * (FEAT-0026) is mounted from inside the settings pane, whose registry entry
+ * carries `closeOnBlur`, so the sweep closed the pane in the same tick that
+ * registered the dialog. Unmounting the pane unmounted the dialog with it --
+ * a trader who clicked "Make active" on a second account saw no dialog and
+ * no switch.
+ */
+describe("WindowManager keeps the window a modal was opened from (BUG-0667)", () => {
+    /** Production shapes: an id-carrying settings window, a singleton modal. */
+    function openSettingsHost() {
+        const settings = new TestWindow({ id: "settings", windowType: "settings" });
+        windowManager.open(settings);
+        openedIds.push(settings.id);
+        return settings;
+    }
+
+    function openModalFromHost() {
+        // No explicit id: ModalFrameWindow is a singleton type, so
+        // WindowBase pins its id to its windowType.
+        const modal = new TestWindow({ windowType: "modal" });
+        windowManager.open(modal);
+        openedIds.push(modal.id);
+        return modal;
+    }
+
+    it("leaves the settings pane open when a modal registers inside it", () => {
+        const settings = openSettingsHost();
+
+        const modal = openModalFromHost();
+
+        // Fails before the fix: the sweep closed the settings pane, which
+        // unmounted the dialog that had just been registered.
+        expect(windowManager.isOpen(settings.id)).toBe(true);
+        expect(windowManager.isOpen(modal.id)).toBe(true);
+    });
+
+    it("stacks the modal above the pane that opened it", () => {
+        const settings = openSettingsHost();
+
+        const modal = openModalFromHost();
+
+        // Otherwise the dialog renders behind the pane it belongs to.
+        expect(modal.zIndex).toBeGreaterThan(settings.zIndex);
+    });
+
+    it("still closes a settings pane when focus moves to a plain window", () => {
+        // The sweep itself must survive: only registering a modal is exempt,
+        // because that is the one focus change the user did not ask for.
+        const settings = openSettingsHost();
+        const other = openTestWindow();
+
+        windowManager.bringToFront(other.id);
+
+        expect(windowManager.isOpen(settings.id)).toBe(false);
+        expect(windowManager.isOpen(other.id)).toBe(true);
+        openedIds.splice(openedIds.indexOf(settings.id), 1);
+    });
+});
