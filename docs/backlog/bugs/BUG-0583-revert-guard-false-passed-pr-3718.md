@@ -133,7 +133,7 @@ rescue a case where every removed line is present at the fork anchor.
 
 Worse, the fixture it shipped with modelled a **different mechanism**: a
 `git checkout develop -- <file>` sync without merging. That can happen
-(`auto-update-prs.yml`, a stash pop, an agent syncing its tree) but it is *not*
+(a branch update, a stash pop, an agent syncing its tree) but it is *not*
 what #3718 did — the real branch chain is `d9ec403e → ea116d72 → d6e58dec` with
 no sync commit. The test was load-bearing for a case that does not reproduce the
 incident, which is the same reasoning error that produced this bug twice.
