@@ -25,6 +25,9 @@ import { Decimal } from "decimal.js";
 import { getBitunixErrorKey } from "../../utils/errorUtils";
 import { parseTimestamp } from "../../utils/utils";
 import { normalizeSymbol as normalizeSymbolUtil } from "../../utils/symbolUtils";
+import { getOptimalTimeframe } from "../../utils/timeUtils";
+import { aggregateKlineBatch } from "../../utils/syntheticKlines";
+import { BROKER_CAPABILITIES } from "../../config/brokerCapabilities";
 import { logger } from "../logger";
 import { isNetworkLoggingEnabled } from "./telemetry";
 import { safeJsonParse } from "../../utils/safeJson";
@@ -271,6 +274,16 @@ export async function fetchBitgetKlines(
     priority: "high" | "normal" = "normal",
     timeout = 10000,
   ): Promise<Kline[]> {
+    // Bitget serves only its native granularity set; every other chart
+    // timeframe is rebuilt client-side from the native base it divides,
+    // the way fetchBitunixKlines does (BUG-0576). The server refuses an
+    // interval it cannot map, so without this the chart throws on 2m/6m/…
+    const bitgetNatives = BROKER_CAPABILITIES["bitget"]?.nativeTimeframes ?? [
+      "1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "12h", "1d", "1w", "1M",
+    ];
+    const resolution = getOptimalTimeframe(interval, bitgetNatives);
+    const { base: fetchInterval, multiplier, isSynthetic, intervalMs } = resolution;
+
     const key = `BITGET:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
     return requestManager.schedule(
       key,
@@ -280,8 +293,8 @@ export async function fetchBitgetKlines(
           const params = new URLSearchParams({
             provider: "bitget",
             symbol: normalized,
-            interval: interval,
-            limit: limit.toString()
+            interval: fetchInterval,
+            limit: (limit * multiplier).toString()
           });
           if (startTime) params.append("startTime", startTime.toString());
           if (endTime) params.append("endTime", endTime.toString());
@@ -296,7 +309,7 @@ export async function fetchBitgetKlines(
           }
 
           // Use Bitget Schema
-          return res.map((k: unknown) => {
+          const mapped = res.map((k: unknown) => {
             // Bitget returns array of strings/numbers or objects depending on endpoint version.
             // If it's an object with keys:
             if (k && typeof k === 'object' && !Array.isArray(k)) {
@@ -342,6 +355,11 @@ export async function fetchBitgetKlines(
               return null;
             }
           }).filter((k): k is Kline => k !== null);
+
+          if (isSynthetic && intervalMs > 0) {
+            return aggregateKlineBatch(mapped, intervalMs);
+          }
+          return mapped;
         } catch (e: unknown) {
           console.error(e);
           if (e instanceof Error && e.name === "AbortError") throw e;

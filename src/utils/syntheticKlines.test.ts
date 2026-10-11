@@ -17,9 +17,11 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
+import Decimal from "decimal.js";
 import {
     aggregateIntoSyntheticBucket,
     resetSyntheticCandles,
+    aggregateKlineBatch,
 } from "./syntheticKlines";
 
 // 12:00:00 UTC in epoch ms — a clean 3m/5m bucket boundary.
@@ -76,5 +78,57 @@ describe("aggregateIntoSyntheticBucket", () => {
 
     it("returns null for an unparseable timeframe", () => {
         expect(aggregateIntoSyntheticBucket("BTCUSDT", "", candle(T0, 1, 2, 0.5, 1.5))).toBeNull();
+    });
+});
+
+/** A batch candle with Decimal OHLCV, as the REST kline fetches build. */
+function decimalCandle(time: number, o: string, h: string, l: string, c: string, v: string) {
+    return {
+        time,
+        open: new Decimal(o),
+        high: new Decimal(h),
+        low: new Decimal(l),
+        close: new Decimal(c),
+        volume: new Decimal(v),
+    };
+}
+
+describe("aggregateKlineBatch", () => {
+    it("collapses base candles into one bucket: max high, min low, latest close, summed volume", () => {
+        const out = aggregateKlineBatch(
+            [
+                decimalCandle(T0, "100", "102", "99", "101", "2"),
+                decimalCandle(T0 + 60_000, "101", "105", "98", "103", "3"),
+                decimalCandle(T0 + 120_000, "103", "104", "102", "104", "1"),
+            ],
+            3 * 60_000,
+        );
+
+        expect(out).toHaveLength(1);
+        expect(out[0].time).toBe(T0);
+        expect(out[0].open.toString()).toBe("100");
+        expect(out[0].high.toString()).toBe("105");
+        expect(out[0].low.toString()).toBe("98");
+        expect(out[0].close.toString()).toBe("104");
+        expect(out[0].volume.toString()).toBe("6");
+    });
+
+    it("keeps each bucket aligned to the target boundary", () => {
+        const out = aggregateKlineBatch(
+            [
+                decimalCandle(T0, "100", "101", "99", "100", "1"),
+                decimalCandle(T0 + 60_000, "101", "102", "100", "101", "1"),
+                decimalCandle(T0 + 180_000, "110", "111", "109", "110", "1"),
+            ],
+            3 * 60_000,
+        );
+
+        expect(out.map((k) => k.time)).toEqual([T0, T0 + 180_000]);
+        expect(out[1].open.toString()).toBe("110");
+    });
+
+    it("returns the input unchanged when the interval is not positive", () => {
+        const candles = [decimalCandle(T0, "100", "101", "99", "100", "1")];
+        expect(aggregateKlineBatch(candles, 0)).toBe(candles);
     });
 });
