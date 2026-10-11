@@ -86,8 +86,10 @@ gate.
   position — a stale dialog, not a submittable form on a venue that refuses
   it, which is why this is a follow-up rather than a defect.
 
-  It holds today and nothing pins it. One test asserting the id is cleared
-  across a provider change would. Not fixed in
+  It holds today and is pinned since 2026-10-11 by
+  `PositionsSidebar.epochDialogs.component.test.ts`: all five dialogs open,
+  `accountEpoch.rotate("venue-switch")` runs the provider-change chain, and
+  none survives. Not fixed in
   [#3710](https://github.com/mydcc/cachy-app/pull/3710) because it is a
   pre-existing dependency, not part of the gate being added.
 

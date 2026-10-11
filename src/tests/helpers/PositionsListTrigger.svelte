@@ -6,11 +6,15 @@
     onclose,
     ontpSl,
     onadd,
+    onadjustMargin,
+    onflashClose,
   }: {
     positions?: OMSPosition[];
     onclose?: (pos: OMSPosition) => void;
     ontpSl?: (pos: OMSPosition) => void;
     onadd?: (pos: OMSPosition) => void;
+    onadjustMargin?: (pos: OMSPosition) => void;
+    onflashClose?: (pos: OMSPosition) => void;
   } = $props();
 </script>
 
@@ -46,6 +50,26 @@
       onclick={() => onadd(pos)}
     >
       add
+    </button>
+  {/if}
+  {#if onadjustMargin}
+    <button
+      type="button"
+      data-testid="open-adjust"
+      data-position-id={pos.positionId}
+      onclick={() => onadjustMargin(pos)}
+    >
+      adjust
+    </button>
+  {/if}
+  {#if onflashClose}
+    <button
+      type="button"
+      data-testid="open-flash"
+      data-position-id={pos.positionId}
+      onclick={() => onflashClose(pos)}
+    >
+      flash
     </button>
   {/if}
 {/each}
