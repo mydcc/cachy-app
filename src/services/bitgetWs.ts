@@ -24,6 +24,9 @@ import {
 } from "../types/bitgetValidation";
 import { Decimal } from "decimal.js";
 import { keysForActiveAccount } from "../stores/settings/accounts";
+import { getOptimalTimeframe } from "../utils/timeUtils";
+import { aggregateIntoSyntheticBucket, resetSyntheticCandles } from "../utils/syntheticKlines";
+import { BROKER_CAPABILITIES } from "../config/brokerCapabilities";
 
 // [ts, open, high, low, close, volume] — Bitget candle array entry.
 type BitgetCandleTuple = [string, string, string, string, string, string];
@@ -112,6 +115,15 @@ export class BitgetWebSocketService {
   private readonly MAX_BACKOFF_DELAY = 30000;
 
   public subscriptions: Map<string, number> = new Map(); // Stores "channel:symbol" -> count
+  /**
+   * Synthetic timeframe subscriptions, keyed "symbol:timeframe" with a
+   * reference count — the same shape as bitunixWs.syntheticSubs. A chart on a
+   * timeframe Bitget does not stream (2m, 6m, …) subscribes the native base it
+   * divides, and each base push is folded into the requested buckets on
+   * receive. Without this the REST aggregation in fetchBitgetKlines loads
+   * history that then goes stale with no live ticks ever merging into it.
+   */
+  private syntheticSubs: Map<string, number> = new Map();
 
   private globalMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -245,8 +257,11 @@ export class BitgetWebSocketService {
     // send nothing, and the single `unsubscribe` a consumer eventually sends
     // would decrement to 1 rather than to 0 — no unsubscribe frame, and the
     // venue keeps streaming a channel nobody wants. `bitunixWs.destroy()`
-    // clears `pendingSubscriptions` for the same reason.
+    // clears `pendingSubscriptions` for the same reason. The synthetic
+    // tracking goes with it: a destroyed service must not fold base pushes
+    // into buckets nobody asked for anymore.
     this.subscriptions.clear();
+    this.syntheticSubs.clear();
   }
 
   connect(force?: boolean) {
@@ -684,12 +699,42 @@ export class BitgetWebSocketService {
         // channel: candle1m, candle1H
         const tfRaw = channel.replace("candle", "");
         const map: Record<string, string> = {
-          "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-          "1H": "1h", "4H": "4h", "1D": "1d", "1W": "1w"
+          "1m": "1m", "3m": "3m", "5m": "5m", "15m": "15m", "30m": "30m",
+          "1H": "1h", "4H": "4h", "6H": "6h", "12H": "12h", "1D": "1d", "1W": "1w",
+          "1M": "1M"
         };
         const tf = map[tfRaw] || tfRaw;
 
         marketState.updateSymbolKlines(instId, tf, klines, "ws");
+
+        // A base push also feeds every synthetic subscription derived from
+        // it (2m, 6m, … subscribed the base feed in subscribe() above), so a
+        // chart that loaded aggregated history keeps receiving live ticks —
+        // the same fan-out bitunixWs.channelDispatch performs.
+        if (this.syntheticSubs.size > 0) {
+          const bitgetNatives = BROKER_CAPABILITIES["bitget"]?.nativeTimeframes ?? [
+            "1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "12h", "1d", "1w", "1M",
+          ];
+          for (const [key, refs] of this.syntheticSubs) {
+            if (!refs || refs <= 0) continue;
+            const sep = key.lastIndexOf(":");
+            if (sep <= 0) continue;
+            const subSymbol = key.slice(0, sep);
+            const synthTf = key.slice(sep + 1);
+            if (subSymbol !== instId || !synthTf) continue;
+
+            const resolved = getOptimalTimeframe(synthTf, bitgetNatives);
+            if (!resolved.isSynthetic || resolved.base !== tf) continue;
+
+            for (const k of msg.data as BitgetCandleTuple[]) {
+              const merged = aggregateIntoSyntheticBucket(instId, synthTf, {
+                time: parseInt(k[0]),
+                open: k[1], high: k[2], low: k[3], close: k[4], volume: k[5],
+              });
+              if (merged) marketState.updateSymbolKlines(instId, synthTf, [merged], "ws");
+            }
+          }
+        }
       }
     }
     // Depth
@@ -733,16 +778,44 @@ export class BitgetWebSocketService {
       ? PRIVATE_SUBSCRIBE_INST_ID
       : normalizeSymbol(symbol, "bitget");
 
-    // [FIX] Map internal channel to Bitget specific format
-    const bitgetChannel = this.getBitgetChannel(channel);
+    // [FIX] Map internal channel to Bitget specific format. A synthetic
+    // timeframe (2m, 6m, …) subscribes the native base it divides — the same
+    // shape as bitunixWs.subscribe — and each base push is folded back out to
+    // it on receive, tracked in `syntheticSubs` below.
+    let targetChannel = channel;
+    if (channel.startsWith("kline_")) {
+        const tf = channel.replace("kline_", "");
+        // Strict parse check mirroring safeTfToMs (timeUtils): without it an
+        // unparseable timeframe silently defaults to 60s and would subscribe
+        // the 1m feed under the wrong label.
+        if (!/^(\d+)([mhdwM])$/.test(tf)) {
+            logger.warn("network", `[BitgetWS] Unsupported timeframe/channel: ${channel}`, { channel });
+            return;
+        }
+        const bitgetNatives = BROKER_CAPABILITIES["bitget"]?.nativeTimeframes ?? [
+            "1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "12h", "1d", "1w", "1M",
+        ];
+        const resolved = getOptimalTimeframe(tf, bitgetNatives);
+        if (resolved.isSynthetic) {
+            targetChannel = `kline_${resolved.base}`;
+            const synthKey = `${normalizedSymbol}:${tf}`;
+            const synthCount = this.syntheticSubs.get(synthKey) || 0;
+            this.syntheticSubs.set(synthKey, synthCount + 1);
+        }
+    }
+
+    const bitgetChannel = this.getBitgetChannel(targetChannel);
     if (!bitgetChannel) {
          if (channel.startsWith("kline_")) {
-             // logger.warn("network", `[BitgetWS] Unsupported timeframe/channel: ${channel}`);
+             logger.warn("network", `[BitgetWS] Unsupported timeframe/channel: ${channel}`);
          }
          return;
     }
 
-    const subKey = `${channel}:${normalizedSymbol}`;
+    // The reference count lives on the TARGET channel, so re-subscribing the
+    // requested synthetic timeframe and unsubscribing it balance each other,
+    // and `resubscribe()` replays the base feed without knowing it is one.
+    const subKey = `${targetChannel}:${normalizedSymbol}`;
     const currentCount = this.subscriptions.get(subKey) || 0;
     this.subscriptions.set(subKey, currentCount + 1);
 
@@ -761,7 +834,34 @@ export class BitgetWebSocketService {
       ? PRIVATE_SUBSCRIBE_INST_ID
       : normalizeSymbol(symbol, "bitget");
 
-    const subKey = `${channel}:${normalizedSymbol}`;
+    // Mirror subscribe(): the reference count lives on the base feed, and the
+    // synthetic tracking is released first, before the early return below.
+    let targetChannel = channel;
+    if (channel.startsWith("kline_")) {
+        const tf = channel.replace("kline_", "");
+        const bitgetNatives = BROKER_CAPABILITIES["bitget"]?.nativeTimeframes ?? [
+            "1m", "3m", "5m", "15m", "30m", "1h", "4h", "6h", "12h", "1d", "1w", "1M",
+        ];
+        const resolved = getOptimalTimeframe(tf, bitgetNatives);
+        if (resolved.isSynthetic) {
+            targetChannel = `kline_${resolved.base}`;
+            const synthKey = `${normalizedSymbol}:${tf}`;
+            const synthCount = this.syntheticSubs.get(synthKey) || 0;
+            if (synthCount > 0) {
+                if (synthCount === 1) {
+                    this.syntheticSubs.delete(synthKey);
+                    // Drop the aggregated bucket so a later re-subscription
+                    // starts from the next incoming base candle instead of
+                    // stale state.
+                    resetSyntheticCandles(normalizedSymbol, tf);
+                } else {
+                    this.syntheticSubs.set(synthKey, synthCount - 1);
+                }
+            }
+        }
+    }
+
+    const subKey = `${targetChannel}:${normalizedSymbol}`;
     const currentCount = this.subscriptions.get(subKey) || 0;
 
     // Nothing was ever issued for this channel, so there is nothing to release.
@@ -772,7 +872,7 @@ export class BitgetWebSocketService {
     // buries the one that mattered.
     if (currentCount === 0) return;
 
-    const bitgetChannel = this.getBitgetChannel(channel);
+    const bitgetChannel = this.getBitgetChannel(targetChannel);
     if (!bitgetChannel) return;
 
     if (currentCount === 1) {
@@ -824,15 +924,22 @@ export class BitgetWebSocketService {
       // Map Klines
       if (internalChannel.startsWith("kline_")) {
           const tf = internalChannel.replace("kline_", "");
+          // The full native set the REST layer serves (venues/bitget.ts).
+          // Every other chart timeframe resolves to one of these through
+          // getOptimalTimeframe in subscribe() and never reaches this map.
           const map: Record<string, string> = {
               "1m": "candle1m",
+              "3m": "candle3m",
               "5m": "candle5m",
               "15m": "candle15m",
               "30m": "candle30m",
               "1h": "candle1H",
               "4h": "candle4H",
+              "6h": "candle6H",
+              "12h": "candle12H",
               "1d": "candle1D",
-              "1w": "candle1W"
+              "1w": "candle1W",
+              "1M": "candle1M"
           };
           return map[tf] || null;
       }

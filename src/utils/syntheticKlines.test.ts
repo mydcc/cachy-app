@@ -131,4 +131,25 @@ describe("aggregateKlineBatch", () => {
         const candles = [decimalCandle(T0, "100", "101", "99", "100", "1")];
         expect(aggregateKlineBatch(candles, 0)).toBe(candles);
     });
+
+    it("returns an empty series for empty input", () => {
+        expect(aggregateKlineBatch([], 3 * 60_000)).toEqual([]);
+    });
+
+    it("sorts out-of-order base candles into the right buckets", () => {
+        // The venue makes no ordering promise; the proxy normalises
+        // best-effort. A bucket must not depend on arrival order.
+        const out = aggregateKlineBatch(
+            [
+                decimalCandle(T0 + 180_000, "110", "111", "109", "110", "1"),
+                decimalCandle(T0, "100", "101", "99", "100", "1"),
+                decimalCandle(T0 + 60_000, "101", "102", "100", "101", "1"),
+            ],
+            3 * 60_000,
+        );
+
+        expect(out.map((k) => k.time)).toEqual([T0, T0 + 180_000]);
+        expect(out[0].open.toString()).toBe("100");
+        expect(out[0].close.toString()).toBe("101");
+    });
 });

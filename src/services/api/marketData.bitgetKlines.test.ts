@@ -108,4 +108,74 @@ describe("Bitget klines aggregate non-native timeframes (BUG-0576)", () => {
         expect(candles).toHaveLength(1);
         expect(candles[0].open.toString()).toBe("100");
     });
+
+    it("scales the limit by multipliers above two (12m funds from 3m)", async () => {
+        fetchMock.mockResolvedValue(klineResponse([
+            row(T, "100", "101", "99", "100", "1"),
+            row(T + 180_000, "100", "101", "99", "100", "1"),
+            row(T + 360_000, "100", "101", "99", "100", "1"),
+            row(T + 540_000, "100", "101", "99", "100", "1"),
+        ]));
+
+        const candles = await fetchBitgetKlines("BTCUSDT", "12m", 10);
+
+        const url = fetchMock.mock.calls[0][0] as string;
+        expect(url).toContain("interval=3m");
+        expect(url).toContain("limit=40");
+        expect(candles).toHaveLength(1);
+        expect(candles[0].time).toBe(T);
+        expect(candles[0].volume.toString()).toBe("4");
+    });
+
+    it("drops a row whose timestamp parses to zero instead of bucketing 1970", async () => {
+        fetchMock.mockResolvedValue(klineResponse([
+            { timestamp: "not-a-time", open: "1", high: "1", low: "1", close: "1", volume: "1" } as unknown as Row,
+            row(T, "100", "101", "99", "100", "1"),
+        ]));
+
+        const candles = await fetchBitgetKlines("BTCUSDT", "3m", 15);
+
+        expect(candles).toHaveLength(1);
+        expect(candles[0].time).toBe(T);
+    });
+
+    it("walks pages when the base-candle demand exceeds one response", async () => {
+        // Fake venue: 1m candles from an unbounded history, honours endTime,
+        // truncates at Bitget's 1000-row ceiling like the real one.
+        const NOW = 1_700_000_000_000;
+        const calls: Array<{ interval: string; limit: number }> = [];
+        fetchMock.mockImplementation(async (url: string) => {
+            const params = new URL(url, "http://localhost").searchParams;
+            const interval = params.get("interval")!;
+            const limit = Number(params.get("limit"));
+            const endTimeRaw = params.get("endTime");
+            const endTime = endTimeRaw ? Number(endTimeRaw) : NOW;
+            calls.push({ interval, limit });
+
+            const rows = Math.min(limit, 1000);
+            const out = [];
+            for (let i = rows - 1; i >= 0; i--) {
+                const time = Math.floor((endTime - i * 60_000) / 60_000) * 60_000;
+                out.push({
+                    timestamp: time,
+                    open: "100", high: "101", low: "99", close: "100", volume: "1",
+                });
+            }
+            return klineResponse(out);
+        });
+
+        // 1000 2m candles need 2000 1m base rows: two pages of 1000.
+        const candles = await fetchBitgetKlines("BTCUSDT", "2m", 1000);
+
+        expect(calls).toHaveLength(2);
+        expect(calls.every((c) => c.interval === "1m")).toBe(true);
+        expect(calls.every((c) => c.limit === 1000)).toBe(true);
+        // ~1000 target candles, not the ~500 a single truncated page yields.
+        expect(candles.length).toBeGreaterThan(500);
+        const times = candles.map((k) => k.time);
+        expect([...new Set(times)].length).toBe(times.length);
+        for (let i = 1; i < times.length; i++) {
+            expect(times[i]).toBeGreaterThan(times[i - 1]);
+        }
+    });
 });

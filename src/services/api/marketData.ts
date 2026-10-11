@@ -153,6 +153,15 @@ function bitgetTicker24h(ticker: BitgetRawTicker, symbol: string): Ticker24h {
 const BITUNIX_MAX_ROWS_PER_REQUEST = 200;
 
 /**
+ * Hard cap on rows Bitget returns per kline request, mirroring the server's
+ * `BITGET_V2_MAX_CANDLES` (1000). Same truncation behaviour as Bitunix: the
+ * API accepts any `limit` and silently returns fewer rows, so a synthetic
+ * timeframe funded by `limit * multiplier` base candles needs the same page
+ * walk below, or a large-limit request silently returns a short series.
+ */
+const BITGET_MAX_ROWS_PER_REQUEST = 1000;
+
+/**
  * Ceiling on sequential pages per kline request.
  *
  * A synthetic timeframe with a large multiplier can demand absurd base-candle
@@ -284,80 +293,164 @@ export async function fetchBitgetKlines(
     const resolution = getOptimalTimeframe(interval, bitgetNatives);
     const { base: fetchInterval, multiplier, isSynthetic, intervalMs } = resolution;
 
+    // A non-finite, zero or negative limit would travel to the wire as
+    // "NaN"/"0"/"-30". Normalize to the default instead of sending a
+    // request the venue cannot answer sensibly.
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 15;
+    const fetchLimit = safeLimit * multiplier;
+
+    // Bitget truncates every kline response at BITGET_MAX_ROWS_PER_REQUEST
+    // rows regardless of the `limit` sent. Same page walk as the Bitunix path
+    // (BUG-0231): without it a large-limit request on a synthetic timeframe
+    // silently returns a short series and long look-back indicators
+    // under-warm on exactly the timeframes this fix enables.
+    const pagesWanted = Math.max(1, Math.ceil(fetchLimit / BITGET_MAX_ROWS_PER_REQUEST));
+    const pagesNeeded = Math.min(pagesWanted, MAX_KLINE_PAGES);
+    const needsPaging = pagesNeeded > 1;
+
+    if (pagesWanted > pagesNeeded) {
+      logger.warn(
+        "network",
+        `[Bitget] ${symbol}:${interval} wants ${pagesWanted} pages for ${safeLimit} candles; ` +
+          `capped at ${MAX_KLINE_PAGES} (~${(pagesNeeded * BITGET_MAX_ROWS_PER_REQUEST) / multiplier} candles). ` +
+          `Long look-back indicators may be unavailable on this timeframe.`,
+      );
+    }
+
     const key = `BITGET:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
+
+    // Paging turns one round trip into up to `pagesNeeded` sequential ones, so
+    // the caller's single-request timeout would abort the walk part way.
+    const MAX_PAGED_TIMEOUT_MS = 60_000;
+    const effectiveTimeout = needsPaging
+      ? Math.min(timeout * pagesNeeded, MAX_PAGED_TIMEOUT_MS)
+      : timeout;
+
     return requestManager.schedule(
       key,
       async (signal) => {
         try {
           const normalized = normalizeSymbol(symbol, "bitget");
-          const params = new URLSearchParams({
-            provider: "bitget",
-            symbol: normalized,
-            interval: fetchInterval,
-            limit: (limit * multiplier).toString()
-          });
-          if (startTime) params.append("startTime", startTime.toString());
-          if (endTime) params.append("endTime", endTime.toString());
 
-          const response = await fetch(`/api/klines?${params.toString()}`, { signal });
-          if (!response.ok) throw new Error("apiErrors.klineError");
-          const res = await safeJson(response);
+          /** Fetch, validate and map ONE page of base candles. */
+          const fetchPage = async (pageEndTime?: number): Promise<Kline[]> => {
+            const params = new URLSearchParams({
+              provider: "bitget",
+              symbol: normalized,
+              interval: fetchInterval,
+              limit: Math.min(fetchLimit, BITGET_MAX_ROWS_PER_REQUEST).toString(),
+            });
+            if (startTime) params.append("startTime", startTime.toString());
+            if (pageEndTime) params.append("endTime", pageEndTime.toString());
 
-          if (!Array.isArray(res)) {
-            logger.error("network", `[Bitget] Invalid kline response type: ${typeof res}`, res);
-            throw new Error("apiErrors.invalidResponse");
-          }
+            const response = await fetch(`/api/klines?${params.toString()}`, { signal });
+            if (!response.ok) throw new Error("apiErrors.klineError");
+            const res = await safeJson(response);
 
-          // Use Bitget Schema
-          const mapped = res.map((k: unknown) => {
-            // Bitget returns array of strings/numbers or objects depending on endpoint version.
-            // If it's an object with keys:
-            if (k && typeof k === 'object' && !Array.isArray(k)) {
-               try {
-                  const obj = k as BitgetRawKlineObject;
-                  const time = parseTimestamp(obj.timestamp || obj.time || obj.t || obj.ts);
-                  const open = new Decimal((obj.open || obj.o) as Decimal.Value);
-                  const high = new Decimal((obj.high || obj.h) as Decimal.Value);
-                  const low = new Decimal((obj.low || obj.l) as Decimal.Value);
-                  const close = new Decimal((obj.close || obj.c) as Decimal.Value);
-                  const volume = new Decimal(obj.volume || obj.vol || obj.v || 0);
-                  if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
-                      logger.warn("network", "[Bitget] Dropping invalid kline (NaN)", k);
-                      return null;
-                  }
-                  return { open, high, low, close, volume, time };
-               } catch { return null; }
+            if (!Array.isArray(res)) {
+              logger.error("network", `[Bitget] Invalid kline response type: ${typeof res}`, res);
+              throw new Error("apiErrors.invalidResponse");
             }
 
-            // Array Format Validation
-            const validation = BitgetKlineSchema.safeParse(k);
-            if (!validation.success) {
-                logger.warn("network", "[Bitget] Dropping invalid kline (Schema)", { k, error: validation.error });
-                return null;
-            }
+            // Use Bitget Schema
+            return res.map((k: unknown) => {
+              // Bitget returns array of strings/numbers or objects depending on endpoint version.
+              // If it's an object with keys:
+              if (k && typeof k === 'object' && !Array.isArray(k)) {
+                 try {
+                    const obj = k as BitgetRawKlineObject;
+                    const time = parseTimestamp(obj.timestamp || obj.time || obj.t || obj.ts);
+                    if (time === 0) {
+                        logger.warn("network", "[Bitget] Dropping invalid kline (Time=0)", k);
+                        return null;
+                    }
+                    const open = new Decimal((obj.open || obj.o) as Decimal.Value);
+                    const high = new Decimal((obj.high || obj.h) as Decimal.Value);
+                    const low = new Decimal((obj.low || obj.l) as Decimal.Value);
+                    const close = new Decimal((obj.close || obj.c) as Decimal.Value);
+                    const volume = new Decimal(obj.volume || obj.vol || obj.v || 0);
+                    if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
+                        logger.warn("network", "[Bitget] Dropping invalid kline (NaN)", k);
+                        return null;
+                    }
+                    return { open, high, low, close, volume, time };
+                 } catch { return null; }
+              }
 
-            const d = validation.data;
-            try {
-              const time = parseTimestamp(d[0]);
-              const open = new Decimal(d[1]);
-              const high = new Decimal(d[2]);
-              const low = new Decimal(d[3]);
-              const close = new Decimal(d[4]);
-              const volume = new Decimal(d[5]);
-
-              if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
-                  logger.warn("network", "[Bitget] Dropping invalid kline (NaN Array)", d);
+              // Array Format Validation
+              const validation = BitgetKlineSchema.safeParse(k);
+              if (!validation.success) {
+                  logger.warn("network", "[Bitget] Dropping invalid kline (Schema)", { k, error: validation.error });
                   return null;
               }
-              return { open, high, low, close, volume, time };
-            } catch (e) {
-              logger.warn("network", "[Bitget] Dropping invalid kline (Exception)", e);
-              return null;
+
+              const d = validation.data;
+              try {
+                const time = parseTimestamp(d[0]);
+                if (time === 0) {
+                    logger.warn("network", "[Bitget] Dropping invalid kline (Time=0 Array)", d);
+                    return null;
+                }
+                const open = new Decimal(d[1]);
+                const high = new Decimal(d[2]);
+                const low = new Decimal(d[3]);
+                const close = new Decimal(d[4]);
+                const volume = new Decimal(d[5]);
+
+                if (!open.isFinite() || !high.isFinite() || !low.isFinite() || !close.isFinite()) {
+                    logger.warn("network", "[Bitget] Dropping invalid kline (NaN Array)", d);
+                    return null;
+                }
+                return { open, high, low, close, volume, time };
+              } catch (e) {
+                logger.warn("network", "[Bitget] Dropping invalid kline (Exception)", e);
+                return null;
+              }
+            }).filter((k): k is Kline => k !== null);
+          };
+
+          // --- Page walk (same shape as the Bitunix path) ---
+          // Page 1 uses the caller's endTime; each further page ends just
+          // before the oldest candle seen so far, so the windows abut instead
+          // of overlapping or leaving holes.
+          let mapped = await fetchPage(endTime);
+
+          if (needsPaging && mapped.length > 0) {
+            const seenTimes = new Set(mapped.map((k) => k.time));
+            // Computed, not read off index 0: page ordering is the upstream's
+            // choice and the proxy only normalises it best-effort. Anchoring
+            // the next window on a wrong "oldest" would re-request the same
+            // range and quietly stall the walk.
+            let oldest = Math.min(...mapped.map((k) => k.time));
+
+            for (let page = 1; page < pagesNeeded; page++) {
+              const older = await fetchPage(oldest - 1);
+              if (older.length === 0) break; // exchange has no more history
+
+              const fresh = older.filter((k) => !seenTimes.has(k.time));
+              // Upstream ignored endTime and replayed the same window. Stop
+              // rather than spin -- an unbounded page walk is the failure mode
+              // this whole fix exists to remove, not one to reintroduce.
+              if (fresh.length === 0) break;
+
+              for (const k of fresh) seenTimes.add(k.time);
+              mapped = fresh.concat(mapped);
+              oldest = Math.min(oldest, ...fresh.map((k) => k.time));
             }
-          }).filter((k): k is Kline => k !== null);
+
+            mapped.sort((a, b) => a.time - b.time);
+          }
 
           if (isSynthetic && intervalMs > 0) {
-            return aggregateKlineBatch(mapped, intervalMs);
+            const aggregated = aggregateKlineBatch(mapped, intervalMs);
+            if (aggregated.length < safeLimit) {
+              logger.warn(
+                "network",
+                `[Bitget] ${symbol}:${interval} aggregated ${aggregated.length} of ${safeLimit} requested candles from ${mapped.length} ${fetchInterval} base rows. ` +
+                  `Long look-back indicators may be unavailable on this timeframe.`,
+              );
+            }
+            return aggregated;
           }
           return mapped;
         } catch (e: unknown) {
@@ -368,7 +461,7 @@ export async function fetchBitgetKlines(
       },
       priority,
       1,
-      timeout
+      effectiveTimeout
     );
 }
 
@@ -568,56 +661,13 @@ export async function fetchBitunixKlines(
             }
           }
 
-           // [SYNTHETIC] Generic Aggregation
+           // [SYNTHETIC] Generic Aggregation — one implementation for both
+           // venues (`aggregateKlineBatch`), so a correctness fix reaches
+           // both paths instead of drifting apart.
            if (isSynthetic && intervalMs > 0) {
-               // Use resolved intervalMs (target)
-               const groups = new Map<number, Kline[]>();
-
-               for (const k of mapped) {
-                   const bucketStart = Math.floor(k.time / intervalMs) * intervalMs;
-                   if (!groups.has(bucketStart)) groups.set(bucketStart, []);
-                   groups.get(bucketStart)!.push(k);
-               }
-
-               const aggregated: Kline[] = [];
-               const sortedStarts = Array.from(groups.keys()).sort((a, b) => a - b);
-
-               for (const start of sortedStarts) {
-                   const bucket = groups.get(start)!;
-                   bucket.sort((a, b) => a.time - b.time);
-                   
-                   const first = bucket[0];
-                   const last = bucket[bucket.length - 1];
-                   let high = first.high;
-                   let low = first.low;
-                   let vol = new Decimal(0);
-
-                   for (let i = 0, len = bucket.length; i < len; i++) {
-                       const c = bucket[i];
-                       // We keep references to the existing Decimal instances
-                       // inside the bucket instead of allocating new ones to save memory
-                       // and improve performance.
-                       if (high.lt(c.high)) {
-                           high = c.high;
-                       }
-                       if (low.gt(c.low)) {
-                           low = c.low;
-                       }
-                       vol = vol.plus(c.volume);
-                   }
-
-                   aggregated.push({
-                       time: start,
-                       open: first.open,
-                       high: high,
-                       low: low,
-                       close: last.close,
-                       volume: vol
-                   });
-               }
-               return aggregated;
+               return aggregateKlineBatch(mapped, intervalMs);
            }
-           
+
            return mapped;
 
         } catch (e: unknown) {
