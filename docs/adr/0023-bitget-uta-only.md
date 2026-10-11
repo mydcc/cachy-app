@@ -1,8 +1,8 @@
 # ADR-0023: Bitget speaks UTA only; Classic is refused, not ported
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-10-11, user confirmed UTA-only in session)
 - **Date:** 2026-10-05
-- **Deciders:** mydcc (user-directed, 2026-10-05)
+- **Deciders:** mydcc (user-directed, 2026-10-05; confirmed 2026-10-11)
 
 ## Context
 
