@@ -143,6 +143,9 @@ beforeEach(() => {
     fetchTradingPairInfoMock.mockResolvedValue(undefined);
     settings.apiProvider = "bitunix";
     settings.autoUpdatePriceInput = true;
+    // A test above may have turned paper mode on; live is the default the
+    // rest of this file describes.
+    paperStateMock.enabled = false;
     mockSymbolMetaStore.symbolMeta = { BTCUSDT: { ...TRADABLE } };
     mockTradeData.positionSize = new Decimal("0.02");
     mockTradeData.entryPrice = new Decimal("50000");
@@ -371,6 +374,24 @@ describe("FEAT-0017 — PlaceOrderPanel reads exchange capabilities", () => {
         it("tells a Bitget entry that it can only go out unprotected", async () => {
             await mountFor("bitget");
             expect(host.textContent).toContain(lookup("orderEntry.notes.unprotectedEntry"));
+            expect(host.textContent).not.toContain(
+                lookup("orderEntry.notes.noAttachedProtection"),
+            );
+        });
+
+        /*
+         * The paper half of the same contract. `orderGate.verify` exempts a
+         * paper order from the capability question, so a warning still shown
+         * here would be the panel describing a refusal that no longer
+         * happens — the exact shape BUG-0649 filed.
+         */
+        it("keeps quiet about an unplaceable stop when nothing is sent", async () => {
+            paperStateMock.enabled = true;
+            await mountFor("bitget");
+
+            expect(host.textContent).not.toContain(
+                lookup("orderEntry.notes.unprotectedEntry"),
+            );
             expect(host.textContent).not.toContain(
                 lookup("orderEntry.notes.noAttachedProtection"),
             );

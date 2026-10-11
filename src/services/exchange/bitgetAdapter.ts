@@ -227,8 +227,18 @@ const trading: TradingPort = {
     // A read: an unsupported venue has no plans to show, and saying so is
     // true. It must not raise a dialog — the position cards call this on
     // every refresh.
+    //
+    // BUG-0669 — in paper mode the plans exist even where the venue has no
+    // wired route: the simulator books an attached stop as a plan row of its
+    // own. Answering `[]` there reported a stop that really is on the
+    // simulated position as missing, and the confirmation read that follows
+    // every entry (`orderPlacementService.confirmProtection`) called the
+    // protected entry unprotected. Asked through `tradeService` rather than
+    // the store, because an adapter may not read one.
     fetchTpSlOrders: async (view = "pending") =>
-        SUPPORTS.tpSl ? tradeService.fetchTpSlOrders(view) : [],
+        SUPPORTS.tpSl || tradeService.paperMode
+            ? tradeService.fetchTpSlOrders(view)
+            : [],
 
     // Writes: these must fail loudly. A cancel or a modify that resolved
     // quietly would leave the trader believing a stop had moved.

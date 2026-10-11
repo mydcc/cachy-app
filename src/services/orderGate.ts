@@ -947,10 +947,17 @@ class OrderGate {
             // naked. `orderPlacementService` reads the same flag and places
             // protection separately; this refuses the case where something
             // attached it anyway.
+            //
+            // BUG-0669 — in paper mode that premise does not hold: the
+            // request stops at the paper seam, and `paperExchange` books an
+            // attached stop as a real plan row of its own. Paper therefore
+            // attaches the protection whatever the venue would do, and this
+            // rule would refuse the very shape it is supposed to protect.
+            const paperMode = displayed.paperMode === true;
             const attachesProtection = payload.tpPrice !== undefined || payload.slPrice !== undefined;
             if (attachesProtection) {
                 checked.push("tpSlAtEntrySupported");
-                if (!caps.tpSlAtEntry) {
+                if (!caps.tpSlAtEntry && !paperMode) {
                     return refuse({
                         field: "tpSlAtEntry",
                         reason: "unsupported",
@@ -976,7 +983,19 @@ class OrderGate {
              */
             const stopRequested =
                 displayed.stopLossPrice !== undefined && displayed.stopLossPrice.gt(0);
-            if (stopRequested && !canCarryStopLoss(caps)) {
+            /*
+             * A paper order never reaches the venue: the request stops at
+             * `tradeService`'s paper seam, and `paperExchange` carries the
+             * plan in its own book. So the capability question does not
+             * apply to it — and answering it anyway refused the one workflow
+             * paper trading exists to rehearse. On Bitget, where no stop can
+             * be attached and none can be sent separately, that was every
+             * stop the trader wanted to practise.
+             *
+             * Live trading keeps the rule untouched: there the capability is
+             * the whole question.
+             */
+            if (stopRequested && !paperMode && !canCarryStopLoss(caps)) {
                 checked.push("unplaceableStop");
                 return refuse({
                     field: "stopLoss",

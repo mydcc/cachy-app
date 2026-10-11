@@ -3084,6 +3084,27 @@ export const BACKLOG_ITEMS: readonly BacklogItem[] = [
     "file": "bugs/BUG-0665-ws-push-strips-source-order-id.md"
   },
   {
+    "id": "BUG-0669",
+    "title": "Paper trading on Bitget cannot carry a stop, so the workflow cannot be rehearsed",
+    "type": "bug",
+    "status": "done",
+    "priority": "P1",
+    "milestone": "none",
+    "editions": [
+      "community",
+      "pro",
+      "private"
+    ],
+    "area": "execution",
+    "data_class": "none",
+    "adr": "none",
+    "depends_on": [],
+    "assignee": "opencode",
+    "shipped": "unreleased",
+    "branch": "fix/paper-mode-stop",
+    "file": "bugs/BUG-0669-paper-mode-stop-blocked-on-bitget.md"
+  },
+  {
     "id": "FEAT-0014",
     "title": "Produce Community, Pro and Private builds from one tree",
     "type": "feature",

@@ -223,7 +223,23 @@ describe("FEAT-0012 — one seam", () => {
         // the request is: the provenance refusal stops a paper-only order
         // from reaching the live branch, the dispatch re-check can only
         // refuse, neither ever routes anything.
-        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(8);
+        //
+        // …and one exposes the mode so a venue adapter can tell "this venue has
+        // no wired route" from "nothing would be sent anyway" without reading
+        // the store (which the adapter layer may not) and without the store
+        // importing this service (which `exchange_boundary.test.ts` forbids).
+        // That is `bitgetAdapter.fetchTpSlOrders`' BUG-0669 read: it decides
+        // whether the plans are looked for at all, never what a request
+        // carries, and the seam above still stops anything in paper.
+        expect(source.match(/paperState\.enabled/g) ?? []).toHaveLength(9);
+
+        // The accessor the read above depends on is wired to the same store the
+        // seam branches on — a getter that drifted from it would make the
+        // adapter's answer describe a different mode than the transport's.
+        paperState.setEnabled(true);
+        expect(tradeService.paperMode).toBe(true);
+        paperState.setEnabled(false);
+        expect(tradeService.paperMode).toBe(false);
 
         // FEAT-0327: exactly one read relaxes a credential guard, because it
         // goes through the paper seam and therefore needs no credentials. It
@@ -322,11 +338,12 @@ describe("FEAT-0012 — one seam", () => {
                 "See the scope note above for what this list does and does not cover.",
         ).toEqual([
             ["src/services/accountSession.svelte.ts", 1],
+            ["src/services/orderPlacementService.ts", 1],
             ["src/services/paperAccountFeed.ts", 1],
             ["src/services/paperJournalService.ts", 1],
             ["src/services/paperTradingService.ts", 5],
             ["src/services/rmsService.ts", 1],
-            ["src/services/tradeService.ts", 8],
+            ["src/services/tradeService.ts", 9],
         ]);
 
         // Reworded reads of the same mode across the layer. The trade-domain

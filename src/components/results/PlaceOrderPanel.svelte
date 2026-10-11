@@ -76,7 +76,13 @@
   const caps = $derived(capabilitiesOf(exchange));
   // BUG-0649 — the note has to agree with the gate. `attached` means nothing to
   // warn about, so no branch renders for it.
-  const stopPlacement = $derived(stopLossPlacement(caps));
+  const stopPlacement = $derived(
+    // BUG-0649, paper half: a paper order never reaches the venue, so the
+    // venue's ability to carry a stop is not its question. The gate exempts
+    // paper for the same reason (`orderGate.verify`), and a warning the gate
+    // would not act on is the shape of this defect all over again.
+    paperState.enabled ? "attached" : stopLossPlacement(caps),
+  );
   /**
    * BUG-0649 — the note has to answer a second question too: is there a stop to
    * talk about at all? The gate asks exactly this (`orderGate.ts:977` — a
