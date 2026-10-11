@@ -120,3 +120,73 @@ export function aggregateIntoSyntheticBucket(
         .toString();
     return { ...prev };
 }
+
+/**
+ * A candle with Decimal OHLCV — the shape both REST kline fetches build.
+ *
+ * Kept structural (rather than importing the `Kline` type from the services
+ * layer) so this utility stays below it. `Kline` is identical in shape, so
+ * callers pass and receive it without a cast.
+ */
+export interface BatchCandle {
+    time: number;
+    open: Decimal;
+    high: Decimal;
+    low: Decimal;
+    close: Decimal;
+    volume: Decimal;
+}
+
+/**
+ * Collapses a base-timeframe candle series into target-timeframe candles.
+ *
+ * Stateless batch counterpart to `aggregateIntoSyntheticBucket`, which merges
+ * live WebSocket pushes. Used by the REST kline fetches: a venue only serves
+ * its native granularities, so a requested timeframe that is not native is
+ * fetched at the base it divides and rebuilt here (BUG-0231 for Bitunix,
+ * BUG-0576 for Bitget). Buckets are floor-aligned to `intervalMs`; high/low
+ * take the extremes, open the first, close the last, and volume sums over
+ * `Decimal` to avoid float drift.
+ */
+export function aggregateKlineBatch(
+    candles: BatchCandle[],
+    intervalMs: number,
+): BatchCandle[] {
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) return candles;
+
+    const groups = new Map<number, BatchCandle[]>();
+    for (const candle of candles) {
+        const bucketStart = Math.floor(candle.time / intervalMs) * intervalMs;
+        const bucket = groups.get(bucketStart);
+        if (bucket) bucket.push(candle);
+        else groups.set(bucketStart, [candle]);
+    }
+
+    const aggregated: BatchCandle[] = [];
+    for (const start of Array.from(groups.keys()).sort((a, b) => a - b)) {
+        const bucket = groups.get(start)!;
+        bucket.sort((a, b) => a.time - b.time);
+
+        const first = bucket[0];
+        const last = bucket[bucket.length - 1];
+        let high = first.high;
+        let low = first.low;
+        let volume = new Decimal(0);
+
+        for (const candle of bucket) {
+            if (high.lt(candle.high)) high = candle.high;
+            if (low.gt(candle.low)) low = candle.low;
+            volume = volume.plus(candle.volume);
+        }
+
+        aggregated.push({
+            time: start,
+            open: first.open,
+            high,
+            low,
+            close: last.close,
+            volume,
+        });
+    }
+    return aggregated;
+}

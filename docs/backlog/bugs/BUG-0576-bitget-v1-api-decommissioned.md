@@ -103,6 +103,18 @@ separate items, because they live in the same function:
   original defect stayed invisible for so long"), and this path has no such
   signal.
 
+## Progress — 2026-10-11: the two market-data gaps are closed client-side
+
+The two gaps the 2026-09-30 pass left are done. `fetchBitgetKlines` now resolves
+the requested timeframe against `bitget.nativeTimeframes` and, when it is not
+native, fetches the base granularity it divides and rebuilds it with the batch
+aggregator `aggregateKlineBatch` (`src/utils/syntheticKlines.ts` — the stateless
+counterpart to the WebSocket path's `aggregateIntoSyntheticBucket`). So `2m`,
+`6m`, `9m`, … aggregate instead of hitting the server's explicit refusal, and
+every chart timeframe resolves. The short-series signal stays server-side in
+`venues/bitget.ts` (`[Klines] Bitget returned N of M …`). No signed call, no key
+needed — all unauthenticated.
+
 **Rows 1–6 are untouched and still on V1**, deliberately. They need credentials
 this pass did not have: the ordering question (BUG-0580) is unanswered, the V2
 response shapes for orders/positions cannot be observed without a key, and the
@@ -304,16 +316,16 @@ risks reintroducing it.
       no longer contains a ☠️ row
 - [ ] The WebSocket field-name mismatch in `docs/TODO.md` is resolved or
       re-confirmed
-- [ ] Every timeframe the chart offers resolves on Bitget — mapped onto a
+- [x] Every timeframe the chart offers resolves on Bitget — mapped onto a
       granularity V2 serves, aggregated from one it does (the way
       `fetchBitunixKlines` uses `bitunixNatives`), or refused explicitly rather
       than letting `400171` escape as a chart error. `bitget.nativeTimeframes`
       names what Bitget really serves: `3m`, `6H` and `1M` are absent from it
       today although V2 answers `00000` for each
-- [ ] A test covers a non-mapped timeframe on the Bitget path, and the list in
+- [x] A test covers a non-mapped timeframe on the Bitget path, and the list in
       [`CandleChartView.svelte:109`](../../../src/lib/windows/implementations/CandleChartView.svelte)
       is reconciled with what Bitget can serve
-- [ ] A short candle series is observable rather than silent: when the venue
+- [x] A short candle series is observable rather than silent: when the venue
       returns fewer rows than requested, that is logged the way the Bitunix
       path logs it, instead of being reported as a complete fetch
 

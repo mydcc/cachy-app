@@ -368,6 +368,66 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
     });
   });
 
+  describe("synthetic timeframes ride the native base feed (BUG-0576)", () => {
+    it("maps the previously missing native granularities", () => {
+      expect(internals.getBitgetChannel("kline_3m")).toBe("candle3m");
+      expect(internals.getBitgetChannel("kline_6h")).toBe("candle6H");
+      expect(internals.getBitgetChannel("kline_12h")).toBe("candle12H");
+      expect(internals.getBitgetChannel("kline_1M")).toBe("candle1M");
+    });
+
+    it("subscribes the base feed for a synthetic timeframe", () => {
+      service.subscribe(BTC_WIRE, "kline_6m");
+
+      const [frame] = socket.frames();
+      expect(frame.op).toBe("subscribe");
+      expect(frame.args?.[0]?.channel).toBe("candle3m");
+      expect(frame.args?.[0]?.instId).toBe(BTC_WIRE);
+    });
+
+    it("unsubscribes the base feed when the synthetic subscription ends", () => {
+      service.subscribe(BTC_WIRE, "kline_6m");
+      service.unsubscribe(BTC_WIRE, "kline_6m");
+
+      const frames = socket.frames();
+      expect(frames.map((f) => f.op)).toEqual(["subscribe", "unsubscribe"]);
+      expect(frames[1].args?.[0]?.channel).toBe("candle3m");
+    });
+
+    it("folds a base push into the synthetic buckets live", () => {
+      const klines = vi.spyOn(marketState, "updateSymbolKlines").mockImplementation(() => {});
+      service.subscribe(BTC_WIRE, "kline_6m");
+
+      internals.handleMessage({
+        action: "update",
+        arg: { instType: "USDT-FUTURES", channel: "candle3m", instId: BTC_WIRE },
+        data: [["1784841780000", "101", "105", "98", "103", "3", "309", "3"]],
+      });
+
+      const tfs = klines.mock.calls.map((c) => c[1]);
+      expect(tfs).toContain("3m");
+      expect(tfs).toContain("6m");
+      const synth = klines.mock.calls.find((c) => c[1] === "6m")!;
+      expect(synth[0]).toBe(BTC_STORE_KEY);
+      expect(synth[3]).toBe("ws");
+    });
+
+    it("warns instead of silently ignoring a timeframe it cannot serve", () => {
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+      // No native divides a 7-second chart, and no wire channel exists for
+      // it — the request must be audible rather than a silent no-op.
+      service.subscribe(BTC_WIRE, "kline_7s");
+
+      expect(socket.frames()).toHaveLength(0);
+      expect(warn).toHaveBeenCalledWith(
+        "network",
+        expect.stringContaining("kline_7s"),
+        expect.anything(),
+      );
+    });
+  });
+
   describe("channels the public socket must refuse", () => {
     it.each(["orders", "positions", "account"])(
       "refuses the private channel %s with a loud warning and sends no frame",
