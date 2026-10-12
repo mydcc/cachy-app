@@ -212,6 +212,11 @@ describe('handle sequence (Integration)', () => {
   });
 
   it('BUG-0281: should not allow HTML/markup injection via crafted cachy_theme cookie', async () => {
+    // The themeHandler that interpolated this cookie into <body> was removed
+    // outright (BUG-0281, fix option 1), so the sink is unreachable today. This
+    // guards the removal: the mocked resolve applies `transformPageChunk` if any
+    // handler requests one — re-introducing the interpolation fails the body
+    // assertions below — and the final resolve must carry no transform at all.
     const maliciousPayload = 'x"><img src=x onerror=alert(1)>$&$\'';
     const mockRequest = new Request('http://localhost/test-path', { method: 'GET' });
     const mockCookies = {
@@ -232,8 +237,10 @@ describe('handle sequence (Integration)', () => {
       headers: { 'content-type': 'text/html' }
     });
 
+    let lastOptions: { transformPageChunk?: unknown } | undefined;
     const mockResolve = vi.fn().mockImplementation(async (event, opts) => {
-      if (opts && opts.transformPageChunk) {
+      lastOptions = opts;
+      if (opts?.transformPageChunk) {
         const transformedHtml = opts.transformPageChunk({
           html: baseHtml,
           done: true
@@ -246,12 +253,14 @@ describe('handle sequence (Integration)', () => {
     const result = await handle({ event: mockEvent, resolve: mockResolve });
     const bodyText = await result.text();
 
-    // Must not inject attacker markup or quote-breakout into body tag
+    // No handler installs a page transform any more, so the sink is dead code.
+    expect(lastOptions?.transformPageChunk).toBeUndefined();
+    // The body is delivered untouched; the payload could only appear via a sink.
+    expect(result).toBe(mockResponse);
+    expect(bodyText).toBe(baseHtml);
     expect(bodyText).not.toContain('<img');
     expect(bodyText).not.toContain('onerror=');
     expect(bodyText).not.toContain(maliciousPayload);
-    // HTML should remain unmodified outside of authorized behavior
-    expect(bodyText).toBe(baseHtml);
   });
 
   it('should log warnings for 429/401 and errors for other 4xx/5xx responses', async () => {
@@ -321,11 +330,46 @@ describe('handle sequence (Integration)', () => {
     expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(result.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-    // The SSE content type and cache policy survive untouched.
+    expect(result.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin-allow-popups');
+    expect(result.headers.get('Cross-Origin-Embedder-Policy')).toBeNull();
+    // Permissions-Policy must keep the metaverse/iframe delegates (AGENTS.md).
+    expect(result.headers.get('Permissions-Policy')).toContain(
+      'camera=(self "https://space.cachy.app")',
+    );
+    // The SSE headers survive untouched — including `connection`.
     expect(result.headers.get('content-type')).toBe('text/event-stream');
     expect(result.headers.get('cache-control')).toBe('no-cache');
+    expect(result.headers.get('connection')).toBe('keep-alive');
     // The log stream request itself is never logged (loop guard).
     expect(loggerInfoSpy).not.toHaveBeenCalled();
+  });
+
+  it('applies the security headers to a non-200 stream response', async () => {
+    // The route also answers 401/403; the early return and the header block
+    // must not depend on the status code.
+    const mockEvent = {
+      request: new Request('http://localhost/api/stream-logs', { method: 'GET' }),
+      url: new URL('http://localhost/api/stream-logs'),
+      cookies: { get: vi.fn() },
+    } as unknown as RequestEvent;
+
+    const denied = new Response('forbidden', {
+      status: 403,
+      headers: { 'content-type': 'text/plain' },
+    });
+    const mockResolve = vi.fn().mockResolvedValue(denied);
+
+    const result = await handle({ event: mockEvent, resolve: mockResolve });
+
+    expect(result.status).toBe(403);
+    expect(result.headers.get('Strict-Transport-Security')).toBe(
+      'max-age=31536000; includeSubDomains; preload',
+    );
+    expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(result.headers.get('Content-Security-Policy')).toBe(
+      SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1],
+    );
   });
 
   it('composes the security-header handler outermost, wrapping the logger', () => {
