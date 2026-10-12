@@ -22,8 +22,13 @@ import type { RequestEvent } from '@sveltejs/kit';
 
 // Mock SvelteKit sequence hook directly to avoid 'get_request_store' internal errors
 // when testing outside the actual SvelteKit application context.
+const { sequenceCalls } = vi.hoisted(() => ({
+  sequenceCalls: [] as unknown[][],
+}));
+
 vi.mock('@sveltejs/kit/hooks', () => ({
   sequence: (...handlers) => {
+    sequenceCalls.push(handlers);
     return async ({ event, resolve }) => {
       let currentIndex = 0;
 
@@ -311,7 +316,8 @@ describe('handle sequence (Integration)', () => {
     expect(result.headers.get('Strict-Transport-Security')).toBe(
       'max-age=31536000; includeSubDomains; preload',
     );
-    expect(result.headers.get('Content-Security-Policy')).toBeDefined();
+    const expectedCsp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
+    expect(result.headers.get('Content-Security-Policy')).toBe(expectedCsp);
     expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
     expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(result.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
@@ -320,5 +326,16 @@ describe('handle sequence (Integration)', () => {
     expect(result.headers.get('cache-control')).toBe('no-cache');
     // The log stream request itself is never logged (loop guard).
     expect(loggerInfoSpy).not.toHaveBeenCalled();
+  });
+
+  it('composes the security-header handler outermost, wrapping the logger', () => {
+    // `handle` is built once at module load, so the mock's recorded call is the
+    // live composition. The behavioural assertions above cannot tell the two
+    // orders apart — both set the same headers on every path — so this is the
+    // one that goes red if the order is reverted.
+    const composed = sequenceCalls[sequenceCalls.length - 1] ?? [];
+    expect(composed).toHaveLength(2);
+    expect(composed[0]).toBe(headersHandler);
+    expect((composed[1] as { name?: string }).name).toBe('loggingHandler');
   });
 });
