@@ -281,4 +281,44 @@ describe('handle sequence (Integration)', () => {
     await handle({ event: createEvent('/api/fail'), resolve: resolve500 });
     expect(mockLogger.error).toHaveBeenCalledWith(expect.stringMatching(/\[RES\] GET \/api\/fail -> 500 \(\d+ms\)/));
   });
+
+  it('applies the security headers on the /api/stream-logs early-return path', async () => {
+    // Pins the guarantee the handler order exists for: any response leaving
+    // `handle` carries the security headers, whatever path produced it. It is
+    // intentionally order-insensitive — both orders satisfy it today because
+    // loggingHandler's early return calls resolve — so it guards the
+    // invariant, it does not pin the ordering itself.
+    const mockEvent = {
+      request: new Request('http://localhost/api/stream-logs', { method: 'GET' }),
+      url: new URL('http://localhost/api/stream-logs'),
+      cookies: { get: vi.fn() },
+    } as unknown as RequestEvent;
+
+    const sseResponse = new Response('event: ping\n\n', {
+      status: 200,
+      headers: {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+    });
+    const mockResolve = vi.fn().mockResolvedValue(sseResponse);
+    const loggerInfoSpy = (await import('#lib/server/logger.js')).logger.info;
+
+    const result = await handle({ event: mockEvent, resolve: mockResolve });
+
+    expect(result).toBe(sseResponse);
+    expect(result.headers.get('Strict-Transport-Security')).toBe(
+      'max-age=31536000; includeSubDomains; preload',
+    );
+    expect(result.headers.get('Content-Security-Policy')).toBeDefined();
+    expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(result.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    // The SSE content type and cache policy survive untouched.
+    expect(result.headers.get('content-type')).toBe('text/event-stream');
+    expect(result.headers.get('cache-control')).toBe('no-cache');
+    // The log stream request itself is never logged (loop guard).
+    expect(loggerInfoSpy).not.toHaveBeenCalled();
+  });
 });
