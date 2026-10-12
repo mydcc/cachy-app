@@ -132,4 +132,4 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   return response;
 };
 
-export const handle = sequence(loggingHandler, headersHandler);
+export const handle = sequence(headersHandler, loggingHandler);
