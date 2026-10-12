@@ -132,4 +132,11 @@ export const headersHandler: Handle = async ({ event, resolve }) => {
   return response;
 };
 
-export const handle = sequence(loggingHandler, headersHandler);
+// `sequence(a, b)` wraps with `a` outermost: `a`'s resolve invokes `b`, then
+// `b`'s resolve invokes SvelteKit. Keeping headersHandler first makes the
+// security-header guarantee structural — it survives an inner handler that
+// returns without calling resolve. loggingHandler's `/api/stream-logs` early
+// return does call resolve (it only skips the log lines), so that path
+// already received the headers before this order; the swap hardens the
+// guarantee, it does not fix a header that is missing today.
+export const handle = sequence(headersHandler, loggingHandler);
