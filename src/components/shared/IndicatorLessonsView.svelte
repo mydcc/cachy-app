@@ -94,6 +94,9 @@
 
     let current = $derived(allEntries.find((entry) => entry.id === selectedId) ?? allEntries[0]);
 
+    /** Normalised once per keystroke rather than once per entry. */
+    const normalizedQuery = $derived(searchQuery.trim().toLowerCase());
+
     /*
      * Filtered in a `$derived`, never in the template: the repo forbids
      * sort/filter/map inside `{#each}`, and every keystroke recomputes this.
@@ -102,9 +105,7 @@
         LESSON_GROUPS.map((group) => ({
             group: group.group,
             entries: group.entries.filter((entry) => {
-                const matchesSearch = lessonName(entry)
-                    .toLowerCase()
-                    .includes(searchQuery.trim().toLowerCase());
+                const matchesSearch = lessonName(entry).toLowerCase().includes(normalizedQuery);
                 const matchesGroup =
                     groupFilter === "all"
                         ? true
@@ -145,9 +146,12 @@
                 >{$_("indicatorLessons.groupLabel")}</label
             >
             <!--
-              `value` + `onchange` rather than `bind:value`: the same shape
-              `RuleLifecycleFields.svelte` uses for its selects, and the one a
-              dispatched `change` actually reaches under happy-dom.
+              `value` + `onchange` rather than `bind:value`: Svelte resolves a
+              select binding through `select.querySelector(':checked')`, and
+              happy-dom matches nothing there for an option whose value was set
+              programmatically — so the binding falls back to the first option
+              instead of the picked one. Same shape as the alerts panel's
+              selects.
             -->
             <select
                 id="indicator-lesson-group"
