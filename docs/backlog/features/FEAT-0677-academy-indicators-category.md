@@ -25,11 +25,15 @@ Merged so far:
 - #4051 — `academy.indicators.*`, 13 lessons for the trend and volatility groups
 - #4053 — the remaining 10, completing oscillators and volume
 - #4054 — [ADR-0025](../../adr/0025-academy-lesson-fields.md), the lesson fields
+- #4056 — `placement` on `CatalogueEntry`, pinned against the cards
+- #4057 — the lesson model and the corpus pin (`indicatorLessons.ts`,
+  `indicatorLessons.test.ts`, plus the stale `TranslationKey` regeneration)
 
 All 23 indicators in `REGISTRY_CATALOGUE` have all four prose keys in both
-locales — 92 keys per locale, identical sets. No acceptance criterion below is
-met yet: they all describe code that does not exist. There is no third tab, no
-live chart, no parameter rows.
+locales — 92 keys per locale, identical sets — and `indicatorLessons.test.ts`
+resolves every key through `lessonKey` for both languages, so AC 3, 5 and 7 are
+met and pinned. The rest describe code that does not exist yet: there is no
+third tab, no live chart, no parameter rows.
 
 **The human read of the failure modes happened** and passed. That was the
 documented gate on writing the DE/EN texts.
@@ -140,19 +144,22 @@ persisted, so a new id needs a migration or it disappears for existing users.
       (`src/routes/[[lang]]/(seo)/academy/+page.svelte`).
 - [ ] The indicator list is derived from `INDICATOR_CATALOGUE`, not hand-maintained.
       Adding an indicator to the catalogue adds a lesson row with no edit here.
-- [ ] Every lesson names an indicator present in `rule_indicator_registry`, asserted
+- [x] Every lesson names an indicator present in `rule_indicator_registry`, asserted
       by a test. A lesson for an indicator the engine cannot compute fails CI.
+      *(Met in #4057: the corpus is pinned to `REGISTRY_CATALOGUE`, which
+      `indicatorCatalogue.test.ts` pins to `rule_indicator_registry()`.)*
 - [ ] Every parameter shown in a lesson matches the catalogue's parameter set and
       default for that indicator, also asserted by a test.
 - [x] `de.json` and `en.json` carry the same key set under `academy.indicators.*`;
-      a key present in one and missing in the other fails CI. *(Met for the
-      thirteen lessons in #4051. Re-assert when the remaining ten land.)*
+      a key present in one and missing in the other fails CI. *(Met for all 23 in
+      #4057, asserted per locale rather than by comparing the two: each is checked
+      against the registry id set and the four ADR-0025 field names.)*
 - [ ] A persisted tab id from before this change still resolves to a valid tab
       (`isAcademyTab`), and an unknown stored id falls back to the default tab
       instead of rendering nothing.
 - [x] Each lesson has a non-empty `failureModes` entry in both languages. A lesson
-      without one is treated as incomplete. *(Met for the thirteen lessons in
-      #4051.)*
+      without one is treated as incomplete. *(Met for all 23 in #4057, alongside
+      the other three fields.)*
 - [ ] The chart in a lesson view renders the indicator over the live klines of the
       currently selected symbol, and updates when the symbol changes.
 - [ ] Multi-output indicators render every line the catalogue declares —
