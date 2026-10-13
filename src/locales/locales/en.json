@@ -4856,5 +4856,27 @@
     "tradesLabel": "Trades:",
     "pnlLabel": "PnL:",
     "topLabel": "Top:"
+  },
+  "indicatorLessons": {
+    "title": "Indicators & Setups",
+    "searchLabel": "Search indicators",
+    "searchPlaceholder": "Search indicators...",
+    "groupLabel": "Group",
+    "filterAll": "All",
+    "filterFavorites": "Favorites",
+    "noLessons": "No indicator matches this filter.",
+    "parameters": "Parameters",
+    "parametersEmpty": "This indicator has no parameters.",
+    "outputs": "Lines",
+    "placement": {
+      "price": "On the price chart",
+      "pane": "In its own pane"
+    },
+    "field": {
+      "whatItMeasures": "What it measures",
+      "howToRead": "How to read it",
+      "failureModes": "When it is not telling you anything",
+      "confirmation": "What turns it into a setup"
+    }
   }
 }

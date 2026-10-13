@@ -22,13 +22,16 @@
   ineligibility) now comes from WindowFrame via the `academy` registry type.
 
   Tab state lives in `lib/academy/useAcademyTabs.svelte`, the tab bar in
-  `AcademyTabs.svelte` — both shared with the `/academy` SEO route.
+  `AcademyTabs.svelte` — both shared with the `/academy` SEO route, which
+  renders this component whole and so reaches every tab without its own copy
+  of the panel switch.
 -->
 
 <script lang="ts">
    import AcademyTabs from "./AcademyTabs.svelte";
    import CandlestickPatternsView from "./CandlestickPatternsView.svelte";
    import ChartPatternsView from "./ChartPatternsView.svelte";
+   import IndicatorLessonsView from "./IndicatorLessonsView.svelte";
    import { createAcademyTabs } from "../../lib/academy/useAcademyTabs.svelte";
 
    const tabs = createAcademyTabs();
@@ -49,8 +52,10 @@
    >
       {#if tabs.activeTab === "chartPatterns"}
          <ChartPatternsView />
-      {:else}
+      {:else if tabs.activeTab === "candlestickPatterns"}
          <CandlestickPatternsView />
+      {:else}
+         <IndicatorLessonsView />
       {/if}
    </div>
 </div>
