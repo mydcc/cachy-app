@@ -36,6 +36,9 @@ export const CONSTANTS = {
   LOCAL_STORAGE_NOTIFICATION_SOUND_KEY: "cachy_notification_sound",
   LOCAL_STORAGE_EXTERNAL_CHANNELS_KEY: "cachy_external_channels",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
+  // FEAT-0681. Class A: which timeframe the trader last read an indicator lesson
+  // on. A display preference, and it stays on this device like the rest.
+  LOCAL_STORAGE_LESSON_TIMEFRAME_KEY: "cachy_lesson_timeframe",
   // FEAT-0212 Phase 2. Class A: stores only the picked file's display name and
   // the write interval, never the file contents or a path — the
   // FileSystemFileHandle itself lives in IndexedDB (dbService, kv_store),

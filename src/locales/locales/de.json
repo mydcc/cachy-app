@@ -4867,6 +4867,7 @@
     "noLessons": "Kein Indikator passt zu diesem Filter.",
     "parameters": "Parameter",
     "parametersEmpty": "Dieser Indikator hat keine Parameter.",
+    "parameterFromSettings": "Deine Einstellung",
     "outputs": "Linien",
     "placement": {
       "price": "Auf dem Kurschart",
@@ -4880,7 +4881,8 @@
     },
     "chart": {
       "empty": "Noch keine Marktdaten für dieses Symbol.",
-      "refusedHeading": "Von diesem Build nicht gezeichnet"
+      "refusedHeading": "Von diesem Build nicht gezeichnet",
+      "timeframeLabel": "Zeitrahmen der Lektion"
     }
   }
 }

@@ -47,7 +47,9 @@
         type IndicatorGroup,
     } from "../../lib/alerts/indicatorCatalogue";
     import { LESSON_FIELDS, LESSON_GROUPS, lessonKey } from "../../lib/academy/indicatorLessons";
+    import { lessonParams } from "../../lib/academy/lessonSettings";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
+    import { indicatorState } from "../../stores/indicator.svelte";
     import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
 
     interface Props {
@@ -105,6 +107,16 @@
     const allEntries = LESSON_GROUPS.flatMap((group) => group.entries);
 
     let current = $derived(allEntries.find((entry) => entry.id === selectedId) ?? allEntries[0]);
+
+    /*
+     * FEAT-0681: the open lesson's parameters as the user configured them,
+     * falling back to the catalogue default per parameter their card cannot
+     * supply. One `$derived` for both consumers — the chart below and the
+     * Parameter card — so the number a reader sees and the number the line was
+     * drawn with cannot drift apart. Read from `indicatorState` here, so a
+     * settings change re-derives the card without a reload.
+     */
+    let effectiveParams = $derived(current ? lessonParams(current, indicatorState) : {});
 
     /** Normalised once per keystroke rather than once per entry. */
     const normalizedQuery = $derived(searchQuery.trim().toLowerCase());
@@ -313,7 +325,7 @@
               better for a chart than one column of the split.
             -->
             {#if showLiveChart}
-                <IndicatorLessonChart entry={current} />
+                <IndicatorLessonChart entry={current} params={effectiveParams} />
             {/if}
 
             <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
@@ -352,14 +364,30 @@
                         {:else}
                             <ul class="flex flex-col gap-1">
                                 {#each current.params as param (param.name)}
+                                    {@const effective = effectiveParams[param.name] ?? param.default}
+                                    {@const fromSettings = effective !== param.default}
                                     <li class="flex justify-between items-baseline gap-3 text-sm">
                                         <span class="text-[var(--text-primary)]"
                                             >{translated(paramKey(param.name), param.name)}</span
                                         >
                                         <span
-                                            class="font-mono text-[var(--accent-color)] shrink-0"
-                                            >{param.default}</span
+                                            class="flex items-baseline gap-1.5 shrink-0 font-mono text-[var(--accent-color)]"
                                         >
+                                            {effective}
+                                            {#if fromSettings}
+                                                <!-- The value the chart drew with,
+                                                     and whose it is: a number
+                                                     that silently came from the
+                                                     settings would be the one
+                                                     thing a reader cannot check. -->
+                                                <span
+                                                    class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]"
+                                                    >{$_(
+                                                        "indicatorLessons.parameterFromSettings",
+                                                    )}</span
+                                                >
+                                            {/if}
+                                        </span>
                                     </li>
                                 {/each}
                             </ul>

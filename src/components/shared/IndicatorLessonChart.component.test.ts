@@ -161,7 +161,7 @@ let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
 /** Mounts the chart for `entryId`, replacing any previous mount. */
-function render(entryId: string): HTMLElement {
+function render(entryId: string, params?: Record<string, number>): HTMLElement {
     if (component) {
         unmount(component as never);
         component = null;
@@ -174,7 +174,7 @@ function render(entryId: string): HTMLElement {
 
     component = mount(IndicatorLessonChart, {
         target: host,
-        props: { entry },
+        props: { entry, params },
     }) as never;
     flushSync();
 
@@ -185,6 +185,7 @@ function render(entryId: string): HTMLElement {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     marketState.data = {};
     tradeState.symbol = "BTCUSDT";
     host = document.createElement("div");
@@ -349,5 +350,45 @@ describe("FEAT-0677 — the live lesson chart", () => {
         const rows = lw.candleSeries.setData.mock.calls.at(-1)?.[0] as Array<{ time: number }>;
         expect(rows).toHaveLength(CANDLE_COUNT - 1);
         expect(rows.every((row) => Number.isFinite(row.time))).toBe(true);
+    });
+
+    it("computes with the parameters it is handed, not the catalogue defaults", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const drawnPoints = (period: number): unknown[] => {
+            render("rsi", { period });
+            const series = lw.lineSeries[0];
+            expect(series, "no line series drawn").toBeDefined();
+            return (series.setData.mock.calls.at(-1)?.[0] as unknown[]) ?? [];
+        };
+
+        const shortWarmup = drawnPoints(3);
+        const longWarmup = drawnPoints(14);
+
+        // RSI is indeterminate for its first `period` candles, so the longer
+        // period draws strictly fewer points. Equal counts would mean the
+        // parameter never reached the engine and the defaults were used.
+        expect(longWarmup.length).toBeGreaterThan(0);
+        expect(shortWarmup.length).toBeGreaterThan(longWarmup.length);
+    });
+
+    it("draws the timeframe the learner picks, and remembers it", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const view = render("rsi");
+        const select = view.querySelector("select");
+        expect(select, "no timeframe selector rendered").not.toBeNull();
+        expect((select as HTMLSelectElement).value).toBe("1h");
+
+        (select as HTMLSelectElement).value = "4h";
+        select!.dispatchEvent(new Event("change", { bubbles: true }));
+        flushSync();
+
+        // The pick drives the subscription, so the candles come in on the new
+        // timeframe, and it survives the visit.
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
+        expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("4h");
     });
 });

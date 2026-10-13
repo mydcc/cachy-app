@@ -64,27 +64,68 @@
         computeLessonSeries,
         type LessonSeries,
     } from "../../lib/academy/indicatorLessonSeries";
-    import type { EvaluationCandle } from "../../lib/rules/types";
+    import {
+        LESSON_TIMEFRAME_FALLBACK,
+        lessonTimeframeOptions,
+    } from "../../lib/academy/lessonSettings";
+    import type { EvaluationCandle, ParamValue } from "../../lib/rules/types";
     import type { Kline } from "../../services/technicalsTypes";
+    import { CONSTANTS } from "../../lib/constants";
     import { tradeState } from "../../stores/trade.svelte";
     import { marketState } from "../../stores/market.svelte";
+    import { settingsState } from "../../stores/settings.svelte";
     import { marketWatcher } from "../../services/marketWatcher";
     import { logger } from "../../services/logger";
     import { normalizeSymbol } from "../../utils/symbolUtils";
+    import { safeLocalStorage } from "../../utils/storageWrapper";
 
     interface Props {
         /** The lesson currently open in the view. */
         entry: CatalogueEntry;
+        /**
+         * The parameters to compute with, from the user's own Technicals
+         * settings (FEAT-0681). Omitted, the catalogue defaults apply — a caller
+         * with no settings yet still gets a total series.
+         */
+        params?: Readonly<Record<string, ParamValue>>;
     }
 
-    let { entry }: Props = $props();
+    let { entry, params }: Props = $props();
 
     /**
-     * The timeframe a lesson is drawn on. Fixed rather than the chart's own:
-     * a lesson explains the indicator as it ships, and a moving timeframe would
-     * make one lesson read differently on two visits.
+     * The timeframe a lesson is drawn on.
+     *
+     * FEAT-0681: the learner picks it from the timeframes their own analysis
+     * setting offers, and the pick is remembered. Before that it was pinned to
+     * `1h` so a lesson would not read differently on two visits — the default
+     * for a first visit is still that value.
      */
-    const LESSON_TIMEFRAME = "1h";
+    const LESSON_TIMEFRAME_KEY = CONSTANTS.LOCAL_STORAGE_LESSON_TIMEFRAME_KEY;
+
+    let pickedTimeframe = $state(readStoredTimeframe());
+
+    /** The timeframes the user's own analysis setting offers, never empty. */
+    let timeframes = $derived(lessonTimeframeOptions(settingsState.analysisTimeframes));
+
+    /**
+     * The picked timeframe while it is still offered, the first option
+     * otherwise. A stale pick is not an error: the setting may have dropped it
+     * since, and the chart must still draw something.
+     */
+    let timeframe = $derived(
+        timeframes.includes(pickedTimeframe)
+            ? pickedTimeframe
+            : (timeframes[0] ?? LESSON_TIMEFRAME_FALLBACK),
+    );
+
+    function readStoredTimeframe(): string {
+        return safeLocalStorage.getItem(LESSON_TIMEFRAME_KEY) ?? LESSON_TIMEFRAME_FALLBACK;
+    }
+
+    function selectTimeframe(value: string): void {
+        pickedTimeframe = value;
+        safeLocalStorage.setItem(LESSON_TIMEFRAME_KEY, value);
+    }
 
     /**
      * How much history the indicator is computed over. Enough to clear the
@@ -140,8 +181,8 @@
         // `lastUpdated`. The latter is bumped by price/ticker/depth too, so
         // depending on it would recompute on every quote tick; this signal is
         // written only when klines actually change (klineBuffers, BUG-0248).
-        void market?.klinesLastUpdated?.[LESSON_TIMEFRAME];
-        const klines = market?.klines?.[LESSON_TIMEFRAME];
+        void market?.klinesLastUpdated?.[timeframe];
+        const klines = market?.klines?.[timeframe];
         if (!klines || klines.length === 0) return [];
 
         // Defence in depth, the same guard CandleChartView keeps: the series API
@@ -160,7 +201,9 @@
         return rows;
     });
 
-    let computed = $derived<LessonSeries>(computeLessonSeries(entry, candles, LESSON_TIMEFRAME));
+    let computed = $derived<LessonSeries>(
+        computeLessonSeries(entry, candles, timeframe, params),
+    );
 
     /**
      * Which pane a declared output is drawn in.
@@ -342,7 +385,7 @@
     $effect(() => {
         const current = symbol;
         if (!current) return;
-        const channel = `kline_${LESSON_TIMEFRAME}`;
+        const channel = `kline_${timeframe}`;
         // `untrack`, like CandleChartView: `ensureHistory` reads provider and
         // storage settings synchronously, so without this the effect would
         // acquire dependencies it does not intend and re-register on an
@@ -418,7 +461,22 @@
         <div class="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)] min-w-0">
             <span class="font-bold text-[var(--accent-color)] truncate">{symbol || "—"}</span>
             <span aria-hidden="true">·</span>
-            <span>{LESSON_TIMEFRAME}</span>
+            <!--
+              `value` + `onchange` rather than `bind:value`: Svelte resolves a
+              select binding through `select.querySelector(':checked')`, and a
+              value set programmatically matches nothing there — the same reason
+              the group filter in the lesson view is written this way.
+            -->
+            <select
+                aria-label={$_("indicatorLessons.chart.timeframeLabel")}
+                value={timeframe}
+                onchange={(event) => selectTimeframe(event.currentTarget.value)}
+                class="bg-transparent border border-[var(--border-color)] rounded px-1 py-0.5 text-xs font-mono text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+                {#each timeframes as option (option)}
+                    <option value={option}>{option}</option>
+                {/each}
+            </select>
         </div>
 
         <!-- One legend entry per drawn line, from the catalogue's own outputs. -->
@@ -450,7 +508,7 @@
         class="w-full min-w-0 {candles.length === 0 ? 'h-0' : 'h-64'}"
         bind:this={container}
         role="img"
-        aria-label="{lessonName} · {symbol} · {LESSON_TIMEFRAME}"
+        aria-label="{lessonName} · {symbol} · {timeframe}"
     ></div>
 
     {#if computed.refused.length > 0}

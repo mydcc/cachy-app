@@ -70,6 +70,8 @@ vi.mock("./IndicatorLessonChart.svelte", async () => ({
 
 import AcademyContent from "./AcademyContent.svelte";
 import IndicatorLessonsView from "./IndicatorLessonsView.svelte";
+import { indicatorState } from "../../stores/indicator.svelte";
+import { lessonParams } from "../../lib/academy/lessonSettings";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -216,7 +218,7 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         expect(lessonRows(view).length).toBe(1);
     });
 
-    it("shows the four lesson fields and the catalogue's own parameters, for every indicator", () => {
+    it("shows the four lesson fields and the parameters the chart drew with, for every indicator", () => {
         const view = renderIndicatorsTab();
 
         for (const heading of ["whatItMeasures", "howToRead", "failureModes", "confirmation"]) {
@@ -252,14 +254,20 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
 
             const rows = [...section.querySelectorAll("li")];
             expect(rows.length, entry.id).toBe(entry.params.length);
+            // FEAT-0681: the card shows the value the chart drew with — the
+            // trader's own setting where their card has one, the catalogue
+            // default otherwise. Reading the same resolver here pins one number
+            // per declared parameter instead of a second copy of the defaults
+            // that could drift from what was drawn.
+            const configured = lessonParams(entry, indicatorState);
             for (const param of entry.params) {
                 const label = lookup(`dashboard.alerts.indicators.param.${param.name}`);
                 // Bound to the parameter's own row: a bare `toContain` over the
                 // whole card would be satisfied by a digit appearing anywhere.
                 const row = rows.find((candidate) => candidate.textContent?.includes(label));
                 expect(row, `${entry.id}.${param.name}`).toBeDefined();
-                expect(row?.textContent, `${entry.id}.${param.name}.default`).toContain(
-                    String(param.default),
+                expect(row?.textContent, `${entry.id}.${param.name}.value`).toContain(
+                    String(configured[param.name] ?? param.default),
                 );
             }
         }
@@ -285,6 +293,45 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         }) as never;
         flushSync();
         expect(host.querySelector('[data-testid="empty-stub"]')).not.toBeNull();
+    });
+
+    it("marks a parameter the trader configured, and leaves the catalogue default unmarked", () => {
+        // The settings store is the app-wide singleton, so the changed value is
+        // restored in the `finally`: a leaked write would make every later test
+        // read 21.
+        const previous = indicatorState.rsi.length;
+        try {
+            indicatorState.rsi.length = 21;
+            const view = renderIndicatorsTab();
+
+            const rsiRow = lessonRows(view).find((row) =>
+                row.textContent?.includes(lookup("dashboard.alerts.indicators.name.rsi")),
+            );
+            if (!rsiRow) throw new Error("the RSI lesson is not in the list");
+            rsiRow.click();
+            flushSync();
+
+            const card = paramsSection(view);
+            expect(card.textContent).toContain("21");
+            expect(card.textContent).toContain(lookup("indicatorLessons.parameterFromSettings"));
+
+            /*
+             * Back to the shipped default. The card keeps showing a number, but
+             * as the catalogue's, not the trader's: a value equal to the default
+             * is not a configuration and must not claim to be one. This also
+             * pins that the card re-derives from the store without a remount.
+             */
+            indicatorState.rsi.length = previous;
+            flushSync();
+
+            const cardAgain = paramsSection(view);
+            expect(cardAgain.textContent).toContain(String(previous));
+            expect(cardAgain.textContent).not.toContain(
+                lookup("indicatorLessons.parameterFromSettings"),
+            );
+        } finally {
+            indicatorState.rsi.length = previous;
+        }
     });
 });
 

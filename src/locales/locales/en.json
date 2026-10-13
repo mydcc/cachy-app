@@ -4867,6 +4867,7 @@
     "noLessons": "No indicator matches this filter.",
     "parameters": "Parameters",
     "parametersEmpty": "This indicator has no parameters.",
+    "parameterFromSettings": "Your setting",
     "outputs": "Lines",
     "placement": {
       "price": "On the price chart",
@@ -4880,7 +4881,8 @@
     },
     "chart": {
       "empty": "No market data for this symbol yet.",
-      "refusedHeading": "Not drawn by this build"
+      "refusedHeading": "Not drawn by this build",
+      "timeframeLabel": "Lesson timeframe"
     }
   }
 }

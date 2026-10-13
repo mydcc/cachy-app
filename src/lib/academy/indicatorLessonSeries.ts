@@ -31,7 +31,7 @@
 import { defaultRef, type CatalogueEntry } from "../alerts/indicatorCatalogue";
 import type { IndicatorRequest } from "../rules/indicatorRequests";
 import { computeIndicatorSeries, type SeriesResult } from "../rules/indicatorSeries";
-import type { EvaluationCandle } from "../rules/types";
+import type { EvaluationCandle, IndicatorRef, ParamValue } from "../rules/types";
 
 /** One declared output line, in the engine's own arithmetic. */
 export interface LessonLine {
@@ -55,16 +55,24 @@ export interface LessonSeries {
 /**
  * Every line `entry` declares, computed over `candles`.
  *
- * The parameters come from `defaultRef`, which is the same starting point the
- * alert builder uses: a lesson explains the indicator as it ships, not as a
- * particular user configured it.
+ * The parameters default to `defaultRef`, the same starting point the alert
+ * builder uses. `params` overrides them per name: FEAT-0681 passes the user's
+ * own Technicals settings here, so a lesson draws the indicator the trader
+ * actually runs rather than the one the catalogue ships. A name the caller
+ * omits keeps its catalogue default, so this fan-out stays total — a partially
+ * filled document is not a state the caller can reach by accident.
  */
 export function computeLessonSeries(
     entry: CatalogueEntry,
     candles: readonly EvaluationCandle[],
     timeframe: IndicatorRequest["timeframe"],
+    params?: Readonly<Record<string, ParamValue>>,
 ): LessonSeries {
-    const base = defaultRef(entry);
+    const defaults = defaultRef(entry);
+    const base: IndicatorRef =
+        params === undefined
+            ? defaults
+            : { ...defaults, params: { ...defaults.params, ...params } };
     const lines: LessonLine[] = [];
     const refused: { name: string; reason: string }[] = [];
 
