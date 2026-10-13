@@ -2,8 +2,7 @@
 id: FEAT-0677
 title: Add an indicators category to the Trading Academy
 type: feature
-status: in-progress
-assignee: opencode
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -42,11 +41,11 @@ words per `failureModes` — was decided by the owner.
 **The lesson fields are settled by ADR-0025.** A lesson is exactly four
 localisation keys: `whatItMeasures`, `howToRead`, `failureModes`,
 `confirmation`. The item's own six-field list below over-counts: `params` is
-already in the catalogue and resolves through `paramKey`, and `chartOverlay`
-becomes a typed property on the catalogue entry beside `dimension`. Neither is a
-localisation key.
+already in the catalogue and resolves through `paramKey`, and the item's
+`chartOverlay` ships as a typed catalogue property named `placement`. Neither is
+a localisation key.
 
-**`chartOverlay` is done — in review.** `CatalogueEntry` carries a required
+**`placement` is done — in review.** `CatalogueEntry` carries a required
 `placement: "price" | "pane"`, transcribed from the `On the chart` line of every
 card and pinned against them by `indicatorCatalogue.test.ts`, so the field and
 the cards cannot drift. Placement is **not** derivable from `dimension`: `ema`,
@@ -56,8 +55,18 @@ differently — `ema` on the price, the other three on their own axis — and
 `price` outputs and are all overlaid while `macd` is not. ADR-0025 carries the
 evidence and a counter-example test keeps it from being re-derived.
 
-Branch `feat/academy-chart-overlay`. The renderer is the next step and still has
-no code.
+Branch `feat/academy-chart-overlay` (PR #4056). The renderer is the next step and
+still has no code.
+
+**Why the item is `ready` and not `in-progress`, despite active work.** The
+claim rules in `AGENTS.md` want `in-progress` with an `assignee` and a branch
+while work is open, and `scripts/check-stale-in-progress.mjs` fails the build for
+an `in-progress` item with no branch. But that check also fails the build once
+the named branch has merged, and this item spans several PRs — so any claim this
+PR could take would turn develop red the moment #4056 lands, which is exactly the
+stale-claim failure the check exists to catch, induced by the rule rather than by
+neglect. A multi-PR item therefore stays `ready` between its PRs. The next agent
+picks the renderer up from here.
 
 **Not dispatched automatically.** `area: ui` is outside the auto-dispatch filters
 in `.github/workflows/backlog-dispatch.yml`, so this item waits for a manual
@@ -108,8 +117,8 @@ reading rather than a glossary:
 - `chartOverlay` — line, band, histogram, or separate axis. Determines the renderer.
 
 **The last two are not localisation keys** — see ADR-0025. `params` is read from
-the catalogue through `paramKey`, and `chartOverlay` becomes a typed property on
-the catalogue entry beside `dimension`. The four above are the lesson's shape.
+the catalogue through `paramKey`, and `chartOverlay` ships as the catalogue
+property `placement` beside `dimension`. The four above are the lesson's shape.
 
 All prose lives in `src/locales/locales/{de,en}.json` under `academy.indicators.*`.
 
@@ -214,7 +223,7 @@ prose. Resolved:
 ## Links
 
 - [`docs/adr/0025-academy-lesson-fields.md`](../../adr/0025-academy-lesson-fields.md) —
-  the four lesson fields, and why `params` and `chartOverlay` are not localisation keys
+  the four lesson fields, and why `params` and the placement field are not localisation keys
 - `src/lib/alerts/indicatorCatalogue.ts` — the registry this reuses
 - `src/lib/rules/indicatorSeries.ts` — `computeIndicatorSeries`, the computation
 - `technicals-wasm/src/rule/indicator.rs` — `registry_json`, the authoritative list
