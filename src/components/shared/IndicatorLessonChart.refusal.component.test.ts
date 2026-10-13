@@ -107,7 +107,9 @@ describe("FEAT-0677 — a refused line is shown, not silently dropped", () => {
         const view = host.firstElementChild as HTMLElement;
         expect(view, `chart rendered nothing:\n${host.innerHTML}`).not.toBeNull();
         expect(view.textContent).toContain(lookup("indicatorLessons.chart.refusedHeading"));
-        expect(view.textContent).toContain("bandwidth");
+        expect(view.textContent).toContain(
+            lookup("dashboard.alerts.indicators.output.bandwidth"),
+        );
         expect(view.textContent).toContain(REFUSAL_REASON);
     });
 });

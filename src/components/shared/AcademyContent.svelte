@@ -34,6 +34,17 @@
    import IndicatorLessonsView from "./IndicatorLessonsView.svelte";
    import { createAcademyTabs } from "../../lib/academy/useAcademyTabs.svelte";
 
+   interface Props {
+      /**
+       * Whether the indicators tab may mount its live chart. True in the app
+       * window; the public SEO route passes false, so a marketing visit does
+       * not page history or open a market subscription for the default symbol.
+       */
+      showLiveChart?: boolean;
+   }
+
+   let { showLiveChart = true }: Props = $props();
+
    const tabs = createAcademyTabs();
 </script>
 
@@ -55,7 +66,7 @@
       {:else if tabs.activeTab === "candlestickPatterns"}
          <CandlestickPatternsView />
       {:else}
-         <IndicatorLessonsView />
+         <IndicatorLessonsView showLiveChart={showLiveChart} />
       {/if}
    </div>
 </div>

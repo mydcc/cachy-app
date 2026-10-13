@@ -37,6 +37,8 @@
 </svelte:head>
 
 <div class="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-[var(--bg-primary)]">
-   <!-- AcademyContent carries its own @container root + padding. -->
-   <AcademyContent />
+   <!-- AcademyContent carries its own @container root + padding. The public
+        route opts out of the live lesson chart: it must not page kline history
+        or open a market subscription for an anonymous marketing visit. -->
+   <AcademyContent showLiveChart={false} />
 </div>

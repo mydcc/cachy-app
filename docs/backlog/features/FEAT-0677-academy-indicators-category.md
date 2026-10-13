@@ -77,11 +77,15 @@ The lesson view exists since #4058. The chart over live klines ships in the
 final slice: `IndicatorLessonChart.svelte` draws every declared output of the
 open lesson over the klines of `tradeState.symbol` — the app-wide symbol
 selection the calculator and the alert panel read — and redraws when it changes.
-`placement: "price"` outputs are overlaid on the candle pane; `placement: "pane"`
-outputs get their own axis below it. The component computes over the same engine
-path `computeLessonSeries` wraps and never reuses `IndicatorLayer`, which decides
-what to draw from the chart's own indicator settings rather than from an
-argument.
+Each output is routed by `placement` *and* its own `dimension`: a `pane`
+indicator gets its own axis whatever its outputs' dimension, and a non-price
+output of a `price` indicator (`bollinger.percent_b`/`bandwidth`,
+`parabolic_sar.direction`) gets its own pane too, so it cannot distort the price
+axis. The component computes over the same engine path `computeLessonSeries`
+wraps and never reuses `IndicatorLayer`, which decides what to draw from the
+chart's own indicator settings rather than from an argument. The public SEO
+route passes `showLiveChart={false}`, so a marketing visit renders the lesson
+text without paging kline history or opening a market subscription.
 
 **The multi-PR-claim note is retired.** Earlier slices kept the item `ready`
 between PRs, because `scripts/check-stale-in-progress.mjs` fails an

@@ -62,28 +62,50 @@ vi.mock("../../locales/i18n", async () => {
 const lw = vi.hoisted(() => {
     const CandlestickSeries = Symbol("candlestick");
     const LineSeries = Symbol("line");
-    const candleSeries = { setData: vi.fn(), applyOptions: vi.fn() };
+    const candleSeries = { setData: vi.fn(), applyOptions: vi.fn(), paneIndex: 0 };
     const lineSeries: Array<{
         options: Record<string, unknown>;
         paneIndex: number;
         setData: ReturnType<typeof vi.fn>;
+        applyOptions: ReturnType<typeof vi.fn>;
     }> = [];
+    let paneCount = 0;
     const chart = {
+        // Models the library's real clamp: a requested pane index beyond the
+        // panes that exist is clamped to the pane a new one creates, so the test
+        // cannot pass against a skip-index the library would silently merge.
         addSeries: vi.fn((definition: unknown, options: Record<string, unknown>, paneIndex = 0) => {
-            if (definition === CandlestickSeries) return candleSeries;
-            const series = { options, paneIndex, setData: vi.fn() };
+            if (definition === CandlestickSeries) {
+                paneCount = Math.max(paneCount, 1);
+                candleSeries.paneIndex = 0;
+                return candleSeries;
+            }
+            const effective = Math.min(paneCount, paneIndex);
+            if (effective === paneCount) paneCount += 1;
+            const series = {
+                options,
+                paneIndex: effective,
+                setData: vi.fn(),
+                applyOptions: vi.fn(),
+            };
             lineSeries.push(series);
             return series;
         }),
         removeSeries: vi.fn(),
         applyOptions: vi.fn(),
         remove: vi.fn(),
+        resetPanes: () => {
+            paneCount = 0;
+        },
     };
     return { CandlestickSeries, LineSeries, candleSeries, lineSeries, chart };
 });
 
 vi.mock("lightweight-charts", () => ({
-    createChart: vi.fn(() => lw.chart),
+    createChart: vi.fn(() => {
+        lw.chart.resetPanes();
+        return lw.chart;
+    }),
     ColorType: { Solid: 0 },
     CandlestickSeries: lw.CandlestickSeries,
     LineSeries: lw.LineSeries,
@@ -234,16 +256,98 @@ describe("FEAT-0677 — the live lesson chart", () => {
         expect(lw.candleSeries.setData.mock.calls.at(-1)?.[0]).toHaveLength(CANDLE_COUNT);
     });
 
-    it("overlays a price indicator and gives a pane indicator its own pane", () => {
+    it("routes each line to a pane by placement and by output dimension", () => {
         seedKlines("BTCUSDT");
         tradeState.symbol = "BTCUSDT";
 
-        render("ema"); // placement: "price"
-        expect(lw.lineSeries).toHaveLength(1);
-        expect(lw.lineSeries[0].paneIndex).toBe(0);
+        render("ema"); // placement price, price-dimension output
+        expect(lw.lineSeries.map((series) => series.paneIndex)).toEqual([0]);
 
-        render("macd"); // placement: "pane"
+        render("macd"); // placement pane: every line below the candles, whatever its dimension
         expect(lw.lineSeries.length).toBeGreaterThan(0);
         expect(lw.lineSeries.every((series) => series.paneIndex === 1)).toBe(true);
+
+        // placement price, but two of the five outputs are not price-dimension.
+        // Declared order: upper, middle, lower, percent_b, bandwidth. Drawing
+        // percent_b/bandwidth on the price axis would be meaningless and can
+        // blow out its autoscale.
+        render("bollinger");
+        expect(lw.lineSeries.map((series) => series.paneIndex)).toEqual([0, 0, 0, 1, 1]);
+
+        // value is price-dimension; direction (±1) is not.
+        render("parabolic_sar");
+        expect(lw.lineSeries.map((series) => series.paneIndex)).toEqual([0, 1]);
+    });
+
+    it("redraws when the last candle is replaced in place", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        render("rsi");
+
+        // This is what klineBuffers does on a tick for the forming candle: it
+        // replaces the last element while the array and symbol object stay put.
+        const market = marketState.data[normalizeSymbol("BTCUSDT", "bitunix")];
+        const klines = market.klines[TIMEFRAME];
+        klines[klines.length - 1] = {
+            ...klines[klines.length - 1],
+            close: new Decimal("123.456"),
+        };
+        flushSync();
+
+        const rows = lw.candleSeries.setData.mock.calls.at(-1)?.[0] as Array<{ close: number }>;
+        expect(rows[rows.length - 1].close).toBeCloseTo(123.456);
+    });
+
+    it("redraws on the per-timeframe kline freshness signal", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        render("rsi");
+
+        // The signal the app advances on every kline write is what the chart
+        // follows. Bumping it alone — no candle field touched — must redraw.
+        // Depending on the global `lastUpdated` (which price/ticker/depth also
+        // bump) would not, and that is the regression this pins (BUG-0248).
+        const callsBefore = lw.candleSeries.setData.mock.calls.length;
+        const market = marketState.data[normalizeSymbol("BTCUSDT", "bitunix")];
+        market.klinesLastUpdated = { [TIMEFRAME]: Date.now() };
+        flushSync();
+
+        expect(lw.candleSeries.setData.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+
+    it("releases the market subscription on symbol change and on unmount", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        render("rsi");
+
+        tradeState.symbol = "ETHUSDT";
+        flushSync();
+        expect(marketWatcher.unregister).toHaveBeenCalledWith(
+            "BTCUSDT",
+            `kline_${TIMEFRAME}`,
+            "chart",
+        );
+
+        unmount(component as never);
+        component = null;
+        expect(marketWatcher.unregister).toHaveBeenCalledWith(
+            "ETHUSDT",
+            `kline_${TIMEFRAME}`,
+            "chart",
+        );
+    });
+
+    it("drops a malformed candle instead of passing it to the series", () => {
+        seedKlines("BTCUSDT");
+        const key = normalizeSymbol("BTCUSDT", "bitunix");
+        const klines = marketState.data[key].klines[TIMEFRAME];
+        klines[CANDLE_COUNT - 5] = { ...klines[CANDLE_COUNT - 5], time: Number.NaN };
+        tradeState.symbol = "BTCUSDT";
+
+        render("rsi");
+
+        const rows = lw.candleSeries.setData.mock.calls.at(-1)?.[0] as Array<{ time: number }>;
+        expect(rows).toHaveLength(CANDLE_COUNT - 1);
+        expect(rows.every((row) => Number.isFinite(row.time))).toBe(true);
     });
 });

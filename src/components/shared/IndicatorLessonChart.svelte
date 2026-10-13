@@ -41,7 +41,7 @@
 -->
 
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, untrack } from "svelte";
     import {
         createChart,
         ColorType,
@@ -55,6 +55,7 @@
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
     import {
+        dimensionOf,
         nameKey,
         outputKey,
         type CatalogueEntry,
@@ -68,6 +69,7 @@
     import { tradeState } from "../../stores/trade.svelte";
     import { marketState } from "../../stores/market.svelte";
     import { marketWatcher } from "../../services/marketWatcher";
+    import { logger } from "../../services/logger";
     import { normalizeSymbol } from "../../utils/symbolUtils";
 
     interface Props {
@@ -121,9 +123,9 @@
     /** The app-wide selected symbol. Never a chart-window's own symbol. */
     let symbol = $derived(tradeState.symbol || "");
 
-    function toEvaluationCandle(kline: Kline): EvaluationCandle {
+    function toEvaluationCandle(kline: Kline, openTimeMs: number): EvaluationCandle {
         return {
-            open_time_ms: kline.time,
+            open_time_ms: openTimeMs,
             open: kline.open.toString(),
             high: kline.high.toString(),
             low: kline.low.toString(),
@@ -134,15 +136,49 @@
 
     let candles = $derived.by<EvaluationCandle[]>(() => {
         const market = marketState.data[normalizeSymbol(symbol, "bitunix")];
-        // Live-tick driver: the kline array is mutated in place on a flush, so
-        // the reference alone would not re-run this (BUG-0248).
-        void market?.lastUpdated;
+        // Live-tick driver: the *per-timeframe* kline freshness, not the global
+        // `lastUpdated`. The latter is bumped by price/ticker/depth too, so
+        // depending on it would recompute on every quote tick; this signal is
+        // written only when klines actually change (klineBuffers, BUG-0248).
+        void market?.klinesLastUpdated?.[LESSON_TIMEFRAME];
         const klines = market?.klines?.[LESSON_TIMEFRAME];
         if (!klines || klines.length === 0) return [];
-        return klines.slice(-LESSON_CANDLE_WINDOW).map(toEvaluationCandle);
+
+        // Defence in depth, the same guard CandleChartView keeps: the series API
+        // requires finite, strictly ascending times and throws from inside an
+        // `$effect` otherwise — and such a throw bubbles to `handleGlobalError`
+        // (BUG-0213). A malformed or out-of-order candle is dropped here so it
+        // can never freeze the chart (BUG-0248).
+        const rows: EvaluationCandle[] = [];
+        let lastTime = -Infinity;
+        for (const kline of klines.slice(-LESSON_CANDLE_WINDOW)) {
+            const time = Number(kline.time); // audit: safe — epoch-ms timestamp
+            if (!Number.isFinite(time) || time <= 0 || time <= lastTime) continue;
+            lastTime = time;
+            rows.push(toEvaluationCandle(kline, time));
+        }
+        return rows;
     });
 
     let computed = $derived<LessonSeries>(computeLessonSeries(entry, candles, LESSON_TIMEFRAME));
+
+    /**
+     * Which pane a declared output is drawn in.
+     *
+     * `placement` decides the *indicator's* home: a `pane` indicator gets its
+     * own axis whatever its outputs' dimension (`macd`'s lines carry price-scale
+     * values yet belong below the candles), so this is deliberately not
+     * `dimension` alone. But a `price` indicator can still declare a non-price
+     * output — `bollinger.percent_b`/`bandwidth`, `parabolic_sar.direction` —
+     * and drawing those on the price axis is both meaningless and, on a
+     * low-priced symbol, enough to blow out that axis's autoscale. Those get
+     * their own pane; price-dimension outputs of a price indicator stay on the
+     * candles.
+     */
+    function paneFor(lineName: string): number {
+        if (entry.placement === "pane") return 1;
+        return dimensionOf(entry, lineName) === "price" ? 0 : 1;
+    }
 
     let container = $state<HTMLElement | null>(null);
     let chart = $state<IChartApi | null>(null);
@@ -195,6 +231,36 @@
             out.push({ time: (rows[i].open_time_ms / 1000) as Time, value });
         }
         return out;
+    }
+
+    /**
+     * Re-reads the theme's colours and re-applies them. The chart resolves CSS
+     * variables to concrete colours at creation (the canvas cannot read
+     * `var(...)`), so without this a dark↔light switch would leave the old
+     * palette on screen — the same reason CandleChartView watches the theme.
+     */
+    function applyColors(): void {
+        if (!chart || !candleSeries) return;
+        chart.applyOptions({
+            layout: { textColor: cssColor("--text-secondary", "#d1d4dc") },
+            grid: {
+                vertLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
+                horzLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
+            },
+            rightPriceScale: { borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)") },
+            timeScale: { borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)") },
+        });
+        candleSeries.applyOptions({
+            upColor: cssColor("--success-color", "#26a69a"),
+            downColor: cssColor("--danger-color", "#ef5350"),
+            wickUpColor: cssColor("--success-color", "#26a69a"),
+            wickDownColor: cssColor("--danger-color", "#ef5350"),
+        });
+        drawnLines.forEach((line, index) => {
+            line.series.applyOptions({
+                color: cssColor(LINE_COLOR_VARS[index % LINE_COLOR_VARS.length], "#2962ff"),
+            });
+        });
     }
 
     onMount(() => {
@@ -250,6 +316,26 @@
         };
     });
 
+    // The active theme lives on `document.documentElement`; re-apply the colours
+    // when it changes, so the chart follows a dark↔light switch without a
+    // remount (CandleChartView does the same).
+    onMount(() => {
+        if (typeof window === "undefined") return;
+        let frameId: number;
+        const observer = new MutationObserver(() => {
+            cancelAnimationFrame(frameId);
+            frameId = requestAnimationFrame(() => applyColors());
+        });
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["style", "class", "data-theme"],
+        });
+        return () => {
+            observer.disconnect();
+            cancelAnimationFrame(frameId);
+        };
+    });
+
     // The selected symbol's klines are what the lesson draws. Registering with
     // the `chart` requirement is what pages history in — the same call a chart
     // window makes — and the cleanup unregisters on a symbol switch or unmount.
@@ -257,7 +343,11 @@
         const current = symbol;
         if (!current) return;
         const channel = `kline_${LESSON_TIMEFRAME}`;
-        marketWatcher.register(current, channel, "chart");
+        // `untrack`, like CandleChartView: `ensureHistory` reads provider and
+        // storage settings synchronously, so without this the effect would
+        // acquire dependencies it does not intend and re-register on an
+        // unrelated settings change.
+        untrack(() => marketWatcher.register(current, channel, "chart"));
         return () => {
             marketWatcher.unregister(current, channel, "chart");
         };
@@ -265,6 +355,10 @@
 
     // Candle + line rendering. Tracked on `chart`/`candleSeries` so it re-runs
     // once `onMount` has created them, then on every data or lesson change.
+    //
+    // The whole body is guarded: a transient series-API rejection must not
+    // escape an effect, because an uncaught throw bubbles to `handleGlobalError`
+    // and disturbs unrelated state (BUG-0213).
     $effect(() => {
         const activeChart = chart;
         const activeCandles = candleSeries;
@@ -273,40 +367,47 @@
         const rows = candles;
         const series = computed;
 
-        activeCandles.setData(
-            rows.map((candle) => ({
-                time: (candle.open_time_ms / 1000) as Time,
-                open: toChartNumber(candle.open),
-                high: toChartNumber(candle.high),
-                low: toChartNumber(candle.low),
-                close: toChartNumber(candle.close),
-            })),
-        );
+        try {
+            activeCandles.setData(
+                rows.map((candle) => ({
+                    time: (candle.open_time_ms / 1000) as Time,
+                    open: toChartNumber(candle.open),
+                    high: toChartNumber(candle.high),
+                    low: toChartNumber(candle.low),
+                    close: toChartNumber(candle.close),
+                })),
+            );
 
-        const signature = `${entry.placement}|${series.lines.map((line) => line.name).join(",")}`;
-        if (signature !== drawnSignature) {
-            for (const line of drawnLines) activeChart.removeSeries(line.series);
-            drawnLines = series.lines.map((line, index) => ({
-                name: line.name,
-                series: activeChart.addSeries(
-                    LineSeries,
-                    {
-                        color: cssColor(LINE_COLOR_VARS[index % LINE_COLOR_VARS.length], "#2962ff"),
-                        lineWidth: 2,
-                        priceLineVisible: false,
-                        lastValueVisible: false,
-                    },
-                    // `price` lines share the candle pane; `pane` lines get their
-                    // own axis below it.
-                    entry.placement === "pane" ? 1 : 0,
-                ),
-            }));
-            drawnSignature = signature;
+            const signature = `${entry.placement}|${series.lines
+                .map((line) => `${line.name}:${paneFor(line.name)}`)
+                .join(",")}`;
+            if (signature !== drawnSignature) {
+                for (const line of drawnLines) activeChart.removeSeries(line.series);
+                drawnLines = series.lines.map((line, index) => ({
+                    name: line.name,
+                    series: activeChart.addSeries(
+                        LineSeries,
+                        {
+                            color: cssColor(
+                                LINE_COLOR_VARS[index % LINE_COLOR_VARS.length],
+                                "#2962ff",
+                            ),
+                            lineWidth: 2,
+                            priceLineVisible: false,
+                            lastValueVisible: false,
+                        },
+                        paneFor(line.name),
+                    ),
+                }));
+                drawnSignature = signature;
+            }
+
+            series.lines.forEach((line, index) => {
+                drawnLines[index]?.series.setData(toLineData(line.values, rows));
+            });
+        } catch (error) {
+            logger.error("ui", "lesson chart render failed", error);
         }
-
-        series.lines.forEach((line, index) => {
-            drawnLines[index]?.series.setData(toLineData(line.values, rows));
-        });
     });
 </script>
 
@@ -360,7 +461,12 @@
             <ul class="flex flex-col gap-1 mt-1">
                 {#each computed.refused as refusal (refusal.name)}
                     <li class="text-xs text-[var(--text-secondary)]">
-                        <span class="font-mono">{refusal.name}</span>: {refusal.reason}
+                        <span class="font-mono">{translatedOutput(refusal.name)}</span>:
+                        <!-- The engine's reason is developer-facing English. It is
+                             shown as the technical detail beside the localized
+                             line name, and marked as English so assistive tech
+                             and translators treat it as such. -->
+                        <span lang="en">{refusal.reason}</span>
                     </li>
                 {/each}
             </ul>
