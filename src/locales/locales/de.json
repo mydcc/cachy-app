@@ -4868,6 +4868,7 @@
     "parameters": "Parameter",
     "parametersEmpty": "Dieser Indikator hat keine Parameter.",
     "parameterFromSettings": "Deine Einstellung",
+    "formula": "Formel",
     "outputs": "Linien",
     "placement": {
       "price": "Auf dem Kurschart",

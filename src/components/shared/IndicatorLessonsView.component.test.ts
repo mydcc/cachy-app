@@ -118,15 +118,27 @@ function groupSelect(view: HTMLElement): HTMLSelectElement {
     return view.querySelector("select") as HTMLSelectElement;
 }
 
-/** The parameters card in the detail pane, reached through the split layout. */
-function paramsSection(view: HTMLElement): HTMLElement {
+/** The right-hand column of the split layout, where the engine cards live. */
+function rightColumn(view: HTMLElement): HTMLElement {
     const split = [...view.querySelectorAll("div")].find((candidate) =>
         candidate.classList.contains("@lg:flex-row"),
     );
     if (!split) throw new Error("no split layout in the lesson view");
-    const rightColumn = split.children[1];
-    if (!rightColumn) throw new Error("no right column in the lesson view");
-    return rightColumn.children[0] as HTMLElement;
+    const column = split.children[1];
+    if (!column) throw new Error("no right column in the lesson view");
+    return column as HTMLElement;
+}
+
+/** The parameters card in the detail pane, reached through the split layout. */
+function paramsSection(view: HTMLElement): HTMLElement {
+    return rightColumn(view).children[0] as HTMLElement;
+}
+
+/** The formula card, below the parameters card. */
+function formulaSection(view: HTMLElement): HTMLElement {
+    const card = rightColumn(view).children[1];
+    if (!card) throw new Error("no formula card in the lesson view");
+    return card as HTMLElement;
 }
 
 describe("FEAT-0677 — the Indicators & Setups tab", () => {
@@ -332,6 +344,25 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         } finally {
             indicatorState.rsi.length = previous;
         }
+    });
+
+    it("renders the open indicator's formula as typeset maths, not as LaTeX source", () => {
+        const view = renderIndicatorsTab();
+
+        const rsiRow = lessonRows(view).find((row) =>
+            row.textContent?.includes(lookup("dashboard.alerts.indicators.name.rsi")),
+        );
+        if (!rsiRow) throw new Error("the RSI lesson is not in the list");
+        rsiRow.click();
+        flushSync();
+
+        const card = formulaSection(view);
+        expect(card.textContent).toContain(lookup("indicatorLessons.formula"));
+        // KaTeX renders into `.katex`. Raw `$$` left in the text would mean the
+        // Markdown action never ran and the reader got LaTeX source.
+        expect(card.querySelector(".katex"), "the formula was not typeset").not.toBeNull();
+        expect(card.textContent).not.toContain("$$");
+        expect(card.textContent).toContain("RSI");
     });
 });
 

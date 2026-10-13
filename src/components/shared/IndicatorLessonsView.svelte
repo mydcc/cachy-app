@@ -47,9 +47,12 @@
         type IndicatorGroup,
     } from "../../lib/alerts/indicatorCatalogue";
     import { LESSON_FIELDS, LESSON_GROUPS, lessonKey } from "../../lib/academy/indicatorLessons";
+    import { INDICATOR_FORMULAS } from "../../lib/academy/indicatorFormulas";
     import { lessonParams } from "../../lib/academy/lessonSettings";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
     import { indicatorState } from "../../stores/indicator.svelte";
+    import { markdown } from "../../actions/markdown";
+    import "katex/dist/katex.min.css";
     import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
 
     interface Props {
@@ -395,6 +398,27 @@
                     </div>
 
                     <div
+                        class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]"
+                    >
+                        <h3
+                            class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
+                        >
+                            {$_("indicatorLessons.formula")}
+                        </h3>
+                        <!--
+                          Through the same Markdown/KaTeX action the two pattern
+                          tabs use, so the formula is typeset maths rather than a
+                          line of LaTeX source. The string is language-neutral
+                          (ADR-0025), so it is read from the catalogue by id
+                          instead of from the locale.
+                        -->
+                        <div
+                            class="lesson-formula text-sm text-[var(--text-primary)]"
+                            use:markdown={INDICATOR_FORMULAS[current.id] ?? ""}
+                        ></div>
+                    </div>
+
+                    <div
                         class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)] flex-grow"
                     >
                         <h3
@@ -429,5 +453,11 @@
     }
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
+    }
+    /* A display block in a narrow column scrolls instead of overflowing it. */
+    :global(.lesson-formula .katex-display) {
+        margin: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
 </style>

@@ -4868,6 +4868,7 @@
     "parameters": "Parameters",
     "parametersEmpty": "This indicator has no parameters.",
     "parameterFromSettings": "Your setting",
+    "formula": "Formula",
     "outputs": "Lines",
     "placement": {
       "price": "On the price chart",
