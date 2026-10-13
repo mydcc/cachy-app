@@ -60,5 +60,6 @@ Do **not** write one for ordinary features, refactors, or bug fixes.
 | [0022](0022-cache-key-from-normalized-request.md) | A cache key is derived from a normalized request, not from the URL | Proposed |
 | [0023](0023-bitget-uta-only.md) | Bitget speaks UTA only; Classic is refused, not ported | Proposed |
 | [0024](0024-settings-store-split-behind-facade.md) | The settings store splits behind a facade, gated on explicit autosave ownership | Accepted |
+| [0025](0025-academy-lesson-fields.md) | Academy lesson fields are four prose keys, placement is a catalogue property | Proposed |
 
 _Statuses move to `Accepted` when the pull request introducing them merges._
