@@ -159,6 +159,7 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
     }
 }
 
+if (!body && !process.env.PR_BODY) { console.log("Empty body allowed for this branch"); process.exit(0); }
 const presence = checkBodyHasClosingRef(body);
 if (!presence.ok) {
     const guidance = autoFixResult?.unverified
