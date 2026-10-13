@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
+branch: docs/academy-category-plan
 ---
 
 # FEAT-0677 — Add an indicators category to the Trading Academy
