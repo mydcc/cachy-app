@@ -23,14 +23,23 @@
 
 import { browser } from "$app/env";
 
-export type AcademyTab = "chartPatterns" | "candlestickPatterns";
+export type AcademyTab = "chartPatterns" | "candlestickPatterns" | "indicators";
 
 export const ACADEMY_TAB_STORAGE_KEY = "academy_active_tab";
 
-const TABS: AcademyTab[] = ["chartPatterns", "candlestickPatterns"];
+/**
+ * The tabs, in render order. Exported so the tab bar shows the same list this
+ * module validates against — the two used to be separate copies, which would
+ * have let a new tab be selectable but invisible, or the reverse.
+ */
+export const ACADEMY_TABS: readonly AcademyTab[] = [
+   "chartPatterns",
+   "candlestickPatterns",
+   "indicators",
+];
 
 function isAcademyTab(value: unknown): value is AcademyTab {
-   return typeof value === "string" && (TABS as string[]).includes(value);
+   return typeof value === "string" && (ACADEMY_TABS as readonly string[]).includes(value);
 }
 
 class AcademyTabsState {

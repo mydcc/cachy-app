@@ -26,7 +26,8 @@
 
 <script lang="ts">
    import { _ } from "../../locales/i18n";
-   import type { AcademyTab } from "../../lib/academy/useAcademyTabs.svelte";
+   import type { TranslationKey } from "../../locales/schema";
+   import { ACADEMY_TABS, type AcademyTab } from "../../lib/academy/useAcademyTabs.svelte";
 
    interface Props {
       activeTab: AcademyTab;
@@ -36,7 +37,12 @@
 
    let { activeTab, onTabChange, idPrefix = "academy" }: Props = $props();
 
-   const TABS: AcademyTab[] = ["chartPatterns", "candlestickPatterns"];
+   /* Exhaustive by type, so a tab cannot be added without a label. */
+   const TAB_LABELS: Record<AcademyTab, TranslationKey> = {
+      chartPatterns: "chartPatterns.title",
+      candlestickPatterns: "candlestickPatterns.title",
+      indicators: "indicatorLessons.title",
+   };
 
    let tablistEl: HTMLDivElement | null = $state(null);
 
@@ -48,24 +54,24 @@
       const tabs = tablistEl?.querySelectorAll<HTMLElement>('[role="tab"]');
       const el = tabs?.[index];
       el?.focus();
-      const tab = TABS[index];
+      const tab = ACADEMY_TABS[index];
       if (tab && tab !== activeTab) {
          onTabChange(tab);
       }
    }
 
    function handleKeydown(event: KeyboardEvent) {
-      const current = TABS.indexOf(activeTab);
+      const current = ACADEMY_TABS.indexOf(activeTab);
       if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
          event.preventDefault();
          const delta = event.key === "ArrowRight" ? 1 : -1;
-         focusTab((current + delta + TABS.length) % TABS.length);
+         focusTab((current + delta + ACADEMY_TABS.length) % ACADEMY_TABS.length);
       } else if (event.key === "Home") {
          event.preventDefault();
          focusTab(0);
       } else if (event.key === "End") {
          event.preventDefault();
-         focusTab(TABS.length - 1);
+         focusTab(ACADEMY_TABS.length - 1);
       }
    }
 </script>
@@ -78,7 +84,7 @@
    onkeydown={handleKeydown}
    class="flex flex-wrap border-b border-[var(--border-color)] mb-4 shrink-0 bg-[var(--bg-secondary)] rounded-t-lg p-1 gap-1"
 >
-   {#each TABS as tab}
+   {#each ACADEMY_TABS as tab}
       {@const selected = activeTab === tab}
       <button
          role="tab"
@@ -90,11 +96,7 @@
             : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
          onclick={() => onTabChange(tab)}
       >
-         {#if tab === "chartPatterns"}
-            {$_("chartPatterns.title") || "Chart Patterns"}
-         {:else}
-            {$_("candlestickPatterns.title") || "Candlestick Patterns"}
-         {/if}
+         {$_(TAB_LABELS[tab])}
       </button>
    {/each}
 </div>
