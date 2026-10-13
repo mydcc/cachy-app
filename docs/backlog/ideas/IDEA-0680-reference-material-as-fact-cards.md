@@ -2,15 +2,13 @@
 id: IDEA-0680
 title: Turn reference material into reviewed fact cards
 type: idea
-status: in-progress
+status: specced
 priority: P3
 milestone: none
 editions: [community, pro, private]
 area: experiment
 data_class: none
 adr: none
-assignee: opencode
-branch: docs/academy-category-plan
 depends_on: []
 start_date: 2026-10-13
 size: M
@@ -18,6 +16,18 @@ estimate: 3
 ---
 
 # IDEA-0680 — Turn reference material into reviewed fact cards
+
+## State
+
+Specced, not done. The pipeline ran and its output merged in #4045:
+extraction happened outside the repository, and `docs/academy/` holds the 20
+cards it was meant to produce, carrying no source reference.
+
+Step three of the shape below — human review — has not happened, and this item
+names that step as the product quality rather than a formality. Marking it done
+would claim a read that nobody performed, so it is specced. The review is the
+gate on writing the lesson texts, which is FEAT-0677's work rather than this
+item's; nothing here blocks that gate being closed.
 
 ## The thought
 
