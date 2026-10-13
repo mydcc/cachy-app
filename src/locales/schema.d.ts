@@ -3966,4 +3966,6 @@ export type TranslationKey =
   | "indicatorLessons.field.whatItMeasures"
   | "indicatorLessons.field.howToRead"
   | "indicatorLessons.field.failureModes"
-  | "indicatorLessons.field.confirmation";
+  | "indicatorLessons.field.confirmation"
+  | "indicatorLessons.chart.empty"
+  | "indicatorLessons.chart.refusedHeading";

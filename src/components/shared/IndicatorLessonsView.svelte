@@ -48,6 +48,18 @@
     } from "../../lib/alerts/indicatorCatalogue";
     import { LESSON_FIELDS, LESSON_GROUPS, lessonKey } from "../../lib/academy/indicatorLessons";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
+    import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
+
+    interface Props {
+        /**
+         * False on the public SEO route: the lesson text still renders, but the
+         * live chart does not, so a marketing visit neither pages kline history
+         * nor opens a market subscription for the default symbol.
+         */
+        showLiveChart?: boolean;
+    }
+
+    let { showLiveChart = true }: Props = $props();
 
     type LessonField = (typeof LESSON_FIELDS)[number];
     type GroupFilter = "all" | "favorites" | IndicatorGroup;
@@ -292,6 +304,17 @@
                     </div>
                 </div>
             </div>
+
+            <!--
+              FEAT-0677, AC 8/9 — the live chart. A sibling of the split row
+              rather than a third child: `split` carries the mobile flex
+              contract pinned by AcademyResponsive.component.test.ts, and the
+              children of the main column are unconstrained. Full width reads
+              better for a chart than one column of the split.
+            -->
+            {#if showLiveChart}
+                <IndicatorLessonChart entry={current} />
+            {/if}
 
             <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
                 <!-- Left Column: the four lesson fields -->

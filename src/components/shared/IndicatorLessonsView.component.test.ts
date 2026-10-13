@@ -61,8 +61,15 @@ vi.mock("./ChartPatternsView.svelte", async () => ({
 vi.mock("./CandlestickPatternsView.svelte", async () => ({
     default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
 }));
+// The live chart has its own suite (IndicatorLessonChart.component.test.ts);
+// this file is about the list and the detail pane, so the canvas is stubbed
+// rather than dragged into happy-dom.
+vi.mock("./IndicatorLessonChart.svelte", async () => ({
+    default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
+}));
 
 import AcademyContent from "./AcademyContent.svelte";
+import IndicatorLessonsView from "./IndicatorLessonsView.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -256,6 +263,28 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
                 );
             }
         }
+    });
+
+    it("renders the live chart only when the host asks for it", () => {
+        // The public SEO route passes `showLiveChart={false}`; the app window
+        // leaves the default. The stub stands in for the canvas.
+        component = mount(IndicatorLessonsView, {
+            target: host,
+            props: { showLiveChart: false },
+        }) as never;
+        flushSync();
+        expect(host.querySelector('[data-testid="empty-stub"]')).toBeNull();
+
+        unmount(component as never);
+        component = null;
+        host.innerHTML = "";
+
+        component = mount(IndicatorLessonsView, {
+            target: host,
+            props: { showLiveChart: true },
+        }) as never;
+        flushSync();
+        expect(host.querySelector('[data-testid="empty-stub"]')).not.toBeNull();
     });
 });
 

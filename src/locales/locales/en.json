@@ -4877,6 +4877,10 @@
       "howToRead": "How to read it",
       "failureModes": "When it is not telling you anything",
       "confirmation": "What turns it into a setup"
+    },
+    "chart": {
+      "empty": "No market data for this symbol yet.",
+      "refusedHeading": "Not drawn by this build"
     }
   }
 }
