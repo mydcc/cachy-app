@@ -106,4 +106,15 @@ describe("FEAT-0346 — AcademyContent switches between the two pattern tabs", (
             true,
         );
     });
+
+    it("falls back to the default tab for a stored id it does not know", () => {
+        localStorage.setItem("academy_active_tab", "no-such-tab");
+        render();
+
+        expect(host.querySelector('[data-testid="modal-frame-stub"]')).toBeTruthy();
+        expect(host.querySelector('[data-testid="empty-stub"]')).toBeNull();
+        expect(tabButton("chartPatterns.title").classList.contains("bg-[var(--bg-tertiary)]")).toBe(
+            true,
+        );
+    });
 });

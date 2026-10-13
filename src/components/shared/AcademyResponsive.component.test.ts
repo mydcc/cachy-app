@@ -224,12 +224,31 @@ describe("Academy window resize responsiveness (container queries)", () => {
         const root = await renderAcademy();
 
         const tabButtons = root.children[0].querySelectorAll("button");
-        expect(tabButtons.length).toBe(2);
+        expect(tabButtons.length).toBe(3);
         tabButtons[1].click();
         await settle();
 
         const stored = localStorage.getItem("academy_active_tab");
         expect(stored).toBe("candlestickPatterns");
+
+        const view = activeViewRoot(root);
+        expect(view.classList.contains("@md:flex-row")).toBe(true);
+        expect(view.classList.contains("md:flex-row")).toBe(false);
+
+        expectFluidColumns(view);
+
+        const split = splitLayout(view);
+        expect(split.classList.contains("lg:flex-row")).toBe(false);
+    });
+
+    it("IndicatorLessonsView stacks below the container md breakpoint", async () => {
+        const root = await renderAcademy();
+
+        const tabButtons = root.children[0].querySelectorAll("button");
+        tabButtons[2].click();
+        await settle();
+
+        expect(localStorage.getItem("academy_active_tab")).toBe("indicators");
 
         const view = activeViewRoot(root);
         expect(view.classList.contains("@md:flex-row")).toBe(true);
@@ -247,7 +266,7 @@ describe("Academy window resize responsiveness (container queries)", () => {
         expect(root.querySelector('[role="tablist"]')).not.toBeNull();
 
         const tabs = [...root.querySelectorAll('[role="tab"]')];
-        expect(tabs.length).toBe(2);
+        expect(tabs.length).toBe(3);
         expect(tabs[0].getAttribute("aria-selected")).toBe("true");
         expect(tabs[1].getAttribute("aria-selected")).toBe("false");
 
