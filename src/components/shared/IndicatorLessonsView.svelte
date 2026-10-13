@@ -121,7 +121,11 @@
      * shipped indicator defaults, so a first-time trader sees no "your setting"
      * marker on a value they never touched.
      */
-    const SHIPPED_PARAMETERS: LessonParameters = { values: {}, modified: new Set() };
+    const SHIPPED_PARAMETERS: LessonParameters = {
+        values: {},
+        field: undefined,
+        modified: new Set(),
+    };
     /*
      * The baseline the "your setting" marker compares against: the settings a
      * new install starts from. Taken once, and a copy, so it neither follows the
