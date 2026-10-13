@@ -109,6 +109,15 @@ first EMA is 21 while the catalogue's alert default is 20, so the lesson now
 shows 21 where it used to show 20. That is the feature working — the card reports
 what the chart draws — but it is a visible content change worth knowing about.
 
+Review follow-ups (review-swarm, same PR) tightened three things: the "your
+setting" marker now compares against a copy of the shipped indicator defaults
+rather than the catalogue's alert default, so a first-time trader sees no marker
+on a value they never touched (`ema`/`sma`/`wma`/`hma` ship different numbers
+from the catalogue); every formula is rendered through the Markdown/KaTeX
+pipeline in a test rather than only RSI's; and the analysis-timeframe list is now
+one shared export (`src/lib/constants.ts`), so the settings UI and the lesson
+selector cannot drift apart.
+
 ## Links
 
 - FEAT-0677 — the tab, its lesson model and its live chart

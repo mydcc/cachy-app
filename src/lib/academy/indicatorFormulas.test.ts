@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -26,6 +27,7 @@
 import { describe, it, expect } from "vitest";
 import { INDICATOR_FORMULAS } from "./indicatorFormulas";
 import { INDICATOR_CATALOGUE } from "../alerts/indicatorCatalogue";
+import { renderSafeMarkdown } from "../../utils/markdownUtils";
 
 describe("FEAT-0681 — a formula for every catalogue indicator", () => {
     it("covers exactly the indicators the lesson tab renders", () => {
@@ -44,6 +46,25 @@ describe("FEAT-0681 — a formula for every catalogue indicator", () => {
             // Longer than the delimiters alone: an empty block renders as
             // nothing and reads as a layout bug rather than as missing maths.
             expect(formula.length, id).toBeGreaterThan(8);
+        }
+    });
+
+    it("typesets every formula, so none ships as an error box", () => {
+        // KaTeX runs with `throwOnError: false`: a typo in one of these
+        // hand-written strings renders a `.katex-error` span instead of failing.
+        // The lesson only ever shows one at a time, so without this loop a bad
+        // formula waits for a human to open that lesson.
+        for (const [id, formula] of Object.entries(INDICATOR_FORMULAS)) {
+            const rendered = renderSafeMarkdown(formula);
+            // The client path returns a fragment; a string means the renderer
+            // failed and fell back.
+            expect(typeof rendered, `${id}: renderer returned nothing`).not.toBe("string");
+
+            const host = document.createElement("div");
+            host.appendChild(rendered as DocumentFragment);
+
+            expect(host.querySelector(".katex"), `${id}: not typeset`).not.toBeNull();
+            expect(host.querySelector(".katex-error"), `${id}: refused by KaTeX`).toBeNull();
         }
     });
 });

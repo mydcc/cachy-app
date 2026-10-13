@@ -48,9 +48,9 @@
     } from "../../lib/alerts/indicatorCatalogue";
     import { LESSON_FIELDS, LESSON_GROUPS, lessonKey } from "../../lib/academy/indicatorLessons";
     import { INDICATOR_FORMULAS } from "../../lib/academy/indicatorFormulas";
-    import { lessonParams } from "../../lib/academy/lessonSettings";
+    import { lessonParams, type LessonParameters } from "../../lib/academy/lessonSettings";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
-    import { indicatorState } from "../../stores/indicator.svelte";
+    import { indicatorState, shippedIndicatorDefaults } from "../../stores/indicator.svelte";
     import { markdown } from "../../actions/markdown";
     import "katex/dist/katex.min.css";
     import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
@@ -112,14 +112,25 @@
     let current = $derived(allEntries.find((entry) => entry.id === selectedId) ?? allEntries[0]);
 
     /*
-     * FEAT-0681: the open lesson's parameters as the user configured them,
-     * falling back to the catalogue default per parameter their card cannot
-     * supply. One `$derived` for both consumers — the chart below and the
-     * Parameter card — so the number a reader sees and the number the line was
-     * drawn with cannot drift apart. Read from `indicatorState` here, so a
-     * settings change re-derives the card without a reload.
+     * FEAT-0681: the open lesson's parameters as the user configured them, and
+     * which of them the trader moved away from the shipped defaults. One
+     * `$derived` for both consumers — the chart below and the Parameter card —
+     * so the number a reader sees and the number the line was drawn with cannot
+     * drift apart. Read from `indicatorState` here, so a settings change
+     * re-derives the card without a reload; compared against `defaultSettings`,
+     * so a first-time trader sees no "your setting" marker on a value they never
+     * touched.
      */
-    let effectiveParams = $derived(current ? lessonParams(current, indicatorState) : {});
+    const SHIPPED_PARAMETERS: LessonParameters = { values: {}, modified: new Set() };
+    /*
+     * The baseline the "your setting" marker compares against: the settings a
+     * new install starts from. Taken once, and a copy, so it neither follows the
+     * store's edits nor can be edited through it.
+     */
+    const SHIPPED_DEFAULTS = shippedIndicatorDefaults();
+    let lessonParameters = $derived(
+        current ? lessonParams(current, indicatorState, SHIPPED_DEFAULTS) : SHIPPED_PARAMETERS,
+    );
 
     /** Normalised once per keystroke rather than once per entry. */
     const normalizedQuery = $derived(searchQuery.trim().toLowerCase());
@@ -328,7 +339,7 @@
               better for a chart than one column of the split.
             -->
             {#if showLiveChart}
-                <IndicatorLessonChart entry={current} params={effectiveParams} />
+                <IndicatorLessonChart entry={current} params={lessonParameters.values} />
             {/if}
 
             <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
@@ -367,8 +378,10 @@
                         {:else}
                             <ul class="flex flex-col gap-1">
                                 {#each current.params as param (param.name)}
-                                    {@const effective = effectiveParams[param.name] ?? param.default}
-                                    {@const fromSettings = effective !== param.default}
+                                    {@const effective =
+                                        lessonParameters.values[param.name] ?? param.default}
+                                    {@const fromSettings =
+                                        lessonParameters.modified.has(param.name)}
                                     <li class="flex justify-between items-baseline gap-3 text-sm">
                                         <span class="text-[var(--text-primary)]"
                                             >{translated(paramKey(param.name), param.name)}</span

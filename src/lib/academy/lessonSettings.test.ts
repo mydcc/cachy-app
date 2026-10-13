@@ -33,7 +33,18 @@ import {
     settingsCardFor,
 } from "./lessonSettings";
 import { INDICATOR_CATALOGUE, catalogueEntry, type CatalogueEntry } from "../alerts/indicatorCatalogue";
+import { ANALYSIS_TIMEFRAMES } from "../constants";
 import { defaultSettings } from "../../stores/settings/settingsTypes";
+import { shippedIndicatorDefaults } from "../../stores/indicator.svelte";
+
+/**
+ * A baseline that resolves to the catalogue defaults: it has no cards at all, so
+ * `modified` compares against `param.default` in these tests.
+ */
+const CATALOGUE_BASELINE = {};
+
+/** The settings a new install starts from, copied once and never mutated here. */
+const SHIPPED = shippedIndicatorDefaults();
 
 function entry(id: string): CatalogueEntry {
     const found = catalogueEntry(id);
@@ -57,36 +68,86 @@ describe("FEAT-0681 — lesson parameters come from the user's settings", () => 
     });
 
     it("reads the parameter out of the user's own card", () => {
-        expect(lessonParams(entry("rsi"), { rsi: { length: 21 } })).toEqual({ period: 21 });
+        const read = lessonParams(entry("rsi"), { rsi: { length: 21 } }, CATALOGUE_BASELINE);
+        expect(read.values).toEqual({ period: 21 });
     });
 
     it("names the parameters with the engine's own keys for a multi-parameter indicator", () => {
-        expect(
-            lessonParams(entry("macd"), { macd: { fastLength: 5, slowLength: 13, signalLength: 4 } }),
-        ).toEqual({ fast_period: 5, slow_period: 13, signal_period: 4 });
+        const read = lessonParams(
+            entry("macd"),
+            { macd: { fastLength: 5, slowLength: 13, signalLength: 4 } },
+            CATALOGUE_BASELINE,
+        );
+        expect(read.values).toEqual({ fast_period: 5, slow_period: 13, signal_period: 4 });
     });
 
     it("reads the first moving average of a card that maps three", () => {
-        expect(
-            lessonParams(entry("ema"), {
-                ema: { ema1: { length: 9 }, ema2: { length: 21 }, ema3: { length: 55 } },
-            }),
-        ).toEqual({ period: 9 });
+        const read = lessonParams(
+            entry("ema"),
+            { ema: { ema1: { length: 9 }, ema2: { length: 21 }, ema3: { length: 55 } } },
+            CATALOGUE_BASELINE,
+        );
+        expect(read.values).toEqual({ period: 9 });
     });
 
     it("falls back to the catalogue default per parameter the card cannot supply", () => {
         const rsi = entry("rsi");
-        expect(lessonParams(rsi, { rsi: {} })).toEqual(defaultsOf(rsi));
+        expect(lessonParams(rsi, { rsi: {} }, CATALOGUE_BASELINE).values).toEqual(defaultsOf(rsi));
         // Unreadable, not absent: the card is there but holds no usable number.
-        expect(lessonParams(rsi, { rsi: { length: null } })).toEqual(defaultsOf(rsi));
+        expect(lessonParams(rsi, { rsi: { length: null } }, CATALOGUE_BASELINE).values).toEqual(
+            defaultsOf(rsi),
+        );
     });
 
     it("returns no override at all when there is no card to read", () => {
         // The caller then computes on the catalogue defaults, which is the
         // pre-FEAT-0681 behaviour — not an error and not a half-filled ref.
-        expect(lessonParams(entry("rsi"), {})).toEqual({});
-        expect(lessonParams(entry("rsi"), { rsi: "not a card" })).toEqual({});
-        expect(lessonParams({ ...entry("rsi"), id: "not-in-the-registry" }, {})).toEqual({});
+        expect(lessonParams(entry("rsi"), {}, CATALOGUE_BASELINE).values).toEqual({});
+        expect(lessonParams(entry("rsi"), { rsi: "not a card" }, CATALOGUE_BASELINE).values).toEqual(
+            {},
+        );
+        expect(
+            lessonParams({ ...entry("rsi"), id: "not-in-the-registry" }, {}, CATALOGUE_BASELINE).values,
+        ).toEqual({});
+    });
+});
+
+describe("FEAT-0681 — a parameter is the trader's only if they moved it", () => {
+    it("reports nothing modified against the store the trader never touched", () => {
+        // The Technicals store ships its own defaults: its first EMA length is
+        // 21 where the catalogue's alert default is 20. Comparing the effective
+        // value against the *catalogue* default would call that the trader's own
+        // configuration, on a first visit, for `ema`/`sma`/`wma`/`hma`.
+        const ema = lessonParams(entry("ema"), SHIPPED, SHIPPED);
+        expect(ema.values).toEqual({ period: 21 });
+        expect([...ema.modified]).toEqual([]);
+
+        // Every indicator the tab renders, not only the one that happens to
+        // differ.
+        for (const item of INDICATOR_CATALOGUE) {
+            const shipped = lessonParams(item, SHIPPED, SHIPPED);
+            expect([...shipped.modified], item.id).toEqual([]);
+        }
+    });
+
+    it("reports the parameter the trader moved away from the shipped value", () => {
+        const changed = lessonParams(
+            entry("ema"),
+            { ema: { ema1: { length: 55 }, ema2: { length: 50 }, ema3: { length: 200 } } },
+            SHIPPED,
+        );
+        expect(changed.values).toEqual({ period: 55 });
+        expect([...changed.modified]).toEqual(["period"]);
+    });
+
+    it("reports only the parameters of a multi-parameter indicator the trader moved", () => {
+        const changed = lessonParams(
+            entry("macd"),
+            { macd: { fastLength: 5, slowLength: 26, signalLength: 9 } },
+            SHIPPED,
+        );
+        expect(changed.values).toEqual({ fast_period: 5, slow_period: 26, signal_period: 9 });
+        expect([...changed.modified]).toEqual(["fast_period"]);
     });
 });
 
@@ -101,10 +162,22 @@ describe("FEAT-0681 — lesson timeframes come from the user's settings", () => 
         expect(lessonTimeframeOptions(["nonsense"])).toEqual([LESSON_TIMEFRAME_FALLBACK]);
     });
 
-    it("keeps every timeframe the default analysis setting offers selectable", () => {
-        // Pins the relationship with the settings UI: a timeframe the analysis
-        // setting offers but a lesson cannot draw is an empty selector for the
-        // trader who selected only it.
+    it("survives a stored value that is not a list at all", () => {
+        // A hand-edited or migrated persistence blob. `.includes` on this would
+        // throw during render and take the whole tab down with it.
+        expect(lessonTimeframeOptions(5 as unknown as readonly string[])).toEqual([
+            LESSON_TIMEFRAME_FALLBACK,
+        ]);
+    });
+
+    it("keeps every timeframe the setting itself offers selectable", () => {
+        // One list, shared with the settings UI: the setting can only hold a
+        // member of it, so refusing any of them would leave a trader who picked
+        // only that one with an empty selector.
+        expect([...lessonTimeframeOptions(ANALYSIS_TIMEFRAMES)]).toEqual([...ANALYSIS_TIMEFRAMES]);
+    });
+
+    it("keeps the shipped analysis setting selectable", () => {
         const offered = defaultSettings.analysisTimeframes;
         expect(offered.length).toBeGreaterThan(0);
         expect([...lessonTimeframeOptions(offered)].sort()).toEqual([...offered].sort());

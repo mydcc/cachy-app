@@ -33,6 +33,7 @@
  * object, so this stays a function of its arguments and a test needs no store.
  */
 
+import { ANALYSIS_TIMEFRAMES } from "../constants";
 import { mappedIndicatorKeys, mappedIndicatorRefs } from "../alerts/indicatorSettingsSeed";
 import type { CatalogueEntry } from "../alerts/indicatorCatalogue";
 import type { ParamValue } from "../rules/types";
@@ -66,22 +67,60 @@ export function settingsCardFor(indicatorId: string): string | null {
 }
 
 /**
+ * A lesson's parameters, and which of them the trader moved away from the
+ * shipped defaults.
+ *
+ * `modified` is provenance rather than value inequality. The Technicals store
+ * ships its own defaults — its first EMA length is 21 where the catalogue's
+ * alert default is 20 — so comparing the effective value against the *catalogue*
+ * default would label four untouched indicators (`ema`, `sma`, `wma`, `hma`) as
+ * the trader's own configuration. Comparing against a baseline store instead
+ * asks the question the marker actually means: "did you change this from how it
+ * arrived?".
+ */
+export interface LessonParameters {
+    /** What the chart computes with: the trader's settings, defaults filled in. */
+    readonly values: Readonly<Record<string, ParamValue>>;
+    /** Parameter names whose value differs from `baseline`'s. */
+    readonly modified: ReadonlySet<string>;
+}
+
+/**
  * The parameters `entry` should be computed with: the user's own settings,
- * falling back to the catalogue default per parameter the card cannot supply.
+ * falling back to the catalogue default per parameter their card cannot supply.
  *
  * `settings` is the indicator settings object (`indicatorState`) or any object
- * keyed the same way. It is read, never stored — called inside a `$derived`,
- * the card's own `$state` fields are what make the lesson follow a settings
- * change.
+ * keyed the same way; `baseline` is a store the trader has never configured
+ * (`defaultSettings`), which is what makes `modified` mean "you changed this"
+ * rather than "this differs from the catalogue". Pass `{}` for a baseline to
+ * compare against the catalogue defaults instead.
  *
- * An unknown indicator, or one whose card is missing or unreadable, returns an
- * empty map: the caller then computes on the catalogue defaults, which is the
+ * Both objects are read, never stored — called inside a `$derived`, the card's
+ * own `$state` fields are what make the lesson follow a settings change.
+ *
+ * An unknown indicator, or one whose card is missing or unreadable, yields no
+ * values: the caller then computes on the catalogue defaults, which is the
  * pre-FEAT-0681 behaviour rather than an error.
  */
 export function lessonParams(
     entry: CatalogueEntry,
     settings: object,
-): Readonly<Record<string, ParamValue>> {
+    baseline: object,
+): LessonParameters {
+    const values = paramsFrom(entry, settings);
+    const shipped = paramsFrom(entry, baseline);
+
+    const modified = new Set<string>();
+    for (const param of entry.params) {
+        const shown = values[param.name] ?? param.default;
+        const arrived = shipped[param.name] ?? param.default;
+        if (String(shown) !== String(arrived)) modified.add(param.name);
+    }
+    return { values, modified };
+}
+
+/** The card's parameters for `entry`, or `{}` when there is no card to read. */
+function paramsFrom(entry: CatalogueEntry, settings: object): Readonly<Record<string, ParamValue>> {
     const settingsKey = settingsCardFor(entry.id);
     if (settingsKey === null) return {};
 
@@ -98,22 +137,22 @@ export function lessonParams(
 export const LESSON_TIMEFRAME_FALLBACK = "1h";
 
 /**
- * The timeframes a lesson may be drawn on.
+ * The lesson timeframes `analysisTimeframes` allows, or the fallback alone.
  *
- * Mirrors the options the analysis-timeframe setting itself offers
- * (`CalculationSettings`), so a lesson cannot be switched to a timeframe the
- * rest of the app does not analyse. The setting decides *which* of these a
- * given user gets; this list is only the ceiling, and it is intersected rather
- * than trusted because settings come back out of `localStorage` and a migrated
- * or hand-edited store is a boundary.
+ * `ANALYSIS_TIMEFRAMES` is the same list the setting itself offers, so the
+ * intersection is the whole list whenever the trader has left it alone; the
+ * intersection exists for the boundary, not for the happy path — settings come
+ * back out of `localStorage`, and a hand-edited or migrated store is validated
+ * like one.
  */
-const SUPPORTED_LESSON_TIMEFRAMES = ["5m", "15m", "1h", "4h", "1d"] as const;
-
-/** The lesson timeframes `analysisTimeframes` allows, or the fallback alone. */
 export function lessonTimeframeOptions(
     analysisTimeframes: readonly string[],
 ): readonly string[] {
-    const offered = SUPPORTED_LESSON_TIMEFRAMES.filter((timeframe) =>
+    // A stored non-array would throw from `.includes` during render and take the
+    // whole tab down, so it degrades to the fallback like an empty list does.
+    if (!Array.isArray(analysisTimeframes)) return [LESSON_TIMEFRAME_FALLBACK];
+
+    const offered = ANALYSIS_TIMEFRAMES.filter((timeframe) =>
         analysisTimeframes.includes(timeframe),
     );
     return offered.length > 0 ? offered : [LESSON_TIMEFRAME_FALLBACK];

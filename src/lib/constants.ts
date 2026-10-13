@@ -777,3 +777,12 @@ export const icons = {
 
 };
 
+/**
+ * The timeframes the analysis-timeframe setting offers, in the order it shows
+ * them, and the ceiling for the Academy lesson chart's own selector.
+ *
+ * One list rather than two: the setting can only hold a member of it, so a
+ * lesson that refused one of them would render an empty selector for the trader
+ * who selected only that one (FEAT-0681).
+ */
+export const ANALYSIS_TIMEFRAMES = ["5m", "15m", "1h", "4h", "1d"] as const;

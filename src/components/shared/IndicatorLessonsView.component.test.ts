@@ -65,12 +65,12 @@ vi.mock("./CandlestickPatternsView.svelte", async () => ({
 // this file is about the list and the detail pane, so the canvas is stubbed
 // rather than dragged into happy-dom.
 vi.mock("./IndicatorLessonChart.svelte", async () => ({
-    default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
+    default: (await import("../../tests/helpers/ChartPropsProbe.svelte")).default,
 }));
 
 import AcademyContent from "./AcademyContent.svelte";
 import IndicatorLessonsView from "./IndicatorLessonsView.svelte";
-import { indicatorState } from "../../stores/indicator.svelte";
+import { indicatorState, shippedIndicatorDefaults } from "../../stores/indicator.svelte";
 import { lessonParams } from "../../lib/academy/lessonSettings";
 
 let host: HTMLElement;
@@ -266,21 +266,30 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
 
             const rows = [...section.querySelectorAll("li")];
             expect(rows.length, entry.id).toBe(entry.params.length);
-            // FEAT-0681: the card shows the value the chart drew with — the
-            // trader's own setting where their card has one, the catalogue
-            // default otherwise. Reading the same resolver here pins one number
-            // per declared parameter instead of a second copy of the defaults
-            // that could drift from what was drawn.
-            const configured = lessonParams(entry, indicatorState);
+
+            /*
+             * FEAT-0681: the chart and the card must be given the same number.
+             * Reading the resolver once and asserting *both* consumers against it
+             * is what keeps this from being circular — a components-side
+             * regression (a card rendering `param.default`, or a chart handed no
+             * parameters) puts the two sides out of step and fails here.
+             */
+            const configured = lessonParams(entry, indicatorState, shippedIndicatorDefaults()).values;
+            const chartParams = JSON.parse(
+                view
+                    .querySelector('[data-testid="chart-probe"]')
+                    ?.getAttribute("data-params") ?? "{}",
+            ) as Record<string, unknown>;
+
             for (const param of entry.params) {
                 const label = lookup(`dashboard.alerts.indicators.param.${param.name}`);
                 // Bound to the parameter's own row: a bare `toContain` over the
                 // whole card would be satisfied by a digit appearing anywhere.
                 const row = rows.find((candidate) => candidate.textContent?.includes(label));
                 expect(row, `${entry.id}.${param.name}`).toBeDefined();
-                expect(row?.textContent, `${entry.id}.${param.name}.value`).toContain(
-                    String(configured[param.name] ?? param.default),
-                );
+                const shown = configured[param.name] ?? param.default;
+                expect(row?.textContent, `${entry.id}.${param.name}.value`).toContain(String(shown));
+                expect(chartParams[param.name], `${entry.id}.${param.name}.chart`).toEqual(shown);
             }
         }
     });
@@ -293,7 +302,7 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
             props: { showLiveChart: false },
         }) as never;
         flushSync();
-        expect(host.querySelector('[data-testid="empty-stub"]')).toBeNull();
+        expect(host.querySelector('[data-testid="chart-probe"]')).toBeNull();
 
         unmount(component as never);
         component = null;
@@ -304,7 +313,7 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
             props: { showLiveChart: true },
         }) as never;
         flushSync();
-        expect(host.querySelector('[data-testid="empty-stub"]')).not.toBeNull();
+        expect(host.querySelector('[data-testid="chart-probe"]')).not.toBeNull();
     });
 
     it("marks a parameter the trader configured, and leaves the catalogue default unmarked", () => {
@@ -363,6 +372,50 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         expect(card.querySelector(".katex"), "the formula was not typeset").not.toBeNull();
         expect(card.textContent).not.toContain("$$");
         expect(card.textContent).toContain("RSI");
+    });
+
+    it("hands the chart the parameters the card shows", () => {
+        const previous = indicatorState.rsi.length;
+        try {
+            indicatorState.rsi.length = 21;
+            const view = renderIndicatorsTab();
+
+            const rsiRow = lessonRows(view).find((row) =>
+                row.textContent?.includes(lookup("dashboard.alerts.indicators.name.rsi")),
+            );
+            if (!rsiRow) throw new Error("the RSI lesson is not in the list");
+            rsiRow.click();
+            flushSync();
+
+            // The probe records what the parent passed; without it this contract
+            // — the view resolving the parameters once for two consumers — is
+            // asserted by nothing.
+            const probe = view.querySelector('[data-testid="chart-probe"]');
+            expect(probe, "the chart was not rendered").not.toBeNull();
+            expect(probe?.getAttribute("data-entry-id")).toBe("rsi");
+            expect(JSON.parse(probe?.getAttribute("data-params") ?? "{}")).toEqual({ period: 21 });
+            expect(paramsSection(view).textContent).toContain("21");
+        } finally {
+            indicatorState.rsi.length = previous;
+        }
+    });
+
+    it("marks nothing as the trader's own while they have changed nothing", () => {
+        const view = renderIndicatorsTab();
+
+        // The store's first EMA length is 21 where the catalogue's alert default
+        // is 20. Comparing the shown value against the *catalogue* default would
+        // print "your setting" here — for a value nobody configured.
+        const emaRow = lessonRows(view).find((row) =>
+            row.textContent?.includes(lookup("dashboard.alerts.indicators.name.ema")),
+        );
+        if (!emaRow) throw new Error("the EMA lesson is not in the list");
+        emaRow.click();
+        flushSync();
+
+        const card = paramsSection(view);
+        expect(card.textContent).toContain("21");
+        expect(card.textContent).not.toContain(lookup("indicatorLessons.parameterFromSettings"));
     });
 });
 

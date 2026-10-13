@@ -391,4 +391,32 @@ describe("FEAT-0677 — the live lesson chart", () => {
         expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
         expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("4h");
     });
+
+    it("opens on the remembered timeframe when the settings still offer it", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        localStorage.setItem("cachy_lesson_timeframe", "4h");
+
+        const view = render("rsi");
+
+        expect((view.querySelector("select") as HTMLSelectElement).value).toBe("4h");
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
+    });
+
+    it("falls back to an offered timeframe when the remembered one is gone", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // A stored timeframe the analysis setting no longer covers — a migrated
+        // or hand-edited store. `1d` is drawable but not among this store's
+        // timeframes, so the selector must settle on one it does offer and the
+        // subscription must follow the option actually shown.
+        localStorage.setItem("cachy_lesson_timeframe", "1d");
+
+        const view = render("rsi");
+
+        const select = view.querySelector("select") as HTMLSelectElement;
+        expect(select.value).toBe("1h");
+        expect(select.querySelector('option[value="1d"]')).toBeNull();
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1h", "chart");
+    });
 });
