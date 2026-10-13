@@ -28,7 +28,8 @@
  *
  * This makes the next drift a failure instead of a cast. It reads the file on
  * disk rather than regenerating it, so a stale union fails without the test
- * writing to the tree; run `node scripts/generate-i18n-types.js` to fix it.
+ * writing to the tree; run `npm run i18n:types` to fix it, which the failure
+ * message names too.
  */
 
 import { readFileSync } from "node:fs";
@@ -40,12 +41,31 @@ import en from "./locales/en.json";
 
 const SCHEMA_PATH = resolve(process.cwd(), "src/locales/schema.d.ts");
 
-/** Every member of the generated `TranslationKey` union, in file order. */
+/** Runnable command that repairs a failure here. */
+const GENERATE_COMMAND = "npm run i18n:types";
+
+/** The declaration the union members are read from. */
+const UNION_DECLARATION = "export type TranslationKey =";
+
+/**
+ * Every member of the generated `TranslationKey` union, in file order.
+ *
+ * Scoped to the one `export type TranslationKey =` declaration rather than to
+ * the whole file: `schema.d.ts` holds only that union today, but a helper type
+ * with `| "…"` arms of its own would otherwise be read as phantom members.
+ */
 function unionMembers(source: string): string[] {
-    return source
-        .split("\n")
-        .map((line) => /^\s*\| "(.*?)";?$/.exec(line)?.[1])
-        .filter((key): key is string => key !== undefined);
+    const lines = source.split("\n");
+    const start = lines.findIndex((line) => line.startsWith(UNION_DECLARATION));
+    if (start === -1) return [];
+
+    const members: string[] = [];
+    for (const line of lines.slice(start)) {
+        const member = /^\s*\| "(.*?)";?$/.exec(line)?.[1];
+        if (member !== undefined) members.push(member);
+        if (line.trimEnd().endsWith(";")) break;
+    }
+    return members;
 }
 
 describe("generated TranslationKey union", () => {
@@ -56,6 +76,9 @@ describe("generated TranslationKey union", () => {
         const members = unionMembers(readFileSync(SCHEMA_PATH, "utf8"));
         expect(members.length).toBeGreaterThan(0);
 
-        expect(members.slice().sort()).toEqual(dictionary.slice().sort());
+        expect(
+            members.slice().sort(),
+            `the committed union is stale — run \`${GENERATE_COMMAND}\``,
+        ).toEqual(dictionary.slice().sort());
     });
 });
