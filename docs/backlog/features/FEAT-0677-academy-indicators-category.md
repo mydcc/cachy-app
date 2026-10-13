@@ -26,14 +26,17 @@ Merged so far:
 - #4053 — the remaining 10, completing oscillators and volume
 - #4054 — [ADR-0025](../../adr/0025-academy-lesson-fields.md), the lesson fields
 - #4056 — `placement` on `CatalogueEntry`, pinned against the cards
-- #4057 — the lesson model and the corpus pin (`indicatorLessons.ts`,
-  `indicatorLessons.test.ts`, plus the stale `TranslationKey` regeneration)
+
+In review: #4057 — the lesson model and the corpus pin (`indicatorLessons.ts`,
+`indicatorLessons.test.ts`, plus the stale `TranslationKey` regeneration).
 
 All 23 indicators in `REGISTRY_CATALOGUE` have all four prose keys in both
 locales — 92 keys per locale, identical sets — and `indicatorLessons.test.ts`
 resolves every key through `lessonKey` for both languages, so AC 3, 5 and 7 are
-met and pinned. The rest describe code that does not exist yet: there is no
-third tab, no live chart, no parameter rows.
+pinned. AC 2 is half met: `LESSON_GROUPS` is derived from `INDICATOR_CATALOGUE`
+and the derivation is tested, but no renderer consumes it yet, so the box stays
+unchecked until one does. Everything else describes code that does not exist:
+there is no third tab, no live chart, no parameter rows.
 
 **The human read of the failure modes happened** and passed. That was the
 documented gate on writing the DE/EN texts.
@@ -49,7 +52,7 @@ already in the catalogue and resolves through `paramKey`, and the item's
 `chartOverlay` ships as a typed catalogue property named `placement`. Neither is
 a localisation key.
 
-**`placement` is done — in review.** `CatalogueEntry` carries a required
+**`placement` is done.** `CatalogueEntry` carries a required
 `placement: "price" | "pane"`, transcribed from the `On the chart` line of every
 card and pinned against them by `indicatorCatalogue.test.ts`, so the field and
 the cards cannot drift. Placement is **not** derivable from `dimension`: `ema`,
@@ -57,17 +60,18 @@ the cards cannot drift. Placement is **not** derivable from `dimension`: `ema`,
 differently — `ema` on the price, the other three on their own axis — and
 `super_trend`, `parabolic_sar`, `ichimoku` and `bollinger` all declare multiple
 `price` outputs and are all overlaid while `macd` is not. ADR-0025 carries the
-evidence and a counter-example test keeps it from being re-derived.
+evidence and a counter-example test keeps it from being re-derived. Merged in
+#4056.
 
-Branch `feat/academy-chart-overlay` (PR #4056). The renderer is the next step and
-still has no code.
+The renderer is the next step and still has no code.
 
 **Why the item is `ready` and not `in-progress`, despite active work.** The
 claim rules in `AGENTS.md` want `in-progress` with an `assignee` and a branch
 while work is open, and `scripts/check-stale-in-progress.mjs` fails the build for
 an `in-progress` item with no branch. But that check also fails the build once
 the named branch has merged, and this item spans several PRs — so any claim this
-PR could take would turn develop red the moment #4056 lands, which is exactly the
+slice took would turn develop red as soon as that branch merged, which is
+exactly the
 stale-claim failure the check exists to catch, induced by the rule rather than by
 neglect. A multi-PR item therefore stays `ready` between its PRs. The next agent
 picks the renderer up from here.
