@@ -45,6 +45,7 @@
     "backlog:check:stale": "node scripts/check-stale-in-progress.mjs",
     "backlog:promote": "node scripts/backlog-promote.mjs",
     "docs:links": "node scripts/check-doc-links.mjs",
+    "i18n:types": "node scripts/generate-i18n-types.js",
     "arch": "npm run arch:validate && npm run arch:build",
     "arch:validate": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs validate dataflow docs/architecture/cachy-architecture.dataflow.json --quality showcase",
     "arch:build": "node $HOME/.config/opencode/skills/archify/bin/archify.mjs deliver dataflow docs/architecture/cachy-architecture.dataflow.json docs/architecture/cachy-architecture.dataflow.html",

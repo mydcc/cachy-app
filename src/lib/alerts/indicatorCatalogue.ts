@@ -318,12 +318,18 @@ export const INDICATOR_GROUP_ORDER: readonly IndicatorGroup[] = [
 /**
  * What the alert panel offers: the registry entries the alert path can compute.
  *
- * Fourteen registry indicators have no JavaScript implementation on the alert
- * path. Offered, they produced alerts that were armed, sat in the panel looking
- * live, and were reported as "can never fire" on their first close (BUG-0451).
- * Filtering here, once, hides them from every builder, the combo rows, and the
- * create-alert action on the indicator settings cards, which all resolve
- * through this list and `catalogueEntry`.
+ * The filter exists because of BUG-0451. Registry indicators with no JavaScript
+ * implementation on the alert path were offered anyway, so an alert armed
+ * against one sat in the panel looking live and was reported as "can never
+ * fire" on its first close. Filtering here, once, hides such an entry from every
+ * builder, the combo rows, and the create-alert action on the indicator
+ * settings cards, which all resolve through this list and `catalogueEntry`.
+ *
+ * It removes nothing today: every registry indicator computes since FEAT-0446
+ * group 4, and `indicatorCatalogue.test.ts` pins the hidden set to empty. Kept
+ * because an alert that looks live and can never fire is the worse failure, and
+ * because a pinned-empty set is a cheaper guard than re-deriving the invariant
+ * at each site that would otherwise depend on it.
  */
 export const INDICATOR_CATALOGUE: readonly CatalogueEntry[] = REGISTRY_CATALOGUE.filter((entry) =>
     ALERT_PATH_INDICATORS.has(entry.id),
