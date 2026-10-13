@@ -16,67 +16,84 @@
  */
 
 /**
- * FEAT-0677 -- the lesson corpus against the catalogue it claims to describe.
+ * FEAT-0677 -- the lesson corpus against the indicators the engine computes.
  *
  * The prose under `academy.indicators.*` is written and merged, and until this
- * test nothing checked it against the indicators the engine actually computes:
- * a lesson could name an indicator that does not exist, or an indicator could
- * have shipped with a missing field, and only the "unused strings" list would
- * have hinted at it. The catalogue is already pinned to `rule_indicator_registry`
- * by `indicatorCatalogue.test.ts`, so pinning the lessons to the catalogue
- * carries the registry guarantee transitively -- which is what FEAT-0677's
- * "every lesson names an indicator the engine can compute" asks for.
+ * test nothing checked it against the registry: a lesson could name an
+ * indicator that does not exist, or an indicator could have shipped with a
+ * missing field, and only the "unused strings" report would have hinted at it.
+ * The corpus is pinned to `REGISTRY_CATALOGUE`, not to the alert-filtered
+ * `INDICATOR_CATALOGUE` -- a lesson explains an indicator, so it outlives the
+ * indicator leaving the alert path. `indicatorCatalogue.test.ts` pins the
+ * registry to `rule_indicator_registry`, which carries the engine guarantee.
+ *
+ * Every key is resolved through `lessonKey`, never through a property path
+ * spelled out here. That is the point of the file. An earlier revision read the
+ * bundle with its own interpolation and pinned the builder with two literal
+ * pairs, which left `howToRead` and `confirmation` unchecked: a builder emitting
+ * the wrong field name for either passed all four cases while the renderer
+ * painted raw keys for half the corpus.
  *
  * Every assertion states its expected count. A reader that resolves to an empty
- * object must fail, not agree with nothing -- the vacuous-pass failure mode that
- * the placement guard in `indicatorCatalogue.test.ts` shipped with once.
+ * object must fail, not agree with nothing -- the vacuous-pass failure mode the
+ * placement guard in `indicatorCatalogue.test.ts` shipped with once.
  */
 
 import { describe, expect, it } from "vitest";
 
-import { INDICATOR_CATALOGUE, INDICATOR_GROUP_ORDER } from "../alerts/indicatorCatalogue";
-import { LESSON_FIELDS, lessonGroups, lessonKey } from "./indicatorLessons";
+import {
+    INDICATOR_CATALOGUE,
+    INDICATOR_GROUP_ORDER,
+    REGISTRY_CATALOGUE,
+} from "../alerts/indicatorCatalogue";
+import { LESSON_FIELDS, LESSON_GROUPS, LESSON_NAMESPACE, lessonKey } from "./indicatorLessons";
 import de from "../../locales/locales/de.json";
 import en from "../../locales/locales/en.json";
 
-const LOCALES: readonly (readonly [string, Record<string, unknown>])[] = [
-    ["en", en as Record<string, unknown>],
-    ["de", de as Record<string, unknown>],
+type Bundle = Record<string, unknown>;
+
+const LOCALES: readonly (readonly [string, Bundle])[] = [
+    ["en", en as Bundle],
+    ["de", de as Bundle],
 ];
 
+/** Read a dotted locale path, so resolution goes the same way the view reads. */
+function lookup(bundle: Bundle, dotted: string): unknown {
+    return dotted
+        .split(".")
+        .reduce<unknown>((node, part) => (node as Bundle | undefined)?.[part], bundle);
+}
+
 /** The `academy.indicators` subtree of a locale bundle, or `undefined`. */
-function lessonSubtree(bundle: Record<string, unknown>): Record<string, unknown> | undefined {
-    const academy = bundle.academy as Record<string, unknown> | undefined;
-    return academy?.indicators as Record<string, unknown> | undefined;
+function lessonSubtree(bundle: Bundle): Bundle | undefined {
+    return lookup(bundle, LESSON_NAMESPACE) as Bundle | undefined;
 }
 
 describe("indicator lessons", () => {
     it("builds the key shape the locale files use", () => {
-        expect(lessonKey("adx", "failureModes")).toBe("academy.indicators.adx.failureModes");
-        expect(lessonKey("bollinger", "whatItMeasures")).toBe(
-            "academy.indicators.bollinger.whatItMeasures",
-        );
+        // Documentation rather than proof: the corpus case below resolves every
+        // id and field through `lessonKey`, which is what actually pins it.
+        expect(lessonKey("adx", "confirmation")).toBe("academy.indicators.adx.confirmation");
     });
 
-    it("carries all four fields for every catalogue indicator, in both languages", () => {
-        // Non-vacuity: the catalogue is not empty, and neither is the locale
-        // subtree we are about to read.
-        expect(INDICATOR_CATALOGUE.length).toBeGreaterThan(0);
+    it("resolves all four fields through the builder, for every registry indicator, in both languages", () => {
+        // Non-vacuity: the registry is not empty, and neither is the subtree we
+        // are about to read.
+        expect(REGISTRY_CATALOGUE.length).toBeGreaterThan(0);
         for (const [name, bundle] of LOCALES) {
             const subtree = lessonSubtree(bundle);
-            expect(subtree, `${name}: academy.indicators missing`).toBeTypeOf("object");
+            expect(subtree, `${name}: ${LESSON_NAMESPACE} missing`).toBeTypeOf("object");
             expect(Object.keys(subtree ?? {}).length).toBeGreaterThan(0);
         }
 
         const missing: string[] = [];
         for (const [name, bundle] of LOCALES) {
-            const subtree = lessonSubtree(bundle) ?? {};
-            for (const entry of INDICATOR_CATALOGUE) {
-                const lesson = subtree[entry.id] as Record<string, unknown> | undefined;
+            for (const entry of REGISTRY_CATALOGUE) {
                 for (const field of LESSON_FIELDS) {
-                    const value = lesson?.[field];
+                    const key = lessonKey(entry.id, field);
+                    const value = lookup(bundle, key);
                     if (typeof value !== "string" || value.trim() === "") {
-                        missing.push(`${name}:${entry.id}.${field}`);
+                        missing.push(`${name}:${key}`);
                     }
                 }
             }
@@ -84,29 +101,42 @@ describe("indicator lessons", () => {
         expect(missing).toEqual([]);
     });
 
-    it("has a lesson for every catalogue indicator and none for anything else", () => {
-        const catalogueIds = INDICATOR_CATALOGUE.map((entry) => entry.id).sort();
-        expect(catalogueIds.length).toBeGreaterThan(0);
+    it("has a lesson for every registry indicator and none for anything else", () => {
+        const registryIds = REGISTRY_CATALOGUE.map((entry) => entry.id).sort();
+        expect(registryIds.length).toBeGreaterThan(0);
         for (const [name, bundle] of LOCALES) {
             // Sorted on both sides, so this fails loudly on a missing lesson and
             // on a stray one -- the reverse-direction gap the placement guard had.
-            expect(Object.keys(lessonSubtree(bundle) ?? {}).sort(), name).toEqual(catalogueIds);
+            expect(Object.keys(lessonSubtree(bundle) ?? {}).sort(), name).toEqual(registryIds);
         }
     });
 
-    it("groups every indicator exactly once, in catalogue group order", () => {
-        const groups = lessonGroups();
-        expect(groups.map((g) => g.group)).toEqual([...INDICATOR_GROUP_ORDER]);
+    it("carries exactly the four ADR-0025 fields, and no fifth, per lesson", () => {
+        const expected = [...LESSON_FIELDS].sort();
+        for (const [name, bundle] of LOCALES) {
+            for (const entry of REGISTRY_CATALOGUE) {
+                const lesson = lookup(bundle, `${LESSON_NAMESPACE}.${entry.id}`) as
+                    | Bundle
+                    | undefined;
+                // Checked per locale, so a field present in one language and not
+                // the other fails here as well.
+                expect(Object.keys(lesson ?? {}).sort(), `${name}:${entry.id}`).toEqual(expected);
+            }
+        }
+    });
 
-        const listed = groups.flatMap((g) => g.entries.map((e) => e.id));
-        expect(listed.slice().sort()).toEqual(INDICATOR_CATALOGUE.map((e) => e.id).sort());
+    it("groups every offered indicator exactly once, in catalogue group order, with no empty group", () => {
+        expect(LESSON_GROUPS.map((group) => group.group)).toEqual([...INDICATOR_GROUP_ORDER]);
+
+        const listed = LESSON_GROUPS.flatMap((group) => group.entries.map((entry) => entry.id));
+        const offered = INDICATOR_CATALOGUE.map((entry) => entry.id);
+        expect(offered.length).toBeGreaterThan(0);
+        expect(listed.slice().sort()).toEqual(offered.slice().sort());
         expect(new Set(listed).size).toBe(listed.length);
 
-        // Each entry sits under its own group, so a group filter cannot hide one.
-        for (const { group, entries } of groups) {
-            for (const entry of entries) {
-                expect(entry.group, entry.id).toBe(group);
-            }
+        // An empty group renders a heading over nothing.
+        for (const { group, entries } of LESSON_GROUPS) {
+            expect(entries.length, group).toBeGreaterThan(0);
         }
     });
 });
