@@ -54,6 +54,13 @@ vi.mock("../../locales/i18n", async () => {
     };
 });
 
+// The indicators tab now mounts the live lesson chart. This file pins the
+// container-query layout contract, which the chart does not carry, so the
+// canvas is stubbed here and covered by IndicatorLessonChart.component.test.ts.
+vi.mock("./IndicatorLessonChart.svelte", async () => ({
+    default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
+}));
+
 import AcademyContent from "./AcademyContent.svelte";
 
 /*

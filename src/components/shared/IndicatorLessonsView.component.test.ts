@@ -61,6 +61,12 @@ vi.mock("./ChartPatternsView.svelte", async () => ({
 vi.mock("./CandlestickPatternsView.svelte", async () => ({
     default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
 }));
+// The live chart has its own suite (IndicatorLessonChart.component.test.ts);
+// this file is about the list and the detail pane, so the canvas is stubbed
+// rather than dragged into happy-dom.
+vi.mock("./IndicatorLessonChart.svelte", async () => ({
+    default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
+}));
 
 import AcademyContent from "./AcademyContent.svelte";
 

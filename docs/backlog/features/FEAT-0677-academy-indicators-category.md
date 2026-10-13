@@ -2,7 +2,7 @@
 id: FEAT-0677
 title: Add an indicators category to the Trading Academy
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -16,8 +16,9 @@ depends_on: []
 
 ## State
 
-**Ready.** Everything the writing needed is decided and merged; what remains is
-code, and the acceptance criteria below are implementable as written.
+**Done.** All twelve acceptance criteria are met: the writing, the lesson model
+and the tab merged earlier, and the live chart — AC 8 and AC 9 — ships with the
+PR that closes this item.
 
 Merged so far:
 
@@ -29,15 +30,23 @@ Merged so far:
 - #4057 — the lesson model and the corpus pin (`indicatorLessons.ts`,
   `indicatorLessons.test.ts`, plus the stale `TranslationKey` regeneration)
 
-In review: #4058 — the third tab itself: the shared tab list, the panel switch,
-and the lesson view with search, group filter, favourites and the four fields.
+- #4058 — the third tab itself: the shared tab list, the panel switch, and the
+  lesson view with search, group filter, favourites and the four fields
+- the final slice (this PR) — the live chart: `IndicatorLessonChart.svelte`, its
+  two component tests (`IndicatorLessonChart.component.test.ts`,
+  `IndicatorLessonChart.refusal.component.test.ts`) and the
+  `indicatorLessons.chart.*` strings
 
 All 23 indicators in `REGISTRY_CATALOGUE` have all four prose keys in both
 locales — 92 keys per locale, identical sets — and `indicatorLessons.test.ts`
 resolves every key through `lessonKey` for both languages. With #4058 the
-category becomes usable: ten of the twelve criteria are met, and what is left is
-the live chart — AC 8, the indicator drawn over the selected symbol's klines, and
-AC 9, every line the catalogue declares rendered on it.
+category became usable: ten of the twelve criteria were met, and what was left
+was the live chart — AC 8, the indicator drawn over the selected symbol's klines,
+and AC 9, every line the catalogue declares rendered on it. Both ship in the
+final slice: `IndicatorLessonChart.svelte`, proved by
+`IndicatorLessonChart.component.test.ts` (AC 8 and AC 9) and
+`IndicatorLessonChart.refusal.component.test.ts` (a refused line is shown, not
+silently dropped).
 
 **The human read of the failure modes happened** and passed. That was the
 documented gate on writing the DE/EN texts.
@@ -64,19 +73,21 @@ differently — `ema` on the price, the other three on their own axis — and
 evidence and a counter-example test keeps it from being re-derived. Merged in
 #4056.
 
-The lesson view exists since #4058. The chart over live klines is the next step
-and still has no code.
+The lesson view exists since #4058. The chart over live klines ships in the
+final slice: `IndicatorLessonChart.svelte` draws every declared output of the
+open lesson over the klines of `tradeState.symbol` — the app-wide symbol
+selection the calculator and the alert panel read — and redraws when it changes.
+`placement: "price"` outputs are overlaid on the candle pane; `placement: "pane"`
+outputs get their own axis below it. The component computes over the same engine
+path `computeLessonSeries` wraps and never reuses `IndicatorLayer`, which decides
+what to draw from the chart's own indicator settings rather than from an
+argument.
 
-**Why the item is `ready` and not `in-progress`, despite active work.** The
-claim rules in `AGENTS.md` want `in-progress` with an `assignee` and a branch
-while work is open, and `scripts/check-stale-in-progress.mjs` fails the build for
-an `in-progress` item with no branch. But that check also fails the build once
-the named branch has merged, and this item spans several PRs — so any claim this
-slice took would turn develop red as soon as that branch merged, which is
-exactly the
-stale-claim failure the check exists to catch, induced by the rule rather than by
-neglect. A multi-PR item therefore stays `ready` between its PRs. The next agent
-picks the renderer up from here.
+**The multi-PR-claim note is retired.** Earlier slices kept the item `ready`
+between PRs, because `scripts/check-stale-in-progress.mjs` fails an
+`in-progress` item once the branch it names has merged, and this item spanned
+several PRs — so any claim a slice took would have turned develop red as soon as
+that branch merged. The final slice closes the item, so it is `done`.
 
 **Not dispatched automatically.** `area: ui` is outside the auto-dispatch filters
 in `.github/workflows/backlog-dispatch.yml`, so this item waits for a manual
@@ -174,14 +185,28 @@ rendering nothing, which #4058 pins alongside the id it adds.
 - [x] Each lesson has a non-empty `failureModes` entry in both languages. A lesson
       without one is treated as incomplete. *(Met for all 23 in #4057, alongside
       the other three fields.)*
-- [ ] The chart in a lesson view renders the indicator over the live klines of the
-      currently selected symbol, and updates when the symbol changes.
-- [ ] Multi-output indicators render every line the catalogue declares —
+- [x] The chart in a lesson view renders the indicator over the live klines of the
+      currently selected symbol, and updates when the symbol changes. *(Met in
+      `IndicatorLessonChart.svelte`: it reads `tradeState.symbol` — the app-wide
+      selection — and that symbol's klines from `marketState`, holding the same
+      `kline_1h` subscription a chart window does. `IndicatorLessonChart.component.test.ts`
+      pins the draw against a seeded symbol, the empty state and the cleared
+      series when the symbol changes to one with no klines, and the registration
+      call per symbol.)*
+- [x] Multi-output indicators render every line the catalogue declares —
       `macd` (macd / signal / histogram), `bollinger` (upper / middle / lower /
       percent_b / bandwidth), `adx` (adx / plus_di / minus_di), `super_trend`
       (value / upper / lower), `ichimoku` (conversion / base / span_a / span_b),
       `parabolic_sar` (value / direction), `stochastic` (k / d),
-      `stoch_rsi` (k / d).
+      `stoch_rsi` (k / d). *(Met in `IndicatorLessonChart.svelte`: it draws one
+      line series per entry in `LessonSeries.lines`, whose fan-out is
+      `computeLessonSeries` — pinned for all 23 indicators in
+      `indicatorLessonSeries.test.ts`. `IndicatorLessonChart.component.test.ts`
+      asserts, for every registry indicator with more than one declared output,
+      that exactly that many line series are created and each carries points, and
+      that `placement` decides the pane. A refused line is shown with its reason
+      rather than silently dropped
+      (`IndicatorLessonChart.refusal.component.test.ts`).)*
 - [x] The category respects the existing favourites pattern from
       `ChartPatternsView` (`categories`, line 63-76) and the search and group filter
       behave the same as in the two existing tabs. *(Met in #4058: the same

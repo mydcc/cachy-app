@@ -48,6 +48,7 @@
     } from "../../lib/alerts/indicatorCatalogue";
     import { LESSON_FIELDS, LESSON_GROUPS, lessonKey } from "../../lib/academy/indicatorLessons";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
+    import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
 
     type LessonField = (typeof LESSON_FIELDS)[number];
     type GroupFilter = "all" | "favorites" | IndicatorGroup;
@@ -292,6 +293,15 @@
                     </div>
                 </div>
             </div>
+
+            <!--
+              FEAT-0677, AC 8/9 — the live chart. A sibling of the split row
+              rather than a third child: `split` carries the mobile flex
+              contract pinned by AcademyResponsive.component.test.ts, and the
+              children of the main column are unconstrained. Full width reads
+              better for a chart than one column of the split.
+            -->
+            <IndicatorLessonChart entry={current} />
 
             <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
                 <!-- Left Column: the four lesson fields -->
