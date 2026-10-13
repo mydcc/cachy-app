@@ -17,9 +17,14 @@
  */
 
 /*
- * FEAT-0346 — AcademyContent is a two-tab shell. Its state machine is small
- * but user-visible: the right tab renders, and the last tab survives a reload
- * through localStorage.
+ * FEAT-0346 — AcademyContent is the Academy's tab shell. Its state machine is
+ * small but user-visible: the right tab renders, and the last tab survives a
+ * reload through localStorage.
+ *
+ * FEAT-0677 added the third tab. This file stays on what all three share; the
+ * indicators tab's own behaviour lives in
+ * `IndicatorLessonsView.component.test.ts`, which mounts the real view rather
+ * than a stub.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -75,7 +80,7 @@ function tabButton(labelKey: string): HTMLButtonElement {
     return el;
 }
 
-describe("FEAT-0346 — AcademyContent switches between the two pattern tabs", () => {
+describe("FEAT-0346 — AcademyContent switches between the Academy tabs", () => {
     it("opens on the chart-patterns tab by default", () => {
         render();
 

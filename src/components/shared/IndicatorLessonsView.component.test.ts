@@ -33,7 +33,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 
-import { INDICATOR_GROUP_ORDER, REGISTRY_CATALOGUE, indicatorsInGroup } from "../../lib/alerts/indicatorCatalogue";
+import {
+    INDICATOR_CATALOGUE,
+    INDICATOR_GROUP_ORDER,
+    indicatorsInGroup,
+} from "../../lib/alerts/indicatorCatalogue";
 import en from "../../locales/locales/en.json";
 
 function lookup(key: string): string {
@@ -105,11 +109,35 @@ function groupSelect(view: HTMLElement): HTMLSelectElement {
     return view.querySelector("select") as HTMLSelectElement;
 }
 
+/** The parameters card in the detail pane, reached through the split layout. */
+function paramsSection(view: HTMLElement): HTMLElement {
+    const split = [...view.querySelectorAll("div")].find((candidate) =>
+        candidate.classList.contains("@lg:flex-row"),
+    );
+    if (!split) throw new Error("no split layout in the lesson view");
+    const rightColumn = split.children[1];
+    if (!rightColumn) throw new Error("no right column in the lesson view");
+    return rightColumn.children[0] as HTMLElement;
+}
+
 describe("FEAT-0677 — the Indicators & Setups tab", () => {
-    it("lists every registry indicator and persists the tab it opened on", () => {
+    it("lists exactly the indicators the alert path offers, and persists the tab it opened on", () => {
         const view = renderIndicatorsTab();
 
-        expect(lessonRows(view).length).toBe(REGISTRY_CATALOGUE.length);
+        /*
+         * The view renders `LESSON_GROUPS`, which is built over
+         * `INDICATOR_CATALOGUE` — the alert-path subset, not the whole
+         * registry. Pinning this to `REGISTRY_CATALOGUE` would fail in the
+         * wrong direction the day the alert path hides an indicator again: the
+         * list would correctly shrink while the test demanded the hidden one.
+         */
+        const offered = INDICATOR_CATALOGUE.map((entry) =>
+            lookup(`dashboard.alerts.indicators.name.${entry.id}`),
+        );
+        const shown = lessonRows(view).map((row) => row.textContent?.trim() ?? "");
+        expect(shown.length).toBeGreaterThan(0);
+        expect(shown.slice().sort()).toEqual(offered.slice().sort());
+
         expect(localStorage.getItem("academy_active_tab")).toBe("indicators");
 
         // Every group heading of the catalogue is present, in its own language.
@@ -156,7 +184,7 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         const shown = lessonRows(view).map((row) => row.textContent?.trim() ?? "");
         expect(shown.slice().sort()).toEqual(expected.slice().sort());
         expect(shown.length).toBeGreaterThan(0);
-        expect(shown.length).toBeLessThan(REGISTRY_CATALOGUE.length);
+        expect(shown.length).toBeLessThan(INDICATOR_CATALOGUE.length);
     });
 
     it("toggles a favourite and keeps it under the lesson's own storage key", () => {
@@ -172,38 +200,61 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         expect(favorite.getAttribute("aria-pressed")).toBe("true");
         const stored = JSON.parse(localStorage.getItem("indicator_lesson_favorites") ?? "[]");
         expect(stored.length).toBe(1);
-        // The pattern tabs' keys must stay untouched by this one.
+        // Both pattern tabs' keys must stay untouched by this one.
         expect(localStorage.getItem("chart_pattern_favorites")).toBeNull();
+        expect(localStorage.getItem("candlestick_favorites")).toBeNull();
 
         selectFavoriteFilter(view);
 
         expect(lessonRows(view).length).toBe(1);
     });
 
-    it("shows the four lesson fields and the catalogue's parameters", () => {
+    it("shows the four lesson fields and the catalogue's own parameters, for every indicator", () => {
         const view = renderIndicatorsTab();
 
-        for (const heading of [
-            "whatItMeasures",
-            "howToRead",
-            "failureModes",
-            "confirmation",
-        ]) {
+        for (const heading of ["whatItMeasures", "howToRead", "failureModes", "confirmation"]) {
             expect(view.textContent).toContain(lookup(`indicatorLessons.field.${heading}`));
         }
 
-        // The first group in INDICATOR_GROUP_ORDER is selected on mount, so the
-        // opened lesson is that group's first catalogue entry.
-        const opened = indicatorsInGroup(INDICATOR_GROUP_ORDER[0])[0];
-        expect(view.textContent).toContain(lookup(`dashboard.alerts.indicators.name.${opened.id}`));
+        /*
+         * Every indicator, not only the one that happens to open: a factor's
+         * default is carried as a string (`bollinger.std_dev` is "2"), so
+         * checking one period-typed entry would leave that path unexercised.
+         */
+        for (const entry of INDICATOR_CATALOGUE) {
+            const name = lookup(`dashboard.alerts.indicators.name.${entry.id}`);
+            const row = lessonRows(view).find(
+                (candidate) => candidate.textContent?.trim() === name,
+            );
+            if (!row) throw new Error(`no sidebar row for ${entry.id}`);
+            row.click();
+            flushSync();
 
-        for (const field of ["whatItMeasures", "howToRead", "failureModes", "confirmation"]) {
-            expect(view.textContent).toContain(lookup(`academy.indicators.${opened.id}.${field}`));
-        }
+            for (const field of ["whatItMeasures", "howToRead", "failureModes", "confirmation"]) {
+                expect(view.textContent, `${entry.id}.${field}`).toContain(
+                    lookup(`academy.indicators.${entry.id}.${field}`),
+                );
+            }
 
-        for (const param of opened.params) {
-            expect(view.textContent).toContain(lookup(`dashboard.alerts.indicators.param.${param.name}`));
-            expect(view.textContent).toContain(String(param.default));
+            const section = paramsSection(view);
+            if (entry.params.length === 0) {
+                expect(section.querySelectorAll("li").length, entry.id).toBe(0);
+                expect(section.textContent).toContain(lookup("indicatorLessons.parametersEmpty"));
+                continue;
+            }
+
+            const rows = [...section.querySelectorAll("li")];
+            expect(rows.length, entry.id).toBe(entry.params.length);
+            for (const param of entry.params) {
+                const label = lookup(`dashboard.alerts.indicators.param.${param.name}`);
+                // Bound to the parameter's own row: a bare `toContain` over the
+                // whole card would be satisfied by a digit appearing anywhere.
+                const row = rows.find((candidate) => candidate.textContent?.includes(label));
+                expect(row, `${entry.id}.${param.name}`).toBeDefined();
+                expect(row?.textContent, `${entry.id}.${param.name}.default`).toContain(
+                    String(param.default),
+                );
+            }
         }
     });
 });
