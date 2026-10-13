@@ -24,16 +24,19 @@
  * KaTeX display block (`$$ … $$`), which the lesson view renders through the
  * Markdown action the two pattern tabs already use.
  *
- * Every entry describes what `src/lib/rules/indicatorSeries.ts` actually
- * computes, including the places Cachy departs from a textbook:
+ * Every entry describes what `src/lib/rules/indicatorSeries.ts` computes. The
+ * rest of each formula is reviewed against the engine by hand — a test can pin
+ * that a formula exists and typesets, not that a coefficient is right — so the
+ * three places Cachy departs from a textbook are pinned explicitly instead:
  *
  * - the Bollinger bandwidth is a percentage of the middle band (`× 100`), not
  *   the bare ratio, so it matches the `%` the Technicals panel prints;
  * - both Ichimoku spans are displaced forward by 26 candles;
  * - CCI is computed over the typical price (HLC3) by default, not the close.
  *
- * `indicatorFormulas.test.ts` pins the set to the registry: a new indicator
- * without a formula fails CI rather than rendering an empty card.
+ * `indicatorFormulas.test.ts` pins the set to the registry — a new indicator
+ * without a formula fails CI rather than rendering an empty card — plus each
+ * formula's typeset output and the three departures above.
  */
 
 export const INDICATOR_FORMULAS: Readonly<Record<string, string>> = {

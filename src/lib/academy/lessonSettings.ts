@@ -18,16 +18,17 @@
 /*
  * FEAT-0681 — how a lesson reads the user's own settings.
  *
- * The settings-card → engine-parameter mapping already exists and is tested:
+ * The settings-card → engine-input mapping already exists and is tested:
  * `indicatorSettingsSeed` maps each settings card to its catalogue id, reads
- * every parameter out of the card, and falls back to the catalogue default for
- * anything the card cannot supply. A lesson that re-derived that table could
- * disagree with the chart window and the alert seed about the same indicator —
- * the drift that cost BUG-0457/BUG-0460 in `subPaneContent`.
+ * every parameter out of the card, names the price it is drawn over, and falls
+ * back to the catalogue default for anything the card cannot supply. A lesson
+ * that re-derived that table could disagree with the chart window and the alert
+ * seed about the same indicator — the drift that cost BUG-0457/BUG-0460 in
+ * `subPaneContent`.
  *
  * So this module adds only the direction a lesson needs — catalogue id →
- * settings card — and reads the parameters through the seed's own
- * `mappedIndicatorRefs`, which keeps the fallback semantics the seed's.
+ * settings card — and reads through the seed's own `mappedIndicatorRefs`, which
+ * keeps the fallback semantics the seed's.
  *
  * Pure TypeScript, no runes and no store import: the caller passes the settings
  * object, so this stays a function of its arguments and a test needs no store.
@@ -36,7 +37,7 @@
 import { ANALYSIS_TIMEFRAMES } from "../constants";
 import { mappedIndicatorKeys, mappedIndicatorRefs } from "../alerts/indicatorSettingsSeed";
 import type { CatalogueEntry } from "../alerts/indicatorCatalogue";
-import type { ParamValue } from "../rules/types";
+import type { IndicatorRef, ParamValue, PriceField } from "../rules/types";
 
 /** A settings card, the shape `indicatorSettingsSeed` reads. */
 type SettingsCard = Record<string, unknown>;
@@ -67,39 +68,50 @@ export function settingsCardFor(indicatorId: string): string | null {
 }
 
 /**
- * A lesson's parameters, and which of them the trader moved away from the
- * shipped defaults.
+ * What a lesson computes with, and how much of it is the trader's own.
  *
  * `modified` is provenance rather than value inequality. The Technicals store
  * ships its own defaults — its first EMA length is 21 where the catalogue's
- * alert default is 20 — so comparing the effective value against the *catalogue*
+ * alert default is 20 — so comparing the shown value against the *catalogue*
  * default would label four untouched indicators (`ema`, `sma`, `wma`, `hma`) as
  * the trader's own configuration. Comparing against a baseline store instead
- * asks the question the marker actually means: "did you change this from how it
+ * asks the question the marker means: "did you change this from how it
  * arrived?".
  */
 export interface LessonParameters {
     /** What the chart computes with: the trader's settings, defaults filled in. */
     readonly values: Readonly<Record<string, ParamValue>>;
+    /**
+     * The price the card draws the indicator over, when that is not the
+     * indicator's own default — the seed drops a default field, so this is
+     * `undefined` in the common case.
+     *
+     * A lesson has to carry it. The chart window computes over the card's
+     * `source` (`indicatorLayer`), so a lesson that ignored it would draw RSI
+     * over the close while the trader's own chart draws RSI over `hl2` — the
+     * same "lesson does not match the chart I trade from" gap this feature
+     * exists to close.
+     */
+    readonly field: PriceField | undefined;
     /** Parameter names whose value differs from `baseline`'s. */
     readonly modified: ReadonlySet<string>;
 }
 
 /**
- * The parameters `entry` should be computed with: the user's own settings,
- * falling back to the catalogue default per parameter their card cannot supply.
+ * The inputs `entry` should be computed with: the user's own settings, falling
+ * back to the catalogue default per parameter their card cannot supply.
  *
  * `settings` is the indicator settings object (`indicatorState`) or any object
- * keyed the same way; `baseline` is a store the trader has never configured
- * (`defaultSettings`), which is what makes `modified` mean "you changed this"
- * rather than "this differs from the catalogue". Pass `{}` for a baseline to
- * compare against the catalogue defaults instead.
+ * keyed the same way; `baseline` is a store the trader has never configured (a
+ * copy of the shipped defaults), which is what makes `modified` mean "you
+ * changed this" rather than "this differs from the catalogue". Pass `{}` for a
+ * baseline to compare against the catalogue defaults instead.
  *
  * Both objects are read, never stored — called inside a `$derived`, the card's
  * own `$state` fields are what make the lesson follow a settings change.
  *
- * An unknown indicator, or one whose card is missing or unreadable, yields no
- * values: the caller then computes on the catalogue defaults, which is the
+ * An unknown indicator, or one whose card is missing or unreadable, yields
+ * nothing: the caller then computes on the catalogue defaults, which is the
  * pre-FEAT-0681 behaviour rather than an error.
  */
 export function lessonParams(
@@ -107,30 +119,32 @@ export function lessonParams(
     settings: object,
     baseline: object,
 ): LessonParameters {
-    const values = paramsFrom(entry, settings);
-    const shipped = paramsFrom(entry, baseline);
+    const live = refFrom(entry, settings);
+    const shipped = refFrom(entry, baseline);
+    const values = live?.params ?? {};
 
     const modified = new Set<string>();
     for (const param of entry.params) {
         const shown = values[param.name] ?? param.default;
-        const arrived = shipped[param.name] ?? param.default;
+        const arrived = shipped?.params[param.name] ?? param.default;
         if (String(shown) !== String(arrived)) modified.add(param.name);
     }
-    return { values, modified };
+    return { values, field: live?.field, modified };
 }
 
-/** The card's parameters for `entry`, or `{}` when there is no card to read. */
-function paramsFrom(entry: CatalogueEntry, settings: object): Readonly<Record<string, ParamValue>> {
+/** The ref the card configures for `entry`, or `null` when there is no card. */
+function refFrom(entry: CatalogueEntry, settings: object): IndicatorRef | null {
     const settingsKey = settingsCardFor(entry.id);
-    if (settingsKey === null) return {};
+    if (settingsKey === null) return null;
 
     const card = (settings as Record<string, unknown>)[settingsKey];
-    if (card === null || typeof card !== "object") return {};
+    if (card === null || typeof card !== "object") return null;
 
-    const ref = mappedIndicatorRefs(settingsKey, card as SettingsCard).find(
-        (candidate) => candidate.id === entry.id,
+    return (
+        mappedIndicatorRefs(settingsKey, card as SettingsCard).find(
+            (candidate) => candidate.id === entry.id,
+        ) ?? null
     );
-    return ref?.params ?? {};
 }
 
 /** The timeframe a lesson draws on when the user's own list offers none of ours. */

@@ -129,6 +129,7 @@ import { catalogueEntry, REGISTRY_CATALOGUE } from "../../lib/alerts/indicatorCa
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import type { MarketData } from "../../stores/market/types";
 import type { Kline } from "../../services/technicalsTypes";
+import type { PriceField } from "../../lib/rules/types";
 import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
 
 /** The timeframe the component draws on; kept here so the seed matches. */
@@ -161,7 +162,11 @@ let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
 /** Mounts the chart for `entryId`, replacing any previous mount. */
-function render(entryId: string, params?: Record<string, number>): HTMLElement {
+function render(
+    entryId: string,
+    params?: Record<string, number>,
+    field?: PriceField,
+): HTMLElement {
     if (component) {
         unmount(component as never);
         component = null;
@@ -174,7 +179,7 @@ function render(entryId: string, params?: Record<string, number>): HTMLElement {
 
     component = mount(IndicatorLessonChart, {
         target: host,
-        props: { entry, params },
+        props: { entry, params, field },
     }) as never;
     flushSync();
 
@@ -371,6 +376,29 @@ describe("FEAT-0677 — the live lesson chart", () => {
         // parameter never reached the engine and the defaults were used.
         expect(longWarmup.length).toBeGreaterThan(0);
         expect(shortWarmup.length).toBeGreaterThan(longWarmup.length);
+    });
+
+    it("computes over the price it is handed, not the indicator's own default", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const drawn = (field?: PriceField): string[] => {
+            render("rsi", undefined, field);
+            const series = lw.lineSeries[0];
+            expect(series, "no line series drawn").toBeDefined();
+            const points =
+                (series.setData.mock.calls.at(-1)?.[0] as Array<{ value: number }>) ?? [];
+            return points.map((point) => String(point.value));
+        };
+
+        const overClose = drawn();
+        const overHl2 = drawn("hl2");
+
+        // A different source is a different line: the chart window computes RSI
+        // over the card's source, so a dropped field would quietly draw the wrong
+        // price with every assertion still green.
+        expect(overClose.length).toBeGreaterThan(0);
+        expect(overHl2).not.toEqual(overClose);
     });
 
     it("draws the timeframe the learner picks, and remembers it", () => {

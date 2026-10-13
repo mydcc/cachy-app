@@ -4868,6 +4868,7 @@
     "parameters": "Parameters",
     "parametersEmpty": "This indicator has no parameters.",
     "parameterFromSettings": "Your setting",
+    "parameterShippedDefault": "Default",
     "formula": "Formula",
     "outputs": "Lines",
     "placement": {

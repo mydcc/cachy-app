@@ -28,13 +28,15 @@
   interface Props {
     entry?: { id?: string };
     params?: Record<string, unknown>;
+    field?: string;
   }
 
-  let { entry, params }: Props = $props();
+  let { entry, params, field }: Props = $props();
 </script>
 
 <div
   data-testid="chart-probe"
   data-entry-id={entry?.id ?? ""}
   data-params={JSON.stringify(params ?? {})}
+  data-field={field ?? ""}
 ></div>

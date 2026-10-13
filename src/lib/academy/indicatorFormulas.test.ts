@@ -26,17 +26,33 @@
 
 import { describe, it, expect } from "vitest";
 import { INDICATOR_FORMULAS } from "./indicatorFormulas";
-import { INDICATOR_CATALOGUE } from "../alerts/indicatorCatalogue";
+import { REGISTRY_CATALOGUE } from "../alerts/indicatorCatalogue";
 import { renderSafeMarkdown } from "../../utils/markdownUtils";
 
 describe("FEAT-0681 — a formula for every catalogue indicator", () => {
-    it("covers exactly the indicators the lesson tab renders", () => {
-        const catalogueIds = INDICATOR_CATALOGUE.map((entry) => entry.id).sort();
+    it("covers exactly the registry's indicators", () => {
+        /*
+         * The registry, not the alert-path subset the tab renders: the wider
+         * universe is what `indicatorLessons.ts` pins the prose to, and for the
+         * same reason. If the alert path hides an entry again (BUG-0451), the
+         * reviewed formula must survive rather than be demanded deleted.
+         */
+        const registryIds = REGISTRY_CATALOGUE.map((entry) => entry.id).sort();
 
-        // Non-vacuity: an empty catalogue would make the comparison below assert
+        // Non-vacuity: an empty registry would make the comparison below assert
         // nothing at all.
-        expect(catalogueIds.length).toBeGreaterThan(0);
-        expect(Object.keys(INDICATOR_FORMULAS).sort()).toEqual(catalogueIds);
+        expect(registryIds.length).toBeGreaterThan(0);
+        expect(Object.keys(INDICATOR_FORMULAS).sort()).toEqual(registryIds);
+    });
+
+    it("keeps the three departures from a textbook the docblock names", () => {
+        // A key-set pin says a formula exists, not that it is the right one, and
+        // a plausible "correction" of any of these would silently change what a
+        // lesson teaches. These three are the ones Cachy computes differently
+        // from the common convention.
+        expect(INDICATOR_FORMULAS.bollinger).toContain("100 \\cdot");
+        expect(INDICATOR_FORMULAS.ichimoku).toContain("(+26)");
+        expect(INDICATOR_FORMULAS.cci).toContain("0.015");
     });
 
     it("writes each formula as a KaTeX display block rather than prose", () => {

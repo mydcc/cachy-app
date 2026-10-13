@@ -374,10 +374,12 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         expect(card.textContent).toContain("RSI");
     });
 
-    it("hands the chart the parameters the card shows", () => {
-        const previous = indicatorState.rsi.length;
+    it("hands the chart the parameters and the source the card shows", () => {
+        const previousLength = indicatorState.rsi.length;
+        const previousSource = indicatorState.rsi.source;
         try {
             indicatorState.rsi.length = 21;
+            indicatorState.rsi.source = "hl2";
             const view = renderIndicatorsTab();
 
             const rsiRow = lessonRows(view).find((row) =>
@@ -388,15 +390,19 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
             flushSync();
 
             // The probe records what the parent passed; without it this contract
-            // — the view resolving the parameters once for two consumers — is
+            // — the view resolving the inputs once for two consumers — is
             // asserted by nothing.
             const probe = view.querySelector('[data-testid="chart-probe"]');
             expect(probe, "the chart was not rendered").not.toBeNull();
             expect(probe?.getAttribute("data-entry-id")).toBe("rsi");
             expect(JSON.parse(probe?.getAttribute("data-params") ?? "{}")).toEqual({ period: 21 });
+            // The price too: the chart window honours the card's source, so the
+            // lesson has to draw the same one.
+            expect(probe?.getAttribute("data-field")).toBe("hl2");
             expect(paramsSection(view).textContent).toContain("21");
         } finally {
-            indicatorState.rsi.length = previous;
+            indicatorState.rsi.length = previousLength;
+            indicatorState.rsi.source = previousSource;
         }
     });
 
@@ -416,6 +422,10 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         const card = paramsSection(view);
         expect(card.textContent).toContain("21");
         expect(card.textContent).not.toContain(lookup("indicatorLessons.parameterFromSettings"));
+        // The third state: a shipped Technicals default that is neither the
+        // catalogue's 20 nor something the trader changed. A reader comparing the
+        // two screens needs to be told which one they are looking at.
+        expect(card.textContent).toContain(lookup("indicatorLessons.parameterShippedDefault"));
     });
 });
 

@@ -68,7 +68,7 @@
         LESSON_TIMEFRAME_FALLBACK,
         lessonTimeframeOptions,
     } from "../../lib/academy/lessonSettings";
-    import type { EvaluationCandle, ParamValue } from "../../lib/rules/types";
+    import type { EvaluationCandle, ParamValue, PriceField } from "../../lib/rules/types";
     import type { Kline } from "../../services/technicalsTypes";
     import { CONSTANTS } from "../../lib/constants";
     import { tradeState } from "../../stores/trade.svelte";
@@ -88,9 +88,15 @@
          * with no settings yet still gets a total series.
          */
         params?: Readonly<Record<string, ParamValue>>;
+        /**
+         * The price to compute over, from the same settings card (FEAT-0681).
+         * Omitted, the indicator's own default source applies — the chart window
+         * honours the card's `source`, so the lesson has to as well.
+         */
+        field?: PriceField;
     }
 
-    let { entry, params }: Props = $props();
+    let { entry, params, field }: Props = $props();
 
     /**
      * The timeframe a lesson is drawn on.
@@ -202,7 +208,7 @@
     });
 
     let computed = $derived<LessonSeries>(
-        computeLessonSeries(entry, candles, timeframe, params),
+        computeLessonSeries(entry, candles, timeframe, params, field),
     );
 
     /**

@@ -155,4 +155,20 @@ describe("indicator lesson series", () => {
             defaults.lines.find((line) => line.name === "upper")?.values ?? [],
         );
     });
+
+    it("computes over the price it is handed, not the indicator's own default", () => {
+        const rows = candles();
+        const rsi = catalogueEntry("rsi");
+        if (!rsi) throw new Error("no catalogue entry for rsi");
+
+        // RSI declares one line, so the first is the one under test.
+        const overClose = computeLessonSeries(rsi, rows, "1h").lines[0]?.values ?? [];
+        const overHl2 = computeLessonSeries(rsi, rows, "1h", undefined, "hl2").lines[0]?.values ?? [];
+
+        // A different source is a different line. If the field were dropped, the
+        // two would be identical and the lesson would draw the wrong price
+        // without anything failing.
+        expect(overClose.some((value) => value !== null)).toBe(true);
+        expect(overHl2).not.toEqual(overClose);
+    });
 });

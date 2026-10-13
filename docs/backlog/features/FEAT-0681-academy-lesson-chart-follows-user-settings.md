@@ -7,7 +7,7 @@ priority: P2
 milestone: none
 editions: [community, pro, private]
 area: ui
-data_class: none
+data_class: A
 adr: ADR-0025
 depends_on: [FEAT-0677]
 assignee: opencode
@@ -84,6 +84,15 @@ matching how `params` and `placement` are already handled (ADR-0025).
 - **No parameter-aware prose.** The four fields already say "the last N periods"
   rather than a number, so the text needs no change.
 - **No SEO prose rewrite** for `src/lib/assets/content/academy.{de,en}.md`.
+- **The two cards whose chart rendering the engine cannot express.** ADX carries
+  a single period from `adxSmoothing`, while the chart's pane chains
+  `diLength ?? adxSmoothing`; Ichimoku's cloud is displaced by the engine's fixed
+  26 candles, while the chart window can render a custom displacement (which is
+  why the alert path refuses such a card). The lesson follows the *engine* — what
+  it actually draws with — rather than re-deriving the chart's own fallback
+  chains here. Duplicating those chains is what BUG-0457/BUG-0460 cost once.
+  Everything the engine *can* express, including the card's price source, is
+  carried.
 
 ## Open questions
 
@@ -117,6 +126,14 @@ from the catalogue); every formula is rendered through the Markdown/KaTeX
 pipeline in a test rather than only RSI's; and the analysis-timeframe list is now
 one shared export (`src/lib/constants.ts`), so the settings UI and the lesson
 selector cannot drift apart.
+
+A second review round added the card's **price source**: `lessonParams` carries
+the ref's `field` and `computeLessonSeries` takes it as a fifth argument, so a
+trader with RSI on `hl2` sees the lesson draw RSI on `hl2` rather than on the
+close — the same "the lesson must match the chart I trade from" gap. The
+Parameter card also gained the third state it needed: a value that is neither the
+catalogue default nor the trader's edit (the shipped Technicals default) is
+labelled as the shipped default instead of being left unmarked.
 
 ## Links
 

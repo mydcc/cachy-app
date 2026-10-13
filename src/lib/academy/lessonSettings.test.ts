@@ -110,6 +110,57 @@ describe("FEAT-0681 — lesson parameters come from the user's settings", () => 
             lessonParams({ ...entry("rsi"), id: "not-in-the-registry" }, {}, CATALOGUE_BASELINE).values,
         ).toEqual({});
     });
+
+    it("produces only parameter names the entry declares", () => {
+        /*
+         * The engine reads only the names an entry declares, so a misspelled one
+         * would be merged into the document, ignored, and reported nowhere — the
+         * hazard `indicatorSettingsSeed.mappingLines` exists for. The seed is what
+         * keeps this true; this is the regression net between it and the lesson.
+         */
+        const withParams = INDICATOR_CATALOGUE.filter((item) => item.params.length > 0);
+        // Non-vacuity: with no parameterised indicator the loop would assert
+        // nothing at all.
+        expect(withParams.length).toBeGreaterThan(0);
+
+        for (const item of INDICATOR_CATALOGUE) {
+            const declared = new Set(item.params.map((param) => param.name));
+            for (const name of Object.keys(lessonParams(item, SHIPPED, SHIPPED).values)) {
+                expect(declared.has(name), `${item.id}.${name}`).toBe(true);
+            }
+        }
+    });
+
+    it("carries the price the card draws the indicator over", () => {
+        // The chart window computes over the card's `source`; a lesson that
+        // dropped it would draw RSI over the close while the trader's chart draws
+        // RSI over `hl2` — the mismatch this feature exists to remove.
+        expect(
+            lessonParams(entry("rsi"), { rsi: { length: 14, source: "hl2" } }, CATALOGUE_BASELINE)
+                .field,
+        ).toBe("hl2");
+
+        // A card on the indicator's own source carries none: the seed drops a
+        // default field, and the engine reads `field ?? alertPathSourceOf(id)`.
+        expect(
+            lessonParams(entry("rsi"), { rsi: { length: 14, source: "close" } }, CATALOGUE_BASELINE)
+                .field,
+        ).toBeUndefined();
+
+        // CCI's own source is the typical price, so the close is the departure
+        // and the shipped card names none.
+        expect(
+            lessonParams(entry("cci"), { cci: { length: 20, source: "hlc3" } }, CATALOGUE_BASELINE)
+                .field,
+        ).toBeUndefined();
+        expect(
+            lessonParams(entry("cci"), { cci: { length: 20, source: "close" } }, CATALOGUE_BASELINE)
+                .field,
+        ).toBe("close");
+
+        // No card at all: nothing is claimed, and the engine falls back.
+        expect(lessonParams(entry("rsi"), {}, CATALOGUE_BASELINE).field).toBeUndefined();
+    });
 });
 
 describe("FEAT-0681 — a parameter is the trader's only if they moved it", () => {

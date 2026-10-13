@@ -231,9 +231,10 @@ const STORE_KEY = "cachy_indicator_settings";
  *
  * The store holds `$state(defaultSettings.<card>)` — a proxy over the *same*
  * object — so a write through the store (`indicatorState.rsi.length = 21`)
- * lands in `defaultSettings` itself. A baseline read from there would follow
- * the trader's edits and report nothing as changed, which is why this copy is
- * taken before the class below can touch anything (FEAT-0681).
+ * lands in `defaultSettings` itself. The copy below is taken while the literal
+ * is still untouched, and `shippedIndicatorDefaults()` hands out copies of that
+ * copy, so a baseline can neither follow the trader's edits nor be edited
+ * through the store (FEAT-0681).
  */
 const shippedIndicatorSettings: IndicatorSettings = structuredClone(defaultSettings);
 

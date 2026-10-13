@@ -117,9 +117,9 @@
      * `$derived` for both consumers — the chart below and the Parameter card —
      * so the number a reader sees and the number the line was drawn with cannot
      * drift apart. Read from `indicatorState` here, so a settings change
-     * re-derives the card without a reload; compared against `defaultSettings`,
-     * so a first-time trader sees no "your setting" marker on a value they never
-     * touched.
+     * re-derives the card without a reload; compared against a copy of the
+     * shipped indicator defaults, so a first-time trader sees no "your setting"
+     * marker on a value they never touched.
      */
     const SHIPPED_PARAMETERS: LessonParameters = { values: {}, modified: new Set() };
     /*
@@ -339,7 +339,11 @@
               better for a chart than one column of the split.
             -->
             {#if showLiveChart}
-                <IndicatorLessonChart entry={current} params={lessonParameters.values} />
+                <IndicatorLessonChart
+                    entry={current}
+                    params={lessonParameters.values}
+                    field={lessonParameters.field}
+                />
             {/if}
 
             <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
@@ -382,6 +386,17 @@
                                         lessonParameters.values[param.name] ?? param.default}
                                     {@const fromSettings =
                                         lessonParameters.modified.has(param.name)}
+                                    <!--
+                                      Three states, not two: a shipped Technicals
+                                      default that differs from the catalogue's
+                                      (the first EMA is 21, the catalogue says 20)
+                                      is neither the catalogue default nor the
+                                      trader's edit, and a reader comparing the two
+                                      screens needs to know which they are on.
+                                    -->
+                                    {@const fromShippedDefault =
+                                        !fromSettings &&
+                                        String(effective) !== String(param.default)}
                                     <li class="flex justify-between items-baseline gap-3 text-sm">
                                         <span class="text-[var(--text-primary)]"
                                             >{translated(paramKey(param.name), param.name)}</span
@@ -400,6 +415,13 @@
                                                     class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]"
                                                     >{$_(
                                                         "indicatorLessons.parameterFromSettings",
+                                                    )}</span
+                                                >
+                                            {:else if fromShippedDefault}
+                                                <span
+                                                    class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]"
+                                                    >{$_(
+                                                        "indicatorLessons.parameterShippedDefault",
                                                     )}</span
                                                 >
                                             {/if}
