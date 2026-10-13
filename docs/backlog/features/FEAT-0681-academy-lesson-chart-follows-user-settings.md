@@ -2,7 +2,7 @@
 id: FEAT-0681
 title: Make the academy lesson chart follow the user's settings and show its formula
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -59,21 +59,21 @@ matching how `params` and `placement` are already handled (ADR-0025).
 
 ## Acceptance criteria
 
-- [ ] The lesson chart computes each indicator with the parameters the Technicals
+- [x] The lesson chart computes each indicator with the parameters the Technicals
       settings configure for it, falling back to the catalogue default parameter
       by parameter where the settings card cannot supply one — pinned for every
       catalogue indicator by a test.
-- [ ] The Parameter card shows the value the chart actually uses and marks
+- [x] The Parameter card shows the value the chart actually uses and marks
       whether it comes from the user's settings or the catalogue default.
-- [ ] The lesson chart offers a timeframe selector; the choice is remembered and
+- [x] The lesson chart offers a timeframe selector; the choice is remembered and
       drives both the drawn candles and the indicator computation.
-- [ ] Every catalogue indicator has a formula, and the formula set is pinned to
+- [x] Every catalogue indicator has a formula, and the formula set is pinned to
       the registry so a new indicator without one fails CI.
-- [ ] Formulas render as typeset maths, not as raw LaTeX text.
-- [ ] `docs/adr/0025-academy-lesson-fields.md` records the formula as a display
+- [x] Formulas render as typeset maths, not as raw LaTeX text.
+- [x] `docs/adr/0025-academy-lesson-fields.md` records the formula as a display
       element that is neither a localisation key nor a fifth lesson field, with
       the reasoning.
-- [ ] `npm run backlog:check` passes.
+- [x] `npm run backlog:check` passes.
 
 ## Out of scope
 
@@ -88,6 +88,26 @@ matching how `params` and `placement` are already handled (ADR-0025).
 ## Open questions
 
 None.
+
+## State
+
+Shipped in the PR that carries this item (branch `feat/academy-lesson-settings`).
+Three modules carry the feature: `src/lib/academy/lessonSettings.ts` (parameters
+from `indicatorSettingsSeed`, lesson timeframes from `analysisTimeframes`),
+`src/lib/academy/indicatorFormulas.ts` (the LaTeX map) and the two components
+that read them. `computeLessonSeries` gained an optional `params` argument, so
+omitting it keeps the pre-FEAT-0681 behaviour and the fan-out stays total.
+
+Guards, each watched failing for its own reason before it was made green: the
+mapping for every catalogue indicator, the card's marked value, the chart's
+timeframe pick and its persistence, the parameter reaching the engine, the
+formula set pinned to the catalogue, and the formula rendering as `.katex`
+rather than as source.
+
+One thing the change surfaced rather than caused: the Technicals default for the
+first EMA is 21 while the catalogue's alert default is 20, so the lesson now
+shows 21 where it used to show 20. That is the feature working — the card reports
+what the chart draws — but it is a visible content change worth knowing about.
 
 ## Links
 
