@@ -383,3 +383,92 @@ describe("indicator alert strings", () => {
         expect(empty).toEqual([]);
     });
 });
+
+/**
+ * ADR-0025 -- `placement` against the cards it was transcribed from.
+ *
+ * Placement is a property of the indicator and is NOT derivable from
+ * `dimension`: ema, atr, ao and momentum each declare a single `price` output
+ * and are drawn differently, and super_trend, parabolic_sar, ichimoku and
+ * bollinger all declare several and are all overlaid while macd is not. So the
+ * only way to keep the field honest is to hold it against the cards, which are
+ * the reviewed statement of the same fact. A card edited without the catalogue
+ * fails here; a catalogue entry changed to match a misunderstanding of
+ * `dimension` fails here too.
+ */
+describe("catalogue placement against the Academy cards", () => {
+    const CARD_FILES = ["trend", "volatility", "oscillators", "volume"];
+
+    /** The `On the chart` line of every card, as `price` or `pane`. */
+    const readCards = (): Map<string, string> => {
+        const out = new Map<string, string>();
+        for (const file of CARD_FILES) {
+            // Normalise line endings. A Windows checkout with core.autocrlf puts
+            // \r before every \n, which fails the heading match, and a reader
+            // that extracts nothing must not be indistinguishable from one that
+            // agrees -- see the set-equality test below.
+            const md = readFileSync(resolve(process.cwd(), `docs/academy/${file}.md`), "utf8")
+                .replace(/\r\n/g, "\n");
+            for (const m of md.matchAll(/^## ([a-z_]+)\n([\s\S]*?)(?=\n## |\n---)/gm)) {
+                const line = m[2].match(/\*\*On the chart\.\*\*\s*(.+)/);
+                if (line) {
+                    out.set(m[1], /overlaid on the price/i.test(line[1]) ? "price" : "pane");
+                }
+            }
+            // The moving averages share one card and have no heading of their own.
+            const shared = md.match(/## Moving averages[\s\S]*?\*\*On the chart\.\*\*\s*(.+)/);
+            if (shared) {
+                const v = /overlaid on the price/i.test(shared[1]) ? "price" : "pane";
+                for (const id of ["ema", "sma", "wma", "hma"]) out.set(id, v);
+            }
+        }
+        return out;
+    };
+
+    // The guard the other two rest on, in one bidirectional assertion. Without
+    // it a card whose heading or `On the chart` line stops parsing simply drops
+    // out of the map, and a drift test that iterates the catalogue still passes
+    // -- which is the failure this suite exists to catch, reproduced inside the
+    // suite. Equality also fails when the reader returns nothing at all, the
+    // shape a moved file, a renamed heading or a line-ending change produces.
+    //
+    // Deliberately not `expect(fromCards.size).toBeGreaterThan(0)`: that floor
+    // would pass on a partial parse, which is the more likely breakage.
+    it("reads a card for every catalogue entry, and no extra", () => {
+        const fromCards = readCards();
+        expect([...fromCards.keys()].sort()).toEqual(REGISTRY_CATALOGUE.map((e) => e.id).sort());
+    });
+
+    // No `fromCards.has(e.id)` short-circuit: coverage is the test above, so a
+    // missing card must surface here as `card=undefined` rather than be skipped.
+    it("matches the On the chart line of every card", () => {
+        const fromCards = readCards();
+        const drifted = REGISTRY_CATALOGUE.filter((e) => e.placement !== fromCards.get(e.id)).map(
+            (e) => `${e.id}: catalogue=${e.placement} card=${fromCards.get(e.id)}`,
+        );
+        expect(drifted).toEqual([]);
+    });
+
+    // The derivation ADR-0025 rejects, kept as a counter-example: if placement
+    // could be computed from the outputs, this test would hold and the field
+    // would be redundant. It fails, which is the point.
+    //
+    // The reference is taken from REGISTRY_CATALOGUE directly, not through
+    // `catalogueEntry`: that reads the alert-filtered catalogue, so if `ema`
+    // ever left ALERT_PATH_INDICATORS the comparison would become
+    // `placement !== undefined` and pass for every entry. The assertion on
+    // `emaPlacement` pins that.
+    it("cannot be derived from dimension alone, so the field is load-bearing", () => {
+        const emaPlacement = REGISTRY_CATALOGUE.find((e) => e.id === "ema")?.placement;
+        expect(emaPlacement).toBe("price");
+        const sameShapeDifferentPlacement = REGISTRY_CATALOGUE.filter(
+            (e) =>
+                e.outputs.length === 1 &&
+                e.outputs[0].dimension === "price" &&
+                e.placement !== emaPlacement,
+        ).map((e) => e.id);
+        expect(sameShapeDifferentPlacement).toContain("atr");
+        expect(sameShapeDifferentPlacement).toContain("ao");
+        expect(sameShapeDifferentPlacement).toContain("momentum");
+    });
+});

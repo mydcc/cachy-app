@@ -12,6 +12,11 @@ FEAT-0677 specifies a lesson as six layered fields: `whatItMeasures`,
 78–85). The prose for all twenty-three indicators is written and merged (#4051
 for trend and volatility, #4053 for oscillators and volume), carrying four keys.
 
+The item's `chartOverlay` ships under the name `placement`. The rename is
+deliberate: half the values are panes rather than overlays, and a name that says
+"overlay" would be wrong for fourteen of the twenty-three entries. Everywhere
+below and in the code, the field is `placement`.
+
 The two specified-but-absent fields are not an oversight, and the reason differs
 between them.
 
@@ -22,7 +27,7 @@ already carries all seventeen parameter names in both locales. A second copy
 under `academy.indicators.*` would duplicate a fact that has an owner, and the
 duplication rule in `AGENTS.md` applies to locale keys as much as to documents.
 
-**`chartOverlay` cannot be derived, and must therefore be stored on the
+**The placement field cannot be derived, and must therefore be stored on the
 catalogue.** The tempting derivation — placement follows from the output
 `dimension` — is false, and three catalogue entries disprove it: `ema`, `atr`,
 `ao` and `momentum` each declare exactly one `price` output, yet `ema` is
@@ -69,13 +74,13 @@ An Academy lesson is exactly four localisation keys under
 | `failureModes` | the conditions under which a reading is worthless |
 | `confirmation` | what it pairs with to become a setup |
 
-Neither `params` nor `chartOverlay` is a localisation key.
+Neither `params` nor the placement field is a localisation key.
 
 `params` is read from `INDICATOR_CATALOGUE.params` through `paramKey`, and
-`chartOverlay` becomes a **typed property on the catalogue entry**, beside
-`dimension` — not prose, and not duplicated into the lesson. The catalogue is
-the single source; the renderer reads it; the cards stay the reviewable
-statement of the same fact.
+placement becomes a **typed property on the catalogue entry** — shipped as
+`placement: "price" | "pane"` — beside `dimension`. Not prose, and not
+duplicated into the lesson. The catalogue is the single source; the renderer
+reads it; the cards stay the reviewable statement of the same fact.
 
 Both locales carry the same key set under `academy.indicators.*`, and every
 indicator in `REGISTRY_CATALOGUE` has all four in both. `check_translations.sh`
@@ -101,6 +106,7 @@ than accidental: FEAT-0677's open question about whether `failureModes` may
 carry a conditional example was answered prose-only, and a four-field shape is
 what makes "prose-only" enforceable instead of aspirational.
 
-`chartOverlay` becomes catalogue work that did not exist before this decision —
-one property per entry, mirrored from the cards' `On the chart` lines. It is
+The `placement` property is catalogue work that did not exist before this
+decision — one property per entry, mirrored from the cards' `On the chart`
+lines. It is
 small, but it is a change to the file the alert builder reads, not to content.
