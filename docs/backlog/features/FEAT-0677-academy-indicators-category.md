@@ -8,7 +8,7 @@ milestone: none
 editions: [community, pro, private]
 area: ui
 data_class: none
-adr: none
+adr: ADR-0025
 depends_on: []
 ---
 
@@ -39,11 +39,25 @@ Two of the three open questions are now answered by #4051:
 Still open: **how long is a lesson.** The slice landed at roughly 90–150 words
 per `failureModes` field, which nobody has signed off on as the house length.
 
-**Field names are not settled by this item.** The keys `whatItMeasures`,
-`howToRead`, `failureModes`, `confirmation` were taken from this item's own
-structure list, not from a UI design — none exists yet. Whoever builds the tab
-should fix the field names against the UI before the code is written, or the
-rename is paid twice.
+**The lesson fields are settled — see ADR-0025.** A lesson is exactly four
+localisation keys: `whatItMeasures`, `howToRead`, `failureModes`,
+`confirmation`. The item's own six-field list above over-counts: `params` is
+already in the catalogue and resolves through `paramKey`, and `chartOverlay`
+becomes a typed property on the catalogue entry beside `dimension`. Neither is a
+localisation key.
+
+Note for whoever writes the renderer: placement is **not** derivable from
+`dimension`. `ema`, `atr`, `ao` and `momentum` each declare one `price` output
+and are drawn differently — `ema` on the price, the other three on their own
+axis — and `super_trend`, `parabolic_sar`, `ichimoku` and `bollinger` all
+declare multiple `price` outputs and are all overlaid while `macd` is not.
+Adding `chartOverlay` to the catalogue is the remaining catalogue work this
+item needs.
+
+**Lesson length is settled.** The merged prose runs 76–148 words per
+`failureModes` field; the four fields together land at roughly one screen. That
+range is the accepted length, not an accident of two writing passes — twenty-three
+of these stay readable at it.
 
 ## Problem
 
@@ -83,6 +97,10 @@ reading rather than a glossary:
 - `confirmation` — the pattern or candle it pairs with to become a setup.
 - `params` — name, default, and what the parameter does. Already in the catalogue.
 - `chartOverlay` — line, band, histogram, or separate axis. Determines the renderer.
+
+**The last two are not localisation keys** — see ADR-0025. `params` is read from
+the catalogue through `paramKey`, and `chartOverlay` becomes a typed property on
+the catalogue entry beside `dimension`. The four above are the lesson's shape.
 
 All prose lives in `src/locales/locales/{de,en}.json` under `academy.indicators.*`.
 
@@ -170,17 +188,24 @@ against the catalogue:
 
 ## Open questions
 
-- Which indicators land in the first PR? All twenty-three at once is a lot of
-  reviewed text in two languages. The grouping in `INDICATOR_GROUP_ORDER` gives a
-  natural first slice — trend and volatility, which is also where the failure modes
-  are most instructive.
-- How long is a lesson? Long enough to be worth reading, short enough that twenty-three
-  of them stay readable.
-- Is `failureModes` prose-only, or may it carry a small conditional example
-  ("RSI above 70 in a ranging market")? Prose-only is the honest default.
+None outstanding. All three are answered and the answers are recorded above, so
+this section is kept only to say that there is nothing left to decide about the
+prose. Resolved:
+
+- *Which indicators land in the first PR* — answered by shipping all of them:
+  trend and volatility in #4051, oscillators and volume in #4053. The grouping
+  turned out to be the right split for review, not for scope.
+- *How long is a lesson* — 76–148 words per `failureModes`, about one screen for
+  the four fields together.
+- *Whether `failureModes` may carry a conditional example* — prose-only. A
+  condition such as "+DI above −DI with ADX high" belongs in `howToRead`, where
+  it reads as guidance rather than as a caveat, and the four-field shape in
+  ADR-0025 is what keeps that decision enforceable.
 
 ## Links
 
+- [`docs/adr/0025-academy-lesson-fields.md`](../../adr/0025-academy-lesson-fields.md) —
+  the four lesson fields, and why `params` and `chartOverlay` are not localisation keys
 - `src/lib/alerts/indicatorCatalogue.ts` — the registry this reuses
 - `src/lib/rules/indicatorSeries.ts` — `computeIndicatorSeries`, the computation
 - `technicals-wasm/src/rule/indicator.rs` — `registry_json`, the authoritative list
