@@ -2,7 +2,8 @@
 id: FEAT-0677
 title: Add an indicators category to the Trading Academy
 type: feature
-status: ready
+status: in-progress
+assignee: opencode
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -45,13 +46,18 @@ already in the catalogue and resolves through `paramKey`, and `chartOverlay`
 becomes a typed property on the catalogue entry beside `dimension`. Neither is a
 localisation key.
 
-**Start with `chartOverlay`.** It is the one piece of catalogue work this item
-needs, and the renderer cannot be written without it. Placement is **not**
-derivable from `dimension`: `ema`, `atr`, `ao` and `momentum` each declare one
-`price` output and are drawn differently — `ema` on the price, the other three on
-their own axis — and `super_trend`, `parabolic_sar`, `ichimoku` and `bollinger`
-all declare multiple `price` outputs and are all overlaid while `macd` is not.
-ADR-0025 carries the evidence.
+**`chartOverlay` is done — in review.** `CatalogueEntry` carries a required
+`placement: "price" | "pane"`, transcribed from the `On the chart` line of every
+card and pinned against them by `indicatorCatalogue.test.ts`, so the field and
+the cards cannot drift. Placement is **not** derivable from `dimension`: `ema`,
+`atr`, `ao` and `momentum` each declare one `price` output and are drawn
+differently — `ema` on the price, the other three on their own axis — and
+`super_trend`, `parabolic_sar`, `ichimoku` and `bollinger` all declare multiple
+`price` outputs and are all overlaid while `macd` is not. ADR-0025 carries the
+evidence and a counter-example test keeps it from being re-derived.
+
+Branch `feat/academy-chart-overlay`. The renderer is the next step and still has
+no code.
 
 **Not dispatched automatically.** `area: ui` is outside the auto-dispatch filters
 in `.github/workflows/backlog-dispatch.yml`, so this item waits for a manual

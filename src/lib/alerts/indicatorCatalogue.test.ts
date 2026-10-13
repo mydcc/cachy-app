@@ -383,3 +383,72 @@ describe("indicator alert strings", () => {
         expect(empty).toEqual([]);
     });
 });
+
+/**
+ * ADR-0025 -- `placement` against the cards it was transcribed from.
+ *
+ * Placement is a property of the indicator and is NOT derivable from
+ * `dimension`: ema, atr, ao and momentum each declare a single `price` output
+ * and are drawn differently, and super_trend, parabolic_sar, ichimoku and
+ * bollinger all declare several and are all overlaid while macd is not. So the
+ * only way to keep the field honest is to hold it against the cards, which are
+ * the reviewed statement of the same fact. A card edited without the catalogue
+ * fails here; a catalogue entry changed to match a misunderstanding of
+ * `dimension` fails here too.
+ */
+describe("catalogue placement against the Academy cards", () => {
+    const CARD_FILES = ["trend", "volatility", "oscillators", "volume"];
+
+    /** The `On the chart` line of every card, as `price` or `pane`. */
+    const cardPlacement = (): Map<string, string> => {
+        const out = new Map<string, string>();
+        for (const file of CARD_FILES) {
+            const md = readFileSync(resolve(process.cwd(), `docs/academy/${file}.md`), "utf8");
+            for (const m of md.matchAll(/^## ([a-z_]+)\n([\s\S]*?)(?=\n## |\n---)/gm)) {
+                const line = m[2].match(/\*\*On the chart\.\*\*\s*(.+)/);
+                if (line) {
+                    out.set(m[1], /overlaid on the price/i.test(line[1]) ? "price" : "pane");
+                }
+            }
+            // The moving averages share one card and have no heading of their own.
+            const shared = md.match(/## Moving averages[\s\S]*?\*\*On the chart\.\*\*\s*(.+)/);
+            if (shared) {
+                const v = /overlaid on the price/i.test(shared[1]) ? "price" : "pane";
+                for (const id of ["ema", "sma", "wma", "hma"]) out.set(id, v);
+            }
+        }
+        return out;
+    };
+
+    it("gives every catalogue entry a placement", () => {
+        const missing = REGISTRY_CATALOGUE.filter((e) => e.placement === undefined).map((e) => e.id);
+        expect(missing).toEqual([]);
+    });
+
+    it("matches the On the chart line of every card", () => {
+        const fromCards = cardPlacement();
+        const drifted = REGISTRY_CATALOGUE.filter(
+            (e) => fromCards.has(e.id) && e.placement !== fromCards.get(e.id),
+        ).map((e) => `${e.id}: catalogue=${e.placement} card=${fromCards.get(e.id)}`);
+        expect(drifted).toEqual([]);
+    });
+
+    it("covers every indicator the cards describe", () => {
+        const fromCards = cardPlacement();
+        const uncovered = [...fromCards.keys()].filter((id) => !REGISTRY_CATALOGUE.some((e) => e.id === id));
+        expect(uncovered).toEqual([]);
+    });
+
+    // The derivation ADR-0025 rejects, kept as a counter-example: if placement
+    // could be computed from the outputs, this test would hold and the field
+    // would be redundant. It fails, which is the point.
+    it("cannot be derived from dimension alone, so the field is load-bearing", () => {
+        const sameShapeDifferentPlacement = REGISTRY_CATALOGUE.filter(
+            (e) =>
+                e.outputs.length === 1 &&
+                e.outputs[0].dimension === "price" &&
+                e.placement !== catalogueEntry("ema")?.placement,
+        ).map((e) => e.id);
+        expect(sameShapeDifferentPlacement.length).toBeGreaterThan(0);
+    });
+});

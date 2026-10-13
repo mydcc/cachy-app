@@ -84,6 +84,22 @@ export interface CatalogueOutput {
     readonly dimension: OperandDimension;
 }
 
+/**
+ * Where an indicator is drawn on the lesson chart.
+ *
+ * `price` — overlaid on the price chart, in the price dimension.
+ * `pane`  — its own axis below the price, in the dimension of its output.
+ *
+ * A property of the indicator, not of its values, and **not** derivable from
+ * `dimension`: `ema`, `atr`, `ao` and `momentum` each declare a single `price`
+ * output, yet `ema` is overlaid and the other three are not, and `super_trend`,
+ * `parabolic_sar`, `ichimoku` and `bollinger` all declare several `price`
+ * outputs and are all overlaid while `macd` is not. ADR-0025 carries the
+ * evidence; `indicatorCatalogue.test.ts` holds this against the `On the chart`
+ * line of every card in `docs/academy/`, so the two cannot drift.
+ */
+export type ChartPlacement = "price" | "pane";
+
 export interface CatalogueEntry {
     readonly id: string;
     readonly group: IndicatorGroup;
@@ -96,6 +112,8 @@ export interface CatalogueEntry {
      * `cumulative`, pinned by `indicatorCatalogue.test.ts`.
      */
     readonly cumulative?: true;
+    /** Where the lesson view draws this indicator. Required — see ADR-0025. */
+    readonly placement: ChartPlacement;
 }
 
 const period =(name: string, value: number): CatalogueParam => ({
@@ -129,7 +147,7 @@ const value = (dimension: OperandDimension): readonly CatalogueOutput[] => [
 export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
     // Oscillators: bounded, and so the family where a plain threshold is the
     // condition a trader actually wants.
-    { id: "rsi", group: "oscillator", params: [period("period", 14)], outputs: value("percent") },
+    { id: "rsi", group: "oscillator", params: [period("period", 14)], outputs: value("percent"), placement: "pane" },
     {
         id: "stoch_rsi",
         group: "oscillator",
@@ -143,6 +161,7 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "k", dimension: "percent" },
             { name: "d", dimension: "percent" },
         ],
+        placement: "pane"
     },
     {
         id: "stochastic",
@@ -152,39 +171,44 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "k", dimension: "percent" },
             { name: "d", dimension: "percent" },
         ],
+        placement: "pane"
     },
     {
         id: "williams_r",
         group: "oscillator",
         params: [period("period", 14)],
         outputs: value("percent"),
+        placement: "pane"
     },
-    { id: "cci", group: "oscillator", params: [period("period", 20)], outputs: value("unitless") },
+    { id: "cci", group: "oscillator", params: [period("period", 20)], outputs: value("unitless"), placement: "pane" },
     {
         id: "mfi",
         group: "oscillator",
         params: [period("period", 14)],
         outputs: value("percent"),
+        placement: "pane"
     },
     {
         id: "ao",
         group: "oscillator",
         params: [period("fast_period", 5), period("slow_period", 34)],
         outputs: value("price"),
+        placement: "pane"
     },
     {
         id: "momentum",
         group: "oscillator",
         params: [period("period", 10)],
         outputs: value("price"),
+        placement: "pane"
     },
 
     // Trend: moving averages and the crosses built from them.
-    { id: "ema", group: "trend", params: [period("period", 20)], outputs: value("price") },
-    { id: "sma", group: "trend", params: [period("period", 20)], outputs: value("price") },
-    { id: "wma", group: "trend", params: [period("period", 20)], outputs: value("price") },
-    { id: "vwma", group: "trend", params: [period("period", 20)], outputs: value("price") },
-    { id: "hma", group: "trend", params: [period("period", 20)], outputs: value("price") },
+    { id: "ema", group: "trend", params: [period("period", 20)], outputs: value("price"), placement: "price" },
+    { id: "sma", group: "trend", params: [period("period", 20)], outputs: value("price"), placement: "price" },
+    { id: "wma", group: "trend", params: [period("period", 20)], outputs: value("price"), placement: "price" },
+    { id: "vwma", group: "trend", params: [period("period", 20)], outputs: value("price"), placement: "price" },
+    { id: "hma", group: "trend", params: [period("period", 20)], outputs: value("price"), placement: "price" },
     {
         id: "macd",
         group: "trend",
@@ -194,6 +218,7 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "signal", dimension: "price" },
             { name: "histogram", dimension: "price" },
         ],
+        placement: "pane"
     },
     {
         id: "adx",
@@ -204,6 +229,7 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "plus_di", dimension: "percent" },
             { name: "minus_di", dimension: "percent" },
         ],
+        placement: "pane"
     },
     {
         id: "super_trend",
@@ -214,6 +240,7 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "upper", dimension: "price" },
             { name: "lower", dimension: "price" },
         ],
+        placement: "price"
     },
     {
         id: "parabolic_sar",
@@ -225,6 +252,7 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "value", dimension: "price" },
             { name: "direction", dimension: "unitless" },
         ],
+        placement: "price"
     },
     {
         id: "ichimoku",
@@ -240,6 +268,7 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "span_a", dimension: "price" },
             { name: "span_b", dimension: "price" },
         ],
+        placement: "price"
     },
 
     // Volatility.
@@ -256,23 +285,26 @@ export const REGISTRY_CATALOGUE: readonly CatalogueEntry[] = [
             { name: "percent_b", dimension: "unitless" },
             { name: "bandwidth", dimension: "percent" },
         ],
+        placement: "price"
     },
-    { id: "atr", group: "volatility", params: [period("period", 14)], outputs: value("price") },
+    { id: "atr", group: "volatility", params: [period("period", 14)], outputs: value("price"), placement: "pane" },
     {
         id: "choppiness",
         group: "volatility",
         params: [period("period", 14)],
         outputs: value("percent"),
+        placement: "pane"
     },
 
     // Volume. Both are denominated in size, so the core refuses either against
     // a price and the picker never offers the pairing.
-    { id: "obv", group: "volume", params: [], outputs: value("volume"), cumulative: true },
+    { id: "obv", group: "volume", params: [], outputs: value("volume"), cumulative: true, placement: "pane" },
     {
         id: "volume_ma",
         group: "volume",
         params: [period("period", 20)],
         outputs: value("volume"),
+        placement: "pane"
     },
 ];
 
