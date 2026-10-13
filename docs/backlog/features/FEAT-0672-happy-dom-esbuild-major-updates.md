@@ -49,7 +49,7 @@ its own commit so a failure points at exactly one package:
   ([FEAT-0224](FEAT-0224-typescript-7-update.md)), KaTeX
   ([FEAT-0641](FEAT-0641-upgrade-katex-to-019-when-peer-allows.md)),
   `conventional-changelog-conventionalcommits`
-  ([BUG-0639](BUG-0639-changelog-preset-needs-newer-writer.md)).
+  ([BUG-0639](../bugs/BUG-0639-changelog-preset-needs-newer-writer.md)).
 - Minor and patch bumps — those ride the weekly update.
 
 ## Open questions
