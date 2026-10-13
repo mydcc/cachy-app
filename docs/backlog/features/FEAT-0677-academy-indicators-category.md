@@ -16,16 +16,34 @@ depends_on: []
 
 ## State
 
-Specced, not started. The planning and the content cards merged in #4045 —
-`docs/academy/` carries 20 cards covering all 23 catalogue indicators, each
-with a `when it lies` section. No acceptance criterion below is met yet: they
-all describe code that does not exist.
+Specced. The cards merged in #4045 (`docs/academy/`, 20 cards, all 23
+catalogue indicators) and the lesson prose for the first slice merged in #4051
+(`academy.indicators.*`, 13 lessons covering the trend and volatility groups).
+No acceptance criterion below is met yet: they all describe code that does not
+exist. There is no third tab, no live chart, no parameter rows.
 
-Three open questions are unanswered and each one changes the writing, so the
-item is not `ready`: which indicators land in the first PR, how long a lesson
-is, and whether `failureModes` may carry a conditional example. The cards are
-awaiting a human read of their failure modes — that read is the gate on writing
-the DE/EN texts, and it is deliberately not marked done.
+**The human read of the failure modes has happened.** That was the gate on
+writing the DE/EN texts, and it passed — the tone of `failureModes` was
+reviewed and confirmed before the remaining eleven lessons were written. The
+item stays `specced` rather than moving on, because the gate was on the
+writing, not on the item.
+
+Two of the three open questions are now answered by #4051:
+
+- *Which indicators land in the first PR* — the trend and volatility groups,
+  thirteen indicators, asserted against `INDICATOR_CATALOGUE`.
+- *Whether `failureModes` may carry a conditional example* — prose-only. A
+  condition like "+DI above −DI with ADX high" sits in `howToRead`, where it
+  reads as guidance rather than as a caveat.
+
+Still open: **how long is a lesson.** The slice landed at roughly 90–150 words
+per `failureModes` field, which nobody has signed off on as the house length.
+
+**Field names are not settled by this item.** The keys `whatItMeasures`,
+`howToRead`, `failureModes`, `confirmation` were taken from this item's own
+structure list, not from a UI design — none exists yet. Whoever builds the tab
+should fix the field names against the UI before the code is written, or the
+rename is paid twice.
 
 ## Problem
 
@@ -90,13 +108,15 @@ persisted, so a new id needs a migration or it disappears for existing users.
       by a test. A lesson for an indicator the engine cannot compute fails CI.
 - [ ] Every parameter shown in a lesson matches the catalogue's parameter set and
       default for that indicator, also asserted by a test.
-- [ ] `de.json` and `en.json` carry the same key set under `academy.indicators.*`;
-      a key present in one and missing in the other fails CI.
+- [x] `de.json` and `en.json` carry the same key set under `academy.indicators.*`;
+      a key present in one and missing in the other fails CI. *(Met for the
+      thirteen lessons in #4051. Re-assert when the remaining ten land.)*
 - [ ] A persisted tab id from before this change still resolves to a valid tab
       (`isAcademyTab`), and an unknown stored id falls back to the default tab
       instead of rendering nothing.
-- [ ] Each lesson has a non-empty `failureModes` entry in both languages. A lesson
-      without one is treated as incomplete.
+- [x] Each lesson has a non-empty `failureModes` entry in both languages. A lesson
+      without one is treated as incomplete. *(Met for the thirteen lessons in
+      #4051.)*
 - [ ] The chart in a lesson view renders the indicator over the live klines of the
       currently selected symbol, and updates when the symbol changes.
 - [ ] Multi-output indicators render every line the catalogue declares —
