@@ -159,7 +159,6 @@ if (token && Number.isInteger(prNum) && prNum > 0) {
     }
 }
 
-
 const presence = checkBodyHasClosingRef(body);
 if (!presence.ok) {
     const guidance = autoFixResult?.unverified
