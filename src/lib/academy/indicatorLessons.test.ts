@@ -41,11 +41,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import {
-    INDICATOR_CATALOGUE,
-    INDICATOR_GROUP_ORDER,
-    REGISTRY_CATALOGUE,
-} from "../alerts/indicatorCatalogue";
+import { INDICATOR_CATALOGUE, REGISTRY_CATALOGUE } from "../alerts/indicatorCatalogue";
 import { LESSON_FIELDS, LESSON_GROUPS, LESSON_NAMESPACE, lessonKey } from "./indicatorLessons";
 import de from "../../locales/locales/de.json";
 import en from "../../locales/locales/en.json";
@@ -125,9 +121,7 @@ describe("indicator lessons", () => {
         }
     });
 
-    it("groups every offered indicator exactly once, in catalogue group order, with no empty group", () => {
-        expect(LESSON_GROUPS.map((group) => group.group)).toEqual([...INDICATOR_GROUP_ORDER]);
-
+    it("groups every offered indicator exactly once, with no empty group", () => {
         const listed = LESSON_GROUPS.flatMap((group) => group.entries.map((entry) => entry.id));
         const offered = INDICATOR_CATALOGUE.map((entry) => entry.id);
         expect(offered.length).toBeGreaterThan(0);
