@@ -2,7 +2,7 @@
 id: FEAT-0677
 title: Add an indicators category to the Trading Academy
 type: feature
-status: in-progress
+status: specced
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,11 +10,22 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
-assignee: opencode
-branch: docs/academy-category-plan
 ---
 
 # FEAT-0677 — Add an indicators category to the Trading Academy
+
+## State
+
+Specced, not started. The planning and the content cards merged in #4045 —
+`docs/academy/` carries 20 cards covering all 23 catalogue indicators, each
+with a `when it lies` section. No acceptance criterion below is met yet: they
+all describe code that does not exist.
+
+Three open questions are unanswered and each one changes the writing, so the
+item is not `ready`: which indicators land in the first PR, how long a lesson
+is, and whether `failureModes` may carry a conditional example. The cards are
+awaiting a human read of their failure modes — that read is the gate on writing
+the DE/EN texts, and it is deliberately not marked done.
 
 ## Problem
 
