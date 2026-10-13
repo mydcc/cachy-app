@@ -2,7 +2,7 @@
 id: FEAT-0677
 title: Add an indicators category to the Trading Academy
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -16,43 +16,46 @@ depends_on: []
 
 ## State
 
-Specced. The cards merged in #4045 (`docs/academy/`, 20 cards, all 23
-catalogue indicators) and the lesson prose for the first slice merged in #4051
-(`academy.indicators.*`, 13 lessons covering the trend and volatility groups).
-No acceptance criterion below is met yet: they all describe code that does not
-exist. There is no third tab, no live chart, no parameter rows.
+**Ready.** Everything the writing needed is decided and merged; what remains is
+code, and the acceptance criteria below are implementable as written.
 
-**The human read of the failure modes has happened.** That was the gate on
-writing the DE/EN texts, and it passed — the tone of `failureModes` was
-reviewed and confirmed before the remaining eleven lessons were written. The
-item stays `specced` rather than moving on, because the gate was on the
-writing, not on the item.
+Merged so far:
 
-Two of the three open questions are now answered by #4051:
+- #4045 — `docs/academy/`, 20 cards covering all 23 catalogue indicators
+- #4051 — `academy.indicators.*`, 13 lessons for the trend and volatility groups
+- #4053 — the remaining 10, completing oscillators and volume
+- #4054 — [ADR-0025](../../adr/0025-academy-lesson-fields.md), the lesson fields
 
-- *Which indicators land in the first PR* — the trend and volatility groups,
-  thirteen indicators, asserted against `INDICATOR_CATALOGUE`.
-- *Whether `failureModes` may carry a conditional example* — prose-only. A
-  condition like "+DI above −DI with ADX high" sits in `howToRead`, where it
-  reads as guidance rather than as a caveat.
+All 23 indicators in `REGISTRY_CATALOGUE` have all four prose keys in both
+locales — 92 keys per locale, identical sets. No acceptance criterion below is
+met yet: they all describe code that does not exist. There is no third tab, no
+live chart, no parameter rows.
 
-Still open: **how long is a lesson.** The slice landed at roughly 90–150 words
-per `failureModes` field, which nobody has signed off on as the house length.
+**The human read of the failure modes happened** and passed. That was the
+documented gate on writing the DE/EN texts.
 
-**The lesson fields are settled — see ADR-0025.** A lesson is exactly four
+All three former open questions are answered, and the Open questions section says
+so. Two were settled by the prose shipping; the third — lesson length, 76–148
+words per `failureModes` — was decided by the owner.
+
+**The lesson fields are settled by ADR-0025.** A lesson is exactly four
 localisation keys: `whatItMeasures`, `howToRead`, `failureModes`,
-`confirmation`. The item's own six-field list above over-counts: `params` is
+`confirmation`. The item's own six-field list below over-counts: `params` is
 already in the catalogue and resolves through `paramKey`, and `chartOverlay`
 becomes a typed property on the catalogue entry beside `dimension`. Neither is a
 localisation key.
 
-Note for whoever writes the renderer: placement is **not** derivable from
-`dimension`. `ema`, `atr`, `ao` and `momentum` each declare one `price` output
-and are drawn differently — `ema` on the price, the other three on their own
-axis — and `super_trend`, `parabolic_sar`, `ichimoku` and `bollinger` all
-declare multiple `price` outputs and are all overlaid while `macd` is not.
-Adding `chartOverlay` to the catalogue is the remaining catalogue work this
-item needs.
+**Start with `chartOverlay`.** It is the one piece of catalogue work this item
+needs, and the renderer cannot be written without it. Placement is **not**
+derivable from `dimension`: `ema`, `atr`, `ao` and `momentum` each declare one
+`price` output and are drawn differently — `ema` on the price, the other three on
+their own axis — and `super_trend`, `parabolic_sar`, `ichimoku` and `bollinger`
+all declare multiple `price` outputs and are all overlaid while `macd` is not.
+ADR-0025 carries the evidence.
+
+**Not dispatched automatically.** `area: ui` is outside the auto-dispatch filters
+in `.github/workflows/backlog-dispatch.yml`, so this item waits for a manual
+handoff rather than going to Jules on its own.
 
 **Lesson length is settled.** The merged prose runs 76–148 words per
 `failureModes` field; the four fields together land at roughly one screen. That
