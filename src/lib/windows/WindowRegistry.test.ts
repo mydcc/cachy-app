@@ -80,6 +80,18 @@ describe("WindowRegistry (FEAT-0050)", () => {
         }
     });
 
+    it("gives the Academy window the title bar's font-size control (FEAT-0685)", () => {
+        // One flag is the whole control: `WindowFrame` renders its A-/A+ buttons
+        // only behind `allowFontSize`, and `WindowBase.setFontSize` refuses
+        // without it. The readers (guide, changelog, privacy, whitepaper) allow
+        // it for the same reason — a window that is read rather than operated.
+        const config = windowRegistry.getConfig("academy");
+        expect(config.flags.allowFontSize).toBe(true);
+        // ...and it stays an opt-in: the fallback config keeps the control off,
+        // so this is a decision about the Academy, not a new default.
+        expect(windowRegistry.getConfig("window").flags.allowFontSize).toBe(false);
+    });
+
     it("keeps the alert panel a singleton via the flag WindowBase actually reads (FEAT-0389)", () => {
         // WindowBase enforces single-instance through `!allowMultipleInstances`
         // -- `maxInstances` is declared in types.ts but read nowhere, so an

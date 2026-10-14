@@ -24,6 +24,7 @@ import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
 import { Z_LAYERS } from "./zLayers";
+import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
 
 /**
@@ -183,7 +184,7 @@ export abstract class WindowBase {
     extraClasses = $state("");
 
     // --- UTILITY/FEATURE STATE ---
-    fontSize = $state(14);
+    fontSize = $state(DEFAULT_WINDOW_FONT_SIZE);
     zoomLevel = $state(1.0);
     burnIntensity = $state(1.0);
     /** Fixed aspect ratio (width/height) to maintain during resizing. */
@@ -440,7 +441,11 @@ export abstract class WindowBase {
                 this.isPinned = state.isPinned ?? false;
                 this.pinSide = state.pinSide ?? this.pinSide;
                 this.opacity = state.opacity ?? this.opacity;
-                this.fontSize = state.fontSize ?? this.fontSize;
+                // Through the setter: it owns the clamp, so a hand-edited or
+                // legacy size cannot reach the window's type scale unbounded —
+                // and a window that did not opt into the control keeps the
+                // default rather than restoring a size it cannot step.
+                if (typeof state.fontSize === "number") this.setFontSize(state.fontSize);
                 this.zoomLevel = state.zoomLevel ?? this.zoomLevel;
                 this.showPriceInTitle = state.showPriceInTitle ?? this.showPriceInTitle;
                 this.symbol = state.symbol ?? this.symbol;

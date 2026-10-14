@@ -391,6 +391,7 @@ class WindowRegistry {
                     ...baseFlags,
                     allowMaximize: true,
                     allowMinimize: true,
+                    allowFontSize: true,
                     canMinimizeToPanel: true,
                     centerByDefault: true,
                     isResponsive: true,

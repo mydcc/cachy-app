@@ -34,6 +34,7 @@
     import { _ } from "../../../locales/i18n";
 
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
+    import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
     import { computeFittedHeight } from "../../../lib/windows/fitContentHeight";
     import { effectsState } from "../../../stores/effects.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -51,6 +52,21 @@
     }
 
     let { window: win, extraClasses = "" }: Props = $props();
+
+    /**
+     * The factor this window's own type tokens read.
+     *
+     * Guarded rather than a bare division, because the size is restored from
+     * storage without the setter's clamp: an out-of-range or non-numeric value
+     * would otherwise make this `NaN` — and `NaN` is *set*, so the tokens'
+     * `var(…, 1)` fallback could not rescue them, and every sized element in the
+     * window would lose its size. A window that never opted into the control
+     * reads 1, so nothing scales in it.
+     */
+    function textScale(size: number, allowed: boolean): number {
+        if (!allowed || !Number.isFinite(size) || size <= 0) return 1;
+        return size / DEFAULT_WINDOW_FONT_SIZE;
+    }
 
     // --- LOCAL INTERACTION STATE ---
     let isDragging = $state(false);
@@ -922,6 +938,7 @@
         class="window-content"
         class:channel-no-scroll={win.windowType === "channel"}
         style:font-size="{win.fontSize}px"
+        style:--text-scale={textScale(win.fontSize, win.allowFontSize)}
         bind:this={contentEl}
     >
         <div
@@ -1166,6 +1183,25 @@
         overflow-y: auto;
         overflow-x: hidden;
         position: relative;
+
+        /*
+         * The window's own type scale: the six sizes re-composed with this
+         * window's factor.
+         *
+         * Declared here rather than at the root because a custom property's
+         * `var()` is substituted on the element that declares it — a factor set
+         * on this element can never reach a token already resolved above it.
+         * Declaring them here means both Tailwind's utilities
+         * (`font-size: var(--text-sm)`) and the hand-written `var(--text-sm)`
+         * sites inside the window resolve against the window's own factor, while
+         * everything outside keeps the root's.
+         */
+        --text-xs: calc(var(--type-xs) * var(--text-scale, 1));
+        --text-sm: calc(var(--type-sm) * var(--text-scale, 1));
+        --text-base: calc(var(--type-base) * var(--text-scale, 1));
+        --text-lg: calc(var(--type-lg) * var(--text-scale, 1));
+        --text-xl: calc(var(--type-xl) * var(--text-scale, 1));
+        --text-2xl: calc(var(--type-2xl) * var(--text-scale, 1));
     }
     /* Channel windows embed a fixed-ratio canvas (Unity): never show
        scrollbars that would steal width and break the ratio fit. */

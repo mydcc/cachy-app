@@ -181,12 +181,29 @@
   --space-7: 1.75rem;
   --space-8: 2rem;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
+  /*
+   * The type scale.
+   *
+   * The literals live in `--type-*` so a window can re-compose `--text-*` with
+   * its own factor without repeating a number (FEAT-0685). It has to re-compose
+   * them *there*: a custom property's `var()` is substituted on the element that
+   * declares it, so a factor set on a window's content can never reach a token
+   * already resolved here at the root — which is why composing them here left
+   * the control inert. Outside a window these are exactly what they always were.
+   */
+  --type-xs: 0.75rem;
+  --type-sm: 0.875rem;
+  --type-base: 1rem;
+  --type-lg: 1.125rem;
+  --type-xl: 1.25rem;
+  --type-2xl: 1.5rem;
+
+  --text-xs: var(--type-xs);
+  --text-sm: var(--type-sm);
+  --text-base: var(--type-base);
+  --text-lg: var(--type-lg);
+  --text-xl: var(--type-xl);
+  --text-2xl: var(--type-2xl);
 
   --font-normal: 400;
   --font-medium: 500;

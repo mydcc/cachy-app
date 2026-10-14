@@ -14,6 +14,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+/**
+ * The text size a window starts at, in px (FEAT-0685).
+ *
+ * The base of two things that must agree: `WindowBase` initialises `fontSize`
+ * from it, and `WindowFrame` divides the current size by it to get the
+ * `--text-scale` factor the app's type tokens read. A second literal in either
+ * place would make the default size render as if the trader had already stepped
+ * it up or down.
+ */
+export const DEFAULT_WINDOW_FONT_SIZE = 14;
+
 export const CONSTANTS = {
   TRADE_TYPE_LONG: "long",
   TRADE_TYPE_SHORT: "short",
