@@ -22,6 +22,7 @@
 
 <script lang="ts">
     import { settingsState } from "../../stores/settings.svelte";
+    import { ANALYSIS_TIMEFRAMES } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
     import type { TranslationKey } from "../../locales/schema";
 
@@ -71,8 +72,10 @@
     };
 
     const presetEntries = Object.entries(presets);
-    // Static timeframe options, hoisted out of the template loop.
-    const availableTimeframes = ["5m", "15m", "1h", "4h", "1d"];
+    // Static timeframe options, hoisted out of the template loop. The same list
+    // the lesson chart's own selector reads (FEAT-0681): one source, so a
+    // timeframe this setting can hold is never one a lesson refuses.
+    const availableTimeframes = ANALYSIS_TIMEFRAMES;
 
     function applyPreset(preset: PresetType) {
         selectedPreset = preset;

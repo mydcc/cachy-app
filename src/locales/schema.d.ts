@@ -3960,6 +3960,9 @@ export type TranslationKey =
   | "indicatorLessons.noLessons"
   | "indicatorLessons.parameters"
   | "indicatorLessons.parametersEmpty"
+  | "indicatorLessons.parameterFromSettings"
+  | "indicatorLessons.parameterShippedDefault"
+  | "indicatorLessons.formula"
   | "indicatorLessons.outputs"
   | "indicatorLessons.placement.price"
   | "indicatorLessons.placement.pane"
@@ -3968,4 +3971,5 @@ export type TranslationKey =
   | "indicatorLessons.field.failureModes"
   | "indicatorLessons.field.confirmation"
   | "indicatorLessons.chart.empty"
-  | "indicatorLessons.chart.refusedHeading";
+  | "indicatorLessons.chart.refusedHeading"
+  | "indicatorLessons.chart.timeframeLabel";

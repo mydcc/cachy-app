@@ -36,6 +36,9 @@ export const CONSTANTS = {
   LOCAL_STORAGE_NOTIFICATION_SOUND_KEY: "cachy_notification_sound",
   LOCAL_STORAGE_EXTERNAL_CHANNELS_KEY: "cachy_external_channels",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
+  // FEAT-0681. Class A: which timeframe the trader last read an indicator lesson
+  // on. A display preference, and it stays on this device like the rest.
+  LOCAL_STORAGE_LESSON_TIMEFRAME_KEY: "cachy_lesson_timeframe",
   // FEAT-0212 Phase 2. Class A: stores only the picked file's display name and
   // the write interval, never the file contents or a path — the
   // FileSystemFileHandle itself lives in IndexedDB (dbService, kv_store),
@@ -774,3 +777,12 @@ export const icons = {
 
 };
 
+/**
+ * The timeframes the analysis-timeframe setting offers, in the order it shows
+ * them, and the ceiling for the Academy lesson chart's own selector.
+ *
+ * One list rather than two: the setting can only hold a member of it, so a
+ * lesson that refused one of them would render an empty selector for the trader
+ * who selected only that one (FEAT-0681).
+ */
+export const ANALYSIS_TIMEFRAMES = ["5m", "15m", "1h", "4h", "1d"] as const;

@@ -3,6 +3,7 @@
 - **Status:** Proposed
 - **Date:** 2026-10-13
 - **Deciders:** repo owner
+- **Amended:** 2026-10-13 — FEAT-0681: a formula is a display element, not a lesson field
 
 ## Context
 
@@ -110,3 +111,42 @@ The `placement` property is catalogue work that did not exist before this
 decision — one property per entry, mirrored from the cards' `On the chart`
 lines. It is
 small, but it is a change to the file the alert builder reads, not to content.
+
+## Amendment (2026-10-13): a formula is a display element, not a lesson field
+
+- **Amendment status:** Accepted
+
+FEAT-0681 gives each indicator a formula, rendered as typeset maths (KaTeX) in
+the lesson. It is neither a localisation key nor a fifth lesson field, and both
+halves of that are deliberate.
+
+**Not a localisation key.** A formula is language-neutral: the same `$$ … $$`
+would sit byte-identical in `de.json` and `en.json`, so the parity check that
+makes the four fields trustworthy would be enforcing a translation that does not
+exist. It matches `params` and `placement` — the two elements this ADR already
+keeps out of the locale for the same reason: a fact with one correct spelling
+does not belong in two files.
+
+**Not a fifth lesson field.** The four fields are reviewed prose, and this ADR's
+own cost section says why the shape is four: it is what makes "prose-only"
+enforceable rather than aspirational. A formula is not prose — it is a
+representation of the engine's arithmetic, rendered through a different
+mechanism — and adding it to `LESSON_FIELDS` would change the contract every call
+site and test iterates, to carry a string that is not read like the others.
+
+Where it lives instead: `src/lib/academy/indicatorFormulas.ts`, a
+catalogue-id → LaTeX map beside the catalogue rather than inside it, pinned to
+`INDICATOR_CATALOGUE` by `indicatorFormulas.test.ts`. An indicator without a
+formula fails CI; a formula without an indicator is dead weight.
+
+Its renderer is the Markdown/KaTeX Svelte action the two pattern tabs already
+use (`src/actions/markdown.ts`), not the plain text nodes the four fields use.
+That is the same distinction the fields' own comment records: the prose is
+guaranteed Markdown-free, so it needs no `{@html}`; the formula is Markdown by
+construction, so it is the one element of a lesson that goes through the action.
+
+A formula must describe what `indicatorSeries.ts` computes, not what a textbook
+prints. Three entries exist because Cachy departs from the common convention: the
+Bollinger bandwidth is a percentage of the middle band (`× 100`, matching the
+Technicals panel), both Ichimoku spans are displaced forward by 26 candles, and
+CCI is computed over the typical price (HLC3) by default.

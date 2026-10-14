@@ -31,7 +31,7 @@
 import { defaultRef, type CatalogueEntry } from "../alerts/indicatorCatalogue";
 import type { IndicatorRequest } from "../rules/indicatorRequests";
 import { computeIndicatorSeries, type SeriesResult } from "../rules/indicatorSeries";
-import type { EvaluationCandle } from "../rules/types";
+import type { EvaluationCandle, IndicatorRef, ParamValue, PriceField } from "../rules/types";
 
 /** One declared output line, in the engine's own arithmetic. */
 export interface LessonLine {
@@ -55,16 +55,33 @@ export interface LessonSeries {
 /**
  * Every line `entry` declares, computed over `candles`.
  *
- * The parameters come from `defaultRef`, which is the same starting point the
- * alert builder uses: a lesson explains the indicator as it ships, not as a
- * particular user configured it.
+ * The parameters default to `defaultRef`, the same starting point the alert
+ * builder uses. `params` overrides them per name: FEAT-0681 passes the user's
+ * own Technicals settings here, so a lesson draws the indicator the trader
+ * actually runs rather than the one the catalogue ships. `field` is the price
+ * those settings draw it over — the engine reads `field ?? defaultFieldOf(id)`,
+ * so omitting it reproduces the catalogue's own source.
+ *
+ * A name the caller omits keeps its catalogue default, so this fan-out stays
+ * total. A name the entry does not declare is inert: the engine reads only the
+ * names an entry declares, and `lessonParams`, the one producer of `params`,
+ * derives its keys from them.
  */
 export function computeLessonSeries(
     entry: CatalogueEntry,
     candles: readonly EvaluationCandle[],
     timeframe: IndicatorRequest["timeframe"],
+    params?: Readonly<Record<string, ParamValue>>,
+    field?: PriceField,
 ): LessonSeries {
-    const base = defaultRef(entry);
+    const defaults = defaultRef(entry);
+    const withParams: IndicatorRef =
+        params === undefined
+            ? defaults
+            : { ...defaults, params: { ...defaults.params, ...params } };
+    // An absent field is not "the close": it is the indicator's own default,
+    // which is the catalogue's answer and the pre-FEAT-0681 behaviour.
+    const base: IndicatorRef = field === undefined ? withParams : { ...withParams, field };
     const lines: LessonLine[] = [];
     const refused: { name: string; reason: string }[] = [];
 

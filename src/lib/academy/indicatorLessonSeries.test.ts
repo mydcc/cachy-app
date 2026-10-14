@@ -27,7 +27,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { REGISTRY_CATALOGUE } from "../alerts/indicatorCatalogue";
+import { catalogueEntry, REGISTRY_CATALOGUE } from "../alerts/indicatorCatalogue";
 import { computeLessonSeries } from "./indicatorLessonSeries";
 import type { EvaluationCandle } from "../rules/types";
 
@@ -107,5 +107,68 @@ describe("indicator lesson series", () => {
                 entry.outputs.length,
             );
         }
+    });
+
+    it("merges the caller's parameters over the catalogue defaults, not instead of them", () => {
+        const rows = candles();
+        const macd = catalogueEntry("macd");
+        if (!macd) throw new Error("no catalogue entry for macd");
+
+        const defaults = computeLessonSeries(macd, rows, "1h");
+        const overridden = computeLessonSeries(macd, rows, "1h", { fast_period: 5 });
+
+        // Same lines, different arithmetic: the override reached the engine.
+        expect(overridden.lines.map((line) => line.name)).toEqual(
+            defaults.lines.map((line) => line.name),
+        );
+        expect(overridden.lines.find((line) => line.name === "macd")?.values).not.toEqual(
+            defaults.lines.find((line) => line.name === "macd")?.values,
+        );
+
+        // The parameters it was *not* handed stayed the catalogue's. `signal` is
+        // an EMA of `macd`, so moving the signal period must move `signal` and
+        // leave `macd` where the catalogue defaults put it — which is what a
+        // reversed spread (`{ ...params, ...defaults }`) would break.
+        const signalOnly = computeLessonSeries(macd, rows, "1h", { signal_period: 3 });
+        expect(signalOnly.lines.find((line) => line.name === "macd")?.values).toEqual(
+            defaults.lines.find((line) => line.name === "macd")?.values,
+        );
+        expect(signalOnly.lines.find((line) => line.name === "signal")?.values).not.toEqual(
+            defaults.lines.find((line) => line.name === "signal")?.values,
+        );
+    });
+
+    it("accepts a string-valued parameter, which is the type the chart prop carries", () => {
+        const rows = candles();
+        const bollinger = catalogueEntry("bollinger");
+        if (!bollinger) throw new Error("no catalogue entry for bollinger");
+
+        // The seed's `factor()` produces a decimal string, and `ParamValue` is
+        // `number | DecimalString` — so a numeric-only test would leave the type
+        // the settings actually hand over unexercised.
+        const wider = computeLessonSeries(bollinger, rows, "1h", { std_dev: "3" });
+        const defaults = computeLessonSeries(bollinger, rows, "1h");
+
+        const upper = wider.lines.find((line) => line.name === "upper")?.values ?? [];
+        expect(upper.some((value) => value !== null)).toBe(true);
+        expect(upper).not.toEqual(
+            defaults.lines.find((line) => line.name === "upper")?.values ?? [],
+        );
+    });
+
+    it("computes over the price it is handed, not the indicator's own default", () => {
+        const rows = candles();
+        const rsi = catalogueEntry("rsi");
+        if (!rsi) throw new Error("no catalogue entry for rsi");
+
+        // RSI declares one line, so the first is the one under test.
+        const overClose = computeLessonSeries(rsi, rows, "1h").lines[0]?.values ?? [];
+        const overHl2 = computeLessonSeries(rsi, rows, "1h", undefined, "hl2").lines[0]?.values ?? [];
+
+        // A different source is a different line. If the field were dropped, the
+        // two would be identical and the lesson would draw the wrong price
+        // without anything failing.
+        expect(overClose.some((value) => value !== null)).toBe(true);
+        expect(overHl2).not.toEqual(overClose);
     });
 });

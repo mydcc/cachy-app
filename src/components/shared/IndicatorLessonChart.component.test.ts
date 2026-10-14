@@ -129,6 +129,7 @@ import { catalogueEntry, REGISTRY_CATALOGUE } from "../../lib/alerts/indicatorCa
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import type { MarketData } from "../../stores/market/types";
 import type { Kline } from "../../services/technicalsTypes";
+import type { PriceField } from "../../lib/rules/types";
 import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
 
 /** The timeframe the component draws on; kept here so the seed matches. */
@@ -161,7 +162,11 @@ let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
 /** Mounts the chart for `entryId`, replacing any previous mount. */
-function render(entryId: string): HTMLElement {
+function render(
+    entryId: string,
+    params?: Record<string, number>,
+    field?: PriceField,
+): HTMLElement {
     if (component) {
         unmount(component as never);
         component = null;
@@ -174,7 +179,7 @@ function render(entryId: string): HTMLElement {
 
     component = mount(IndicatorLessonChart, {
         target: host,
-        props: { entry },
+        props: { entry, params, field },
     }) as never;
     flushSync();
 
@@ -185,6 +190,7 @@ function render(entryId: string): HTMLElement {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     marketState.data = {};
     tradeState.symbol = "BTCUSDT";
     host = document.createElement("div");
@@ -349,5 +355,96 @@ describe("FEAT-0677 — the live lesson chart", () => {
         const rows = lw.candleSeries.setData.mock.calls.at(-1)?.[0] as Array<{ time: number }>;
         expect(rows).toHaveLength(CANDLE_COUNT - 1);
         expect(rows.every((row) => Number.isFinite(row.time))).toBe(true);
+    });
+
+    it("computes with the parameters it is handed, not the catalogue defaults", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const drawnPoints = (period: number): unknown[] => {
+            render("rsi", { period });
+            const series = lw.lineSeries[0];
+            expect(series, "no line series drawn").toBeDefined();
+            return (series.setData.mock.calls.at(-1)?.[0] as unknown[]) ?? [];
+        };
+
+        const shortWarmup = drawnPoints(3);
+        const longWarmup = drawnPoints(14);
+
+        // RSI is indeterminate for its first `period` candles, so the longer
+        // period draws strictly fewer points. Equal counts would mean the
+        // parameter never reached the engine and the defaults were used.
+        expect(longWarmup.length).toBeGreaterThan(0);
+        expect(shortWarmup.length).toBeGreaterThan(longWarmup.length);
+    });
+
+    it("computes over the price it is handed, not the indicator's own default", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const drawn = (field?: PriceField): string[] => {
+            render("rsi", undefined, field);
+            const series = lw.lineSeries[0];
+            expect(series, "no line series drawn").toBeDefined();
+            const points =
+                (series.setData.mock.calls.at(-1)?.[0] as Array<{ value: number }>) ?? [];
+            return points.map((point) => String(point.value));
+        };
+
+        const overClose = drawn();
+        const overHl2 = drawn("hl2");
+
+        // A different source is a different line: the chart window computes RSI
+        // over the card's source, so a dropped field would quietly draw the wrong
+        // price with every assertion still green.
+        expect(overClose.length).toBeGreaterThan(0);
+        expect(overHl2).not.toEqual(overClose);
+    });
+
+    it("draws the timeframe the learner picks, and remembers it", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const view = render("rsi");
+        const select = view.querySelector("select");
+        expect(select, "no timeframe selector rendered").not.toBeNull();
+        expect((select as HTMLSelectElement).value).toBe("1h");
+
+        (select as HTMLSelectElement).value = "4h";
+        select!.dispatchEvent(new Event("change", { bubbles: true }));
+        flushSync();
+
+        // The pick drives the subscription, so the candles come in on the new
+        // timeframe, and it survives the visit.
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
+        expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("4h");
+    });
+
+    it("opens on the remembered timeframe when the settings still offer it", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        localStorage.setItem("cachy_lesson_timeframe", "4h");
+
+        const view = render("rsi");
+
+        expect((view.querySelector("select") as HTMLSelectElement).value).toBe("4h");
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
+    });
+
+    it("falls back to an offered timeframe when the remembered one is gone", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // A stored timeframe the analysis setting no longer covers — a migrated
+        // or hand-edited store. `1d` is drawable but not among this store's
+        // timeframes, so the selector must settle on one it does offer and the
+        // subscription must follow the option actually shown.
+        localStorage.setItem("cachy_lesson_timeframe", "1d");
+
+        const view = render("rsi");
+
+        const select = view.querySelector("select") as HTMLSelectElement;
+        expect(select.value).toBe("1h");
+        expect(select.querySelector('option[value="1d"]')).toBeNull();
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1h", "chart");
     });
 });

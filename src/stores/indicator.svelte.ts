@@ -225,6 +225,24 @@ const defaultSettings: IndicatorSettings = {
 
 const STORE_KEY = "cachy_indicator_settings";
 
+/*
+ * The settings a new install starts from, deep-copied while they are still
+ * pristine.
+ *
+ * The store holds `$state(defaultSettings.<card>)` — a proxy over the *same*
+ * object — so a write through the store (`indicatorState.rsi.length = 21`)
+ * lands in `defaultSettings` itself. The copy below is taken while the literal
+ * is still untouched, and `shippedIndicatorDefaults()` hands out copies of that
+ * copy, so a baseline can neither follow the trader's edits nor be edited
+ * through the store (FEAT-0681).
+ */
+const shippedIndicatorSettings: IndicatorSettings = structuredClone(defaultSettings);
+
+/** A deep copy of the indicator settings every new install starts from. */
+export function shippedIndicatorDefaults(): IndicatorSettings {
+  return structuredClone(shippedIndicatorSettings);
+}
+
 class IndicatorManager {
   historyLimit = $state(defaultSettings.historyLimit);
   precision = $state(defaultSettings.precision);

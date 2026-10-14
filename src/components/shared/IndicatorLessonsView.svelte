@@ -47,7 +47,12 @@
         type IndicatorGroup,
     } from "../../lib/alerts/indicatorCatalogue";
     import { LESSON_FIELDS, LESSON_GROUPS, lessonKey } from "../../lib/academy/indicatorLessons";
+    import { INDICATOR_FORMULAS } from "../../lib/academy/indicatorFormulas";
+    import { lessonParams, type LessonParameters } from "../../lib/academy/lessonSettings";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
+    import { indicatorState, shippedIndicatorDefaults } from "../../stores/indicator.svelte";
+    import { markdown } from "../../actions/markdown";
+    import "katex/dist/katex.min.css";
     import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
 
     interface Props {
@@ -105,6 +110,31 @@
     const allEntries = LESSON_GROUPS.flatMap((group) => group.entries);
 
     let current = $derived(allEntries.find((entry) => entry.id === selectedId) ?? allEntries[0]);
+
+    /*
+     * FEAT-0681: the open lesson's parameters as the user configured them, and
+     * which of them the trader moved away from the shipped defaults. One
+     * `$derived` for both consumers — the chart below and the Parameter card —
+     * so the number a reader sees and the number the line was drawn with cannot
+     * drift apart. Read from `indicatorState` here, so a settings change
+     * re-derives the card without a reload; compared against a copy of the
+     * shipped indicator defaults, so a first-time trader sees no "your setting"
+     * marker on a value they never touched.
+     */
+    const SHIPPED_PARAMETERS: LessonParameters = {
+        values: {},
+        field: undefined,
+        modified: new Set(),
+    };
+    /*
+     * The baseline the "your setting" marker compares against: the settings a
+     * new install starts from. Taken once, and a copy, so it neither follows the
+     * store's edits nor can be edited through it.
+     */
+    const SHIPPED_DEFAULTS = shippedIndicatorDefaults();
+    let lessonParameters = $derived(
+        current ? lessonParams(current, indicatorState, SHIPPED_DEFAULTS) : SHIPPED_PARAMETERS,
+    );
 
     /** Normalised once per keystroke rather than once per entry. */
     const normalizedQuery = $derived(searchQuery.trim().toLowerCase());
@@ -313,7 +343,11 @@
               better for a chart than one column of the split.
             -->
             {#if showLiveChart}
-                <IndicatorLessonChart entry={current} />
+                <IndicatorLessonChart
+                    entry={current}
+                    params={lessonParameters.values}
+                    field={lessonParameters.field}
+                />
             {/if}
 
             <div class="flex flex-col @lg:flex-row @lg:flex-wrap gap-6 h-full min-w-0">
@@ -352,18 +386,75 @@
                         {:else}
                             <ul class="flex flex-col gap-1">
                                 {#each current.params as param (param.name)}
+                                    {@const effective =
+                                        lessonParameters.values[param.name] ?? param.default}
+                                    {@const fromSettings =
+                                        lessonParameters.modified.has(param.name)}
+                                    <!--
+                                      Three states, not two: a shipped Technicals
+                                      default that differs from the catalogue's
+                                      (the first EMA is 21, the catalogue says 20)
+                                      is neither the catalogue default nor the
+                                      trader's edit, and a reader comparing the two
+                                      screens needs to know which they are on.
+                                    -->
+                                    {@const fromShippedDefault =
+                                        !fromSettings &&
+                                        String(effective) !== String(param.default)}
                                     <li class="flex justify-between items-baseline gap-3 text-sm">
                                         <span class="text-[var(--text-primary)]"
                                             >{translated(paramKey(param.name), param.name)}</span
                                         >
                                         <span
-                                            class="font-mono text-[var(--accent-color)] shrink-0"
-                                            >{param.default}</span
+                                            class="flex items-baseline gap-1.5 shrink-0 font-mono text-[var(--accent-color)]"
                                         >
+                                            {effective}
+                                            {#if fromSettings}
+                                                <!-- The value the chart drew with,
+                                                     and whose it is: a number
+                                                     that silently came from the
+                                                     settings would be the one
+                                                     thing a reader cannot check. -->
+                                                <span
+                                                    class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]"
+                                                    >{$_(
+                                                        "indicatorLessons.parameterFromSettings",
+                                                    )}</span
+                                                >
+                                            {:else if fromShippedDefault}
+                                                <span
+                                                    class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]"
+                                                    >{$_(
+                                                        "indicatorLessons.parameterShippedDefault",
+                                                    )}</span
+                                                >
+                                            {/if}
+                                        </span>
                                     </li>
                                 {/each}
                             </ul>
                         {/if}
+                    </div>
+
+                    <div
+                        class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]"
+                    >
+                        <h3
+                            class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2"
+                        >
+                            {$_("indicatorLessons.formula")}
+                        </h3>
+                        <!--
+                          Through the same Markdown/KaTeX action the two pattern
+                          tabs use, so the formula is typeset maths rather than a
+                          line of LaTeX source. The string is language-neutral
+                          (ADR-0025), so it is read from the catalogue by id
+                          instead of from the locale.
+                        -->
+                        <div
+                            class="lesson-formula text-sm text-[var(--text-primary)]"
+                            use:markdown={INDICATOR_FORMULAS[current.id] ?? ""}
+                        ></div>
                     </div>
 
                     <div
@@ -401,5 +492,11 @@
     }
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
+    }
+    /* A display block in a narrow column scrolls instead of overflowing it. */
+    :global(.lesson-formula .katex-display) {
+        margin: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
 </style>
