@@ -70,7 +70,7 @@
    }
 
    interface Section {
-      key: "s1" | "s2" | "s3" | "s4";
+      key: "s1" | "s2" | "s3" | "s4a" | "s4b";
       charts: readonly string[];
       lessons: readonly string[];
       hint: string | null;
@@ -80,7 +80,8 @@
       { key: "s1", charts: ["ema"], lessons: ["ema"], hint: "academy.structure.s1.chartHint" },
       { key: "s2", charts: [], lessons: [], hint: null },
       { key: "s3", charts: [], lessons: [], hint: null },
-      { key: "s4", charts: ["adx", "bollinger"], lessons: ["adx", "choppiness", "bollinger", "atr"], hint: null },
+      { key: "s4a", charts: ["adx"], lessons: ["adx", "choppiness"], hint: null },
+      { key: "s4b", charts: ["bollinger"], lessons: ["bollinger", "atr"], hint: null },
    ];
 </script>
 
@@ -98,10 +99,11 @@
          <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)]">
             {index + 1}. {title}
          </h3>
+         <p class="text-sm font-bold text-[var(--text-primary)]">{text(`academy.structure.${section.key}.takeaway`)}</p>
          <p class="text-sm text-[var(--text-primary)]">{body}</p>
 
          {#if section.key === "s2"}
-            <figure class="flex flex-col gap-2 min-w-0">
+            <figure class="flex flex-col gap-2 min-w-0 max-w-[560px]">
                <svg
                   viewBox="0 0 400 240"
                   class="w-full h-auto"
