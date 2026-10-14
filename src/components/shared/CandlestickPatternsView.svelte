@@ -22,6 +22,7 @@
     import { markdown } from "../../actions/markdown";
     import type { TranslationKey } from "../../locales/schema";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
+    import SelectDropdown from "./SelectDropdown.svelte";
     import { resolvePatternName } from "../../lib/academy/patternI18n";
     import "katex/dist/katex.min.css";
 
@@ -73,6 +74,10 @@
             if (b === "Favorites") return 1;
             return a.localeCompare(b);
         }),
+    );
+
+    const categoryOptions = $derived(
+        categories.map((cat) => ({ value: cat, label: cat })),
     );
 
     // Current Pattern
@@ -132,20 +137,13 @@
             <label class="sr-only" for="candlestick-category"
                 >{$_("chartPatterns.categoryLabel")}</label
             >
-            <select
+            <SelectDropdown
                 id="candlestick-category"
-                aria-label={$_("chartPatterns.categoryLabel")}
-                bind:value={selectedCategory}
-                class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all"
-            >
-                {#each categories as cat}
-                    <option
-                        value={cat}
-                        class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                        >{cat}</option
-                    >
-                {/each}
-            </select>
+                label={$_("chartPatterns.categoryLabel")}
+                value={selectedCategory}
+                options={categoryOptions}
+                onSelect={(next) => (selectedCategory = next)}
+            />
         </div>
 
         <!-- List -->

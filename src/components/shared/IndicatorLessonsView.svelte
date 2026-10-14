@@ -54,6 +54,7 @@
     import { markdown } from "../../actions/markdown";
     import "katex/dist/katex.min.css";
     import IndicatorLessonChart from "./IndicatorLessonChart.svelte";
+    import SelectDropdown from "./SelectDropdown.svelte";
 
     interface Props {
         /**
@@ -145,6 +146,13 @@
     /** Normalised once per keystroke rather than once per entry. */
     const normalizedQuery = $derived(searchQuery.trim().toLowerCase());
 
+    /** Category options for the filter dropdown (value/label pairs). */
+    let groupOptions = $derived([
+        { value: "all", label: $_("indicatorLessons.filterAll") },
+        { value: "favorites", label: $_("indicatorLessons.filterFavorites") },
+        ...INDICATOR_GROUP_ORDER.map((group) => ({ value: group, label: groupLabel(group) })),
+    ]);
+
     /*
      * Filtered in a `$derived`, never in the template: the repo forbids
      * sort/filter/map inside `{#each}`, and every keystroke recomputes this.
@@ -194,26 +202,19 @@
                 >{$_("indicatorLessons.groupLabel")}</label
             >
             <!--
-              `value` + `onchange` rather than `bind:value`: Svelte resolves a
-              select binding through `select.querySelector(':checked')`, and
-              happy-dom matches nothing there for an option whose value was set
-              programmatically — so the binding falls back to the first option
-              instead of the picked one. Same shape as the alerts panel's
-              selects.
+              Uncontrolled + callback rather than `bind:value`: Svelte resolves
+              a native select binding through `select.querySelector(':checked')`,
+              and happy-dom matches nothing there for an option whose value was
+              set programmatically. The custom dropdown sidesteps that class of
+              issue entirely — it renders `value`, never binds it.
             -->
-            <select
+            <SelectDropdown
                 id="indicator-lesson-group"
-                aria-label={$_("indicatorLessons.groupLabel")}
+                label={$_("indicatorLessons.groupLabel")}
                 value={groupFilter}
-                onchange={(event) => (groupFilter = event.currentTarget.value as GroupFilter)}
-                class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all"
-            >
-                <option value="all">{$_("indicatorLessons.filterAll")}</option>
-                <option value="favorites">{$_("indicatorLessons.filterFavorites")}</option>
-                {#each INDICATOR_GROUP_ORDER as group}
-                    <option value={group}>{groupLabel(group)}</option>
-                {/each}
-            </select>
+                options={groupOptions}
+                onSelect={(next) => (groupFilter = next as GroupFilter)}
+            />
         </div>
 
         <!-- List -->
