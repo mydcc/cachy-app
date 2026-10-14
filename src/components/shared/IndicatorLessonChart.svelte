@@ -48,6 +48,7 @@
         CandlestickSeries,
         LineSeries,
         type IChartApi,
+        type IPriceLine,
         type ISeriesApi,
         type LineData,
         type MouseEventParams,
@@ -68,6 +69,7 @@
     import {
         LESSON_TIMEFRAME_FALLBACK,
         isDrawableTimeframe,
+        readStoredLessonTimeframe,
     } from "../../lib/academy/lessonSettings";
     import type { EvaluationCandle, ParamValue, PriceField } from "../../lib/rules/types";
     import type { Kline } from "../../services/technicalsTypes";
@@ -85,6 +87,23 @@
     } from "../../lib/chart/crosshairValueBadge";
     import TimeframeDropdown from "./TimeframeDropdown.svelte";
 
+    /** A marker on the candle series (FEAT-0686 cockpit annotations). */
+    interface LessonChartMarker {
+        /** Unix seconds, like the candle data. */
+        time: number;
+        position: "aboveBar" | "belowBar";
+        color: string;
+        shape: "arrowUp" | "arrowDown" | "circle";
+        text?: string;
+    }
+
+    /** A horizontal level on the candle series. */
+    interface LessonChartLine {
+        price: number;
+        color: string;
+        title?: string;
+    }
+
     interface Props {
         /** The lesson currently open in the view. */
         entry: CatalogueEntry;
@@ -100,9 +119,32 @@
          * honours the card's `source`, so the lesson has to as well.
          */
         field?: PriceField;
+        /**
+         * Controlled timeframe (FEAT-0686 cockpit): when defined, every
+         * signal — klines, compute, subscription, dropdown label — follows
+         * it instead of the stored choice. Omitted, behaviour is unchanged.
+         */
+        timeframe?: string;
+        /** Called with the validated choice from this chart's own dropdown. */
+        onTimeframeChange?: (timeframe: string) => void;
+        /** Hide this chart's own dropdown (the parent owns the switch). */
+        showTimeframePicker?: boolean;
+        /** Markers on the candles, replaced wholesale per render. */
+        markers?: readonly LessonChartMarker[];
+        /** Horizontal levels, recreated only when their set changes. */
+        priceLines?: readonly LessonChartLine[];
     }
 
-    let { entry, params, field }: Props = $props();
+    let {
+        entry,
+        params,
+        field,
+        timeframe: controlledTf,
+        onTimeframeChange,
+        showTimeframePicker = true,
+        markers,
+        priceLines,
+    }: Props = $props();
 
     /**
      * The timeframe a lesson is drawn on.
@@ -113,7 +155,14 @@
      */
     const LESSON_TIMEFRAME_KEY = CONSTANTS.LOCAL_STORAGE_LESSON_TIMEFRAME_KEY;
 
-    let timeframe = $state(readStoredTimeframe());
+    let storedTf = $state(readStoredLessonTimeframe());
+
+    /**
+     * Controlled mode: a parent-supplied timeframe wins when present,
+     * otherwise this chart keeps its own stored choice. Every consumer
+     * below reads `timeframe`, so both modes flow through one name.
+     */
+    let timeframe = $derived(controlledTf ?? storedTf);
 
     /**
      * Both directions go through the app's normaliser first, then the parser.
@@ -126,13 +175,6 @@
      * An unusable value degrades to the default rather than subscribing to a
      * channel no candle will arrive on.
      */
-    function readStoredTimeframe(): string {
-        const stored = safeLocalStorage.getItem(LESSON_TIMEFRAME_KEY);
-        if (stored === null) return LESSON_TIMEFRAME_FALLBACK;
-        const canonical = normalizeTimeframeInput(stored);
-        return isDrawableTimeframe(canonical) ? canonical : LESSON_TIMEFRAME_FALLBACK;
-    }
-
     /**
      * Returns `false` for a value the app cannot draw, which leaves the
      * dropdown open with the text in place rather than closing on a refusal the
@@ -141,7 +183,8 @@
     function selectTimeframe(value: string): boolean {
         const canonical = normalizeTimeframeInput(value);
         if (!isDrawableTimeframe(canonical)) return false;
-        timeframe = canonical;
+        if (onTimeframeChange) onTimeframeChange(canonical);
+        else storedTf = canonical;
         safeLocalStorage.setItem(LESSON_TIMEFRAME_KEY, canonical);
         return true;
     }
@@ -251,7 +294,7 @@
      * lesson, or a switch between price overlay and own pane. A live tick only
      * refreshes the data of the series already on the chart.
      */
-    let drawnLines: { name: string; series: ISeriesApi<"Line">; badge: CrosshairValueBadge }[] = [];
+<    let drawnLines: { name: string; series: ISeriesApi<"Line">; badge: CrosshairValueBadge }[] = [];
     let drawnSignature = "";
 
     /*
@@ -274,6 +317,37 @@
         badgeTheme.text = cssColor("--text-primary", "#e2e8f0");
         badgeTheme.line = LINE_COLOR_VARS.map((token) => cssColor(token, "#2962ff"));
     }
+
+    /** Markers in the chart library's own shape; times are Unix seconds. */
+    function toSeriesMarkers(
+        annotations: readonly LessonChartMarker[] | undefined,
+    ): { time: Time; position: "aboveBar" | "belowBar"; color: string; shape: "arrowUp" | "arrowDown" | "circle"; text?: string }[] {
+        if (!annotations) return [];
+        return annotations.map((marker) => {
+            const point = {
+                time: marker.time as Time,
+                position: marker.position,
+                color: marker.color,
+                shape: marker.shape,
+            };
+            if (marker.text !== undefined) return { ...point, text: marker.text };
+            return point;
+        });
+    }
+
+    /** One string per level; the join is the recreate-when-changed signature. */
+    function priceLineSignature(lines: readonly LessonChartLine[] | undefined): string {
+        if (!lines) return "";
+        return lines.map((line) => `${line.price}:${line.color}:${line.title ?? ""}`).join(",");
+    }
+
+    /*
+     * FEAT-0686 cockpit annotations. Markers replace wholesale per render;
+     * price lines are recreated only when their set changes, mirroring the
+     * line-series lifecycle above.
+     */
+    let drawnPriceLines: IPriceLine[] = [];
+    let drawnPriceLinesSignature = "";
 
     function translatedOutput(name: string): string {
         const key = outputKey(name) as TranslationKey;
@@ -443,6 +517,8 @@
             badgeEntries = [];
             hoveredTime = null;
             drawnSignature = "";
+            drawnPriceLines = [];
+            drawnPriceLinesSignature = "";
         };
     });
 
@@ -561,6 +637,31 @@
             if (hoveredTime !== null) {
                 for (const line of drawnLines) line.badge.update();
             }
+
+            activeCandles.setMarkers(toSeriesMarkers(markers));
+
+            const linesSignature = priceLineSignature(priceLines);
+            if (linesSignature !== drawnPriceLinesSignature) {
+                for (const priceLine of drawnPriceLines) {
+                    try {
+                        activeCandles.removePriceLine(priceLine);
+                    } catch {
+                        /* series may already be gone */
+                    }
+                }
+                drawnPriceLines = (priceLines ?? []).map((line) =>
+                    activeCandles.createPriceLine({
+                        price: line.price,
+                        color: line.color,
+                        lineWidth: 1,
+                        lineStyle: 2,
+                        axisLabelVisible: true,
+                        title: line.title ?? "",
+                    }),
+                );
+                drawnPriceLinesSignature = linesSignature;
+            }
+            }
         } catch (error) {
             // A half-torn render must not leave the previous dataset's pills
             // behind: hide them until the next successful run.
@@ -578,13 +679,17 @@
         <div class="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)] min-w-0">
             <span class="font-bold text-[var(--accent-color)] truncate">{symbol || "—"}</span>
             <span aria-hidden="true">·</span>
-            <!-- The same chip and quick-pick dropdown the Technicals panel shows. -->
-            <TimeframeDropdown
-                value={timeframe}
-                options={TIMEFRAME_QUICK_PICKS}
-                onSelect={selectTimeframe}
-                label={$_("indicatorLessons.chart.timeframeLabel")}
-            />
+            {#if showTimeframePicker}
+                <!-- The same chip and quick-pick dropdown the Technicals panel shows. -->
+                <TimeframeDropdown
+                    value={timeframe}
+                    options={TIMEFRAME_QUICK_PICKS}
+                    onSelect={selectTimeframe}
+                    label={$_("indicatorLessons.chart.timeframeLabel")}
+                />
+            {:else}
+                <span>{timeframe}</span>
+            {/if}
         </div>
 
         <!-- One legend entry per drawn line, from the catalogue's own outputs. -->

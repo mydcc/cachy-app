@@ -48,7 +48,13 @@ vi.mock("../../locales/i18n", async () => {
 
 vi.mock("lightweight-charts", () => ({
     createChart: vi.fn(() => ({
-        addSeries: vi.fn(() => ({ setData: vi.fn(), applyOptions: vi.fn() })),
+        addSeries: vi.fn(() => ({
+            setData: vi.fn(),
+            applyOptions: vi.fn(),
+            setMarkers: vi.fn(),
+            createPriceLine: vi.fn((options: Record<string, unknown>) => ({ ...options })),
+            removePriceLine: vi.fn(),
+        })),
         removeSeries: vi.fn(),
         applyOptions: vi.fn(),
         remove: vi.fn(),

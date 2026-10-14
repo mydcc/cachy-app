@@ -62,7 +62,16 @@ vi.mock("../../locales/i18n", async () => {
 const lw = vi.hoisted(() => {
     const CandlestickSeries = Symbol("candlestick");
     const LineSeries = Symbol("line");
-    const candleSeries = { setData: vi.fn(), applyOptions: vi.fn(), paneIndex: 0 };
+    const candleSeries = {
+        setData: vi.fn(),
+        applyOptions: vi.fn(),
+        paneIndex: 0,
+        // The library draws these on the candle series; the cockpit passes
+        // markers and levels, so the mock models them like the real API.
+        setMarkers: vi.fn(),
+        createPriceLine: vi.fn((options: Record<string, unknown>) => ({ ...options })),
+        removePriceLine: vi.fn(),
+    };
     const lineSeries: Array<{
         options: Record<string, unknown>;
         paneIndex: number;
@@ -680,5 +689,89 @@ describe("FEAT-0677 — the live lesson chart", () => {
 
         expect(timeframeChip(view).textContent?.trim()).toBe("1d");
         expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1d", "chart");
+    });
+
+    it("passes cockpit markers and price lines to the candle series", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const entry = catalogueEntry("ema");
+        if (!entry) throw new Error("no catalogue entry for ema");
+        if (component) {
+            unmount(component as never);
+            component = null;
+        }
+        host.innerHTML = "";
+        component = mount(IndicatorLessonChart, {
+            target: host,
+            props: {
+                entry,
+                markers: [
+                    { time: 1_700_000_000, position: "belowBar", color: "#fff", shape: "circle", text: "BOS" },
+                ],
+                priceLines: [{ price: 101.5, color: "#fff", title: "R" }],
+            },
+        }) as never;
+        flushSync();
+
+        expect(lw.candleSeries.setMarkers).toHaveBeenCalledWith([
+            { time: 1_700_000_000, position: "belowBar", color: "#fff", shape: "circle", text: "BOS" },
+        ]);
+        expect(lw.candleSeries.createPriceLine).toHaveBeenCalledWith(
+            expect.objectContaining({ price: 101.5, title: "R" }),
+        );
+    });
+
+    it("follows a parent timeframe and hides its own picker", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const entry = catalogueEntry("rsi");
+        if (!entry) throw new Error("no catalogue entry for rsi");
+        if (component) {
+            unmount(component as never);
+            component = null;
+        }
+        host.innerHTML = "";
+        component = mount(IndicatorLessonChart, {
+            target: host,
+            props: { entry, timeframe: "4h", onTimeframeChange: vi.fn(), showTimeframePicker: false },
+        }) as never;
+        flushSync();
+        const view = host.firstElementChild as HTMLElement;
+
+        // Controlled: the subscription follows the parent value, and the
+        // dropdown is replaced by a read-only label.
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
+        expect(
+            view.querySelector(`[aria-label^="${lookup("indicatorLessons.chart.timeframeLabel")}"]`),
+        ).toBeNull();
+    });
+
+    it("forwards dropdown picks to the parent instead of storing them", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const entry = catalogueEntry("rsi");
+        if (!entry) throw new Error("no catalogue entry for rsi");
+        const onTimeframeChange = vi.fn();
+        if (component) {
+            unmount(component as never);
+            component = null;
+        }
+        host.innerHTML = "";
+        component = mount(IndicatorLessonChart, {
+            target: host,
+            props: { entry, timeframe: "1h", onTimeframeChange },
+        }) as never;
+        flushSync();
+        const view = host.firstElementChild as HTMLElement;
+
+        openTimeframePopup(view);
+        buttonWithLabel(view, "4h").click();
+        flushSync();
+
+        expect(onTimeframeChange).toHaveBeenCalledWith("4h");
+        expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("4h");
     });
 });
