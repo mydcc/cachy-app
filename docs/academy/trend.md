@@ -20,15 +20,15 @@ Each still needs its own lesson; the lesson text is what splits, not this card.*
 a line. The four differ only in how past prices are weighted:
 
 - **SMA** — every period counts the same.
-- **EMA** — recent periods count for more, so it turns sooner and is less
-  stable.
+- **EMA** — recent periods count exponentially more, so it turns sooner and
+  whipsaws more.
 - **WMA** — weights rise linearly towards the newest period. A compromise
   between the two above.
-- **HMA** — built from the relationship between an EMA and a weighted moving
-  average of the difference between them, which removes almost all of that
-  difference's lag. Fastest of the four and the noisiest.
+- **HMA** — built from two weighted averages as `2·WMA(n/2) − WMA(n)`,
+  smoothed again over `√n`, which removes almost all lag. Fastest of the four
+  and the noisiest.
 
-Computed over the default price, and an EMA can be pointed at a different price
+Computed over the default price (close), and an EMA can be pointed at a different price
 column where that is meaningful.
 
 **How to read it.** Price above a rising average means buyers have been paying
@@ -92,8 +92,8 @@ unweighted average, not used instead of one.
 average, plus a signal line (an average of that difference) and the histogram
 (the gap between the two).
 
-**How to read it.** The **sign of the macd line** says which side's average is
-higher — direction. The **macd/signal cross** is the event most systems use. The
+**How to read it.** The **sign of the MACD line** says which side's average is
+higher — direction. The **MACD/signal cross** is the event most systems use. The
 **histogram** says how fast that gap is opening or closing, which is a statement
 about the current move rather than about direction.
 
@@ -103,7 +103,7 @@ about the current move rather than about direction.
   every trend when it pauses, and it says nothing about which way it resolves.
 - **It lags more than the price does.** It is built from two averages, so it is
   later than either.
-- **In a range, the macd line spends most of its time near zero**, where its
+- **In a range, the MACD line spends most of its time near zero**, where its
   sign is noise. Crosses there are the crossing of two lines that are both flat.
 - **The histogram is derived, not an independent third reading.** It is the
   difference of the other two by definition, and reading all three as three
@@ -112,7 +112,7 @@ about the current move rather than about direction.
 **Pairs with.** Direction and momentum shifts on a higher timeframe than the
 entry.
 
-**On the chart.** Separate price-dimension axis below the price, three lines,
+**On the chart.** Separate price-dimension axis below the price, two lines plus histogram,
 zero line emphasised.
 
 ---
@@ -211,12 +211,13 @@ whipsaw is the accepted cost.
 
 ## ichimoku
 
-**What it measures.** Five lines. The **cloud** is drawn from two spans and
-projected forward; **tenkan** (conversion line) and **kijun** (base line) are
-two averages of different lengths. Price relative to the cloud is the trend
+**What it measures.** Four alert lines (no Chikou — the chart additionally
+draws the lagging span). The **cloud** is drawn from two spans and
+projected forward by 26 periods; **tenkan** (conversion line, 9) and **kijun** (base line, 26) are
+not averages but midpoints of their period's high and low. Price relative to the cloud is the trend
 statement; tenkan relative to kijun is a shorter-term statement within it.
 
-**How to read it.** Above the cloud, above both spans — an uptrend with support
+**How to read it.** Above the cloud — hence above both spans — an uptrend with support
 defined by the cloud's lower edge. Below it, the mirror image. Tenkan crossing
 kijun is the timing signal inside the direction.
 
@@ -230,8 +231,10 @@ kijun is the timing signal inside the direction.
 - **It needs far more history than the other trend indicators.** The longest
   span runs well past fifty periods; on a short history the cloud has no
   established shape and the reading is not interpretable.
-- **Five lines on one chart is a lot to read at once**, and the reading most
+- **Four alert lines is a lot to read at once**, and the reading most
   people take — above or below — uses one of them. The rest are refinement.
+  The classic fifth line (Chikou) is not among them — only the chart draws
+  the lagging span.
 
 **Pairs with.** Multi-timeframe analysis where the higher timeframe is the
 reference and the lower one is the entry, on instruments with enough history.

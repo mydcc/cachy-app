@@ -9,8 +9,9 @@ stating.
 
 ## obv
 
-**What it measures.** A running total that adds the volume of every up-closing
-candle and subtracts the volume of every down-closing one. The line's **slope**
+**What it measures.** Granville's running total (1963): it adds the volume of
+every candle closing above the prior close and subtracts the volume of every
+candle closing below it (an unchanged close counts zero). The line's **slope**
 is the reading. The line's **level** is not.
 
 **How to read it.** Whether the total is rising or falling while price moves, or
@@ -43,7 +44,7 @@ the slope, never the level.
 
 ## volume_ma
 
-**What it measures.** The average of volume over N periods. Like the moving
+**What it measures.** The SMA(20) of volume. Like the moving
 averages in `trend.md`, applied to volume instead of price.
 
 **How to read it.** How much the current bar's volume differs from recent

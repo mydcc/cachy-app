@@ -12,17 +12,18 @@ believed at all, which makes it more load-bearing than its size suggests.
 
 ## bollinger
 
-**What it measures.** A moving average of price with two bands a number of
-standard deviations above and below it. Five outputs: the three prices, **%B**
-(where price sits within the band span, 0 at the lower band and 1 at the upper),
-and **bandwidth** (the band width as a percentage of the middle band).
+**What it measures.** An SMA(20) of closing prices with two bands two
+standard deviations above and below it. Five outputs: **upper**, **middle** and
+**lower**, **%B** (where price sits within the band span, 0 at the lower band and
+1 at the upper — allowed to run beyond), and **bandwidth** (the span as a
+percentage of the middle band).
 
 **How to read it.**
 - **Price riding the upper band in a trend** is continuation, not exhaustion.
   This is the single most consequential reading in the family and the most often
   taught backwards.
-- **A close beyond the band with the trend flattening** is a genuine warning,
-  and distinct from the above only by what the trend is doing.
+- **A close beyond the band with the trend flattening** is a genuine warning
+  instead — same place, different trend state.
 - **Bandwidth at its lowest** is a compression, and the direction it resolves in
   is unknowable from this reading. It marks that a move is coming, not which
   way.
@@ -60,9 +61,10 @@ acting on.
 
 ## atr
 
-**What it measures.** The average true range — the average size of a period's
-movement including gaps, over N periods. It measures magnitude of movement, not
-direction, and carries no sign.
+**What it measures.** Wilder's average true range (default 14) — the average of
+the true range: each period the maximum of the day's span, the high against the
+prior close and the low against the prior close, smoothed Wilder's way. It
+measures magnitude of movement, not direction, and carries no sign.
 
 **How to read it.** ATR read against price tells you how far the instrument
 normally travels in a period. That number is a **distance budget**: a stop
@@ -83,9 +85,9 @@ instruments that trade at different scales.
 - **It spikes on gaps and shocks**, and stays elevated after the shock is over,
   so it temporarily overstates the normal range.
 
-**Pairs with.** Stop placement and position sizing — which is why it matters
-that the product computes it. Also as the volatility input that makes
-`super_trend` in `trend.md` adaptive.
+**Pairs with.** Stop placement and position sizing: think in ATR multiples
+instead of points. Also as the volatility input that makes `super_trend` in
+`trend.md` adaptive.
 
 **On the chart.** Separate price-dimension axis below the price, single line.
 
@@ -93,14 +95,16 @@ that the product computes it. Also as the volatility input that makes
 
 ## choppiness
 
-**What it measures.** A single number between roughly 0 and 100 summarising how
-orderly the movement is. Near 100 the market has been moving within a narrow,
-directionless band; near 0 it has been moving decisively in one direction.
+**What it measures.** A single number between 0 and 100 (default 14) summarising
+how directional the movement is. Near 100 the market has been moving within a
+narrow, directionless band; near 0 it has been moving decisively in one
+direction.
 
-**How to read it.** As a **regime filter, and nothing else.** Above the middle
-range: range behaviour, where breakouts fail and oscillator extremes mean
-something. Below it: trending, where the indicators in `oscillators.md` are
-unreliable and the overlays in `trend.md` are the ones worth reading.
+**How to read it.** As a **regime filter, and nothing else.** Above the usual
+thresholds (Dreiss: 61.8): range behaviour, where breakouts fail and oscillator
+extremes mean something. Below them (38.2): trending, where the indicators in
+`oscillators.md` are unreliable and the overlays in `trend.md` are the ones
+worth reading.
 
 **When it lies.**
 - **It is not directional.** Same foundational point as ATR, and the same
