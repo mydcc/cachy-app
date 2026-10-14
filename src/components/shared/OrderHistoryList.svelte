@@ -267,36 +267,40 @@
 
     <!-- Custom Date Range Row -->
     {#if activePreset === "custom"}
-      <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[var(--border-color)]">
-        <label class="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
+      <div class="flex flex-nowrap items-center gap-1 overflow-x-auto scrollbar-thin pt-1 border-t border-[var(--border-color)]">
+        <label class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)] whitespace-nowrap shrink-0">
           <span>{$_("dashboard.orderHistory.startDate")}:</span>
           <input
             type="date"
-            class="bg-[var(--bg-primary)] border border-[var(--input-border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
+            class="w-[100px] max-w-full shrink-0 bg-[var(--bg-primary)] border border-[var(--input-border-color)] text-[var(--text-primary)] rounded px-1 py-0.5 text-[10px] focus:border-[var(--accent-color)] outline-none"
             bind:value={customStartDate}
           />
         </label>
-        <label class="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
+        <label class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)] whitespace-nowrap shrink-0">
           <span>{$_("dashboard.orderHistory.endDate")}:</span>
           <input
             type="date"
-            class="bg-[var(--bg-primary)] border border-[var(--input-border-color)] text-[var(--text-primary)] rounded px-1.5 py-0.5 text-[11px] focus:border-[var(--accent-color)] outline-none"
+            class="w-[100px] max-w-full shrink-0 bg-[var(--bg-primary)] border border-[var(--input-border-color)] text-[var(--text-primary)] rounded px-1 py-0.5 text-[10px] focus:border-[var(--accent-color)] outline-none"
             bind:value={customEndDate}
           />
         </label>
         <button
           type="button"
-          class="px-2 py-0.5 text-[11px] font-semibold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity"
+          class="px-1 py-0.5 text-xs font-bold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity shrink-0"
+          title={$_("dashboard.orderHistory.applyRange")}
+          aria-label={$_("dashboard.orderHistory.applyRange")}
           onclick={applyCustomRange}
         >
-          {$_("dashboard.orderHistory.applyRange")}
+          <span aria-hidden="true">✓</span>
         </button>
         <button
           type="button"
-          class="px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          class="px-1 py-0.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+          title={$_("dashboard.orderHistory.clearRange")}
+          aria-label={$_("dashboard.orderHistory.clearRange")}
           onclick={resetRange}
         >
-          {$_("dashboard.orderHistory.clearRange")}
+          <span aria-hidden="true">✕</span>
         </button>
       </div>
     {/if}
