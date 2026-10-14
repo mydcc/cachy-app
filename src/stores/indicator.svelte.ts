@@ -12,7 +12,12 @@ import { untrack } from "svelte";
 import type { IndicatorSettings } from "../types/indicators";
 import { safeLocalStorage } from "../utils/storageWrapper";
 
-const defaultSettings: IndicatorSettings = {
+/*
+ * The shipped record. Treat as read-only after module load: the store holds
+ * `$state` proxies over *copies* of these objects, never over the literal
+ * itself (BUG-0682). Exported so tests can pin that nothing writes into it.
+ */
+export const defaultSettings: IndicatorSettings = {
   historyLimit: 750,
   precision: 4,
   lineWidth: 1,
@@ -229,12 +234,12 @@ const STORE_KEY = "cachy_indicator_settings";
  * The settings a new install starts from, deep-copied while they are still
  * pristine.
  *
- * The store holds `$state(defaultSettings.<card>)` — a proxy over the *same*
- * object — so a write through the store (`indicatorState.rsi.length = 21`)
- * lands in `defaultSettings` itself. The copy below is taken while the literal
- * is still untouched, and `shippedIndicatorDefaults()` hands out copies of that
- * copy, so a baseline can neither follow the trader's edits nor be edited
- * through the store (FEAT-0681).
+ * The store's fields used to be `$state` proxies over these same objects, so a
+ * write through the store landed in the literal itself and `reset()` restored
+ * the trader's own edits as the "defaults" (BUG-0682). The fields now start
+ * from deep copies, and this copy — taken before the class below can touch
+ * anything — is what `shippedIndicatorDefaults()` hands out, so a baseline can
+ * neither follow the trader's edits nor be edited through the store (FEAT-0681).
  */
 const shippedIndicatorSettings: IndicatorSettings = structuredClone(defaultSettings);
 
@@ -249,43 +254,43 @@ class IndicatorManager {
   lineWidth = $state(defaultSettings.lineWidth);
   preferredEngine = $state(defaultSettings.preferredEngine);
 
-  panelSections = $state(defaultSettings.panelSections);
+  panelSections = $state(structuredClone(defaultSettings.panelSections));
 
   // Oscillators
-  rsi = $state(defaultSettings.rsi);
-  stochRsi = $state(defaultSettings.stochRsi);
-  stochastic = $state(defaultSettings.stochastic);
-  williamsR = $state(defaultSettings.williamsR);
-  cci = $state(defaultSettings.cci);
-  momentum = $state(defaultSettings.momentum);
-  ao = $state(defaultSettings.ao);
-  mfi = $state(defaultSettings.mfi);
+  rsi = $state(structuredClone(defaultSettings.rsi));
+  stochRsi = $state(structuredClone(defaultSettings.stochRsi));
+  stochastic = $state(structuredClone(defaultSettings.stochastic));
+  williamsR = $state(structuredClone(defaultSettings.williamsR));
+  cci = $state(structuredClone(defaultSettings.cci));
+  momentum = $state(structuredClone(defaultSettings.momentum));
+  ao = $state(structuredClone(defaultSettings.ao));
+  mfi = $state(structuredClone(defaultSettings.mfi));
 
   // Trend
-  macd = $state(defaultSettings.macd);
-  adx = $state(defaultSettings.adx);
-  ema = $state(defaultSettings.ema);
-  sma = $state(defaultSettings.sma);
-  wma = $state(defaultSettings.wma);
-  vwma = $state(defaultSettings.vwma);
-  hma = $state(defaultSettings.hma);
-  superTrend = $state(defaultSettings.superTrend);
-  atrTrailingStop = $state(defaultSettings.atrTrailingStop);
-  ichimoku = $state(defaultSettings.ichimoku);
+  macd = $state(structuredClone(defaultSettings.macd));
+  adx = $state(structuredClone(defaultSettings.adx));
+  ema = $state(structuredClone(defaultSettings.ema));
+  sma = $state(structuredClone(defaultSettings.sma));
+  wma = $state(structuredClone(defaultSettings.wma));
+  vwma = $state(structuredClone(defaultSettings.vwma));
+  hma = $state(structuredClone(defaultSettings.hma));
+  superTrend = $state(structuredClone(defaultSettings.superTrend));
+  atrTrailingStop = $state(structuredClone(defaultSettings.atrTrailingStop));
+  ichimoku = $state(structuredClone(defaultSettings.ichimoku));
 
   // Volatility
-  atr = $state(defaultSettings.atr);
-  choppiness = $state(defaultSettings.choppiness);
+  atr = $state(structuredClone(defaultSettings.atr));
+  choppiness = $state(structuredClone(defaultSettings.choppiness));
 
   // Volume & Misc
-  obv = $state(defaultSettings.obv);
-  vwap = $state(defaultSettings.vwap);
-  parabolicSar = $state(defaultSettings.parabolicSar);
-  volumeProfile = $state(defaultSettings.volumeProfile);
-  volumeMa = $state(defaultSettings.volumeMa);
-  volume = $state(defaultSettings.volume);
-  bollingerBands = $state(defaultSettings.bollingerBands);
-  pivots = $state(defaultSettings.pivots);
+  obv = $state(structuredClone(defaultSettings.obv));
+  vwap = $state(structuredClone(defaultSettings.vwap));
+  parabolicSar = $state(structuredClone(defaultSettings.parabolicSar));
+  volumeProfile = $state(structuredClone(defaultSettings.volumeProfile));
+  volumeMa = $state(structuredClone(defaultSettings.volumeMa));
+  volume = $state(structuredClone(defaultSettings.volume));
+  bollingerBands = $state(structuredClone(defaultSettings.bollingerBands));
+  pivots = $state(structuredClone(defaultSettings.pivots));
 
   private listeners: Set<(value: IndicatorSettings) => void> = new Set();
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -395,7 +400,7 @@ class IndicatorManager {
           if (val.showInChart === undefined && fallback.showInChart !== undefined) {
              val.showInChart = fallback.showInChart;
           }
-          return { ...fallback, ...val };
+          return structuredClone({ ...fallback, ...val });
       }
 
       this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
@@ -455,7 +460,7 @@ class IndicatorManager {
           },
           source: parsed.ema.source || defaultSettings.ema.source,
         }
-        : defaultSettings.ema;
+        : structuredClone(defaultSettings.ema);
 
       this.sma = merge('sma', defaultSettings.sma);
       this.wma = merge('wma', defaultSettings.wma);
@@ -538,7 +543,12 @@ class IndicatorManager {
   }
 
   reset() {
-    const d = defaultSettings;
+    // A fresh deep copy per call, never the literal itself: the fields below
+    // become `$state` proxies the UI writes through, so handing out the
+    // literal's own subtrees would make the next edit land in the "defaults"
+    // again (BUG-0682). `shippedIndicatorDefaults()` is already the pristine
+    // copy, so reset and the baseline cannot disagree about what shipped.
+    const d = shippedIndicatorDefaults();
     this.historyLimit = d.historyLimit;
     this.precision = d.precision;
     this.lineWidth = d.lineWidth;

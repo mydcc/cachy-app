@@ -2,7 +2,7 @@
 id: BUG-0682
 title: Indicator reset cannot restore settings the trader has changed
 type: bug
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -67,9 +67,20 @@ the persistence shape and the existing `shippedIndicatorDefaults()` in
 
 ## Acceptance criteria
 
-- [ ] A test writes a setting through the store, calls `reset()`, and asserts the shipped value is back
-- [ ] A test writes a setting through the store and asserts the module-level defaults object is unchanged
-- [ ] The persistence round-trip (save, reload, load) still restores a stored value
+- [x] A test writes a setting through the store, calls `reset()`, and asserts the shipped value is back
+- [x] A test writes a setting through the store and asserts the module-level defaults object is unchanged
+- [x] The persistence round-trip (save, reload, load) still restores a stored value
+
+## State
+
+Fixed on branch `fix/indicator-reset-defaults`: every handoff from the module
+literal into the store deep-copies (`structuredClone` in the field
+initialisers, in `merge()`, in the ema fallback and in `reset()`, which now
+reads from `shippedIndicatorDefaults()`), and the literal is exported so tests
+can pin its immutability. Verified by `src/stores/indicatorReset.test.ts` —
+each guard watched failing on the old code, including a frozen-literal probe
+that turns the silent corruption into a loud `TypeError` on builds with live
+`$state` proxies.
 
 ## Links
 
