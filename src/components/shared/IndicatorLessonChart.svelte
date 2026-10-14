@@ -299,7 +299,15 @@
     function applyColors(): void {
         if (!chart || !candleSeries) return;
         chart.applyOptions({
-            layout: { textColor: cssColor("--text-secondary", "#d1d4dc") },
+            layout: {
+                textColor: cssColor("--text-secondary", "#d1d4dc"),
+                // The pane separator defaults to the library's hardcoded #E0E3EB;
+                // without this it stays white in every theme.
+                panes: {
+                    separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                    separatorHoverColor: cssColor("--accent-color", "#2962ff"),
+                },
+            },
             grid: {
                 vertLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
                 horzLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
@@ -328,6 +336,10 @@
                 background: { type: ColorType.Solid, color: "transparent" },
                 textColor: cssColor("--text-secondary", "#d1d4dc"),
                 fontFamily: "Inter, sans-serif",
+                panes: {
+                    separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                    separatorHoverColor: cssColor("--accent-color", "#2962ff"),
+                },
             },
             grid: {
                 vertLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
