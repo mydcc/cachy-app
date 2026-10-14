@@ -4282,9 +4282,9 @@
         "confirmation": "Range-Trading an etablierten Grenzen, mit einer Marktstruktur-Lesart, die die Grenze zuerst bestimmt. Ohne sie ist es Raten, wo die Range endet."
       },
       "williams_r": {
-        "whatItMeasures": "Die Position des Schlusskurses innerhalb der jüngeren Spanne, skaliert auf −100…0 statt 0…100. Identische Logik zum Stochastic mit verschobener und invertierter Skala.",
-        "howToRead": "0 ist das obere Ende der Fensterspanne, −100 das untere. Jeder Stochastic-Vorbehalt gilt unverändert — lies ihn als Mitglied dieser Familie, nicht als eigene Idee.",
-        "failureModes": "Alles, was der Stochastic tut, aus denselben Gründen, und ein Failure, der spezifisch für den üblichen Gebrauch ist: Er ist keine zweite, unabhängige Meinung. Es ist dieselbe Rechnung auf anderer Skala, und zwei korrelierte Lesarten als zwei Bestätigungen zu behandeln, überzeichnet die Evidenz — so wird eine Position dimensioniert, als hätte sie zwei Gründe, und hat einen. Ein Fenster ohne Spanne löst als unbestimmt auf, nicht als Zahl.",
+        "whatItMeasures": "Die Position des Schlusskurses innerhalb der eingestellten Spanne, skaliert auf −100…0 statt 0…100. Dieselbe Rechnung wie der Stochastic, nur verschoben und invertiert. Gerechnet aus Hoch, Tief und Schluss über die eingestellte Periode — Standard 14, in den Settings änderbar. Kürzere Fenster reagieren schneller und nervöser, längere langsamer und ruhiger.",
+        "howToRead": "0 ist das obere Ende der Fensterspanne, −100 das untere. Die üblichen Außenmarken −20 und −80 sind Konvention, keine Kauf- oder Verkaufssignale. Jeder Stochastic-Vorbehalt gilt unverändert — lies ihn als Mitglied dieser Familie, nicht als eigene Idee.",
+        "failureModes": "Alles, was der Stochastic tut, aus denselben Gründen. Dazu ein Fehler, der zum üblichen Gebrauch gehört: Er ist keine zweite, unabhängige Meinung. Es ist dieselbe Rechnung auf anderer Skala. Zwei korrelierte Lesarten als zwei Bestätigungen zu behandeln, überzeichnet die Evidenz. So wird eine Position dimensioniert, als hätte sie zwei Gründe, und hat einen. Hat sich der Kurs im Fenster gar nicht bewegt, gibt es keinen Wert. Die Lektion zeigt dann unbestimmt statt einer Zahl.",
         "confirmation": "Überall dort, wo der Stochastic passt. Sich für den einen statt den anderen zu entscheiden, ist eine Darstellungs-, keine Analyseentscheidung."
       },
       "cci": {

@@ -4342,9 +4342,9 @@
         "confirmation": "Range trading at established boundaries, with a market-structure read that establishes the boundary first. Without one, it is guessing where the range ends."
       },
       "williams_r": {
-        "whatItMeasures": "The close's position within the recent range, scaled to −100…0 rather than 0…100. Identical logic to the stochastic with a shifted and inverted scale.",
-        "howToRead": "0 is the top of the window's range, −100 the bottom. Every stochastic caveat applies unchanged — read it as a member of that family, not as a separate idea.",
-        "failureModes": "Everything the stochastic does, for the same reasons, and one failure specific to how it is usually used: it is not a second, independent opinion. It is the same calculation on a different scale, and treating two correlated readings as two confirmations overstates the evidence — that is how a position ends up sized as though it had two reasons and has one. A window with no range resolves as indeterminate rather than as a number.",
+        "whatItMeasures": "The close's position within the configured range, scaled to −100…0 rather than 0…100. The same calculation as the stochastic, only shifted and inverted. Computed from high, low and close over the configured period — 14 by default, adjustable in settings. Shorter windows react faster and choppier, longer ones slower and calmer.",
+        "howToRead": "0 is the top of the window's range, −100 the bottom. The conventional outer marks at −20 and −80 are convention, not buy or sell signals. Every stochastic caveat applies unchanged — read it as a member of that family, not as a separate idea.",
+        "failureModes": "Everything the stochastic does, for the same reasons. Plus one failure specific to how it is usually used: it is not a second, independent opinion. It is the same calculation on a different scale. Treating two correlated readings as two confirmations overstates the evidence. That is how a position ends up sized as though it had two reasons and has one. When the price did not move at all inside the window, there is no value. The lesson shows indeterminate instead of a number.",
         "confirmation": "Wherever the stochastic fits. Choosing one over the other is a display preference, not an analytical one."
       },
       "cci": {

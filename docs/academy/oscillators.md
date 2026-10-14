@@ -120,11 +120,12 @@ range ends.
 
 ## williams_r
 
-**What it measures.** The close's position within the recent range, scaled to
+**What it measures.** The close's position within the configured range, scaled to
 −100…0 instead of 0…100. Identical logic to `stochastic` with a shifted and
-inverted scale.
+inverted scale, computed from high, low and close.
 
-**How to read it.** 0 is the top of the window's range, −100 the bottom. Reading
+**How to read it.** 0 is the top of the window's range, −100 the bottom. The
+outer marks at −20 and −80 are convention, not buy or sell signals. Reading
 it as an oscillator in the family it belongs to, not as a separate idea — every
 stochastic caveat applies unchanged.
 
@@ -133,6 +134,8 @@ stochastic caveat applies unchanged.
 same calculation with a different scale, and treating two correlated readings as
 two confirmations overstates the evidence — that is how a position gets sized as
 though it had two reasons and only has one.
+**A window with no movement has no value** and resolves as indeterminate,
+not as a number.
 
 **Pairs with.** Wherever `stochastic` fits. Choosing it over the other is a
 display preference, not an analytical one.
