@@ -30,9 +30,10 @@
     text?: string;
     underline?: boolean;
     /**
-     * The visible trigger. Required for a usable tooltip: with no children the
-     * trigger is an empty 0×0 box, so `text` alone renders nothing to hover
-     * (use `InfoTip` for the "small marker + explanation" case).
+     * The visible trigger. A tooltip without children has no surface to hover
+     * or focus — `text` alone renders an empty 0×0 box — so every call site
+     * passes children (or uses `InfoTip` for the "small marker" case).
+     * `tooltipUsage.test.ts` fails if a childless tooltip appears again.
      */
     children?: import("svelte").Snippet;
   }
