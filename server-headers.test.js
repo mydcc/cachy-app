@@ -50,6 +50,20 @@ describe('SECURITY_HEADERS', () => {
     expect(names).toContain('Permissions-Policy');
   });
 
+  it('contains all 5 headers expected by scripts/jules/monitor-production.sh', () => {
+    const names = SECURITY_HEADERS.map(([name]) => name);
+    const requiredByMonitor = [
+      'Strict-Transport-Security',
+      'Content-Security-Policy',
+      'X-Content-Type-Options',
+      'X-Frame-Options',
+      'Referrer-Policy',
+    ];
+    for (const h of requiredByMonitor) {
+      expect(names).toContain(h);
+    }
+  });
+
   it('never sets Cross-Origin-Embedder-Policy (breaks embedded iframes)', () => {
     const names = SECURITY_HEADERS.map(([name]) => name);
     expect(names).not.toContain('Cross-Origin-Embedder-Policy');
