@@ -12,17 +12,18 @@ believed at all, which makes it more load-bearing than its size suggests.
 
 ## bollinger
 
-**What it measures.** A moving average of price with two bands a number of
-standard deviations above and below it. Five outputs: the three prices, **%B**
-(where price sits within the band span, 0 at the lower band and 1 at the upper),
-and **bandwidth** (the band width as a percentage of the middle band).
+**What it measures.** An SMA(20) of close with two bands two
+standard deviations above and below it. Five outputs: **upper**, **middle** and
+**lower**, **%B** (where price sits within the band span, 0 at the lower band and
+1 at the upper — allowed to run beyond), and **bandwidth** (the span as a
+percentage of the middle band).
 
 **How to read it.**
 - **Price riding the upper band in a trend** is continuation, not exhaustion.
   This is the single most consequential reading in the family and the most often
   taught backwards.
-- **A close beyond the band with the trend flattening** is a genuine warning,
-  and distinct from the above only by what the trend is doing.
+- **A close beyond the band with the trend flattening** is a genuine warning
+  instead — same place, different trend state.
 - **Bandwidth at its lowest** is a compression, and the direction it resolves in
   is unknowable from this reading. It marks that a move is coming, not which
   way.
