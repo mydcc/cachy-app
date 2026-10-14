@@ -443,8 +443,7 @@ describe("single-registry unification", () => {
       "mistral",
       "groq",
       "openrouter",
-      "opencode-zen",
-      "opencode-go",
+      "opencode",
       "command-code",
       "omniroute",
     ]);
