@@ -2,7 +2,7 @@
 id: BUG-0683
 title: Account Balance field keeps a stale value after a paper fill
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
-# assignee:            # required while status: in-progress
+assignee: opencode
+branch: fix/account-balance-follows-paper-fills
 ---
 
 # BUG-0683 — Account Balance field keeps a stale value after a paper fill
@@ -120,21 +121,22 @@ Each criterion is a `*.component.test.ts` case in the `components` project,
 RED before the fix, per the `PortfolioInputs.component.test.ts` precedent
 (FEAT-0346).
 
-- [ ] With paper mode on and a mocked `paperState`, changing `paperState.balance`
-      writes the new value into the bound `accountSize` and into the input's
-      value, with no click, focus or mount-time fetch involved
-- [ ] After `handleAccountSizeInput` has run, a later `paperState.balance` change
+- [x] With paper mode on and the real `paperState` store, changing
+      `paperState.balance` writes the new value into the bound `accountSize`
+      and into the input's value, with no click, focus or mount-time fetch
+      involved
+- [x] After `handleAccountSizeInput` has run, a later `paperState.balance` change
       leaves the typed value untouched
-- [ ] Clicking the refresh button in the paper branch writes the current
+- [x] Clicking the refresh button in the paper branch writes the current
       `paperState.balance` **and** releases the override, so the *next* balance
       change is mirrored again
-- [ ] While the field is focused, a `paperState.balance` change does not
+- [x] While the field is focused, a `paperState.balance` change does not
       overwrite the input
-- [ ] With paper mode off, a `paperState.balance` change writes nothing to
+- [x] With paper mode off, a `paperState.balance` change writes nothing to
       `accountSize` — live behaviour is unchanged
-- [ ] Enabling paper mode with an untouched field mirrors the balance without a
+- [x] Enabling paper mode with an untouched field mirrors the balance without a
       refresh click, with `autoFetchBalance` false
-- [ ] `paperState.balance` is read as the source; no second balance is computed
+- [x] `paperState.balance` is read as the source; no second balance is computed
       in the component
 
 ## Out of scope
@@ -164,6 +166,45 @@ None that block the start.
 - Not decided, does not block: whether switching paper↔live should also release
   the override. Left as "no, the refresh button is the explicit gesture";
   revisit if a mode switch ever leaves a trader surprised.
+
+## State
+
+Fixed on branch `fix/account-balance-follows-paper-fills`.
+
+`src/components/inputs/PortfolioInputs.svelte` gained one `$effect` and one
+piece of session state:
+
+- The effect writes the bound `accountSize` from `paperState.balance` while
+  paper mode is on. It reads the balance only *after* the guards, so while
+  paper mode is off it holds no subscription to the book at all, and releasing
+  a guard re-reads the current balance instead of replaying a stale one.
+  `untrack` keeps the field's own text out of the dependencies, so the write
+  does not re-enter the effect.
+- `isAccountSizeUserEdited` is set by `handleAccountSizeInput` and cleared in
+  both `handleFetchBalance` branches, which is what makes the refresh button
+  the hand-back gesture.
+
+Verified by `src/components/inputs/PortfolioInputs.component.test.ts`, six new
+cases. Each was watched failing for its own reason with the code under test
+removed:
+
+- without the write, five cases fail with the field stuck on the old value
+- without the two guards, four fail — including the pre-existing FEAT-0346
+  case, because an unguarded mirror also overwrites the field in live mode
+- without the release in `handleFetchBalance`, only the hand-back case fails
+
+Two things the next reader will otherwise trip over:
+
+- The test file **no longer mocks `paperState`**; it uses the real store. The
+  defect is a missing *signal* subscription, and a plain-object mock never
+  re-runs an effect, so a mock could not have caught it.
+- The bound `accountSize` in the tests is backed by a `SvelteMap`, not a
+  variable. That is what a real `bind:` compiles to — a tracked read of a
+  `$state` — and a plain variable lets the child's write through while leaving
+  the field stale, which is this bug's shape rather than a coincidence.
+
+Both limits recorded under Open questions shipped as decided: the override is
+session-scoped, and a mode switch does not release it.
 
 ## Links
 
