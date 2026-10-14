@@ -4623,7 +4623,6 @@
       "accountPassphraseMissing": "Credentials incomplete — Bitget also requires a passphrase."
     },
     "timeInForceNone": "—",
-    "exchangeOrderTp": "Exchange Order TP",
     "partialTarget": "Partial Target"
   },
   "chartView": {

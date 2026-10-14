@@ -4623,7 +4623,6 @@
       "accountPassphraseMissing": "Zugangsdaten unvollständig — für Bitget wird zusätzlich eine Passphrase benötigt."
     },
     "timeInForceNone": "—",
-    "exchangeOrderTp": "Börsen-Order-TP",
     "partialTarget": "Teilziel"
   },
   "chartView": {

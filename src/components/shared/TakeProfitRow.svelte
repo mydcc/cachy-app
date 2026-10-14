@@ -113,14 +113,15 @@
   <!-- Line 1: Header, Status badges, PnL & R/R, and Actions -->
   <div class="flex items-center justify-between text-xs">
     <div class="flex items-center gap-1.5">
-      <span class="font-bold text-[var(--text-primary)]">TP {index + 1}</span>
       {#if index === 0}
+        <!-- The first target is the one the venue actually receives; the
+             explanation lives on the label itself instead of a separate
+             badge, which only added noise next to "TP 1". -->
         <Tooltip text={$_("orderEntry.notes.firstTargetOnly")}>
-          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-accent-paired">
-            {$_("orderEntry.exchangeOrderTp")}
-          </span>
+          <span class="font-bold text-[var(--text-primary)]">TP {index + 1}</span>
         </Tooltip>
       {:else}
+        <span class="font-bold text-[var(--text-primary)]">TP {index + 1}</span>
         <span class="text-[9px] font-medium text-[var(--text-secondary)]">
           {$_("orderEntry.partialTarget")}
         </span>
