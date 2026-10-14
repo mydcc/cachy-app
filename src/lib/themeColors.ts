@@ -90,6 +90,25 @@ export function isLightColor(color: Rgb | string, threshold = 0.5): boolean {
   return (Math.max(r, g, b) + Math.min(r, g, b)) / 2 > threshold;
 }
 
+/**
+ * WCAG 2.1 contrast ratio between two RGB triples: 1 is identical, 21 is
+ * black on white. Canvas line colours cannot rely on the theme author
+ * checking every pairing, so charts use this to skip a palette colour that
+ * would dissolve into the chart background (3.0 is the non-text minimum).
+ */
+export function contrastRatio(a: Rgb, b: Rgb): number {
+  const luminance = ([r, g, bl]: Rgb): number => {
+    const linear = (c: number): number => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(bl);
+  };
+  const [lighter, darker] =
+    luminance(a) >= luminance(b) ? [a, b] : [b, a];
+  return (luminance(lighter) + 0.05) / (luminance(darker) + 0.05);
+}
+
 function defaultStyleReader(): StyleReader | null {
   if (typeof document === "undefined") return null;
   return getComputedStyle(document.documentElement);

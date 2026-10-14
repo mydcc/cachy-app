@@ -120,6 +120,20 @@ describe("SelectDropdown", () => {
         expect(selected.className).toContain("bg-[var(--accent-color)]");
     });
 
+    it("keeps hovered text readable against the hover background", () => {
+        render("all");
+        trigger().click();
+        flushSync();
+
+        // The hovered row previously paired the accent text with the hover
+        // background — unreadable in several themes. It now uses the primary
+        // text, which is readable on every card by theme contract.
+        popupOptions()[1].dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+        flushSync();
+        expect(popupOptions()[1].className).toContain("text-[var(--text-primary)]");
+        expect(popupOptions()[1].className).not.toContain("text-[var(--accent-color)]");
+    });
+
     it("selects with the keyboard and links the open option", () => {
         render("all");
 

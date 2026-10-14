@@ -201,8 +201,8 @@
                     value
                         ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] font-medium'
                         : index === activeIndex
-                          ? 'bg-[var(--nav-hover-bg)] text-[var(--accent-color)]'
-                          : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)]'}"
+                          ? 'bg-[var(--nav-hover-bg)] text-[var(--text-primary)]'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-primary)]'}"
                     onmouseenter={() => (activeIndex = index)}
                     onclick={() => choose(option.value)}
                 >

@@ -19,6 +19,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   parseColorToRgb,
   isLightColor,
+  contrastRatio,
   readCssColor,
   getThemePalette,
   invalidateThemePalette,
@@ -72,6 +73,21 @@ describe("isLightColor", () => {
 
   it("treats unparseable input as not light", () => {
     expect(isLightColor("nonsense")).toBe(false);
+  });
+});
+
+describe("contrastRatio", () => {
+  it("returns 21 for black on white and 1 for identical colors", () => {
+    expect(contrastRatio([0, 0, 0], [255, 255, 255])).toBeCloseTo(21, 1);
+    expect(contrastRatio([68, 71, 90], [68, 71, 90])).toBeCloseTo(1, 5);
+  });
+
+  it("is symmetric and matches a known theme pairing", () => {
+    // Dracula danger on its card background — just under the 3.0 minimum.
+    const danger: [number, number, number] = [255, 85, 85];
+    const card: [number, number, number] = [68, 71, 90];
+    expect(contrastRatio(danger, card)).toBeCloseTo(2.91, 1);
+    expect(contrastRatio(card, danger)).toBeCloseTo(contrastRatio(danger, card), 5);
   });
 });
 

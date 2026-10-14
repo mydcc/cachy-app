@@ -320,6 +320,34 @@ describe("FEAT-0677 — the live lesson chart", () => {
         expect(requestUpdate.mock.calls.length).toBeGreaterThanOrEqual(badges.length);
     });
 
+    it("skips a line colour that dissolves into the card", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // Clash the theme's accent with the card: without the guard the
+        // first line would paint accent-on-accent (contrast 1.0).
+        const getComputedStyle = vi.spyOn(window, "getComputedStyle").mockReturnValue({
+            getPropertyValue: (name: string) =>
+                (
+                    {
+                        "--bg-tertiary": "#44475a",
+                        "--accent-color": "#44475a",
+                    } as Record<string, string>
+                )[name] ?? "",
+        } as CSSStyleDeclaration);
+        try {
+            render("rsi");
+
+            expect(lw.lineSeries.length).toBeGreaterThan(0);
+            // Success (#22c55e) is the next palette entry with contrast.
+            expect(lw.lineSeries[0].options.color).toBe("#22c55e");
+            // Legend and series agree — both read the chosen token.
+            const swatch = host.querySelector('li span[aria-hidden="true"]') as HTMLElement;
+            expect(swatch.style.background).toContain("--success-color");
+        } finally {
+            getComputedStyle.mockRestore();
+        }
+    });
+
     it("paints each line's own value at the hovered bar", () => {
         seedKlines("BTCUSDT");
         tradeState.symbol = "BTCUSDT";
