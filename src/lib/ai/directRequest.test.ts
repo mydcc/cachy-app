@@ -35,6 +35,9 @@ describe("resolveDirectUrl", () => {
     expect(resolveDirectUrl("https://gw.example.com/v2", "v1/chat/completions")).toBe(
       "https://gw.example.com/v2/chat/completions",
     );
+    expect(resolveDirectUrl("https://gw.example.com/v10", "v1/models")).toBe(
+      "https://gw.example.com/v10/models",
+    );
   });
 
   it("strips only within the same version family (v1beta never collapses onto vN)", () => {
