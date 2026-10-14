@@ -20,15 +20,15 @@ Each still needs its own lesson; the lesson text is what splits, not this card.*
 a line. The four differ only in how past prices are weighted:
 
 - **SMA** — every period counts the same.
-- **EMA** — recent periods count for more, so it turns sooner and is less
-  stable.
+- **EMA** — recent periods count exponentially more, so it turns sooner and
+  whipsaws more.
 - **WMA** — weights rise linearly towards the newest period. A compromise
   between the two above.
-- **HMA** — built from the relationship between an EMA and a weighted moving
-  average of the difference between them, which removes almost all of that
-  difference's lag. Fastest of the four and the noisiest.
+- **HMA** — built from two weighted averages as `2·WMA(n/2) − WMA(n)`,
+  smoothed again over `√n`, which removes almost all lag. Fastest of the four
+  and the noisiest.
 
-Computed over the default price, and an EMA can be pointed at a different price
+Computed over the default price (close), and an EMA can be pointed at a different price
 column where that is meaningful.
 
 **How to read it.** Price above a rising average means buyers have been paying
