@@ -87,6 +87,34 @@ describe('Chart Patterns Drawing', () => {
     });
   });
 
+  it('never paints the legacy hardcoded reference gray', () => {
+    const painted: string[] = [];
+    const ctx = createMockContext() as unknown as Record<string, unknown>;
+    for (const prop of ["fillStyle", "strokeStyle"] as const) {
+      let current = "";
+      Object.defineProperty(ctx, prop, {
+        get: () => current,
+        set: (v: string) => {
+          current = v;
+          painted.push(String(v));
+        },
+        configurable: true,
+      });
+    }
+    const addInteractive = vi.fn();
+    CHART_PATTERNS.forEach((pattern) => {
+      pattern.drawFunction(
+        ctx as unknown as CanvasRenderingContext2D,
+        800,
+        600,
+        addInteractive,
+        DEFAULT_PATTERN_COLORS,
+        labels,
+      );
+    });
+    expect(painted.filter((v) => v.toLowerCase() === "#e0e0e0")).toEqual([]);
+  });
+
   it('should draw specific elements for Head and Shoulders', () => {
     const pattern = CHART_PATTERNS.find(p => p.id === 'headAndShoulders');
     expect(pattern).toBeDefined();
