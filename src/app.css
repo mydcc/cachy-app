@@ -243,13 +243,13 @@ html {
    instead of the browser/OS default, so marked text stays harmonious
    in every theme (light, dark, and all custom themes define both tokens). */
 ::selection {
-  background: var(--accent-color);
-  color: var(--text-on-accent);
+  background-color: var(--accent-color, #0ea5e9);
+  color: var(--text-on-accent, #0f172a);
 }
 
 ::-moz-selection {
-  background: var(--accent-color);
-  color: var(--text-on-accent);
+  background-color: var(--accent-color, #0ea5e9);
+  color: var(--text-on-accent, #0f172a);
 }
 
 /* Firefox */

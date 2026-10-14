@@ -1392,9 +1392,9 @@
   --danger-color: var(--red);
   --warning-color: var(--yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
-  --text-on-accent: var(--base3);
-  --text-on-success: var(--base3);
-  --text-on-danger: var(--base3);
+  --text-on-accent: var(--base03);
+  --text-on-success: var(--base03);
+  --text-on-danger: var(--base03);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--base02);
