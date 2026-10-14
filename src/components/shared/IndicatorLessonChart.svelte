@@ -500,6 +500,10 @@
                 .map((line) => `${line.name}:${paneFor(line.name)}`)
                 .join(",")}`;
             if (signature !== drawnSignature) {
+                // A new dataset identity: drop the old hover with the old
+                // lines, so the pill never snaps to a bar the user never
+                // hovered in this dataset.
+                hoveredTime = null;
                 for (const line of drawnLines) {
                     line.series.detachPrimitive(line.badge);
                     activeChart.removeSeries(line.series);
@@ -540,8 +544,16 @@
                 drawnLines[index]?.series.setData(toLineData(line.values, rows));
             });
             badgeEntries = series.lines.map((line) => toBadgeEntries(line.values, rows));
-            for (const line of drawnLines) line.badge.update();
+            // setData already repaints; badges only need a nudge while
+            // hovered (their draw early-returns otherwise).
+            if (hoveredTime !== null) {
+                for (const line of drawnLines) line.badge.update();
+            }
         } catch (error) {
+            // A half-torn render must not leave the previous dataset's pills
+            // behind: hide them until the next successful run.
+            badgeEntries = [];
+            hoveredTime = null;
             logger.error("ui", "lesson chart render failed", error);
         }
     });

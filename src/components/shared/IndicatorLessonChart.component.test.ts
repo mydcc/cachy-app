@@ -130,6 +130,7 @@ import { marketState } from "../../lib/windows/implementations/marketState.helpe
 import { marketWatcher } from "../../services/marketWatcher";
 import { tradeState } from "../../stores/trade.svelte";
 import { catalogueEntry, REGISTRY_CATALOGUE } from "../../lib/alerts/indicatorCatalogue";
+import { formatBadgeValue } from "../../lib/chart/crosshairValueBadge";
 import { normalizeSymbol } from "../../utils/symbolUtils";
 import type { MarketData } from "../../stores/market/types";
 import type { Kline } from "../../services/technicalsTypes";
@@ -305,6 +306,97 @@ describe("FEAT-0677 — the live lesson chart", () => {
 
         onMove({});
         expect(requestUpdate.mock.calls.length).toBeGreaterThanOrEqual(badges.length);
+    });
+
+    it("paints each line's own value at the hovered bar", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        const multi = REGISTRY_CATALOGUE.filter((entry) => entry.outputs.length > 1);
+        expect(multi.length).toBeGreaterThan(0);
+        render(multi[0].id);
+        expect(lw.lineSeries.length).toBeGreaterThan(1);
+
+        const onMove = lw.chart.subscribeCrosshairMove.mock.calls[0][0] as (param: {
+            time?: unknown;
+        }) => void;
+        // The series' recorded data: the expected text per line comes from
+        // the same arrays the component feeds the chart.
+        const lineData = lw.lineSeries.map(
+            (series) =>
+                series.setData.mock.calls.at(-1)?.[0] as Array<{ time: number; value: number }>,
+        );
+        const hovered = lineData[0][0].time;
+        onMove({ time: hovered });
+
+        lw.lineSeries.forEach((series, index) => {
+            const badge = series.attachPrimitive.mock.calls[0][0] as {
+                attached(params: unknown): void;
+                paneViews(): Array<{ renderer(): { draw(target: unknown): void } }>;
+            };
+            badge.attached({
+                chart: { timeScale: () => ({ timeToCoordinate: () => 100 + index * 10 }) },
+                series: { priceToCoordinate: () => 150 },
+                requestUpdate: () => {},
+                horzScaleBehavior: {},
+            });
+            const seen: string[] = [];
+            const fakeCtx = {
+                save() {},
+                restore() {},
+                beginPath() {},
+                roundRect() {},
+                fill() {},
+                stroke() {},
+                measureText: () => ({ width: 30 }),
+                fillText: (text: string) => {
+                    seen.push(text);
+                },
+            };
+            let font = "";
+            Object.defineProperty(fakeCtx, "font", {
+                get: () => font,
+                set: (v: string) => {
+                    font = v;
+                },
+            });
+            badge.paneViews()[0].renderer().draw({
+                useMediaCoordinateSpace: (fn: (scope: unknown) => void) =>
+                    fn({ context: fakeCtx, mediaSize: { width: 400, height: 300 } }),
+            });
+            expect(seen).toEqual([formatBadgeValue(lineData[index][0].value)]);
+        });
+    });
+
+    it("repaints badges with fresh theme colours on a theme switch", async () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        render("rsi");
+
+        const requestUpdate = vi.fn();
+        const badge = lw.lineSeries[0].attachPrimitive.mock.calls[0][0] as {
+            attached(params: unknown): void;
+        };
+        badge.attached({ chart: {}, series: {}, requestUpdate, horzScaleBehavior: {} });
+
+        // The theme observer debounces through rAF like the sibling charts.
+        document.documentElement.setAttribute("class", "theme-light");
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        flushSync();
+
+        // applyColors() refreshed the cached theme and asked for repaint.
+        expect(requestUpdate).toHaveBeenCalled();
+        document.documentElement.removeAttribute("class");
+    });
+
+    it("unsubscribes from crosshair moves on unmount", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        render("rsi");
+
+        expect(lw.chart.subscribeCrosshairMove).toHaveBeenCalledTimes(1);
+        unmount(component as never);
+        component = null;
+        expect(lw.chart.unsubscribeCrosshairMove).toHaveBeenCalledTimes(1);
     });
 
     it("draws the selected symbol's klines and follows a symbol change", () => {

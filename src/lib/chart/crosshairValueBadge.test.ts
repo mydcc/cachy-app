@@ -29,12 +29,14 @@ function points(values: Array<[number, number]>): BadgePoint[] {
 }
 
 describe("formatBadgeValue", () => {
-    it("tiers precision like the app's profit formatting", () => {
+    it("matches formatProfit's tier boundaries", () => {
         expect(formatBadgeValue(34.756)).toBe("34.76");
         expect(formatBadgeValue(0.0001234)).toBe("0.0001");
         expect(formatBadgeValue(1234.5)).toBe("1235");
         expect(formatBadgeValue(0)).toBe("0.00");
         expect(formatBadgeValue(-12.345)).toBe("-12.35");
+        expect(formatBadgeValue(0.1)).toBe("0.10");
+        expect(formatBadgeValue(1000)).toBe("1000");
     });
 
     it("renders nothing for non-finite values", () => {
@@ -45,23 +47,29 @@ describe("formatBadgeValue", () => {
 
 describe("badgeRect", () => {
     it("centres the pill above the dot", () => {
-        const rect = badgeRect(100, 100, 40, 400);
+        const rect = badgeRect(100, 100, 40, 400, 300);
         expect(rect.x).toBeCloseTo(100 - rect.w / 2, 5);
         expect(rect.y + rect.h).toBeLessThanOrEqual(100 - 8);
         expect(rect.below).toBe(false);
     });
 
     it("clamps into the pane at the left and right edges", () => {
-        const left = badgeRect(2, 100, 40, 400);
+        const left = badgeRect(2, 100, 40, 400, 300);
         expect(left.x).toBe(0);
-        const right = badgeRect(399, 100, 40, 400);
+        const right = badgeRect(399, 100, 40, 400, 300);
         expect(right.x + right.w).toBeLessThanOrEqual(400);
     });
 
     it("drops below the dot when there is no room above", () => {
-        const rect = badgeRect(100, 5, 40, 400);
+        const rect = badgeRect(100, 5, 40, 400, 300);
         expect(rect.below).toBe(true);
         expect(rect.y).toBeGreaterThanOrEqual(5 + 8);
+    });
+
+    it("clamps below the pane bottom when the dot sits at the edge", () => {
+        const rect = badgeRect(100, 298, 40, 400, 300);
+        expect(rect.below).toBe(true);
+        expect(rect.y + rect.h).toBeLessThanOrEqual(300);
     });
 });
 
@@ -79,5 +87,10 @@ describe("nearestEntry", () => {
         expect(nearestEntry(entries, 10 as Time)).toEqual({ time: 10, value: 1.5 });
         expect(nearestEntry(entries, 19 as Time)).toEqual({ time: 20, value: 2.5 });
         expect(nearestEntry(entries, 100 as Time)).toEqual({ time: 30, value: 3.5 });
+    });
+
+    it("returns null for a non-numeric time instead of a wrong entry", () => {
+        const entries = points([[10, 1.5]]);
+        expect(nearestEntry(entries, Number.NaN as unknown as Time)).toBeNull();
     });
 });

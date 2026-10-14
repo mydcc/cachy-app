@@ -99,6 +99,7 @@ export function badgeRect(
     y: number,
     textWidth: number,
     paneWidth: number,
+    paneHeight: number,
 ): BadgeRect {
     const w = textWidth + PAD_X * 2;
     const h = FONT_SIZE + PAD_Y * 2;
@@ -109,7 +110,7 @@ export function badgeRect(
         pillY = y + GAP_ABOVE_DOT;
         below = true;
     }
-    return { x: clampedX, y: pillY, w, h, below };
+    return { x: clampedX, y: Math.min(pillY, Math.max(paneHeight - h, 0)), w, h, below };
 }
 
 /** Nearest entry to a hovered time; the crosshair rarely lands exactly on a bar. */
@@ -119,6 +120,7 @@ export function nearestEntry(
 ): BadgePoint | null {
     if (entries.length === 0) return null;
     const t = typeof time === "number" ? time : Number(time);
+    if (Number.isNaN(t)) return null;
     let best = entries[0];
     let bestDist = Math.abs((typeof best.time === "number" ? best.time : Number(best.time)) - t);
     for (let i = 1; i < entries.length; i++) {
@@ -166,7 +168,13 @@ class CrosshairBadgeRenderer implements IPrimitivePaneRenderer {
         target.useMediaCoordinateSpace(({ context, mediaSize }) => {
             context.save();
             context.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
-            const rect = badgeRect(x, y, context.measureText(text).width, mediaSize.width);
+            const rect = badgeRect(
+                x,
+                y,
+                context.measureText(text).width,
+                mediaSize.width,
+                mediaSize.height,
+            );
             context.beginPath();
             context.roundRect(rect.x, rect.y, rect.w, rect.h, PILL_RADIUS);
             context.fillStyle = colors.bg;
@@ -205,6 +213,9 @@ class CrosshairBadgeView implements IPrimitivePaneView {
  */
 export class CrosshairValueBadge implements ISeriesPrimitive<Time> {
     private readonly paneView: CrosshairBadgeView;
+    // Stable reference: the typings ask views to keep identity when nothing
+    // changed, so a fresh array literal per call would defeat their cache.
+    private readonly views: readonly IPrimitivePaneView[];
     private params: SeriesAttachedParameter<Time> | null = null;
 
     constructor(source: CrosshairBadgeSource) {
@@ -213,6 +224,7 @@ export class CrosshairValueBadge implements ISeriesPrimitive<Time> {
             () => this.params?.chart ?? null,
             () => this.params?.series ?? null,
         );
+        this.views = [this.paneView];
     }
 
     attached(params: SeriesAttachedParameter<Time>): void {
@@ -224,7 +236,7 @@ export class CrosshairValueBadge implements ISeriesPrimitive<Time> {
     }
 
     paneViews(): readonly IPrimitivePaneView[] {
-        return [this.paneView];
+        return this.views;
     }
 
     /** Ask the chart to repaint. Safe before `attached` and after `detached`. */
