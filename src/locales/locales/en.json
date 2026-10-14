@@ -4162,6 +4162,30 @@
   },
   "academy": {
     "title": "Trading Academy",
+    "structure": {
+      "title": "Market Structure & Regime",
+      "openLesson": "Open lesson",
+      "s1": {
+        "title": "The higher timeframe decides first",
+        "body": "Before you read a pattern or a signal on your trading timeframe, read the one above it: in Elder's triple-screen sense you never trade against the higher timeframe — you trade with it or not at all. “4h bearish” commits you: shorts are the plan, longs need above-average evidence and tighter targets, and invalidation sits at the 4h structure, not on your 5m candle. The chart below follows the same logic as the indicator lessons, timeframe switch included: flip from 4h to 5m and watch the same reading change its story — the lower timeframe chops where the higher one still has direction."
+      },
+      "s2": {
+        "title": "Structure: reading breaks, not guessing",
+        "body": "An uptrend is a sequence of rising highs and lows; when price breaks the last low, that is a break of structure (BOS) — the trend continues downward. When it then breaks against the new direction, that is a change of character (CHOCH): not a signal, but the first warning that the other side is back in the game. Swing highs and lows are not measurements: every trader draws them differently, and whoever sees different swings sees different breaks — a BOS only ever holds relative to the swings you chose. The sketch shows the pattern drawn cleanly once, including the zone that changes sides after the break. Whether the break holds is decided by the retest — no indicator takes that from you.",
+        "legendSwings": "Swing highs and lows",
+        "legendBos": "BOS (structure break)",
+        "legendChoch": "CHOCH (change of character)",
+        "legendZone": "Flip zone (ex resistance)"
+      },
+      "s3": {
+        "title": "Levels that persist",
+        "body": "Support and resistance are not lines on the chart but zones where a lot traded earlier: old swing zones, flip zones after a BOS — and the higher the timeframe, the more they carry. When resistance breaks it becomes support: not out of geometry, but because the sellers of that time sit in loss there and want out on the retest. That is why levels outlive their candles: what was a level on 4h still is one when the 5m candles have long fallen off the window. Trade levels from the higher timeframe and manage the entry on the lower — the same division of labor as with bias."
+      },
+      "s4": {
+        "title": "Reading regime, not guessing",
+        "body": "Trend or range decides which tools are readable at all: when ADX rises above roughly 25, trend-following toward the top DI line pays; when it falls, or Choppiness sits above 61.8, breakouts fail and oscillator extremes gain meaning. Bandwidth at its lowest announces movement, not direction — a setup without a side is half a setup. ATR says how large the normal move currently is: as it expands, stops and targets must grow with it, or ordinary noise eats the trade. None of this classifies the market for you: these are readings, each with a flip side — strong in trend, blind in range, and vice versa. The buttons below open the lessons that teach each reading in detail."
+      }
+    },
     "indicators": {
       "adx": {
         "whatItMeasures": "Trend strength in three parts. +DI and −DI say which side is dominant; ADX says how strong that dominance is — it is itself the smoothed difference between the two. One period governs both the directional smoothing and ADX's own window. ADX carries no direction of its own.",
