@@ -2,7 +2,7 @@
 id: BUG-0682
 title: Indicator reset cannot restore settings the trader has changed
 type: bug
-status: specced
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/indicator-reset-defaults
 ---
 
 # BUG-0682 — Indicator reset cannot restore settings the trader has changed
