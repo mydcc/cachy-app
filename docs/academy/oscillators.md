@@ -11,33 +11,41 @@ price going". That distinction is the source of nearly every failure below.
 
 ## rsi
 
-**What it measures.** Relative buying versus selling pressure, expressed as a
-percentage between 0 and 100. 50 is balance; the distance from 50 is the
-strength of one side. Computed over the default price, so it can be pointed at
-another candle column where that is meaningful.
+**What it measures.** Relative strength of gains versus losses, as a value
+between 0 and 100. 50 marks balance; the distance from 50 is the strength of
+one side. Wilder smoothing over the configured period decides what "recent"
+means. Computed over the default price, so it can follow another price source
+where that is meaningful.
 
-**How to read it.** Above 50 favours buyers, below 50 favours sellers. 70 and 30
-mark the outer band where the move is stretched relative to recent history. The
-useful reading is usually not the level but the *shape*: higher highs in price
-with lower highs in RSI is a divergence, and a divergence only means something
-where a reversal is plausible at all.
+**How to read it.** Above 50 leans toward buyers, below 50 toward sellers.
+That is a tendency, not a signal. 70 and 30 are conventional outer marks for
+a move stretched against its own recent history, not buy or sell signals. The
+reliable reading is usually the shape, not the level. Regular divergence —
+price makes a higher high while RSI makes a lower high, or price a lower low
+while RSI a higher low — points to a possible reversal. Hidden divergence —
+price makes a higher low while RSI makes a lower low in an uptrend, or a
+lower high while RSI makes a higher high in a downtrend — points to
+continuation. Either counts only where the chart already gives the move a
+reason: at a boundary, after a break, at a level that already matters.
 
 **When it lies.**
 - **In a trending market.** RSI stays above 70 or below 30 for as long as the
-  trend lasts. In a strong uptrend it prints overbought on nearly every candle,
-  and treating that as a sell signal produces a series of small losses against a
-  large move.
+  trend lasts. In a strong uptrend it reads overbought on almost every candle,
+  and trading that as a sell signal collects small losses against one large
+  move. Shorter periods reach the outer marks sooner and fail sooner here.
 - **Divergence inside a range.** Two highs in a sideways market where price
-  oscillates between the same levels produce divergence constantly. Divergence
-  is a statement about momentum failing, and in a range there is no momentum to
-  fail.
-- **Against a level that is itself the point.** "Overbought" means stretched
-  against recent history, not expensive in absolute terms. A price that reached
-  a new high is by definition not stretched in the way the reading claims.
+  oscillates between the same levels still produce a divergence. Divergence
+  claims momentum is failing, and in a range there is no momentum to fail.
+- **Overbought is not expensive.** "Overbought" means stretched against recent
+  history, not expensive in absolute terms. A new high can be healthy; the
+  reading only says the climb was fast.
+- **A window with no movement has no value** and resolves as indeterminate,
+  not as a number.
 
-**Pairs with.** Reversal setups at range boundaries, taken with a defined stop
-beyond the level. Trend continuation is not its job — that is where an overlay
-on the price itself (see `trend.md`) carries the signal instead.
+**Pairs with.** Reversal setups at range boundaries, confirmed at the boundary
+(level holds, candle rejects, room before the next barrier), with a defined
+stop beyond the level. Trend continuation is not its job — that is where an
+overlay on the price itself (see `trend.md`) carries the signal instead.
 
 **On the chart.** Separate percentage axis below the price, fixed 0–100.
 
