@@ -748,7 +748,6 @@
       "header": "Take Profit",
       "tooltip": "Here you see calculated metrics for each partial take-profit target.",
       "addTargetTitle": "Add another target",
-      "emptyState": "No targets defined. Add a target above.",
       "tp1PrimaryHint": "Primary exchange TP (sent with order)",
       "maxTargetsReached": "Maximum 4 targets reached"
     },

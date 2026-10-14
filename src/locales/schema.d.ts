@@ -652,7 +652,6 @@ export type TranslationKey =
   | "dashboard.takeProfitTargets.header"
   | "dashboard.takeProfitTargets.tooltip"
   | "dashboard.takeProfitTargets.addTargetTitle"
-  | "dashboard.takeProfitTargets.emptyState"
   | "dashboard.takeProfitTargets.tp1PrimaryHint"
   | "dashboard.takeProfitTargets.maxTargetsReached"
   | "dashboard.summaryResults.header"
