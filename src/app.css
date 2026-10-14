@@ -257,3 +257,29 @@ html {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.15)) var(--scrollbar-track, var(--bg-primary));
 }
+
+/*
+ * Native controls (select popups, date pickers, …) render through the
+ * OS/browser — without color-scheme they always use the light system style,
+ * even in dark themes. Inherits from :root, so one declaration covers them.
+ */
+:root {
+  color-scheme: dark;
+}
+
+.theme-light,
+.theme-solarized-light,
+.theme-ayu-light,
+.theme-github-light {
+  color-scheme: light;
+}
+
+/*
+ * Dropdown items follow the theme instead of the white system default.
+ * (The hovered item's highlight stays OS-controlled — browsers expose no
+ * reliable hook for it; color-scheme above is the closest control.)
+ */
+option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
