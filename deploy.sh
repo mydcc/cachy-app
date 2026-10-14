@@ -20,6 +20,16 @@
 
 set -e
 
+# Refuse to run as root: a root run leaves root-owned files behind (logs,
+# node_modules, backups) and breaks every later run as the runtime user
+# (www) with permission errors. Re-run as: sudo -u www bash deploy.sh [...]
+# Emergency override: CACHY_ALLOW_ROOT=1 (still leaves mixed ownership).
+if [[ "${EUID:-$(id -u)}" -eq 0 && "${CACHY_ALLOW_ROOT:-0}" != "1" ]]; then
+    echo "ERROR: do not run deploy.sh as root; files must stay owned by www." >&2
+    echo "Re-run as: sudo -u www bash \"${BASH_SOURCE[0]}\" $*" >&2
+    exit 1
+fi
+
 # --- 1. Configuration & Initial Setup ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
