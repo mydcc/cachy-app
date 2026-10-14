@@ -88,9 +88,9 @@ unweighted average, not used instead of one.
 
 ## macd
 
-**What it measures.** The difference between a fast and a slow exponential
-average, plus a signal line (an average of that difference) and the histogram
-(the gap between the two).
+**What it measures.** The difference between a fast (12) and a slow (26)
+exponential average, plus a signal line (a 9-period average of that difference)
+and the histogram (the gap between the two).
 
 **How to read it.** The **sign of the MACD line** says which side's average is
 higher — direction. The **MACD/signal cross** is the event most systems use. The
@@ -152,8 +152,8 @@ whether to believe them. Used alone it is close to useless.
 
 ## super_trend
 
-**What it measures.** A trailing band that follows price by a multiple of
-volatility. The price standing above the band is the trend being read as up; the
+**What it measures.** A trailing band from the period midpoint ± factor·ATR
+(defaults 10 and 3). The price standing above the band is the trend being read as up; the
 band the trend stands on flips to the other side when price crosses it. Three
 lines: the band price is on, and the two bands it could be on.
 

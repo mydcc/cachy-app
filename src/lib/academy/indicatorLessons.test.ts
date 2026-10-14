@@ -40,6 +40,8 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { INDICATOR_CATALOGUE, REGISTRY_CATALOGUE } from "../alerts/indicatorCatalogue";
 import { LESSON_FIELDS, LESSON_GROUPS, LESSON_NAMESPACE, lessonKey } from "./indicatorLessons";
@@ -131,6 +133,69 @@ describe("indicator lessons", () => {
         // An empty group renders a heading over nothing.
         for (const { group, entries } of LESSON_GROUPS) {
             expect(entries.length, group).toBeGreaterThan(0);
+        }
+    });
+
+    it("pins the catalogue numbers the prose teaches, per lesson and language", () => {
+        // Prose truth has no other guard: the cases above assert shape, so a
+        // future edit could drop a default (or invent one) with CI green. Each
+        // entry names substrings the current prose carries across its four
+        // fields; the table is the assertion surface a prose edit must keep
+        // green. Decimal commas are German, decimal dots are English.
+        const pinned: Readonly<Record<string, { de: readonly string[]; en: readonly string[] }>> = {
+            ema: { de: ["Schlusskurse"], en: ["closing prices"] },
+            sma: { de: ["Schlusskurse"], en: ["closing prices"] },
+            wma: { de: ["Schlusskurse"], en: ["closing prices"] },
+            hma: { de: ["Schlusskurse"], en: ["closing prices"] },
+            vwma: { de: ["der Schlusskurse"], en: ["closing prices"] },
+            macd: { de: ["(12)", "(26)", "9-periodiger"], en: ["(12)", "(26)", "9-period EMA"] },
+            adx: { de: ["etwa 25", "unter 20"], en: ["roughly 25", "below 20"] },
+            super_trend: { de: ["10 und 3"], en: ["10 and 3"] },
+            parabolic_sar: { de: ["0,02", "0,2"], en: ["0.02", "0.2"] },
+            ichimoku: { de: ["(9, conversion)", "kijun (26", "52 Perioden"], en: ["(9, conversion)", "kijun (26", "52 periods"] },
+            bollinger: { de: ["SMA(20)", "zwei Standardabweichungen"], en: ["SMA(20)", "two standard deviations"] },
+            atr: { de: ["Default 14", "Wilder"], en: ["default 14", "Wilder"] },
+            choppiness: { de: ["Default 14", "61,8", "38,2"], en: ["default 14", "61.8", "38.2"] },
+            obv: { de: ["1963", "Vortagesschluss"], en: ["1963", "prior close"] },
+            volume_ma: { de: ["SMA(20)"], en: ["SMA(20)"] },
+            rsi: { de: ["Standard 14"], en: ["14 by default"] },
+            stoch_rsi: { de: ["Standard 14", "je 3"], en: ["14 for the", "3 for each"] },
+            stochastic: { de: ["Standard 14", "je 3"], en: ["14 for the", "3 for each"] },
+            williams_r: { de: ["Standard 14"], en: ["14 by default"] },
+            cci: { de: ["Standard 20", "0,015"], en: ["20 by default", "0.015"] },
+            mfi: { de: ["Standard 14"], en: ["14 by default"] },
+            ao: { de: ["Standard 5 und 34"], en: ["5 and 34 by default"] },
+            momentum: { de: ["Standard 10"], en: ["10 by default"] },
+        };
+        // The table covers every registry indicator and nothing else, so a new
+        // indicator without pinned prose fails here rather than passing quietly.
+        expect(Object.keys(pinned).sort()).toEqual(
+            REGISTRY_CATALOGUE.map((entry) => entry.id).sort(),
+        );
+
+        const missing: string[] = [];
+        for (const [name, bundle] of LOCALES) {
+            const lang = name as "de" | "en";
+            for (const [id, claims] of Object.entries(pinned)) {
+                const text = LESSON_FIELDS.map(
+                    (field) => lookup(bundle, lessonKey(id, field)) as string,
+                ).join("\n");
+                for (const claim of claims[lang]) {
+                    if (!text.includes(claim)) missing.push(`${name}:${id}:${claim}`);
+                }
+            }
+        }
+        expect(missing).toEqual([]);
+    });
+
+    it("mirrors the lesson defaults on the trend card", () => {
+        // The pinning table covers locale prose only; the card learned the
+        // same numbers alongside it, and nothing would catch the mirror
+        // drifting. Non-vacuous: an empty card file fails before any claim.
+        const card = readFileSync(resolve(process.cwd(), "docs/academy/trend.md"), "utf8");
+        expect(card.length).toBeGreaterThan(0);
+        for (const claim of ["(12)", "(26)", "9-period", "defaults 10 and 3"]) {
+            expect(card, claim).toContain(claim);
         }
     });
 });
