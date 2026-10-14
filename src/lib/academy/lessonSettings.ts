@@ -34,7 +34,6 @@
  * object, so this stays a function of its arguments and a test needs no store.
  */
 
-import { ANALYSIS_TIMEFRAMES } from "../constants";
 import { mappedIndicatorKeys, mappedIndicatorRefs } from "../alerts/indicatorSettingsSeed";
 import type { CatalogueEntry } from "../alerts/indicatorCatalogue";
 import type { IndicatorRef, ParamValue, PriceField } from "../rules/types";
@@ -147,27 +146,19 @@ function refFrom(entry: CatalogueEntry, settings: object): IndicatorRef | null {
     );
 }
 
-/** The timeframe a lesson draws on when the user's own list offers none of ours. */
+/** The timeframe a lesson draws on when the stored or submitted one is unusable. */
 export const LESSON_TIMEFRAME_FALLBACK = "1h";
 
 /**
- * The lesson timeframes `analysisTimeframes` allows, or the fallback alone.
+ * Whether `value` is a timeframe the app can draw a candle for.
  *
- * `ANALYSIS_TIMEFRAMES` is the same list the setting itself offers, so the
- * intersection is the whole list whenever the trader has left it alone; the
- * intersection exists for the boundary, not for the happy path — settings come
- * back out of `localStorage`, and a hand-edited or migrated store is validated
- * like one.
+ * A shape check rather than a membership test, because the dropdown's quick
+ * picks are not the whole universe: its custom field exists precisely so a
+ * trader can name one outside the grid (`3m`, `12h`). The notation is the app's
+ * — a count and one unit, month as a capital `M` — so a malformed value from a
+ * hand-edited store degrades to the fallback instead of subscribing to a channel
+ * no data will arrive on.
  */
-export function lessonTimeframeOptions(
-    analysisTimeframes: readonly string[],
-): readonly string[] {
-    // A stored non-array would throw from `.includes` during render and take the
-    // whole tab down, so it degrades to the fallback like an empty list does.
-    if (!Array.isArray(analysisTimeframes)) return [LESSON_TIMEFRAME_FALLBACK];
-
-    const offered = ANALYSIS_TIMEFRAMES.filter((timeframe) =>
-        analysisTimeframes.includes(timeframe),
-    );
-    return offered.length > 0 ? offered : [LESSON_TIMEFRAME_FALLBACK];
+export function isDrawableTimeframe(value: string): boolean {
+    return /^\d+(m|h|d|w|M)$/.test(value);
 }

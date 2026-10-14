@@ -66,18 +66,18 @@
     } from "../../lib/academy/indicatorLessonSeries";
     import {
         LESSON_TIMEFRAME_FALLBACK,
-        lessonTimeframeOptions,
+        isDrawableTimeframe,
     } from "../../lib/academy/lessonSettings";
     import type { EvaluationCandle, ParamValue, PriceField } from "../../lib/rules/types";
     import type { Kline } from "../../services/technicalsTypes";
-    import { CONSTANTS } from "../../lib/constants";
+    import { CONSTANTS, TIMEFRAME_QUICK_PICKS } from "../../lib/constants";
     import { tradeState } from "../../stores/trade.svelte";
     import { marketState } from "../../stores/market.svelte";
-    import { settingsState } from "../../stores/settings.svelte";
     import { marketWatcher } from "../../services/marketWatcher";
     import { logger } from "../../services/logger";
     import { normalizeSymbol } from "../../utils/symbolUtils";
     import { safeLocalStorage } from "../../utils/storageWrapper";
+    import TimeframeDropdown from "./TimeframeDropdown.svelte";
 
     interface Props {
         /** The lesson currently open in the view. */
@@ -101,35 +101,28 @@
     /**
      * The timeframe a lesson is drawn on.
      *
-     * FEAT-0681: the learner picks it from the timeframes their own analysis
-     * setting offers, and the pick is remembered. Before that it was pinned to
-     * `1h` so a lesson would not read differently on two visits — the default
-     * for a first visit is still that value.
+     * FEAT-0681 gave the learner the choice and remembered it; before that it was
+     * pinned to `1h` so a lesson would not read differently on two visits — the
+     * default for a first visit is still that value.
      */
     const LESSON_TIMEFRAME_KEY = CONSTANTS.LOCAL_STORAGE_LESSON_TIMEFRAME_KEY;
 
-    let pickedTimeframe = $state(readStoredTimeframe());
-
-    /** The timeframes the user's own analysis setting offers, never empty. */
-    let timeframes = $derived(lessonTimeframeOptions(settingsState.analysisTimeframes));
+    let timeframe = $state(readStoredTimeframe());
 
     /**
-     * The picked timeframe while it is still offered, the first option
-     * otherwise. A stale pick is not an error: the setting may have dropped it
-     * since, and the chart must still draw something.
+     * Validated on the way in as well as out: the value comes from the dropdown
+     * *and* from `localStorage`, which a hand-edit or a build with a different
+     * timeframe set can leave unusable. An unusable one degrades to the default
+     * rather than subscribing to a channel no candle will arrive on.
      */
-    let timeframe = $derived(
-        timeframes.includes(pickedTimeframe)
-            ? pickedTimeframe
-            : (timeframes[0] ?? LESSON_TIMEFRAME_FALLBACK),
-    );
-
     function readStoredTimeframe(): string {
-        return safeLocalStorage.getItem(LESSON_TIMEFRAME_KEY) ?? LESSON_TIMEFRAME_FALLBACK;
+        const stored = safeLocalStorage.getItem(LESSON_TIMEFRAME_KEY);
+        return stored !== null && isDrawableTimeframe(stored) ? stored : LESSON_TIMEFRAME_FALLBACK;
     }
 
     function selectTimeframe(value: string): void {
-        pickedTimeframe = value;
+        if (!isDrawableTimeframe(value)) return;
+        timeframe = value;
         safeLocalStorage.setItem(LESSON_TIMEFRAME_KEY, value);
     }
 
@@ -467,22 +460,13 @@
         <div class="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)] min-w-0">
             <span class="font-bold text-[var(--accent-color)] truncate">{symbol || "—"}</span>
             <span aria-hidden="true">·</span>
-            <!--
-              `value` + `onchange` rather than `bind:value`: Svelte resolves a
-              select binding through `select.querySelector(':checked')`, and a
-              value set programmatically matches nothing there — the same reason
-              the group filter in the lesson view is written this way.
-            -->
-            <select
-                aria-label={$_("indicatorLessons.chart.timeframeLabel")}
+            <!-- The same chip and quick-pick dropdown the Technicals panel shows. -->
+            <TimeframeDropdown
                 value={timeframe}
-                onchange={(event) => selectTimeframe(event.currentTarget.value)}
-                class="bg-transparent border border-[var(--border-color)] rounded px-1 py-0.5 text-xs font-mono text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors"
-            >
-                {#each timeframes as option (option)}
-                    <option value={option}>{option}</option>
-                {/each}
-            </select>
+                options={TIMEFRAME_QUICK_PICKS}
+                onSelect={selectTimeframe}
+                label={$_("indicatorLessons.chart.timeframeLabel")}
+            />
         </div>
 
         <!-- One legend entry per drawn line, from the catalogue's own outputs. -->

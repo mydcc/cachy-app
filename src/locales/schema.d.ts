@@ -2453,6 +2453,7 @@ export type TranslationKey =
   | "common.save"
   | "common.cancel"
   | "common.confirm"
+  | "common.timeframe"
   | "common.ok"
   | "common.close"
   | "common.remove"
