@@ -42,6 +42,7 @@
       chartPatterns: "chartPatterns.title",
       candlestickPatterns: "candlestickPatterns.title",
       indicators: "indicatorLessons.title",
+      marketStructure: "academy.structure.title",
    };
 
    let tablistEl: HTMLDivElement | null = $state(null);

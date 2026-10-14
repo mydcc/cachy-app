@@ -32,6 +32,7 @@
    import CandlestickPatternsView from "./CandlestickPatternsView.svelte";
    import ChartPatternsView from "./ChartPatternsView.svelte";
    import IndicatorLessonsView from "./IndicatorLessonsView.svelte";
+   import MarketStructureView from "./MarketStructureView.svelte";
    import { createAcademyTabs } from "../../lib/academy/useAcademyTabs.svelte";
 
    interface Props {
@@ -65,6 +66,8 @@
          <ChartPatternsView />
       {:else if tabs.activeTab === "candlestickPatterns"}
          <CandlestickPatternsView />
+      {:else if tabs.activeTab === "marketStructure"}
+         <MarketStructureView showLiveChart={showLiveChart} onOpenIndicators={() => tabs.setTab("indicators")} />
       {:else}
          <IndicatorLessonsView showLiveChart={showLiveChart} />
       {/if}
