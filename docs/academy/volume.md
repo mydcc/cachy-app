@@ -9,8 +9,9 @@ stating.
 
 ## obv
 
-**What it measures.** A running total that adds the volume of every up-closing
-candle and subtracts the volume of every down-closing one. The line's **slope**
+**What it measures.** Granville's running total (1963): it adds the volume of
+every candle closing above the prior close and subtracts the volume of every
+candle closing below it (an unchanged close counts zero). The line's **slope**
 is the reading. The line's **level** is not.
 
 **How to read it.** Whether the total is rising or falling while price moves, or
