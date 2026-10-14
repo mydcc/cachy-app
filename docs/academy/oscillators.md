@@ -211,9 +211,10 @@ wanted.
 
 ## ao
 
-**What it measures.** The difference between a 5-period and a 34-period moving
+**What it measures.** The difference between a fast and a slow moving
 average of the median price, each a median rather than a mean. Rises when
-short-term movement exceeds long-term, falls when it does not.
+short-term movement exceeds long-term, falls when it does not. The configured
+periods decide what "short-term" and "long-term" mean.
 
 **How to read it.** The zero line is the whole signal: above it, short-term
 movement dominates. There are no useful fixed thresholds — unlike RSI, there is
@@ -223,12 +224,14 @@ the instrument. Compare the slope and the duration above or below the line.
 **When it lies.**
 - **It carries no scale.** A reading of +40 on one symbol and +4,000 on another
   mean the same thing proportionally and different things absolutely. Any
-  threshold quoted in a lesson without naming the instrument is meaningless.
+  threshold quoted without naming the instrument is meaningless.
 - **It is structurally lagged.** Both inputs are smoothed, so turns in the
   underlying movement appear in the reading after they happened.
 - **The median is not a mean.** Outlier resistance is the point, and it also
   means the reading describes typical candles rather than the extremes that
   moved price.
+- **Before a full window of the slower period there is no value**, and the
+  reading resolves as indeterminate, not as a number.
 
 **Pairs with.** Confirming direction and relative strength on a higher timeframe
 than the entry, where the question is which side is in control.
