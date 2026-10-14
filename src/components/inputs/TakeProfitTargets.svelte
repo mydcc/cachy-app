@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import TakeProfitRow from "../shared/TakeProfitRow.svelte";
+  import InfoTip from "../shared/InfoTip.svelte";
   import { app } from "../../services/app";
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
@@ -55,6 +56,8 @@
     <span>{$_("dashboard.takeProfitTargets.header")}</span>
 
     <div class="flex items-center gap-2">
+      <InfoTip text={$_("dashboard.takeProfitTargets.tooltip")} />
+
       {#if targets.length < 4}
         <button
           class="text-[var(--accent-color)] hover:text-[var(--accent-hover)] transition-colors p-1"
