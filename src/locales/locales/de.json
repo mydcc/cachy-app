@@ -4105,6 +4105,27 @@
     "structure": {
       "title": "Marktstruktur & Regime",
       "openLesson": "Lektion öffnen",
+      "read": {
+        "timeframe": "Timeframe (alle Demos)",
+        "biasTf": "Bias-Timeframe",
+        "rising": "steigend",
+        "falling": "fallend",
+        "flat": "flach",
+        "emaAbove": "Kurs über EMA",
+        "emaBelow": "Kurs unter EMA",
+        "noData": "Keine Daten",
+        "lastBreak": "Letzter Bruch",
+        "noBreak": "Kein Bruch in den sichtbaren Kerzen",
+        "candlesAgo": "vor {n} Kerzen",
+        "nearestResistance": "Nächster Widerstand",
+        "nearestSupport": "Nächste Unterstützung",
+        "bosUp": "BOS aufwärts",
+        "bosDown": "BOS abwärts",
+        "chochUp": "CHOCH aufwärts",
+        "chochDown": "CHOCH abwärts",
+        "adxThreshold": "Schwelle 25",
+        "chopThreshold": "Schwellen 61,8 / 38,2"
+      },
       "s1": {
         "title": "Der höhere Timeframe entscheidet zuerst",
         "takeaway": "Kein Trade ohne Blick nach oben: erst den höheren Timeframe lesen, dann den unteren handeln.",

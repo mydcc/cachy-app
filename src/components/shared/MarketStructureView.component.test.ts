@@ -121,8 +121,8 @@ describe("MarketStructureView", () => {
         host.innerHTML = "";
 
         const shown = renderView({ showLiveChart: true });
-        // One chart per demo entry: ema, adx, bollinger.
-        expect(shown.querySelectorAll('[data-testid="empty-stub"]').length).toBe(3);
+        // One chart per demo entry: ema, ema, ema, adx, bollinger.
+        expect(shown.querySelectorAll('[data-testid="empty-stub"]').length).toBe(5);
         expect(shown.textContent).toContain(lookup("academy.structure.s1.chartHint"));
     });
 });

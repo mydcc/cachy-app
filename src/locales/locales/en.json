@@ -4165,6 +4165,27 @@
     "structure": {
       "title": "Market Structure & Regime",
       "openLesson": "Open lesson",
+      "read": {
+        "timeframe": "Timeframe (all demos)",
+        "biasTf": "Bias timeframe",
+        "rising": "rising",
+        "falling": "falling",
+        "flat": "flat",
+        "emaAbove": "Price above EMA",
+        "emaBelow": "Price below EMA",
+        "noData": "No data",
+        "lastBreak": "Last break",
+        "noBreak": "No break in the visible candles",
+        "candlesAgo": "{n} candles ago",
+        "nearestResistance": "Nearest resistance",
+        "nearestSupport": "Nearest support",
+        "bosUp": "BOS up",
+        "bosDown": "BOS down",
+        "chochUp": "CHOCH up",
+        "chochDown": "CHOCH down",
+        "adxThreshold": "Threshold 25",
+        "chopThreshold": "Thresholds 61.8 / 38.2"
+      },
       "s1": {
         "title": "The higher timeframe decides first",
         "takeaway": "No trade without looking up: read the higher timeframe first, then trade the lower one.",
