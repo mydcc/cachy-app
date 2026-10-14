@@ -2,7 +2,7 @@
 id: BUG-0682
 title: Indicator reset cannot restore settings the trader has changed
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/indicator-reset-defaults
 ---
 
 # BUG-0682 — Indicator reset cannot restore settings the trader has changed
@@ -65,9 +67,31 @@ the persistence shape and the existing `shippedIndicatorDefaults()` in
 
 ## Acceptance criteria
 
-- [ ] A test writes a setting through the store, calls `reset()`, and asserts the shipped value is back
-- [ ] A test writes a setting through the store and asserts the module-level defaults object is unchanged
-- [ ] The persistence round-trip (save, reload, load) still restores a stored value
+- [x] A test writes a setting through the store, calls `reset()`, and asserts the shipped value is back
+- [x] A test writes a setting through the store and asserts the module-level defaults object is unchanged
+- [x] The persistence round-trip (save, reload, load) still restores a stored value
+
+## State
+
+Fixed on branch `fix/indicator-reset-defaults`.
+
+`DEFAULT_INDICATOR_SETTINGS` — renamed from `defaultSettings`, because `Settings`
+has a credential-carrying `defaultSettings` of its own — is deep-frozen at module
+load and is now the **single** pristine source: field initialisers, `merge()`,
+the `ema` branch, `panelSections` and `reset()` all copy from it, so a forgotten
+copy throws instead of corrupting the record. `save()` no longer persists the
+`_cachedJson` cache key, which wrote a second full copy of the settings into the
+same blob (about twice the quota for this key) that nothing read back.
+
+Verified by `src/stores/indicatorReset.test.ts`. Reproducible REDs in this
+environment: removing the freeze (the `Object.isFrozen` assertions and the write
+that must throw), and re-persisting `_cachedJson`. Two things learned while
+proving them, recorded because they will mislead the next reader: (a) `$state`
+hands out a *proxy*, so comparing `indicatorState[k] !== DEFAULT[k]` can never
+detect aliasing — that assertion is not used; (b) this suite's environment clones
+on `$state`, so an aliasing regression is not reproducible *here* at all. The
+browser build the bug reached is the one where a field really is the literal,
+which is why the per-card loop is a property check rather than a proven RED.
 
 ## Links
 
