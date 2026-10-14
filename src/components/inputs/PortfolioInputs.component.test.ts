@@ -51,7 +51,9 @@ const tradeStateMock = vi.hoisted(() => {
     Object.defineProperty(state, "accountSize", {
         enumerable: true,
         get: () => bound.get("accountSize") ?? "",
-        set: (value: string) => bound.set("accountSize", value),
+        set: (value: string) => {
+            bound.set("accountSize", value);
+        },
     });
     const update: StoreWrite = (fn) => {
         Object.assign(state, fn({ ...state }));
