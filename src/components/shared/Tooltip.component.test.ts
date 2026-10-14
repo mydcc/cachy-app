@@ -50,13 +50,13 @@ describe("Tooltip.svelte component", () => {
     expect(trigger.classList.contains("has-underline")).toBe(true);
 
     // Initial state: tooltip text not visible
-    expect(container.querySelector("#tooltip-text")).toBeNull();
+    expect(container.querySelector('[role="tooltip"]')).toBeNull();
 
     // Trigger hover
     trigger.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
     flushSync();
 
-    const tooltipEl = container.querySelector("#tooltip-text");
+    const tooltipEl = container.querySelector('[role="tooltip"]');
     expect(tooltipEl).not.toBeNull();
     expect(tooltipEl?.textContent?.trim()).toContain("Sample Help Text");
 
@@ -64,7 +64,7 @@ describe("Tooltip.svelte component", () => {
     trigger.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
     flushSync();
 
-    expect(container.querySelector("#tooltip-text")).toBeNull();
+    expect(container.querySelector('[role="tooltip"]')).toBeNull();
 
     unmount(component);
   });
@@ -89,7 +89,7 @@ describe("Tooltip.svelte component", () => {
     trigger.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
     flushSync();
 
-    expect(container.querySelector("#tooltip-text")).toBeNull();
+    expect(container.querySelector('[role="tooltip"]')).toBeNull();
 
     unmount(component);
   });
@@ -118,6 +118,58 @@ describe("Tooltip.svelte component", () => {
     settingsState.showTooltips = true;
     flushSync();
     expect(trigger.classList.contains("has-underline")).toBe(true);
+
+    unmount(component);
+  });
+
+  it("describes its trigger with a per-instance id, not a shared one", () => {
+    const first = mount(Tooltip, {
+      target: container,
+      props: { text: "First", underline: false },
+    });
+    const second = mount(Tooltip, {
+      target: container,
+      props: { text: "Second", underline: false },
+    });
+    flushSync();
+
+    const triggers = container.querySelectorAll<HTMLElement>(".tooltip-container");
+    const [firstTrigger, secondTrigger] = triggers;
+
+    firstTrigger.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+    secondTrigger.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+    flushSync();
+
+    const tooltips = container.querySelectorAll<HTMLElement>('[role="tooltip"]');
+    expect(tooltips).toHaveLength(2);
+    const ids = [...tooltips].map((el) => el.id);
+    expect(new Set(ids).size).toBe(2);
+
+    // Each trigger points at its own tooltip, and only while it is shown.
+    expect(firstTrigger.getAttribute("aria-describedby")).toBe(ids[0]);
+    expect(secondTrigger.getAttribute("aria-describedby")).toBe(ids[1]);
+    expect(firstTrigger.getAttribute("aria-describedby")).not.toBe(
+      secondTrigger.getAttribute("aria-describedby"),
+    );
+
+    unmount(first);
+    unmount(second);
+  });
+
+  it("keeps the trigger focusable but free of an interactive role", () => {
+    const component = mount(Tooltip, {
+      target: container,
+      props: { text: "Help", underline: false },
+    });
+    flushSync();
+
+    const trigger = container.querySelector(".tooltip-container") as HTMLElement;
+    expect(trigger.getAttribute("tabindex")).toBe("0");
+    // A tooltip trigger may wrap a real button; giving it role="button" would
+    // nest interactive elements.
+    expect(trigger.getAttribute("role")).toBeNull();
+    // Nothing to describe until the tooltip is visible.
+    expect(trigger.getAttribute("aria-describedby")).toBeNull();
 
     unmount(component);
   });

@@ -37,7 +37,12 @@
   let tooltipEl: HTMLElement | undefined = $state();
   let arrowEl: HTMLElement | undefined = $state();
   let triggerEl: HTMLElement | undefined = $state();
-  // Cleanup logic moved to effect return
+  /*
+   * One id per instance, so the trigger can point `aria-describedby` at its
+   * own tooltip. A fixed id duplicated whenever two tooltips were open at
+   * once, which is invalid HTML and made the association ambiguous.
+   */
+  const tooltipId = $props.id();
 
   function show() {
     if (!isEnabled) return;
@@ -108,12 +113,23 @@
   });
 </script>
 
+<!--
+  The trigger carries no interactive role on purpose: many call sites wrap a
+  real <button>, and a button inside a button is invalid. It is a generic
+  container that reveals a tooltip on hover/focus, so it needs no role of its
+  own — only to be reachable by keyboard (`tabindex`) and to carry the hover
+  and focus handlers. Both linter rules below assume a static role that this
+  component cannot have by design (WAI-ARIA tooltip pattern: the trigger is
+  focusable and described by the tooltip it reveals).
+-->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <span
   bind:this={triggerEl}
   class="tooltip-container"
   class:has-underline={underline && isEnabled}
-  role={isEnabled ? "button" : undefined}
   tabindex={isEnabled ? 0 : undefined}
+  aria-describedby={isEnabled && visible && text ? tooltipId : undefined}
   onmouseenter={isEnabled ? show : undefined}
   onmouseleave={isEnabled ? hide : undefined}
   onfocusin={isEnabled ? show : undefined}
@@ -125,7 +141,7 @@
   {#if isEnabled && visible && text}
     <div
       bind:this={tooltipEl}
-      id="tooltip-text"
+      id={tooltipId}
       role="tooltip"
       class="tooltip-content"
     >
