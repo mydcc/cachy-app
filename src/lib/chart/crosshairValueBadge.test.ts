@@ -67,9 +67,9 @@ describe("badgeRect", () => {
     });
 
     it("clamps below the pane bottom when the dot sits at the edge", () => {
-        const rect = badgeRect(100, 298, 40, 400, 300);
+        const rect = badgeRect(100, 5, 40, 400, 20);
         expect(rect.below).toBe(true);
-        expect(rect.y + rect.h).toBeLessThanOrEqual(300);
+        expect(rect.y + rect.h).toBeLessThanOrEqual(20);
     });
 });
 
