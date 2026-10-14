@@ -113,15 +113,21 @@
   <!-- Line 1: Header, Status badges, PnL & R/R, and Actions -->
   <div class="flex items-center justify-between text-xs">
     <div class="flex items-center gap-1.5">
+      {#snippet tpLabel()}
+        <span class="font-bold text-[var(--text-primary)]">TP {index + 1}</span>
+      {/snippet}
       {#if index === 0}
         <!-- The first target is the one the venue actually receives; the
              explanation lives on the label itself instead of a separate
-             badge, which only added noise next to "TP 1". -->
+             badge, which only added noise next to "TP 1". The sr-only copy
+             keeps the meaning for assistive tech even when tooltips are
+             switched off, where a hover-only tooltip would not. -->
         <Tooltip text={$_("orderEntry.notes.firstTargetOnly")}>
-          <span class="font-bold text-[var(--text-primary)]">TP {index + 1}</span>
+          {@render tpLabel()}
+          <span class="sr-only">{$_("orderEntry.notes.firstTargetOnly")}</span>
         </Tooltip>
       {:else}
-        <span class="font-bold text-[var(--text-primary)]">TP {index + 1}</span>
+        {@render tpLabel()}
         <span class="text-[9px] font-medium text-[var(--text-secondary)]">
           {$_("orderEntry.partialTarget")}
         </span>

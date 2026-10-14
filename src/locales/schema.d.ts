@@ -3778,7 +3778,6 @@ export type TranslationKey =
   | "orderEntry.errors.accountCredentialsIncomplete"
   | "orderEntry.errors.accountPassphraseMissing"
   | "orderEntry.timeInForceNone"
-  | "orderEntry.exchangeOrderTp"
   | "orderEntry.partialTarget"
   | "chartView.loadingHistory"
   | "chartView.fetchingMarketData"
