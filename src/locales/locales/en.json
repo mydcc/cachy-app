@@ -1330,7 +1330,6 @@
       "gyroscope": "Gyroscope Control",
       "gyroscopeDesc": "Control camera with device motion (Mobile)",
       "gyroPermissionDenied": "Permission denied. Gyroscope control requires access to device sensors.",
-      "layoutModes": {},
       "tradeFlow": {
         "buyColor": "Buy Color",
         "sellColor": "Sell Color",
@@ -1746,7 +1745,6 @@
         "period": "Period"
       },
       "summary": "Summary",
-      "context": {},
       "panelConfiguration": "Panel Configuration",
       "toggleVisibility": "Toggle visibility",
       "chartPanes": {
@@ -2062,10 +2060,7 @@
       "hotkeysTitle": "Hotkeys",
       "presetInfo": "You are using a hotkey preset. Switch to 'Custom' to rebind individual hotkeys.",
       "switchToCustom": "Customize Hotkeys",
-      "subtabs": {},
-      "workspace": {
-        "subtabs": {}
-      },
+      "workspace": {},
       "glass": {
         "blur": "Glass Blur",
         "saturate": "Saturation",

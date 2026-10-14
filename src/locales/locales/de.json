@@ -1330,7 +1330,6 @@
       "gyroscope": "Gyroskop Steuerung",
       "gyroscopeDesc": "Kamera mit Bewegung steuern (Mobil)",
       "gyroPermissionDenied": "Zugriff verweigert. Gyroskop-Steuerung benötigt Zugriff auf Gerätesensoren.",
-      "layoutModes": {},
       "tradeFlow": {
         "buyColor": "Kauf-Farbe",
         "sellColor": "Verkauf-Farbe",
@@ -1771,7 +1770,6 @@
         "period": "Periode"
       },
       "summary": "Zusammenfassung",
-      "context": {},
       "panelConfiguration": "Panel-Konfiguration",
       "toggleVisibility": "Sichtbarkeit umschalten",
       "chartPanes": {
@@ -2221,10 +2219,7 @@
       "customize": "Anpassen",
       "presetInfo": "Du verwendest ein Hotkey-Preset. Wechsle zu 'Custom', um einzelne Hotkeys neu zu belegen.",
       "switchToCustom": "Hotkeys anpassen",
-      "subtabs": {},
-      "workspace": {
-        "subtabs": {}
-      },
+      "workspace": {},
       "glass": {
         "blur": "Glas Unschärfe",
         "saturate": "Sättigung",
