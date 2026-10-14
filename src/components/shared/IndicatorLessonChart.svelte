@@ -50,6 +50,7 @@
         type IChartApi,
         type ISeriesApi,
         type LineData,
+        type MouseEventParams,
         type Time,
     } from "lightweight-charts";
     import { _ } from "../../locales/i18n";
@@ -78,6 +79,10 @@
     import { normalizeSymbol } from "../../utils/symbolUtils";
     import { normalizeTimeframeInput } from "../../utils/utils";
     import { safeLocalStorage } from "../../utils/storageWrapper";
+    import {
+        CrosshairValueBadge,
+        type BadgePoint,
+    } from "../../lib/chart/crosshairValueBadge";
     import TimeframeDropdown from "./TimeframeDropdown.svelte";
 
     interface Props {
@@ -246,8 +251,29 @@
      * lesson, or a switch between price overlay and own pane. A live tick only
      * refreshes the data of the series already on the chart.
      */
-    let drawnLines: { name: string; series: ISeriesApi<"Line"> }[] = [];
+    let drawnLines: { name: string; series: ISeriesApi<"Line">; badge: CrosshairValueBadge }[] = [];
     let drawnSignature = "";
+
+    /*
+     * Crosshair value badges: one pill per indicator line, floating above
+     * the dot at the hovered time. The hovered time is plain component
+     * state (no reactivity needed — the badges repaint through the chart,
+     * not through Svelte), and each badge reads its line's entries and the
+     * cached theme colours lazily at draw time.
+     */
+    let hoveredTime: Time | null = null;
+    let badgeEntries: BadgePoint[][] = [];
+    const badgeTheme: { bg: string; text: string; line: string[] } = {
+        bg: "",
+        text: "",
+        line: [],
+    };
+
+    function refreshBadgeTheme(): void {
+        badgeTheme.bg = cssColor("--bg-secondary", "#1e293b");
+        badgeTheme.text = cssColor("--text-primary", "#e2e8f0");
+        badgeTheme.line = LINE_COLOR_VARS.map((token) => cssColor(token, "#2962ff"));
+    }
 
     function translatedOutput(name: string): string {
         const key = outputKey(name) as TranslationKey;
@@ -271,6 +297,23 @@
      */
     function toChartNumber(value: string): number {
         return Number(value); // audit: safe — chart series data is plain numbers (the chart library's own API)
+    }
+
+    /** `LessonLine.values` as badge lookup entries (time + finite value). */
+    function toBadgeEntries(
+        values: readonly (string | null)[],
+        rows: readonly EvaluationCandle[],
+    ): BadgePoint[] {
+        const out: BadgePoint[] = [];
+        const n = Math.min(values.length, rows.length);
+        for (let i = 0; i < n; i++) {
+            const raw = values[i];
+            if (raw === null || raw === undefined) continue;
+            const value = toChartNumber(raw);
+            if (!Number.isFinite(value)) continue;
+            out.push({ time: (rows[i].open_time_ms / 1000) as Time, value });
+        }
+        return out;
     }
 
     /** `LessonLine.values` are decimal strings; the series wants numbers. */
@@ -318,6 +361,9 @@
                 color: cssColor(LINE_COLOR_VARS[index % LINE_COLOR_VARS.length], "#2962ff"),
             });
         });
+        // Badge pills read the cached theme colours at draw time.
+        refreshBadgeTheme();
+        for (const line of drawnLines) line.badge.update();
     }
 
     onMount(() => {
@@ -354,6 +400,18 @@
             wickDownColor: cssColor("--danger-color", "#ef5350"),
             priceLineVisible: false,
         });
+        refreshBadgeTheme();
+
+        // Value badges follow the crosshair: repaint on every move, hide
+        // when the pointer leaves the chart (time is undefined there).
+        const onCrosshairMove = (param: MouseEventParams) => {
+            const next = param.time ?? null;
+            if (next !== hoveredTime) {
+                hoveredTime = next;
+                for (const line of drawnLines) line.badge.update();
+            }
+        };
+        created.subscribeCrosshairMove(onCrosshairMove);
 
         const resize = () => {
             if (!container) return;
@@ -364,11 +422,14 @@
         resize();
 
         return () => {
+            created.unsubscribeCrosshairMove(onCrosshairMove);
             observer.disconnect();
             created.remove();
             chart = null;
             candleSeries = null;
             drawnLines = [];
+            badgeEntries = [];
+            hoveredTime = null;
             drawnSignature = "";
         };
     });
@@ -439,10 +500,13 @@
                 .map((line) => `${line.name}:${paneFor(line.name)}`)
                 .join(",")}`;
             if (signature !== drawnSignature) {
-                for (const line of drawnLines) activeChart.removeSeries(line.series);
-                drawnLines = series.lines.map((line, index) => ({
-                    name: line.name,
-                    series: activeChart.addSeries(
+                for (const line of drawnLines) {
+                    line.series.detachPrimitive(line.badge);
+                    activeChart.removeSeries(line.series);
+                }
+                drawnLines = series.lines.map((line, index) => {
+                    const lineIndex = index;
+                    const created = activeChart.addSeries(
                         LineSeries,
                         {
                             color: cssColor(
@@ -454,14 +518,29 @@
                             lastValueVisible: false,
                         },
                         paneFor(line.name),
-                    ),
-                }));
+                    );
+                    const badge = new CrosshairValueBadge({
+                        hoveredTime: () => hoveredTime,
+                        entries: () => badgeEntries[lineIndex] ?? [],
+                        colors: () => ({
+                            bg: badgeTheme.bg,
+                            text: badgeTheme.text,
+                            border:
+                                badgeTheme.line[lineIndex % LINE_COLOR_VARS.length] ??
+                                badgeTheme.text,
+                        }),
+                    });
+                    created.attachPrimitive(badge);
+                    return { name: line.name, series: created, badge };
+                });
                 drawnSignature = signature;
             }
 
             series.lines.forEach((line, index) => {
                 drawnLines[index]?.series.setData(toLineData(line.values, rows));
             });
+            badgeEntries = series.lines.map((line) => toBadgeEntries(line.values, rows));
+            for (const line of drawnLines) line.badge.update();
         } catch (error) {
             logger.error("ui", "lesson chart render failed", error);
         }

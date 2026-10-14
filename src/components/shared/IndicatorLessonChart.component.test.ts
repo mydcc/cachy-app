@@ -87,6 +87,8 @@ const lw = vi.hoisted(() => {
                 paneIndex: effective,
                 setData: vi.fn(),
                 applyOptions: vi.fn(),
+                attachPrimitive: vi.fn(),
+                detachPrimitive: vi.fn(),
             };
             lineSeries.push(series);
             return series;
@@ -94,6 +96,8 @@ const lw = vi.hoisted(() => {
         removeSeries: vi.fn(),
         applyOptions: vi.fn(),
         remove: vi.fn(),
+        subscribeCrosshairMove: vi.fn(),
+        unsubscribeCrosshairMove: vi.fn(),
         resetPanes: () => {
             paneCount = 0;
         },
@@ -258,6 +262,49 @@ describe("FEAT-0677 — the live lesson chart", () => {
                 ).toBeGreaterThan(0);
             }
         }
+    });
+
+    it("attaches one crosshair value badge per line and repaints it on hover", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        render("rsi");
+
+        // One badge primitive per indicator line, attached to its series.
+        expect(lw.lineSeries.length).toBeGreaterThan(0);
+        const badges = lw.lineSeries.map(
+            (series) =>
+                series.attachPrimitive.mock.calls[0][0] as {
+                    attached(params: unknown): void;
+                    update(): void;
+                },
+        );
+        for (const series of lw.lineSeries) {
+            expect(series.attachPrimitive).toHaveBeenCalledTimes(1);
+        }
+
+        // The chart reports crosshair moves so badges repaint on hover.
+        expect(lw.chart.subscribeCrosshairMove).toHaveBeenCalledTimes(1);
+        const onMove = lw.chart.subscribeCrosshairMove.mock.calls[0][0] as (param: {
+            time?: unknown;
+        }) => void;
+
+        // Wire the real badges to a repaint spy, then drive the handler:
+        // a new hovered time repaints every badge, a repeated one repaints
+        // nothing, and leaving the chart repaints to hide.
+        const requestUpdate = vi.fn();
+        for (const badge of badges) {
+            badge.attached({ chart: {}, series: {}, requestUpdate, horzScaleBehavior: {} });
+        }
+
+        onMove({ time: 1_700_000_000 });
+        expect(requestUpdate.mock.calls.length).toBeGreaterThanOrEqual(badges.length);
+
+        requestUpdate.mockClear();
+        onMove({ time: 1_700_000_000 });
+        expect(requestUpdate).not.toHaveBeenCalled();
+
+        onMove({});
+        expect(requestUpdate.mock.calls.length).toBeGreaterThanOrEqual(badges.length);
     });
 
     it("draws the selected symbol's klines and follows a symbol change", () => {
