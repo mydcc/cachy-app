@@ -154,10 +154,8 @@ describe("FEAT-0201: OrderHistoryList Component Tests", () => {
     endInput.dispatchEvent(new Event("input"));
     flushSync();
 
-    // Click Apply
-    const applyBtn = Array.from(target.querySelectorAll("button")).find((b) =>
-      b.textContent?.trim().includes("Apply"),
-    );
+    // Click Apply (icon button, accessible name kept from i18n key)
+    const applyBtn = target.querySelector("button[aria-label='Apply']");
     expect(applyBtn).toBeTruthy();
     applyBtn?.click();
     flushSync();
