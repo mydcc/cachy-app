@@ -98,7 +98,7 @@ reliable signals.
 
 **How to read it.** %K above 80 means the close sits near the top of the
 configured window's range. Below 20 it sits near the bottom. Those are positions,
-not signals — the 80 and 20 marks are convention, not buy or sell signals. %K
+not signals — the 80 and 20 marks are customary, not buy or sell signals. %K
 crossing %D is the event most systems are built on. The strongest reading is
 divergence as with RSI, read on the %D line in the extreme zone: %D forming
 falling peaks while price keeps rising, or rising troughs while price keeps
