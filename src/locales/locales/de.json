@@ -68,7 +68,6 @@
       "trendMatrix": {
         "trend": "Trend (15m - 1h - 4h - 1d)",
         "score": "Score",
-        "rsi": "RSI (1h)",
         "trend15m": "15m Trend",
         "trend1h": "1h Trend",
         "trend4h": "4h Trend (Major)",
@@ -233,8 +232,6 @@
         "orderId": "Order ID",
         "clientId": "Client ID",
         "reduceOnly": "Nur reduzieren",
-        "size": "Größe",
-        "value": "Wert",
         "entry": "Einstieg",
         "mark": "Mark"
       }
@@ -459,7 +456,6 @@
         "seriesMark": "Mark-Preis"
       },
       "candlesticks": {
-        "legend": "Muster",
         "group": {
           "single": "Eine Kerze",
           "multiple": "Zwei Kerzen",
@@ -493,7 +489,6 @@
         }
       },
       "indicators": {
-        "legend": "Indikator",
         "group": {
           "oscillator": "Oszillatoren",
           "trend": "Trend",
@@ -1018,7 +1013,6 @@
           "bottomSymbols": "Flop 5 Symbole",
           "longVsShortEvolution": "Entwicklung Long vs Short",
           "hourlyPnl": "PnL nach Tageszeit",
-          "dayOfWeekPnl": "PnL nach Wochentag",
           "riskConsistency": "Risiko Konsistenz",
           "grossVsNet": "Brutto vs Netto PnL",
           "cumulativeFees": "Kumulierte Gebühren",
@@ -1027,23 +1021,16 @@
           "timeLeakage": "Zeit Verluste",
           "durationVsPnl": "Dauer vs PnL",
           "strategyEvolution": "Strategie Entwicklung",
-          "tagPerformance": "Tag-Performance (PnL)",
-          "heatmap": "Täglicher PnL Heatmap",
-          "recovery": "Drawdown Erholung",
           "mfeVsMae": "Exekutions-Effizienz (MFE vs MAE)",
           "sixSegment": "6-Segment Verteilung",
           "riskRadar": "Risiko Radar",
           "atrMatrix": "Volatilitäts-Matrix (ATR)"
         },
-        "hourlyPnl": "PnL nach Tageszeit",
-        "dayOfWeekPnl": "PnL nach Wochentag",
         "assetBubble": "Asset-Performance",
         "riskRewardScatter": "Risk/Reward Scatter",
-        "longShortWinRate": "Long/Short Gewinnrate",
         "leverageDist": "Leverage Verteilung",
         "winStreak": "Gewinnserien",
         "lossStreak": "Verlustserien",
-        "recovery": "Drawdown Erholung",
         "tagPerformance": "Tag-Performance (PnL)",
         "descriptions": {
           "leakageWaterfall": "PnL Waterfall: Analyse des Brutto-Ergebnisses abzüglich Gebühren und Slippage.",
@@ -1054,18 +1041,13 @@
           "monthlyPnl": "Aggregierter Gewinn/Verlust pro Kalendermonat.",
           "winLoss": "Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE).",
           "hourlyPnl": "Brutto-Gewinne (Grün) und Brutto-Verluste (Rot) pro Tageszeit. Hilft zu erkennen, wann du profitabel bist und wann du Geld verlierst.",
-          "dayOfWeekPnl": "Brutto-Gewinne und -Verluste pro Wochentag.",
-          "durationVsPnl": "Verhältnis von Haltedauer zum Gewinn/Verlust. Erkennst du Muster bei kurzen vs. langen Trades?",
           "assetBubble": "Asset-Matrix: Oben rechts sind deine besten Coins (hohe Winrate, viel Gewinn). Größe der Blase = Anzahl Trades.",
           "riskRewardScatter": "Risk/Reward Scatter: Zeigt das Verhältnis von eingesetztem Risiko zum tatsächlichen Ergebnis. Ideal: Geringes Risiko, hoher Gewinn (oben links).",
           "rMultipleDist": "Häufigkeitsverteilung deiner Ergebnisse in R-Multiples.",
-          "longShortWinRate": "Vergleich der Gewinnrate zwischen Long- und Short-Trades.",
           "leverageDist": "Verteilung der verwendeten Hebel (Leverage).",
           "winStreak": "Häufigkeit von Gewinnserien unterschiedlicher Länge.",
           "lossStreak": "Häufigkeit von Verlustserien unterschiedlicher Länge.",
-          "recovery": "Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst.",
           "tagEvolution": "Kumulierte Performance-Entwicklung deiner verwendeten Strategien/Tags über die Zeit.",
-          "confluenceMatrix": "Korrelations-Matrix von Wochentag und Uhrzeit. Identifiziert deine 'Golden Hours' und Verlustphasen.",
           "cumulativeR": "Summe aller R-Multiples über die Zeit. Zeigt die Performance bereinigt um die Positionsgröße.",
           "longVsShort": "Vergleich der Netto-Gewinne zwischen Long- und Short-Positionen.",
           "topSymbols": "Die 5 profitabelsten Trading-Paare.",
@@ -1074,8 +1056,6 @@
           "grossVsNet": "Vergleich des Gewinns vor (Gross) und nach (Net) Gebühren.",
           "cumulativeFees": "Die Summe aller gezahlten Gebühren über die Zeit.",
           "feeBreakdown": "Aufteilung der Kosten in Handelsgebühren und Funding-Gebühren.",
-          "durationPnl": "Ergebnis und Winrate gruppiert nach Haltedauer der Trades.",
-          "heatmap": "Kalenderansicht der täglichen PnL-Performance.",
           "forecast": "Simuliert 100 mögliche Zukünfte basierend auf deinen historischen Trades. Der Kegel zeigt den Bereich zwischen Worst-Case (10% Perzentil) und Best-Case (90% Perzentil).",
           "rollingWinRate": "Deine Winrate über die jeweils letzten 20 Trades. Zeigt, ob du gerade 'heiß' oder 'kalt' läufst.",
           "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel.",
@@ -1089,9 +1069,7 @@
         "labels": {
           "forecast": "Prognose",
           "trends": "Trends",
-          "leakage": "Verluste",
           "profitRetention": "Profit Erhalt",
-          "feeImpact": "Gebühren Einfluss",
           "noTag": "Kein Tag",
           "grossProfit": "Brutto Gewinn",
           "fees": "Gebühren",
@@ -1099,7 +1077,6 @@
           "netPnl": "Netto PnL",
           "pnlBreakdown": "PnL Aufschlüsselung",
           "equity": "Kapital",
-          "pnlY": "PnL",
           "pnl": "PnL",
           "winLong": "Win Long",
           "winShort": "Win Short",
@@ -1122,7 +1099,6 @@
           "riskAmount": "Risiko",
           "realizedPnl": "Realisierter PnL",
           "topAsset": "Top Asset",
-          "mostProfitableStrategy": "Beste Strategie",
           "durationAnalysis": "Dauer Analyse",
           "durationUnder15m": "< 15 Min.",
           "durationM15to1h": "15 Min. - 1 Std.",
@@ -1138,18 +1114,13 @@
           "rollingPF": "Rolling Profitfaktor",
           "rollingSQN": "Rolling SQN",
           "equityChange": "Equity Veränderung",
-          "longWinRate": "Long Gewinnrate",
-          "shortWinRate": "Short Gewinnrate",
           "tradingStats": "Trading Statistiken",
           "longestWinStreak": "Längste Gewinnserie",
           "longestLossStreak": "Längste Verlustserie",
           "winRate": "Gewinnrate"
         },
         "units": {
-          "minutes": "(Min)",
-          "currency": "($)",
-          "percent": "(%)",
-          "trades": "Trades"
+          "currency": "($)"
         }
       },
       "assets": "Assets",
@@ -1359,26 +1330,16 @@
       "gyroscope": "Gyroskop Steuerung",
       "gyroscopeDesc": "Kamera mit Bewegung steuern (Mobil)",
       "gyroPermissionDenied": "Zugriff verweigert. Gyroskop-Steuerung benötigt Zugriff auf Gerätesensoren.",
-      "layoutModes": {
-        "standard": "Standard",
-        "floating": "Schwebend"
-      },
+      "layoutModes": {},
       "tradeFlow": {
         "buyColor": "Kauf-Farbe",
         "sellColor": "Verkauf-Farbe",
-        "minVolume": "Min. Volumen Filter",
         "minVolumeLabel": "Min. Handelsvolumen ($)",
-        "gridWidth": "Gitterbreite",
-        "gridLength": "Gitterlänge",
         "speed": "Flussgeschwindigkeit",
-        "spread": "Tunnel-Verbreiterung",
         "size": "Partikelgröße",
-        "count": "Partikelanzahl",
-        "filterHelp": "Filtert Trades unter diesem Volumen",
         "reset": "Zurücksetzen",
         "config": "Trade Flow Konfiguration",
         "mode": "Modus",
-        "enhancedEffects": "Erweiterte Effekte",
         "dynamicAtmosphere": "Dynamische Atmosphäre",
         "flow": "Fluss",
         "volumeScale": "Volumenskalierung",
@@ -1456,7 +1417,6 @@
         "x": "X",
         "y": "Y",
         "z": "Z",
-        "px": "px",
         "deg": "°"
       },
       "appearanceTitle": "Optik & Design",
@@ -1628,8 +1588,7 @@
         "openai": "OpenAI",
         "gemini": "Google Gemini",
         "anthropic": "Anthropic (Claude)",
-        "ollama": "Ollama (lokal)",
-        "openrouter": "OpenRouter"
+        "ollama": "Ollama (lokal)"
       },
       "model": {
         "label": "Modell",
@@ -1730,8 +1689,6 @@
       "alertAdxLengthMismatch": "Alarme berechnen den ADX mit einer Länge. Setze DI Länge und Glättung auf denselben Wert, um einen Alarm darauf zu setzen.",
       "alertIchimokuDisplacementMismatch": "Alarme lesen die Wolke um {displacement} Kerzen verschoben. Setze die Verschiebung auf {displacement}, um einen Alarm darauf zu setzen.",
       "optimization": {
-        "title": "Performance Optimierung",
-        "preferredEngine": "Bevorzugte Engine",
         "engines": {
           "auto": "Auto (Empfohlen)",
           "ts": "TypeScript",
@@ -1781,7 +1738,6 @@
       },
       "stochRsi": {
         "title": "Stoch RSI",
-        "len": "Länge",
         "rsiLen": "RSI Länge"
       },
       "macd": {
@@ -1815,15 +1771,7 @@
         "period": "Periode"
       },
       "summary": "Zusammenfassung",
-      "context": {
-        "buy": "Kaufen",
-        "sell": "Verkaufen",
-        "neutral": "Neutral",
-        "strong buy": "Stark Kaufen",
-        "strong sell": "Stark Verkaufen",
-        "overbought": "Überkauft",
-        "oversold": "Überverkauft"
-      },
+      "context": {},
       "panelConfiguration": "Panel-Konfiguration",
       "toggleVisibility": "Sichtbarkeit umschalten",
       "chartPanes": {
@@ -2173,8 +2121,6 @@
         "imgbb": "imgbb-API-Key eingeben..."
       },
       "providers": {
-        "bitunix": "Bitunix",
-        "bitget": "Bitget",
         "cryptopanic": "CryptoPanic"
       },
       "labels": {
@@ -2185,8 +2131,6 @@
       "aria": {
         "toggleToken": "Token-Sichtbarkeit umschalten",
         "toggleKey": "Schlüssel-Sichtbarkeit umschalten",
-        "toggleSecret": "Geheimnis-Sichtbarkeit umschalten",
-        "togglePassphrase": "Passwort-Sichtbarkeit umschalten",
         "removeFeed": "Feed entfernen"
       },
       "accounts": {
@@ -2277,17 +2221,9 @@
       "customize": "Anpassen",
       "presetInfo": "Du verwendest ein Hotkey-Preset. Wechsle zu 'Custom', um einzelne Hotkeys neu zu belegen.",
       "switchToCustom": "Hotkeys anpassen",
-      "subtabs": {
-        "general": "Allgemein",
-        "appearance": "Darstellung",
-        "controls": "Steuerung"
-      },
+      "subtabs": {},
       "workspace": {
-        "subtabs": {
-          "sidebar": "Seitenleiste",
-          "market": "Markt",
-          "system": "System"
-        }
+        "subtabs": {}
       },
       "glass": {
         "blur": "Glas Unschärfe",
@@ -2295,20 +2231,11 @@
         "opacity": "Deckkraft"
       },
       "background": {
-        "title": "Hintergrund",
-        "type": "Hintergrund Typ",
         "typeNone": "Kein",
         "typeMedia": "Img / Vid",
-        "typeImage": "Bild",
-        "typeVideo": "Video",
         "typeAnimation": "Animation",
         "url": "URL",
-        "urlPlaceholder": "https://example.com/background.jpg",
         "urlHelper": "Unterstützte: .jpg, .png, .mp4",
-        "invalidUrl": "Ungültige URL oder Format",
-        "corsError": "URL konnte nicht geladen werden (CORS)",
-        "testUrl": "URL Testen",
-        "presetLabel": "Animation",
         "presetNone": "Keine",
         "presetGradient": "Gradient Flow",
         "presetParticles": "Partikel",
@@ -2321,9 +2248,6 @@
         "intensityLow": "Dezent",
         "intensityMedium": "Mittel",
         "intensityHigh": "Hoch",
-        "reset": "Zurücksetzen",
-        "resetConfirm": "Alle Hintergrund-Einstellungen zurücksetzen?",
-        "videoSpeed": "Speed",
         "typeTradeFlow": "Trade Flow"
       }
     },

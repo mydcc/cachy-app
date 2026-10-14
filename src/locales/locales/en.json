@@ -68,7 +68,6 @@
       "trendMatrix": {
         "trend": "Trend (15m - 1h - 4h - 1d)",
         "score": "Score",
-        "rsi": "RSI (1h)",
         "trend15m": "15m Trend",
         "trend1h": "1h Trend",
         "trend4h": "4h Trend (Major)",
@@ -222,8 +221,6 @@
         "orderId": "Order ID",
         "clientId": "Client ID",
         "reduceOnly": "Reduce Only",
-        "size": "Size",
-        "value": "Value",
         "entry": "Entry",
         "mark": "Mark"
       },
@@ -459,7 +456,6 @@
         "seriesMark": "Mark Price"
       },
       "candlesticks": {
-        "legend": "Pattern",
         "group": {
           "single": "Single candle",
           "multiple": "Two candles",
@@ -493,7 +489,6 @@
         }
       },
       "indicators": {
-        "legend": "Indicator",
         "group": {
           "oscillator": "Oscillators",
           "trend": "Trend",
@@ -1018,7 +1013,6 @@
           "bottomSymbols": "Bottom 5 Symbols",
           "longVsShortEvolution": "Long vs Short Evolution",
           "hourlyPnl": "PnL by Hour of Day",
-          "dayOfWeekPnl": "PnL by Day of Week",
           "riskConsistency": "Risk Consistency",
           "grossVsNet": "Gross vs Net PnL",
           "cumulativeFees": "Cumulative Fees",
@@ -1027,23 +1021,16 @@
           "timeLeakage": "Time Leakage",
           "durationVsPnl": "Duration vs PnL",
           "strategyEvolution": "Strategy Evolution",
-          "tagPerformance": "Tag Performance (PnL)",
-          "heatmap": "Daily PnL Heatmap",
-          "recovery": "Drawdown Recovery",
           "mfeVsMae": "Execution Efficiency (MFE vs MAE)",
           "sixSegment": "6-Segment Distribution",
           "riskRadar": "Risk Radar",
           "atrMatrix": "Volatility Matrix (ATR)"
         },
-        "hourlyPnl": "PnL by Time of Day",
-        "dayOfWeekPnl": "PnL by Day of Week",
         "assetBubble": "Asset Performance Matrix",
         "riskRewardScatter": "Risk/Reward Scatter",
-        "longShortWinRate": "Long vs Short Win Rate",
         "leverageDist": "Leverage Distribution",
         "winStreak": "Win Streaks",
         "lossStreak": "Loss Streaks",
-        "recovery": "Drawdown Recovery",
         "tagPerformance": "Tag Performance (PnL)",
         "descriptions": {
           "leakageWaterfall": "PnL Waterfall: Analysis of gross result minus fees and slippage.",
@@ -1052,7 +1039,6 @@
           "equityCurve": "Total capital progression based on all closed trades.",
           "drawdown": "Shows the decline from the last equity high.",
           "monthlyPnl": "Aggregated profit/loss per calendar month.",
-          "confluenceMatrix": "Correlation matrix of day of the week and time of day. Identifies your 'Golden Hours' and loss phases.",
           "cumulativeR": "Sum of all R-Multiples over time. Shows performance adjusted for position size.",
           "longVsShort": "Comparison of net profits between Long and Short positions.",
           "topSymbols": "The 5 most profitable trading pairs.",
@@ -1061,8 +1047,6 @@
           "grossVsNet": "Comparison of profit before (Gross) and after (Net) fees.",
           "cumulativeFees": "The sum of all fees paid over time.",
           "feeBreakdown": "Breakdown of costs into Trading Fees and Funding Fees.",
-          "durationPnl": "PnL and Win Rate grouped by trade duration buckets.",
-          "heatmap": "Calendar view of daily PnL performance.",
           "forecast": "Simulates 100 possible futures based on your historical trades. The cone shows the range between Worst-Case (10th percentile) and Best-Case (90th percentile).",
           "rollingWinRate": "Your win rate over the last 20 trades. Shows if you are running 'hot' or 'cold'.",
           "rollingPF": "Your Profit Factor over the last 20 trades. Values above 1.0 are profitable.",
@@ -1080,18 +1064,12 @@
           "lossStreak": "Frequency of consecutive losses.",
           "tagEvolution": "Performance of strategies over time.",
           "winLoss": "Detailed distribution of trades (Long/Short, Win/Loss/BE).",
-          "dayOfWeekPnl": "Gross profits and losses per day of the week.",
-          "durationVsPnl": "Relationship between hold time and profit/loss. Do you recognize patterns in short vs. long trades?",
-          "hourlyPnl": "Gross profits (green) and gross losses (red) per time of day. Helps identify when you are profitable and when you lose money.",
-          "longShortWinRate": "Comparison of win rates between Long and Short trades.",
-          "recovery": "Progression of your drawdowns. Shows how quickly you recover from losses."
+          "hourlyPnl": "Gross profits (green) and gross losses (red) per time of day. Helps identify when you are profitable and when you lose money."
         },
         "labels": {
           "forecast": "Forecast",
           "trends": "Trends",
-          "leakage": "Leakage",
           "profitRetention": "Profit Retention",
-          "feeImpact": "Fee Impact",
           "noTag": "No Tag",
           "grossProfit": "Gross Profit",
           "fees": "Fees",
@@ -1099,7 +1077,6 @@
           "netPnl": "Net PnL",
           "pnlBreakdown": "PnL Breakdown",
           "equity": "Equity",
-          "pnlY": "PnL",
           "pnl": "PnL",
           "winLong": "Win Long",
           "winShort": "Win Short",
@@ -1122,7 +1099,6 @@
           "riskAmount": "Risk Amount",
           "realizedPnl": "Realized PnL",
           "topAsset": "Top Asset",
-          "mostProfitableStrategy": "Most Profitable Strategy",
           "durationAnalysis": "Duration Analysis",
           "durationUnder15m": "< 15m",
           "durationM15to1h": "15m - 1h",
@@ -1138,18 +1114,13 @@
           "rollingPF": "Rolling Profit Factor",
           "rollingSQN": "Rolling SQN",
           "equityChange": "Equity Change",
-          "longWinRate": "Long Win Rate",
-          "shortWinRate": "Short Win Rate",
           "tradingStats": "Trading Stats",
           "longestWinStreak": "Longest Win Streak",
           "longestLossStreak": "Longest Loss Streak",
           "winRate": "Win Rate"
         },
         "units": {
-          "minutes": "(Min)",
-          "currency": "($)",
-          "percent": "(%)",
-          "trades": "Trades"
+          "currency": "($)"
         }
       },
       "assets": "Assets",
@@ -1359,26 +1330,16 @@
       "gyroscope": "Gyroscope Control",
       "gyroscopeDesc": "Control camera with device motion (Mobile)",
       "gyroPermissionDenied": "Permission denied. Gyroscope control requires access to device sensors.",
-      "layoutModes": {
-        "standard": "Standard",
-        "floating": "Floating"
-      },
+      "layoutModes": {},
       "tradeFlow": {
         "buyColor": "Buy Color",
         "sellColor": "Sell Color",
-        "minVolume": "Min Volume Filter",
         "minVolumeLabel": "Min Trade Volume ($)",
-        "gridWidth": "Grid Width",
-        "gridLength": "Grid Length",
         "speed": "Flow Speed",
-        "spread": "Tunnel Spread",
         "size": "Particle Size",
-        "count": "Particle Count",
-        "filterHelp": "Filter out trades below this volume",
         "reset": "Reset",
         "config": "Trade Flow Configuration",
         "mode": "Mode",
-        "enhancedEffects": "Enhanced Effects",
         "dynamicAtmosphere": "Dynamic Atmosphere",
         "flow": "Flow",
         "volumeScale": "Volume Scale",
@@ -1456,7 +1417,6 @@
         "x": "X",
         "y": "Y",
         "z": "Z",
-        "px": "px",
         "deg": "°"
       },
       "appearanceTitle": "Appearance & Design",
@@ -1603,8 +1563,7 @@
         "openai": "OpenAI",
         "gemini": "Google Gemini",
         "anthropic": "Anthropic (Claude)",
-        "ollama": "Ollama (local)",
-        "openrouter": "OpenRouter"
+        "ollama": "Ollama (local)"
       },
       "model": {
         "label": "Model",
@@ -1734,8 +1693,6 @@
       "syncRsi": "Synchronize RSI Timeframe",
       "syncRsiDesc": "Use chart timeframe for RSI",
       "optimization": {
-        "title": "Performance Optimization",
-        "preferredEngine": "Preferred Engine",
         "engines": {
           "auto": "Auto (Recommended)",
           "ts": "TypeScript",
@@ -1760,7 +1717,6 @@
       },
       "stochRsi": {
         "title": "Stoch RSI",
-        "len": "Length",
         "rsiLen": "RSI Length"
       },
       "macd": {
@@ -1790,15 +1746,7 @@
         "period": "Period"
       },
       "summary": "Summary",
-      "context": {
-        "buy": "Buy",
-        "sell": "Sell",
-        "neutral": "Neutral",
-        "strong buy": "Strong Buy",
-        "strong sell": "Strong Sell",
-        "overbought": "Overbought",
-        "oversold": "Oversold"
-      },
+      "context": {},
       "panelConfiguration": "Panel Configuration",
       "toggleVisibility": "Toggle visibility",
       "chartPanes": {
@@ -2114,17 +2062,9 @@
       "hotkeysTitle": "Hotkeys",
       "presetInfo": "You are using a hotkey preset. Switch to 'Custom' to rebind individual hotkeys.",
       "switchToCustom": "Customize Hotkeys",
-      "subtabs": {
-        "general": "General",
-        "appearance": "Appearance",
-        "controls": "Controls"
-      },
+      "subtabs": {},
       "workspace": {
-        "subtabs": {
-          "sidebar": "Sidebar",
-          "market": "Market",
-          "system": "System"
-        }
+        "subtabs": {}
       },
       "glass": {
         "blur": "Glass Blur",
@@ -2132,20 +2072,11 @@
         "opacity": "Opacity"
       },
       "background": {
-        "title": "Background",
-        "type": "Background Type",
         "typeNone": "None",
         "typeMedia": "Img / Vid",
-        "typeImage": "Image",
-        "typeVideo": "Video",
         "typeAnimation": "Animation",
         "url": "URL",
-        "urlPlaceholder": "https://example.com/background.jpg",
         "urlHelper": "Supported: .jpg, .png, .mp4",
-        "invalidUrl": "Invalid URL or format",
-        "corsError": "Could not load URL (CORS)",
-        "testUrl": "Test URL",
-        "presetLabel": "Animation",
         "presetNone": "None",
         "presetGradient": "Gradient Flow",
         "presetParticles": "Particles",
@@ -2154,13 +2085,10 @@
         "presetAurora": "Aurora",
         "opacity": "Opacity",
         "blur": "Blur",
-        "videoSpeed": "Speed",
         "intensity": "Intensity",
         "intensityLow": "Low",
         "intensityMedium": "Medium",
         "intensityHigh": "High",
-        "reset": "Reset",
-        "resetConfirm": "Reset all background settings?",
         "typeTradeFlow": "Trade Flow"
       }
     },
@@ -2195,8 +2123,6 @@
         "imgbb": "Enter your imgbb API key..."
       },
       "providers": {
-        "bitunix": "Bitunix",
-        "bitget": "Bitget",
         "cryptopanic": "CryptoPanic"
       },
       "labels": {
@@ -2207,8 +2133,6 @@
       "aria": {
         "toggleToken": "Toggle token visibility",
         "toggleKey": "Toggle key visibility",
-        "toggleSecret": "Toggle secret visibility",
-        "togglePassphrase": "Toggle passphrase visibility",
         "removeFeed": "Remove feed"
       },
       "accounts": {
