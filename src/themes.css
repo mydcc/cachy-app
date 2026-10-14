@@ -181,12 +181,20 @@
   --space-7: 1.75rem;
   --space-8: 2rem;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
+  /*
+   * The type scale, multiplied by a per-window factor `WindowFrame` sets from
+   * the A-/A+ control (FEAT-0684). Tailwind's `text-*` utilities read these
+   * tokens (v4 emits `font-size: var(--text-sm)`), so scaling the tokens scales
+   * every sized element in that window's content — and nothing outside it,
+   * because the factor is set on the content wrapper. Without the factor the
+   * scale is exactly what it was.
+   */
+  --text-xs: calc(0.75rem * var(--text-scale, 1));
+  --text-sm: calc(0.875rem * var(--text-scale, 1));
+  --text-base: calc(1rem * var(--text-scale, 1));
+  --text-lg: calc(1.125rem * var(--text-scale, 1));
+  --text-xl: calc(1.25rem * var(--text-scale, 1));
+  --text-2xl: calc(1.5rem * var(--text-scale, 1));
 
   --font-normal: 400;
   --font-medium: 500;

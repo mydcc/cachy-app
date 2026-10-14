@@ -34,6 +34,7 @@
     import { _ } from "../../../locales/i18n";
 
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
+    import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
     import { computeFittedHeight } from "../../../lib/windows/fitContentHeight";
     import { effectsState } from "../../../stores/effects.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -921,7 +922,8 @@
     <div
         class="window-content"
         class:channel-no-scroll={win.windowType === "channel"}
-        style:font-size="{win.fontSize}px"
+        style="font-size: {win.fontSize}px; --text-scale: {win.fontSize /
+            DEFAULT_WINDOW_FONT_SIZE};"
         bind:this={contentEl}
     >
         <div

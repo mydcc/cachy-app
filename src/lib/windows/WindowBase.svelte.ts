@@ -24,6 +24,7 @@ import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
 import { Z_LAYERS } from "./zLayers";
+import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
 
 /**
@@ -183,7 +184,7 @@ export abstract class WindowBase {
     extraClasses = $state("");
 
     // --- UTILITY/FEATURE STATE ---
-    fontSize = $state(14);
+    fontSize = $state(DEFAULT_WINDOW_FONT_SIZE);
     zoomLevel = $state(1.0);
     burnIntensity = $state(1.0);
     /** Fixed aspect ratio (width/height) to maintain during resizing. */
