@@ -226,7 +226,20 @@
     if (container) {
         resizeObserver.observe(container);
     }
-    return () => resizeObserver.disconnect();
+
+    // getThemeColors() resolves at draw time, so without this a dark↔light
+    // switch would leave the old palette on screen — the same reason
+    // IndicatorLessonChart and CandlestickChart watch the theme.
+    const themeObserver = new MutationObserver(() => draw());
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["style", "class", "data-theme"],
+    });
+
+    return () => {
+        resizeObserver.disconnect();
+        themeObserver.disconnect();
+    };
   });
 </script>
 

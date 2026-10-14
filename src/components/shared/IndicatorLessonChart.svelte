@@ -318,6 +318,14 @@
                 color: cssColor(LINE_COLOR_VARS[index % LINE_COLOR_VARS.length], "#2962ff"),
             });
         });
+        // The pane separator defaults to the library's hardcoded #E0E3EB;
+        // without this it stays white in every theme.
+        chart.applyOptions({
+            panes: {
+                separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                separatorHoverColor: cssColor("--accent-color", "#2962ff"),
+            },
+        });
     }
 
     onMount(() => {
@@ -340,6 +348,10 @@
                 borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
                 timeVisible: true,
                 secondsVisible: false,
+            },
+            panes: {
+                separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                separatorHoverColor: cssColor("--accent-color", "#2962ff"),
             },
             crosshair: { mode: 0 },
             handleScroll: true,
