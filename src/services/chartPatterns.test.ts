@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { CHART_PATTERNS, DEFAULT_PATTERN_COLORS } from './chartPatterns';
+import { CHART_PATTERNS, DEFAULT_PATTERN_COLORS, getThemeColors } from './chartPatterns';
 import { PATTERNS_DATA } from './chartPatterns.data';
 import { DRAW_FUNCTIONS } from './chartPatterns.draw';
 import type { ChartPatternLabels } from './chartPatterns.types';
@@ -147,5 +147,36 @@ describe('Chart Patterns Data Integrity', () => {
       expect(DRAW_FUNCTIONS[pattern.id], `Missing draw function for ${pattern.id}`).toBeDefined();
       expect(typeof DRAW_FUNCTIONS[pattern.id]).toBe('function');
     });
+  });
+});
+
+describe('getThemeColors', () => {
+  const reader = (values: Record<string, string>) => (name: string) => values[name] ?? '';
+
+  it('keeps a distinct grid and border', () => {
+    const colors = getThemeColors(
+      reader({
+        '--text-primary': '#e2e8f0',
+        '--border-color': '#64748b',
+        '--bg-tertiary': '#1e293b',
+        '--text-secondary': '#a0adc0',
+      }),
+    );
+    expect(colors.grid).toBe('#64748b');
+    expect(colors.border).toBe('#64748b');
+  });
+
+  it('falls back to neutral when border equals the card', () => {
+    // Several themes wire --border-color to --bg-tertiary itself, which
+    // would dissolve grid and separators into the background.
+    const colors = getThemeColors(
+      reader({
+        '--bg-tertiary': '#44475a',
+        '--border-color': '#44475a',
+        '--text-secondary': '#c8aed6',
+      }),
+    );
+    expect(colors.grid).toBe('#c8aed6');
+    expect(colors.border).toBe('#c8aed6');
   });
 });

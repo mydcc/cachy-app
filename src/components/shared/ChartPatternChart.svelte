@@ -23,9 +23,8 @@
     type ChartPatternDefinition,
     type ChartPatternLabels,
     type InteractiveElement,
-    type ThemeColors,
     CHART_PATTERN_LABEL_KEYS,
-    DEFAULT_PATTERN_COLORS
+    getThemeColors,
   } from "../../services/chartPatterns";
   import { portal } from "../../lib/actions/portal";
 
@@ -47,46 +46,6 @@
     x: 0,
     y: 0
   });
-
-  function getThemeColors(el: HTMLElement): ThemeColors {
-    const style = getComputedStyle(el);
-    const getVal = (name: string) => style.getPropertyValue(name).trim();
-
-    // Helper to add alpha to hex if possible, otherwise return default
-    const withAlpha = (color: string, alpha: string) => {
-        if (color && color.startsWith("#") && (color.length === 7 || color.length === 4)) {
-            return color + alpha;
-        }
-        return color; // Return raw color if not hex (alpha will be missing, opaque)
-    };
-
-    const text = getVal("--text-primary") || DEFAULT_PATTERN_COLORS.text;
-    const grid = getVal("--border-color") || DEFAULT_PATTERN_COLORS.grid;
-    const border = getVal("--border-color") || DEFAULT_PATTERN_COLORS.border;
-    const bullish = getVal("--success-color") || DEFAULT_PATTERN_COLORS.bullish;
-    const bearish = getVal("--danger-color") || DEFAULT_PATTERN_COLORS.bearish;
-    const neutral = getVal("--text-secondary") || DEFAULT_PATTERN_COLORS.neutral;
-    const highlight = getVal("--warning-color") || DEFAULT_PATTERN_COLORS.highlight;
-    const gray = getVal("--text-tertiary") || DEFAULT_PATTERN_COLORS.gray;
-    const background = getVal("--bg-tertiary") || DEFAULT_PATTERN_COLORS.background;
-
-    return {
-        text,
-        grid,
-        border,
-        bullish,
-        bullishLight: bullish, // Fallback to main color if we can't easily lighten
-        bullishFill: withAlpha(bullish, "33"),
-        bearish,
-        bearishLight: bearish,
-        bearishFill: withAlpha(bearish, "33"),
-        neutral,
-        neutralLight: neutral,
-        highlight,
-        gray,
-        background
-    };
-  }
 
   function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, color: string, textColor: string) {
     // Grid
@@ -156,7 +115,9 @@
     canvas.style.height = `${height}px`;
 
     // Get dynamic colors
-    const colors = getThemeColors(canvas);
+    const colors = getThemeColors((name) =>
+        getComputedStyle(canvas).getPropertyValue(name).trim(),
+    );
 
     // Clear
     ctx.clearRect(0, 0, width, height);

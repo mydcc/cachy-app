@@ -109,6 +109,26 @@ export function contrastRatio(a: Rgb, b: Rgb): number {
   return (luminance(lighter) + 0.05) / (luminance(darker) + 0.05);
 }
 
+/**
+ * Returns `fg` when it meets `minContrast` against `bg`, else `fallback`.
+ * All three are resolved color strings. Anything unparseable keeps `fg`:
+ * without measurable values there is nothing to judge, so historical
+ * behavior wins. Charts use this because several themes wire a chrome
+ * token to the very surface it sits on (e.g. `--border-color` equal to
+ * `--bg-tertiary`), which would otherwise dissolve grid and separators.
+ */
+export function ensureContrast(
+  fg: string,
+  bg: string,
+  fallback: string,
+  minContrast: number,
+): string {
+  const f = parseColorToRgb(fg);
+  const b = parseColorToRgb(bg);
+  if (!f || !b) return fg;
+  return contrastRatio(f, b) >= minContrast ? fg : fallback;
+}
+
 function defaultStyleReader(): StyleReader | null {
   if (typeof document === "undefined") return null;
   return getComputedStyle(document.documentElement);

@@ -28,7 +28,7 @@ export type {
 } from './chartPatterns.types';
 export { CHART_PATTERN_LABEL_KEYS } from './chartPatterns.types';
 
-export { DEFAULT_PATTERN_COLORS } from './chartPatterns.helpers';
+export { DEFAULT_PATTERN_COLORS, getThemeColors } from './chartPatterns.helpers';
 
 // Helper for fallback pattern drawing
 const noopDraw: ChartPatternDrawFunction = () => {};

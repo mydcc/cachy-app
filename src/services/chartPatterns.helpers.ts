@@ -17,6 +17,7 @@
 
 
 import type { ThemeColors, AddInteractiveElement } from './chartPatterns.types';
+import { ensureContrast } from '../lib/themeColors';
 
 export const DEFAULT_PATTERN_COLORS: ThemeColors = {
   text: "#e5e7eb",
@@ -37,6 +38,63 @@ export const DEFAULT_PATTERN_COLORS: ThemeColors = {
 
 
 // --- Helper Functions ---
+
+/** Minimum grid-vs-card contrast: below this a line is effectively invisible. */
+const GRID_MIN_CONTRAST = 1.5;
+
+/**
+ * Resolves the canvas palette against the active theme. `getVal` reads one
+ * custom property (the caller wires it to `getComputedStyle`, tests pass a
+ * stub map), so this stays testable without a DOM. Unresolvable tokens fall
+ * back to documented dark defaults, which only apply without a document.
+ *
+ * Grid and border go through a visibility guard: several themes wire
+ * `--border-color` to the very card they sit on, which would dissolve them
+ * into the background. The fallback is the neutral tone, already used for
+ * structural strokes in the same drawings.
+ */
+export function getThemeColors(getVal: (name: string) => string): ThemeColors {
+    // Helper to add alpha to hex if possible, otherwise return default
+    const withAlpha = (color: string, alpha: string) => {
+        if (color && color.startsWith("#") && (color.length === 7 || color.length === 4)) {
+            return color + alpha;
+        }
+        return color; // Return raw color if not hex (alpha will be missing, opaque)
+    };
+
+    const text = getVal("--text-primary") || DEFAULT_PATTERN_COLORS.text;
+    const background = getVal("--bg-tertiary") || DEFAULT_PATTERN_COLORS.background;
+    const neutral = getVal("--text-secondary") || DEFAULT_PATTERN_COLORS.neutral;
+    const gridRaw = getVal("--border-color") || DEFAULT_PATTERN_COLORS.grid;
+    const grid = ensureContrast(gridRaw, background, neutral, GRID_MIN_CONTRAST);
+    const border = ensureContrast(
+        getVal("--border-color") || DEFAULT_PATTERN_COLORS.border,
+        background,
+        neutral,
+        GRID_MIN_CONTRAST,
+    );
+    const bullish = getVal("--success-color") || DEFAULT_PATTERN_COLORS.bullish;
+    const bearish = getVal("--danger-color") || DEFAULT_PATTERN_COLORS.bearish;
+    const highlight = getVal("--warning-color") || DEFAULT_PATTERN_COLORS.highlight;
+    const gray = getVal("--text-tertiary") || DEFAULT_PATTERN_COLORS.gray;
+
+    return {
+        text,
+        grid,
+        border,
+        bullish,
+        bullishLight: bullish, // Fallback to main color if we can't easily lighten
+        bullishFill: withAlpha(bullish, "33"),
+        bearish,
+        bearishLight: bearish,
+        bearishFill: withAlpha(bearish, "33"),
+        neutral,
+        neutralLight: neutral,
+        highlight,
+        gray,
+        background
+    };
+}
 
 export function drawLine(
   ctx: CanvasRenderingContext2D,

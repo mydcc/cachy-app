@@ -83,7 +83,7 @@
     import { normalizeSymbol } from "../../utils/symbolUtils";
     import { normalizeTimeframeInput } from "../../utils/utils";
     import { safeLocalStorage } from "../../utils/storageWrapper";
-    import { contrastRatio, parseColorToRgb } from "../../lib/themeColors";
+    import { contrastRatio, ensureContrast, parseColorToRgb } from "../../lib/themeColors";
     import {
         CrosshairValueBadge,
         type BadgePoint,
@@ -465,6 +465,25 @@
         return out;
     }
 
+    /** WCAG-adjacent floor for hairlines: below this they read as absent. */
+    const GRID_MIN_CONTRAST = 1.5;
+
+    /**
+     * Chrome (grid, scale borders, separator) that stays visible even when a
+     * theme wires `--border-color` to the very card it sits on. Healthy
+     * themes resolve byte-identically; the fallback keeps the historical
+     * subtle tone where nothing resolves (SSR, tests).
+     */
+    function themedChrome(fallback: string): string {
+        const card = cssColor("--bg-tertiary", "#1e293b");
+        return ensureContrast(
+            cssColor("--border-color", fallback),
+            card,
+            cssColor("--text-secondary", "#a0adc0"),
+            GRID_MIN_CONTRAST,
+        );
+    }
+
     /**
      * Re-reads the theme's colours and re-applies them. The chart resolves CSS
      * variables to concrete colours at creation (the canvas cannot read
@@ -479,16 +498,16 @@
                 // The pane separator defaults to the library's hardcoded #E0E3EB;
                 // without this it stays white in every theme.
                 panes: {
-                    separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                    separatorColor: themedChrome("rgba(255, 255, 255, 0.1)"),
                     separatorHoverColor: cssColor("--accent-color", "#2962ff"),
                 },
             },
             grid: {
-                vertLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
-                horzLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
+                vertLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
+                horzLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
             },
-            rightPriceScale: { borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)") },
-            timeScale: { borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)") },
+            rightPriceScale: { borderColor: themedChrome("rgba(255, 255, 255, 0.1)") },
+            timeScale: { borderColor: themedChrome("rgba(255, 255, 255, 0.1)") },
         });
         candleSeries.applyOptions({
             upColor: cssColor("--success-color", "#26a69a"),
@@ -523,19 +542,19 @@
                     // accidental drags, and the grab affordance renders as a
                     // thick bar. Colours stay themed in case this flips back.
                     enableResize: false,
-                    separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                    separatorColor: themedChrome("rgba(255, 255, 255, 0.1)"),
                     separatorHoverColor: cssColor("--accent-color", "#2962ff"),
                 },
             },
             grid: {
-                vertLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
-                horzLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
+                vertLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
+                horzLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
             },
             rightPriceScale: {
-                borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                borderColor: themedChrome("rgba(255, 255, 255, 0.1)"),
             },
             timeScale: {
-                borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                borderColor: themedChrome("rgba(255, 255, 255, 0.1)"),
                 timeVisible: true,
                 secondsVisible: false,
             },

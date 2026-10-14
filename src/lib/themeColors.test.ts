@@ -20,6 +20,7 @@ import {
   parseColorToRgb,
   isLightColor,
   contrastRatio,
+  ensureContrast,
   readCssColor,
   getThemePalette,
   invalidateThemePalette,
@@ -88,6 +89,18 @@ describe("contrastRatio", () => {
     const card: [number, number, number] = [68, 71, 90];
     expect(contrastRatio(danger, card)).toBeCloseTo(2.91, 1);
     expect(contrastRatio(card, danger)).toBeCloseTo(contrastRatio(danger, card), 5);
+  });
+});
+
+describe("ensureContrast", () => {
+  it("keeps a readable foreground and swaps a dissolving one", () => {
+    expect(ensureContrast("#e2e8f0", "#0f172a", "#a0adc0", 1.5)).toBe("#e2e8f0");
+    expect(ensureContrast("#44475a", "#44475a", "#c8aed6", 1.5)).toBe("#c8aed6");
+  });
+
+  it("keeps the foreground when either side is unparseable", () => {
+    expect(ensureContrast("var(--x)", "#0f172a", "#a0adc0", 1.5)).toBe("var(--x)");
+    expect(ensureContrast("#e2e8f0", "", "#a0adc0", 1.5)).toBe("#e2e8f0");
   });
 });
 

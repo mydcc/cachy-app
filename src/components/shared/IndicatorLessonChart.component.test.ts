@@ -348,6 +348,44 @@ describe("FEAT-0677 — the live lesson chart", () => {
         }
     });
 
+    it("keeps grid and separator visible when border equals the card", async () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // dracula-soft wires --border-color to --bg-tertiary itself: without
+        // the guard, grid, scale borders and the separator dissolve into it.
+        const getComputedStyle = vi.spyOn(window, "getComputedStyle").mockReturnValue({
+            getPropertyValue: (name: string) =>
+                (
+                    {
+                        "--bg-tertiary": "#44475a",
+                        "--border-color": "#44475a",
+                        "--text-secondary": "#c8aed6",
+                    } as Record<string, string>
+                )[name] ?? "",
+        } as CSSStyleDeclaration);
+        try {
+            render("rsi");
+
+            // Colours re-resolve through the theme observer, like a real
+            // dark↔light switch.
+            document.documentElement.setAttribute("class", "theme-test");
+            await new Promise((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            );
+            flushSync();
+
+            const applied = lw.chart.applyOptions.mock.calls.at(-1)?.[0] as {
+                grid?: { horzLines?: { color?: string } };
+                layout?: { panes?: { separatorColor?: string } };
+            };
+            expect(applied.grid?.horzLines?.color).toBe("#c8aed6");
+            expect(applied.layout?.panes?.separatorColor).toBe("#c8aed6");
+        } finally {
+            document.documentElement.removeAttribute("class");
+            getComputedStyle.mockRestore();
+        }
+    });
+
     it("paints each line's own value at the hovered bar", () => {
         seedKlines("BTCUSDT");
         tradeState.symbol = "BTCUSDT";
