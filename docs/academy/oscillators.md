@@ -87,21 +87,29 @@ It is a precision tool for a narrow case, not a general-purpose oscillator.
 
 **What it measures.** Where the close sits within the highest high and lowest
 low of the configured window. %K is that position smoothed, %D is a moving
-average of %K. Both run 0–100, computed from high, low and close.
+average of %K. Both run 0–100, computed from high, low and close. With smoothing
+it shows the slow variant in the default setting, the calmer one with the more
+reliable signals.
 
 **How to read it.** %K above 80 means the close sits near the top of the
-configured window's range. That is a position, not a signal — the 80 mark is
-convention, not a buy or sell signal. %K crossing %D is the event most systems
-are built on. Reading that as "the market is nearly finished rising" confuses
-the window with the market: the statement covers the configured window, not
-the future.
+configured window's range. Below 20 it sits near the bottom. Those are positions,
+not signals — the 80 and 20 marks are convention, not buy or sell signals. %K
+crossing %D is the event most systems are built on. The strongest reading is
+divergence as with RSI, read on the %D line in the extreme zone: %D forming
+falling peaks while price keeps rising, or rising troughs while price keeps
+falling, warns of the turn. Reading that as "the market is nearly finished
+rising or falling" confuses the window with the market: the statement covers the
+configured window, not the future.
 
 **When it lies.**
 - **In any trend, permanently.** This is the defining failure. In a sustained
   uptrend the close keeps sitting near the window high and %K stays above 80
   for the length of the trend. A rule that sells every overbought print in a
-  trend is systematically short the only move that matters. Shorter windows
-  reach the outer marks sooner and fail sooner here.
+  trend is systematically short the only move that matters. Mirrored, the same
+  holds in a downtrend: the close sits near the window low, %K stays below 20,
+  and buying every oversold reading is systematically long against the only move
+  that matters. Shorter windows reach the outer marks sooner and fail sooner
+  here.
 - **The window is the claim.** "At the top" means top of the configured
   candles. Change the setting and the same chart produces a different reading.
   No setting is more correct than another.
