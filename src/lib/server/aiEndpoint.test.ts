@@ -117,6 +117,52 @@ describe("resolveProviderEndpoint", () => {
     ).toBe("https://gw.example.com/v2/chat/completions");
   });
 
+  it("strips only within the same version family (v1beta never collapses onto vN)", () => {
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1beta",
+        "https://generativelanguage.googleapis.com/v1beta/models",
+        "v1beta/models",
+      ),
+    ).toBe("https://gw.example.com/v1beta/models");
+
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1",
+        "https://api.openai.com/v1/chat/completions",
+        "v1beta/models",
+      ),
+    ).toBe("https://gw.example.com/v1/v1beta/models");
+
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1beta",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/chat/completions",
+      ),
+    ).toBe("https://gw.example.com/v1beta/v1/chat/completions");
+  });
+
+  it("merges the flavor query param when stripping a v1beta base", () => {
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1beta",
+        "https://generativelanguage.googleapis.com/v1beta/models/x:streamGenerateContent?alt=sse",
+        "v1beta/models/kimi:streamGenerateContent?alt=sse",
+      ),
+    ).toBe("https://gw.example.com/v1beta/models/kimi:streamGenerateContent?alt=sse");
+  });
+
+  it("applies the version rule on the unparseable-URL fallback path", () => {
+    expect(
+      resolveProviderEndpoint(
+        "http://exa mple.com:abc/v2",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/models",
+      ),
+    ).toBe("http://exa mple.com:abc/v2/models");
+  });
+
   it("preserves and correctly merges query parameters in custom baseUrl", () => {
     expect(
       resolveProviderEndpoint(
