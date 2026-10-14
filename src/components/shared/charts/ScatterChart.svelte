@@ -28,7 +28,7 @@
     type TooltipItem,
   } from "chart.js";
   import annotationPlugin from "chartjs-plugin-annotation";
-  import Tooltip from "../Tooltip.svelte";
+  import InfoTip from "../InfoTip.svelte";
   import { throttle } from "lodash-es";
   import { readCssColor } from "../../../lib/themeColors";
 
@@ -278,7 +278,7 @@
 <div class="w-full h-full min-h-[250px] relative">
   {#if description}
     <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
-      <Tooltip text={description} />
+      <InfoTip text={description} />
     </div>
   {/if}
   <canvas bind:this={canvas}></canvas>

@@ -76,9 +76,9 @@ through silently. Fixed the literals to strings and narrowed
 `TradeSetupInputs.svelte`, `TakeProfitRow.svelte`,
 `inputs/TakeProfitTargets.svelte`) to `string | null`, so this class of bug
 is a compile error from now on instead of a silent runtime coercion.
-(`components/shared/TakeProfitTargets.svelte` carries the same stale union
-type but is dead code — not imported anywhere — so it was left alone per
-the defensive-deletion rule rather than edited or removed.)
+(`components/shared/TakeProfitTargets.svelte` carried the same stale union
+type but was dead code — not imported anywhere — and has since been removed
+rather than edited.)
 
 **No `Decimal`-identity `===` bug found.** Swept `$derived` blocks across
 `src/components` and `src/stores` for direct `Decimal === Decimal`

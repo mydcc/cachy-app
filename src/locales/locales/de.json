@@ -748,7 +748,6 @@
       "header": "Take Profit",
       "tooltip": "Hier siehst du die berechneten Kennzahlen für jeden deiner partiellen Take-Profit-Ziele.",
       "addTargetTitle": "Weiteres Ziel hinzufügen",
-      "emptyState": "Keine Ziele definiert. Füge oben ein Ziel hinzu.",
       "tp1PrimaryHint": "Primärer Exchange-TP (wird mit Order gesendet)",
       "maxTargetsReached": "Maximal 4 Ziele erreicht"
     },

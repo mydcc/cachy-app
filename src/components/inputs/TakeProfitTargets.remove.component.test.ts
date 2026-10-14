@@ -128,3 +128,18 @@ describe("TakeProfitTargets — removing one row removes exactly one", () => {
         expect(removeButtons()).toHaveLength(2);
     });
 });
+
+describe("TakeProfitTargets — the section header explains the section", () => {
+    it("carries a visible InfoTip marker for the metrics explanation", () => {
+        render(targets());
+
+        // The header used to have no tooltip at all; the sibling
+        // `shared/TakeProfitTargets.svelte` that carried one was dead code and
+        // had lost its affordance when Tooltip's default marker was removed.
+        const marker = host.querySelector(".info-tip");
+        expect(marker).not.toBeNull();
+        expect(marker?.getAttribute("aria-label")).toBe(
+            lookup("dashboard.takeProfitTargets.tooltip"),
+        );
+    });
+});
