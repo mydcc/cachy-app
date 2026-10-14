@@ -4378,7 +4378,7 @@
         "confirmation": "Volume confirmation of a price claim, and divergence work. Read the slope, never the level."
       },
       "volume_ma": {
-        "whatItMeasures": "The average of volume over N periods — the moving-average family applied to volume instead of price.",
+        "whatItMeasures": "The SMA(20) of volume — the moving-average family applied to volume instead of price.",
         "howToRead": "How far the current bar's volume sits from what has been normal recently. A breakout on clearly above-normal volume means something different from one on unusually thin volume, and this is what makes that comparison concrete.",
         "failureModes": "It has no direction. Volume is unsigned, so it cannot say whether buyers or sellers were active — and \"high volume is high volume\", not \"who was doing it\": accumulation and distribution are indistinguishable in this number. \"High volume\" is relative to itself, so a normal reading during a quiet period is not comparable to a normal reading during an active one, and absolute volume levels are not portable across instruments. It describes the past N periods rather than the current bar, so a spike on the last candle has barely entered the average and comparing the bar against an average that already includes it understates the spike.",
         "confirmation": "Sizing the conviction behind a price move, and filtering breakouts whose volume does not support them."

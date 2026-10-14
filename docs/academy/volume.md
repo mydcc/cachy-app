@@ -44,7 +44,7 @@ the slope, never the level.
 
 ## volume_ma
 
-**What it measures.** The average of volume over N periods. Like the moving
+**What it measures.** The SMA(20) of volume. Like the moving
 averages in `trend.md`, applied to volume instead of price.
 
 **How to read it.** How much the current bar's volume differs from recent
