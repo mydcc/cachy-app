@@ -148,23 +148,27 @@ display preference, not an analytical one.
 
 **What it measures.** How far the typical price sits from its own moving
 average, expressed in statistical units — so a reading of +200 is roughly two
-standard deviations out. Typical price is the average of high, low and close
-unless another price is named.
+standard deviations out. Typical price is the average of high, low and close,
+and the configured period decides what "recent" means.
 
 **How to read it.** ±100 is the statistically ordinary excursion. Beyond roughly
-±200 the move is unusual relative to its own recent behaviour. The direction of
-the reading tells you which side buyers or sellers are on.
+±200 the move is unusual relative to its own recent behaviour. Those are
+conventions, not buy or sell signals. The sign of the reading tells you which
+side is active.
 
 **When it lies.**
 - **The ±100 band assumes a stable distribution.** CCI assumes its own recent
   behaviour is representative. In a trending market the price spends most of its
   time outside ±100 — not because the move is unusual, but because "recent
-  behaviour" no longer describes the market.
+  behaviour" no longer describes the market. Shorter periods cross the bands
+  sooner and fail sooner here.
 - **It is unbounded, unlike the family it is quoted with.** A move outside ±200
   is not a reversal signal and not an exhaustion signal; it means the scale
   assumption is violated.
 - **Typical price averages away the wick.** On a candle where the rejection was
   entirely in high or low, CCI can read mild.
+- **A window with no movement has no value** and resolves as indeterminate,
+  not as a number.
 
 **Pairs with.** Momentum entries after a genuine directional break, where the
 question is "how strong is this, not how far has it gone".
