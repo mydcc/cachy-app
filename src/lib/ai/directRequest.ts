@@ -26,13 +26,34 @@ import type { AiApiFlavor } from "../../stores/settings/aiProviders";
 const DEFAULT_MAX_TOKENS = 2000;
 
 /**
+ * Returns the flavor path without its version prefix when the base URL
+ * already ends in the same version family ("" for plain vN, "beta" for
+ * v1beta, ...), so neither `/v1/v1` nor `/v2/v1` is ever doubled. Returns
+ * null when no strip applies. Cross-family combos (v1beta rel against a
+ * plain vN base or vice versa) return null and append unchanged: a
+ * flavor/base mismatch stays a loud 404 instead of collapsing onto a
+ * wrong route.
+ */
+function stripVersionPrefix(rel: string, base: string): string | null {
+  const relMatch = rel.match(/^(?:api\/)?v\d+([a-z]*)\//);
+  if (!relMatch) return null;
+  const baseMatch = base.match(/(?:\/api)?\/v\d+([a-z]*)$/);
+  if (!baseMatch || baseMatch[1] !== relMatch[1]) return null;
+  const prefix = rel.match(/^(?:api\/v\d+[a-z]*\/|v\d+[a-z]*\/)/);
+  if (!prefix) return null;
+  return rel.slice(prefix[0].length);
+}
+
+/**
  * Joins a provider base URL with a relative endpoint path.
  *
  * Requires `https://` so a browser-direct request never sends the Class A key
  * in cleartext; `http://` is allowed only for loopback gateways
  * (localhost / 127.0.0.1 / ::1), matching the relay's reserved-host intent.
  * De-duplicates a version segment already present in the base URL so
- * `/v1`, `/api/v1` and `/v1beta` are not doubled.
+ * `/v1`, `/v2`, `/api/v1` and `/v1beta` are not doubled: when the base ends
+ * in the same version family as the flavor path, the base wins and the
+ * flavor's own prefix is dropped.
  */
 export function resolveDirectUrl(baseUrl: string, relativePath: string): string {
   const trimmed = baseUrl.trim().replace(/\/+$/, "");
@@ -59,16 +80,8 @@ export function resolveDirectUrl(baseUrl: string, relativePath: string): string 
   }
 
   const rel = relativePath.replace(/^\/+/, "");
-  if (rel.startsWith("v1beta/") && trimmed.endsWith("/v1beta")) {
-    return `${trimmed}/${rel.slice(7)}`;
-  }
-  if (rel.startsWith("v1/") && trimmed.endsWith("/v1")) {
-    return `${trimmed}/${rel.slice(3)}`;
-  }
-  if (rel.startsWith("api/v1/") && trimmed.endsWith("/api/v1")) {
-    return `${trimmed}/${rel.slice(7)}`;
-  }
-  return `${trimmed}/${rel}`;
+  const stripped = stripVersionPrefix(rel, trimmed);
+  return stripped !== null ? `${trimmed}/${stripped}` : `${trimmed}/${rel}`;
 }
 
 export interface DirectChatParams {

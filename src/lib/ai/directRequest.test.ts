@@ -28,6 +28,30 @@ describe("resolveDirectUrl", () => {
     );
   });
 
+  it("keeps the base version when it differs from the flavor path (no /v2/v1/ doubling)", () => {
+    expect(resolveDirectUrl("https://opencode.ai/zen/go/v2", "v1/models")).toBe(
+      "https://opencode.ai/zen/go/v2/models",
+    );
+    expect(resolveDirectUrl("https://gw.example.com/v2", "v1/chat/completions")).toBe(
+      "https://gw.example.com/v2/chat/completions",
+    );
+    expect(resolveDirectUrl("https://gw.example.com/v10", "v1/models")).toBe(
+      "https://gw.example.com/v10/models",
+    );
+  });
+
+  it("strips only within the same version family (v1beta never collapses onto vN)", () => {
+    expect(resolveDirectUrl("https://gw.example.com/v1beta", "v1beta/models")).toBe(
+      "https://gw.example.com/v1beta/models",
+    );
+    expect(resolveDirectUrl("https://gw.example.com/v1", "v1beta/models")).toBe(
+      "https://gw.example.com/v1/v1beta/models",
+    );
+    expect(resolveDirectUrl("https://gw.example.com/v1beta", "v1/chat/completions")).toBe(
+      "https://gw.example.com/v1beta/v1/chat/completions",
+    );
+  });
+
   it("appends the path when the base has no version segment", () => {
     expect(resolveDirectUrl("https://gw.example.com", "v1/chat/completions")).toBe(
       "https://gw.example.com/v1/chat/completions",

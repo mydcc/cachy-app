@@ -99,6 +99,98 @@ describe("resolveProviderEndpoint", () => {
     ).toBe("https://openrouter.ai/api/v1/chat/completions");
   });
 
+  it("keeps the base version when it differs from the flavor path (no /v2/v1/ doubling)", () => {
+    expect(
+      resolveProviderEndpoint(
+        "https://opencode.ai/zen/go/v2",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/models",
+      ),
+    ).toBe("https://opencode.ai/zen/go/v2/models");
+
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v2",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/chat/completions",
+      ),
+    ).toBe("https://gw.example.com/v2/chat/completions");
+
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v10",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/models",
+      ),
+    ).toBe("https://gw.example.com/v10/models");
+  });
+
+  it("strips only within the same version family (v1beta never collapses onto vN)", () => {
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1beta",
+        "https://generativelanguage.googleapis.com/v1beta/models",
+        "v1beta/models",
+      ),
+    ).toBe("https://gw.example.com/v1beta/models");
+
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1",
+        "https://api.openai.com/v1/chat/completions",
+        "v1beta/models",
+      ),
+    ).toBe("https://gw.example.com/v1/v1beta/models");
+
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1beta",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/chat/completions",
+      ),
+    ).toBe("https://gw.example.com/v1beta/v1/chat/completions");
+  });
+
+  it("merges base and flavor query params when stripping on the parse path", () => {
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1beta?token=xyz",
+        "https://generativelanguage.googleapis.com/v1beta/models/x:streamGenerateContent?alt=sse",
+        "v1beta/models/kimi:streamGenerateContent?alt=sse",
+      ),
+    ).toBe("https://gw.example.com/v1beta/models/kimi:streamGenerateContent?token=xyz&alt=sse");
+  });
+
+  it("merges the flavor query param when stripping a v1beta base", () => {
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v1beta",
+        "https://generativelanguage.googleapis.com/v1beta/models/x:streamGenerateContent?alt=sse",
+        "v1beta/models/kimi:streamGenerateContent?alt=sse",
+      ),
+    ).toBe("https://gw.example.com/v1beta/models/kimi:streamGenerateContent?alt=sse");
+  });
+
+  it("applies the version rule on the unparseable-URL fallback path", () => {
+    expect(
+      resolveProviderEndpoint(
+        "http://exa mple.com:abc/v2",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/models",
+      ),
+    ).toBe("http://exa mple.com:abc/v2/models");
+  });
+
+  it("merges base and flavor query params when stripping on the fallback path", () => {
+    expect(
+      resolveProviderEndpoint(
+        "http://exa mple.com:abc/v2?token=xyz",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/models",
+      ),
+    ).toBe("http://exa mple.com:abc/v2/models?token=xyz");
+  });
+
   it("preserves and correctly merges query parameters in custom baseUrl", () => {
     expect(
       resolveProviderEndpoint(

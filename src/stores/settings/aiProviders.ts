@@ -411,8 +411,7 @@ export const VENDOR_PRESETS: readonly VendorPreset[] = [
   { id: "mistral", label: "Mistral", flavor: "openai-chat", baseUrl: "https://api.mistral.ai/v1" },
   { id: "groq", label: "Groq", flavor: "openai-chat", baseUrl: "https://api.groq.com/openai/v1" },
   { id: "openrouter", label: "OpenRouter", flavor: "openai-chat", baseUrl: "https://openrouter.ai/api/v1" },
-  { id: "opencode-zen", label: "OpenCode Zen", flavor: "openai-chat", baseUrl: "https://opencode.ai/zen/v1" },
-  { id: "opencode-go", label: "OpenCode Go", flavor: "openai-chat", baseUrl: "https://opencode.ai/zen/go/v1" },
+  { id: "opencode", label: "OpenCode", flavor: "openai-chat", baseUrl: "https://opencode.ai/inference/v1" },
   { id: "command-code", label: "Command Code", flavor: "openai-chat", baseUrl: "https://api.commandcode.ai/provider/v1" },
   { id: "omniroute", label: "OmniRoute (lokal)", flavor: "openai-chat", baseUrl: "http://localhost:20128/v1" },
 ];

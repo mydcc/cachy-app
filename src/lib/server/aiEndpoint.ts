@@ -23,6 +23,25 @@
  * - Appending the relative endpoint path.
  * - Handling whether baseUrl already contains version prefixes like `/v1`.
  */
+/**
+ * Returns the flavor path without its version prefix when the base URL
+ * already ends in the same version family ("" for plain vN, "beta" for
+ * v1beta, ...), so neither `/v1/v1` nor `/v2/v1` is ever doubled. Returns
+ * null when no strip applies. Cross-family combos return null and append
+ * unchanged, mirroring `stripVersionPrefix` in
+ * `src/lib/ai/directRequest.ts` (kept as a separate copy: the
+ * browser-direct builder must not import server code).
+ */
+function stripVersionPrefix(rel: string, base: string): string | null {
+  const relMatch = rel.match(/^(?:api\/)?v\d+([a-z]*)\//);
+  if (!relMatch) return null;
+  const baseMatch = base.match(/(?:\/api)?\/v\d+([a-z]*)$/);
+  if (!baseMatch || baseMatch[1] !== relMatch[1]) return null;
+  const prefix = rel.match(/^(?:api\/v\d+[a-z]*\/|v\d+[a-z]*\/)/);
+  if (!prefix) return null;
+  return rel.slice(prefix[0].length);
+}
+
 export function resolveProviderEndpoint(
   customBaseUrl: string | null | undefined,
   defaultEndpoint: string,
@@ -45,13 +64,10 @@ export function resolveProviderEndpoint(
     // Split relative path and any query parameters attached to relativePath
     const [relPathOnly, relQuery] = cleanRelative.split("?");
 
-    // Handle v1 / api/v1 deduplication on the pathname
-    let subPath = relPathOnly;
-    if (relPathOnly.startsWith("v1/") && pathname.endsWith("/v1")) {
-      subPath = relPathOnly.slice(3);
-    } else if (relPathOnly.startsWith("api/v1/") && pathname.endsWith("/api/v1")) {
-      subPath = relPathOnly.slice(7);
-    }
+    // Same-family version rule: the base version wins, cross-family combos
+    // append unchanged (see stripVersionPrefix).
+    const stripped = stripVersionPrefix(relPathOnly, pathname);
+    const subPath = stripped !== null ? stripped : relPathOnly;
 
     baseObj.pathname = `${pathname}/${subPath}`.replace(/\/+/g, "/");
 
@@ -70,12 +86,10 @@ export function resolveProviderEndpoint(
     const cleanBase = baseWithoutQuery.replace(/\/+$/, "");
     const [relPathOnly, relQuery] = relativePath.replace(/^\/+/, "").split("?");
 
-    let resolvedPath = `${cleanBase}/${relPathOnly}`;
-    if (relPathOnly.startsWith("v1/") && cleanBase.endsWith("/v1")) {
-      resolvedPath = `${cleanBase}/${relPathOnly.slice(3)}`;
-    } else if (relPathOnly.startsWith("api/v1/") && cleanBase.endsWith("/api/v1")) {
-      resolvedPath = `${cleanBase}/${relPathOnly.slice(7)}`;
-    }
+    // Same version-segment rule as above: the base version wins.
+    const strippedFallback = stripVersionPrefix(relPathOnly, cleanBase);
+    const resolvedPath =
+      strippedFallback !== null ? `${cleanBase}/${strippedFallback}` : `${cleanBase}/${relPathOnly}`;
 
     const mergedParams = new URLSearchParams(baseQuery || "");
     if (relQuery) {
