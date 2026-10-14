@@ -211,12 +211,12 @@ whipsaw is the accepted cost.
 
 ## ichimoku
 
-**What it measures.** Five lines. The **cloud** is drawn from two spans and
-projected forward; **tenkan** (conversion line) and **kijun** (base line) are
-two averages of different lengths. Price relative to the cloud is the trend
+**What it measures.** Four lines (no Chikou). The **cloud** is drawn from two spans and
+projected forward by 26 periods; **tenkan** (conversion line, 9) and **kijun** (base line, 26) are
+not averages but midpoints of their period's high and low. Price relative to the cloud is the trend
 statement; tenkan relative to kijun is a shorter-term statement within it.
 
-**How to read it.** Above the cloud, above both spans — an uptrend with support
+**How to read it.** Above the cloud — hence above both spans — an uptrend with support
 defined by the cloud's lower edge. Below it, the mirror image. Tenkan crossing
 kijun is the timing signal inside the direction.
 
@@ -230,8 +230,9 @@ kijun is the timing signal inside the direction.
 - **It needs far more history than the other trend indicators.** The longest
   span runs well past fifty periods; on a short history the cloud has no
   established shape and the reading is not interpretable.
-- **Five lines on one chart is a lot to read at once**, and the reading most
+- **Four lines on one chart is a lot to read at once**, and the reading most
   people take — above or below — uses one of them. The rest are refinement.
+  The classic fifth line (Chikou) does not exist here.
 
 **Pairs with.** Multi-timeframe analysis where the higher timeframe is the
 reference and the lower one is the entry, on instruments with enough history.
