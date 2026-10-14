@@ -58,14 +58,19 @@ position-within-range logic to RSI values rather than to price. %K and %D,
 both 0–100, reading where RSI currently sits within its own configured range.
 
 **How to read it.** Crosses of %K over %D are the usual event. The outer marks
-at 80 and 20 are convention, not buy or sell signals. Read it as a statement
-about where the RSI is inside its own range, not as a statement about price.
+at 80 and 20 are convention, not buy or sell signals. The middle line at 50
+splits the range in two halves: above it, the RSI stands in its upper half,
+and a cross above it confirms the direction of the RSI push — also no buy or
+sell signal. Read it as a statement about where the RSI is inside its own
+range, not as a statement about price.
 
 **When it lies.**
 - **Double smoothing hides the thing you wanted to see.** A stochastic of a
   stochastic reaches its extremes far more often than the underlying RSI does,
   so readings that would be rare on the RSI are routine here. Shorter ranges
   reach the outer marks sooner and fail sooner in trends.
+- **In a trend it sticks to the extremes.** At 100 in an uptrend, at 0 in a
+  downtrend, for as long as the trend lasts — instead of warning of the turn.
 - **Inherited every RSI failure, then some.** Whatever made the RSI misleading
   in a trend makes this misleading in a trend, and the extra transform removes
   the absolute level information that would have told you which regime you are
