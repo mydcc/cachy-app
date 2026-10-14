@@ -229,8 +229,13 @@
 
     // getThemeColors() resolves at draw time, so without this a dark↔light
     // switch would leave the old palette on screen — the same reason
-    // IndicatorLessonChart and CandlestickChart watch the theme.
-    const themeObserver = new MutationObserver(() => draw());
+    // IndicatorLessonChart and CandlestickChart watch the theme. Coalesced
+    // via rAF like the siblings, so clustered attribute writes repaint once.
+    let themeFrameId = 0;
+    const themeObserver = new MutationObserver(() => {
+        cancelAnimationFrame(themeFrameId);
+        themeFrameId = requestAnimationFrame(() => draw());
+    });
     themeObserver.observe(document.documentElement, {
         attributes: true,
         attributeFilter: ["style", "class", "data-theme"],
@@ -239,6 +244,7 @@
     return () => {
         resizeObserver.disconnect();
         themeObserver.disconnect();
+        cancelAnimationFrame(themeFrameId);
     };
   });
 </script>
