@@ -19,7 +19,7 @@
 /*
  * FEAT-0679 — the market structure reference tab.
  *
- * Four sections in reading order from `academy.structure.*`, a static
+ * Five cards in reading order from `academy.structure.*`, a static
  * language-neutral SVG schematic for the structure section, and lesson
  * buttons that ask the parent to switch tabs. The live charts are stubbed:
  * IndicatorLessonChart has its own suite, and this file is about sections,
@@ -77,12 +77,13 @@ function renderView(props: Record<string, unknown> = {}): HTMLElement {
 }
 
 describe("MarketStructureView", () => {
-    it("renders all four sections with their locale titles", () => {
+    it("renders all sections with their locale titles and takeaways", () => {
         const view = renderView();
-        for (const section of ["s1", "s2", "s3", "s4"]) {
+        for (const section of ["s1", "s2", "s3", "s4a", "s4b"]) {
             const article = view.querySelector(`[data-testid="structure-${section}"]`);
             expect(article, `section ${section} missing`).not.toBeNull();
             expect(article?.textContent).toContain(lookup(`academy.structure.${section}.title`));
+            expect(article?.textContent).toContain(lookup(`academy.structure.${section}.takeaway`));
             expect(article?.textContent).toContain(lookup(`academy.structure.${section}.body`));
         }
     });

@@ -18,7 +18,7 @@
 /**
  * FEAT-0679 — the market structure reference content.
  *
- * The four sections render as plain text nodes, so every key under
+ * The five cards render as plain text nodes, so every key under
  * `academy.structure` must resolve to a non-empty string in both languages.
  * Non-vacuity as elsewhere: an empty namespace must fail, not agree with
  * nothing, and DE/EN are checked side by side so a one-language gap fails.
@@ -36,7 +36,7 @@ const LOCALES: readonly (readonly [string, Bundle])[] = [
     ["de", de as Bundle],
 ];
 
-const SECTIONS = ["s1", "s2", "s3", "s4"] as const;
+const SECTIONS = ["s1", "s2", "s3", "s4a", "s4b"] as const;
 
 function nonEmpty(bundle: Bundle, dotted: string): string {
     const value = dotted
@@ -56,10 +56,11 @@ describe("market structure content", () => {
         }
     });
 
-    it("carries all four sections with title and body, in both languages", () => {
+    it("carries all sections with title, takeaway and body, in both languages", () => {
         for (const [, bundle] of LOCALES) {
             for (const section of SECTIONS) {
                 nonEmpty(bundle, `academy.structure.${section}.title`);
+                nonEmpty(bundle, `academy.structure.${section}.takeaway`);
                 nonEmpty(bundle, `academy.structure.${section}.body`);
             }
         }
