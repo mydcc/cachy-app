@@ -138,7 +138,8 @@ range ends.
 inverted scale, computed from high, low and close.
 
 **How to read it.** 0 is the top of the window's range, −100 the bottom. The
-outer marks at −20 and −80 are convention, not buy or sell signals. Reading
+outer marks at −20 and −80 are convention, not buy or sell signals. Divergence
+reads as with `stochastic`, at the outer marks, not in the middle. Reading
 it as an oscillator in the family it belongs to, not as a separate idea — every
 stochastic caveat applies unchanged.
 
