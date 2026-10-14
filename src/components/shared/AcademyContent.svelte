@@ -32,6 +32,7 @@
    import CandlestickPatternsView from "./CandlestickPatternsView.svelte";
    import ChartPatternsView from "./ChartPatternsView.svelte";
    import IndicatorLessonsView from "./IndicatorLessonsView.svelte";
+   import MarketStructureView from "./MarketStructureView.svelte";
    import { createAcademyTabs } from "../../lib/academy/useAcademyTabs.svelte";
 
    interface Props {
@@ -46,6 +47,14 @@
    let { showLiveChart = true }: Props = $props();
 
    const tabs = createAcademyTabs();
+
+   /*
+    * FEAT-0679 deep link, consumed once: the structure tab names a lesson,
+    * the indicators tab mounts with it selected. Plain (non-state) on
+    * purpose — it is read synchronously during the mount render that setTab
+    * triggers, so no reactivity is involved and nothing goes stale.
+    */
+   let pendingLesson: string | null = null;
 </script>
 
 <div class="@container flex flex-col h-full min-h-0 min-w-0 p-4 @sm:p-6">
@@ -65,8 +74,23 @@
          <ChartPatternsView />
       {:else if tabs.activeTab === "candlestickPatterns"}
          <CandlestickPatternsView />
+      {:else if tabs.activeTab === "marketStructure"}
+         <MarketStructureView
+            showLiveChart={showLiveChart}
+            onOpenIndicators={(id) => {
+               pendingLesson = id;
+               tabs.setTab("indicators");
+            }}
+         />
       {:else}
-         <IndicatorLessonsView showLiveChart={showLiveChart} />
+         <IndicatorLessonsView
+            showLiveChart={showLiveChart}
+            consumeInitialLesson={() => {
+               const id = pendingLesson;
+               pendingLesson = null;
+               return id;
+            }}
+         />
       {/if}
    </div>
 </div>

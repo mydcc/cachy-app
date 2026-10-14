@@ -2,7 +2,7 @@
 id: FEAT-0679
 title: Teach market structure, trend and regime in the Trading Academy
 type: feature
-status: idea
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,6 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0677]
-# assignee:            # required while status: in-progress (who is working this)
 ---
 
 # FEAT-0679 — Teach market structure, trend and regime in the Trading Academy
@@ -79,13 +78,14 @@ recomputing or re-describing anything.
 ## Open questions
 
 - **How much of this is really structure and how much is already covered by chart
-  patterns?** Some of higher-timeframe bias is close to what the chart-pattern tab
-  teaches with a different vocabulary. Worth checking for overlap before writing, or
-  the tab teaches the same thing twice in two words.
+  patterns?** Decided 2026-10-14: reference-only. The tab names patterns and
+  links the pattern tabs where they overlap; it never re-explains a formation.
 - Whether the tab should be a lesson sequence with an order, or a reference the user
-  jumps into. Every previous tab is a reference; this one arguably reads as a course.
-- Whether multi-timeframe comparison needs a split view. If it does, that is a real
-  cost and the reason to keep it a reference rather than a sequence.
+  jumps into. Decided 2026-10-14: reference with a numbered reading order
+  (bias → structure → levels → regime). No progress state, no course machinery.
+- Whether multi-timeframe comparison needs a split view. Decided 2026-10-14: no.
+  Single chart with the existing timeframe switch (top-down workflow); split view
+  stays an optional later item. Mobile gets stacking for free.
 
 ## Links
 

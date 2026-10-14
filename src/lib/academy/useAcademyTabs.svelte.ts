@@ -23,7 +23,7 @@
 
 import { browser } from "$app/env";
 
-export type AcademyTab = "chartPatterns" | "candlestickPatterns" | "indicators";
+export type AcademyTab = "chartPatterns" | "candlestickPatterns" | "indicators" | "marketStructure";
 
 export const ACADEMY_TAB_STORAGE_KEY = "academy_active_tab";
 
@@ -36,6 +36,7 @@ export const ACADEMY_TABS: readonly AcademyTab[] = [
    "chartPatterns",
    "candlestickPatterns",
    "indicators",
+   "marketStructure",
 ];
 
 function isAcademyTab(value: unknown): value is AcademyTab {

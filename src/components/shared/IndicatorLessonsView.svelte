@@ -62,9 +62,15 @@
          * nor opens a market subscription for the default symbol.
          */
         showLiveChart?: boolean;
+        /**
+         * One-shot initial lesson, consumed on mount (FEAT-0679 deep links
+         * from the structure tab). Unknown ids fall back to the first lesson
+         * through `current`, so a stale id cannot break the view.
+         */
+        consumeInitialLesson?: () => string | null;
     }
 
-    let { showLiveChart = true }: Props = $props();
+    let { showLiveChart = true, consumeInitialLesson }: Props = $props();
 
     type LessonField = (typeof LESSON_FIELDS)[number];
     type GroupFilter = "all" | "favorites" | IndicatorGroup;
@@ -79,7 +85,7 @@
 
     let searchQuery = $state("");
     let groupFilter = $state<GroupFilter>("all");
-    let selectedId = $state<string | null>(null);
+    let selectedId = $state<string | null>(consumeInitialLesson?.() ?? null);
 
     /*
      * The favorites hook is keyed by its storage key and was never pattern

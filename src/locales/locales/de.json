@@ -4102,6 +4102,31 @@
   },
   "academy": {
     "title": "Trading Akademie",
+    "structure": {
+      "title": "Marktstruktur & Regime",
+      "openLesson": "Lektion öffnen",
+      "s1": {
+        "title": "Der höhere Timeframe entscheidet zuerst",
+        "body": "Bevor du eine Formation oder ein Signal auf deinem Trading-Timeframe liest, lies den Timeframe darüber: Im Triple-Screen-Sinn von Elder tradest du niemals gegen den höheren Timeframe — du handelst mit ihm oder gar nicht. „4h bearish“ verpflichtet dich: Shorts sind der Plan, Longs brauchen überdurchschnittliche Evidenz und engere Ziele, und die Invalidierung liegt an der 4h-Struktur, nicht an deiner 5m-Kerze.",
+        "chartHint": "Der Chart unten folgt derselben Logik wie die Indikator-Lektionen, inklusive Timeframe-Umschalter: Kippe von 4h auf 5m und beobachte, wie dieselbe Lesart ihre Geschichte ändert — der tiefere Timeframe rauscht, wo der höhere noch Richtung hat."
+      },
+      "s2": {
+        "title": "Struktur: Brüche lesen, nicht raten",
+        "body": "Ein Aufwärtstrend ist eine Folge steigender Hochs und Tiefs; bricht der Kurs das letzte Tief, ist das ein Bruch der Struktur (BOS) — der Trend setzt sich nach unten fort. Bricht er danach gegen die neue Richtung, ist das ein Change of Character (CHOCH): kein Signal, sondern die erste Warnung, dass die Gegenseite wieder mitspielt. Swing-Hochs und -Tiefs sind dabei keine Messwerte: Jeder Trader zieht sie anders, und wer andere Swings sieht, sieht andere Brüche — ein BOS gilt immer nur relativ zu den Swings, die du gewählt hast. Die Skizze zeigt das Muster einmal sauber gezeichnet, inklusive der Zone, die nach dem Bruch ihre Rolle wechselt. Ob der Bruch hält, entscheidet erst der Retest — kein Indikator nimmt dir das ab.",
+        "legendSwings": "Swing-Hochs und -Tiefs",
+        "legendBos": "BOS (Strukturbruch)",
+        "legendChoch": "CHOCH (Charakterwechsel)",
+        "legendZone": "Flip-Zone (ex Widerstand)"
+      },
+      "s3": {
+        "title": "Level, die bleiben",
+        "body": "Unterstützung und Widerstand sind keine Linien am Chart, sondern Zonen, an denen früher viel gehandelt wurde: alte Swing-Zonen, Flip-Zonen nach einem BOS — und je höher der Timeframe, desto tragfähiger. Bricht ein Widerstand, wird er zur Unterstützung: nicht aus Geometrie, sondern weil die Verkäufer von damals dort im Verlust sitzen und beim Retest aussteigen wollen. Deshalb überleben Level ihre Kerzen: Was auf 4h ein Level war, ist es noch, wenn die 5m-Kerzen längst aus dem Fenster gefallen sind. Handle Level vom höheren Timeframe und manage den Einstieg im unteren — dieselbe Arbeitsteilung wie beim Bias."
+      },
+      "s4": {
+        "title": "Regime lesen, nicht raten",
+        "body": "Trend oder Range entscheidet, welche Werkzeuge überhaupt lesbar sind: Steigt der ADX über etwa 25, lohnt Trendfolge in Richtung der oberen DI-Linie; fällt er, oder liegt Choppiness über 61,8, scheitern Ausbrüche und Oszillator-Extreme bekommen Sinn. Bandbreite auf Tiefststand kündigt Bewegung an, nicht Richtung — ein Setup ohne Seite ist ein halbes Setup. ATR sagt, wie groß die normale Bewegung gerade ist: Expandiert sie, müssen Stops und Ziele mitwachsen, sonst frisst das normale Rauschen den Trade. Nichts davon klassifiziert den Markt für dich: Es sind Lesarten mit jeweils einer Kehrseite — stark im Trend, blind in der Range, und umgekehrt. Die Knöpfe unten öffnen die Lektionen, die jede Lesart im Detail lehren."
+      }
+    },
     "indicators": {
       "adx": {
         "whatItMeasures": "Trendstärke in drei Teilen. +DI und −DI sagen, welche Seite dominiert; ADX sagt, wie stark diese Dominanz ist — er selbst ist die geglättete Differenz zwischen beiden. Eine Periode steuert sowohl die Richtungsglättung als auch das ADX-Fenster selbst. ADX trägt keine eigene Richtung.",

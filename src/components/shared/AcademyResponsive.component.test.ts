@@ -231,7 +231,7 @@ describe("Academy window resize responsiveness (container queries)", () => {
         const root = await renderAcademy();
 
         const tabButtons = root.children[0].querySelectorAll("button");
-        expect(tabButtons.length).toBe(3);
+        expect(tabButtons.length).toBe(4);
         tabButtons[1].click();
         await settle();
 
@@ -267,13 +267,32 @@ describe("Academy window resize responsiveness (container queries)", () => {
         expect(split.classList.contains("lg:flex-row")).toBe(false);
     });
 
+    it("MarketStructureView uses container queries only, never viewport breakpoints", async () => {
+        const root = await renderAcademy();
+
+        const tabButtons = root.children[0].querySelectorAll("button");
+        tabButtons[3].click();
+        await settle();
+
+        expect(localStorage.getItem("academy_active_tab")).toBe("marketStructure");
+
+        const view = activeViewRoot(root);
+        expect(view.getAttribute("data-testid")).toBe("structure-view");
+        // Single column at every width with its own scroll: the only
+        // responsive mechanism allowed is the container (@-prefixed).
+        const viewportClasses = [...view.querySelectorAll("*"), view].flatMap((el) =>
+            [...(el as HTMLElement).classList].filter((name) => /^(sm|md|lg|xl):/.test(name)),
+        );
+        expect(viewportClasses).toEqual([]);
+    });
+
     it("tabs expose tab semantics and move with arrow keys", async () => {
         const root = await renderAcademy();
 
         expect(root.querySelector('[role="tablist"]')).not.toBeNull();
 
         const tabs = [...root.querySelectorAll('[role="tab"]')];
-        expect(tabs.length).toBe(3);
+        expect(tabs.length).toBe(4);
         expect(tabs[0].getAttribute("aria-selected")).toBe("true");
         expect(tabs[1].getAttribute("aria-selected")).toBe("false");
 
