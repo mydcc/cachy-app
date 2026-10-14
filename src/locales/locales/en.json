@@ -4318,8 +4318,8 @@
         "confirmation": "Stop placement and position sizing: think in ATR multiples instead of points. Also the volatility input that makes the SuperTrend band adaptive."
       },
       "choppiness": {
-        "whatItMeasures": "A single number between roughly 0 and 100 summarising how orderly the movement is. Near 100 the market has been moving within a narrow, directionless band; near 0 it has been moving decisively in one direction.",
-        "howToRead": "As a regime filter and nothing else. Above the middle range: range behaviour, where breakouts fail and oscillator extremes mean something. Below it: trending, where the oscillators are unreliable and the overlays are the ones worth reading.",
+        "whatItMeasures": "A single number between 0 and 100 (default 14) summarising how directional the movement is. Near 100 the market has been moving within a narrow, directionless band; near 0 it has been moving decisively in one direction.",
+        "howToRead": "As a regime filter and nothing else. Above the usual thresholds (Dreiss: 61.8): range behaviour, where breakouts fail and oscillator extremes mean something. Below them (38.2): trending, where the oscillators are unreliable and the overlays are the ones worth reading.",
         "failureModes": "It is not directional. A reading at 90 says the market is not trending, not that it will go down — the same foundational trap as ATR. Around the middle it is noise: the useful information is at the extremes, and a rule that fires on a mid-range reading is acting on the part of the scale that carries nothing. It is calculated over a window and lags, so the regime it describes has often already been left behind by the time it confirms. It classifies movement, not the trader's opportunity — a high reading means trend-following is not indicated, not that range-trading is.",
         "confirmation": "Gating the other lessons. Used as a precondition on a signal rather than as a signal itself."
       },

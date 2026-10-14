@@ -4258,8 +4258,8 @@
         "confirmation": "Stop-Platzierung und Positionsgröße: Stops in ATR-Vielfachen statt in Punkten denken. Außerdem der Volatilitätseingang, der das SuperTrend-Band adaptiv macht."
       },
       "choppiness": {
-        "whatItMeasures": "Eine einzelne Zahl zwischen grob 0 und 100, die zusammenfasst, wie geordnet die Bewegung ist. Nahe 100 hat sich der Markt in einem engen, richtungslosen Band bewegt; nahe 0 hat er sich entschieden in eine Richtung bewegt.",
-        "howToRead": "Als Regime-Filter und für nichts sonst. Über dem mittleren Bereich: Range-Verhalten, in dem Ausbrüche scheitern und Oszillator-Extreme etwas bedeuten. Darunter: Trendverhalten, in dem die Oszillatoren unzuverlässig sind und die Overlays die lesenswerten sind.",
+        "whatItMeasures": "Eine einzelne Zahl zwischen 0 und 100 (Default 14), die zusammenfasst, wie gerichtet die Bewegung ist. Nahe 100 hat sich der Markt in einem engen, richtungslosen Band bewegt; nahe 0 hat er sich entschieden in eine Richtung bewegt.",
+        "howToRead": "Als Regime-Filter und für nichts sonst. Über den üblichen Schwellen (Dreiss: 61,8): Range-Verhalten, in dem Ausbrüche scheitern und Oszillator-Extreme etwas bedeuten. Darunter (38,2): Trendverhalten, in dem die Oszillatoren unzuverlässig sind und die Overlays die lesenswerten sind.",
         "failureModes": "Sie ist nicht direktional. Ein Wert bei 90 sagt, der Markt ist nicht im Trend, nicht dass er fallen wird — dieselbe grundlegende Falle wie beim ATR. Um die Mitte herum ist sie Rauschen: Die nützliche Information liegt an den Extremen, und eine Regel, die auf einem mittleren Wert feuert, handelt auf dem Teil der Skala, der nichts trägt. Sie wird über ein Fenster berechnet und laggt, das beschriebene Regime ist also oft schon verlassen, wenn sie bestätigt. Sie klassifiziert Bewegung, nicht die Chance des Händlers — ein hoher Wert bedeutet, dass Trendfolge nicht angezeigt ist, nicht dass Range-Trading es ist.",
         "confirmation": "Gate für die anderen Lektionen. Als Vorbedingung auf ein Signal genutzt, nicht als Signal selbst."
       },

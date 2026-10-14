@@ -95,14 +95,16 @@ instead of points. Also as the volatility input that makes `super_trend` in
 
 ## choppiness
 
-**What it measures.** A single number between roughly 0 and 100 summarising how
-orderly the movement is. Near 100 the market has been moving within a narrow,
-directionless band; near 0 it has been moving decisively in one direction.
+**What it measures.** A single number between 0 and 100 (default 14) summarising
+how directional the movement is. Near 100 the market has been moving within a
+narrow, directionless band; near 0 it has been moving decisively in one
+direction.
 
-**How to read it.** As a **regime filter, and nothing else.** Above the middle
-range: range behaviour, where breakouts fail and oscillator extremes mean
-something. Below it: trending, where the indicators in `oscillators.md` are
-unreliable and the overlays in `trend.md` are the ones worth reading.
+**How to read it.** As a **regime filter, and nothing else.** Above the usual
+thresholds (Dreiss: 61.8): range behaviour, where breakouts fail and oscillator
+extremes mean something. Below them (38.2): trending, where the indicators in
+`oscillators.md` are unreliable and the overlays in `trend.md` are the ones
+worth reading.
 
 **When it lies.**
 - **It is not directional.** Same foundational point as ATR, and the same
