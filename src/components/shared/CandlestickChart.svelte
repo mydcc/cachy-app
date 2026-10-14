@@ -178,9 +178,12 @@
       ctx.fillStyle = feature.color
         ? resolveFeatureColor(feature.color, resolveColor)
         : successBg;
+      // The outline is meant to read stronger than the translucent fill, so
+      // it always carries alpha 0.8 — the previous string-replace only
+      // raised the few 0.2 fills and left the rest as faint as the fill.
       ctx.strokeStyle = feature.color
         ? resolveFeatureColorWithAlpha(feature.color, 0.8, resolveColor)
-        : successBg.replace("0.2", "0.8");
+        : resolveFeatureColorWithAlpha("--success-color", 0.8, resolveColor);
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.roundRect(x - 12, top, 24, height, 4);

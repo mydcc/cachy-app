@@ -113,6 +113,9 @@ describe('Chart Patterns Drawing', () => {
       );
     });
     expect(painted.filter((v) => v.toLowerCase() === "#e0e0e0")).toEqual([]);
+    // Not just absence: the reference lines must still be drawn, in the
+    // theme's neutral tone, so deleting the calls cannot keep this green.
+    expect(painted).toContain(DEFAULT_PATTERN_COLORS.neutral);
   });
 
   it('should draw specific elements for Head and Shoulders', () => {

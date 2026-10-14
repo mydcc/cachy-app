@@ -26,9 +26,13 @@
  * its own palette. Unknown values (including `var(--…)` references and
  * future hues) pass through untouched, so data the table does not know
  * keeps rendering exactly as before.
+ *
+ * The parser here is deliberately separate from `src/lib/themeColors.ts`:
+ * that one returns a `[r, g, b]` tuple with clamping/percent support, this
+ * one keeps alpha. Names differ to make the two impossible to confuse.
  */
 
-export interface RgbColor {
+export interface CssColor {
   r: number;
   g: number;
   b: number;
@@ -37,11 +41,17 @@ export interface RgbColor {
 }
 
 interface HueToken {
-  rgb: [number, number, number];
+  rgb: readonly [number, number, number];
   token: string;
 }
 
-const HUE_TOKENS: HueToken[] = [
+/**
+ * Every hue that appears in the candlestick catalogue, mapped to its theme
+ * token. `--warning/--success/--danger` are the same names the rest of the
+ * app and `src/lib/themeColors.ts` use; `candleFeatureColors.test.ts` pins
+ * them against `src/themes.css` so a rename cannot silently stop theming.
+ */
+export const HUE_TOKENS: readonly HueToken[] = [
   { rgb: [250, 204, 21], token: "--warning-color" },
   { rgb: [34, 197, 94], token: "--success-color" },
   // Lime gap highlights read as bullish, same as the success default the
@@ -51,7 +61,7 @@ const HUE_TOKENS: HueToken[] = [
 ];
 
 /** Parses #rgb, #rrggbb, rgb() and rgba() (spaces optional). Null otherwise. */
-export function parseColorToRgb(input: string): RgbColor | null {
+export function parseCssColor(input: string): CssColor | null {
   const text = input.trim().toLowerCase();
   const hex = text.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
   if (hex) {
@@ -80,17 +90,21 @@ export function parseColorToRgb(input: string): RgbColor | null {
   return null;
 }
 
-/** The theme token for a known hardcoded data hue, else null. */
-export function tokenForHardcodedHue(raw: string): string | null {
-  const parsed = parseColorToRgb(raw);
-  if (!parsed) return null;
+/** The theme token for an already-parsed known data hue, else null. */
+function tokenForParsed(parsed: CssColor): string | null {
   const hit = HUE_TOKENS.find(
     ({ rgb }) => rgb[0] === parsed.r && rgb[1] === parsed.g && rgb[2] === parsed.b,
   );
   return hit ? hit.token : null;
 }
 
-export function rgbaString({ r, g, b, a }: RgbColor): string {
+/** The theme token for a known hardcoded data hue, else null. */
+export function tokenForHardcodedHue(raw: string): string | null {
+  const parsed = parseCssColor(raw);
+  return parsed ? tokenForParsed(parsed) : null;
+}
+
+export function rgbaString({ r, g, b, a }: CssColor): string {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
@@ -118,10 +132,11 @@ export function resolveFeatureColorWithAlpha(
   if (text.startsWith("var(") || text.startsWith("--")) {
     return resolveVar(text, text);
   }
-  const parsed = parseColorToRgb(text);
+  const parsed = parseCssColor(text);
   if (!parsed) return raw;
-  const token = tokenForHardcodedHue(text);
+  const token = tokenForParsed(parsed);
   if (!token) return raw;
-  const resolved = parseColorToRgb(resolveVar(token, raw)) ?? parsed;
+  // Parsed once; the resolved theme value is the only further parse.
+  const resolved = parseCssColor(resolveVar(token, raw)) ?? parsed;
   return rgbaString({ ...resolved, a: alpha ?? parsed.a });
 }

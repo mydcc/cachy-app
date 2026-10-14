@@ -16,13 +16,17 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
-  parseColorToRgb,
+  parseCssColor,
   tokenForHardcodedHue,
   resolveFeatureColor,
   resolveFeatureColorWithAlpha,
+  HUE_TOKENS,
   type ThemeVarResolver,
 } from "./candleFeatureColors";
+import { CANDLESTICK_PATTERNS } from "../../services/candlestickPatterns";
 
 /** Theme stub: unwraps var() like the component resolver, then looks up. */
 const resolveVar: ThemeVarResolver = (token, fallback) => {
@@ -36,20 +40,20 @@ const resolveVar: ThemeVarResolver = (token, fallback) => {
   )[name] ?? fallback;
 };
 
-describe("parseColorToRgb", () => {
+describe("parseCssColor", () => {
   it("parses hex and functional notations, spaces optional", () => {
-    expect(parseColorToRgb("#FACC15")).toEqual({ r: 250, g: 204, b: 21, a: 1 });
-    expect(parseColorToRgb("#fff")).toEqual({ r: 255, g: 255, b: 255, a: 1 });
-    expect(parseColorToRgb("rgba(250,204,21,0.4)")).toEqual({ r: 250, g: 204, b: 21, a: 0.4 });
-    expect(parseColorToRgb("rgba(250, 204, 21, 0.4)")).toEqual({ r: 250, g: 204, b: 21, a: 0.4 });
-    expect(parseColorToRgb("rgb(34, 197, 94)")).toEqual({ r: 34, g: 197, b: 94, a: 1 });
+    expect(parseCssColor("#FACC15")).toEqual({ r: 250, g: 204, b: 21, a: 1 });
+    expect(parseCssColor("#fff")).toEqual({ r: 255, g: 255, b: 255, a: 1 });
+    expect(parseCssColor("rgba(250,204,21,0.4)")).toEqual({ r: 250, g: 204, b: 21, a: 0.4 });
+    expect(parseCssColor("rgba(250, 204, 21, 0.4)")).toEqual({ r: 250, g: 204, b: 21, a: 0.4 });
+    expect(parseCssColor("rgb(34, 197, 94)")).toEqual({ r: 34, g: 197, b: 94, a: 1 });
   });
 
   it("rejects non-colors", () => {
-    expect(parseColorToRgb("var(--warning-color)")).toBeNull();
-    expect(parseColorToRgb("red")).toBeNull();
-    expect(parseColorToRgb("rgb(999, 0, 0)")).toBeNull();
-    expect(parseColorToRgb("")).toBeNull();
+    expect(parseCssColor("var(--warning-color)")).toBeNull();
+    expect(parseCssColor("red")).toBeNull();
+    expect(parseCssColor("rgb(999, 0, 0)")).toBeNull();
+    expect(parseCssColor("")).toBeNull();
   });
 });
 
@@ -102,5 +106,32 @@ describe("resolveFeatureColor", () => {
     expect(resolveFeatureColorWithAlpha("rgba(250,204,21,0.3)", 0.8, resolveVar)).toBe(
       "rgba(10, 20, 30, 0.8)",
     );
+  });
+});
+
+describe("theme contract", () => {
+  it("maps only to token names that src/themes.css actually defines", () => {
+    const css = readFileSync(join(process.cwd(), "src", "themes.css"), "utf-8");
+    const undefinedTokens = HUE_TOKENS.map(({ token }) => token).filter(
+      (token) => !new RegExp(`${token}\\s*:`).test(css),
+    );
+    expect(undefinedTokens).toEqual([]);
+  });
+
+  it("has a token for every colour literal in the candlestick catalogue", () => {
+    // Guards the mapping against drift: a new hue added to the catalogue
+    // would otherwise stay hardcoded with no failing test.
+    const literals = CANDLESTICK_PATTERNS.flatMap((pattern) =>
+      (pattern.keyFeatures ?? []).flatMap((feature) =>
+        [feature.color, feature.borderColor].filter(
+          (value): value is string => typeof value === "string" && value !== "",
+        ),
+      ),
+    );
+    expect(literals.length).toBeGreaterThan(0);
+    const unmapped = [...new Set(literals)].filter(
+      (value) => tokenForHardcodedHue(value) === null,
+    );
+    expect(unmapped).toEqual([]);
   });
 });
