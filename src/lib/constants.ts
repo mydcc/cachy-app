@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 /**
- * The text size a window starts at, in px (FEAT-0684).
+ * The text size a window starts at, in px (FEAT-0685).
  *
  * The base of two things that must agree: `WindowBase` initialises `fontSize`
  * from it, and `WindowFrame` divides the current size by it to get the

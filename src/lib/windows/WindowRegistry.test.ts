@@ -80,7 +80,7 @@ describe("WindowRegistry (FEAT-0050)", () => {
         }
     });
 
-    it("gives the Academy window the title bar's font-size control (FEAT-0684)", () => {
+    it("gives the Academy window the title bar's font-size control (FEAT-0685)", () => {
         // One flag is the whole control: `WindowFrame` renders its A-/A+ buttons
         // only behind `allowFontSize`, and `WindowBase.setFontSize` refuses
         // without it. The readers (guide, changelog, privacy, whitepaper) allow

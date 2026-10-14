@@ -1,5 +1,5 @@
 ---
-id: FEAT-0684
+id: FEAT-0685
 title: Give the Academy window the title bar's font-size control
 type: feature
 status: done
@@ -14,7 +14,7 @@ assignee: opencode
 branch: feat/academy-font-size
 ---
 
-# FEAT-0684 — Give the Academy window the title bar's font-size control
+# FEAT-0685 — Give the Academy window the title bar's font-size control
 
 ## Problem
 

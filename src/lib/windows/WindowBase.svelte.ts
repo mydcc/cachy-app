@@ -441,7 +441,11 @@ export abstract class WindowBase {
                 this.isPinned = state.isPinned ?? false;
                 this.pinSide = state.pinSide ?? this.pinSide;
                 this.opacity = state.opacity ?? this.opacity;
-                this.fontSize = state.fontSize ?? this.fontSize;
+                // Through the setter: it owns the clamp, so a hand-edited or
+                // legacy size cannot reach the window's type scale unbounded —
+                // and a window that did not opt into the control keeps the
+                // default rather than restoring a size it cannot step.
+                if (typeof state.fontSize === "number") this.setFontSize(state.fontSize);
                 this.zoomLevel = state.zoomLevel ?? this.zoomLevel;
                 this.showPriceInTitle = state.showPriceInTitle ?? this.showPriceInTitle;
                 this.symbol = state.symbol ?? this.symbol;
