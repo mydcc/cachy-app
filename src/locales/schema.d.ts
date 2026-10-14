@@ -3961,8 +3961,6 @@ export type TranslationKey =
   | "indicatorLessons.noLessons"
   | "indicatorLessons.parameters"
   | "indicatorLessons.parametersEmpty"
-  | "indicatorLessons.parameterFromSettings"
-  | "indicatorLessons.parameterShippedDefault"
   | "indicatorLessons.formula"
   | "indicatorLessons.outputs"
   | "indicatorLessons.placement.price"
