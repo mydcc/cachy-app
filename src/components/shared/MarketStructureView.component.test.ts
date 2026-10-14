@@ -112,6 +112,9 @@ describe("MarketStructureView", () => {
     it("mounts no live chart when showLiveChart is false, three when true", () => {
         const hidden = renderView({ showLiveChart: false });
         expect(hidden.querySelectorAll('[data-testid="empty-stub"]').length).toBe(0);
+        // Offline and SEO readers get prose and the static diagram only: no
+        // sentence may point at a chart that is not rendered.
+        expect(hidden.textContent).not.toContain(lookup("academy.structure.s1.chartHint"));
         if (component) unmount(component);
         component = null;
         host.innerHTML = "";
@@ -119,5 +122,6 @@ describe("MarketStructureView", () => {
         const shown = renderView({ showLiveChart: true });
         // One chart per demo entry: ema, adx, bollinger.
         expect(shown.querySelectorAll('[data-testid="empty-stub"]').length).toBe(3);
+        expect(shown.textContent).toContain(lookup("academy.structure.s1.chartHint"));
     });
 });

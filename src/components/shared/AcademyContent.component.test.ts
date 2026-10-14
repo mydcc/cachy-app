@@ -21,8 +21,8 @@
  * small but user-visible: the right tab renders, and the last tab survives a
  * reload through localStorage.
  *
- * FEAT-0677 added the third tab. This file stays on what all three share; the
- * indicators tab's own behaviour lives in
+ * FEAT-0677 added the third tab, FEAT-0679 the fourth. This file stays on what
+ * all tabs share; the indicators tab's own behaviour lives in
  * `IndicatorLessonsView.component.test.ts`, which mounts the real view rather
  * than a stub.
  */
@@ -47,6 +47,11 @@ vi.mock("./ChartPatternsView.svelte", async () => ({
     default: (await import("../../tests/helpers/PassthroughModalFrame.svelte")).default,
 }));
 vi.mock("./CandlestickPatternsView.svelte", async () => ({
+    default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
+}));
+// The structure tab mounts live lesson charts; like the responsive suite,
+// this shell file stubs the canvas rather than dragging Chart.js in.
+vi.mock("./IndicatorLessonChart.svelte", async () => ({
     default: (await import("../../tests/helpers/EmptyStub.svelte")).default,
 }));
 
@@ -121,5 +126,37 @@ describe("FEAT-0346 — AcademyContent switches between the Academy tabs", () =>
         expect(tabButton("chartPatterns.title").classList.contains("bg-[var(--bg-tertiary)]")).toBe(
             true,
         );
+    });
+
+    it("switches to the market-structure tab and remembers it", () => {
+        render();
+
+        tabButton("academy.structure.title").click();
+        flushSync();
+
+        expect(host.querySelector('[data-testid="structure-view"]')).toBeTruthy();
+        expect(localStorage.getItem("academy_active_tab")).toBe("marketStructure");
+    });
+
+    it("deep-links a structure lesson button into the indicators tab", () => {
+        render();
+
+        // FEAT-0679: the button names ATR, so the indicators tab must open
+        // with ATR selected — not with whatever lesson was selected before.
+        tabButton("academy.structure.title").click();
+        flushSync();
+        const atrButton = host.querySelector('[data-testid="structure-open-atr"]');
+        expect(atrButton, "ATR lesson button missing").toBeTruthy();
+        (atrButton as HTMLButtonElement).click();
+        flushSync();
+
+        expect(localStorage.getItem("academy_active_tab")).toBe("indicators");
+        const atrName = lookup("dashboard.alerts.indicators.name.atr");
+        const selected = [...host.querySelectorAll("button")].find(
+            (button) =>
+                button.textContent?.includes(atrName) &&
+                button.getAttribute("aria-current") === "true",
+        );
+        expect(selected, "ATR lesson not selected after deep link").toBeTruthy();
     });
 });

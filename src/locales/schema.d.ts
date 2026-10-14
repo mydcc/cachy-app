@@ -3430,6 +3430,7 @@ export type TranslationKey =
   | "academy.structure.openLesson"
   | "academy.structure.s1.title"
   | "academy.structure.s1.body"
+  | "academy.structure.s1.chartHint"
   | "academy.structure.s2.title"
   | "academy.structure.s2.body"
   | "academy.structure.s2.legendSwings"

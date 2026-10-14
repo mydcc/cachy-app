@@ -4167,7 +4167,8 @@
       "openLesson": "Open lesson",
       "s1": {
         "title": "The higher timeframe decides first",
-        "body": "Before you read a pattern or a signal on your trading timeframe, read the one above it: in Elder's triple-screen sense you never trade against the higher timeframe — you trade with it or not at all. “4h bearish” commits you: shorts are the plan, longs need above-average evidence and tighter targets, and invalidation sits at the 4h structure, not on your 5m candle. The chart below follows the same logic as the indicator lessons, timeframe switch included: flip from 4h to 5m and watch the same reading change its story — the lower timeframe chops where the higher one still has direction."
+        "body": "Before you read a pattern or a signal on your trading timeframe, read the one above it: in Elder's triple-screen sense you never trade against the higher timeframe — you trade with it or not at all. “4h bearish” commits you: shorts are the plan, longs need above-average evidence and tighter targets, and invalidation sits at the 4h structure, not on your 5m candle.",
+        "chartHint": "The chart below follows the same logic as the indicator lessons, timeframe switch included: flip from 4h to 5m and watch the same reading change its story — the lower timeframe chops where the higher one still has direction."
       },
       "s2": {
         "title": "Structure: reading breaks, not guessing",

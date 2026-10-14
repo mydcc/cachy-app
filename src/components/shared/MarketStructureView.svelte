@@ -73,13 +73,14 @@
       key: "s1" | "s2" | "s3" | "s4";
       charts: readonly string[];
       lessons: readonly string[];
+      hint: string | null;
    }
 
    const SECTIONS: readonly Section[] = [
-      { key: "s1", charts: ["ema"], lessons: ["ema"] },
-      { key: "s2", charts: [], lessons: [] },
-      { key: "s3", charts: [], lessons: [] },
-      { key: "s4", charts: ["adx", "bollinger"], lessons: ["adx", "choppiness", "bollinger", "atr"] },
+      { key: "s1", charts: ["ema"], lessons: ["ema"], hint: "academy.structure.s1.chartHint" },
+      { key: "s2", charts: [], lessons: [], hint: null },
+      { key: "s3", charts: [], lessons: [], hint: null },
+      { key: "s4", charts: ["adx", "bollinger"], lessons: ["adx", "choppiness", "bollinger", "atr"], hint: null },
    ];
 </script>
 
@@ -148,6 +149,9 @@
          {/if}
 
          {#if showLiveChart}
+            {#if section.hint}
+               <p class="text-sm text-[var(--text-secondary)]">{text(section.hint)}</p>
+            {/if}
             {#each section.charts as id (id)}
                {@const entry = entryFor(id)}
                {#if entry}
