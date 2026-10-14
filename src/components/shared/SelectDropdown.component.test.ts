@@ -150,4 +150,98 @@ describe("SelectDropdown", () => {
         expect(onSelect).not.toHaveBeenCalled();
         expect(popupOptions()).toHaveLength(0);
     });
+
+    it("toggles closed on a second trigger click", () => {
+        render("all");
+
+        trigger().click();
+        flushSync();
+        expect(popupOptions()).toHaveLength(3);
+
+        trigger().click();
+        flushSync();
+        expect(onSelect).not.toHaveBeenCalled();
+        expect(popupOptions()).toHaveLength(0);
+    });
+
+    it("closes on outside click and on focus leaving the control", () => {
+        render("all");
+        trigger().click();
+        flushSync();
+        expect(popupOptions()).toHaveLength(3);
+
+        document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        flushSync();
+        expect(popupOptions()).toHaveLength(0);
+        expect(onSelect).not.toHaveBeenCalled();
+
+        trigger().click();
+        flushSync();
+        // Real focusout events always bubble (unlike blur) — the flag matters.
+        trigger().dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: document.body }));
+        flushSync();
+        expect(popupOptions()).toHaveLength(0);
+    });
+
+    it("keeps focus on the trigger across mouse picks (no unmount race)", () => {
+        render("all");
+        trigger().click();
+        flushSync();
+
+        // Real browsers blur the trigger on option mousedown; preventDefault
+        // keeps focus (and the list mounted) until click dispatches.
+        const prevented = !popupOptions()[0].dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+        );
+        expect(prevented).toBe(true);
+    });
+
+    it("moves with Home and End", () => {
+        render("all");
+        trigger().click();
+        flushSync();
+
+        trigger().dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
+        flushSync();
+        expect(trigger().getAttribute("aria-activedescendant")).toBe("test-select-opt-2");
+
+        trigger().dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
+        flushSync();
+        expect(trigger().getAttribute("aria-activedescendant")).toBe("test-select-opt-0");
+
+        trigger().dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+        flushSync();
+        expect(onSelect).toHaveBeenCalledWith("all");
+    });
+
+    it("links the listbox only while open", () => {
+        render("all");
+        expect(trigger().getAttribute("aria-controls")).toBeNull();
+
+        trigger().click();
+        flushSync();
+        expect(trigger().getAttribute("aria-controls")).toBe("test-select-list");
+    });
+
+    it("stays closed and assertion-free with no options", () => {
+        onSelect = vi.fn();
+        component = mount(SelectDropdown, {
+            target: host,
+            props: { id: "empty-select", label: "Empty", value: "", options: [], onSelect },
+        }) as unknown as Record<string, unknown>;
+        flushSync();
+
+        const emptyTrigger = host.querySelector<HTMLButtonElement>("#empty-select");
+        expect(emptyTrigger).not.toBeNull();
+        emptyTrigger!.click();
+        flushSync();
+        expect(host.querySelectorAll('[role="option"]')).toHaveLength(0);
+        expect(emptyTrigger!.getAttribute("aria-activedescendant")).toBeNull();
+    });
+
+    it("falls back to the first option label for an unknown value", () => {
+        render("stale-value");
+
+        expect(trigger().textContent).toContain("All");
+    });
 });

@@ -48,13 +48,18 @@
     let wrapper: HTMLDivElement | undefined = $state();
 
     let selectedLabel = $derived(
-        options.find((option) => option.value === value)?.label ?? value,
+        options.find((option) => option.value === value)?.label ??
+            options[0]?.label ??
+            value,
     );
     let activeId = $derived(
         open && activeIndex >= 0 ? `${id}-opt-${activeIndex}` : undefined,
     );
 
     function openPopup(): void {
+        // Nothing to pick: stay closed so no empty listbox (and no dangling
+        // aria-activedescendant) ever renders.
+        if (options.length === 0) return;
         open = true;
         const selected = options.findIndex((option) => option.value === value);
         activeIndex = selected >= 0 ? selected : 0;
@@ -144,7 +149,7 @@
         role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-controls="{id}-list"
+        aria-controls={open ? `${id}-list` : undefined}
         aria-activedescendant={activeId}
         class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all flex items-center justify-between gap-2"
         onclick={() => (open ? closePopup() : openPopup())}
@@ -173,6 +178,13 @@
             id="{id}-list"
             role="listbox"
             aria-label={label}
+            onmousedown={(event) => {
+                // Keep focus on the trigger: without this, mousedown blurs it,
+                // the focusout handler closes (and unmounts) the list before
+                // click dispatches, and focus is left on body. Standard
+                // listbox pattern; keyboard never enters the list.
+                event.preventDefault();
+            }}
             class="absolute left-0 right-0 top-full mt-1 z-50 max-h-56 overflow-y-auto custom-scrollbar bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-md p-1 shadow-xl"
         >
             {#each options as option, index (option.value)}

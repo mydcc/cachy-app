@@ -76,6 +76,10 @@
         }),
     );
 
+    const categoryOptions = $derived(
+        categories.map((cat) => ({ value: cat, label: cat })),
+    );
+
     // Current Pattern
     let currentPattern = $derived(
         CHART_PATTERNS.find((p) => p.id === selectedPatternId) ||
@@ -178,7 +182,7 @@
                 id="chart-category"
                 label={$_("chartPatterns.categoryLabel")}
                 value={selectedCategory}
-                options={categories.map((cat) => ({ value: cat, label: cat }))}
+                options={categoryOptions}
                 onSelect={(next) => (selectedCategory = next)}
             />
         </div>
