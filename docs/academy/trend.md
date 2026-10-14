@@ -92,8 +92,8 @@ unweighted average, not used instead of one.
 average, plus a signal line (an average of that difference) and the histogram
 (the gap between the two).
 
-**How to read it.** The **sign of the macd line** says which side's average is
-higher — direction. The **macd/signal cross** is the event most systems use. The
+**How to read it.** The **sign of the MACD line** says which side's average is
+higher — direction. The **MACD/signal cross** is the event most systems use. The
 **histogram** says how fast that gap is opening or closing, which is a statement
 about the current move rather than about direction.
 
@@ -103,7 +103,7 @@ about the current move rather than about direction.
   every trend when it pauses, and it says nothing about which way it resolves.
 - **It lags more than the price does.** It is built from two averages, so it is
   later than either.
-- **In a range, the macd line spends most of its time near zero**, where its
+- **In a range, the MACD line spends most of its time near zero**, where its
   sign is noise. Crosses there are the crossing of two lines that are both flat.
 - **The histogram is derived, not an independent third reading.** It is the
   difference of the other two by definition, and reading all three as three
