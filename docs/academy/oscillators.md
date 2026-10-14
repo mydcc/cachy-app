@@ -54,15 +54,18 @@ overlay on the price itself (see `trend.md`) carries the signal instead.
 ## stoch_rsi
 
 **What it measures.** The stochastic of the RSI. Applies the stochastic's
-position-within-range logic to RSI values rather than to price.
+position-within-range logic to RSI values rather than to price. %K and %D,
+both 0–100, reading where RSI currently sits within its own configured range.
 
-**How to read it.** %K and %D, both 0–100, reading where RSI currently sits
-within its own recent range. Crosses of %K over %D are the usual event.
+**How to read it.** Crosses of %K over %D are the usual event. The outer marks
+at 80 and 20 are convention, not buy or sell signals. Read it as a statement
+about where the RSI is inside its own range, not as a statement about price.
 
 **When it lies.**
 - **Double smoothing hides the thing you wanted to see.** A stochastic of a
   stochastic reaches its extremes far more often than the underlying RSI does,
-  so readings that would be rare on the RSI are routine here.
+  so readings that would be rare on the RSI are routine here. Shorter ranges
+  reach the outer marks sooner and fail sooner in trends.
 - **Inherited every RSI failure, then some.** Whatever made the RSI misleading
   in a trend makes this misleading in a trend, and the extra transform removes
   the absolute level information that would have told you which regime you are
@@ -70,6 +73,8 @@ within its own recent range. Crosses of %K over %D are the usual event.
 - **Its range is RSI-relative, not price-relative.** "At the top of its range"
   refers to where RSI is, not to where price is. A strongly rising price can sit
   at a low stochastic if RSI has been rising even faster.
+- **A range with no movement has no value** and resolves as indeterminate,
+  not as a number.
 
 **Pairs with.** Very short mean-reversion entries in genuinely quiet conditions.
 It is a precision tool for a narrow case, not a general-purpose oscillator.
