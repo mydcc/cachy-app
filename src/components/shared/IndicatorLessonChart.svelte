@@ -76,6 +76,7 @@
     import { marketWatcher } from "../../services/marketWatcher";
     import { logger } from "../../services/logger";
     import { normalizeSymbol } from "../../utils/symbolUtils";
+    import { normalizeTimeframeInput } from "../../utils/utils";
     import { safeLocalStorage } from "../../utils/storageWrapper";
     import TimeframeDropdown from "./TimeframeDropdown.svelte";
 
@@ -110,20 +111,34 @@
     let timeframe = $state(readStoredTimeframe());
 
     /**
-     * Validated on the way in as well as out: the value comes from the dropdown
-     * *and* from `localStorage`, which a hand-edit or a build with a different
-     * timeframe set can leave unusable. An unusable one degrades to the default
-     * rather than subscribing to a channel no candle will arrive on.
+     * Both directions go through the app's normaliser first, then the parser.
+     *
+     * The order matters: `parseTimeframe` accepts `0001d` (it reads the number,
+     * which is 1), but the *string* is what names the channel, and the exchange
+     * serves `kline_1d`, not `kline_0001d`. Canonicalising first means the stored
+     * value is always the spelling the app itself would produce, so a stored or
+     * typed `0001d`, `1T` or `240m` all land on a channel that carries candles.
+     * An unusable value degrades to the default rather than subscribing to a
+     * channel no candle will arrive on.
      */
     function readStoredTimeframe(): string {
         const stored = safeLocalStorage.getItem(LESSON_TIMEFRAME_KEY);
-        return stored !== null && isDrawableTimeframe(stored) ? stored : LESSON_TIMEFRAME_FALLBACK;
+        if (stored === null) return LESSON_TIMEFRAME_FALLBACK;
+        const canonical = normalizeTimeframeInput(stored);
+        return isDrawableTimeframe(canonical) ? canonical : LESSON_TIMEFRAME_FALLBACK;
     }
 
-    function selectTimeframe(value: string): void {
-        if (!isDrawableTimeframe(value)) return;
-        timeframe = value;
-        safeLocalStorage.setItem(LESSON_TIMEFRAME_KEY, value);
+    /**
+     * Returns `false` for a value the app cannot draw, which leaves the
+     * dropdown open with the text in place rather than closing on a refusal the
+     * trader could not see.
+     */
+    function selectTimeframe(value: string): boolean {
+        const canonical = normalizeTimeframeInput(value);
+        if (!isDrawableTimeframe(canonical)) return false;
+        timeframe = canonical;
+        safeLocalStorage.setItem(LESSON_TIMEFRAME_KEY, canonical);
+        return true;
     }
 
     /**

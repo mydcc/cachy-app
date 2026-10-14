@@ -208,25 +208,49 @@ describe("FEAT-0683 — a lesson's timeframe is validated at the boundary", () =
     });
 
     it("refuses anything that is not a timeframe", () => {
-        // A hand-edited or migrated store: the lesson must not subscribe to a
-        // channel no candle will arrive on. `1H` is refused because the app's own
-        // notation reserves the capital for months.
-        for (const value of ["", "1", "h", "1x", "1H", "1 h", "-1h", "1hh", "1d ", "abc"]) {
+        /*
+         * A hand-edited or migrated store, or a typed entry: the lesson must not
+         * subscribe to a channel no candle will arrive on. `1H` is refused
+         * because the app's own notation reserves the capital for months, and a
+         * zero count is refused because a zero-length candle is not a timeframe
+         * — the app's own parser says so, and the first version of this guard
+         * accepted `0m` and persisted it.
+         */
+        for (const value of [
+            "",
+            "1",
+            "h",
+            "1x",
+            "1H",
+            "1 h",
+            "-1h",
+            "1hh",
+            "1d ",
+            "abc",
+            "0",
+            "0m",
+            "0h",
+            "0d",
+            "0w",
+            "00h",
+        ]) {
             expect(isDrawableTimeframe(value), value).toBe(false);
         }
     });
 
-    it("offers every timeframe the analysis setting can hold in its quick picks", () => {
+    it("offers the panel's six quick picks, covering everything the setting can hold", () => {
+        // The grid is fixed at six so it reads as two rows of three. `30m` is
+        // the one pick the analysis setting does not offer, and dropping any of
+        // them would change what the chip shows without another test noticing.
+        expect([...TIMEFRAME_QUICK_PICKS]).toEqual(["5m", "15m", "30m", "1h", "4h", "1d"]);
+
         /*
-         * The grid is a fixed six and the setting is a five. The setting's list
-         * must stay inside the grid, or a trader who analyses everything the
-         * setting allows would have a button for each of them — and a timeframe
-         * the setting offers but the grid hides would force a typed entry every
-         * visit.
+         * The setting's own list must stay inside the grid, or a trader who
+         * analyses everything the setting allows would have a button for each of
+         * them — and a timeframe the setting offers but the grid hides would
+         * force a typed entry every visit.
          */
         const picks = new Set<string>(TIMEFRAME_QUICK_PICKS);
-        expect(ANALYSIS_TIMEFRAMES.length).toBeGreaterThan(0);
-
         for (const timeframe of [
             ...ANALYSIS_TIMEFRAMES,
             ...defaultSettings.analysisTimeframes,

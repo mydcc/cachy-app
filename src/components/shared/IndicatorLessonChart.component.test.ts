@@ -188,10 +188,10 @@ function render(
     return root;
 }
 
-/** The timeframe chip in the chart header. */
+/** The timeframe chip in the chart header (its name carries the current value). */
 function timeframeChip(view: HTMLElement): HTMLButtonElement {
     const chip = view.querySelector<HTMLButtonElement>(
-        `[aria-label="${lookup("indicatorLessons.chart.timeframeLabel")}"]`,
+        `[aria-label^="${lookup("indicatorLessons.chart.timeframeLabel")}"]`,
     );
     if (!chip) throw new Error("no timeframe chip rendered");
     return chip;
@@ -510,5 +510,36 @@ describe("FEAT-0677 — the live lesson chart", () => {
         // is known, and it must not store a channel no candle will arrive on.
         expect(timeframeChip(view).textContent?.trim()).toBe("1h");
         expect(localStorage.getItem("cachy_lesson_timeframe")).toBe(before);
+        // And the refusal is visible: the popup stays open with the text in it,
+        // so the trader can see what was wrong and correct it.
+        expect(view.querySelector(".grid"), "the refusal closed the popup").not.toBeNull();
+        expect((field as HTMLInputElement).value).toBe("abc");
+    });
+
+    it("honours a remembered timeframe the grid does not list", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // The custom field's whole point: a timeframe outside the six is stored
+        // and drawn, not narrowed back to the grid.
+        localStorage.setItem("cachy_lesson_timeframe", "1w");
+
+        const view = render("rsi");
+
+        expect(timeframeChip(view).textContent?.trim()).toBe("1w");
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1w", "chart");
+    });
+
+    it("canonicalises a stored spelling before it becomes a channel", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // `parseTimeframe` reads `0001d` as one day, but the *string* names the
+        // channel and the exchange serves `kline_1d` — so a stored spelling is
+        // run through the app's own normaliser first.
+        localStorage.setItem("cachy_lesson_timeframe", "0001d");
+
+        const view = render("rsi");
+
+        expect(timeframeChip(view).textContent?.trim()).toBe("1d");
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1d", "chart");
     });
 });

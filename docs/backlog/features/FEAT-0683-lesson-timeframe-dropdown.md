@@ -82,6 +82,38 @@ Two notes for the next reader:
   chip. It has one now (`TechnicalsPanel.component.test.ts`), because otherwise
   the panel could lose its chip with every suite still green.
 
+## State
+
+Shipped on branch `feat/lesson-timeframe-dropdown`. Review of this PR changed
+four things, each with its own RED proof:
+
+- **The guard delegates to `parseTimeframe`** instead of repeating the notation.
+  The first version's `/^\d+(m|h|d|w|M)$/` accepted `0m`; `normalizeTimeframeInput("0")`
+  produces exactly that, the lesson persisted it, and `getBitunixChannel` serves no
+  `kline_0m` — so the chart drew nothing, on every reload, because the stored value
+  still passed the guard.
+- **A stored or typed value is canonicalised** through `normalizeTimeframeInput`
+  before it names a channel. `parseTimeframe` reads `0001d` as one day, but the
+  *string* names the channel and the exchange serves `kline_1d`.
+- **`normalizeTimeframeInput` keeps a capital `M` as a month.** It lower-cased the
+  unit first, so `1M` became `1m`: every monthly request silently became a
+  one-minute chart, and the guard's month branch was reachable only by hand-editing
+  `localStorage`. The panel's custom field benefits from the same fix.
+- **`onSelect` may return `false`**, and the popup then stays open with the text in
+  place. The lesson refuses a value the app cannot draw; without this the refusal
+  was invisible — the popup closed, the field cleared, and the chip simply did not
+  change.
+- **Keyboard reach**: the chip's accessible name carries the current value (a bare
+  label announced "Lesson timeframe" and never which one), the custom field has its
+  own label, Escape closes the popup and returns focus to the chip, and the chip
+  says `aria-haspopup`.
+
+Noted, deliberately unchanged: a mouse click on the chip closes a popup that hover
+just opened (the panel's behaviour since before the extraction — the clone keeps
+it), the panel's click-outside region shrank to the control now that the header's
+`.timeframe-selector-container` is gone, and `options` is trusted to be an array
+because the prop type is the contract.
+
 ## Links
 
 - `src/components/shared/TimeframeDropdown.svelte` — the extracted control

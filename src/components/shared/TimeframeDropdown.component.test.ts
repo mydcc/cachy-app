@@ -54,7 +54,7 @@ let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 let selected: string[] = [];
 
-function render(value = "1h"): HTMLElement {
+function render(value = "1h", refuse = false): HTMLElement {
     if (component) {
         unmount(component as never);
         component = null;
@@ -67,7 +67,11 @@ function render(value = "1h"): HTMLElement {
         props: {
             value,
             options: OPTIONS,
-            onSelect: (timeframe: string) => selected.push(timeframe),
+            onSelect: (timeframe: string) => {
+                selected.push(timeframe);
+                // `false` is the refusal contract: the caller rejects the value.
+                return refuse ? false : true;
+            },
             label: "Timeframe",
         },
     }) as never;
@@ -114,6 +118,14 @@ function type(input: HTMLInputElement, value: string): void {
     flushSync();
 }
 
+/** A pointer event carrying `pointerType`, which the component branches on. */
+function pointer(type: string, pointerType: string): Event {
+    const event = new Event(type, { bubbles: true });
+    // happy-dom's PointerEvent support varies; the component reads this one field.
+    Object.defineProperty(event, "pointerType", { value: pointerType });
+    return event;
+}
+
 beforeEach(() => {
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -130,7 +142,10 @@ describe("FEAT-0683 — the shared timeframe dropdown", () => {
         const root = render("4h");
 
         expect(chip(root).textContent?.trim()).toBe("4h");
-        expect(chip(root).getAttribute("aria-label")).toBe("Timeframe");
+        // The value is part of the accessible name: a label alone would announce
+        // "Timeframe" and never say which one, in either call site.
+        expect(chip(root).getAttribute("aria-label")).toBe("Timeframe: 4h");
+        expect(chip(root).getAttribute("aria-haspopup")).toBe("true");
         expect(chip(root).getAttribute("aria-expanded")).toBe("false");
         expect(root.querySelector(".grid")).toBeNull();
     });
@@ -200,5 +215,111 @@ describe("FEAT-0683 — the shared timeframe dropdown", () => {
         flushSync();
 
         expect(root.querySelector(".grid")).toBeNull();
+    });
+
+    it("opens on hover and closes 300 ms after the pointer leaves", () => {
+        vi.useFakeTimers();
+        try {
+            const root = render();
+
+            root.dispatchEvent(pointer("pointerenter", "mouse"));
+            flushSync();
+            expect(root.querySelector(".grid"), "hover did not open the popup").not.toBeNull();
+
+            root.dispatchEvent(pointer("pointerleave", "mouse"));
+            flushSync();
+            // Still open: the pointer crosses the gap between chip and popup, and
+            // closing there would make the grid unusable with a mouse.
+            expect(root.querySelector(".grid")).not.toBeNull();
+
+            vi.advanceTimersByTime(300);
+            flushSync();
+            expect(root.querySelector(".grid")).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("ignores hover on a touch pointer, so the opening tap does not close it again", () => {
+        const root = render();
+
+        root.dispatchEvent(pointer("pointerenter", "touch"));
+        flushSync();
+        expect(root.querySelector(".grid")).toBeNull();
+
+        chip(root).click();
+        flushSync();
+        expect(root.querySelector(".grid")).not.toBeNull();
+
+        // And the dismissing tap's own leave must not schedule a close either.
+        root.dispatchEvent(pointer("pointerleave", "touch"));
+        flushSync();
+        expect(root.querySelector(".grid")).not.toBeNull();
+    });
+
+    it("closes on Escape and puts focus back on the chip", () => {
+        const root = render();
+        openPopup(root);
+
+        root.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        flushSync();
+
+        expect(root.querySelector(".grid")).toBeNull();
+        // The popup's buttons unmount with it, so without this focus would fall
+        // to <body> and a keyboard user would tab in from the top of the page.
+        expect(document.activeElement).toBe(chip(root));
+    });
+
+    it("normalises a month as a month, not as a minute", () => {
+        const root = render();
+        openPopup(root);
+        type(customField(root), "1M");
+
+        buttonWith(root, lookup("common.ok")).click();
+        flushSync();
+
+        // The app's notation reserves the capital for months; lower-casing it
+        // first turned every monthly request into a one-minute chart.
+        expect(selected).toEqual(["1M"]);
+    });
+
+    it("hands an unparseable entry on unchanged, so the caller decides", () => {
+        const root = render();
+        openPopup(root);
+        type(customField(root), "abc");
+
+        buttonWith(root, lookup("common.ok")).click();
+        flushSync();
+
+        // The dropdown does not own "drawable" — the lesson's guard is what
+        // refuses this, and it can only be exercised if the value arrives.
+        expect(selected).toEqual(["abc"]);
+    });
+
+    it("stays open with the text in place when the caller refuses the timeframe", () => {
+        const root = render("1h", true);
+        openPopup(root);
+        type(customField(root), "abc");
+
+        buttonWith(root, lookup("common.ok")).click();
+        flushSync();
+
+        // A refusal that closed the popup and cleared the field would be
+        // invisible: the chip would simply not change, and the trader would have
+        // nothing to correct.
+        expect(selected).toEqual(["abc"]);
+        expect(root.querySelector(".grid")).not.toBeNull();
+        expect(customField(root).value).toBe("abc");
+    });
+
+    it("does not take a refused pick either", () => {
+        const root = render("1h", true);
+        openPopup(root);
+
+        buttonWith(root, "4h").click();
+        flushSync();
+
+        expect(selected).toEqual(["4h"]);
+        expect(root.querySelector(".grid")).not.toBeNull();
     });
 });

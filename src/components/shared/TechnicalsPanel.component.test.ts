@@ -101,7 +101,7 @@ describe("FEAT-0683 — the panel's timeframe chip", () => {
         const view = renderPanel();
 
         const chip = view.querySelector<HTMLButtonElement>(
-            `[aria-label="${lookup("common.timeframe")}"]`,
+            `[aria-label^="${lookup("common.timeframe")}"]`,
         );
         expect(chip, "the panel rendered no timeframe chip").not.toBeNull();
         expect(chip?.textContent?.trim()).toBe("1h");
@@ -121,7 +121,7 @@ describe("FEAT-0683 — the panel's timeframe chip", () => {
         expect(tradeState.analysisTimeframe).toBe("4h");
         expect(
             renderPanel()
-                .querySelector<HTMLButtonElement>(`[aria-label="${lookup("common.timeframe")}"]`)
+                .querySelector<HTMLButtonElement>(`[aria-label^="${lookup("common.timeframe")}"]`)
                 ?.textContent?.trim(),
         ).toBe("4h");
     });

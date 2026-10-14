@@ -35,6 +35,7 @@
  */
 
 import { mappedIndicatorKeys, mappedIndicatorRefs } from "../alerts/indicatorSettingsSeed";
+import { parseTimeframe } from "../../utils/chartDisplay";
 import type { CatalogueEntry } from "../alerts/indicatorCatalogue";
 import type { IndicatorRef, ParamValue, PriceField } from "../rules/types";
 
@@ -152,13 +153,13 @@ export const LESSON_TIMEFRAME_FALLBACK = "1h";
 /**
  * Whether `value` is a timeframe the app can draw a candle for.
  *
- * A shape check rather than a membership test, because the dropdown's quick
- * picks are not the whole universe: its custom field exists precisely so a
- * trader can name one outside the grid (`3m`, `12h`). The notation is the app's
- * — a count and one unit, month as a capital `M` — so a malformed value from a
- * hand-edited store degrades to the fallback instead of subscribing to a channel
- * no data will arrive on.
+ * Delegates to the app's own parser rather than repeating its notation: the
+ * first hand-rolled version accepted `0m`, which `parseTimeframe` refuses (a
+ * zero-length candle) and which reached the wire as a channel the exchange does
+ * not serve — the lesson then drew nothing, on every reload, because the stored
+ * value still passed. One parser, so the two cannot drift again (FEAT-0683
+ * review).
  */
 export function isDrawableTimeframe(value: string): boolean {
-    return /^\d+(m|h|d|w|M)$/.test(value);
+    return parseTimeframe(value) !== null;
 }
