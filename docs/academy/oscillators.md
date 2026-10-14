@@ -181,11 +181,12 @@ question is "how strong is this, not how far has it gone".
 ## mfi
 
 **What it measures.** The relative-strength calculation applied to the typical
-price using volume as the weighting. It is RSI computed on a volume-confirmed
-price rather than on price alone.
+price using volume as the weighting. It is RSI computed on a volume-weighted
+price rather than on price alone, over the configured period.
 
-**How to read it.** Same shape as RSI: above 50 favours buyers, 80 and 20 mark
-the outer band. The addition over RSI is that a move with volume behind it
+**How to read it.** Same shape as RSI: above 50 leans toward buyers. That is a
+tendency, not a signal. 80 and 20 are conventional outer marks, not buy or sell
+signals. The addition over RSI is that a move with volume behind it
 produces a more extreme reading than the same price move on thin volume — which
 is the intended signal.
 
@@ -194,9 +195,12 @@ is the intended signal.
   measures price change weighted by volume. A single enormous volume spike on a
   flat candle moves it without any price change at all.
 - **It inherits every RSI failure** — the trend case above applies in full.
+  Shorter periods reach the outer marks sooner and fail sooner in trends.
 - **Volume is the input most likely to be wrong or absent.** On a thin or
   fragmented symbol the weighting is unreliable in ways that are not visible in
   the reading. This matters more here than for any price-only indicator.
+- **A window with no money flow in either direction has no value** and resolves
+  as indeterminate, not as a number.
 
 **Pairs with.** Divergence work where volume confirmation is specifically
 wanted.
