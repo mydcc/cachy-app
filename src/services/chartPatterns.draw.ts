@@ -281,7 +281,7 @@ export const DRAW_FUNCTIONS: Record<string, ChartPatternDrawFunction> = {
 
       drawText(ctx, labels.gradualReversal, w / 2, topY + h * 0.1, colors.highlight);
       const supportLineY = bottomY * 0.8 + h * 0.05;
-      drawLine(ctx, w * 0.05, supportLineY, w * 0.95, supportLineY, "#e0e0e0", 1, labels.potentialSupport, addInteractive);
+      drawLine(ctx, w * 0.05, supportLineY, w * 0.95, supportLineY, colors.neutral, 1, labels.potentialSupport, addInteractive);
       drawArrow(ctx, w * 0.8, supportLineY, w * 0.8, supportLineY + h * 0.15, colors.bearish, 2, labels.breakoutDirection, addInteractive);
       drawText(ctx, labels.breakout, w * 0.8, supportLineY + h * 0.15 + 15, colors.bearish);
     },
@@ -302,7 +302,7 @@ export const DRAW_FUNCTIONS: Record<string, ChartPatternDrawFunction> = {
 
       drawText(ctx, labels.gradualReversal, w / 2, bottomY - h * 0.1, colors.highlight);
       const resistanceLineY = topY / 0.8 - h * 0.05;
-      drawLine(ctx, w * 0.05, resistanceLineY, w * 0.95, resistanceLineY, "#e0e0e0", 1, labels.potentialResistance, addInteractive);
+      drawLine(ctx, w * 0.05, resistanceLineY, w * 0.95, resistanceLineY, colors.neutral, 1, labels.potentialResistance, addInteractive);
       drawArrow(ctx, w * 0.8, resistanceLineY, w * 0.8, resistanceLineY - h * 0.15, colors.bullish, 2, labels.breakoutDirection, addInteractive);
       drawText(ctx, labels.breakout, w * 0.8, resistanceLineY - h * 0.15 - 15, colors.bullish);
     },
@@ -556,7 +556,7 @@ export const DRAW_FUNCTIONS: Record<string, ChartPatternDrawFunction> = {
       drawText(ctx, labels.horn2, horn2PeakX, horn2PeakY - 10, colors.highlight);
       drawLine(ctx, horn2PeakX, horn2PeakY, w * 0.8, baseY * 1.1, colors.bearish, 2.5, labels.decline, addInteractive);
 
-      drawLine(ctx, valleyX - w * 0.1, valleyY, valleyX + w * 0.1, valleyY, "#e0e0e0", 1, labels.support, addInteractive);
+      drawLine(ctx, valleyX - w * 0.1, valleyY, valleyX + w * 0.1, valleyY, colors.neutral, 1, labels.support, addInteractive);
       drawArrow(ctx, valleyX + w * 0.05, valleyY, valleyX + w * 0.05, valleyY + h * 0.15, colors.bearish, 2, labels.break, addInteractive);
     },
   "hornBottom": (ctx, w, h, addInteractive, colors, labels) => {
@@ -572,7 +572,7 @@ export const DRAW_FUNCTIONS: Record<string, ChartPatternDrawFunction> = {
       drawText(ctx, labels.horn2, horn2TroughX, horn2TroughY + 15, colors.highlight);
       drawLine(ctx, horn2TroughX, horn2TroughY, w * 0.8, baseY * 0.9, colors.bullish, 2.5, labels.advance, addInteractive);
 
-      drawLine(ctx, peakX - w * 0.1, peakY, peakX + w * 0.1, peakY, "#e0e0e0", 1, labels.resistance, addInteractive);
+      drawLine(ctx, peakX - w * 0.1, peakY, peakX + w * 0.1, peakY, colors.neutral, 1, labels.resistance, addInteractive);
       drawArrow(ctx, peakX + w * 0.05, peakY, peakX + w * 0.05, peakY - h * 0.15, colors.bullish, 2, labels.break, addInteractive);
     },
   "eveAdamTop": (ctx, w, h, addInteractive, colors, labels) => {
@@ -597,7 +597,7 @@ export const DRAW_FUNCTIONS: Record<string, ChartPatternDrawFunction> = {
       drawPeak(ctx, adamCenterX, adamPeakY, adamWidth, neckY, colors.bearish, labels.adamTop, addInteractive);
       drawText(ctx, labels.adam, adamCenterX, adamPeakY - 10, colors.highlight);
 
-      drawLine(ctx, w * 0.15, neckY, w * 0.85, neckY, "#e0e0e0", 1.5, labels.neckline, addInteractive);
+      drawLine(ctx, w * 0.15, neckY, w * 0.85, neckY, colors.neutral, 1.5, labels.neckline, addInteractive);
       drawArrow(ctx, w * 0.6, neckY, w * 0.6, neckY + h * 0.2, colors.bearish, 2, labels.breakoutDirection, addInteractive);
     },
   "eveAdamBottom": (ctx, w, h, addInteractive, colors, labels) => {
@@ -622,7 +622,7 @@ export const DRAW_FUNCTIONS: Record<string, ChartPatternDrawFunction> = {
       drawTrough(ctx, adamCenterX, adamTroughY, adamWidth, neckY, colors.bullish, labels.adamBottom, addInteractive);
       drawText(ctx, labels.adam, adamCenterX, adamTroughY + 15, colors.highlight);
 
-      drawLine(ctx, w * 0.15, neckY, w * 0.85, neckY, "#e0e0e0", 1.5, labels.neckline, addInteractive);
+      drawLine(ctx, w * 0.15, neckY, w * 0.85, neckY, colors.neutral, 1.5, labels.neckline, addInteractive);
       drawArrow(ctx, w * 0.6, neckY, w * 0.6, neckY - h * 0.2, colors.bullish, 2, labels.breakoutDirection, addInteractive);
     },
   "invertedCupAndHandleReversal": (ctx, w, h, addInteractive, colors, labels) => {

@@ -26,6 +26,10 @@
     CandleData,
     KeyFeature,
   } from "../../services/candlestickPatterns";
+  import {
+    resolveFeatureColor,
+    resolveFeatureColorWithAlpha,
+  } from "./candleFeatureColors";
 
   interface DrawFeatureParams {
     ctx: CanvasRenderingContext2D;
@@ -136,10 +140,10 @@
     const width = 32;
 
     ctx.fillStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : accentBgManual;
     ctx.strokeStyle = feature.borderColor
-      ? resolveColor(feature.borderColor, feature.borderColor)
+      ? resolveFeatureColor(feature.borderColor, resolveColor)
       : accentColor;
     ctx.lineWidth = 1.5;
 
@@ -172,11 +176,14 @@
 
     if (height > 2) {
       ctx.fillStyle = feature.color
-        ? resolveColor(feature.color, feature.color)
+        ? resolveFeatureColor(feature.color, resolveColor)
         : successBg;
+      // The outline is meant to read stronger than the translucent fill, so
+      // it always carries alpha 0.8 — the previous string-replace only
+      // raised the few 0.2 fills and left the rest as faint as the fill.
       ctx.strokeStyle = feature.color
-        ? resolveColor(feature.color, feature.color).replace("0.2", "0.8")
-        : successBg.replace("0.2", "0.8");
+        ? resolveFeatureColorWithAlpha(feature.color, 0.8, resolveColor)
+        : resolveFeatureColorWithAlpha("--success-color", 0.8, resolveColor);
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.roundRect(x - 12, top, 24, height, 4);
@@ -203,7 +210,7 @@
     const y2 = getY(val2);
 
     ctx.strokeStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : accentColor;
     ctx.lineWidth = feature.lineWidth || 2;
     if (feature.dashed) ctx.setLineDash([4, 4]);
@@ -231,7 +238,7 @@
     }
 
     ctx.strokeStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : accentColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -251,7 +258,7 @@
     const width = 36;
 
     ctx.strokeStyle = feature.borderColor
-      ? resolveColor(feature.borderColor, feature.borderColor)
+      ? resolveFeatureColor(feature.borderColor, resolveColor)
       : accentColor;
     ctx.lineWidth = 2;
     ctx.setLineDash([2, 2]);
@@ -273,7 +280,7 @@
     const width = 32;
 
     ctx.fillStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : accentBgManual;
     ctx.lineWidth = 1.5;
 
@@ -293,7 +300,7 @@
     const width = 48;
 
     ctx.fillStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : accentBgManual;
 
     ctx.beginPath();
@@ -310,7 +317,7 @@
     const radius = feature.radius || 5;
 
     ctx.fillStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : accentColor;
 
     ctx.beginPath();
@@ -327,7 +334,7 @@
     const radius = feature.radius || 5;
 
     ctx.fillStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : accentColor;
 
     ctx.beginPath();
@@ -367,7 +374,7 @@
     const height = Math.abs(bottom - top);
 
     ctx.fillStyle = feature.color
-      ? resolveColor(feature.color, feature.color)
+      ? resolveFeatureColor(feature.color, resolveColor)
       : dangerBg;
     ctx.beginPath();
     ctx.roundRect(x2 - width / 2, top, width, height, 4);
