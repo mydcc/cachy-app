@@ -229,15 +229,18 @@ specifically wanted.
 
 ## ao
 
-**What it measures.** The difference between a fast and a slow moving
-average of the median price, each a median rather than a mean. Rises when
+**What it measures.** The difference between a fast and a slow simple moving
+average of the median price — the bar's midpoint of high and low. Rises when
 short-term movement exceeds long-term, falls when it does not. The configured
 periods decide what "short-term" and "long-term" mean.
 
 **How to read it.** The zero line is the whole signal: above it, short-term
 movement dominates. There are no useful fixed thresholds — unlike RSI, there is
 no "70" that means anything, because the scale is in price units and moves with
-the instrument. Compare the slope and the duration above or below the line.
+the instrument. Compare the slope and the duration above or below the line. The
+classic signals: a cross of the zero line, a saucer turning upward above the
+line, twin peaks below the line with the second trough shallower — mirrored
+below.
 
 **When it lies.**
 - **It carries no scale.** A reading of +40 on one symbol and +4,000 on another
@@ -245,9 +248,9 @@ the instrument. Compare the slope and the duration above or below the line.
   threshold quoted without naming the instrument is meaningless.
 - **It is structurally lagged.** Both inputs are smoothed, so turns in the
   underlying movement appear in the reading after they happened.
-- **The median is not a mean.** Outlier resistance is the point, and it also
-  means the reading describes typical candles rather than the extremes that
-  moved price.
+- **The median price is the midpoint, not the close.** A rejection in the wick
+  moves the high or the low and hence the reading, even when the close barely
+  moves.
 - **Before a full window of the slower period there is no value**, and the
   reading resolves as indeterminate, not as a number.
 
