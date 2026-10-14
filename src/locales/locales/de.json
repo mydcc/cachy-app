@@ -1615,7 +1615,7 @@
         "flavorAnthropicMessages": "Anthropic Messages",
         "flavorGoogleGenerate": "Google generateContent",
         "baseUrl": "Basis-URL",
-        "baseUrlPlaceholder": "https://opencode.ai/zen/v1",
+        "baseUrlPlaceholder": "https://opencode.ai/inference/v1",
         "apiKey": "API-Schlüssel",
         "apiKeyPlaceholder": "sk-...",
         "activate": "Verwenden",

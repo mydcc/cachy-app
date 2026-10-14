@@ -45,12 +45,14 @@ export function resolveProviderEndpoint(
     // Split relative path and any query parameters attached to relativePath
     const [relPathOnly, relQuery] = cleanRelative.split("?");
 
-    // Handle v1 / api/v1 deduplication on the pathname
+    // Handle version-segment deduplication on the pathname: the flavor path
+    // carries its own version (v1/, api/v1/, v1beta/), and when the base
+    // already ends in any version segment the base wins — otherwise a /v2
+    // base would produce a bogus /v2/v1/... path.
     let subPath = relPathOnly;
-    if (relPathOnly.startsWith("v1/") && pathname.endsWith("/v1")) {
-      subPath = relPathOnly.slice(3);
-    } else if (relPathOnly.startsWith("api/v1/") && pathname.endsWith("/api/v1")) {
-      subPath = relPathOnly.slice(7);
+    const relVersion = relPathOnly.match(/^(api\/v\d+\/|v\d+[a-z]*\/)/)?.[1];
+    if (relVersion && /(\/api\/v\d+|\/v\d+[a-z]*)$/.test(pathname)) {
+      subPath = relPathOnly.slice(relVersion.length);
     }
 
     baseObj.pathname = `${pathname}/${subPath}`.replace(/\/+/g, "/");
@@ -71,10 +73,13 @@ export function resolveProviderEndpoint(
     const [relPathOnly, relQuery] = relativePath.replace(/^\/+/, "").split("?");
 
     let resolvedPath = `${cleanBase}/${relPathOnly}`;
-    if (relPathOnly.startsWith("v1/") && cleanBase.endsWith("/v1")) {
-      resolvedPath = `${cleanBase}/${relPathOnly.slice(3)}`;
-    } else if (relPathOnly.startsWith("api/v1/") && cleanBase.endsWith("/api/v1")) {
-      resolvedPath = `${cleanBase}/${relPathOnly.slice(7)}`;
+    // Same version-segment rule as above: the base version wins.
+    const fallbackRelVersion = relPathOnly.match(/^(api\/v\d+\/|v\d+[a-z]*\/)/)?.[1];
+    if (
+      fallbackRelVersion &&
+      /(\/api\/v\d+|\/v\d+[a-z]*)$/.test(cleanBase)
+    ) {
+      resolvedPath = `${cleanBase}/${relPathOnly.slice(fallbackRelVersion.length)}`;
     }
 
     const mergedParams = new URLSearchParams(baseQuery || "");

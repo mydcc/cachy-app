@@ -32,7 +32,9 @@ const DEFAULT_MAX_TOKENS = 2000;
  * in cleartext; `http://` is allowed only for loopback gateways
  * (localhost / 127.0.0.1 / ::1), matching the relay's reserved-host intent.
  * De-duplicates a version segment already present in the base URL so
- * `/v1`, `/api/v1` and `/v1beta` are not doubled.
+ * `/v1`, `/v2`, `/api/v1` and `/v1beta` are not doubled: when the base ends
+ * in any version segment, the base wins and the flavor path's own prefix
+ * is dropped.
  */
 export function resolveDirectUrl(baseUrl: string, relativePath: string): string {
   const trimmed = baseUrl.trim().replace(/\/+$/, "");
@@ -59,14 +61,13 @@ export function resolveDirectUrl(baseUrl: string, relativePath: string): string 
   }
 
   const rel = relativePath.replace(/^\/+/, "");
-  if (rel.startsWith("v1beta/") && trimmed.endsWith("/v1beta")) {
-    return `${trimmed}/${rel.slice(7)}`;
-  }
-  if (rel.startsWith("v1/") && trimmed.endsWith("/v1")) {
-    return `${trimmed}/${rel.slice(3)}`;
-  }
-  if (rel.startsWith("api/v1/") && trimmed.endsWith("/api/v1")) {
-    return `${trimmed}/${rel.slice(7)}`;
+  // The flavor path carries its own version segment (v1/, api/v1/, v1beta/).
+  // When the base URL already ends in any version segment, the base wins and
+  // the flavor's prefix is dropped — otherwise a /v2 base would produce a
+  // bogus /v2/v1/... path.
+  const relVersion = rel.match(/^(api\/v\d+\/|v\d+[a-z]*\/)/)?.[1];
+  if (relVersion && /(\/api\/v\d+|\/v\d+[a-z]*)$/.test(trimmed)) {
+    return `${trimmed}/${rel.slice(relVersion.length)}`;
   }
   return `${trimmed}/${rel}`;
 }

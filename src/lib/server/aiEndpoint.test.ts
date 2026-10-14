@@ -99,6 +99,24 @@ describe("resolveProviderEndpoint", () => {
     ).toBe("https://openrouter.ai/api/v1/chat/completions");
   });
 
+  it("keeps the base version when it differs from the flavor path (no /v2/v1/ doubling)", () => {
+    expect(
+      resolveProviderEndpoint(
+        "https://opencode.ai/zen/go/v2",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/models",
+      ),
+    ).toBe("https://opencode.ai/zen/go/v2/models");
+
+    expect(
+      resolveProviderEndpoint(
+        "https://gw.example.com/v2",
+        "https://api.openai.com/v1/chat/completions",
+        "v1/chat/completions",
+      ),
+    ).toBe("https://gw.example.com/v2/chat/completions");
+  });
+
   it("preserves and correctly merges query parameters in custom baseUrl", () => {
     expect(
       resolveProviderEndpoint(
