@@ -4252,10 +4252,10 @@
         "confirmation": "Multi-Timeframe-Analyse, in der der höhere Timeframe die Referenz und der niedrigere der Einstieg ist, auf Instrumenten mit genug Historie."
       },
       "atr": {
-        "whatItMeasures": "Die average true range — die durchschnittliche Größe der Bewegung einer Periode inklusive Gaps, über N Perioden. Sie misst die Größe der Bewegung, nicht die Richtung, und trägt kein Vorzeichen.",
+        "whatItMeasures": "Wilders Average True Range (Default 14): der Durchschnitt der True Range — jeweils das Maximum aus Tagesspanne, Hoch zum Vortagesschluss und Tief zum Vortagesschluss, geglättet nach Wilder. Sie misst die Größe der Bewegung, nicht die Richtung, und trägt kein Vorzeichen.",
         "howToRead": "Am Kurs gelesen sagt sie, wie weit das Instrument normalerweise in einer Periode läuft, und diese Zahl ist ein Distanzbudget: Ein Stop, der schmaler ist als die normale Bewegung, wird mit hoher Wahrscheinlichkeit vom normalen Marktgeschehen getroffen, ein Ziel, das ein großes Vielfaches davon ist, ist ambitioniert. Als Prozent des Kurses gelesen vergleicht sie Instrumente, die unterschiedlich skalieren.",
         "failureModes": "Sie ist nicht direktional und kann nicht prognostizieren. Ein hohes ATR heißt nicht „der Markt fällt“ — es ist nicht einmal eine Aussage über den Markt, nur über seine Bewegung. Sie ist absolut statt relativ: Ein Rohwert von 500 ist auf dem einen Instrument unauffällig und auf dem anderen enorm, und er wächst mit dem Kursniveau über Monate, der Vergleich des Rohwerts zwischen Instrumenten oder über die Zeit vergleicht also nichts. Sie steigt nach der Bewegung — wenn die Volatilität hoch ist, ist sie hoch, weil etwas passiert ist, als Prognose ist sie eine nachlaufende Aussage. Sie springt bei Gaps und Schocks und bleibt erhöht, nachdem der Schock vorbei ist, und überschätzt damit vorübergehend die normale Range.",
-        "confirmation": "Stop-Platzierung und Positionsgröße — weshalb es zählt, dass das Produkt sie berechnet. Ebenfalls der Volatilitätseingang, der ein nachlaufendes Trendband adaptiv macht."
+        "confirmation": "Stop-Platzierung und Positionsgröße: Stops in ATR-Vielfachen statt in Punkten denken. Außerdem der Volatilitätseingang, der das SuperTrend-Band adaptiv macht."
       },
       "choppiness": {
         "whatItMeasures": "Eine einzelne Zahl zwischen grob 0 und 100, die zusammenfasst, wie geordnet die Bewegung ist. Nahe 100 hat sich der Markt in einem engen, richtungslosen Band bewegt; nahe 0 hat er sich entschieden in eine Richtung bewegt.",

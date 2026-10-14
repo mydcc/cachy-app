@@ -4312,10 +4312,10 @@
         "confirmation": "Multi-timeframe analysis where the higher timeframe is the reference and the lower one is the entry, on instruments with enough history."
       },
       "atr": {
-        "whatItMeasures": "The average true range — the average size of a period's movement including gaps, over N periods. It measures the magnitude of movement, not direction, and carries no sign.",
+        "whatItMeasures": "Wilder's average true range (default 14): the average of the true range — each period the maximum of the day's span, the high against the prior close and the low against the prior close, smoothed Wilder's way. It measures the magnitude of movement, not direction, and carries no sign.",
         "howToRead": "Read against price it says how far the instrument normally travels in a period, and that number is a distance budget: a stop narrower than it is likely to be hit by ordinary movement, a target that is a large multiple of it is ambitious. Read as a percentage of price it compares instruments that trade at different scales.",
         "failureModes": "It is not directional and cannot forecast. A high ATR is not \"the market will fall\" — it is not even a claim about the market, only about its movement. It is absolute rather than relative: a raw reading of 500 is unremarkable on one instrument and enormous on another, and it grows with the price level over months, so comparing the raw reading across instruments or across time compares nothing. It rises after the move — by the time volatility is high it is high because something happened, and used as a prediction it is a lagging statement. It spikes on gaps and shocks and stays elevated after the shock is over, temporarily overstating the normal range.",
-        "confirmation": "Stop placement and position sizing — which is why it matters that the product computes it. Also the volatility input that makes a trailing trend band adaptive."
+        "confirmation": "Stop placement and position sizing: think in ATR multiples instead of points. Also the volatility input that makes the SuperTrend band adaptive."
       },
       "choppiness": {
         "whatItMeasures": "A single number between roughly 0 and 100 summarising how orderly the movement is. Near 100 the market has been moving within a narrow, directionless band; near 0 it has been moving decisively in one direction.",

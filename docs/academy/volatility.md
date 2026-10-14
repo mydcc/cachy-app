@@ -61,9 +61,10 @@ acting on.
 
 ## atr
 
-**What it measures.** The average true range — the average size of a period's
-movement including gaps, over N periods. It measures magnitude of movement, not
-direction, and carries no sign.
+**What it measures.** Wilder's average true range (default 14) — the average of
+the true range: each period the maximum of the day's span, the high against the
+prior close and the low against the prior close, smoothed Wilder's way. It
+measures magnitude of movement, not direction, and carries no sign.
 
 **How to read it.** ATR read against price tells you how far the instrument
 normally travels in a period. That number is a **distance budget**: a stop
@@ -84,9 +85,9 @@ instruments that trade at different scales.
 - **It spikes on gaps and shocks**, and stays elevated after the shock is over,
   so it temporarily overstates the normal range.
 
-**Pairs with.** Stop placement and position sizing — which is why it matters
-that the product computes it. Also as the volatility input that makes
-`super_trend` in `trend.md` adaptive.
+**Pairs with.** Stop placement and position sizing: think in ATR multiples
+instead of points. Also as the volatility input that makes `super_trend` in
+`trend.md` adaptive.
 
 **On the chart.** Separate price-dimension axis below the price, single line.
 
