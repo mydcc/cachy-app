@@ -28,16 +28,41 @@ import { mount, unmount, flushSync } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import { Decimal } from "decimal.js";
 
+/*
+ * One cell for the account size. In the app `bind:accountSize={
+ * tradeState.accountSize}` makes the store and the prop the same value; two
+ * cells here would let the field disagree with the store while every assertion
+ * stayed green, which is the shape of the defect under test rather than a
+ * detail of the harness.
+ *
+ * A `SvelteMap`, not a variable: a real parent binds a `$state`, so the child's
+ * read of the prop is a tracked read and the input catches up when the child
+ * writes it back.
+ */
+const bound = new SvelteMap<string, string>([["accountSize", "10000"]]);
+
+type StoreWrite = (fn: (state: Record<string, unknown>) => Record<string, unknown>) => void;
+
 const tradeStateMock = vi.hoisted(() => {
     const state: Record<string, unknown> = {
-        accountSize: "10000",
         riskPercentage: "2",
         riskAmount: "200",
     };
-    state.update = vi.fn((fn: (s: Record<string, unknown>) => Record<string, unknown>) => {
-        Object.assign(state, fn({ ...state }));
+    Object.defineProperty(state, "accountSize", {
+        enumerable: true,
+        get: () => bound.get("accountSize") ?? "",
+        set: (value: string) => bound.set("accountSize", value),
     });
-    return state;
+    const update: StoreWrite = (fn) => {
+        Object.assign(state, fn({ ...state }));
+    };
+    state.update = vi.fn(update);
+    return state as {
+        accountSize: string;
+        riskPercentage: string;
+        riskAmount: string;
+        update: StoreWrite;
+    };
 });
 vi.mock("../../stores/trade.svelte", () => ({ tradeState: tradeStateMock }));
 
@@ -94,16 +119,6 @@ import { paperState } from "../../stores/paperTrading.svelte";
 
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
-/*
- * The bound account size, behind the accessors `render` hands to the
- * component — the same get/set pair a `bind:accountSize` compiles to.
- *
- * A `SvelteMap`, not a plain variable: a real parent binds a `$state`, so the
- * child's read of the prop is a tracked read and the input catches up when the
- * child writes it back. A plain variable would let the write through and leave
- * the field stale, which is exactly the class of bug under test.
- */
-const bound = new SvelteMap<string, string>([["accountSize", "10000"]]);
 
 function boundAccountSize(): string {
     return bound.get("accountSize") ?? "";
@@ -169,6 +184,14 @@ function typeInto(el: HTMLInputElement, value: string) {
     flushSync();
 }
 
+// `typeInto` leaves the field focused, and the caret guard would hold the
+// mirror off for the rest of a case. Handing focus back is its own step, so a
+// case that means to check the caret guard can skip it.
+function blur(el: HTMLInputElement) {
+    el.dispatchEvent(new Event("blur"));
+    flushSync();
+}
+
 describe("FEAT-0346 — PortfolioInputs keeps user input and store value apart", () => {
     it("renders the current account, risk percentage and risk amount", () => {
         render();
@@ -212,7 +235,7 @@ describe("FEAT-0346 — PortfolioInputs keeps user input and store value apart",
  * simulated account, and the stale one fed the calculator.
  */
 describe("BUG-0683 — the Account Balance follows the simulated account in paper mode", () => {
-    it("mirrors a paper fill into the field and the bound account size", () => {
+    it("mirrors a paper fill into the field and the store", () => {
         paperState.setBalance(new Decimal("5000"));
         paperState.setEnabled(true);
         render();
@@ -222,6 +245,7 @@ describe("BUG-0683 — the Account Balance follows the simulated account in pape
         flushSync();
 
         expect(boundAccountSize()).toBe("7761.04");
+        expect(tradeStateMock.accountSize).toBe("7761.04");
         expect(input("account-size").value).toBe("7761.04");
     });
 
@@ -229,18 +253,22 @@ describe("BUG-0683 — the Account Balance follows the simulated account in pape
         paperState.setBalance(new Decimal("5000"));
         paperState.setEnabled(true);
         render();
-        // The mount mirror put the simulated balance in the field.
+        // The mirror put the simulated balance in the field on mount.
         expect(input("account-size").value).toBe("5000");
 
         typeInto(input("account-size"), "1234");
+        // Blurred on purpose. With the caret still in the field the caret guard
+        // alone would hold the mirror off, and this case would then pass with
+        // the typed value unprotected ever.
+        blur(input("account-size"));
+        expect(tradeStateMock.accountSize).toBe("1234");
 
         paperState.setBalance(new Decimal("7761.04"));
         flushSync();
 
         // The typed number survives: the account moved and the field did not.
-        expect(boundAccountSize()).toBe("5000");
+        expect(boundAccountSize()).toBe("1234");
         expect(input("account-size").value).toBe("1234");
-        expect(tradeStateMock.accountSize).toBe("1234");
     });
 
     it("hands the field back to the account when the refresh button reads it again", () => {
@@ -248,16 +276,74 @@ describe("BUG-0683 — the Account Balance follows the simulated account in pape
         paperState.setEnabled(true);
         render();
         typeInto(input("account-size"), "1234");
-        // `typeInto` focuses the field. The caret guard would hold the mirror
-        // off for the rest of the test, so hand the focus back first.
-        input("account-size").dispatchEvent(new Event("blur"));
-        flushSync();
+        blur(input("account-size"));
+        expect(boundAccountSize()).toBe("1234");
 
-        paperFeedMock.feed = { balance: () => "7761.04" };
+        // The account moves behind the trader's number, which is what the
+        // override is for: the field does not follow.
+        paperState.setBalance(new Decimal("6000"));
+        flushSync();
+        expect(input("account-size").value).toBe("1234");
+
+        // The seam reads the book, exactly as `paperAccountFeed` does.
+        paperFeedMock.feed = { balance: () => paperState.balance.toString() };
         button("button.price-fetch-btn").click();
         flushSync();
 
-        expect(tradeStateMock.accountSize).toBe("7761.04");
+        // Field and store agree on what the read returned.
+        expect(boundAccountSize()).toBe("6000");
+        expect(tradeStateMock.accountSize).toBe("6000");
+        expect(input("account-size").value).toBe("6000");
+
+        // …and the override is released, so the next fill is mirrored again.
+        paperState.setBalance(new Decimal("7000"));
+        flushSync();
+
+        expect(boundAccountSize()).toBe("7000");
+        expect(input("account-size").value).toBe("7000");
+    });
+
+    it("hands the field back on an explicit read when the typed number equals the balance", () => {
+        paperState.setBalance(new Decimal("5000"));
+        paperState.setEnabled(true);
+        render();
+
+        // The trader's own number happens to be the balance, so the value
+        // comparison alone cannot tell the override from an untouched field.
+        // Only the explicit read can release this one.
+        typeInto(input("account-size"), "5000");
+        blur(input("account-size"));
+        expect(boundAccountSize()).toBe("5000");
+
+        paperFeedMock.feed = { balance: () => paperState.balance.toString() };
+        button("button.price-fetch-btn").click();
+        flushSync();
+
+        paperState.setBalance(new Decimal("7000"));
+        flushSync();
+
+        expect(boundAccountSize()).toBe("7000");
+        expect(input("account-size").value).toBe("7000");
+    });
+
+    it("follows the account again after a preset or a Reset writes the field", () => {
+        paperState.setBalance(new Decimal("5000"));
+        paperState.setEnabled(true);
+        render();
+        typeInto(input("account-size"), "1234");
+        blur(input("account-size"));
+
+        // What `app.loadPreset` and `tradeState.resetInputs` both do: a new
+        // account size the trader did not type. A latch on "the trader typed"
+        // stayed set here and the mirror never resumed — the reported symptom
+        // again, one button away.
+        tradeStateMock.update((s) => ({ ...s, accountSize: "8000" }));
+        flushSync();
+
+        // The preset's own number is not what this field sizes against while
+        // paper mode is on — the simulated account is — and the mirror is
+        // running again.
+        expect(input("account-size").value).toBe("5000");
 
         paperState.setBalance(new Decimal("7000"));
         flushSync();
@@ -279,6 +365,23 @@ describe("BUG-0683 — the Account Balance follows the simulated account in pape
 
         expect(boundAccountSize()).toBe("5000");
         expect(input("account-size").value).toBe("5000");
+    });
+
+    it("catches up on blur after a fill it skipped while focused", () => {
+        paperState.setBalance(new Decimal("5000"));
+        paperState.setEnabled(true);
+        render();
+
+        input("account-size").dispatchEvent(new Event("focus"));
+        flushSync();
+        paperState.setBalance(new Decimal("7761.04"));
+        flushSync();
+        expect(input("account-size").value).toBe("5000");
+
+        blur(input("account-size"));
+
+        expect(boundAccountSize()).toBe("7761.04");
+        expect(input("account-size").value).toBe("7761.04");
     });
 
     it("writes nothing to the field while paper mode is off", () => {

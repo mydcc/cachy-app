@@ -22,7 +22,7 @@
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
-  import { onMount, untrack } from "svelte";
+  import { onMount } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -74,13 +74,15 @@
   let isAccountSizeFocused = $state(false);
 
   /*
-   * BUG-0683 — set while the trader's own number sits in the field, so the
-   * paper mirror below leaves it alone. An explicit read hands the field back
-   * to the account. Deliberately not persisted: a fresh session starts willing
-   * to follow the simulated balance again, which is what makes the field
-   * current for everyone who never typed into it.
+   * BUG-0683 — the number the trader typed, while it is still the number in
+   * the field. Deliberately not a latch: a latch stayed set when a preset load
+   * or a Reset wrote a new account size, and the mirror then never resumed —
+   * the reported symptom again, one button away. Comparing against the value
+   * means whatever else lands in the field (a preset, a Reset, an explicit
+   * read) hands it back to the account. Session-only, so a reload follows the
+   * simulated balance again for everyone who never typed into it.
    */
-  let isAccountSizeUserEdited = $state(false);
+  let userAccountSize: string | null = $state(null);
 
   let localRiskPercentage = $state(format(riskPercentage));
   let isRiskPercentageFocused = $state(false);
@@ -103,17 +105,19 @@
    * current one — two numbers for one account, and the stale one sized the
    * trade the panel had just reported.
    *
-   * `untrack` keeps the comparison against the field's own text out of the
-   * dependencies, so the effect re-runs when the book or a guard changes, not
-   * when this write lands. Everything sits behind `paperState.enabled`, so
-   * live mode is untouched.
+   * `accountSize` is a dependency here, not an untracked read: that is what
+   * lets the effect notice a preset load or a Reset landing in the field and
+   * resume. It settles in one extra pass, because the write then satisfies the
+   * equality check. The guards come first, so while paper mode is off the
+   * component holds no subscription to the book at all.
    */
   $effect(() => {
     if (!paperState.enabled) return;
-    if (isAccountSizeUserEdited || isAccountSizeFocused) return;
+    if (isAccountSizeFocused) return;
+    if (userAccountSize !== null && format(accountSize) === userAccountSize) return;
 
     const balance = paperState.balance.toString();
-    if (untrack(() => format(accountSize)) === balance) return;
+    if (format(accountSize) === balance) return;
     accountSize = balance;
   });
 
@@ -151,8 +155,8 @@
     const validated = validateInput(value, true, 0);
     localAccountSize = value; // Keep user input in UI
     // BUG-0683 — a number the trader put here is theirs; the paper mirror
-    // stops overwriting it until an explicit read.
-    isAccountSizeUserEdited = true;
+    // stops overwriting it while it is still the value in the field.
+    userAccountSize = value;
     tradeState.update((s) => ({
       ...s,
       accountSize: validated ?? "0",
@@ -201,7 +205,7 @@
     if (paper) {
       // BUG-0683 — an explicit read is the gesture that hands the field back
       // to the account, so whatever the trader typed stops being protected.
-      isAccountSizeUserEdited = false;
+      userAccountSize = null;
       tradeState.update((s) => ({ ...s, accountSize: paper.balance() }));
       if (!silent) uiState.showFeedback("save");
       return;
@@ -248,7 +252,7 @@
 
       if (typeof data.balance === "number" || typeof data.balance === "string") {
         // BUG-0683 — same hand-back as the paper branch above.
-        isAccountSizeUserEdited = false;
+        userAccountSize = null;
         tradeState.update((s) => ({ ...s, accountSize: String(data.balance) }));
         if (!silent) {
           uiState.showFeedback("save"); // Show success feedback
