@@ -73,14 +73,25 @@ the persistence shape and the existing `shippedIndicatorDefaults()` in
 
 ## State
 
-Fixed on branch `fix/indicator-reset-defaults`: every handoff from the module
-literal into the store deep-copies (`structuredClone` in the field
-initialisers, in `merge()`, in the ema fallback and in `reset()`, which now
-reads from `shippedIndicatorDefaults()`), and the literal is exported so tests
-can pin its immutability. Verified by `src/stores/indicatorReset.test.ts` —
-each guard watched failing on the old code, including a frozen-literal probe
-that turns the silent corruption into a loud `TypeError` on builds with live
-`$state` proxies.
+Fixed on branch `fix/indicator-reset-defaults`.
+
+`DEFAULT_INDICATOR_SETTINGS` — renamed from `defaultSettings`, because `Settings`
+has a credential-carrying `defaultSettings` of its own — is deep-frozen at module
+load and is now the **single** pristine source: field initialisers, `merge()`,
+the `ema` branch, `panelSections` and `reset()` all copy from it, so a forgotten
+copy throws instead of corrupting the record. `save()` no longer persists the
+`_cachedJson` cache key, which wrote a second full copy of the settings into the
+same blob (about twice the quota for this key) that nothing read back.
+
+Verified by `src/stores/indicatorReset.test.ts`. Reproducible REDs in this
+environment: removing the freeze (the `Object.isFrozen` assertions and the write
+that must throw), and re-persisting `_cachedJson`. Two things learned while
+proving them, recorded because they will mislead the next reader: (a) `$state`
+hands out a *proxy*, so comparing `indicatorState[k] !== DEFAULT[k]` can never
+detect aliasing — that assertion is not used; (b) this suite's environment clones
+on `$state`, so an aliasing regression is not reproducible *here* at all. The
+browser build the bug reached is the one where a field really is the literal,
+which is why the per-card loop is a property check rather than a proven RED.
 
 ## Links
 

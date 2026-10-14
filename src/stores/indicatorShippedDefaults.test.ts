@@ -19,12 +19,13 @@
  * FEAT-0681 — the shipped indicator defaults a lesson compares against must
  * stay detached from the live store.
  *
- * The store holds `$state(defaultSettings.<card>)`, a proxy over the *same*
- * object, so a write through the store lands in the defaults object itself. A
- * baseline that aliases it would follow the trader's edits and report nothing as
- * changed — the "your setting" marker would never appear. The write happens
- * *before* the baseline is read here, so this fails for any baseline that is
- * derived lazily from the live object rather than from a copy taken earlier.
+ * `shippedIndicatorDefaults()` copies the frozen shipped record, so a baseline
+ * can neither follow the trader's edits nor be edited through the store. Before
+ * BUG-0682 the store's fields *were* those objects, and a write through the
+ * store landed in them, which made the baseline report every edit as already
+ * shipped — the "your setting" marker would never appear. The write happens
+ * *before* the baseline is read here, so this fails for anything that derives
+ * the baseline lazily from live state instead of from a copy.
  */
 
 import { describe, it, expect } from "vitest";

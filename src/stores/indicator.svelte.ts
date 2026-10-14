@@ -12,12 +12,38 @@ import { untrack } from "svelte";
 import type { IndicatorSettings } from "../types/indicators";
 import { safeLocalStorage } from "../utils/storageWrapper";
 
-/*
- * The shipped record. Treat as read-only after module load: the store holds
- * `$state` proxies over *copies* of these objects, never over the literal
- * itself (BUG-0682). Exported so tests can pin that nothing writes into it.
+/**
+ * Freezes `value` and every object it reaches.
+ *
+ * The indicator settings are a fixed nested record, so the recursion ends on
+ * primitives; freezing an already-frozen object is a no-op.
  */
-export const defaultSettings: IndicatorSettings = {
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child);
+  }
+  return value;
+}
+
+/*
+ * The shipped record — the single pristine source every handoff into the store
+ * copies from.
+ *
+ * Frozen, and not as decoration: the store's fields are live `$state` values,
+ * and on a build whose `$state` wraps a plain object in place a field
+ * initialised from this literal would *be* this literal. A write through the
+ * store (the settings UI binds `indicatorState.rsi.length` directly) would then
+ * land here, and `reset()` would restore the trader's own edits as the
+ * "defaults" (BUG-0682). Every handoff deep-copies, so that is unreachable; the
+ * freeze turns any future handoff that forgets into a loud `TypeError` instead
+ * of silent corruption.
+ *
+ * Exported so tests can pin that immutability, under a name that says whose
+ * defaults these are: `Settings` has a `defaultSettings` of its own, and that
+ * one carries credentials.
+ */
+export const DEFAULT_INDICATOR_SETTINGS: IndicatorSettings = deepFreeze({
   historyLimit: 750,
   precision: 4,
   lineWidth: 1,
@@ -226,71 +252,65 @@ export const defaultSettings: IndicatorSettings = {
     stdDev: 2,
     source: "close",
   },
-};
+});
 
 const STORE_KEY = "cachy_indicator_settings";
 
 /*
- * The settings a new install starts from, deep-copied while they are still
- * pristine.
+ * The settings a new install starts from — the pristine baseline a lesson
+ * compares against, and what `reset()` restores from.
  *
- * The store's fields used to be `$state` proxies over these same objects, so a
- * write through the store landed in the literal itself and `reset()` restored
- * the trader's own edits as the "defaults" (BUG-0682). The fields now start
- * from deep copies, and this copy — taken before the class below can touch
- * anything — is what `shippedIndicatorDefaults()` hands out, so a baseline can
- * neither follow the trader's edits nor be edited through the store (FEAT-0681).
+ * A copy per call, because the result is handed to `$state` fields the UI writes
+ * through: handing out the frozen literal's own subtrees would make the next
+ * edit throw instead of landing in the field (BUG-0682).
  */
-const shippedIndicatorSettings: IndicatorSettings = structuredClone(defaultSettings);
-
-/** A deep copy of the indicator settings every new install starts from. */
 export function shippedIndicatorDefaults(): IndicatorSettings {
-  return structuredClone(shippedIndicatorSettings);
+  return structuredClone(DEFAULT_INDICATOR_SETTINGS);
 }
 
 class IndicatorManager {
-  historyLimit = $state(defaultSettings.historyLimit);
-  precision = $state(defaultSettings.precision);
-  lineWidth = $state(defaultSettings.lineWidth);
-  preferredEngine = $state(defaultSettings.preferredEngine);
+  historyLimit = $state(DEFAULT_INDICATOR_SETTINGS.historyLimit);
+  precision = $state(DEFAULT_INDICATOR_SETTINGS.precision);
+  lineWidth = $state(DEFAULT_INDICATOR_SETTINGS.lineWidth);
+  preferredEngine = $state(DEFAULT_INDICATOR_SETTINGS.preferredEngine);
 
-  panelSections = $state(structuredClone(defaultSettings.panelSections));
+  panelSections = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.panelSections));
 
   // Oscillators
-  rsi = $state(structuredClone(defaultSettings.rsi));
-  stochRsi = $state(structuredClone(defaultSettings.stochRsi));
-  stochastic = $state(structuredClone(defaultSettings.stochastic));
-  williamsR = $state(structuredClone(defaultSettings.williamsR));
-  cci = $state(structuredClone(defaultSettings.cci));
-  momentum = $state(structuredClone(defaultSettings.momentum));
-  ao = $state(structuredClone(defaultSettings.ao));
-  mfi = $state(structuredClone(defaultSettings.mfi));
+  rsi = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.rsi));
+  stochRsi = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.stochRsi));
+  stochastic = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.stochastic));
+  williamsR = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.williamsR));
+  cci = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.cci));
+  momentum = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.momentum));
+  ao = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.ao));
+  mfi = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.mfi));
 
   // Trend
-  macd = $state(structuredClone(defaultSettings.macd));
-  adx = $state(structuredClone(defaultSettings.adx));
-  ema = $state(structuredClone(defaultSettings.ema));
-  sma = $state(structuredClone(defaultSettings.sma));
-  wma = $state(structuredClone(defaultSettings.wma));
-  vwma = $state(structuredClone(defaultSettings.vwma));
-  hma = $state(structuredClone(defaultSettings.hma));
-  superTrend = $state(structuredClone(defaultSettings.superTrend));
-  atrTrailingStop = $state(structuredClone(defaultSettings.atrTrailingStop));
-  ichimoku = $state(structuredClone(defaultSettings.ichimoku));
+  macd = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.macd));
+  adx = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.adx));
+  ema = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.ema));
+  sma = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.sma));
+  wma = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.wma));
+  vwma = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.vwma));
+  hma = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.hma));
+  superTrend = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.superTrend));
+  atrTrailingStop = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.atrTrailingStop));
+  ichimoku = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.ichimoku));
 
   // Volatility
-  atr = $state(structuredClone(defaultSettings.atr));
-  choppiness = $state(structuredClone(defaultSettings.choppiness));
+  atr = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.atr));
+  choppiness = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.choppiness));
 
   // Volume & Misc
-  obv = $state(structuredClone(defaultSettings.obv));
-  vwap = $state(structuredClone(defaultSettings.vwap));
-  parabolicSar = $state(structuredClone(defaultSettings.parabolicSar));
-  volumeProfile = $state(structuredClone(defaultSettings.volumeProfile));
-  volumeMa = $state(structuredClone(defaultSettings.volumeMa));
-  volume = $state(structuredClone(defaultSettings.volume));
-  bollingerBands = $state(structuredClone(defaultSettings.bollingerBands));
-  pivots = $state(structuredClone(defaultSettings.pivots));
+  obv = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.obv));
+  vwap = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.vwap));
+  parabolicSar = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.parabolicSar));
+  volumeProfile = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.volumeProfile));
+  volumeMa = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.volumeMa));
+  volume = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.volume));
+  bollingerBands = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.bollingerBands));
+  pivots = $state(structuredClone(DEFAULT_INDICATOR_SETTINGS.pivots));
 
   private listeners: Set<(value: IndicatorSettings) => void> = new Set();
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -403,69 +423,76 @@ class IndicatorManager {
           return structuredClone({ ...fallback, ...val });
       }
 
-      this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
-      this.precision = parsed.precision ?? defaultSettings.precision;
-      this.lineWidth = parsed.lineWidth ?? defaultSettings.lineWidth;
-      this.preferredEngine = parsed.preferredEngine || defaultSettings.preferredEngine;
+      this.historyLimit = parsed.historyLimit || DEFAULT_INDICATOR_SETTINGS.historyLimit;
+      this.precision = parsed.precision ?? DEFAULT_INDICATOR_SETTINGS.precision;
+      this.lineWidth = parsed.lineWidth ?? DEFAULT_INDICATOR_SETTINGS.lineWidth;
+      this.preferredEngine = parsed.preferredEngine || DEFAULT_INDICATOR_SETTINGS.preferredEngine;
 
-      this.panelSections = { ...defaultSettings.panelSections, ...parsed.panelSections };
+      // Deep, like every sibling. The plain spread alone happened to detach
+      // because all eight leaves are primitives today — an assumption the first
+      // nested field would silently break, re-aliasing the literal (BUG-0682
+      // review). `structuredClone` states the intent the others already keep.
+      this.panelSections = structuredClone({
+        ...DEFAULT_INDICATOR_SETTINGS.panelSections,
+        ...parsed.panelSections,
+      });
 
-      this.rsi = merge('rsi', defaultSettings.rsi);
-      this.stochRsi = merge('stochRsi', defaultSettings.stochRsi);
-      this.macd = merge('macd', defaultSettings.macd);
-      this.stochastic = merge('stochastic', defaultSettings.stochastic);
-      this.williamsR = merge('williamsR', defaultSettings.williamsR);
-      this.cci = merge('cci', defaultSettings.cci);
+      this.rsi = merge('rsi', DEFAULT_INDICATOR_SETTINGS.rsi);
+      this.stochRsi = merge('stochRsi', DEFAULT_INDICATOR_SETTINGS.stochRsi);
+      this.macd = merge('macd', DEFAULT_INDICATOR_SETTINGS.macd);
+      this.stochastic = merge('stochastic', DEFAULT_INDICATOR_SETTINGS.stochastic);
+      this.williamsR = merge('williamsR', DEFAULT_INDICATOR_SETTINGS.williamsR);
+      this.cci = merge('cci', DEFAULT_INDICATOR_SETTINGS.cci);
 
-      this.adx = merge('adx', defaultSettings.adx);
+      this.adx = merge('adx', DEFAULT_INDICATOR_SETTINGS.adx);
       // Migration for ADX: Handle old 'length' property
       if (parsed.adx?.length !== undefined && parsed.adx?.adxSmoothing === undefined) {
         this.adx.adxSmoothing = parsed.adx.length;
       }
 
-      this.ao = merge('ao', defaultSettings.ao);
-      this.momentum = merge('momentum', defaultSettings.momentum);
-      this.pivots = merge('pivots', defaultSettings.pivots);
-      this.superTrend = merge('superTrend', defaultSettings.superTrend);
-      this.atrTrailingStop = merge('atrTrailingStop', defaultSettings.atrTrailingStop);
-      this.obv = merge('obv', defaultSettings.obv);
-      this.mfi = merge('mfi', defaultSettings.mfi);
-      this.vwap = merge('vwap', defaultSettings.vwap);
-      this.parabolicSar = merge('parabolicSar', defaultSettings.parabolicSar);
-      this.ichimoku = merge('ichimoku', defaultSettings.ichimoku);
-      this.choppiness = merge('choppiness', defaultSettings.choppiness);
-      this.volumeProfile = merge('volumeProfile', defaultSettings.volumeProfile);
-      this.volume = merge('volume', defaultSettings.volume);
+      this.ao = merge('ao', DEFAULT_INDICATOR_SETTINGS.ao);
+      this.momentum = merge('momentum', DEFAULT_INDICATOR_SETTINGS.momentum);
+      this.pivots = merge('pivots', DEFAULT_INDICATOR_SETTINGS.pivots);
+      this.superTrend = merge('superTrend', DEFAULT_INDICATOR_SETTINGS.superTrend);
+      this.atrTrailingStop = merge('atrTrailingStop', DEFAULT_INDICATOR_SETTINGS.atrTrailingStop);
+      this.obv = merge('obv', DEFAULT_INDICATOR_SETTINGS.obv);
+      this.mfi = merge('mfi', DEFAULT_INDICATOR_SETTINGS.mfi);
+      this.vwap = merge('vwap', DEFAULT_INDICATOR_SETTINGS.vwap);
+      this.parabolicSar = merge('parabolicSar', DEFAULT_INDICATOR_SETTINGS.parabolicSar);
+      this.ichimoku = merge('ichimoku', DEFAULT_INDICATOR_SETTINGS.ichimoku);
+      this.choppiness = merge('choppiness', DEFAULT_INDICATOR_SETTINGS.choppiness);
+      this.volumeProfile = merge('volumeProfile', DEFAULT_INDICATOR_SETTINGS.volumeProfile);
+      this.volume = merge('volume', DEFAULT_INDICATOR_SETTINGS.volume);
 
-      this.atr = merge('atr', defaultSettings.atr);
-      this.bollingerBands = merge('bollingerBands', defaultSettings.bollingerBands);
-      this.volumeMa = merge('volumeMa', defaultSettings.volumeMa);
+      this.atr = merge('atr', DEFAULT_INDICATOR_SETTINGS.atr);
+      this.bollingerBands = merge('bollingerBands', DEFAULT_INDICATOR_SETTINGS.bollingerBands);
+      this.volumeMa = merge('volumeMa', DEFAULT_INDICATOR_SETTINGS.volumeMa);
 
       this.ema = parsed.ema
-        ? {
-          enabled: parsed.ema.enabled !== undefined ? parsed.ema.enabled : defaultSettings.ema.enabled,
-          visible: parsed.ema.visible ?? defaultSettings.ema.visible,
-          showInChart: parsed.ema.showInChart ?? defaultSettings.ema.showInChart,
+        ? structuredClone({
+          enabled: parsed.ema.enabled !== undefined ? parsed.ema.enabled : DEFAULT_INDICATOR_SETTINGS.ema.enabled,
+          visible: parsed.ema.visible ?? DEFAULT_INDICATOR_SETTINGS.ema.visible,
+          showInChart: parsed.ema.showInChart ?? DEFAULT_INDICATOR_SETTINGS.ema.showInChart,
           ema1: {
-            ...defaultSettings.ema.ema1,
+            ...DEFAULT_INDICATOR_SETTINGS.ema.ema1,
             ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
           },
           ema2: {
-            ...defaultSettings.ema.ema2,
+            ...DEFAULT_INDICATOR_SETTINGS.ema.ema2,
             ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
           },
           ema3: {
-            ...defaultSettings.ema.ema3,
+            ...DEFAULT_INDICATOR_SETTINGS.ema.ema3,
             ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
           },
-          source: parsed.ema.source || defaultSettings.ema.source,
-        }
-        : structuredClone(defaultSettings.ema);
+          source: parsed.ema.source || DEFAULT_INDICATOR_SETTINGS.ema.source,
+        })
+        : structuredClone(DEFAULT_INDICATOR_SETTINGS.ema);
 
-      this.sma = merge('sma', defaultSettings.sma);
-      this.wma = merge('wma', defaultSettings.wma);
-      this.vwma = merge('vwma', defaultSettings.vwma);
-      this.hma = merge('hma', defaultSettings.hma);
+      this.sma = merge('sma', DEFAULT_INDICATOR_SETTINGS.sma);
+      this.wma = merge('wma', DEFAULT_INDICATOR_SETTINGS.wma);
+      this.vwma = merge('vwma', DEFAULT_INDICATOR_SETTINGS.vwma);
+      this.hma = merge('hma', DEFAULT_INDICATOR_SETTINGS.hma);
     } catch (e) {
       console.error("IndicatorManager: Failed to load from localStorage", e);
     }
@@ -484,6 +511,12 @@ class IndicatorManager {
     if (!browser) return;
     try {
       const data = this.toJSON();
+      // The cached JSON is a cache key for in-memory consumers, not part of the
+      // record: persisting it stored a second full copy of the settings inside
+      // the same blob — about twice the quota for this key — and nothing reads
+      // it back, because `load()` merges field by field. Dropped before it is
+      // written.
+      delete data._cachedJson;
       safeLocalStorage.setItem(STORE_KEY, JSON.stringify(data));
     } catch (e) {
       console.error("Save error", e);
