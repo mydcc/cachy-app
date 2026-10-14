@@ -133,4 +133,56 @@ describe("indicator lessons", () => {
             expect(entries.length, group).toBeGreaterThan(0);
         }
     });
+
+    it("pins the catalogue numbers the prose teaches, per lesson and language", () => {
+        // Prose truth has no other guard: the cases above assert shape, so a
+        // future edit could drop a default (or invent one) with CI green. Each
+        // entry names substrings the current prose carries across its four
+        // fields; the table is the assertion surface a prose edit must keep
+        // green. Decimal commas are German, decimal dots are English.
+        const pinned: Readonly<Record<string, { de: readonly string[]; en: readonly string[] }>> = {
+            ema: { de: ["Schlusskurse"], en: ["closing prices"] },
+            sma: { de: ["Schlusskurse"], en: ["closing prices"] },
+            wma: { de: ["Schlusskurse"], en: ["closing prices"] },
+            hma: { de: ["Schlusskurse"], en: ["closing prices"] },
+            vwma: { de: ["Schluss"], en: ["closing prices"] },
+            macd: { de: ["12", "26", "9"], en: ["12", "26", "9"] },
+            adx: { de: ["25", "20"], en: ["25", "20"] },
+            super_trend: { de: ["10 und 3"], en: ["10 and 3"] },
+            parabolic_sar: { de: ["0,02", "0,2"], en: ["0.02", "0.2"] },
+            ichimoku: { de: ["9", "26", "52"], en: ["9", "26", "52"] },
+            bollinger: { de: ["SMA(20)", "zwei Standardabweichungen"], en: ["SMA(20)", "two standard deviations"] },
+            atr: { de: ["14", "Wilder"], en: ["14", "Wilder"] },
+            choppiness: { de: ["14", "61,8", "38,2"], en: ["14", "61.8", "38.2"] },
+            obv: { de: ["1963", "Vortagesschluss"], en: ["1963", "prior close"] },
+            volume_ma: { de: ["SMA(20)"], en: ["SMA(20)"] },
+            rsi: { de: ["14"], en: ["14"] },
+            stoch_rsi: { de: ["14", "3"], en: ["14", "3"] },
+            stochastic: { de: ["14", "3"], en: ["14", "3"] },
+            williams_r: { de: ["14"], en: ["14"] },
+            cci: { de: ["20", "0,015"], en: ["20", "0.015"] },
+            mfi: { de: ["14"], en: ["14"] },
+            ao: { de: ["5", "34"], en: ["5", "34"] },
+            momentum: { de: ["10"], en: ["10"] },
+        };
+        // The table covers every registry indicator and nothing else, so a new
+        // indicator without pinned prose fails here rather than passing quietly.
+        expect(Object.keys(pinned).sort()).toEqual(
+            REGISTRY_CATALOGUE.map((entry) => entry.id).sort(),
+        );
+
+        const missing: string[] = [];
+        for (const [name, bundle] of LOCALES) {
+            const lang = name as "de" | "en";
+            for (const [id, claims] of Object.entries(pinned)) {
+                const text = LESSON_FIELDS.map(
+                    (field) => lookup(bundle, lessonKey(id, field)) as string,
+                ).join("\n");
+                for (const claim of claims[lang]) {
+                    if (!text.includes(claim)) missing.push(`${name}:${id}:${claim}`);
+                }
+            }
+        }
+        expect(missing).toEqual([]);
+    });
 });
