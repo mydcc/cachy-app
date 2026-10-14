@@ -719,14 +719,14 @@
       the accessibility tree via aria-hidden.
     -->
       <div
-        class="flex items-center gap-1.5"
+        class="flex items-center gap-1.5 min-w-0 shrink-0"
         class:invisible={!tifVisible}
         aria-hidden={!tifVisible}
         title={!tifSupported
           ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
           : undefined}
       >
-        <label for="order-tif" class="text-xs font-semibold text-[var(--text-secondary)]">
+        <label for="order-tif" class="text-xs font-semibold text-[var(--text-secondary)] whitespace-nowrap shrink-0">
           {$_("orderEntry.timeInForce")}
         </label>
         <!--
@@ -742,7 +742,7 @@
           aria-label={!tifSupported
             ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
             : $_("orderEntry.timeInForce")}
-          class="input-field text-xs py-1 px-2"
+          class="input-field text-xs py-1 px-2 min-w-0"
         >
           {#each caps.timeInForce as tif (tif)}
             <option value={tif}>{tif}</option>

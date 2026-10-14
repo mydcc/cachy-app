@@ -223,9 +223,9 @@
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
   <!-- Time Range Filter Toolbar -->
   <div class="mb-2 bg-[var(--bg-tertiary)] p-1.5 rounded-lg border border-[var(--border-color)] flex flex-col gap-1.5">
-    <div class="flex items-center justify-between gap-1">
+    <div class="flex items-center justify-between gap-1 min-w-0">
       <!-- Preset Buttons -->
-      <div class="flex flex-wrap items-center gap-1">
+      <div class="flex flex-nowrap items-center gap-1 min-w-0 flex-1 overflow-x-auto scrollbar-thin">
         {#each [
           { id: "all", label: $_("dashboard.orderHistory.presets.all") },
           { id: "today", label: $_("dashboard.orderHistory.presets.today") },
@@ -235,7 +235,7 @@
         ] as preset}
           <button
             type="button"
-            class="px-2 py-0.5 text-[11px] font-medium rounded transition-colors"
+            class="px-2 py-0.5 text-[11px] font-medium rounded transition-colors whitespace-nowrap shrink-0"
             class:bg-[var(--accent-color)]={activePreset === preset.id}
             class:text-white={activePreset === preset.id}
             class:bg-[var(--bg-secondary)]={activePreset !== preset.id}
@@ -252,7 +252,7 @@
       {#if onrefresh}
         <button
           type="button"
-          class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded hover:bg-[var(--bg-secondary)] disabled:opacity-50"
+          class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded hover:bg-[var(--bg-secondary)] disabled:opacity-50 shrink-0"
           title={$_("dashboard.orderHistory.refresh")}
           disabled={loading || loadingMore}
           onclick={() => onrefresh?.()}
@@ -344,12 +344,12 @@
 
             <!-- Col 2: Execution Details -->
             <div
-              class="flex flex-col items-center justify-center border-r border-[var(--border-color)] border-opacity-30 px-1"
+              class="flex flex-col items-center justify-center border-r border-[var(--border-color)] border-opacity-30 px-1 min-w-0"
             >
               <!-- Unified Badge -->
-              <div class="flex items-center gap-1 mb-1">
+              <div class="flex items-center gap-1 mb-1 max-w-full">
                 <span
-                  class="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight flex items-center gap-1"
+                  class="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight flex items-center gap-1 whitespace-nowrap"
                   class:bg-green-900={order.side === "BUY"}
                   class:text-green-300={order.side === "BUY"}
                   class:bg-red-900={order.side === "SELL"}
