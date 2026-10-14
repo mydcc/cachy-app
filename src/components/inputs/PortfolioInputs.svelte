@@ -73,6 +73,17 @@
   let localAccountSize = $state(format(accountSize));
   let isAccountSizeFocused = $state(false);
 
+  /*
+   * BUG-0683 — the number the trader typed, while it is still the number in
+   * the field. Deliberately not a latch: a latch stayed set when a preset load
+   * or a Reset wrote a new account size, and the mirror then never resumed —
+   * the reported symptom again, one button away. Comparing against the value
+   * means whatever else lands in the field (a preset, a Reset, an explicit
+   * read) hands it back to the account. Session-only, so a reload follows the
+   * simulated balance again for everyone who never typed into it.
+   */
+  let userAccountSize: string | null = $state(null);
+
   let localRiskPercentage = $state(format(riskPercentage));
   let isRiskPercentageFocused = $state(false);
 
@@ -84,6 +95,30 @@
     if (!isAccountSizeFocused && format(accountSize) !== localAccountSize) {
       localAccountSize = format(accountSize);
     }
+  });
+
+  /*
+   * BUG-0683 — in paper mode the simulated balance is the account this field
+   * sizes against, so a fill moves it and the field has to move with it.
+   * Before this the field only ever changed on a manual read: it kept the
+   * value of the last fetch while the Market Activity panel showed the
+   * current one — two numbers for one account, and the stale one sized the
+   * trade the panel had just reported.
+   *
+   * `accountSize` is a dependency here, not an untracked read: that is what
+   * lets the effect notice a preset load or a Reset landing in the field and
+   * resume. It settles in one extra pass, because the write then satisfies the
+   * equality check. The guards come first, so while paper mode is off the
+   * component holds no subscription to the book at all.
+   */
+  $effect(() => {
+    if (!paperState.enabled) return;
+    if (isAccountSizeFocused) return;
+    if (userAccountSize !== null && format(accountSize) === userAccountSize) return;
+
+    const balance = paperState.balance.toString();
+    if (format(accountSize) === balance) return;
+    accountSize = balance;
   });
 
   $effect(() => {
@@ -119,6 +154,9 @@
 
     const validated = validateInput(value, true, 0);
     localAccountSize = value; // Keep user input in UI
+    // BUG-0683 — a number the trader put here is theirs; the paper mirror
+    // stops overwriting it while it is still the value in the field.
+    userAccountSize = value;
     tradeState.update((s) => ({
       ...s,
       accountSize: validated ?? "0",
@@ -165,6 +203,9 @@
      */
     const paper = paperAccountFeed();
     if (paper) {
+      // BUG-0683 — an explicit read is the gesture that hands the field back
+      // to the account, so whatever the trader typed stops being protected.
+      userAccountSize = null;
       tradeState.update((s) => ({ ...s, accountSize: paper.balance() }));
       if (!silent) uiState.showFeedback("save");
       return;
@@ -210,6 +251,8 @@
       if (!accountEpoch.isCurrent(session)) return;
 
       if (typeof data.balance === "number" || typeof data.balance === "string") {
+        // BUG-0683 — same hand-back as the paper branch above.
+        userAccountSize = null;
         tradeState.update((s) => ({ ...s, accountSize: String(data.balance) }));
         if (!silent) {
           uiState.showFeedback("save"); // Show success feedback

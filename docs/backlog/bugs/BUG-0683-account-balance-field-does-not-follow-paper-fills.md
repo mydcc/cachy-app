@@ -2,7 +2,7 @@
 id: BUG-0683
 title: Account Balance field keeps a stale value after a paper fill
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: execution
 data_class: A
 adr: none
 depends_on: []
-# assignee:            # required while status: in-progress
+assignee: opencode
+branch: fix/account-balance-follows-paper-fills
 ---
 
 # BUG-0683 — Account Balance field keeps a stale value after a paper fill
@@ -93,14 +94,19 @@ session-scoped override for a deliberate what-if value.
    Guard with an equality check so the effect settles after one pass instead of
    re-notifying `tradeState` on every evaluation.
 2. **Do not fight the trader.** Skip the write while `isAccountSizeFocused`
-   (the same guard `:84` already uses — a write mid-typing moves the caret), and
-   while the override below is held.
-3. **Session-scoped override.** `let isAccountSizeUserEdited = $state(false)`.
-   `handleAccountSizeInput` sets it `true`; `handleFetchBalance` sets it `false`
-   in **both** branches, because the refresh button is the trader's explicit
-   "read it again" gesture. The flag is *not* persisted: a fresh session starts
-   willing to follow the account, which is what makes the field current for
-   everyone who never typed into it — the reported case.
+   (the same guard the prop-to-local effect already uses — a write mid-typing
+   moves the caret), and while the field still holds the trader's own number.
+3. **The override is a value, not a latch**, and it is session-scoped.
+   `let userAccountSize: string | null = $state(null)` holds the text the trader
+   typed. `handleAccountSizeInput` records it; `handleFetchBalance` clears it in
+   **both** branches, because the refresh button is the trader's explicit "read
+   it again" gesture. The guard is
+   `userAccountSize !== null && format(accountSize) === userAccountSize`, so the
+   override ends as soon as the field no longer holds that number — which is
+   what lets a preset load or a Reset hand the field back instead of leaving the
+   mirror switched off for good. Nothing is persisted: a fresh session follows
+   the account again, which is what makes the field current for everyone who
+   never typed into it — the reported case.
 4. **Live mode is untouched.** Everything above sits behind
    `paperState.enabled`, so with paper mode off the effect writes nothing and
    the field behaves exactly as it does today.
@@ -120,22 +126,30 @@ Each criterion is a `*.component.test.ts` case in the `components` project,
 RED before the fix, per the `PortfolioInputs.component.test.ts` precedent
 (FEAT-0346).
 
-- [ ] With paper mode on and a mocked `paperState`, changing `paperState.balance`
-      writes the new value into the bound `accountSize` and into the input's
-      value, with no click, focus or mount-time fetch involved
-- [ ] After `handleAccountSizeInput` has run, a later `paperState.balance` change
-      leaves the typed value untouched
-- [ ] Clicking the refresh button in the paper branch writes the current
-      `paperState.balance` **and** releases the override, so the *next* balance
-      change is mirrored again
-- [ ] While the field is focused, a `paperState.balance` change does not
+- [x] With paper mode on and the real `paperState` store, changing
+      `paperState.balance` writes the new value into the bound `accountSize`,
+      into the store and into the input's value. The field and the store are one
+      cell, as `bind:` makes them, so the two cannot disagree
+- [x] After `handleAccountSizeInput` has run **and the field has lost focus**, a
+      later `paperState.balance` change leaves the typed value untouched. Blurred
+      on purpose: with the caret still in the field the caret guard alone would
+      mask a value nothing protects
+- [x] Clicking the refresh button in the paper branch writes the balance the read
+      returned **and** releases the override, so the *next* balance change is
+      mirrored again — including when the trader's number happens to equal the
+      balance, which the value comparison alone cannot tell from an untouched
+      field
+- [x] A preset load or a Reset writing `accountSize` releases the override too,
+      and the mirror follows the account again
+- [x] While the field is focused, a `paperState.balance` change does not
       overwrite the input
-- [ ] With paper mode off, a `paperState.balance` change writes nothing to
+- [x] A fill skipped while the field was focused is picked up on blur
+- [x] With paper mode off, a `paperState.balance` change writes nothing to
       `accountSize` — live behaviour is unchanged
-- [ ] Enabling paper mode with an untouched field mirrors the balance without a
+- [x] Enabling paper mode with an untouched field mirrors the balance without a
       refresh click, with `autoFetchBalance` false
-- [ ] `paperState.balance` is read as the source; no second balance is computed
-      in the component
+- [x] `paperState.balance` is the only source; no second balance is computed in
+      the component
 
 ## Out of scope
 
@@ -164,6 +178,63 @@ None that block the start.
 - Not decided, does not block: whether switching paper↔live should also release
   the override. Left as "no, the refresh button is the explicit gesture";
   revisit if a mode switch ever leaves a trader surprised.
+
+## State
+
+Fixed on branch `fix/account-balance-follows-paper-fills`.
+
+`src/components/inputs/PortfolioInputs.svelte` gained one `$effect` and one
+piece of session state:
+
+- The effect writes the bound `accountSize` from `paperState.balance` while
+  paper mode is on. It reads the balance only *after* the guards, so while paper
+  mode is off it holds no subscription to the book at all, and releasing a guard
+  re-reads the current balance instead of replaying a stale one.
+- `accountSize` is a dependency of the effect, not an untracked read. That
+  dependency is the whole of the second round: the first cut held a latch
+  boolean, set by typing and cleared only by an explicit read, and because the
+  effect was not subscribed to `accountSize` a preset load or a Reset left the
+  latch set and the mirror switched off — the reported symptom again, one click
+  away. The guard now compares against the value the trader typed, so whatever
+  else lands in the field hands it back.
+
+Verified by `src/components/inputs/PortfolioInputs.component.test.ts` — thirteen
+cases, nine of them for this bug. Every piece of the fix was removed on its own
+and watched failing for its own reason, so each one is pinned by at least one
+case rather than merely present:
+
+| code removed | cases that fail |
+| --- | --- |
+| the write | eight — every mirror case but the paper-off one, the field stuck on the old value |
+| `userAccountSize = value` | two — the typed value is overwritten, and the hand-back case |
+| the value comparison, back to a latch | one — the preset/Reset case |
+| the release in `handleFetchBalance` | one — the equal-number hand-back case |
+| the caret guard | one — the focused case |
+| the paper-mode guard | three — the paper-off case and two FEAT-0346 cases |
+
+The release in `handleFetchBalance` is the one worth a second look: the value
+comparison already hands the field back whenever the read returns a different
+number, so that release is load-bearing only when the trader's number *is* the
+balance. The fourth row is that case, and it is the reason the release is not
+dead code.
+
+Two harness facts the next reader will otherwise trip over:
+
+- `paperState` is **not** mocked; the real store is used. The defect is a missing
+  *signal* subscription and a plain-object mock never re-runs an effect, so a
+  mock could not have caught it.
+- The field and the store are **one cell** in the tests — a `SvelteMap` behind
+  both the prop accessors and the mocked store — the way `bind:` makes them one.
+  They started as two, which let the field disagree with the store while every
+  assertion stayed green: the shape of this bug rather than a coincidence.
+
+Both limits recorded under Open questions shipped as decided: the override is
+session-scoped, and a paper-to-live switch does not release it. A third became
+visible while wiring the value comparison and is now pinned by a test instead of
+left implicit: in paper mode a preset's own `accountSize` is replaced by the
+simulated balance, because in paper mode the simulated account is what this
+field sizes against.
+
 
 ## Links
 
