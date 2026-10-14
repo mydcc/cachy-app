@@ -18,6 +18,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isLightTheme } from "./lib/themeBackgrounds";
 
 /**
  * The global ::selection rule (src/app.css) paints marked text with
@@ -99,5 +100,28 @@ describe("theme selection tokens", () => {
       }
     }
     expect(failures).toEqual([]);
+  });
+
+  it("declares color-scheme: light for exactly the light themes", () => {
+    // src/app.css defaults native controls to dark and overrides the light
+    // themes. Both lists must move together, or a new light theme silently
+    // keeps dark-styled native popups.
+    const appCss = readFileSync(join(process.cwd(), "src", "app.css"), "utf-8").replace(
+      /\/\*[\s\S]*?\*\//g,
+      "",
+    );
+    const lightBlock = appCss.match(/([^{}]+)\{\s*color-scheme:\s*light\s*;?\s*\}/);
+    expect(lightBlock, "no color-scheme: light block found in src/app.css").not.toBeNull();
+    const declared = new Set(
+      [...lightBlock![1].matchAll(/\.theme-([\w-]+)/g)].map((match) => match[1]),
+    );
+    const blocks = parseBlocks(readThemesCss());
+    const expected = new Set(
+      blocks
+        .flatMap((block) => [...block.selector.matchAll(/\.theme-([\w-]+)/g)])
+        .map((match) => match[1])
+        .filter((name) => isLightTheme(name)),
+    );
+    expect([...declared].sort()).toEqual([...expected].sort());
   });
 });
