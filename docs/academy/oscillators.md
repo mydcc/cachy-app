@@ -81,24 +81,29 @@ It is a precision tool for a narrow case, not a general-purpose oscillator.
 ## stochastic
 
 **What it measures.** Where the close sits within the highest high and lowest
-low of the recent window. %K is that position smoothed, %D is a moving average
-of %K.
+low of the configured window. %K is that position smoothed, %D is a moving
+average of %K. Both run 0–100, computed from high, low and close.
 
-**How to read it.** %K above 80 means the close is near the top of the last
-window's range. %K crossing %D is the event most systems are built on. Reading
-it as "the market is nearly finished rising" is reading it as a statement about
-the window, which is what it is.
+**How to read it.** %K above 80 means the close sits near the top of the
+configured window's range. That is a position, not a signal — the 80 mark is
+convention, not a buy or sell signal. %K crossing %D is the event most systems
+are built on. Reading that as "the market is nearly finished rising" confuses
+the window with the market: the statement covers the configured window, not
+the future.
 
 **When it lies.**
 - **In any trend, permanently.** This is the defining failure. In a sustained
-  uptrend the close keeps printing near the window high and %K pins above 80 for
-  the length of the trend. A rule that sells every overbought print in a trend
-  is systematically short the only move that matters.
-- **The window is the claim.** "At the top" means top of the last N candles.
-  Change N and the same chart produces a different reading. No setting is more
-  correct than another; all of them are true of their own window.
-- **%D lags %K by construction**, so a cross can be well underway before it
+  uptrend the close keeps sitting near the window high and %K stays above 80
+  for the length of the trend. A rule that sells every overbought print in a
+  trend is systematically short the only move that matters. Shorter windows
+  reach the outer marks sooner and fail sooner here.
+- **The window is the claim.** "At the top" means top of the configured
+  candles. Change the setting and the same chart produces a different reading.
+  No setting is more correct than another.
+- **%D trails %K by construction**, so a cross can be well underway before it
   prints.
+- **A window with no movement has no value** and resolves as indeterminate,
+  not as a number.
 
 **Pairs with.** Range trading at established boundaries. With a market-structure
 read that establishes the boundary first — otherwise it is guessing where the
