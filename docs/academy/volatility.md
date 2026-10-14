@@ -12,7 +12,7 @@ believed at all, which makes it more load-bearing than its size suggests.
 
 ## bollinger
 
-**What it measures.** An SMA(20) of close with two bands two
+**What it measures.** An SMA(20) of closing prices with two bands two
 standard deviations above and below it. Five outputs: **upper**, **middle** and
 **lower**, **%B** (where price sits within the band span, 0 at the lower band and
 1 at the upper — allowed to run beyond), and **bandwidth** (the span as a
