@@ -161,14 +161,16 @@ display preference, not an analytical one.
 ## cci
 
 **What it measures.** How far the typical price sits from its own moving
-average, expressed in statistical units — so a reading of +200 is roughly two
-standard deviations out. Typical price is the average of high, low and close,
-and the configured period decides what "recent" means.
+average, expressed in statistical units — the 0.015 divisor is calibrated so
+roughly 70 to 80 percent of readings land between −100 and +100. Typical price
+is the average of high, low and close, and the configured period decides what
+"recent" means.
 
 **How to read it.** ±100 is the statistically ordinary excursion. Beyond roughly
 ±200 the move is unusual relative to its own recent behaviour. Those are
 conventions, not buy or sell signals. The sign of the reading tells you which
-side is active.
+side is active. Divergence reads as with RSI, at the ±200 zones, not in the
+middle.
 
 **When it lies.**
 - **The ±100 band assumes a stable distribution.** CCI assumes its own recent
@@ -176,8 +178,8 @@ side is active.
   time outside ±100 — not because the move is unusual, but because "recent
   behaviour" no longer describes the market. Shorter periods cross the bands
   sooner and fail sooner here.
-- **It is unbounded, unlike the family it is quoted with.** A move outside ±200
-  is not a reversal signal and not an exhaustion signal; it means the scale
+- **It is unbounded, unlike the family it usually stands beside.** A move outside
+  ±200 is not a reversal signal and not an exhaustion signal; it means the scale
   assumption is violated.
 - **Typical price averages away the wick.** On a candle where the rejection was
   entirely in high or low, CCI can read mild.
