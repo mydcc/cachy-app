@@ -67,7 +67,6 @@
         type LessonSeries,
     } from "../../lib/academy/indicatorLessonSeries";
     import {
-        LESSON_TIMEFRAME_FALLBACK,
         isDrawableTimeframe,
         readStoredLessonTimeframe,
     } from "../../lib/academy/lessonSettings";
