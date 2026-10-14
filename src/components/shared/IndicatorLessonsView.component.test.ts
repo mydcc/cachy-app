@@ -316,7 +316,7 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         expect(host.querySelector('[data-testid="chart-probe"]')).not.toBeNull();
     });
 
-    it("marks a parameter the trader configured, and leaves the catalogue default unmarked", () => {
+    it("shows parameter values without provenance badges", () => {
         // The settings store is the app-wide singleton, so the changed value is
         // restored in the `finally`: a leaked write would make every later test
         // read 21.
@@ -332,24 +332,27 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
             rsiRow.click();
             flushSync();
 
+            // A configured value renders as the bare number: no "your setting"
+            // badge, no "standard" badge. The number is the whole statement.
+            // Literals, not lookups: the i18n mock above pins the locale to
+            // "en", and the keys themselves are gone from the dictionary.
             const card = paramsSection(view);
             expect(card.textContent).toContain("21");
-            expect(card.textContent).toContain(lookup("indicatorLessons.parameterFromSettings"));
+            expect(card.textContent).not.toContain("Your setting");
+            expect(card.textContent).not.toContain("Default");
 
             /*
-             * Back to the shipped default. The card keeps showing a number, but
-             * as the catalogue's, not the trader's: a value equal to the default
-             * is not a configuration and must not claim to be one. This also
-             * pins that the card re-derives from the store without a remount.
+             * Back to the shipped default. The card keeps showing a number, now
+             * the catalogue's — still without any badge. This also pins that
+             * the card re-derives from the store without a remount.
              */
             indicatorState.rsi.length = previous;
             flushSync();
 
             const cardAgain = paramsSection(view);
             expect(cardAgain.textContent).toContain(String(previous));
-            expect(cardAgain.textContent).not.toContain(
-                lookup("indicatorLessons.parameterFromSettings"),
-            );
+            expect(cardAgain.textContent).not.toContain("Your setting");
+            expect(cardAgain.textContent).not.toContain("Default");
         } finally {
             indicatorState.rsi.length = previous;
         }
@@ -406,12 +409,13 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         }
     });
 
-    it("marks nothing as the trader's own while they have changed nothing", () => {
+    it("shows the shipped default as a bare number while nothing was changed", () => {
         const view = renderIndicatorsTab();
 
         // The store's first EMA length is 21 where the catalogue's alert default
-        // is 20. Comparing the shown value against the *catalogue* default would
-        // print "your setting" here — for a value nobody configured.
+        // is 20. The card shows the value the chart draws with — 21 — and no
+        // provenance badge either way. Literals, not lookups: the i18n mock
+        // pins the locale to "en", and the badge keys are gone.
         const emaRow = lessonRows(view).find((row) =>
             row.textContent?.includes(lookup("dashboard.alerts.indicators.name.ema")),
         );
@@ -421,11 +425,8 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
 
         const card = paramsSection(view);
         expect(card.textContent).toContain("21");
-        expect(card.textContent).not.toContain(lookup("indicatorLessons.parameterFromSettings"));
-        // The third state: a shipped Technicals default that is neither the
-        // catalogue's 20 nor something the trader changed. A reader comparing the
-        // two screens needs to be told which one they are looking at.
-        expect(card.textContent).toContain(lookup("indicatorLessons.parameterShippedDefault"));
+        expect(card.textContent).not.toContain("Your setting");
+        expect(card.textContent).not.toContain("Default");
     });
 });
 

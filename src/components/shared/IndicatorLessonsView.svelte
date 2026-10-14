@@ -388,19 +388,6 @@
                                 {#each current.params as param (param.name)}
                                     {@const effective =
                                         lessonParameters.values[param.name] ?? param.default}
-                                    {@const fromSettings =
-                                        lessonParameters.modified.has(param.name)}
-                                    <!--
-                                      Three states, not two: a shipped Technicals
-                                      default that differs from the catalogue's
-                                      (the first EMA is 21, the catalogue says 20)
-                                      is neither the catalogue default nor the
-                                      trader's edit, and a reader comparing the two
-                                      screens needs to know which they are on.
-                                    -->
-                                    {@const fromShippedDefault =
-                                        !fromSettings &&
-                                        String(effective) !== String(param.default)}
                                     <li class="flex justify-between items-baseline gap-3 text-sm">
                                         <span class="text-[var(--text-primary)]"
                                             >{translated(paramKey(param.name), param.name)}</span
@@ -409,26 +396,6 @@
                                             class="flex items-baseline gap-1.5 shrink-0 font-mono text-[var(--accent-color)]"
                                         >
                                             {effective}
-                                            {#if fromSettings}
-                                                <!-- The value the chart drew with,
-                                                     and whose it is: a number
-                                                     that silently came from the
-                                                     settings would be the one
-                                                     thing a reader cannot check. -->
-                                                <span
-                                                    class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]"
-                                                    >{$_(
-                                                        "indicatorLessons.parameterFromSettings",
-                                                    )}</span
-                                                >
-                                            {:else if fromShippedDefault}
-                                                <span
-                                                    class="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]"
-                                                    >{$_(
-                                                        "indicatorLessons.parameterShippedDefault",
-                                                    )}</span
-                                                >
-                                            {/if}
                                         </span>
                                     </li>
                                 {/each}
