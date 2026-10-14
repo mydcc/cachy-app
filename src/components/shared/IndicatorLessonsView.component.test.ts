@@ -114,8 +114,20 @@ function searchBox(view: HTMLElement): HTMLInputElement {
     return view.querySelector("input") as HTMLInputElement;
 }
 
-function groupSelect(view: HTMLElement): HTMLSelectElement {
-    return view.querySelector("select") as HTMLSelectElement;
+function groupSelect(view: HTMLElement): HTMLButtonElement {
+    const trigger = view.querySelector<HTMLButtonElement>("#indicator-lesson-group");
+    if (!trigger) throw new Error("no group filter trigger rendered");
+    return trigger;
+}
+
+/** Picks a filter value through the custom dropdown (click trigger, click option). */
+function chooseGroupFilter(view: HTMLElement, value: string): void {
+    groupSelect(view).click();
+    flushSync();
+    const option = view.querySelector<HTMLElement>(`[role="option"][data-value="${value}"]`);
+    if (!option) throw new Error(`no dropdown option for ${value}`);
+    option.click();
+    flushSync();
 }
 
 /** The right-hand column of the split layout, where the engine cards live. */
@@ -193,9 +205,7 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
         const select = groupSelect(view);
         expect(select.getAttribute("aria-label")).toBe(lookup("indicatorLessons.groupLabel"));
 
-        select.value = "trend";
-        select.dispatchEvent(new Event("change", { bubbles: true }));
-        flushSync();
+        chooseGroupFilter(view, "trend");
 
         // The expectation is built from the catalogue, so a recategorised
         // indicator moves it along instead of breaking this test.
@@ -432,8 +442,5 @@ describe("FEAT-0677 — the Indicators & Setups tab", () => {
 
 /** Switches the group filter to Favorites. */
 function selectFavoriteFilter(view: HTMLElement) {
-    const select = groupSelect(view);
-    select.value = "favorites";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-    flushSync();
+    chooseGroupFilter(view, "favorites");
 }

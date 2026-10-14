@@ -21,6 +21,7 @@
     import { CHART_PATTERNS } from "../../services/chartPatterns";
     import ChartPatternChart from "./ChartPatternChart.svelte";
     import { markdown } from "../../actions/markdown";
+    import SelectDropdown from "./SelectDropdown.svelte";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
     import "katex/dist/katex.min.css";
 
@@ -173,20 +174,13 @@
             <label class="sr-only" for="chart-category"
                 >{$_("chartPatterns.categoryLabel")}</label
             >
-            <select
+            <SelectDropdown
                 id="chart-category"
-                aria-label={$_("chartPatterns.categoryLabel")}
-                bind:value={selectedCategory}
-                class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all"
-            >
-                {#each categories as cat}
-                    <option
-                        value={cat}
-                        class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
-                        >{cat}</option
-                    >
-                {/each}
-            </select>
+                label={$_("chartPatterns.categoryLabel")}
+                value={selectedCategory}
+                options={categories.map((cat) => ({ value: cat, label: cat }))}
+                onSelect={(next) => (selectedCategory = next)}
+            />
         </div>
 
         <!-- List -->
