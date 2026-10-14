@@ -155,7 +155,8 @@ describe("FEAT-0201: OrderHistoryList Component Tests", () => {
     flushSync();
 
     // Click Apply (icon button, accessible name kept from i18n key)
-    const applyBtn = target.querySelector("button[aria-label='Apply']");
+    const applyLabel = getNestedTranslation("dashboard.orderHistory.applyRange");
+    const applyBtn = target.querySelector(`button[aria-label='${applyLabel}']`);
     expect(applyBtn).toBeTruthy();
     applyBtn?.click();
     flushSync();
@@ -165,6 +166,43 @@ describe("FEAT-0201: OrderHistoryList Component Tests", () => {
       endTime: Date.UTC(2026, 7, 10, 23, 59, 59, 999),
       preset: "custom",
     });
+  });
+
+  it("clears custom range via Clear icon button and emits preset all", async () => {
+    const onrangechange = vi.fn();
+
+    component = mount(OrderHistoryList, {
+      target,
+      props: {
+        orders: mockOrders,
+        onrangechange,
+      },
+    });
+    flushSync();
+
+    // Click Custom preset
+    const buttons = target.querySelectorAll("button");
+    const customBtn = Array.from(buttons).find((b) => b.textContent?.trim().includes("Custom"));
+    expect(customBtn).toBeTruthy();
+    customBtn?.click();
+    flushSync();
+
+    expect(target.querySelectorAll("input[type='date']").length).toBe(2);
+
+    // Click Clear (icon button, accessible name kept from i18n key)
+    const clearLabel = getNestedTranslation("dashboard.orderHistory.clearRange");
+    const clearBtn = target.querySelector(`button[aria-label='${clearLabel}']`);
+    expect(clearBtn).toBeTruthy();
+    clearBtn?.click();
+    flushSync();
+
+    expect(onrangechange).toHaveBeenCalledWith({
+      startTime: undefined,
+      endTime: undefined,
+      preset: "all",
+    });
+    // Custom row is gone once the preset resets to all
+    expect(target.querySelectorAll("input[type='date']").length).toBe(0);
   });
 
   it("renders load more button when hasMore is true and triggers onloadmore", async () => {
