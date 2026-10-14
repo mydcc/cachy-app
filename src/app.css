@@ -239,6 +239,19 @@ html {
   background: var(--accent-color, rgba(255, 255, 255, 0.25));
 }
 
+/* Theme-aware text selection: follows the active theme's accent pairing
+   instead of the browser/OS default, so marked text stays harmonious
+   in every theme (light, dark, and all custom themes define both tokens). */
+::selection {
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+}
+
+::-moz-selection {
+  background: var(--accent-color);
+  color: var(--text-on-accent);
+}
+
 /* Firefox */
 * {
   scrollbar-width: thin;
