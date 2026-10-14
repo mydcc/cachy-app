@@ -390,7 +390,13 @@ export function normalizeTimeframeInput(input: string): string {
   const match = val.match(/^(\d+)\s*([a-zA-Z]+)$/);
   if (match) {
     const num = parseInt(match[1]);
-    let unit = match[2].toLowerCase();
+    const rawUnit = match[2];
+    // A capital `M` is the app's month (`parseTimeframe`'s notation). Lower-casing
+    // it first is how a monthly request became a one-minute chart: `1M` -> `1m`,
+    // and every downstream parser then agrees it is a minute.
+    if (rawUnit === "M") return num + "M";
+
+    let unit = rawUnit.toLowerCase();
 
     // Normalize unit
     if (unit.startsWith("m") && unit !== "m") unit = "m"; // min -> m

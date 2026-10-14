@@ -188,6 +188,33 @@ function render(
     return root;
 }
 
+/** The timeframe chip in the chart header (its name carries the current value). */
+function timeframeChip(view: HTMLElement): HTMLButtonElement {
+    const chip = view.querySelector<HTMLButtonElement>(
+        `[aria-label^="${lookup("indicatorLessons.chart.timeframeLabel")}"]`,
+    );
+    if (!chip) throw new Error("no timeframe chip rendered");
+    return chip;
+}
+
+/** Opens the chip's popup and returns its quick-pick grid. */
+function openTimeframePopup(view: HTMLElement): HTMLElement {
+    timeframeChip(view).click();
+    flushSync();
+    const grid = view.querySelector(".grid");
+    if (!grid) throw new Error("the timeframe popup did not open");
+    return grid as HTMLElement;
+}
+
+/** A button found by its visible label, wherever it sits in the chart. */
+function buttonWithLabel(view: HTMLElement, text: string): HTMLButtonElement {
+    const button = [...view.querySelectorAll("button")].find(
+        (candidate) => candidate.textContent?.trim() === text,
+    );
+    if (!button) throw new Error(`no '${text}' button rendered`);
+    return button as HTMLButtonElement;
+}
+
 beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -401,50 +428,118 @@ describe("FEAT-0677 — the live lesson chart", () => {
         expect(overHl2).not.toEqual(overClose);
     });
 
-    it("draws the timeframe the learner picks, and remembers it", () => {
+    it("draws the timeframe the learner picks from the dropdown, and remembers it", () => {
         seedKlines("BTCUSDT");
         tradeState.symbol = "BTCUSDT";
 
         const view = render("rsi");
-        const select = view.querySelector("select");
-        expect(select, "no timeframe selector rendered").not.toBeNull();
-        expect((select as HTMLSelectElement).value).toBe("1h");
+        expect(timeframeChip(view).textContent?.trim()).toBe("1h");
 
-        (select as HTMLSelectElement).value = "4h";
-        select!.dispatchEvent(new Event("change", { bubbles: true }));
+        openTimeframePopup(view);
+        buttonWithLabel(view, "4h").click();
         flushSync();
 
         // The pick drives the subscription, so the candles come in on the new
         // timeframe, and it survives the visit.
         expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
         expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("4h");
+        expect(timeframeChip(view).textContent?.trim()).toBe("4h");
     });
 
-    it("opens on the remembered timeframe when the settings still offer it", () => {
+    it("opens on the remembered timeframe", () => {
         seedKlines("BTCUSDT");
         tradeState.symbol = "BTCUSDT";
         localStorage.setItem("cachy_lesson_timeframe", "4h");
 
         const view = render("rsi");
 
-        expect((view.querySelector("select") as HTMLSelectElement).value).toBe("4h");
+        expect(timeframeChip(view).textContent?.trim()).toBe("4h");
         expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
     });
 
-    it("falls back to an offered timeframe when the remembered one is gone", () => {
+    it("ignores a remembered timeframe the app cannot draw", () => {
         seedKlines("BTCUSDT");
         tradeState.symbol = "BTCUSDT";
-        // A stored timeframe the analysis setting no longer covers — a migrated
-        // or hand-edited store. `1d` is drawable but not among this store's
-        // timeframes, so the selector must settle on one it does offer and the
-        // subscription must follow the option actually shown.
-        localStorage.setItem("cachy_lesson_timeframe", "1d");
+        // A hand-edited or migrated store: the chip must show something drawable
+        // and the subscription must follow what is shown.
+        localStorage.setItem("cachy_lesson_timeframe", "nonsense");
 
         const view = render("rsi");
 
-        const select = view.querySelector("select") as HTMLSelectElement;
-        expect(select.value).toBe("1h");
-        expect(select.querySelector('option[value="1d"]')).toBeNull();
+        expect(timeframeChip(view).textContent?.trim()).toBe("1h");
         expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1h", "chart");
+    });
+
+    it("takes a timeframe the grid does not offer, through the custom field", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const view = render("rsi");
+        openTimeframePopup(view);
+        const field = view.querySelector("input");
+        if (!field) throw new Error("no custom timeframe field");
+        field.value = "3m";
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        flushSync();
+        buttonWithLabel(view, lookup("common.ok")).click();
+        flushSync();
+
+        // The grid is a convenience, not the universe: the custom field is how a
+        // trader reaches the timeframes the story pattern does not list.
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_3m", "chart");
+        expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("3m");
+    });
+
+    it("refuses a submission that is not a timeframe at all", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const view = render("rsi");
+        const before = localStorage.getItem("cachy_lesson_timeframe");
+
+        openTimeframePopup(view);
+        const field = view.querySelector("input");
+        if (!field) throw new Error("no custom timeframe field");
+        field.value = "abc";
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        flushSync();
+        buttonWithLabel(view, lookup("common.ok")).click();
+        flushSync();
+
+        // The dropdown hands over what was typed; the lesson is where "drawable"
+        // is known, and it must not store a channel no candle will arrive on.
+        expect(timeframeChip(view).textContent?.trim()).toBe("1h");
+        expect(localStorage.getItem("cachy_lesson_timeframe")).toBe(before);
+        // And the refusal is visible: the popup stays open with the text in it,
+        // so the trader can see what was wrong and correct it.
+        expect(view.querySelector(".grid"), "the refusal closed the popup").not.toBeNull();
+        expect((field as HTMLInputElement).value).toBe("abc");
+    });
+
+    it("honours a remembered timeframe the grid does not list", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // The custom field's whole point: a timeframe outside the six is stored
+        // and drawn, not narrowed back to the grid.
+        localStorage.setItem("cachy_lesson_timeframe", "1w");
+
+        const view = render("rsi");
+
+        expect(timeframeChip(view).textContent?.trim()).toBe("1w");
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1w", "chart");
+    });
+
+    it("canonicalises a stored spelling before it becomes a channel", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // `parseTimeframe` reads `0001d` as one day, but the *string* names the
+        // channel and the exchange serves `kline_1d` — so a stored spelling is
+        // run through the app's own normaliser first.
+        localStorage.setItem("cachy_lesson_timeframe", "0001d");
+
+        const view = render("rsi");
+
+        expect(timeframeChip(view).textContent?.trim()).toBe("1d");
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1d", "chart");
     });
 });

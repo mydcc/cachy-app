@@ -26,14 +26,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-    LESSON_TIMEFRAME_FALLBACK,
-    lessonParams,
-    lessonTimeframeOptions,
-    settingsCardFor,
-} from "./lessonSettings";
+import { isDrawableTimeframe, lessonParams, settingsCardFor } from "./lessonSettings";
 import { INDICATOR_CATALOGUE, catalogueEntry, type CatalogueEntry } from "../alerts/indicatorCatalogue";
-import { ANALYSIS_TIMEFRAMES } from "../constants";
+import { ANALYSIS_TIMEFRAMES, TIMEFRAME_QUICK_PICKS } from "../constants";
 import { defaultSettings } from "../../stores/settings/settingsTypes";
 import { shippedIndicatorDefaults } from "../../stores/indicator.svelte";
 
@@ -202,35 +197,65 @@ describe("FEAT-0681 — a parameter is the trader's only if they moved it", () =
     });
 });
 
-describe("FEAT-0681 — lesson timeframes come from the user's settings", () => {
-    it("keeps only the offered timeframes a lesson can draw, in a stable order", () => {
-        expect(lessonTimeframeOptions(["4h", "1h"])).toEqual(["1h", "4h"]);
-        expect(lessonTimeframeOptions(["1h", "1M"])).toEqual(["1h"]);
+describe("FEAT-0684 — a lesson's timeframe is validated at the boundary", () => {
+    it("accepts the app's own notation, including timeframes the grid omits", () => {
+        // The dropdown's quick picks are not the universe — its custom field
+        // exists so a trader can name one outside the grid — so the check is the
+        // app's notation, not a membership test.
+        for (const value of ["5m", "15m", "30m", "1h", "4h", "1d", "1w", "1M", "3m", "12h", "240m"]) {
+            expect(isDrawableTimeframe(value), value).toBe(true);
+        }
     });
 
-    it("falls back to one option rather than rendering an empty selector", () => {
-        expect(lessonTimeframeOptions([])).toEqual([LESSON_TIMEFRAME_FALLBACK]);
-        expect(lessonTimeframeOptions(["nonsense"])).toEqual([LESSON_TIMEFRAME_FALLBACK]);
+    it("refuses anything that is not a timeframe", () => {
+        /*
+         * A hand-edited or migrated store, or a typed entry: the lesson must not
+         * subscribe to a channel no candle will arrive on. `1H` is refused
+         * because the app's own notation reserves the capital for months, and a
+         * zero count is refused because a zero-length candle is not a timeframe
+         * — the app's own parser says so, and the first version of this guard
+         * accepted `0m` and persisted it.
+         */
+        for (const value of [
+            "",
+            "1",
+            "h",
+            "1x",
+            "1H",
+            "1 h",
+            "-1h",
+            "1hh",
+            "1d ",
+            "abc",
+            "0",
+            "0m",
+            "0h",
+            "0d",
+            "0w",
+            "00h",
+        ]) {
+            expect(isDrawableTimeframe(value), value).toBe(false);
+        }
     });
 
-    it("survives a stored value that is not a list at all", () => {
-        // A hand-edited or migrated persistence blob. `.includes` on this would
-        // throw during render and take the whole tab down with it.
-        expect(lessonTimeframeOptions(5 as unknown as readonly string[])).toEqual([
-            LESSON_TIMEFRAME_FALLBACK,
-        ]);
-    });
+    it("offers the panel's six quick picks, covering everything the setting can hold", () => {
+        // The grid is fixed at six so it reads as two rows of three. `30m` is
+        // the one pick the analysis setting does not offer, and dropping any of
+        // them would change what the chip shows without another test noticing.
+        expect([...TIMEFRAME_QUICK_PICKS]).toEqual(["5m", "15m", "30m", "1h", "4h", "1d"]);
 
-    it("keeps every timeframe the setting itself offers selectable", () => {
-        // One list, shared with the settings UI: the setting can only hold a
-        // member of it, so refusing any of them would leave a trader who picked
-        // only that one with an empty selector.
-        expect([...lessonTimeframeOptions(ANALYSIS_TIMEFRAMES)]).toEqual([...ANALYSIS_TIMEFRAMES]);
-    });
-
-    it("keeps the shipped analysis setting selectable", () => {
-        const offered = defaultSettings.analysisTimeframes;
-        expect(offered.length).toBeGreaterThan(0);
-        expect([...lessonTimeframeOptions(offered)].sort()).toEqual([...offered].sort());
+        /*
+         * The setting's own list must stay inside the grid, or a trader who
+         * analyses everything the setting allows would have a button for each of
+         * them — and a timeframe the setting offers but the grid hides would
+         * force a typed entry every visit.
+         */
+        const picks = new Set<string>(TIMEFRAME_QUICK_PICKS);
+        for (const timeframe of [
+            ...ANALYSIS_TIMEFRAMES,
+            ...defaultSettings.analysisTimeframes,
+        ]) {
+            expect(picks.has(timeframe), timeframe).toBe(true);
+        }
     });
 });

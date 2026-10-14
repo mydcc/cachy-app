@@ -23,9 +23,10 @@
   import { uiState } from "../../stores/ui.svelte";
   import { marketState } from "../../stores/market.svelte";
   import type { TechnicalsData } from "../../services/technicalsTypes";
-  import { normalizeTimeframeInput } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
   import type { TranslationKey } from "../../locales/schema";
+  import { TIMEFRAME_QUICK_PICKS } from "../../lib/constants";
+  import TimeframeDropdown from "./TimeframeDropdown.svelte";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
   import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 
@@ -35,11 +36,6 @@
   }
 
   let { isVisible = false, fluidWidth = false }: Props = $props();
-
-  // Local UI state
-  let showTimeframePopup = $state(false);
-  let customTimeframeInput = $state("");
-  let hoverTimeout: number | null = null;
 
   // Reactivity
   let symbol = $derived(tradeState.symbol);
@@ -70,15 +66,6 @@
       };
     }
   });
-
-  function handleDropdownLeave(e?: PointerEvent) {
-    if (e?.pointerType === "touch") return;
-    if (hoverTimeout) clearTimeout(hoverTimeout);
-    hoverTimeout = window.setTimeout(() => {
-      showTimeframePopup = false;
-      hoverTimeout = null;
-    }, 300);
-  }
 
   function translateAction(action: string | undefined): string {
     if (!action) return "-";
@@ -111,34 +98,12 @@
   }
 
   // --- UI Event Handlers ---
-  function handleDropdownEnter(e?: PointerEvent) {
-    if (e?.pointerType === "touch") return;
-    if (hoverTimeout) clearTimeout(hoverTimeout);
-    showTimeframePopup = true;
-  }
   function setTimeframe(tf: string) {
     tradeState.update((s) => ({ ...s, analysisTimeframe: tf }));
-    showTimeframePopup = false;
-  }
-  function handleCustomTimeframeSubmit() {
-    if (!customTimeframeInput) return;
-    const normalized = normalizeTimeframeInput(customTimeframeInput);
-    if (normalized) {
-      setTimeframe(normalized);
-      customTimeframeInput = "";
-    }
-  }
-  function handleClickOutside(event: MouseEvent) {
-    if (
-      showTimeframePopup &&
-      !(event.target as HTMLElement).closest(".timeframe-selector-container")
-    ) {
-      showTimeframePopup = false;
-    }
   }
 </script>
 
-<svelte:window onclick={handleClickOutside} />
+<!-- Dropdown state and the dismissing click live in the shared component. -->
 
 {#if showPanel}
   <div
@@ -148,7 +113,7 @@
   >
     <!-- Top Header -->
     <div
-      class="flex justify-between items-center pb-2 timeframe-selector-container relative border-b border-[var(--border-color)] mb-2"
+      class="flex justify-between items-center pb-2 relative border-b border-[var(--border-color)] mb-2"
     >
       <div class="flex items-center gap-2">
         <!-- Title Button (Opens Settings) -->
@@ -166,52 +131,13 @@
             : "Technicals"}
         </button>
 
-        <!-- Timeframe Badge with Hover Dropdown -->
-        <div
-          class="relative timeframe-selector-container"
-          role="group"
-          onpointerenter={handleDropdownEnter}
-          onpointerleave={handleDropdownLeave}
-        >
-          <button
-            type="button"
-            class="text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] cursor-pointer hover:bg-[var(--accent-color)] hover:text-[var(--text-on-accent)] border-none outline-none font-mono flex items-center justify-center"
-            onclick={() => (showTimeframePopup = !showTimeframePopup)}
-          >
-            {timeframe}
-          </button>
-
-          <!-- Dropdown -->
-          {#if showTimeframePopup}
-            <div
-              class="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
-            >
-              <div class="grid grid-cols-3 gap-1">
-                {#each ["5m", "15m", "30m", "1h", "4h", "1d"] as tf}
-                  <button
-                    class="py-1 text-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--text-on-accent)] rounded text-[var(--text-primary)]"
-                    onclick={() => setTimeframe(tf)}>{tf}</button
-                  >
-                {/each}
-              </div>
-              <div
-                class="flex gap-1 border-t border-[var(--border-color)] pt-2"
-              >
-                <input
-                  bind:value={customTimeframeInput}
-                  placeholder={$_("settings.technicals.customTimeframePlaceholder")}
-                  class="w-full text-xs p-1 rounded border border-[var(--input-border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
-                  onkeydown={(e) =>
-                    e.key === "Enter" && handleCustomTimeframeSubmit()}
-                />
-                <button
-                  class="px-2 bg-[var(--bg-tertiary)] text-xs rounded hover:bg-[var(--accent-color)] hover:text-[var(--text-on-accent)] text-[var(--text-primary)]"
-                  onclick={handleCustomTimeframeSubmit}>{$_("common.ok")}</button
-                >
-              </div>
-            </div>
-          {/if}
-        </div>
+        <!-- Timeframe chip + quick-pick dropdown (shared with the Academy lesson) -->
+        <TimeframeDropdown
+          value={timeframe}
+          options={TIMEFRAME_QUICK_PICKS}
+          onSelect={setTimeframe}
+          label={$_("common.timeframe")}
+        />
       </div>
 
       <!-- Status Dot & Time -->

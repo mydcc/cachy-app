@@ -786,3 +786,15 @@ export const icons = {
  * who selected only that one (FEAT-0681).
  */
 export const ANALYSIS_TIMEFRAMES = ["5m", "15m", "1h", "4h", "1d"] as const;
+
+/**
+ * The timeframes the dropdown's quick-pick grid offers, in the order it shows
+ * them — six, so the grid reads as two rows of three.
+ *
+ * A superset of `ANALYSIS_TIMEFRAMES` (a settings-driven selector can therefore
+ * always reach its own value) and the list the Technicals panel's timeframe chip
+ * has offered since before it was shared. `TimeframeDropdown` renders it and the
+ * Academy lesson passes it; a timeframe outside it is reachable through the
+ * dropdown's custom field.
+ */
+export const TIMEFRAME_QUICK_PICKS = ["5m", "15m", "30m", "1h", "4h", "1d"] as const;
