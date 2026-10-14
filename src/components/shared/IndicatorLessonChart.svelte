@@ -44,14 +44,17 @@
     import { onMount, untrack } from "svelte";
     import {
         createChart,
+        createSeriesMarkers,
         ColorType,
         CandlestickSeries,
         LineSeries,
         type IChartApi,
         type IPriceLine,
         type ISeriesApi,
+        type ISeriesMarkersPluginApi,
         type LineData,
         type MouseEventParams,
+        type SeriesMarker,
         type Time,
     } from "lightweight-charts";
     import { _ } from "../../locales/i18n";
@@ -320,10 +323,10 @@
     /** Markers in the chart library's own shape; times are Unix seconds. */
     function toSeriesMarkers(
         annotations: readonly LessonChartMarker[] | undefined,
-    ): { time: Time; position: "aboveBar" | "belowBar"; color: string; shape: "arrowUp" | "arrowDown" | "circle"; text?: string }[] {
+    ): SeriesMarker<Time>[] {
         if (!annotations) return [];
         return annotations.map((marker) => {
-            const point = {
+            const point: SeriesMarker<Time> = {
                 time: marker.time as Time,
                 position: marker.position,
                 color: marker.color,
@@ -347,6 +350,7 @@
      */
     let drawnPriceLines: IPriceLine[] = [];
     let drawnPriceLinesSignature = "";
+    let markersPlugin: ISeriesMarkersPluginApi<Time> | null = null;
 
     function translatedOutput(name: string): string {
         const key = outputKey(name) as TranslationKey;
@@ -518,6 +522,7 @@
             drawnSignature = "";
             drawnPriceLines = [];
             drawnPriceLinesSignature = "";
+            markersPlugin = null;
         };
     });
 
@@ -637,7 +642,10 @@
                 for (const line of drawnLines) line.badge.update();
             }
 
-            activeCandles.setMarkers(toSeriesMarkers(markers));
+            if (!markersPlugin) {
+                markersPlugin = createSeriesMarkers(activeCandles, []);
+            }
+            markersPlugin.setMarkers(toSeriesMarkers(markers));
 
             const linesSignature = priceLineSignature(priceLines);
             if (linesSignature !== drawnPriceLinesSignature) {

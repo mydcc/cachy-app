@@ -72,6 +72,7 @@ const lw = vi.hoisted(() => {
         createPriceLine: vi.fn((options: Record<string, unknown>) => ({ ...options })),
         removePriceLine: vi.fn(),
     };
+    const markersPlugin = { setMarkers: vi.fn(), detach: vi.fn() };
     const lineSeries: Array<{
         options: Record<string, unknown>;
         paneIndex: number;
@@ -111,7 +112,7 @@ const lw = vi.hoisted(() => {
             paneCount = 0;
         },
     };
-    return { CandlestickSeries, LineSeries, candleSeries, lineSeries, chart };
+    return { CandlestickSeries, LineSeries, candleSeries, markersPlugin, lineSeries, chart };
 });
 
 vi.mock("lightweight-charts", () => ({
@@ -119,6 +120,7 @@ vi.mock("lightweight-charts", () => ({
         lw.chart.resetPanes();
         return lw.chart;
     }),
+    createSeriesMarkers: vi.fn(() => lw.markersPlugin),
     ColorType: { Solid: 0 },
     CandlestickSeries: lw.CandlestickSeries,
     LineSeries: lw.LineSeries,
@@ -714,7 +716,7 @@ describe("FEAT-0677 — the live lesson chart", () => {
         }) as never;
         flushSync();
 
-        expect(lw.candleSeries.setMarkers).toHaveBeenCalledWith([
+        expect(lw.markersPlugin.setMarkers).toHaveBeenCalledWith([
             { time: 1_700_000_000, position: "belowBar", color: "#fff", shape: "circle", text: "BOS" },
         ]);
         expect(lw.candleSeries.createPriceLine).toHaveBeenCalledWith(
