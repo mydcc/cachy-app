@@ -112,7 +112,7 @@ about the current move rather than about direction.
 **Pairs with.** Direction and momentum shifts on a higher timeframe than the
 entry.
 
-**On the chart.** Separate price-dimension axis below the price, three lines,
+**On the chart.** Separate price-dimension axis below the price, two lines plus histogram,
 zero line emphasised.
 
 ---
