@@ -11,6 +11,7 @@ data_class: none
 adr: none
 depends_on: [FEAT-0677]
 assignee: opencode         # required while status: in-progress (who is working this)
+branch: feat/academy-market-structure
 ---
 
 # FEAT-0679 — Teach market structure, trend and regime in the Trading Academy
