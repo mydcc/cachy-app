@@ -267,8 +267,8 @@ emphasised.
 **What it measures.** The closing price against the closing price a configured
 period back, as a difference. No averaging is involved at any stage.
 
-**How to read it.** Sign is direction, magnitude is how much has been gained or
-lost relative to the base. Because there is no smoothing, the reading is as fast
+**How to read it.** Sign is direction, magnitude is the gain or loss relative to
+the base. Because there is no smoothing, the reading is as fast
 as the market. The most important reading is the slope, not the level: when the
 line flattens while price still rises, acceleration is fading, and when it falls
 toward the zero line, the intact trend is losing steepness. A cross of the zero
@@ -285,6 +285,8 @@ downtrend.
 - **Without smoothing the comparison is extremely noisy.** The reading reflects
   one candle's move against another a period apart, which is often noise rather
   than information.
+- **Old extremes falling out of the window move the line.** When the spike ten
+  candles back drops out, the line jumps with no movement in the current price.
 
 **Pairs with.** Fast directional reads where smoothing would be too slow,
 usually on a higher timeframe than the one being traded.
