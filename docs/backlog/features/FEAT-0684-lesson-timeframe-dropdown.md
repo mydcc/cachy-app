@@ -1,5 +1,5 @@
 ---
-id: FEAT-0683
+id: FEAT-0684
 title: Give the lesson chart the panel's timeframe dropdown
 type: feature
 status: done
@@ -14,7 +14,7 @@ assignee: opencode
 branch: feat/lesson-timeframe-dropdown
 ---
 
-# FEAT-0683 — Give the lesson chart the panel's timeframe dropdown
+# FEAT-0684 — Give the lesson chart the panel's timeframe dropdown
 
 ## Problem
 

@@ -197,7 +197,7 @@ describe("FEAT-0681 — a parameter is the trader's only if they moved it", () =
     });
 });
 
-describe("FEAT-0683 — a lesson's timeframe is validated at the boundary", () => {
+describe("FEAT-0684 — a lesson's timeframe is validated at the boundary", () => {
     it("accepts the app's own notation, including timeframes the grid omits", () => {
         // The dropdown's quick picks are not the universe — its custom field
         // exists so a trader can name one outside the grid — so the check is the

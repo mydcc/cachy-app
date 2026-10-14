@@ -157,7 +157,7 @@ export const LESSON_TIMEFRAME_FALLBACK = "1h";
  * first hand-rolled version accepted `0m`, which `parseTimeframe` refuses (a
  * zero-length candle) and which reached the wire as a channel the exchange does
  * not serve — the lesson then drew nothing, on every reload, because the stored
- * value still passed. One parser, so the two cannot drift again (FEAT-0683
+ * value still passed. One parser, so the two cannot drift again (FEAT-0684
  * review).
  */
 export function isDrawableTimeframe(value: string): boolean {

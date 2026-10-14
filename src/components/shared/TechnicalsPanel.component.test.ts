@@ -17,7 +17,7 @@
  */
 
 /*
- * FEAT-0683 — the Technicals panel's timeframe chip, through the dropdown it now
+ * FEAT-0684 — the Technicals panel's timeframe chip, through the dropdown it now
  * shares with the Academy lesson.
  *
  * This is the panel's first test, and it exists because the chip's markup moved
@@ -96,7 +96,7 @@ afterEach(() => {
     tradeState.update((state) => ({ ...state, analysisTimeframe: previousTimeframe }));
 });
 
-describe("FEAT-0683 — the panel's timeframe chip", () => {
+describe("FEAT-0684 — the panel's timeframe chip", () => {
     it("shows the analysis timeframe and writes the one that is picked", () => {
         const view = renderPanel();
 

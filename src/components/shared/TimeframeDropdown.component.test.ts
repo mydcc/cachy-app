@@ -17,7 +17,7 @@
  */
 
 /*
- * FEAT-0683 — the timeframe chip and its quick-pick dropdown, shared by the
+ * FEAT-0684 — the timeframe chip and its quick-pick dropdown, shared by the
  * Technicals panel and the Academy lesson chart.
  *
  * The component owns only its popup's state: what a pick *means* is the
@@ -137,7 +137,7 @@ afterEach(() => {
     host.remove();
 });
 
-describe("FEAT-0683 — the shared timeframe dropdown", () => {
+describe("FEAT-0684 — the shared timeframe dropdown", () => {
     it("shows the current timeframe on the chip, with the popup closed", () => {
         const root = render("4h");
 
