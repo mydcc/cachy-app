@@ -204,7 +204,9 @@ price rather than on price alone, over the configured period.
 tendency, not a signal. 80 and 20 are conventional outer marks, not buy or sell
 signals. The addition over RSI is that a move with volume behind it
 produces a more extreme reading than the same price move on thin volume — which
-is the intended signal.
+is the intended signal. The MFI-native signal is the failure swing: above 80,
+pull back, a second attempt that fails to reach the old peak, then a break of
+the intervening trough warns of the turn. Mirrored at the bottom.
 
 **When it lies.**
 - **It is not a volume indicator.** It does not measure participation; it
@@ -218,8 +220,8 @@ is the intended signal.
 - **A window with no money flow in either direction has no value** and resolves
   as indeterminate, not as a number.
 
-**Pairs with.** Divergence work where volume confirmation is specifically
-wanted.
+**Pairs with.** Divergence and failure-swing work where volume confirmation is
+specifically wanted.
 
 **On the chart.** Separate percentage axis, 0–100.
 
