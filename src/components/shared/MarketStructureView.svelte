@@ -16,9 +16,9 @@
 -->
 
 <!--
-  Market structure, trend and regime reference tab (FEAT-0679). Four sections
+  Market structure, trend and regime reference tab (FEAT-0679). Five cards
   in reading order: higher-timeframe bias, structure breaks, persisting levels,
-  regime as a reading. Prose arrives as plain text nodes from
+  trend-or-range, expansion. Prose arrives as plain text nodes from
   `academy.structure.*` — no Markdown, the same contract the indicator lessons
   keep. Charts reuse IndicatorLessonChart with catalogue entries (the S1 EMA
   chart doubles as the timeframe-switch demo); the S2 schematic is a static

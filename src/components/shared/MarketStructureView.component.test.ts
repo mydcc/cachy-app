@@ -19,7 +19,7 @@
 /*
  * FEAT-0679 — the market structure reference tab.
  *
- * Four sections in reading order from `academy.structure.*`, a static
+ * Five cards in reading order from `academy.structure.*`, a static
  * language-neutral SVG schematic for the structure section, and lesson
  * buttons that ask the parent to switch tabs. The live charts are stubbed:
  * IndicatorLessonChart has its own suite, and this file is about sections,

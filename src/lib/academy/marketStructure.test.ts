@@ -18,7 +18,7 @@
 /**
  * FEAT-0679 — the market structure reference content.
  *
- * The four sections render as plain text nodes, so every key under
+ * The five cards render as plain text nodes, so every key under
  * `academy.structure` must resolve to a non-empty string in both languages.
  * Non-vacuity as elsewhere: an empty namespace must fail, not agree with
  * nothing, and DE/EN are checked side by side so a one-language gap fails.
