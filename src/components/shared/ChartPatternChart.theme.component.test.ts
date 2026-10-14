@@ -121,9 +121,34 @@ describe("ChartPatternChart theme redraw", () => {
         // this second draw would never happen.
         drawFunction.mockClear();
         document.documentElement.setAttribute("class", "theme-light");
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        // The redraw is deferred through requestAnimationFrame: flush two
+        // frames deterministically instead of racing a setTimeout against
+        // the frame schedule.
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         flushSync();
 
         expect(drawFunction).toHaveBeenCalled();
+    });
+
+    it("does not repaint after unmount", async () => {
+        component = mount(ChartPatternChart, {
+            target: host,
+            props: { pattern: testPattern() },
+        }) as unknown as Record<string, unknown>;
+        flushSync();
+        expect(drawFunction).toHaveBeenCalledTimes(1);
+
+        // Post-unmount there must be no more painting: the observer is
+        // disconnected, and even a stray callback would find no live props
+        // to draw with. (This pins the outcome, not the mechanism — a leaked
+        // observer would no-op here too, since Svelte tears down props.)
+        unmount(component as never);
+        component = null;
+        drawFunction.mockClear();
+        document.documentElement.setAttribute("class", "theme-light");
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        flushSync();
+
+        expect(drawFunction).not.toHaveBeenCalled();
     });
 });
