@@ -173,4 +173,22 @@ describe("Tooltip.svelte component", () => {
 
     unmount(component);
   });
+
+  it("renders nothing to hover for a text-only tooltip — pass children, or use InfoTip", () => {
+    const component = mount(Tooltip, {
+      target: container,
+      props: { text: "Orphan help" },
+    });
+    flushSync();
+
+    const trigger = container.querySelector(".tooltip-container") as HTMLElement;
+    expect(trigger).not.toBeNull();
+    // `text` alone leaves an empty 0×0 trigger, so the explanation has no
+    // affordance to hover. This is why `children` is documented as required
+    // and why the chart call sites use InfoTip's always-visible marker.
+    expect(trigger.childElementCount).toBe(0);
+    expect(trigger.textContent?.trim()).toBe("");
+
+    unmount(component);
+  });
 });

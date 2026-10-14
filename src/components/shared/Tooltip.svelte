@@ -26,8 +26,14 @@
   import { settingsState } from "../../stores/settings.svelte";
 
   interface Props {
+    /** The explanation revealed on hover / focus. */
     text?: string;
     underline?: boolean;
+    /**
+     * The visible trigger. Required for a usable tooltip: with no children the
+     * trigger is an empty 0×0 box, so `text` alone renders nothing to hover
+     * (use `InfoTip` for the "small marker + explanation" case).
+     */
     children?: import("svelte").Snippet;
   }
 
