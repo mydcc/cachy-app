@@ -9,11 +9,8 @@
     },
     "svelte": {
       "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "@sveltejs/mcp"
-      ],
+      "command": "svelte-mcp",
+      "args": [],
       "env": {}
     },
     "playwright": {
