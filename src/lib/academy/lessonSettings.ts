@@ -36,6 +36,9 @@
 
 import { mappedIndicatorKeys, mappedIndicatorRefs } from "../alerts/indicatorSettingsSeed";
 import { parseTimeframe } from "../../utils/chartDisplay";
+import { normalizeTimeframeInput } from "../../utils/utils";
+import { safeLocalStorage } from "../../utils/storageWrapper";
+import { CONSTANTS } from "../constants";
 import type { CatalogueEntry } from "../alerts/indicatorCatalogue";
 import type { IndicatorRef, ParamValue, PriceField } from "../rules/types";
 
@@ -162,4 +165,16 @@ export const LESSON_TIMEFRAME_FALLBACK = "1h";
  */
 export function isDrawableTimeframe(value: string): boolean {
     return parseTimeframe(value) !== null;
+}
+
+/**
+ * The timeframe lessons and structure demos draw on: the stored choice when
+ * usable, the fallback otherwise. One reader so the lesson chart and the
+ * cockpit cannot disagree about what was stored.
+ */
+export function readStoredLessonTimeframe(): string {
+    const stored = safeLocalStorage.getItem(CONSTANTS.LOCAL_STORAGE_LESSON_TIMEFRAME_KEY);
+    if (stored === null) return LESSON_TIMEFRAME_FALLBACK;
+    const canonical = normalizeTimeframeInput(stored);
+    return isDrawableTimeframe(canonical) ? canonical : LESSON_TIMEFRAME_FALLBACK;
 }

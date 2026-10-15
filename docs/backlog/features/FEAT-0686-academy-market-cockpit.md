@@ -2,7 +2,7 @@
 id: FEAT-0686
 title: Feed the market-structure tab with live readings
 type: feature
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: [FEAT-0679]
+assignee: opencode
+branch: feat/academy-market-cockpit
 ---
 
 # FEAT-0686 — Feed the market-structure tab with live readings
@@ -61,10 +63,11 @@ stays with the reader, exactly as the reference does today.
 
 ## Open questions
 
-- Which fractal/swing definition marks structure (N-bar fractals vs. the
-  lesson-chart series)? Decides false-marker rate on chop.
-- One shared timeframe for all demos vs. per-demo switch (review-swarm noted
-  up to 3 kline channels on divergent timeframes)?
+- Which fractal/swing definition marks structure? Decided 2026-10-14:
+  N-bar fractals (standard, chop-tolerant by simplicity), engine definition
+  later if markers prove too noisy.
+- One shared timeframe for all demos vs. per-demo switch? Decided 2026-10-14:
+  one shared timeframe (max 1 channel, simpler); per-demo switch later.
 
 ## Links
 

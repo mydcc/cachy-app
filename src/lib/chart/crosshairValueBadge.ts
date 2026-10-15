@@ -222,9 +222,24 @@ export class CrosshairValueBadge implements ISeriesPrimitive<Time> {
         this.paneView = new CrosshairBadgeView(
             source,
             () => this.params?.chart ?? null,
-            () => this.params?.series ?? null,
+            () => this.lineSeries(),
         );
         this.views = [this.paneView];
+    }
+
+    /**
+     * The attached series, narrowed to the line series this badge draws on.
+     *
+     * `SeriesAttachedParameter` types `series` as `ISeriesApi<keyof
+     * SeriesOptionsMap>` — every series kind at once — while the renderer
+     * only needs `priceToCoordinate`, which the narrower `ISeriesApi<"Line">`
+     * carries. The invariant holds by construction: the only attachment site
+     * is `IndicatorLessonChart`, on a series created with `LineSeries`, and
+     * nothing but that component constructs this class.
+     */
+    private lineSeries(): ISeriesApi<"Line"> | null {
+        const series = this.params?.series;
+        return series ? (series as ISeriesApi<"Line">) : null;
     }
 
     attached(params: SeriesAttachedParameter<Time>): void {

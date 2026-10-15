@@ -48,11 +48,19 @@ vi.mock("../../locales/i18n", async () => {
 
 vi.mock("lightweight-charts", () => ({
     createChart: vi.fn(() => ({
-        addSeries: vi.fn(() => ({ setData: vi.fn(), applyOptions: vi.fn() })),
+        addSeries: vi.fn(() => ({
+            setData: vi.fn(),
+            applyOptions: vi.fn(),
+            attachPrimitive: vi.fn(),
+            detachPrimitive: vi.fn(),
+        })),
         removeSeries: vi.fn(),
         applyOptions: vi.fn(),
         remove: vi.fn(),
+        subscribeCrosshairMove: vi.fn(),
+        unsubscribeCrosshairMove: vi.fn(),
     })),
+    createSeriesMarkers: vi.fn(() => ({ setMarkers: vi.fn(), detach: vi.fn() })),
     ColorType: { Solid: 0 },
     CandlestickSeries: Symbol("candlestick"),
     LineSeries: Symbol("line"),

@@ -62,7 +62,18 @@ vi.mock("../../locales/i18n", async () => {
 const lw = vi.hoisted(() => {
     const CandlestickSeries = Symbol("candlestick");
     const LineSeries = Symbol("line");
-    const candleSeries = { setData: vi.fn(), applyOptions: vi.fn(), paneIndex: 0 };
+    const candleSeries = {
+        setData: vi.fn(),
+        applyOptions: vi.fn(),
+        paneIndex: 0,
+        // Levels are drawn on the candle series. Markers are not: since v5
+        // they go through the `createSeriesMarkers` plugin below, so the
+        // series must NOT offer setMarkers — its absence is what proves the
+        // component took the plugin path.
+        createPriceLine: vi.fn((options: Record<string, unknown>) => ({ ...options })),
+        removePriceLine: vi.fn(),
+    };
+    const markersPlugin = { setMarkers: vi.fn(), detach: vi.fn() };
     const lineSeries: Array<{
         options: Record<string, unknown>;
         paneIndex: number;
@@ -102,7 +113,7 @@ const lw = vi.hoisted(() => {
             paneCount = 0;
         },
     };
-    return { CandlestickSeries, LineSeries, candleSeries, lineSeries, chart };
+    return { CandlestickSeries, LineSeries, candleSeries, markersPlugin, lineSeries, chart };
 });
 
 vi.mock("lightweight-charts", () => ({
@@ -110,6 +121,7 @@ vi.mock("lightweight-charts", () => ({
         lw.chart.resetPanes();
         return lw.chart;
     }),
+    createSeriesMarkers: vi.fn(() => lw.markersPlugin),
     ColorType: { Solid: 0 },
     CandlestickSeries: lw.CandlestickSeries,
     LineSeries: lw.LineSeries,
@@ -680,5 +692,89 @@ describe("FEAT-0677 — the live lesson chart", () => {
 
         expect(timeframeChip(view).textContent?.trim()).toBe("1d");
         expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_1d", "chart");
+    });
+
+    it("passes cockpit markers and price lines to the candle series", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const entry = catalogueEntry("ema");
+        if (!entry) throw new Error("no catalogue entry for ema");
+        if (component) {
+            unmount(component as never);
+            component = null;
+        }
+        host.innerHTML = "";
+        component = mount(IndicatorLessonChart, {
+            target: host,
+            props: {
+                entry,
+                markers: [
+                    { time: 1_700_000_000, position: "belowBar", color: "#fff", shape: "circle", text: "BOS" },
+                ],
+                priceLines: [{ price: 101.5, color: "#fff", title: "R" }],
+            },
+        }) as never;
+        flushSync();
+
+        expect(lw.markersPlugin.setMarkers).toHaveBeenCalledWith([
+            { time: 1_700_000_000, position: "belowBar", color: "#fff", shape: "circle", text: "BOS" },
+        ]);
+        expect(lw.candleSeries.createPriceLine).toHaveBeenCalledWith(
+            expect.objectContaining({ price: 101.5, title: "R" }),
+        );
+    });
+
+    it("follows a parent timeframe and hides its own picker", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const entry = catalogueEntry("rsi");
+        if (!entry) throw new Error("no catalogue entry for rsi");
+        if (component) {
+            unmount(component as never);
+            component = null;
+        }
+        host.innerHTML = "";
+        component = mount(IndicatorLessonChart, {
+            target: host,
+            props: { entry, timeframe: "4h", onTimeframeChange: vi.fn(), showTimeframePicker: false },
+        }) as never;
+        flushSync();
+        const view = host.firstElementChild as HTMLElement;
+
+        // Controlled: the subscription follows the parent value, and the
+        // dropdown is replaced by a read-only label.
+        expect(marketWatcher.register).toHaveBeenCalledWith("BTCUSDT", "kline_4h", "chart");
+        expect(
+            view.querySelector(`[aria-label^="${lookup("indicatorLessons.chart.timeframeLabel")}"]`),
+        ).toBeNull();
+    });
+
+    it("forwards dropdown picks to the parent instead of storing them", () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+
+        const entry = catalogueEntry("rsi");
+        if (!entry) throw new Error("no catalogue entry for rsi");
+        const onTimeframeChange = vi.fn();
+        if (component) {
+            unmount(component as never);
+            component = null;
+        }
+        host.innerHTML = "";
+        component = mount(IndicatorLessonChart, {
+            target: host,
+            props: { entry, timeframe: "1h", onTimeframeChange },
+        }) as never;
+        flushSync();
+        const view = host.firstElementChild as HTMLElement;
+
+        openTimeframePopup(view);
+        buttonWithLabel(view, "4h").click();
+        flushSync();
+
+        expect(onTimeframeChange).toHaveBeenCalledWith("4h");
+        expect(localStorage.getItem("cachy_lesson_timeframe")).toBe("4h");
     });
 });

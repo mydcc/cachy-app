@@ -49,6 +49,7 @@
     import { LESSON_FIELDS, LESSON_GROUPS, lessonKey } from "../../lib/academy/indicatorLessons";
     import { INDICATOR_FORMULAS } from "../../lib/academy/indicatorFormulas";
     import { lessonParams, type LessonParameters } from "../../lib/academy/lessonSettings";
+    import { untrack } from "svelte";
     import { createPatternFavorites } from "../../lib/academy/usePatternFavorites.svelte";
     import { indicatorState, shippedIndicatorDefaults } from "../../stores/indicator.svelte";
     import { markdown } from "../../actions/markdown";
@@ -86,7 +87,9 @@
 
     let searchQuery = $state("");
     let groupFilter = $state<GroupFilter>("all");
-    let selectedId = $state<string | null>(consumeInitialLesson?.() ?? null);
+    let selectedId = $state<string | null>(
+        untrack(() => consumeInitialLesson?.() ?? null),
+    );
 
     /*
      * The favorites hook is keyed by its storage key and was never pattern
