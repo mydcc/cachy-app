@@ -265,6 +265,157 @@ type GuardedLookup = (
 type EgressPath = "proxy" | "direct";
 
 /**
+ * Marker carried by every dial refusal from the guard. The producer and the
+ * matcher must share this constant: a drift between them would silently disable
+ * the rule that a refusal is never retried.
+ */
+const GUARD_REFUSAL_MARKER = "SSRF guard";
+
+/** A refusal from the dial-time guard, tagged so it survives being rewrapped. */
+function guardRefusal(): Error {
+  return Object.assign(
+    new Error(`Blocked target address (${GUARD_REFUSAL_MARKER})`),
+    { code: "ERR_SSRF_GUARD" },
+  );
+}
+
+/** How deep a `cause` chain is followed. */
+const MAX_CAUSE_DEPTH = 5;
+
+/** The bounded `cause` chain of an error, outermost first. */
+function* causeChain(error: unknown): Generator<Error> {
+  let current: unknown = error;
+  for (
+    let depth = 0;
+    current instanceof Error && depth < MAX_CAUSE_DEPTH;
+    depth += 1
+  ) {
+    yield current;
+    current = (current as { cause?: unknown }).cause;
+  }
+}
+
+/** The messages of a `cause` chain, joined, for matching a known shape. */
+function causeText(error: unknown): string {
+  return Array.from(causeChain(error), (err) => err.message).join(" | ");
+}
+
+/** The first `code` in an error's cause chain — for logs, where any code helps. */
+function causeCode(error: unknown): string | null {
+  for (const err of causeChain(error)) {
+    const code = (err as { code?: unknown }).code;
+    if (typeof code === "string" && code.length > 0) return code;
+  }
+  return null;
+}
+
+/**
+ * Dial-failure codes that may be named in an error message. A closed list on
+ * purpose: the body of a 500 from an AI route is visible to whoever sent the
+ * request, so only codes that say "your upstream could not be reached" — and
+ * nothing else — are allowed through. Anything else, including an arbitrary
+ * `cause.name`, passes through unchanged.
+ */
+const NAMED_DIAL_FAILURES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ECONNABORTED",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EAI_FAIL",
+  "ETIMEDOUT",
+  "EPIPE",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+/**
+ * The first code from `NAMED_DIAL_FAILURES` in the chain — the only one a caller
+ * is told. An unlisted code nearer the outside must not hide a listed one.
+ */
+function namedDialCode(error: unknown): string | null {
+  for (const err of causeChain(error)) {
+    const code = (err as { code?: unknown }).code;
+    if (typeof code === "string" && NAMED_DIAL_FAILURES.has(code)) return code;
+  }
+  return null;
+}
+
+/**
+ * Dial failures that prove the request never left this process: nothing was
+ * written to the origin, so repeating it cannot repeat a side effect.
+ */
+const PRE_CONNECT_FAILURE_CODES = new Set([
+  "ECONNREFUSED",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EAI_FAIL",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "UND_ERR_CONNECT_TIMEOUT",
+]);
+
+/** Methods whose repetition cannot cause a second effect upstream. */
+const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
+
+/**
+ * Whether a failed attempt may simply be repeated.
+ *
+ * Three things stop a repeat: a body that cannot be sent twice (a stream), a
+ * request the caller already aborted, and — for anything that is not idempotent
+ * — a failure that does not prove the request never reached the upstream. A
+ * reset or a hang-up can happen after the bytes left this process, and a
+ * non-idempotent request repeated there would be delivered twice.
+ */
+function isReplayable(init: RequestInit | undefined, error: unknown): boolean {
+  if (init?.signal?.aborted) return false;
+  const body = init?.body;
+  const bodyCanRepeat =
+    body === undefined ||
+    body === null ||
+    typeof body === "string" ||
+    body instanceof URLSearchParams ||
+    body instanceof ArrayBuffer ||
+    ArrayBuffer.isView(body);
+  if (!bodyCanRepeat) return false;
+
+  const method = (init?.method ?? "GET").toUpperCase();
+  if (IDEMPOTENT_METHODS.has(method)) return true;
+
+  const code = causeCode(error);
+  if (code !== null && PRE_CONNECT_FAILURE_CODES.has(code)) return true;
+  // A refused CONNECT tunnel: undici reports the proxy's answer as an aborted
+  // request, and nothing was forwarded to the origin. `UND_ERR_ABORTED` alone
+  // also covers a genuine mid-flight abort, so the message is required too.
+  return (
+    code === "UND_ERR_ABORTED" && /HTTP Tunneling/i.test(causeText(error))
+  );
+}
+
+/**
+ * Whether the guard itself refused the dial. Such a refusal is never retried on
+ * any path: through the proxy the target is resolved by the proxy, so a repeat
+ * there would tunnel past the decision the guard just made — and when the guard
+ * refused the *proxy hop*, falling back to a direct connection would silently
+ * bypass the operator's proxy instead of saying so. The message is checked as
+ * well as the tag, so a rewrapping that loses the property still counts as a
+ * refusal; the cost of that belt is only a skipped retry.
+ */
+function isGuardRefusal(error: unknown): boolean {
+  for (const err of causeChain(error)) {
+    if (
+      (err as { code?: unknown }).code === "ERR_SSRF_GUARD" ||
+      err.message.includes(GUARD_REFUSAL_MARKER)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Addresses the configured proxy answers with, pinned once per process. Only
  * these are exempt from the private-range rule, and only on the proxy path.
  */
@@ -285,8 +436,8 @@ async function getTrustedProxyAddresses(): Promise<ReadonlySet<string>> {
         if (address) trusted.add(address);
       }
     } catch {
-      // An unresolvable proxy host earns no exemption. The guard stays strict,
-      // which fails the dial closed instead of opening a hole.
+      // An unresolvable proxy host earns no exemption; `buildProxyDispatcher`
+      // turns a set that stays empty into "this path is unusable".
     }
   }
   _trustedProxyAddresses = trusted;
@@ -322,7 +473,7 @@ function makeGuardedLookup(
           continue;
         }
         if (isPrivateOrReservedHost(addr.address)) {
-          return callback(new Error("Blocked target address (SSRF guard)"), "");
+          return callback(guardRefusal(), "");
         }
       }
       if (options?.all) {
@@ -340,8 +491,80 @@ function isProxyConfigured(): boolean {
   return http !== null || https !== null;
 }
 
-// `undefined` means "not built yet", `null` means "not available".
-let _dispatchers: Partial<Record<EgressPath, unknown>> | null = null;
+/** Something worth telling the operator once, not once per request. */
+const _warnedMessages = new Set<string>();
+
+function warnOnce(message: string): void {
+  if (_warnedMessages.has(message)) return;
+  _warnedMessages.add(message);
+  console.warn(message);
+}
+
+/** The direct path: a plain guarded Agent, no exemption of any kind. */
+async function buildDirectDispatcher(): Promise<unknown> {
+  const undici = await import("undici");
+  return new undici.Agent({
+    connect: {
+      lookup: makeGuardedLookup(new Set<string>(), new Set<string>()),
+    },
+  });
+}
+
+/**
+ * The proxy path: undici's environment proxy agent, with the proxy's own pinned
+ * addresses exempt.
+ *
+ * Returns `null` when the path cannot be used at all — no proxy configured, no
+ * `EnvHttpProxyAgent` in this runtime, or a proxy whose own address does not
+ * resolve (without the exemption every dial to it is a guard refusal, so the
+ * path could never carry a request).
+ */
+async function buildProxyDispatcher(): Promise<unknown | null> {
+  if (!isProxyConfigured()) return null;
+  const undici = await import("undici");
+
+  // Optional exports are read defensively: a partial test double of `undici`
+  // (as in urlValidator.test.ts) has no such binding, and an ESM-style
+  // namespace throws on an unknown named read.
+  let EnvHttpProxyAgent: unknown;
+  try {
+    EnvHttpProxyAgent = (undici as Record<string, unknown>).EnvHttpProxyAgent;
+  } catch {
+    EnvHttpProxyAgent = undefined;
+  }
+  if (typeof EnvHttpProxyAgent !== "function") {
+    warnOnce(
+      "[urlValidator] this runtime has no EnvHttpProxyAgent; using a direct connection",
+    );
+    return null;
+  }
+
+  const trusted = await getTrustedProxyAddresses();
+  if (trusted.size === 0) {
+    warnOnce(
+      "[urlValidator] the configured egress proxy could not be resolved; using a direct connection",
+    );
+    return null;
+  }
+
+  const { http, https } = configuredProxyUrls();
+  // NB: on this path the target hostname is resolved by the proxy, so the
+  // pre-flight check is the only SSRF decision made about the target itself;
+  // the dial-time guard still covers the hop to the proxy.
+  return new (EnvHttpProxyAgent as new (opts: unknown) => unknown)({
+    connect: { lookup: makeGuardedLookup(configuredProxyHosts(), trusted) },
+    ...(http ? { httpProxy: http.href } : {}),
+    ...(https ? { httpsProxy: https.href } : {}),
+  });
+}
+
+// Egress state, decided once per process. `_dispatcherBuilds[path]` is absent
+// until that path is built, `null` once it is known to be unavailable; the
+// *promise* is cached, not its result, so two requests arriving together share
+// one build instead of constructing two dispatchers and leaking one.
+const _dispatcherBuilds: Partial<Record<EgressPath, Promise<unknown | null>>> = {};
+// The path the next first attempt uses; `null` until the first request (or a
+// successful fallback) decides it.
 let _preferProxyPath: boolean | null = null;
 
 function prefersProxyPath(): boolean {
@@ -349,65 +572,30 @@ function prefersProxyPath(): boolean {
   return _preferProxyPath;
 }
 
-/**
- * Builds the guarded dispatcher for one egress path, at most once per process.
- * The proxy path only exists when a proxy is configured and `undici` exports
- * the agent for it; the direct path always exists.
- */
-async function getDispatcherFor(path: EgressPath): Promise<unknown> {
-  if (!_dispatchers) {
-    _dispatchers = {};
-  }
-  const cached = _dispatchers[path];
-  if (cached !== undefined) return cached;
-
-  try {
-    const undici = await import("undici");
-    if (path === "direct") {
-      const dispatcher = new undici.Agent({
-        connect: {
-          lookup: makeGuardedLookup(new Set<string>(), new Set<string>()),
-        },
-      });
-      _dispatchers.direct = dispatcher;
-      return dispatcher;
-    }
-
-    // Optional exports are read defensively: a partial test double of `undici`
-    // (as in urlValidator.test.ts) has no such binding, and an ESM-style
-    // namespace throws on an unknown named read.
-    let EnvHttpProxyAgent: unknown;
+function getDispatcherFor(path: EgressPath): Promise<unknown | null> {
+  return (_dispatcherBuilds[path] ??= (async () => {
     try {
-      EnvHttpProxyAgent = (undici as Record<string, unknown>).EnvHttpProxyAgent;
-    } catch {
-      EnvHttpProxyAgent = undefined;
-    }
-    if (!isProxyConfigured() || typeof EnvHttpProxyAgent !== "function") {
-      _dispatchers.proxy = null;
+      return path === "direct"
+        ? await buildDirectDispatcher()
+        : await buildProxyDispatcher();
+    } catch (error) {
+      if (path === "proxy") {
+        // Otherwise a proxy that cannot even be constructed disappears from the
+        // log while every request silently bypasses it.
+        warnOnce(
+          `[urlValidator] could not build the egress proxy dispatcher (${causeCode(error) ?? "no code"}); using a direct connection`,
+        );
+      }
       return null;
     }
-
-    const { http, https } = configuredProxyUrls();
-    const lookup = makeGuardedLookup(
-      configuredProxyHosts(),
-      await getTrustedProxyAddresses(),
-    );
-    // NB: on this path the target hostname is resolved by the proxy, so the
-    // pre-flight check is the only SSRF decision made about the target itself;
-    // the dial-time guard still covers the hop to the proxy.
-    const dispatcher = new (EnvHttpProxyAgent as new (opts: unknown) => unknown)({
-      connect: { lookup },
-      ...(http ? { httpProxy: http.href } : {}),
-      ...(https ? { httpsProxy: https.href } : {}),
-    });
-    _dispatchers.proxy = dispatcher;
-    return dispatcher;
-  } catch {
-    _dispatchers[path] = null;
-    return null;
-  }
+  })());
 }
 
+/**
+ * The path this process starts the next request on, and the dispatcher for it.
+ * `null` only when even the direct path could not be built, which is the case
+ * `safeFetch` fails closed on.
+ */
 async function resolveEgress(): Promise<{
   dispatcher: unknown;
   path: EgressPath;
@@ -421,108 +609,48 @@ async function resolveEgress(): Promise<{
 }
 
 /**
- * Lazily initializes the safe undici dispatcher with an embedded lookup guard at
- * dial time, ensuring no connection can be established to private/reserved
- * targets while avoiding eager module evaluation conflicts in test runners.
+ * The guarded dispatcher for the path a request would start on.
  *
- * The environment's proxy is used when it is configured, but never
- * unconditionally: `safeFetch` falls back to the direct, equally guarded path
- * once and remembers which path worked. A proxy variable that is set but
- * unusable — nothing listening, a port that answers but refuses `CONNECT`, a
- * proxy that expects credentials — therefore costs one failed attempt per
- * process instead of breaking every guarded route.
+ * Exported as a test seam (`safeFetch` is the supported entry point and the only
+ * caller in production code): it deliberately reports the *starting* path
+ * without the fallback that `safeFetch` performs.
  */
 export async function getSafeDispatcher(): Promise<unknown> {
   return (await resolveEgress())?.dispatcher ?? null;
 }
 
-/** The first `code` in an error's cause chain, if it carries one. */
-function causeCode(error: unknown): string | null {
-  let current: unknown = error;
-  for (let depth = 0; current instanceof Error && depth < 5; depth += 1) {
-    const code = (current as { code?: unknown }).code;
-    if (typeof code === "string" && code.length > 0) return code;
-    current = (current as { cause?: unknown }).cause;
-  }
-  return null;
-}
-
-/**
- * Dial-failure codes that may be named in an error message. A closed list on
- * purpose: the body of a 500 from an AI route is visible to whoever sent the
- * request, so only codes that say "your upstream could not be reached" — and
- * nothing else — are allowed through. Anything else, including an arbitrary
- * `cause.name`, passes through unchanged.
- */
-const NAMED_DIAL_FAILURES = new Set([
-  "ECONNREFUSED",
-  "ECONNRESET",
-  "ECONNABORTED",
-  "EHOSTUNREACH",
-  "ENETUNREACH",
-  "ENOTFOUND",
-  "EAI_AGAIN",
-  "EAI_FAIL",
-  "ETIMEDOUT",
-  "EPIPE",
-  "UND_ERR_CONNECT_TIMEOUT",
-  "UND_ERR_SOCKET",
-]);
-
 /**
  * undici reports every dial failure as a bare `TypeError("fetch failed")` and
- * keeps the real reason in `cause`. Its *code* — never an address — is the one
- * piece of information that makes a 500 from an AI route diagnosable from
- * outside the server, so a known code is appended to the message. Errors
- * without one, and non-`Error` values, are passed through untouched.
+ * keeps the real reason in `cause`. A known dial code — never an address — is
+ * the one piece of information that makes a 500 from an AI route diagnosable
+ * from outside the server, so it is appended to the message. Errors without one,
+ * and non-`Error` values, are passed through untouched.
  */
 function describeFetchFailure(error: unknown): unknown {
   if (!(error instanceof Error)) return error;
-  const code = causeCode(error);
-  if (!code || !NAMED_DIAL_FAILURES.has(code)) return error;
+  const code = namedDialCode(error);
+  if (!code) return error;
   return new Error(`${error.message} [${code}]`, { cause: error });
 }
-
-/**
- * Whether a failed attempt may simply be repeated. A body that is a stream
- * cannot be sent twice, and an aborted request is a decision rather than a
- * failure.
- */
-function isReplayable(init: RequestInit | undefined): boolean {
-  if (init?.signal?.aborted) return false;
-  const body = init?.body;
-  if (body === undefined || body === null) return true;
-  if (typeof body === "string") return true;
-  if (body instanceof URLSearchParams) return true;
-  if (body instanceof ArrayBuffer) return true;
-  return ArrayBuffer.isView(body);
-}
-
-/**
- * Whether the guard itself refused the dial. Such a refusal is never retried:
- * the proxy path does not resolve the target locally, so repeating the request
- * there would tunnel past the decision the guard just made.
- */
-function isGuardRefusal(error: unknown): boolean {
-  let current: unknown = error;
-  for (let depth = 0; current instanceof Error && depth < 5; depth += 1) {
-    if (current.message.includes("SSRF guard")) return true;
-    current = (current as { cause?: unknown }).cause;
-  }
-  return false;
-}
-
-let _egressSwitchLogged = false;
 
 /**
  * Safe fetch wrapper that enforces both pre-flight URL validation and
  * dial-time DNS verification against private/reserved/internal IP ranges, and
  * that recovers once when the configured egress path turns out to be unusable.
  *
- * The recovery is deliberately narrow: one retry, only for a body that can be
- * sent twice, never after the guard itself refused the dial, and only between
- * two dispatchers that carry the same dial-time guard. The path that worked is
- * remembered, so the cost is one failed attempt per process — BUG-0690.
+ * The recovery is deliberately narrow and one-directional: a failed dial on the
+ * proxy path is retried once over the direct path, which applies the dial-time
+ * guard to the target itself. The reverse is never offered — the proxy resolves
+ * the target, so replaying a request there would tunnel it past the guard the
+ * direct attempt just applied. The repeat also never happens after a guard
+ * refusal, never for a body that cannot be sent twice, and never for a
+ * non-idempotent request whose failure does not prove it never left the process.
+ * A path that carried a request becomes the one the next request starts on, so
+ * an unusable proxy costs one failed attempt per process — BUG-0690.
+ *
+ * The trade is deliberate: a request that falls back is no longer filtered or
+ * audited by the operator's proxy, while the dial-time guard keeps applying on
+ * both paths.
  */
 export async function safeFetch(url: string | URL, init?: RequestInit): Promise<Response> {
   const urlStr = typeof url === "string" ? url : url.toString();
@@ -542,25 +670,29 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
     // @ts-expect-error Node fetch supports dispatcher option via undici
     return await fetch(url, { ...init, dispatcher: egress.dispatcher });
   } catch (error) {
-    if (isGuardRefusal(error) || !isReplayable(init)) {
+    if (
+      egress.path !== "proxy" ||
+      isGuardRefusal(error) ||
+      !isReplayable(init, error)
+    ) {
       throw describeFetchFailure(error);
     }
 
-    const other: EgressPath = egress.path === "proxy" ? "direct" : "proxy";
-    const alternate = await getDispatcherFor(other);
+    const alternate = await getDispatcherFor("direct");
     if (!alternate) throw describeFetchFailure(error);
 
-    if (!_egressSwitchLogged) {
-      _egressSwitchLogged = true;
-      console.warn(
-        `[urlValidator] egress via the ${egress.path} path failed (${causeCode(error) ?? "no code"}); using the ${other} path`,
-      );
-    }
-    _preferProxyPath = other === "proxy";
+    warnOnce(
+      `[urlValidator] egress via the proxy path failed (${causeCode(error) ?? "no code"}); using a direct connection`,
+    );
 
     try {
       // @ts-expect-error Node fetch supports dispatcher option via undici
-      return await fetch(url, { ...init, dispatcher: alternate });
+      const response = await fetch(url, { ...init, dispatcher: alternate });
+      // Remember a path only once it has carried a request: a failure on both
+      // paths must not move the preference, or every later request would pay two
+      // failed dials in the opposite order.
+      _preferProxyPath = false;
+      return response;
     } catch (secondError) {
       throw describeFetchFailure(secondError);
     }

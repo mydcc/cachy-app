@@ -354,7 +354,7 @@ describe("urlValidator", () => {
     });
   });
 
-  describe("getSafeDispatcher follows the environment's egress path", () => {
+  describe("egress path selection and the request-level fallback", () => {
     // The environment's proxy variables. Saved and restored so the suite never
     // leaks a proxy setting into an unrelated test file.
     const PROXY_ENV_KEYS = [
@@ -419,10 +419,13 @@ describe("urlValidator", () => {
       dialTable[host] ?? (isIpLiteral(host) ? ipLiteralRecord(host) : []);
 
     /**
-     * Builds the dispatcher with `undici` and `node:dns` replaced by doubles, and
-     * returns what was constructed. `dns` answers from a fixed table so the
-     * private-range guard can be exercised without a live lookup; an IP literal
-     * resolves to itself.
+     * Imports `urlValidator` with `undici` and `node:dns` replaced by doubles,
+     * builds the dispatcher for the environment's egress path, and returns the
+     * module (so a test can drive `safeFetch`) together with every dispatcher
+     * constructed along the way — the alternate path is built on demand, on the
+     * first failure. `dns` answers from a fixed table, so the private-range
+     * guard, the proxy-address pinning and the request-level fallback can all be
+     * exercised without a live lookup; an IP literal resolves to itself.
      */
     async function buildEgress(
       proxyEnv: Record<string, string>,
@@ -522,16 +525,23 @@ describe("urlValidator", () => {
       fails: (dispatcher: unknown) => Error | null,
     ): { calls: unknown[]; restore: () => void } {
       const calls: unknown[] = [];
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async (_url: unknown, init?: { dispatcher?: unknown }) => {
+      const previous = globalThis.fetch;
+      // Only `fetch` is swapped back on restore: `vi.unstubAllGlobals()` would
+      // also drop the storage stubs the setup file installs for every suite.
+      globalThis.fetch = vi.fn(
+        async (_url: unknown, init?: { dispatcher?: unknown }) => {
           calls.push(init?.dispatcher);
           const error = fails(init?.dispatcher);
           if (error) throw error;
           return new Response("{}", { status: 200 });
-        }),
-      );
-      return { calls, restore: () => vi.unstubAllGlobals() };
+        },
+      ) as unknown as typeof globalThis.fetch;
+      return {
+        calls,
+        restore: () => {
+          globalThis.fetch = previous;
+        },
+      };
     }
 
     /** A rejection shaped like undici's, optionally carrying a cause code. */
@@ -560,8 +570,14 @@ describe("urlValidator", () => {
         expect(response.status).toBe(200);
         expect(calls).toHaveLength(2);
         expect(calls[0]).toBe(proxy);
-        expect(calls[1]).not.toBe(proxy);
+        const direct = dispatchers.find((d) => d.kind === "agent")?.instance;
+        expect(direct).toBeDefined();
+        expect(calls[1]).toBe(direct);
         expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining("egress via the proxy path failed"),
+        );
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining("ECONNREFUSED"));
 
         // Sticky: the path that worked is the one the next request starts on.
         const again = await module.safeFetch("https://public.example/v1/models");
@@ -623,17 +639,164 @@ describe("urlValidator", () => {
       }
     });
 
-    it("reports the second failure when neither path works", async () => {
+    it("reports the second failure and keeps its preference when both paths fail", async () => {
       clearProxyEnv();
-      const { module } = await buildEgress({
+      const { dispatchers, module } = await buildEgress({
         HTTPS_PROXY: "http://proxy.internal:3128",
       });
-      const { calls, restore } = stubFetchFailing(() => dialFailure("ENOTFOUND"));
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      let attempt = 0;
+      const { calls, restore } = stubFetchFailing(() => {
+        attempt += 1;
+        // Distinguishable codes: if the first error were rethrown instead of the
+        // second, the assertion below would not hold.
+        return dialFailure(attempt % 2 === 1 ? "ECONNREFUSED" : "ENOTFOUND");
+      });
       try {
         await expect(
           module.safeFetch("https://public.example/v1/models"),
         ).rejects.toThrow("fetch failed [ENOTFOUND]");
         expect(calls).toHaveLength(2);
+        expect(calls[0]).toBe(proxy);
+
+        // Neither path worked, so the preference must not have moved.
+        await expect(
+          module.safeFetch("https://public.example/v1/models"),
+        ).rejects.toThrow("fetch failed [ENOTFOUND]");
+        expect(calls[2]).toBe(proxy);
+      } finally {
+        restore();
+      }
+    });
+
+    it("does not repeat a non-idempotent request on an ambiguous failure", async () => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      const { calls, restore } = stubFetchFailing((dispatcher) =>
+        dispatcher === proxy ? dialFailure("ECONNRESET") : null,
+      );
+      try {
+        // A reset may have happened after the prompt reached the provider.
+        await expect(
+          module.safeFetch("https://public.example/v1/chat", {
+            method: "POST",
+            body: '{"prompt":"hi"}',
+          }),
+        ).rejects.toThrow("fetch failed [ECONNRESET]");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("recovers a POST when the proxy refused the tunnel", async () => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      const { calls, restore } = stubFetchFailing((dispatcher) =>
+        dispatcher === proxy
+          ? new TypeError("fetch failed", {
+              cause: Object.assign(
+                new Error("Proxy response (407) !== 200 when HTTP Tunneling"),
+                { code: "UND_ERR_ABORTED" },
+              ),
+            })
+          : null,
+      );
+      try {
+        const response = await module.safeFetch(
+          "https://public.example/v1/chat",
+          { method: "POST", body: '{"prompt":"hi"}' },
+        );
+        expect(response.status).toBe(200);
+        expect(calls).toHaveLength(2);
+      } finally {
+        restore();
+      }
+    });
+
+    it("never falls back from the direct path to the proxy", async () => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      let phase: "promote" | "fail" = "promote";
+      const { calls, restore } = stubFetchFailing((dispatcher) => {
+        if (phase === "promote") {
+          return dispatcher === proxy ? dialFailure("ECONNREFUSED") : null;
+        }
+        // A plain pre-connect failure, i.e. one the retry rule would accept.
+        return dialFailure("ECONNREFUSED");
+      });
+      try {
+        await module.safeFetch("https://public.example/v1/models");
+        phase = "fail";
+        calls.length = 0;
+
+        await expect(
+          module.safeFetch("https://public.example/v1/models"),
+        ).rejects.toThrow("fetch failed [ECONNREFUSED]");
+        // The proxy resolves the target itself, so replaying the request there
+        // would tunnel it past the dial-time guard the direct attempt applied.
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).not.toBe(proxy);
+      } finally {
+        restore();
+      }
+    });
+
+    it.each([
+      ["by message", () => new Error("Blocked target address (SSRF guard)")],
+      [
+        "by tag, even when rewrapped",
+        () =>
+          Object.assign(new Error("rewrapped by a transport layer"), {
+            code: "ERR_SSRF_GUARD",
+          }),
+      ],
+    ])("does not fall back when the guard refused the dial (%s)", async (_label, refusal) => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      const { calls, restore } = stubFetchFailing(
+        () => new TypeError("fetch failed", { cause: refusal() }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/v1/models"),
+        ).rejects.toThrow("fetch failed");
+        // A refused dial is not replayed on any path.
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toBe(proxy);
+      } finally {
+        restore();
+      }
+    });
+
+    it("does not retry an aborted request", async () => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      const { calls, restore } = stubFetchFailing((dispatcher) =>
+        dispatcher === proxy ? dialFailure("ECONNREFUSED") : null,
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/v1/models", {
+            signal: AbortSignal.abort(),
+          }),
+        ).rejects.toThrow("fetch failed");
+        expect(calls).toHaveLength(1);
       } finally {
         restore();
       }
