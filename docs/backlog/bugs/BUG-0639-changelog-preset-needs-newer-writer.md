@@ -141,3 +141,18 @@ of them.
 - `release.config.js` (`preset: "conventionalcommits"`, `presetConfig.types`)
 - `node_modules/@semantic-release/release-notes-generator/lib/load-changelog-config.js`
 - Found while attempting the upgrade on 2026-10-06
+
+## State (2026-10-15)
+
+Independently reproduced during the major-version survey, same verdict:
+
+- `conventional-changelog-conventionalcommits@10.4.1` with the installed
+  writer (8.4.0, via release-notes-generator 14.1.1) → the render error above;
+  `9.3.1` renders normally through the same `load-changelog-config.js` path.
+- `@semantic-release/release-notes-generator@14.1.1` — still the latest — still
+  depends on `conventional-changelog-writer@^8.0.0`, so the toolchain fix this
+  item waits for has not landed yet.
+- Minor addition: `@commitlint/config-conventional` already carries a nested
+  copy of `conventional-changelog-conventionalcommits@10.4.1`. The root
+  devDependency only feeds the semantic-release path, so a root bump would
+  break exactly and only the release-notes step — at release time.

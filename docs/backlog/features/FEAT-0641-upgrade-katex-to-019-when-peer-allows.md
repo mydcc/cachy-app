@@ -99,3 +99,18 @@ deserves its own decision, not a dependency bump.
   `src/components/shared/CandlestickPatternsView.svelte`,
   `src/components/shared/ChartPatternsView.svelte`
 - Closed PR #3906 carried the attempt and the measurement
+
+## State (2026-10-15)
+
+Re-checked: `marked-katex-extension@5.1.13` is still the newest release and
+still declares `katex >=0.16 <0.19`, so there is still no upgrade path.
+
+One detail in the Evidence above does not reproduce with npm 12.2.0:
+`npm install katex@0.19.0` does install silently, but a following
+`npm ls katex` does flag it —
+`invalid: ">=0.16 <0.19" ... npm error code ELSPROBLEMS`. The exclusion is
+visible to `npm ls`; it merely does not fail an install.
+
+The 14 katex-related tests (`indicatorFormulas`, `IndicatorLessonsView`) pass
+under 0.19.0 — consistent with the earlier comparison, and still not a
+substitute for upstream validation.
