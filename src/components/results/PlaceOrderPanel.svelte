@@ -70,6 +70,7 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { formatDynamicDecimal, parseDecimal } from "../../utils/utils";
   import { describeStaleness } from "../../utils/tradeStaleness";
+  import { tradeCalculator } from "../../services/tradeCalculator.svelte";
   import type { TranslationKey } from "../../locales/schema";
 
   const exchange = $derived(settingsState.apiProvider);
@@ -128,6 +129,14 @@
    */
   const staleness = $derived.by(() => describeStaleness(data, tradeState));
   const staleInputs = $derived(staleness.stale);
+  /**
+   * A queued microtask recalculation explains a transient mismatch between
+   * the form and `currentTradeData`. `staleInputs` still blocks a submit with
+   * those figures — only the note is held back, so the trader is not shown
+   * "not current" on every keystroke for a discrepancy the calculator is
+   * about to resolve on its own.
+   */
+  const calcPending = $derived(tradeCalculator.pending);
   /**
    * One key for the summary note and the submit refusal reason, read in both
    * spots, so what the panel shows and what the click refusal says cannot
@@ -776,7 +785,7 @@
       calculated at all. Same reasoning as the BUG-0649 note below: state it
       here, where the numbers are, not only on the click that was refused.
     -->
-    {#if staleInputs}
+    {#if staleInputs && !calcPending}
       <p class="note warn">{$_(staleReasonKey)}</p>
     {/if}
 

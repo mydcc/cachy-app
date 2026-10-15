@@ -11,32 +11,109 @@ import { untrack } from "svelte";
 import { tradeState } from "../stores/trade.svelte";
 
 /**
+ * The exact input surface the calculator consumes, as one comparable key.
+ *
+ * The calculation writes the derived side of two-way fields back into the
+ * store (the risk amount follows the risk percentage, and vice versa; in ATR
+ * mode the stop loss is derived from the ATR inputs). Those write-backs must
+ * not re-trigger the watcher, which used to be the job of a 250 ms throttle.
+ * The key removes that failure mode by construction: it contains exactly the
+ * fields a trader can edit, never the side the calculation derives from
+ * them.
+ *
+ * The two-way risk pair is the subtle part. Only the side the trader actually
+ * edits is an input:
+ *
+ * - risk amount locked → the dirty side is the amount, the percentage is a result;
+ * - position size locked → both are results, neither belongs in the key;
+ * - otherwise → the dirty side is the percentage, the amount is a result.
+ *
+ * One deliberate exception: when the calculation flips a *mode* the key does
+ * track — the position-size lock auto-reset on a failed sizing — the key
+ * changes and exactly one extra run follows, with the new mode's semantics.
+ * That run is required, not a loop: the flip is one-way, so it converges.
+ */
+function inputKey(s: typeof tradeState): string {
+  const targets = s.targets
+    .map((t) => `${t.price ?? ""}|${t.percent ?? ""}|${t.isLocked ? 1 : 0}`)
+    .join(",");
+
+  const parts: unknown[] = [
+    s.accountSize,
+    s.entryPrice,
+    s.symbol,
+    s.tradeType,
+    s.leverage,
+    s.fees,
+    // FEAT-0253: the per-leg rates are their own triggers. `fees` mirrors the
+    // *exit* rate only, so switching the entry between MARKET and LIMIT moves
+    // `entryFees` and nothing else.
+    s.entryFees,
+    s.exitFees,
+    s.useAtrSl,
+    s.isRiskAmountLocked,
+    s.isPositionSizeLocked,
+    s.lockedPositionSize,
+    targets,
+  ];
+
+  // Stop loss is an input only in manual mode; with ATR it is a result.
+  if (s.useAtrSl) {
+    parts.push(s.atrValue, s.atrMultiplier, s.atrMode, s.atrTimeframe);
+  } else {
+    parts.push(s.stopLossPrice);
+  }
+
+  if (!s.isPositionSizeLocked) {
+    parts.push(
+      s.isRiskAmountLocked ? `amt:${s.riskAmount}` : `pct:${s.riskPercentage}`,
+    );
+  }
+
+  return parts.join("\u0000");
+}
+
+/**
  * Trade Calculator Service
- * 
+ *
  * Responsibilities:
- * - Watches tradeState for changes in input values
- * - Throttles calculation requests to prevent performance issues
+ * - Watches the trade inputs and schedules the calculation when they change
+ * - Coalesces several changes in the same task into one calculation
  * - Triggers the main calculation logic (in CalculatorService)
- * 
+ *
  * This service extracts the reactive logic previously hosted in +page.svelte,
  * enabling a "Thin View" architecture where the UI only binds data and the
  * service handles business logic triggers.
  */
 class TradeCalculator {
-    private lastCalcTime = 0;
-    private trailingTimer: ReturnType<typeof setTimeout> | null = null;
-    private readonly CALC_THROTTLE_MS = 250;
     private calculateFn: (() => void) | null = null;
     private initialized = false;
     private stopEffects: (() => void) | null = null;
+    /** Input surface of the last scheduled calculation (see `inputKey`). */
+    private lastInputKey: string | null = null;
+    private scheduled = false;
+    /** Bumped by `destroy()` so a queued microtask cannot run after teardown. */
+    private generation = 0;
 
     /**
-     * Validates inputs and runs the calculation. Used by both the leading
-     * edge (direct effect run) and the trailing edge (scheduled timer) so a
-     * rapid mutation burst always ends in a calculation of the final state
-     * (BUG-0360).
+     * True while a recalculation is queued for the current task's microtask
+     * checkpoint, or running inside it. Reactive so the UI can hold back the
+     * "stale calculation" note during that window instead of flashing it on
+     * every keystroke — the displayed figures are only behind because the
+     * recalculation is already on its way.
+     *
+     * Written only by the scheduler below, `destroy()`, and tests driving the
+     * note-visibility contract. Reading it never affects the submit guard:
+     * `PlaceOrderPanel.submit()` refuses on `staleInputs` alone, so even a
+     * stuck flag could hide the note but never let a stale order through.
      */
-    private executeCalculation() {
+    pending = $state(false);
+
+    /**
+     * Validates inputs and runs the calculation. Coalesced by the caller, so
+     * it always reads the live `tradeState` for the final state of a burst.
+     */
+    private runCalculation() {
         const _s = tradeState;
         if (
             _s.accountSize !== undefined &&
@@ -48,23 +125,45 @@ class TradeCalculator {
         ) {
             untrack(() => {
                 this.calculateFn?.();
-                this.lastCalcTime = Date.now();
             });
         }
     }
 
-    /** Clears any pending trailing calculation (BUG-0360). */
+    /**
+     * Queues one calculation for the end of the current task. Several input
+     * changes in the same task (a burst of ticks, a multi-field write) collapse
+     * into a single run with the final state; separate tasks each get their own,
+     * so typing stays immediate without a timer.
+     */
+    private schedule() {
+        if (this.scheduled) return;
+        this.scheduled = true;
+        this.pending = true;
+        const generation = this.generation;
+        queueMicrotask(() => {
+            if (generation !== this.generation) return; // destroyed since
+            this.scheduled = false;
+            try {
+                this.runCalculation();
+            } finally {
+                // Cleared after the run, not before: the flag covers the whole
+                // queued-or-running window, and a throwing calculation cannot
+                // wedge it set.
+                this.pending = false;
+            }
+        });
+    }
+
+    /** Stops the watcher and drops a queued calculation. */
     destroy() {
-        if (this.trailingTimer) {
-            clearTimeout(this.trailingTimer);
-            this.trailingTimer = null;
-        }
+        this.generation++;
+        this.scheduled = false;
+        this.pending = false;
         // Stop the reactive watcher so a re-init starts clean instead of
         // stacking another $effect.root on top of the old one.
         this.stopEffects?.();
         this.stopEffects = null;
-        // Full teardown: reset throttle state and allow re-init (tests / HMR).
-        this.lastCalcTime = 0;
+        this.lastInputKey = null;
         this.calculateFn = null;
         this.initialized = false;
     }
@@ -82,67 +181,14 @@ class TradeCalculator {
         // independent of any component lifecycle.
         this.stopEffects = $effect.root(() => {
             $effect(() => {
-                // 1. Establish dependencies (Accessing values tracks them)
-                const _s = tradeState;
-
-                /* eslint-disable @typescript-eslint/no-unused-expressions --
-                   These bare property reads are the dependency registration for
-                   this $effect: touching a rune-backed property is what
-                   subscribes the effect to it. They are not dead code, and
-                   removing one would silently stop the calculator from
-                   recalculating when that input changes. */
-
-                // Core inputs
-                _s.accountSize;
-                _s.riskPercentage;
-                _s.entryPrice;
-                _s.symbol;
-                _s.tradeType;
-                _s.targets;
-                _s.leverage;
-                _s.fees;
-                // FEAT-0253: the per-leg rates are their own triggers. `fees`
-                // mirrors the *exit* rate only, so switching the entry between
-                // MARKET and LIMIT moves `entryFees` and nothing else — without
-                // these two reads the effect never fires and every result on
-                // screen (entry fee, net loss, break-even) stays at the old
-                // order type's numbers.
-                _s.entryFees;
-                _s.exitFees;
-                _s.useAtrSl;
-                _s.isRiskAmountLocked;
-                _s.isPositionSizeLocked;
-                _s.lockedPositionSize;
-
-                // Conditional triggers:
-                // If ATR is active, stopLossPrice is a RESULT, not a TRIGGER.
-                if (_s.useAtrSl) {
-                    _s.atrValue;
-                    _s.atrMultiplier;
-                    _s.atrMode;
-                    _s.atrTimeframe;
-                } else {
-                    // If ATR is off, Stop Loss is a manual input TRIGGER.
-                    _s.stopLossPrice;
-                }
-
-                /* eslint-enable @typescript-eslint/no-unused-expressions */
-
-                // 2. Throttle check — schedule a trailing execution for the
-                // final state instead of dropping the update (BUG-0360)
-                const now = Date.now();
-                if (now - this.lastCalcTime < this.CALC_THROTTLE_MS) {
-                    const remaining = this.CALC_THROTTLE_MS - (now - this.lastCalcTime);
-                    if (this.trailingTimer) clearTimeout(this.trailingTimer);
-                    this.trailingTimer = setTimeout(() => {
-                        this.trailingTimer = null;
-                        this.executeCalculation();
-                    }, remaining);
-                    return;
-                }
-
-                // 3. Validation and Execution
-                this.executeCalculation();
+                // Reading every input here — inside `inputKey` — is what
+                // subscribes this effect to them. A re-run caused by anything
+                // else (including the calculation's own write-backs) produces
+                // the same key and stops here instead of chaining another run.
+                const key = inputKey(tradeState);
+                if (key === this.lastInputKey) return;
+                this.lastInputKey = key;
+                this.schedule();
             });
         });
     }
@@ -150,9 +196,9 @@ class TradeCalculator {
 
 export const tradeCalculator = new TradeCalculator();
 
-// HMR: stop the reactive watcher and any pending trailing timer on module
+// HMR: stop the reactive watcher and drop any queued calculation on module
 // disposal, so a re-evaluated module starts clean instead of stacking a
-// second $effect.root next to the detached one (BUG-0360).
+// second $effect.root next to the detached one.
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     tradeCalculator.destroy();
