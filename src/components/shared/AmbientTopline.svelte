@@ -22,6 +22,7 @@
     import { settingsState } from "../../stores/settings.svelte";
     import { marketState } from "../../stores/market.svelte";
     import { tradeState } from "../../stores/trade.svelte";
+    import { effectiveRiskPercentage } from "../../lib/risk";
     import { activeExchange } from "../../services/exchange";
     import { getThemePalette, invalidateThemePalette } from "../../lib/themeColors";
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
@@ -111,7 +112,9 @@
 
     // Risk / Account Health Sentiment
     const riskSentiment = $derived.by(() => {
-        const riskNum = parseFloat(tradeState.riskPercentage || "1.0");  // audit: safe — maps a risk percentage to a sentiment bucket for the background animation
+        // The bucket tracks the figure the trade is sized against, not the
+        // stored side (`lib/risk.ts`) — under a lock those differ.
+        const riskNum = parseFloat(effectiveRiskPercentage(tradeState).toString() || "1.0");  // audit: safe — maps a risk percentage to a sentiment bucket for the background animation
         if (isNaN(riskNum) || riskNum <= 1.5) return 1.0;
         if (riskNum <= 2.5) return 0.2;
         if (riskNum <= 4.0) return -0.4;

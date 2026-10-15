@@ -32,6 +32,7 @@ import { APP_VERSION } from "../lib/version";
 import { modalState } from "../stores/modal.svelte";
 import { parseDecimal, generateId } from "../utils/utils";
 import { describeStaleness } from "../utils/tradeStaleness";
+import { effectiveRiskPercentage } from "../lib/risk";
 import { safeJsonParse } from "../utils/safeJson";
 import type { JournalEntry } from "../stores/types";
 import type { JournalStatus } from "../stores/types";
@@ -268,7 +269,14 @@ export const app = {
     const s = tradeState;
     return {
       accountSize: s.accountSize,
-      riskPercentage: s.riskPercentage,
+      // A preset saved while a lock is on must store the figure the trade
+      // was sized against, not the hidden stored side (`lib/risk.ts`) — the
+      // locks themselves are not persisted, so loading would otherwise size
+      // from a number the UI never showed.
+      riskPercentage:
+        s.isRiskAmountLocked || s.isPositionSizeLocked
+          ? effectiveRiskPercentage(s).toString()
+          : s.riskPercentage,
       leverage: s.leverage,
       fees: s.fees,
       tradeType: s.tradeType,

@@ -17,6 +17,7 @@
 
 import { Decimal } from "decimal.js";
 import { parseDecimal } from "./utils";
+import { effectiveRiskPercentage } from "../lib/risk";
 
 /**
  * BUG-0648 — one predicate for "the form no longer states what the last
@@ -55,6 +56,17 @@ export interface StatedForm {
   symbol?: string;
   tradeType?: string;
   useAtrSl?: boolean;
+  /**
+   * The risk lens (`lib/risk.ts`): the stored percentage is the edited side
+   * only in unlocked mode. In locked modes it is stale by design — the
+   * calculation never writes it back — so the comparison below reads the
+   * effective percentage through the same lens instead of the raw string.
+   * All optional so partial mocks keep comparing raw values.
+   */
+  riskAmount?: string | null;
+  isRiskAmountLocked?: boolean;
+  isPositionSizeLocked?: boolean;
+  lockedPositionSize?: Decimal | string | number | null;
 }
 
 export interface CalculationStaleness {
@@ -177,11 +189,33 @@ export function describeStaleness(
     calculated.stopLossPrice,
     form.stopLossPrice,
   );
+  /*
+   * The lens needs something to read: when the form states neither side of
+   * the pair, that is not a claim (same rule `scalarAgrees` applies to a
+   * missing field), so compare raw and agree. Real callers always carry both
+   * strings; only partial test mocks hit the missing branch.
+   */
+  const riskAgrees =
+    form.riskPercentage === undefined && form.riskAmount === undefined
+      ? scalarAgrees(calculated.riskPercentage, form.riskPercentage)
+      : scalarAgrees(
+          calculated.riskPercentage,
+          effectiveRiskPercentage({
+            accountSize: form.accountSize,
+            riskPercentage: form.riskPercentage,
+            riskAmount: form.riskAmount,
+            isRiskAmountLocked: form.isRiskAmountLocked ?? false,
+            isPositionSizeLocked: form.isPositionSizeLocked ?? false,
+            lockedPositionSize: form.lockedPositionSize,
+            entryPrice: form.entryPrice,
+            stopLossPrice: form.stopLossPrice,
+          }).toString(),
+        );
   const restDisagrees =
     !priceAgrees(calculated.entryPrice, form.entryPrice) ||
     !scalarAgrees(calculated.leverage, form.leverage) ||
     !scalarAgrees(calculated.accountSize, form.accountSize) ||
-    !scalarAgrees(calculated.riskPercentage, form.riskPercentage) ||
+    !riskAgrees ||
     !legsAgree(calculated.targets, form.targets) ||
     (form.symbol !== undefined && calculated.symbol !== form.symbol) ||
     (form.tradeType !== undefined && calculated.tradeType !== form.tradeType);

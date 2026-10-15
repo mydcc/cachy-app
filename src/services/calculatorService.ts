@@ -202,16 +202,10 @@ export class CalculatorService {
     if (currentTradeState.isRiskAmountLocked) {
       const riskAmount = parseDecimal(currentTradeState.riskAmount);
       if (riskAmount.gt(0) && values.accountSize.gt(0)) {
-        const newRiskPercentage = riskAmount.div(values.accountSize).times(100);
-        // Strict Decimal Comparison for Delta
-        const storedPercent = parseDecimal(currentTradeState.riskPercentage);
-        const delta = storedPercent.minus(newRiskPercentage).abs();
-
-        if (delta.gt(0.000001)) {
-          // Update store strictly as string
-          tradeState.riskPercentage = newRiskPercentage.toString();
-        }
-        values.riskPercentage = newRiskPercentage;
+        // No store write-back: the stored amount is the source of truth in
+        // this mode and the percentage is a lens over it (`lib/risk.ts`).
+        // The local value below feeds the metrics; the display derives it.
+        values.riskPercentage = riskAmount.div(values.accountSize).times(100);
       }
       baseMetrics = this.calculator.calculateBaseMetrics(
         values,
@@ -234,24 +228,12 @@ export class CalculatorService {
       const riskAmount = riskPerUnit.times(
         currentTradeState.lockedPositionSize,
       );
-      const newRiskPercentage = values.accountSize.isZero()
+      // No store write-back: in this mode both risk fields are a lens over
+      // the locked size (`lib/risk.ts`). The local values below feed the
+      // metrics; the display derives them.
+      values.riskPercentage = values.accountSize.isZero()
         ? new Decimal(0)
         : riskAmount.div(values.accountSize).times(100);
-
-      const storedPercent = parseDecimal(currentTradeState.riskPercentage);
-      const riskPercentageDelta = storedPercent.minus(newRiskPercentage).abs();
-
-      const storedRiskAmount = parseDecimal(currentTradeState.riskAmount);
-      const riskAmountDelta = storedRiskAmount.minus(riskAmount).abs();
-
-      if (riskPercentageDelta.gt(0.000001) || riskAmountDelta.gt(0.000001)) {
-        tradeState.update((s) => ({
-          ...s,
-          riskPercentage: newRiskPercentage.toString(),
-          riskAmount: riskAmount.toString(),
-        }));
-      }
-      values.riskPercentage = newRiskPercentage;
 
       baseMetrics = this.calculator.calculateBaseMetrics(
         values,
@@ -264,17 +246,9 @@ export class CalculatorService {
         values,
         currentTradeState.tradeType,
       );
-      if (baseMetrics) {
-        const finalMetrics = baseMetrics;
-        const storedRisk = parseDecimal(currentTradeState.riskAmount);
-        const calculatedRisk = finalMetrics.riskAmount;
-
-        const riskAmountDelta = storedRisk.minus(calculatedRisk).abs();
-
-        if (riskAmountDelta.gt(0.000001)) {
-          tradeState.riskAmount = calculatedRisk.toString();
-        }
-      }
+      // No store write-back: the stored percentage is the source of truth in
+      // this mode and the amount is a lens over it (`lib/risk.ts`). The risk
+      // amount the metrics carry already reflects the inputs.
     }
 
     if (!baseMetrics || baseMetrics.positionSize.lte(0)) {

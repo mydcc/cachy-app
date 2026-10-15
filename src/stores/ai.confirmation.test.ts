@@ -196,4 +196,73 @@ describe("AI action confirmation (BUG-0472)", () => {
       ),
     ).toBe(true);
   });
+
+describe("setRisk follows the lock mode", () => {
+  it("writes the percentage while unlocked", async () => {
+    settingsState.aiAllowedActions = withRiskAllowed();
+    tradeState.accountSize = "10000";
+    tradeState.riskPercentage = "1";
+    tradeState.riskAmount = "100";
+    tradeState.isRiskAmountLocked = false;
+    tradeState.isPositionSizeLocked = false;
+
+    await sendRisk("2");
+
+    expect(tradeState.riskPercentage).toBe("2");
+    tradeState.riskPercentage = "1";
+  });
+
+  it("converts the percentage to the locked amount while amount-locked", async () => {
+    settingsState.aiAllowedActions = withRiskAllowed();
+    tradeState.accountSize = "10000";
+    tradeState.riskPercentage = "1";
+    tradeState.riskAmount = "100";
+    tradeState.isRiskAmountLocked = true;
+    tradeState.isPositionSizeLocked = false;
+
+    await sendRisk("3");
+
+    // 3% of 10000 lands on the edited side; the stored percentage is not
+    // the edited side here and stays untouched.
+    expect(tradeState.riskAmount).toBe("300");
+    expect(tradeState.riskPercentage).toBe("1");
+    tradeState.isRiskAmountLocked = false;
+    tradeState.riskAmount = "100";
+  });
+
+  it("refuses while the position size is locked", async () => {
+    settingsState.aiAllowedActions = withRiskAllowed();
+    tradeState.riskPercentage = "1";
+    tradeState.isRiskAmountLocked = false;
+    tradeState.isPositionSizeLocked = true;
+
+    await sendRisk("5");
+
+    expect(tradeState.riskPercentage).toBe("1");
+    tradeState.isPositionSizeLocked = false;
+  });
 });
+});
+
+function withRiskAllowed(): string[] {
+  return [...AI_ALLOWED_ACTIONS_DEFAULT, "setRisk"];
+}
+
+async function sendRisk(value: string): Promise<void> {
+  vi.mocked(appFetch).mockResolvedValue(
+    streamResponse(actionBatch([{ action: "setRisk", value }])),
+  );
+  await aiState.sendMessage("set risk");
+  expect(aiState.pendingActions.size).toBe(1);
+  const [pendingId] = [...aiState.pendingActions.keys()];
+  aiState.confirmAction(pendingId);
+  expect(aiState.pendingActions.size).toBe(0);
+}
+
+/*
+ * `setRisk` carries a percentage, but the percentage field is the edited
+ * side only in unlocked mode. Under a lock the raw write would land on a
+ * value nothing reads — the lens overwrites it on display and the calculator
+ * ignores it — so the action is routed by lock mode instead of silently
+ * doing nothing.
+ */

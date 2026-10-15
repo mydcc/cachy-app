@@ -40,14 +40,26 @@ import { Decimal } from "decimal.js";
  * writes it back.
  */
 const bound = new SvelteMap<string, string>([["accountSize", "10000"]]);
+const riskBound = new SvelteMap<string, string>([["riskAmount", "200"]]);
 
 type StoreWrite = (fn: (state: Record<string, unknown>) => Record<string, unknown>) => void;
 
 const tradeStateMock = vi.hoisted(() => {
     const state: Record<string, unknown> = {
         riskPercentage: "2",
-        riskAmount: "200",
+        isRiskAmountLocked: false,
+        isPositionSizeLocked: false,
+        lockedPositionSize: null,
+        entryPrice: "50000",
+        stopLossPrice: "49500",
     };
+    Object.defineProperty(state, "riskAmount", {
+        enumerable: true,
+        get: () => riskBound.get("riskAmount") ?? "",
+        set: (value: string) => {
+            riskBound.set("riskAmount", value);
+        },
+    });
     Object.defineProperty(state, "accountSize", {
         enumerable: true,
         get: () => bound.get("accountSize") ?? "",
@@ -63,6 +75,11 @@ const tradeStateMock = vi.hoisted(() => {
         accountSize: string;
         riskPercentage: string;
         riskAmount: string;
+        isRiskAmountLocked: boolean;
+        isPositionSizeLocked: boolean;
+        lockedPositionSize: Decimal | null;
+        entryPrice: string;
+        stopLossPrice: string;
         update: StoreWrite;
     };
 });
@@ -131,6 +148,11 @@ beforeEach(() => {
     tradeStateMock.accountSize = "10000";
     tradeStateMock.riskPercentage = "2";
     tradeStateMock.riskAmount = "200";
+    tradeStateMock.isRiskAmountLocked = false;
+    tradeStateMock.isPositionSizeLocked = false;
+    tradeStateMock.lockedPositionSize = null;
+    tradeStateMock.entryPrice = "50000";
+    tradeStateMock.stopLossPrice = "49500";
     paperFeedMock.feed = null;
     paperState.setEnabled(false);
     paperState.setBalance(new Decimal("0"));
@@ -227,6 +249,64 @@ describe("FEAT-0346 — PortfolioInputs keeps user input and store value apart",
         host.querySelector<HTMLButtonElement>("button.btn-lock-icon")?.click();
 
         expect(ontoggleriskamountlock).toHaveBeenCalledTimes(1);
+    });
+});
+
+/*
+ * The risk lens (`lib/risk.ts`): only the edited side is stored, the other
+ * side is derived by the same pure function the calculation sizes against.
+ * These cases drive the locks the app sets and assert the fields show the
+ * derived side — not a value the calculation wrote back, because nothing
+ * writes it back anymore.
+ */
+describe("risk lens — locked modes show the derived side", () => {
+    it("derives the percentage from the locked amount", () => {
+        tradeStateMock.riskPercentage = "1"; // stale by design, never shown
+        tradeStateMock.riskAmount = "250";
+        tradeStateMock.isRiskAmountLocked = true;
+        render({ riskPercentage: "1", riskAmount: "250", isRiskAmountLocked: true });
+
+        expect(input("risk-percentage").value).toBe("2.5");
+        expect(input("risk-amount").value).toBe("250");
+    });
+
+    it("follows the locked amount while it is typed", () => {
+        tradeStateMock.riskPercentage = "1";
+        tradeStateMock.riskAmount = "250";
+        tradeStateMock.isRiskAmountLocked = true;
+        render({ riskPercentage: "1", riskAmount: "250", isRiskAmountLocked: true });
+
+        // What `handleRiskAmountInput` does: the typed amount lands in the
+        // store, and the derived percentage follows on the same flush.
+        tradeStateMock.riskAmount = "300";
+        flushSync();
+
+        expect(input("risk-percentage").value).toBe("3");
+    });
+
+    it("derives both sides from the locked position size", () => {        tradeStateMock.riskPercentage = "9.99"; // stale by design, never shown
+        tradeStateMock.riskAmount = "9.99";
+        tradeStateMock.isPositionSizeLocked = true;
+        tradeStateMock.lockedPositionSize = new Decimal("0.2");
+        render({
+            riskPercentage: "9.99",
+            riskAmount: "9.99",
+            isPositionSizeLocked: true,
+        });
+
+        // |50000 - 49500| * 0.2 = 100 risk amount, 1% of the 10000 account.
+        expect(input("risk-percentage").value).toBe("1");
+        expect(input("risk-amount").value).toBe("100");
+    });
+
+    it("shows the derived amount over a stale leftover while unlocked", () => {
+        // A leftover from a previous lock: the store keeps whatever was last
+        // typed, but unlocked sizing never reads it. The field must show the
+        // derived figure from first render — not the leftover, not "".
+        tradeStateMock.riskAmount = "9999";
+        render({ riskPercentage: "2", riskAmount: "9999" });
+
+        expect(input("risk-amount").value).toBe("200");
     });
 });
 
