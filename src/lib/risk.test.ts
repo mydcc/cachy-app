@@ -87,6 +87,38 @@ describe("risk lens", () => {
     expect(effectiveRiskPercentage(locked).eq(new Decimal("1"))).toBe(true);
   });
 
+  it("lets the amount lock win when both locks are set", () => {
+    // The toggles enforce mutual exclusion, but a restored snapshot can
+    // carry both flags. The calculator checks the amount lock first, so the
+    // lens must too — otherwise fields and figures disagree with no input
+    // that repairs them.
+    const both = {
+      ...base,
+      isRiskAmountLocked: true,
+      isPositionSizeLocked: true,
+      riskAmount: "250",
+      lockedPositionSize: new Decimal("0.2"),
+    };
+    expect(effectiveRiskAmount(both).eq(new Decimal("250"))).toBe(true);
+    expect(effectiveRiskPercentage(both).eq(new Decimal("2.5"))).toBe(true);
+  });
+
+  it("falls back to the default formula when the stop distance is zero", () => {
+    // A locked size with no stop distance cannot size anything — the
+    // calculator refuses with an error and emits no metrics. The lens has no
+    // error channel, so it shows the percentage-implied values instead of a
+    // zero; pinned here so neither side can "fix" the divergence silently.
+    const noDistance = {
+      ...base,
+      isPositionSizeLocked: true,
+      lockedPositionSize: new Decimal("0.2"),
+      entryPrice: "50000",
+      stopLossPrice: "50000",
+    };
+    expect(effectiveRiskAmount(noDistance).eq(new Decimal("100"))).toBe(true);
+    expect(effectiveRiskPercentage(noDistance).eq(new Decimal("1"))).toBe(true);
+  });
+
   it("never throws on garbage input", () => {
     const garbage: RiskSource = {
       accountSize: "abc",

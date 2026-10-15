@@ -30,9 +30,11 @@ import { parseDecimal } from "../utils/utils";
  * no write-back left, so no loop can form.
  *
  * The branch structure mirrors `CalculatorService.performCalculation`
- * exactly, including its zero guards, so the displayed figures and the
- * calculated ones cannot disagree. If a branch changes there, it must change
- * here — the unit tests pin both sides to the same table.
+ * exactly, including its zero guards and its precedence: when both locks are
+ * somehow set (the toggles enforce mutual exclusion, but a restored snapshot
+ * can carry both), the amount lock wins on both sides, so the fields, the
+ * watcher key and the figures cannot disagree. If a branch changes there, it
+ * must change here — the unit tests pin both sides to the same table.
  */
 export interface RiskSource {
   accountSize: string | null | undefined;
@@ -63,12 +65,13 @@ function riskPerUnit(source: RiskSource): Decimal | null {
  * locked size and the stop distance; otherwise from account and percentage.
  */
 export function effectiveRiskAmount(source: RiskSource): Decimal {
+  if (source.isRiskAmountLocked) {
+    return parseDecimal(source.riskAmount);
+  }
   if (source.isPositionSizeLocked) {
     const size = lockedSize(source);
     const perUnit = size === null ? null : riskPerUnit(source);
     if (size !== null && perUnit !== null) return perUnit.times(size);
-  } else if (source.isRiskAmountLocked) {
-    return parseDecimal(source.riskAmount);
   }
   return parseDecimal(source.accountSize).times(
     parseDecimal(source.riskPercentage).div(100),
@@ -82,7 +85,11 @@ export function effectiveRiskAmount(source: RiskSource): Decimal {
  * stored percentage itself.
  */
 export function effectiveRiskPercentage(source: RiskSource): Decimal {
-  if (source.isPositionSizeLocked) {
+  if (source.isRiskAmountLocked) {
+    const amount = parseDecimal(source.riskAmount);
+    const account = parseDecimal(source.accountSize);
+    if (amount.gt(0) && account.gt(0)) return amount.div(account).times(100);
+  } else if (source.isPositionSizeLocked) {
     const size = lockedSize(source);
     const perUnit = size === null ? null : riskPerUnit(source);
     if (size !== null && perUnit !== null) {
@@ -90,10 +97,6 @@ export function effectiveRiskPercentage(source: RiskSource): Decimal {
       if (account.isZero()) return new Decimal(0);
       return perUnit.times(size).div(account).times(100);
     }
-  } else if (source.isRiskAmountLocked) {
-    const amount = parseDecimal(source.riskAmount);
-    const account = parseDecimal(source.accountSize);
-    if (amount.gt(0) && account.gt(0)) return amount.div(account).times(100);
   }
   return parseDecimal(source.riskPercentage);
 }

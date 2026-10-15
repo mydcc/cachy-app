@@ -284,8 +284,7 @@ describe("risk lens — locked modes show the derived side", () => {
         expect(input("risk-percentage").value).toBe("3");
     });
 
-    it("derives both sides from the locked position size", () => {
-        tradeStateMock.riskPercentage = "9.99"; // stale by design, never shown
+    it("derives both sides from the locked position size", () => {        tradeStateMock.riskPercentage = "9.99"; // stale by design, never shown
         tradeStateMock.riskAmount = "9.99";
         tradeStateMock.isPositionSizeLocked = true;
         tradeStateMock.lockedPositionSize = new Decimal("0.2");
@@ -298,6 +297,16 @@ describe("risk lens — locked modes show the derived side", () => {
         // |50000 - 49500| * 0.2 = 100 risk amount, 1% of the 10000 account.
         expect(input("risk-percentage").value).toBe("1");
         expect(input("risk-amount").value).toBe("100");
+    });
+
+    it("shows the derived amount over a stale leftover while unlocked", () => {
+        // A leftover from a previous lock: the store keeps whatever was last
+        // typed, but unlocked sizing never reads it. The field must show the
+        // derived figure from first render — not the leftover, not "".
+        tradeStateMock.riskAmount = "9999";
+        render({ riskPercentage: "2", riskAmount: "9999" });
+
+        expect(input("risk-amount").value).toBe("200");
     });
 });
 

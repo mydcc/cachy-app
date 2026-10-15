@@ -385,6 +385,21 @@ describe("app service - ATR and Locking Logic", () => {
     expect(effectiveRiskPercentage(tradeState).eq(new Decimal(2))).toBe(true);
   });
 
+  it("saves the derived percentage when the amount is locked", () => {
+    tradeState.set({
+      ...INITIAL_TRADE_STATE,
+      accountSize: "10000",
+      riskPercentage: "1", // stale by design under the lock, never shown
+      riskAmount: "250",
+      isRiskAmountLocked: true,
+    });
+
+    // The locks themselves are not persisted, so loading this preset later
+    // would size from whatever it stores — it must be the figure the trade
+    // was sized against.
+    expect(app.getInputsAsObject().riskPercentage).toBe("2.5");
+  });
+
   it("should set atrMode to auto when useAtrSl is toggled on", () => {
     // Override initial state to simulate off state for testing toggle
     tradeState.update((s) => ({ ...s, useAtrSl: false, atrMode: "manual" }));

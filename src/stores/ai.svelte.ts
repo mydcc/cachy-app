@@ -53,6 +53,7 @@ import { activeExchange } from "../services/exchange";
 import { newsService } from "../services/newsService";
 import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import { parseAiValue, generateId } from "../utils/utils";
+import { effectiveRiskPercentage } from "../lib/risk";
 import { logger } from "../services/logger";
 import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
@@ -1150,7 +1151,10 @@ class AiManager {
           entry: trade.entryPrice,
           sl: trade.stopLossPrice,
           tp: trade.targets,
-          risk: trade.riskPercentage + "%",
+          // The stored percentage is the edited side only in unlocked mode;
+          // under a lock the trade is sized against the lens value, so that
+          // is what the model must reason about.
+          risk: effectiveRiskPercentage(trade).toString() + "%",
           atrMultiplier: trade.atrMultiplier,
           useAtrSl: trade.useAtrSl,
           ...this.calculateRR(trade),
@@ -1292,7 +1296,30 @@ class AiManager {
           break;
         case "setRisk":
           if (action.value !== undefined) {
-            tradeState.riskPercentage = String(parseAiValue(action.value as string));
+            // The percentage field is the edited side only in unlocked mode.
+            // Under an amount lock the AI's percent is converted to the
+            // locked amount so the intent takes effect; under a size lock
+            // neither side is editable, so the action is refused instead of
+            // silently writing a value nothing reads.
+            if (tradeState.isPositionSizeLocked) {
+              logger.warn("ai", "setRisk refused: position size is locked", {
+                value: action.value,
+              });
+            } else if (tradeState.isRiskAmountLocked) {
+              const account = parseAiValue(tradeState.accountSize);
+              if (account.gt(0)) {
+                tradeState.riskAmount = parseAiValue(action.value as string)
+                  .div(100)
+                  .times(account)
+                  .toString();
+              } else {
+                logger.warn("ai", "setRisk refused: account size is not positive", {
+                  value: action.value,
+                });
+              }
+            } else {
+              tradeState.riskPercentage = String(parseAiValue(action.value as string));
+            }
           }
           break;
         case "setAtrMultiplier": {

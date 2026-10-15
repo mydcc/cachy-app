@@ -13,13 +13,13 @@ import { tradeState } from "../stores/trade.svelte";
 /**
  * The exact input surface the calculator consumes, as one comparable key.
  *
- * The calculation writes the derived side of two-way fields back into the
- * store (the risk amount follows the risk percentage, and vice versa; in ATR
- * mode the stop loss is derived from the ATR inputs). Those write-backs must
- * not re-trigger the watcher, which used to be the job of a 250 ms throttle.
- * The key removes that failure mode by construction: it contains exactly the
- * fields a trader can edit, never the side the calculation derives from
- * them.
+ * The calculation still writes one derived field back into the store: in
+ * ATR mode the stop loss is derived from the ATR inputs. That write-back
+ * must not re-trigger the watcher, which used to be the job of a 250 ms
+ * throttle. The key removes that failure mode by construction: in ATR mode
+ * it contains the ATR inputs and never the stop, so the derived stop cannot
+ * schedule its own recalculation. (The risk pair used to need the same
+ * treatment; since the lens it holds no write-back at all — see below.)
  *
  * The two-way risk pair is the subtle part. Only the side the trader actually
  * edits is an input:
@@ -69,10 +69,14 @@ function inputKey(s: typeof tradeState): string {
     parts.push(s.stopLossPrice);
   }
 
-  if (!s.isPositionSizeLocked) {
-    parts.push(
-      s.isRiskAmountLocked ? `amt:${s.riskAmount}` : `pct:${s.riskPercentage}`,
-    );
+  // The risk pair follows the same precedence as the lens and the
+  // calculator: with both locks set (only reachable via a restored snapshot
+  // — the toggles enforce mutual exclusion) the amount lock wins everywhere,
+  // so key, fields and figures cannot disagree.
+  if (s.isRiskAmountLocked) {
+    parts.push(`amt:${s.riskAmount}`);
+  } else if (!s.isPositionSizeLocked) {
+    parts.push(`pct:${s.riskPercentage}`);
   }
 
   return parts.join("\u0000");
