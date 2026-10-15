@@ -185,50 +185,133 @@ export async function isUrlAllowedAsync(urlStr: string): Promise<boolean> {
   }
 }
 
+/** First usable proxy URL among the given environment variable names. */
+function readProxyUrl(...keys: string[]): URL | null {
+  for (const key of keys) {
+    const raw = process.env[key];
+    if (!raw) continue;
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return parsed;
+      }
+    } catch {
+      // A malformed value is ignored rather than thrown: it must not be able
+      // to abort dispatcher construction and take every `safeFetch` route
+      // down with it. The next name may still hold a usable value.
+    }
+  }
+  return null;
+}
+
+function configuredProxyUrls(): { http: URL | null; https: URL | null } {
+  return {
+    http: readProxyUrl("http_proxy", "HTTP_PROXY"),
+    https: readProxyUrl("https_proxy", "HTTPS_PROXY"),
+  };
+}
+
+/**
+ * Proxy hostnames from the environment, exempt from the private-range rule.
+ *
+ * A deployment that reaches the network only through a proxy answers every
+ * dial from a bare `Agent` with "fetch failed", while the global `fetch` —
+ * which follows the environment's proxy configuration — keeps working. The
+ * proxy is operator-configured infrastructure rather than a target chosen by
+ * the caller, and it legitimately sits on a private address
+ * (`http://proxy.internal:3128`), so only it is exempt. Every target URL still
+ * passes `isUrlAllowedAsync` and this guard.
+ */
+function configuredProxyHosts(): Set<string> {
+  const hosts = new Set<string>();
+  const { http, https } = configuredProxyUrls();
+  for (const url of [http, https]) {
+    if (url) hosts.add(url.hostname.replace(/^\[|\]$/g, "").toLowerCase());
+  }
+  return hosts;
+}
+
 let _safeDispatcher: unknown = null;
 
 /**
  * Lazily initializes the safe undici dispatcher with an embedded lookup guard at dial time,
  * ensuring no connection can be established to private/reserved targets while avoiding
  * eager module evaluation conflicts in test runners.
+ *
+ * The dispatcher is built from the environment's proxy configuration
+ * (`EnvHttpProxyAgent`) rather than a bare `Agent`. Both were observed on a
+ * deployment where plain `fetch` reached every host while `safeFetch` failed
+ * every host with "fetch failed": the environment routes egress through a proxy
+ * that only the global dispatcher honored, and a bare `Agent` walked past it.
  */
 export async function getSafeDispatcher(): Promise<unknown> {
   if (!_safeDispatcher) {
     try {
-      const { Agent } = await import("undici");
-      _safeDispatcher = new Agent({
-        connect: {
-          // undici 8 calls this with `{ all: true }` and forwards the callback
-          // straight to Node's dns.lookup, so it must use the `all: true`
-          // shape. The older `(err, address, family)` shape leaves undici
-          // reading an undefined address and fails every dial with
-          // "fetch failed".
-          lookup: (
-            hostname: string,
-            _options: unknown,
-            callback: (
-              err: Error | null,
-              addresses: string | Array<{ address: string; family: number }>,
-            ) => void,
-          ) => {
-            dns.lookup(hostname, { all: true }, (err, addresses) => {
-              if (err) return callback(err, "");
-              if (!addresses || addresses.length === 0) {
-                return callback(new Error("ENOTFOUND"), "");
+      const undici = await import("undici");
+      const Agent = undici.Agent;
+      const proxyHosts = configuredProxyHosts();
+      const { http, https } = configuredProxyUrls();
+      // Optional exports are read defensively: a partial test double of
+      // `undici` (as in urlValidator.test.ts) has no such binding, and an
+      // ESM-style namespace throws on an unknown named read. That must not
+      // abort dispatcher construction.
+      const optionalExport = (name: string): unknown => {
+        try {
+          return (undici as Record<string, unknown>)[name];
+        } catch {
+          return undefined;
+        }
+      };
+
+      const lookup = (
+        hostname: string,
+        options: { all?: boolean } | undefined,
+        callback: (
+          err: Error | null,
+          addresses: string | Array<{ address: string; family: number }>,
+          family?: number,
+        ) => void,
+      ) => {
+        // undici calls this with `{ all: true }` and forwards the callback
+        // straight to Node's dns.lookup, so it must use the `all: true` shape:
+        // the older `(err, address, family)` shape leaves undici reading an
+        // undefined address and fails every dial with "fetch failed". The flag
+        // is read back from the options rather than assumed, so the guard holds
+        // under either call convention.
+        const isProxyHost = proxyHosts.has(hostname.toLowerCase());
+        dns.lookup(hostname, { ...(options ?? {}), all: true }, (err, addresses) => {
+          if (err) return callback(err, "");
+          if (!addresses || addresses.length === 0) {
+            return callback(new Error("ENOTFOUND"), "");
+          }
+          if (!isProxyHost) {
+            for (const addr of addresses) {
+              if (isPrivateOrReservedHost(addr.address)) {
+                return callback(
+                  new Error("Blocked target address (SSRF guard)"),
+                  "",
+                );
               }
-              for (const addr of addresses) {
-                if (isPrivateOrReservedHost(addr.address)) {
-                  return callback(
-                    new Error("Blocked target address (SSRF guard)"),
-                    "",
-                  );
-                }
-              }
-              callback(null, addresses);
-            });
-          },
-        },
-      });
+            }
+          }
+          if (options?.all) {
+            callback(null, addresses);
+          } else {
+            callback(null, addresses[0].address, addresses[0].family);
+          }
+        });
+      };
+
+      const EnvHttpProxyAgent = optionalExport("EnvHttpProxyAgent");
+      if ((http || https) && typeof EnvHttpProxyAgent === "function") {
+        _safeDispatcher = new (EnvHttpProxyAgent as new (opts: unknown) => unknown)({
+          connect: { lookup },
+          ...(http ? { httpProxy: http.href } : {}),
+          ...(https ? { httpsProxy: https.href } : {}),
+        });
+      } else {
+        _safeDispatcher = new Agent({ connect: { lookup } });
+      }
     } catch {
       _safeDispatcher = null;
     }
