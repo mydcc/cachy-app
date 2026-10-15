@@ -296,7 +296,7 @@
      * lesson, or a switch between price overlay and own pane. A live tick only
      * refreshes the data of the series already on the chart.
      */
-<    let drawnLines: { name: string; series: ISeriesApi<"Line">; badge: CrosshairValueBadge }[] = [];
+    let drawnLines: { name: string; series: ISeriesApi<"Line">; badge: CrosshairValueBadge }[] = [];
     let drawnSignature = "";
 
     /*
@@ -667,7 +667,6 @@
                     }),
                 );
                 drawnPriceLinesSignature = linesSignature;
-            }
             }
         } catch (error) {
             // A half-torn render must not leave the previous dataset's pills
