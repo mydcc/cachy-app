@@ -25,7 +25,6 @@
     "src/service-worker",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
-    "src/**/*.bench.ts",
     "src/tests/**",
     "tests/**",
     "src/benchmarks/**"
