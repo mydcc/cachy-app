@@ -2,7 +2,7 @@
 id: FEAT-0686
 title: Feed the market-structure tab with live readings
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
