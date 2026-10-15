@@ -170,4 +170,71 @@ describe("describeStaleness", () => {
     expect(result.stale).toBe(true);
     expect(result.stopCleared).toBe(false);
   });
+
+  it("treats a form stating neither risk side as agreeing", () => {
+    // Partial mocks (order confirmation suites) carry no risk fields at all.
+    // Missing is not a claim: the lens must not turn absence into a zero.
+    const { riskPercentage: _pct, riskAmount: _amt, ...rest } = form();
+    void _pct;
+    void _amt;
+    const result = describeStaleness(calculated(), rest);
+    expect(result.stale).toBe(false);
+  });
+
+  it("reads the stored percentage straight through when unlocked", () => {    const result = describeStaleness(
+      calculated(),
+      form({ riskPercentage: "2" }),
+    );
+    expect(result.stale).toBe(true);
+    expect(result.restDisagrees).toBe(true);
+  });
+
+  it("compares the derived percentage when the amount is locked", () => {
+    // The stored percentage is stale by design here — the calculation never
+    // writes it back — so agreement must come from the locked amount.
+    const matching = describeStaleness(
+      calculated({ riskPercentage: new Decimal("2.5") }),
+      form({
+        riskPercentage: "1",
+        riskAmount: "250",
+        isRiskAmountLocked: true,
+      }),
+    );
+    expect(matching.stale).toBe(false);
+
+    const moved = describeStaleness(
+      calculated({ riskPercentage: new Decimal("2.5") }),
+      form({
+        riskPercentage: "1",
+        riskAmount: "300",
+        isRiskAmountLocked: true,
+      }),
+    );
+    expect(moved.stale).toBe(true);
+    expect(moved.restDisagrees).toBe(true);
+  });
+
+  it("compares the derived percentage when the position size is locked", () => {
+    const matching = describeStaleness(
+      calculated({ riskPercentage: new Decimal("1") }),
+      form({
+        riskPercentage: "9.99",
+        isPositionSizeLocked: true,
+        lockedPositionSize: new Decimal("0.2"),
+      }),
+    );
+    // |60000 - 58000| * 0.2 = 400... against the 10000 account that is 4%,
+    // not 1% — so this pair must read as stale.
+    expect(matching.stale).toBe(true);
+
+    const fresh = describeStaleness(
+      calculated({ riskPercentage: new Decimal("4") }),
+      form({
+        riskPercentage: "9.99",
+        isPositionSizeLocked: true,
+        lockedPositionSize: new Decimal("0.2"),
+      }),
+    );
+    expect(fresh.stale).toBe(false);
+  });
 });

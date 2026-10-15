@@ -22,6 +22,7 @@
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
   import { onboardingService } from "../../services/onboardingService";
+  import { effectiveRiskAmount, effectiveRiskPercentage } from "../../lib/risk";
   import { onMount } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { marketState } from "../../stores/market.svelte";
@@ -90,6 +91,27 @@
   let localRiskAmount = $state(format(riskAmount));
   let isRiskAmountFocused = $state(false);
 
+  /**
+   * The risk lens (`lib/risk.ts`): only the edited side is stored, the other
+   * side is derived. The percentage field is the source unless a lock makes
+   * it derived; the amount field is the source only while the amount is
+   * locked (and the size is not). Whatever is derived here is what the
+   * calculation sizes against — the same pure function, so the field and the
+   * figures cannot disagree.
+   */
+  const percentageIsSource = $derived(!isRiskAmountLocked && !isPositionSizeLocked);
+  const amountIsSource = $derived(isRiskAmountLocked && !isPositionSizeLocked);
+  const shownRiskPercentage = $derived(
+    percentageIsSource
+      ? format(riskPercentage)
+      : format(effectiveRiskPercentage(tradeState).toString()),
+  );
+  const shownRiskAmount = $derived(
+    amountIsSource
+      ? format(riskAmount)
+      : format(effectiveRiskAmount(tradeState).toString()),
+  );
+
   // Sync props to local state (One-way sync when NOT focused)
   $effect(() => {
     if (!isAccountSizeFocused && format(accountSize) !== localAccountSize) {
@@ -122,14 +144,14 @@
   });
 
   $effect(() => {
-    if (!isRiskPercentageFocused && format(riskPercentage) !== localRiskPercentage) {
-      localRiskPercentage = format(riskPercentage);
+    if (!isRiskPercentageFocused && shownRiskPercentage !== localRiskPercentage) {
+      localRiskPercentage = shownRiskPercentage;
     }
   });
 
   $effect(() => {
-    if (!isRiskAmountFocused && format(riskAmount) !== localRiskAmount) {
-      localRiskAmount = format(riskAmount);
+    if (!isRiskAmountFocused && shownRiskAmount !== localRiskAmount) {
+      localRiskAmount = shownRiskAmount;
     }
   });
 

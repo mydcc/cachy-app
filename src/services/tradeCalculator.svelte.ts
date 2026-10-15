@@ -28,6 +28,11 @@ import { tradeState } from "../stores/trade.svelte";
  * - position size locked → both are results, neither belongs in the key;
  * - otherwise → the dirty side is the percentage, the amount is a result.
  *
+ * This is the same mode table the risk lens (`lib/risk.ts`) implements from
+ * the other side: the lens derives whatever is not the edited side, so the
+ * calculation holds no write-back into these fields at all. If a mode is
+ * added here, it must be added there.
+ *
  * One deliberate exception: when the calculation flips a *mode* the key does
  * track — the position-size lock auto-reset on a failed sizing — the key
  * changes and exactly one extra run follows, with the new mode's semantics.

@@ -28,6 +28,7 @@ import { app } from "./app";
 import { Decimal } from "decimal.js";
 import { apiService } from "./apiService";
 import { parseDecimal } from "../utils/utils";
+import { effectiveRiskPercentage } from "../lib/risk";
 
 function toggleAtrInputs(enable: boolean) {
   tradeState.toggleAtrInputs(enable);
@@ -361,7 +362,7 @@ describe("app service - ATR and Locking Logic", () => {
     expect(store.isRiskAmountLocked).toBe(false);
   });
 
-  it("should backward-calculate risk percentage when risk amount is locked", () => {
+  it("derives the risk percentage from the locked amount instead of writing it back", () => {
     // Arrange
     tradeState.set({
       ...INITIAL_TRADE_STATE,
@@ -377,10 +378,11 @@ describe("app service - ATR and Locking Logic", () => {
     app.calculateAndDisplay();
 
     // Assert
-    const store = tradeState;
-    // 200 is 2% of 10000
-    expect(store.riskPercentage).not.toBeNull();
-    expect(new Decimal(store.riskPercentage!).toFixed(2)).toBe("2.00");
+    // 200 is 2% of 10000 — but the store keeps the edited side only. The
+    // percentage is a lens over the locked amount (`lib/risk.ts`), never a
+    // write-back, so the input surface the watcher triggers on stays stable.
+    expect(tradeState.riskPercentage).toBe(INITIAL_TRADE_STATE.riskPercentage);
+    expect(effectiveRiskPercentage(tradeState).eq(new Decimal(2))).toBe(true);
   });
 
   it("should set atrMode to auto when useAtrSl is toggled on", () => {
