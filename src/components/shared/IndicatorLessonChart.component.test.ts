@@ -205,6 +205,27 @@ function render(
     return root;
 }
 
+/**
+ * Pill outline of the nth attached badge, read through the primitive's
+ * views. Reaches through `private` fields (compile-time only — accessible
+ * at runtime), which is deliberate: the pill colour is otherwise unobservable
+ * without a canvas, and this pins the exact reported bug (pill disagreeing
+ * with legend and series on first paint). Fails loudly if the badge
+ * internals are restructured.
+ */
+function badgeBorder(index: number): string {
+    const series = lw.lineSeries[index];
+    if (!series) throw new Error(`no line series at index ${index}`);
+    const badge = series.attachPrimitive.mock.calls[0]?.[0] as unknown as {
+        paneViews(): Array<{ renderer(): unknown }>;
+    };
+    if (!badge) throw new Error(`no badge attached to line series ${index}`);
+    const renderer = badge.paneViews()[0]?.renderer() as unknown as {
+        source: { colors(): { border: string } };
+    };
+    return renderer.source.colors().border;
+}
+
 /** The timeframe chip in the chart header (its name carries the current value). */
 function timeframeChip(view: HTMLElement): HTMLButtonElement {
     const chip = view.querySelector<HTMLButtonElement>(
@@ -343,7 +364,68 @@ describe("FEAT-0677 — the live lesson chart", () => {
             // Legend and series agree — both read the chosen token.
             const swatch = host.querySelector('li span[aria-hidden="true"]') as HTMLElement;
             expect(swatch.style.background).toContain("--success-color");
+            // The hover pill reads the same choice: the badge cache refreshes
+            // when the lines resolve, not just on the next theme switch.
+            expect(badgeBorder(0)).toBe("#22c55e");
         } finally {
+            getComputedStyle.mockRestore();
+        }
+    });
+
+    it("re-picks line colours after a theme switch", async () => {
+        seedKlines("BTCUSDT");
+        tradeState.symbol = "BTCUSDT";
+        // Healthy first paint, clashing after the switch: the second colour
+        // proves the choice re-resolves instead of sticking to the old one.
+        const themes: Record<string, Record<string, string>> = {
+            "": {
+                "--bg-tertiary": "#1e293b",
+                "--accent-color": "#0ea5e9",
+                "--text-primary": "#e2e8f0",
+            },
+            "theme-test": {
+                "--bg-tertiary": "#44475a",
+                "--accent-color": "#44475a",
+                "--text-primary": "#e2e8f0",
+            },
+        };
+        const getComputedStyle = vi
+            .spyOn(window, "getComputedStyle")
+            .mockImplementation(
+                () =>
+                    ({
+                        getPropertyValue: (name: string) =>
+                            themes[document.documentElement.getAttribute("class") ?? ""]?.[
+                                name
+                            ] ?? "",
+                    }) as CSSStyleDeclaration,
+            );
+        try {
+            render("rsi");
+
+            expect(lw.lineSeries.length).toBeGreaterThan(0);
+            expect(lw.lineSeries[0].options.color).toBe("#0ea5e9");
+
+            document.documentElement.setAttribute("class", "theme-test");
+            await new Promise((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            );
+            flushSync();
+
+            // Accent now dissolves into the card: success is next with contrast.
+            const recoloured = lw.lineSeries[0].applyOptions.mock.calls.at(-1)?.[0] as {
+                color?: string;
+            };
+            expect(recoloured.color).toBe("#22c55e");
+            // The lesson pane stays fixed through the re-apply.
+            const applied = lw.chart.applyOptions.mock.calls.at(-1)?.[0] as {
+                layout?: { panes?: { enableResize?: boolean } };
+            };
+            expect(applied.layout?.panes?.enableResize).toBe(false);
+            // And the pill follows the new choice.
+            expect(badgeBorder(0)).toBe("#22c55e");
+        } finally {
+            document.documentElement.removeAttribute("class");
             getComputedStyle.mockRestore();
         }
     });

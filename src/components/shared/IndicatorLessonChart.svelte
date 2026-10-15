@@ -83,7 +83,13 @@
     import { normalizeSymbol } from "../../utils/symbolUtils";
     import { normalizeTimeframeInput } from "../../utils/utils";
     import { safeLocalStorage } from "../../utils/storageWrapper";
-    import { contrastRatio, ensureContrast, parseColorToRgb } from "../../lib/themeColors";
+    import {
+        contrastRatio,
+        ensureContrast,
+        parseColorToRgb,
+        readCssColor,
+        type Rgb,
+    } from "../../lib/themeColors";
     import {
         CrosshairValueBadge,
         type BadgePoint,
@@ -230,8 +236,8 @@
      * palette colour with a near-identical card background (nord danger,
      * monokai accent), so each slot takes the first palette entry with
      * enough contrast against the resolved card — never reusing one within
-     * the same chart — and falls back to the primary text, which is readable
-     * on every card by theme contract.
+     * the same chart while palette entries remain — and falls back to the
+     * primary text, which is readable on every card by theme contract.
      */
     let lineTokens = $state<string[]>([]);
 
@@ -239,19 +245,29 @@
         const bg = parseColorToRgb(cssColor("--bg-tertiary", "#1e293b"));
         const chosen: string[] = [];
         for (let i = 0; i < count; i++) {
-            let pick = "--text-primary";
-            for (let k = 0; k < LINE_COLOR_VARS.length; k++) {
-                const token = LINE_COLOR_VARS[(i + k) % LINE_COLOR_VARS.length];
-                if (chosen.includes(token)) continue;
-                const fg = parseColorToRgb(cssColor(token, LINE_FALLBACKS[token]));
-                if (!bg || !fg || contrastRatio(fg, bg) >= MIN_LINE_CONTRAST) {
-                    pick = token;
-                    break;
-                }
-            }
-            chosen.push(pick);
+            chosen.push(pickLineToken(i, chosen, bg));
         }
         return chosen;
+    }
+
+    /**
+     * One slot of the line palette. Each slot takes the first palette entry
+     * with enough contrast that is not already taken; a second pass allows
+     * reuse so a 6th+ line still gets a visible colour instead of every
+     * overflow line collapsing onto the same fallback.
+     */
+    function pickLineToken(index: number, chosen: string[], bg: Rgb | null): string {
+        for (const allowReuse of [false, true]) {
+            for (let k = 0; k < LINE_COLOR_VARS.length; k++) {
+                const token = LINE_COLOR_VARS[(index + k) % LINE_COLOR_VARS.length];
+                if (!allowReuse && chosen.includes(token)) continue;
+                const fg = parseColorToRgb(cssColor(token, LINE_FALLBACKS[token]));
+                if (!bg || !fg || contrastRatio(fg, bg) >= MIN_LINE_CONTRAST) {
+                    return token;
+                }
+            }
+        }
+        return "--text-primary";
     }
 
     function lineColor(index: number): string {
@@ -265,7 +281,11 @@
      */
     function cssColor(name: string, fallback: string): string {
         if (typeof window === "undefined") return fallback;
-        return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+        // `readCssColor` walks `var(--other)` chains: most themes wire
+        // tokens to each other, and a plain `getPropertyValue` returns the
+        // specified (unresolved) reference, which neither the contrast guard
+        // nor the chart library could paint with.
+        return readCssColor(name, fallback);
     }
 
     /** The app-wide selected symbol. Never a chart-window's own symbol. */
@@ -498,6 +518,9 @@
                 // The pane separator defaults to the library's hardcoded #E0E3EB;
                 // without this it stays white in every theme.
                 panes: {
+                    // Kept in sync with creation: re-applying panes must not
+                    // silently re-enable the lesson pane's resize handle.
+                    enableResize: false,
                     separatorColor: themedChrome("rgba(255, 255, 255, 0.1)"),
                     separatorHoverColor: cssColor("--accent-color", "#2962ff"),
                 },
@@ -683,10 +706,18 @@
                     line.series.detachPrimitive(line.badge);
                     activeChart.removeSeries(line.series);
                 }
-                lineTokens = resolveLineTokens(series.lines.length);
+                // Resolve once into a local: reading back `$state` here would
+                // subscribe this effect to `lineTokens` and schedule a
+                // redundant re-run on every lesson change.
+                const tokens = resolveLineTokens(series.lines.length);
+                lineTokens = tokens;
+                // Badges cache the resolved colours: refresh the cache now
+                // that the choice exists, so pills agree with legend and
+                // series on first paint (not just after a theme switch).
+                refreshBadgeTheme();
                 drawnLines = series.lines.map((line, index) => {
                     const lineIndex = index;
-                    const token = lineTokens[lineIndex] ?? LINE_COLOR_VARS[lineIndex % LINE_COLOR_VARS.length];
+                    const token = tokens[lineIndex] ?? LINE_COLOR_VARS[lineIndex % LINE_COLOR_VARS.length];
                     const created = activeChart.addSeries(
                         LineSeries,
                         {
@@ -703,9 +734,7 @@
                         colors: () => ({
                             bg: badgeTheme.bg,
                             text: badgeTheme.text,
-                            border:
-                                badgeTheme.line[lineIndex % LINE_COLOR_VARS.length] ??
-                                badgeTheme.text,
+                            border: badgeTheme.line[lineIndex] ?? badgeTheme.text,
                         }),
                     });
                     created.attachPrimitive(badge);
