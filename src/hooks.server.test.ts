@@ -169,6 +169,21 @@ describe('headersHandler (Server Hook)', () => {
     const expectedCsp = SECURITY_HEADERS.find(([name]) => name === 'Content-Security-Policy')?.[1];
     expect(result.headers.get('Content-Security-Policy')).toBe(expectedCsp);
   });
+
+  it('should catch unhandled exceptions from resolve and return 500 response with security headers', async () => {
+    const mockEvent = {} as RequestEvent;
+    const mockResolve = vi.fn().mockRejectedValue(new Error('unhandled load error'));
+
+    const result = await headersHandler({ event: mockEvent, resolve: mockResolve });
+
+    expect(result.status).toBe(500);
+    expect(result.headers.get('Strict-Transport-Security')).toBe(
+      'max-age=31536000; includeSubDomains; preload',
+    );
+    expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(result.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(result.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+  });
 });
 
 describe('handle sequence (Integration)', () => {

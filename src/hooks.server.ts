@@ -103,7 +103,18 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
 };
 
 export const headersHandler: Handle = async ({ event, resolve }) => {
-  const response = await resolve(event);
+  let response: Response;
+  try {
+    response = await resolve(event);
+  } catch (err) {
+    logger.error(
+      `[ERR] headersHandler caught error: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    response = new Response("Internal Server Error", {
+      status: 500,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
 
   // Documents must revalidate on every navigation: after a redeploy the old
   // build's hashed chunks are gone, and heuristically cached HTML makes
