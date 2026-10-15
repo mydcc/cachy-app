@@ -323,6 +323,15 @@ const PositionTpSlParams = z.object({
     { message: "At least one of tpPrice or slPrice is required" },
 );
 
+/*
+ * Params for modifying a position-wide plan — the same documented shape the
+ * create endpoint takes (`06_tp_sl.md` §Modify Position TP/SL Order). Used
+ * when a leg is added to a plan that already carries the other one: the venue
+ * allows a single position-wide plan per position, so the second `place_order`
+ * of a two-leg plan would replace the first, not extend it (BUG-0687).
+ */
+const ModifyPositionTpSlParams = PositionTpSlParams;
+
 const PlaceTpSlParams = z.object({
     symbol: z.string(),
     positionId: z.string(),
@@ -378,6 +387,18 @@ const PlacePositionRequest = BaseRequest.extend({
     params: PositionTpSlParams
 });
 
+/*
+ * BUG-0687 — the endpoint that adds a missing leg to the one position-wide
+ * plan a position may carry. Distinct action from `place-position` on purpose:
+ * the venue treats a second place as a replacement, and a caller that means
+ * "add to the existing plan" must not be able to reach the replacing endpoint
+ * by getting an action string wrong.
+ */
+const ModifyPositionRequest = BaseRequest.extend({
+    action: z.literal("modify-position"),
+    params: ModifyPositionTpSlParams
+});
+
 const PlaceRequest = BaseRequest.extend({
     action: z.literal("place"),
     params: PlaceTpSlParams
@@ -389,6 +410,7 @@ export const TpSlRequestSchema = z.discriminatedUnion("action", [
     CancelRequest,
     ModifyRequest,
     PlacePositionRequest,
+    ModifyPositionRequest,
     PlaceRequest
 ]);
 

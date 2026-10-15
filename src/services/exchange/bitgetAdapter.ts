@@ -248,6 +248,8 @@ const trading: TradingPort = {
         SUPPORTS.tpSl ? tradeService.modifyTpSlOrder(params) : refuse("tpSl", "modifyTpSlOrder"),
     placePositionTpSl: async (params) =>
         SUPPORTS.tpSl ? tradeService.placePositionTpSl(params) : refuse("tpSl", "placePositionTpSl"),
+    modifyPositionTpSl: async (params) =>
+        SUPPORTS.tpSl ? tradeService.modifyPositionTpSl(params) : refuse("tpSl", "modifyPositionTpSl"),
     placeTpSlOrder: async (params) =>
         SUPPORTS.tpSl ? tradeService.placeTpSlOrder(params) : refuse("tpSl", "placeTpSlOrder"),
 };

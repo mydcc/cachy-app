@@ -1223,6 +1223,9 @@ describe("orderGate — the transport is unreachable without a pass", () => {
         expect(mutatingActionOf({ action: "cancel" })).toBe("cancel");
         expect(mutatingActionOf({ action: "place" })).toBe("place");
         expect(mutatingActionOf({ action: "place-position" })).toBe("place-position");
+        // BUG-0687: the add-a-leg endpoint moves money like the others and
+        // must be classified, or it would travel without a pass.
+        expect(mutatingActionOf({ action: "modify-position" })).toBe("modify-position");
         expect(mutatingActionOf({ type: "history", action: "place" })).toBe("place");
         expect(mutatingActionOf({ type: "history", action: "place-position" })).toBe(
             "place-position",
@@ -1230,6 +1233,9 @@ describe("orderGate — the transport is unreachable without a pass", () => {
         expect(mutatingActionOf({}, "/api/tpsl?action=place")).toBe("place");
         expect(mutatingActionOf({}, "/api/tpsl?action=place-position")).toBe(
             "place-position",
+        );
+        expect(mutatingActionOf({}, "/api/tpsl?action=modify-position")).toBe(
+            "modify-position",
         );
         expect(mutatingActionOf({ type: "history" })).toBeNull();
         expect(mutatingActionOf({})).toBeNull();

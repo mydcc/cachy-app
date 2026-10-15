@@ -43,7 +43,14 @@ const handler = ({ request, url }: { request: Request; url: URL }) =>
  * writers sign a body. The action therefore rides in the URL, which is where
  * the handler learns which of the two it is looking at.
  */
-const WRITE_ACTIONS = new Set(["cancel", "modify", "place", "place-position"]);
+const WRITE_ACTIONS = new Set([
+  "cancel",
+  "modify",
+  "place",
+  "place-position",
+  // BUG-0687: adds a leg to an existing position-wide plan.
+  "modify-position",
+]);
 
 function callAction(action: string, params: Record<string, unknown>) {
   const writes = WRITE_ACTIONS.has(action);
@@ -143,6 +150,39 @@ describe("POST /api/tpsl uses the real Bitunix endpoints", () => {
       "https://fapi.bitunix.com/api/v1/futures/tpsl/position/place_order",
     );
     expect(options.method).toBe("POST");
+  });
+
+  it("modify-position -> POST /api/v1/futures/tpsl/position/modify_order", async () => {
+    // BUG-0687: the endpoint that adds a leg to the existing position-wide
+    // plan. `place-position` below is what replaced the plan instead, which
+    // is how the first leg got cancelled; the two must not be confusable.
+    const response = await callAction("modify-position", {
+      symbol: "BTCUSDT",
+      positionId: "pos-1",
+      tpPrice: "70000",
+      slPrice: "55000",
+    });
+
+    expect(response.status).toBe(200);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe(
+      "https://fapi.bitunix.com/api/v1/futures/tpsl/position/modify_order",
+    );
+    expect(options.method).toBe("POST");
+  });
+
+  it("still holds a modify-position to its own refinement", async () => {
+    // Same venue rule as `modify` and `place-position`: at least one of
+    // tpPrice/slPrice. Exercised against `modify-position` itself so a
+    // future schema split cannot leave this action unguarded.
+    const response = await callAction("modify-position", {
+      symbol: "BTCUSDT",
+      positionId: "pos-1",
+    });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Validation Error");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("a write forwards the signed bytes verbatim", async () => {

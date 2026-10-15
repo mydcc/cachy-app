@@ -128,6 +128,51 @@ describe("place request", () => {
     });
 });
 
+describe("modify-position request (BUG-0687)", () => {
+    function modifyPosition(params: Record<string, unknown>) {
+        return TpSlRequestSchema.safeParse({
+            ...BASE,
+            action: "modify-position",
+            params: { symbol: "BTCUSDT", positionId: "pos-1", ...params },
+        });
+    }
+
+    it("accepts both legs — the shape an add travels in", () => {
+        // The existing leg is carried over so the modify rewrites the plan's
+        // full leg set; sending only the new one would ask the venue to fill
+        // in the rest itself.
+        expect(
+            modifyPosition({ tpPrice: "70000", slPrice: "55000" }).success,
+        ).toBe(true);
+    });
+
+    it("accepts one leg, matching the venue's documented shape", () => {
+        expect(modifyPosition({ slPrice: "55000" }).success).toBe(true);
+    });
+
+    it("rejects a request with neither leg", () => {
+        expect(modifyPosition({}).success).toBe(false);
+    });
+
+    it("rejects a missing positionId", () => {
+        const result = TpSlRequestSchema.safeParse({
+            ...BASE,
+            action: "modify-position",
+            params: { symbol: "BTCUSDT", tpPrice: "70000" },
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it("rejects an orderId — this endpoint addresses the position, not the row", () => {
+        // `modify` addresses a row by orderId, `modify-position` the position.
+        // The schema not being a passthrough is what keeps the two payloads
+        // from being swapped by a future caller.
+        const result = modifyPosition({ orderId: "1", tpPrice: "70000" });
+        expect(result.success).toBe(true);
+        expect("orderId" in (result.success ? result.data.params : {})).toBe(false);
+    });
+});
+
 describe("the discriminated union still routes the existing actions", () => {
     it("accepts modify in the shape the venue actually documents", () => {
         const result = TpSlRequestSchema.safeParse({

@@ -116,6 +116,9 @@ export const MUTATING_ORDER_ACTIONS = new Set([
     "modify",
     "place",
     "place-position",
+    // BUG-0687: adding a leg to an existing position-wide plan moves money
+    // like the other writes and must carry a pass for the same reason.
+    "modify-position",
 ]);
 
 /**

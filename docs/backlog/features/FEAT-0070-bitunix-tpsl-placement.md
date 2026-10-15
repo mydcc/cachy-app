@@ -50,10 +50,14 @@ WS/refetch, not the REST response alone.
       venue enforces that bound).
 - [x] The API constraint "one position-TP/SL per position" is reflected in the
       UI: a leg already covered by a position-wide plan
-      (`scopeGuess === "position"`, BUG-0292) shows its price with an Edit
-      link into the existing `TpSlEditModal` instead of a second create
-      input. A partial leg does not gate this — several partial plans may
-      coexist per the API docs, so only the position-wide type is limited.
+      (`scopeGuess === "position"`, BUG-0292) is shown prefilled in the same
+      form as the other one, and a single save sends both. A partial leg does
+      not gate this — several partial plans may coexist per the API docs, so
+      only the position-wide type is limited. (The original shape of this
+      criterion — a read-only price with an Edit link into `TpSlEditModal` —
+      was superseded by [`BUG-0688`](../bugs/BUG-0688-one-form-per-position-wide-plan.md):
+      two per-leg dialogs around one venue plan read as two objects and closed
+      both on one save.)
 - [x] Trigger type (`LAST_PRICE`/`MARK_PRICE`) is selectable, defaulting to
       `MARK_PRICE` — the same default `placePositionTpSl`/`placeTpSlOrder`
       and the (now-fixed, BUG-0293) modify flow already use.
@@ -63,12 +67,10 @@ WS/refetch, not the REST response alone.
 - Trailing stops (no endpoint in the current doc crawl; M3 lists them —
   revisit when the API supports it or emulate client-side under a separate
   item).
-- Adding a missing leg to an *existing* position-wide plan without going
-  through the single-leg edit modal. `POST /tpsl/position/modify_order`
-  (the endpoint that would do this in one call) is not integrated —
-  `INTEGRATION_STATUS.md` line 92. The edit-instead-of-create path this item
-  ships works today because a leg-level edit through `tpsl/modify_order`
-  changes the price and quantity of one leg of that same position-wide row.
+- Adding a missing leg to an *existing* position-wide plan is now wired
+  (BUG-0687, `modify-position`): the create modal sends both legs through
+  `POST /tpsl/position/modify_order` when one is already covered, because a
+  second `place-order` is a replacement on this venue.
 - Reconciling this feature's `scopeGuess` inference against a live account.
   Needs credentials and an open position; the risk if it is wrong is
   documented on BUG-0292 (a refused create, or a second plan where the

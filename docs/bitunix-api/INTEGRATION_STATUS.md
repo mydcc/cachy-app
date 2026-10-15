@@ -93,7 +93,7 @@ exchange.
 | `POST …/tpsl/modify_order` | ✅ | [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "modify"`); UI: [TpSlEditModal](../../src/components/shared/TpSlEditModal.svelte). Wire format fixed in BUG-0293 — it previously sent `{symbol, planType, triggerPrice}`, a shape this endpoint does not document. |
 | `POST …/tpsl/place_order` | ✅ | FEAT-0070: [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "place"`); UI: [TpSlCreateModal](../../src/components/shared/TpSlCreateModal.svelte) (partial section) |
 | `POST …/tpsl/position/place_order` | ✅ | FEAT-0070: [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "place-position"`); UI: [TpSlCreateModal](../../src/components/shared/TpSlCreateModal.svelte) (position-wide section) |
-| `POST …/tpsl/position/modify_order` | ❌ | Adding a missing leg to an existing position-wide plan; not wired. `TpSlCreateModal` routes an already-covered leg to the single-leg `TpSlEditModal` instead, which uses `tpsl/modify_order`. |
+| `POST …/tpsl/position/modify_order` | ✅ | BUG-0687: [routes/api/tpsl](../../src/routes/api/tpsl/+server.ts) (`action: "modify-position"`); UI: [TpSlCreateModal](../../src/components/shared/TpSlCreateModal.svelte) — with one leg already covered, both legs travel through this action instead of a second `place-position`, which the venue treats as a replacement. |
 
 ### Miscellaneous
 

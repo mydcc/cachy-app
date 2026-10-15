@@ -94,8 +94,8 @@ export const ROUTE_SIGNING_PLAN = {
   "/api/positions": { signed: "query", venues: ["bitunix", "bitget"] },
   "/api/account": { signed: "query", venues: ["bitunix", "bitget"] },
   // Read actions (`pending`, `history`) reach Bitunix as a signed GET; the
-  // four write actions sign their body and POST it. The `query` default covers
-  // the two readers, the map the four writers.
+  // write actions sign their body and POST it. The `query` default covers
+  // the two readers, the map the writers.
   "/api/tpsl": {
     signed: "query",
     signedByAction: {
@@ -103,6 +103,11 @@ export const ROUTE_SIGNING_PLAN = {
       modify: "body",
       place: "body",
       "place-position": "body",
+      // BUG-0687: the endpoint that adds a leg to an existing position-wide
+      // plan; `place-position` replaces it instead, so the caller that means
+      // "add" resolves to this action and the shape below must exist or the
+      // request would sign as a query and be refused as a divergence.
+      "modify-position": "body",
     },
     venues: ["bitunix"],
   },

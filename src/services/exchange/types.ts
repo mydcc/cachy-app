@@ -342,6 +342,23 @@ export interface TradingPort {
         tickSize?: Decimal;
     }): Promise<unknown>;
 
+    /**
+     * Adds a leg to the existing position-wide plan — BUG-0687.
+     *
+     * The venue allows one position-wide plan per position, so the second
+     * leg cannot be created with a second `placePositionTpSl` — that call
+     * would replace the plan and drop the leg that was already set. Callers
+     * pass both legs here instead.
+     */
+    modifyPositionTpSl(params: {
+        symbol: string;
+        positionId: string;
+        takeProfit?: { price: Decimal; stopType?: "LAST_PRICE" | "MARK_PRICE" };
+        stopLoss?: { price: Decimal; stopType?: "LAST_PRICE" | "MARK_PRICE" };
+        context?: { side: "long" | "short"; entryPrice: Decimal };
+        tickSize?: Decimal;
+    }): Promise<unknown>;
+
     /** Creates a partial TP/SL plan with an explicit quantity (FEAT-0070). */
     placeTpSlOrder(params: {
         symbol: string;

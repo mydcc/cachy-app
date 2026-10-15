@@ -2,7 +2,7 @@
 id: BUG-0687
 title: Setting the second leg of a position-wide plan deletes the first one
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
