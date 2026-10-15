@@ -189,6 +189,46 @@ describe("urlValidator", () => {
         vi.resetModules();
       }
     });
+
+    it("names the underlying dial failure code so a 500 stays diagnosable", async () => {
+      vi.resetModules();
+      vi.doMock("undici", () => ({
+        Agent: class {
+          close(): Promise<void> {
+            return Promise.resolve();
+          }
+        },
+      }));
+      vi.doMock("node:dns", () => {
+        const lookupFn = (
+          _hostname: string,
+          _options: unknown,
+          callback: (err: null, addresses: unknown) => void,
+        ) => callback(null, [{ address: "93.184.216.34", family: 4 }]);
+        const promises = {
+          lookup: async () => [{ address: "93.184.216.34", family: 4 }],
+        };
+        return { default: { lookup: lookupFn, promises }, lookup: lookupFn, promises };
+      });
+      const refused = new TypeError("fetch failed", {
+        cause: Object.assign(new Error("connect ECONNREFUSED"), {
+          code: "ECONNREFUSED",
+        }),
+      });
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(refused));
+      try {
+        const { safeFetch } = await import("./urlValidator");
+        // Public IP literal: dns.lookup() resolves it without network access.
+        await expect(safeFetch("https://93.184.216.34/")).rejects.toThrow(
+          "fetch failed [ECONNREFUSED]",
+        );
+      } finally {
+        vi.unstubAllGlobals();
+        vi.doUnmock("undici");
+        vi.doUnmock("node:dns");
+        vi.resetModules();
+      }
+    });
   });
 
   describe("getSafeDispatcher undici lookup contract", () => {
@@ -333,6 +373,42 @@ describe("urlValidator", () => {
     // simulate the proxy hostname rebinding after construction.
     let dialTable: Record<string, Array<{ address: string; family: number }>> = {};
 
+    // Answers the reachability probe of a configured proxy, so a test can
+    // simulate a proxy that is configured but not listening.
+    let proxyProbeReachable = true;
+    let proxyProbeCalls = 0;
+
+    interface FakeSocket {
+      once(event: string, callback: () => void): FakeSocket;
+      setTimeout(ms: number, callback: () => void): FakeSocket;
+      removeAllListeners(): FakeSocket;
+      destroy(): void;
+      fire(event: string): void;
+    }
+
+    function makeSocket(): FakeSocket {
+      const listeners: Record<string, (() => void) | undefined> = {};
+      const socket: FakeSocket = {
+        once(event, callback) {
+          listeners[event] = callback;
+          return socket;
+        },
+        setTimeout(_ms, callback) {
+          listeners.timeout = callback;
+          return socket;
+        },
+        removeAllListeners() {
+          for (const key of Object.keys(listeners)) delete listeners[key];
+          return socket;
+        },
+        destroy() {},
+        fire(event) {
+          listeners[event]?.();
+        },
+      };
+      return socket;
+    }
+
     const isIpLiteral = (host: string): boolean =>
       host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 
@@ -401,6 +477,19 @@ describe("urlValidator", () => {
         };
       });
 
+      vi.doMock("node:net", () => ({
+        default: {
+          connect: () => {
+            proxyProbeCalls += 1;
+            const socket = makeSocket();
+            queueMicrotask(() =>
+              socket.fire(proxyProbeReachable ? "connect" : "error"),
+            );
+            return socket;
+          },
+        },
+      }));
+
       const { getSafeDispatcher } = await import("./urlValidator");
       await getSafeDispatcher();
       return built;
@@ -419,8 +508,11 @@ describe("urlValidator", () => {
 
     afterEach(() => {
       restoreProxyEnv();
+      proxyProbeReachable = true;
+      proxyProbeCalls = 0;
       vi.doUnmock("undici");
       vi.doUnmock("node:dns");
+      vi.doUnmock("node:net");
       vi.resetModules();
     });
 
@@ -441,6 +533,34 @@ describe("urlValidator", () => {
 
       expect(built).toHaveLength(1);
       expect(built[0].kind).toBe("agent");
+    });
+
+    it("falls back to a direct Agent when the configured proxy does not answer", async () => {
+      clearProxyEnv();
+      proxyProbeReachable = false;
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const built = await buildDispatcher({
+          HTTPS_PROXY: "http://proxy.internal:3128",
+        });
+
+        expect(built).toHaveLength(1);
+        expect(built[0].kind).toBe("agent");
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining("proxy.internal"),
+        );
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it("probes a configured proxy and stays quiet without one", async () => {
+      clearProxyEnv();
+      await buildDispatcher({});
+      expect(proxyProbeCalls).toBe(0);
+
+      await buildDispatcher({ HTTPS_PROXY: "http://proxy.internal:3128" });
+      expect(proxyProbeCalls).toBe(1);
     });
 
     it("exempts the configured proxy host but still blocks a private target", async () => {

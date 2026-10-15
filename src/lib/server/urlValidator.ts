@@ -16,6 +16,7 @@
  */
 
 import dns from "node:dns";
+import net from "node:net";
 
 /**
  * Checks whether an IPv4 address (as 4 numeric octets) falls into private,
@@ -251,6 +252,47 @@ function configuredProxyHosts(): Set<string> {
   return hosts;
 }
 
+/**
+ * How long the reachability probe of a configured proxy may take. Short on
+ * purpose: the probe runs once, before the first guarded request, and a proxy
+ * that does not accept a TCP connection within this window is treated as
+ * unusable rather than waited for.
+ */
+const PROXY_PROBE_TIMEOUT_MS = 1000;
+
+/**
+ * Whether the configured proxy accepts a TCP connection right now.
+ *
+ * A proxy variable that is present but dead is worse than no proxy variable at
+ * all: adopting it turns every guarded request into a connection error, while
+ * the same deployment reached the network fine through a direct connection
+ * (verified in production on a host whose direct egress works). So the value is
+ * checked before it is trusted. The probe is a plain TCP connect — it does not
+ * speak HTTP, which would be both slower and stricter than needed here.
+ */
+function probeProxy(proxy: URL | null): Promise<boolean> {
+  if (!proxy) return Promise.resolve(false);
+  const port = proxy.port
+    ? Number(proxy.port)
+    : proxy.protocol === "https:"
+      ? 443
+      : 80;
+  return new Promise<boolean>((resolve) => {
+    const socket = net.connect({
+      host: normalizeHostname(proxy.hostname),
+      port,
+    });
+    const settle = (reachable: boolean): void => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolve(reachable);
+    };
+    socket.setTimeout(PROXY_PROBE_TIMEOUT_MS, () => settle(false));
+    socket.once("connect", () => settle(true));
+    socket.once("error", () => settle(false));
+  });
+}
+
 let _safeDispatcher: unknown = null;
 
 /**
@@ -265,11 +307,9 @@ let _trustedProxyAddresses: ReadonlySet<string> = new Set<string>();
  * ensuring no connection can be established to private/reserved targets while avoiding
  * eager module evaluation conflicts in test runners.
  *
- * The dispatcher is built from the environment's proxy configuration
- * (`EnvHttpProxyAgent`) rather than a bare `Agent`. Both were observed on a
- * deployment where plain `fetch` reached every host while `safeFetch` failed
- * every host with "fetch failed": the environment routes egress through a proxy
- * that only the global dispatcher honored, and a bare `Agent` walked past it.
+ * Egress is routed through the environment's proxy (`EnvHttpProxyAgent`) only
+ * when that proxy is configured *and* answering; see `probeProxy` for why a
+ * configured-but-dead value must not be adopted blindly.
  */
 export async function getSafeDispatcher(): Promise<unknown> {
   if (!_safeDispatcher) {
@@ -278,6 +318,16 @@ export async function getSafeDispatcher(): Promise<unknown> {
       const Agent = undici.Agent;
       const proxyHosts = configuredProxyHosts();
       const { http, https } = configuredProxyUrls();
+
+      // Adopt the proxy only if it is actually answering. The HTTPS entry is
+      // the one that matters for the AI routes, so it is probed first.
+      const probeTarget = https ?? http;
+      const useProxy = probeTarget !== null && (await probeProxy(probeTarget));
+      if (probeTarget && !useProxy) {
+        console.warn(
+          `[urlValidator] configured egress proxy ${probeTarget.host} is not reachable; using a direct connection`,
+        );
+      }
 
       // Pin the proxy's own addresses once, now. Exempting the proxy hostname
       // wholesale would let a DNS rebind of that name aim the exemption at an
@@ -359,7 +409,7 @@ export async function getSafeDispatcher(): Promise<unknown> {
       };
 
       const EnvHttpProxyAgent = optionalExport("EnvHttpProxyAgent");
-      if ((http || https) && typeof EnvHttpProxyAgent === "function") {
+      if (useProxy && typeof EnvHttpProxyAgent === "function") {
         _safeDispatcher = new (EnvHttpProxyAgent as new (opts: unknown) => unknown)({
           connect: { lookup },
           ...(http ? { httpProxy: http.href } : {}),
@@ -373,6 +423,26 @@ export async function getSafeDispatcher(): Promise<unknown> {
     }
   }
   return _safeDispatcher;
+}
+
+/**
+ * undici reports every dial failure as a bare `TypeError("fetch failed")` and
+ * keeps the real reason in `cause`. Its *code* — never an address — is the one
+ * piece of information that makes a 500 from an AI route diagnosable from
+ * outside the server, so it is appended to the message. Anything without a code
+ * is passed through untouched.
+ */
+function describeFetchFailure(error: unknown): unknown {
+  if (!(error instanceof Error)) return error;
+  const cause = (error as { cause?: { code?: unknown; name?: unknown } }).cause;
+  const code =
+    typeof cause?.code === "string"
+      ? cause.code
+      : typeof cause?.name === "string" && cause.name !== "Error"
+        ? cause.name
+        : null;
+  if (!code) return error;
+  return new Error(`${error.message} [${code}]`, { cause: error });
 }
 
 /**
@@ -392,6 +462,10 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
     // re-resolved to an internal address (DNS rebinding/TOCTOU) before connect.
     throw new Error("SSRF guard unavailable");
   }
-  // @ts-expect-error Node fetch supports dispatcher option via undici
-  return fetch(url, { ...init, dispatcher });
+  try {
+    // @ts-expect-error Node fetch supports dispatcher option via undici
+    return await fetch(url, { ...init, dispatcher });
+  } catch (error) {
+    throw describeFetchFailure(error);
+  }
 }
