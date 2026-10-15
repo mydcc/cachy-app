@@ -522,4 +522,16 @@ describe("apiKeyUrlForBaseUrl", () => {
   it("does not match a vendor name that only appears in a foreign host", () => {
     expect(apiKeyUrlForBaseUrl("https://api.openai.com.attacker.example/v1")).toBeNull();
   });
+
+  it("folds a trailing root dot before matching", () => {
+    expect(apiKeyUrlForBaseUrl("https://api.openai.com./v1")).toBe(
+      "https://platform.openai.com/api-keys",
+    );
+  });
+
+  it("does not match a homoglyph host that IDNA-encodes away from the vendor", () => {
+    // Cyrillic 'а' in "аpi": it punycode-encodes to a different host, so the
+    // link is withheld rather than shown for a lookalike.
+    expect(apiKeyUrlForBaseUrl("https://\u0430pi.openai.com/v1")).toBeNull();
+  });
 });

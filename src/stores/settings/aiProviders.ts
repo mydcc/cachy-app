@@ -457,7 +457,10 @@ const API_KEY_URLS: ReadonlyArray<{ host: string; url: string }> = [
 /**
  * The key-creation page for a base URL, or null when the vendor is unknown.
  * Matching is on the hostname, so a preset keeps its link after the user edits
- * the path, and a reserved or unparseable URL resolves to no link at all.
+ * the path; a subdomain of the vendor host (`api.commandcode.ai`) still
+ * matches, while a host that merely embeds the name (`api.openai.com.evil.tld`)
+ * does not. Case, IPv6 brackets and a trailing root dot are folded, and a
+ * reserved or unparseable URL resolves to no link at all.
  */
 export function apiKeyUrlForBaseUrl(
   baseUrl: string | null | undefined,
@@ -465,24 +468,30 @@ export function apiKeyUrlForBaseUrl(
   const trimmed = text(baseUrl).trim();
   if (!trimmed) return null;
 
-  let host: string;
+  let rawHost: string;
   try {
-    host = new URL(trimmed).hostname.toLowerCase();
+    rawHost = new URL(trimmed).hostname;
   } catch {
     // A scheme-less base URL is accepted elsewhere in the app
     // (`resolveProviderEndpoint` prepends one), so match it here too rather
     // than silently dropping the link.
     try {
-      host = new URL(`https://${trimmed}`).hostname.toLowerCase();
+      rawHost = new URL(`https://${trimmed}`).hostname;
     } catch {
       return null;
     }
   }
 
+  // `URL.hostname` already lower-cases and IDNA-encodes, but a trailing root
+  // dot survives; a homoglyph host never equals a table entry and so misses.
+  const host = rawHost.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.+$/, "");
+
   const match = API_KEY_URLS.find(
     (entry) => host === entry.host || host.endsWith(`.${entry.host}`),
   );
-  return match?.url ?? null;
+  // The table is static and https, but the value becomes an anchor `href` at
+  // the call site, so the scheme is asserted here as well.
+  return match && /^https:\/\//i.test(match.url) ? match.url : null;
 }
 
 /** True when the entry carries what the send path requires. */

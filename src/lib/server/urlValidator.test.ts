@@ -293,6 +293,8 @@ describe("urlValidator", () => {
       "HTTP_PROXY",
       "https_proxy",
       "HTTPS_PROXY",
+      "all_proxy",
+      "ALL_PROXY",
       "no_proxy",
       "NO_PROXY",
     ] as const;
@@ -327,10 +329,29 @@ describe("urlValidator", () => {
       opts: { connect?: { lookup?: DispatcherLookup }; httpsProxy?: string; httpProxy?: string };
     }
 
+    // Answers the dial-time `dns.lookup` mock and stays mutable so a test can
+    // simulate the proxy hostname rebinding after construction.
+    let dialTable: Record<string, Array<{ address: string; family: number }>> = {};
+
+    const isIpLiteral = (host: string): boolean =>
+      host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+
+    const ipLiteralRecord = (
+      host: string,
+    ): Array<{ address: string; family: number }> => [
+      { address: host, family: host.includes(":") ? 6 : 4 },
+    ];
+
+    const resolveMock = (
+      host: string,
+    ): Array<{ address: string; family: number }> =>
+      dialTable[host] ?? (isIpLiteral(host) ? ipLiteralRecord(host) : []);
+
     /**
      * Builds the dispatcher with `undici` and `node:dns` replaced by doubles, and
      * returns what was constructed. `dns` answers from a fixed table so the
-     * private-range guard can be exercised without a live lookup.
+     * private-range guard can be exercised without a live lookup; an IP literal
+     * resolves to itself.
      */
     async function buildDispatcher(
       proxyEnv: Record<string, string>,
@@ -360,7 +381,7 @@ describe("urlValidator", () => {
         },
       }));
       vi.doMock("node:dns", () => {
-        const table: Record<string, Array<{ address: string; family: number }>> = {
+        dialTable = {
           "proxy.internal": [{ address: "10.0.0.5", family: 4 }],
           "internal.example": [{ address: "10.0.0.6", family: 4 }],
           "public.example": [{ address: "93.184.216.34", family: 4 }],
@@ -369,8 +390,10 @@ describe("urlValidator", () => {
           hostname: string,
           _options: unknown,
           callback: (err: Error | null, addresses: unknown) => void,
-        ) => callback(null, table[hostname] ?? []);
-        const promises = { lookup: async () => [] };
+        ) => callback(null, resolveMock(hostname));
+        const promises = {
+          lookup: async (hostname: string) => resolveMock(hostname),
+        };
         return {
           default: { lookup: lookupFn, promises },
           lookup: lookupFn,
@@ -442,6 +465,59 @@ describe("urlValidator", () => {
       expect(publicTarget.addresses).toEqual([
         { address: "93.184.216.34", family: 4 },
       ]);
+    });
+
+    it("treats ALL_PROXY as the fallback for both schemes", async () => {
+      clearProxyEnv();
+      const built = await buildDispatcher({
+        ALL_PROXY: "http://proxy.internal:3128",
+      });
+
+      expect(built).toHaveLength(1);
+      expect(built[0].kind).toBe("env-proxy");
+      expect(built[0].opts.httpsProxy).toBe("http://proxy.internal:3128/");
+      expect(built[0].opts.httpProxy).toBe("http://proxy.internal:3128/");
+    });
+
+    it("normalizes case and a trailing root dot on the proxy host", async () => {
+      clearProxyEnv();
+      const built = await buildDispatcher({
+        HTTPS_PROXY: "http://Proxy.Internal.:3128",
+      });
+      const lookup = built[0].opts.connect?.lookup;
+      if (!lookup) throw new Error("lookup was not wired into the dispatcher");
+
+      const viaProxy = await invoke(lookup, "proxy.internal");
+      expect(viaProxy.err).toBeNull();
+    });
+
+    it("exempts an IPv6 proxy host regardless of its bracket form", async () => {
+      clearProxyEnv();
+      const built = await buildDispatcher({
+        HTTPS_PROXY: "http://[2001:db8::1]:3128",
+      });
+      const lookup = built[0].opts.connect?.lookup;
+      if (!lookup) throw new Error("lookup was not wired into the dispatcher");
+
+      // `URL.hostname` keeps the brackets; undici dials with the bare literal.
+      const viaProxy = await invoke(lookup, "2001:db8::1");
+      expect(viaProxy.err).toBeNull();
+    });
+
+    it("refuses a proxy host that rebinds to an unpinned private address", async () => {
+      clearProxyEnv();
+      const built = await buildDispatcher({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const lookup = built[0].opts.connect?.lookup;
+      if (!lookup) throw new Error("lookup was not wired into the dispatcher");
+
+      // The proxy was pinned to 10.0.0.5 at construction; a later rebind to
+      // another private address must fall back under the normal guard.
+      dialTable["proxy.internal"] = [{ address: "10.0.0.6", family: 4 }];
+
+      const rebinding = await invoke(lookup, "proxy.internal");
+      expect(rebinding.err?.message).toContain("SSRF guard");
     });
   });
 });

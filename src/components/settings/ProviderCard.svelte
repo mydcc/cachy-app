@@ -58,6 +58,9 @@
             : "direct",
     );
     let flavor = $derived<AiApiFlavor>(entry?.flavor ?? "openai-chat");
+    // The prop is derived from a static table today, but it ends up as an
+    // anchor `href`, so only an http(s) value is ever rendered.
+    let hasSafeKeyLink = $derived(/^https?:\/\//i.test(apiKeyUrl));
 </script>
 
 {#if entry}
@@ -66,12 +69,13 @@
             <div class="field-group">
                 <div class="field-label-row">
                     <label for="{entryId}-key">{keyLabel}</label>
-                    {#if apiKeyUrl}
+                    {#if hasSafeKeyLink}
                         <a
                             class="key-link"
                             href={apiKeyUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            referrerpolicy="no-referrer"
                         >
                             {apiKeyUrlLabel}<span aria-hidden="true">↗</span>
                         </a>
@@ -85,13 +89,14 @@
                     placeholder={keyPlaceholder}
                 />
             </div>
-        {:else if apiKeyUrl}
+        {:else if hasSafeKeyLink}
             <div class="field-group">
                 <a
                     class="key-link"
                     href={apiKeyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    referrerpolicy="no-referrer"
                 >
                     {apiKeyUrlLabel}<span aria-hidden="true">↗</span>
                 </a>

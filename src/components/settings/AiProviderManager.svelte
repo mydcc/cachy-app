@@ -194,12 +194,13 @@
                 <label for={`cp-key-${provider.id}`}
                   >{$_("settings.ai.customProviders.apiKey")}</label
                 >
-                {#if apiKeyUrl}
+                {#if apiKeyUrl && /^https?:\/\//i.test(apiKeyUrl)}
                   <a
                     class="key-link"
                     href={apiKeyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    referrerpolicy="no-referrer"
                   >
                     {$_("settings.ai.createApiKey")}<span aria-hidden="true"
                       >↗</span

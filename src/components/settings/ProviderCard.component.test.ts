@@ -108,7 +108,14 @@ describe("ProviderCard links to the vendor's key page", () => {
         expect(link).toBeTruthy();
         expect(link?.target).toBe("_blank");
         expect(link?.rel).toContain("noopener");
+        expect(link?.referrerPolicy).toBe("no-referrer");
         expect(link?.textContent).toContain("Create API key");
+    });
+
+    it("renders no link when the target is not an http(s) URL", async () => {
+        await render({ apiKeyUrl: "javascript:alert(1)" });
+
+        expect(host.querySelector("a[href]")).toBeNull();
     });
 
     it("renders no link when the vendor has no key page", async () => {

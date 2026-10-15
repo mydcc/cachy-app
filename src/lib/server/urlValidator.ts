@@ -205,33 +205,60 @@ function readProxyUrl(...keys: string[]): URL | null {
 }
 
 function configuredProxyUrls(): { http: URL | null; https: URL | null } {
+  // `ALL_PROXY` (and its lowercase form) is the documented fallback name that
+  // undici's `EnvHttpProxyAgent` honors. Sampling only the protocol-specific
+  // names would miss a deployment that configures egress exclusively through
+  // it, and the dispatcher's own idea of "which host is the proxy" must agree
+  // with the agent's.
+  const all = readProxyUrl("all_proxy", "ALL_PROXY");
   return {
-    http: readProxyUrl("http_proxy", "HTTP_PROXY"),
-    https: readProxyUrl("https_proxy", "HTTPS_PROXY"),
+    http: readProxyUrl("http_proxy", "HTTP_PROXY") ?? all,
+    https: readProxyUrl("https_proxy", "HTTPS_PROXY") ?? all,
   };
 }
 
 /**
- * Proxy hostnames from the environment, exempt from the private-range rule.
- *
- * A deployment that reaches the network only through a proxy answers every
- * dial from a bare `Agent` with "fetch failed", while the global `fetch` —
- * which follows the environment's proxy configuration — keeps working. The
- * proxy is operator-configured infrastructure rather than a target chosen by
- * the caller, and it legitimately sits on a private address
- * (`http://proxy.internal:3128`), so only it is exempt. Every target URL still
- * passes `isUrlAllowedAsync` and this guard.
+ * Canonical hostname form for comparisons: lower case, no IPv6 brackets, no
+ * trailing root dot. `URL.hostname` already lower-cases and IDNA-encodes, but a
+ * dial-time hostname and an environment value can still differ in case, carry
+ * brackets around an IPv6 literal, or end in `.`.
+ */
+function normalizeHostname(hostname: string): string {
+  return hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.+$/, "");
+}
+
+/**
+ * Proxy hostnames from the environment. A deployment that reaches the network
+ * only through a proxy answers every dial from a bare `Agent` with "fetch
+ * failed", while the global `fetch` — which follows the environment's proxy
+ * configuration — keeps working. The proxy is operator-configured
+ * infrastructure rather than a target chosen by the caller, and it
+ * legitimately sits on a private address (`http://proxy.internal:3128`), so
+ * its own resolved addresses are exempt. The exemption is pinned to the
+ * addresses collected in `getSafeDispatcher`, never applied to the hostname
+ * alone. Every target URL still passes `isUrlAllowedAsync` and this guard.
  */
 function configuredProxyHosts(): Set<string> {
   const hosts = new Set<string>();
   const { http, https } = configuredProxyUrls();
   for (const url of [http, https]) {
-    if (url) hosts.add(url.hostname.replace(/^\[|\]$/g, "").toLowerCase());
+    if (url) hosts.add(normalizeHostname(url.hostname));
   }
   return hosts;
 }
 
 let _safeDispatcher: unknown = null;
+
+/**
+ * Addresses the configured proxy actually answered with at construction time.
+ * Only these are exempt from the private-range rule, and only when the dial
+ * hostname is itself a configured proxy host.
+ */
+let _trustedProxyAddresses: ReadonlySet<string> = new Set<string>();
 
 /**
  * Lazily initializes the safe undici dispatcher with an embedded lookup guard at dial time,
@@ -251,6 +278,32 @@ export async function getSafeDispatcher(): Promise<unknown> {
       const Agent = undici.Agent;
       const proxyHosts = configuredProxyHosts();
       const { http, https } = configuredProxyUrls();
+
+      // Pin the proxy's own addresses once, now. Exempting the proxy hostname
+      // wholesale would let a DNS rebind of that name aim the exemption at an
+      // internal address, so the exemption is scoped to the addresses the
+      // operator-configured proxy actually answers with. Any later resolution
+      // of the same name to another address falls back under the normal
+      // private-range rule instead of being waved through.
+      const trustedProxyAddresses = new Set<string>();
+      for (const proxyHost of proxyHosts) {
+        try {
+          // `all: true` yields an address array; the cast also tolerates a
+          // test double that answers with the single-record shape.
+          const resolved = (await dns.promises.lookup(proxyHost, {
+            all: true,
+          })) as unknown as Array<{ address?: string } | string>;
+          for (const record of resolved ?? []) {
+            const address =
+              typeof record === "string" ? record : record?.address;
+            if (address) trustedProxyAddresses.add(address);
+          }
+        } catch {
+          // An unresolvable proxy host earns no exemption. The guard stays
+          // strict, which fails the dial closed instead of opening a hole.
+        }
+      }
+      _trustedProxyAddresses = trustedProxyAddresses;
       // Optional exports are read defensively: a partial test double of
       // `undici` (as in urlValidator.test.ts) has no such binding, and an
       // ESM-style namespace throws on an unknown named read. That must not
@@ -278,20 +331,23 @@ export async function getSafeDispatcher(): Promise<unknown> {
         // undefined address and fails every dial with "fetch failed". The flag
         // is read back from the options rather than assumed, so the guard holds
         // under either call convention.
-        const isProxyHost = proxyHosts.has(hostname.toLowerCase());
+        const isProxyHost = proxyHosts.has(normalizeHostname(hostname));
         dns.lookup(hostname, { ...(options ?? {}), all: true }, (err, addresses) => {
           if (err) return callback(err, "");
           if (!addresses || addresses.length === 0) {
             return callback(new Error("ENOTFOUND"), "");
           }
-          if (!isProxyHost) {
-            for (const addr of addresses) {
-              if (isPrivateOrReservedHost(addr.address)) {
-                return callback(
-                  new Error("Blocked target address (SSRF guard)"),
-                  "",
-                );
-              }
+          for (const addr of addresses) {
+            // Exempt only the address(es) the proxy host was pinned to; a
+            // rebind to any other address is treated as a normal target.
+            if (isProxyHost && _trustedProxyAddresses.has(addr.address)) {
+              continue;
+            }
+            if (isPrivateOrReservedHost(addr.address)) {
+              return callback(
+                new Error("Blocked target address (SSRF guard)"),
+                "",
+              );
             }
           }
           if (options?.all) {
