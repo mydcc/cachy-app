@@ -37,7 +37,7 @@
       nameKey,
       type CatalogueEntry,
    } from "../../lib/alerts/indicatorCatalogue";
-   import { computeLessonSeries } from "../../lib/academy/indicatorLessonSeries";
+   import { computeLessonSeries, type LessonSeries } from "../../lib/academy/indicatorLessonSeries";
    import {
       isDrawableTimeframe,
       readStoredLessonTimeframe,
@@ -122,8 +122,9 @@
     */
    $effect(() => {
       const current = symbol;
-      if (!current) return;
-      const channels = [`kline_${sharedTf}`, `kline_${biasTf}`];
+      const live = showLiveChart;
+      if (!current || !live) return;
+      const channels = [...new Set([`kline_${sharedTf}`, `kline_${biasTf}`])];
       untrack(() => {
          for (const channel of channels) marketWatcher.register(current, channel, "chart");
       });
@@ -188,13 +189,6 @@
       return null;
    }
 
-   function lineValue(entryId: string, bars: readonly Bar[], line: string): number | null {
-      const entry = entryFor(entryId);
-      if (!entry || bars.length === 0) return null;
-      const series = computeLessonSeries(entry, toEvalCandles(bars), sharedTf);
-      return lastValue(series.lines.find((item) => item.name === line)?.values);
-   }
-
    function directionOf(current: number | null, previous: number | null): string {
       if (current === null || previous === null) return text("academy.structure.read.noData");
       if (current > previous) return text("academy.structure.read.rising");
@@ -223,6 +217,25 @@
    let breaks = $derived(detectBreaks(closes, swings));
    let lastBreak = $derived(breaks.length > 0 ? breaks[breaks.length - 1] : null);
    let higherCloses = $derived(higherBars.map((bar) => bar.close));
+
+   /*
+    * Indicator series, computed once per data change — never in the template.
+    * The `{@const}` blocks below only read these deriveds; a live tick
+    * recomputes each series once here instead of once per reading plus once
+    * per child chart.
+    */
+   function seriesFor(entryId: string, source: readonly Bar[], tf: string): LessonSeries | null {
+      const entry = entryFor(entryId);
+      if (!entry || source.length === 0) return null;
+      return computeLessonSeries(entry, toEvalCandles(source), tf);
+   }
+
+   let emaSeries = $derived(seriesFor("ema", higherBars, biasTf));
+   let adxSeries = $derived(seriesFor("adx", bars, sharedTf));
+   let chopSeries = $derived(seriesFor("choppiness", bars, sharedTf));
+   let bollingerSeries = $derived(seriesFor("bollinger", bars, sharedTf));
+   let atrSeries = $derived(seriesFor("atr", bars, sharedTf));
+   let higherSwings = $derived(findSwings(higherBars.map((bar) => ({ high: bar.high, low: bar.low, close: bar.close }))));
 
    interface Section {
       key: "s1" | "s2" | "s3" | "s4a" | "s4b";
@@ -264,24 +277,35 @@
    }
 
    function markersForChart(): { time: number; position: "aboveBar" | "belowBar"; color: string; shape: "arrowUp" | "arrowDown" | "circle"; text?: string }[] {
-      const swingMarks = swings.slice(-12).map((swing) => ({
-         time: Math.floor(bars[swing.index]?.time ?? 0) / 1000,
-         position: "aboveBar" as const,
-         color: cssColor("--accent-color", "#2962ff"),
-         shape: "circle" as const,
-      }));
-      const breakMarks = breaks.map((event) => ({
-         time: Math.floor(bars[event.index]?.time ?? 0) / 1000,
-         position: (event.kind === "BOS-up" || event.kind === "CHOCH-up" ? "belowBar" : "aboveBar") as "aboveBar" | "belowBar",
-         color: markerColor(event.kind),
-         shape: (event.kind === "BOS-up" || event.kind === "CHOCH-up" ? "arrowUp" : "arrowDown") as "arrowUp" | "arrowDown",
-      }));
+      const swingMarks = swings.slice(-12).flatMap((swing) => {
+         const timeMs = bars[swing.index]?.time;
+         if (timeMs === undefined) return [];
+         return [
+            {
+               time: Math.floor(timeMs / 1000),
+               position: "aboveBar" as const,
+               color: cssColor("--accent-color", "#2962ff"),
+               shape: "circle" as const,
+            },
+         ];
+      });
+      const breakMarks = breaks.flatMap((event) => {
+         const timeMs = bars[event.index]?.time;
+         if (timeMs === undefined) return [];
+         return [
+            {
+               time: Math.floor(timeMs / 1000),
+               position: (event.kind === "BOS-up" || event.kind === "CHOCH-up" ? "belowBar" : "aboveBar") as "aboveBar" | "belowBar",
+               color: markerColor(event.kind),
+               shape: (event.kind === "BOS-up" || event.kind === "CHOCH-up" ? "arrowUp" : "arrowDown") as "arrowUp" | "arrowDown",
+            },
+         ];
+      });
       return [...swingMarks, ...breakMarks];
    }
 
    function levelsForChart(): { price: number; color: string; title?: string }[] {
       if (higherCloses.length === 0) return [];
-      const higherSwings = findSwings(higherBars.map((bar) => ({ high: bar.high, low: bar.low, close: bar.close })));
       return recentLevels(higherSwings, higherCloses[higherCloses.length - 1], 3).map((level) => ({
          price: level.price,
          color: level.side === "resistance" ? cssColor("--danger-color", "#ef5350") : cssColor("--success-color", "#26a69a"),
@@ -319,8 +343,7 @@
          <p class="text-sm font-bold text-[var(--text-primary)]">{text(`academy.structure.${section.key}.takeaway`)}</p>
 
          {#if section.key === "s1"}
-            {@const emaEntry = entryFor("ema")}
-            {@const emaValues = emaEntry && higherBars.length > 0 ? computeLessonSeries(emaEntry, toEvalCandles(higherBars), biasTf).lines.find((line) => line.name === "value")?.values : undefined}
+            {@const emaValues = emaSeries?.lines.find((line) => line.name === "value")?.values}
             {@const emaNow = lastValue(emaValues)}
             {@const emaPrev = secondLastValue(emaValues)}
             {@const lastHigher = higherCloses.length > 0 ? higherCloses[higherCloses.length - 1] : null}
@@ -359,7 +382,6 @@
 
          {#if section.key === "s3"}
             {@const close = higherCloses.length > 0 ? higherCloses[higherCloses.length - 1] : null}
-            {@const higherSwings = findSwings(higherBars.map((bar) => ({ high: bar.high, low: bar.low, close: bar.close })))}
             {@const zoneLevels = close === null ? [] : recentLevels(higherSwings, close, 1)}
             {@const resistance = zoneLevels.find((level) => level.side === "resistance") ?? null}
             {@const support = zoneLevels.find((level) => level.side === "support") ?? null}
@@ -376,8 +398,8 @@
          {/if}
 
          {#if section.key === "s4a"}
-            {@const adxNow = lineValue("adx", bars, "adx")}
-            {@const chopNow = lineValue("choppiness", bars, "value")}
+            {@const adxNow = lastValue(adxSeries?.lines.find((item) => item.name === "adx")?.values)}
+            {@const chopNow = lastValue(chopSeries?.lines.find((item) => item.name === "value")?.values)}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.adx")}</dt>
@@ -395,8 +417,8 @@
          {/if}
 
          {#if section.key === "s4b"}
-            {@const bwNow = lineValue("bollinger", bars, "bandwidth")}
-            {@const atrNow = lineValue("atr", bars, "value")}
+            {@const bwNow = lastValue(bollingerSeries?.lines.find((item) => item.name === "bandwidth")?.values)}
+            {@const atrNow = lastValue(atrSeries?.lines.find((item) => item.name === "value")?.values)}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
                   <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.output.bandwidth")}</dt>

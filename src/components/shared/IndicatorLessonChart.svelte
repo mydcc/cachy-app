@@ -163,8 +163,18 @@
      * Controlled mode: a parent-supplied timeframe wins when present,
      * otherwise this chart keeps its own stored choice. Every consumer
      * below reads `timeframe`, so both modes flow through one name.
+     *
+     * The controlled value is normalised and validated like every other
+     * timeframe input: only a drawable spelling may name the `kline_*`
+     * channel, otherwise the stored choice wins.
      */
-    let timeframe = $derived(controlledTf ?? storedTf);
+    let timeframe = $derived.by(() => {
+        if (controlledTf !== undefined) {
+            const canonical = normalizeTimeframeInput(controlledTf);
+            if (isDrawableTimeframe(canonical)) return canonical;
+        }
+        return storedTf;
+    });
 
     /**
      * Both directions go through the app's normaliser first, then the parser.
