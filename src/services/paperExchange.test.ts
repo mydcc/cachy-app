@@ -890,3 +890,151 @@ describe("paperExchange — a position-wide plan tracks the position", () => {
         expect(paperState.positions).toHaveLength(0);
     });
 });
+
+describe("paperExchange — adding a leg modifies the plan (BUG-0687)", () => {
+    async function pending() {
+        const response = (await paperExchange.handle("/api/tpsl", {
+            action: "pending",
+            params: {},
+        })) as { rows: Array<Record<string, unknown>> };
+        return response.rows;
+    }
+
+    async function modifyPosition(params: Record<string, unknown>) {
+        return paperExchange.handle("/api/tpsl", {
+            action: "modify-position",
+            params,
+        });
+    }
+
+    it("keeps the existing target when a stop is added through the modify", async () => {
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place-position",
+            params: { symbol: "BTCUSDT", positionId, tpPrice: "52000" },
+        });
+
+        await modifyPosition({
+            symbol: "BTCUSDT",
+            positionId,
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+
+        // The defect: a second place-order with only the stop replaced the
+        // plan and dropped the target that was already set.
+        const rows = await pending();
+        expect(rows).toHaveLength(1);
+        expect(rows[0].tpPrice).toBe("52000");
+        expect(rows[0].slPrice).toBe("49000");
+    });
+
+    it("keeps the existing stop when a target is added through the modify", async () => {
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place-position",
+            params: { symbol: "BTCUSDT", positionId, slPrice: "49000" },
+        });
+
+        await modifyPosition({
+            symbol: "BTCUSDT",
+            positionId,
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+
+        const rows = await pending();
+        expect(rows).toHaveLength(1);
+        expect(rows[0].tpPrice).toBe("52000");
+        expect(rows[0].slPrice).toBe("49000");
+    });
+
+    it("adds the new leg to the existing plan rather than a second group", async () => {
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place-position",
+            params: { symbol: "BTCUSDT", positionId, tpPrice: "52000" },
+        });
+        const [before] = await pending();
+
+        await modifyPosition({
+            symbol: "BTCUSDT",
+            positionId,
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+
+        const [after] = await pending();
+        // Two rows would read as two plans on one position, which the venue
+        // does not allow and the card would draw twice.
+        expect(after.id).toBe(before.id);
+    });
+
+    it("adds a leg the group has never carried, instead of skipping it", async () => {
+        // The simulator's row lookup previously skipped a leg the group did
+        // not have — an add would silently do nothing, which is the one
+        // failure the trader cannot see.
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place-position",
+            params: { symbol: "BTCUSDT", positionId, slPrice: "49000" },
+        });
+
+        await modifyPosition({
+            symbol: "BTCUSDT",
+            positionId,
+            tpPrice: "52000",
+            slPrice: "49000",
+        });
+
+        const [row] = await pending();
+        expect(row.tpPrice).toBe("52000");
+    });
+
+    it("moves a carried-over level instead of only adding the new leg", async () => {
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+        await paperExchange.handle("/api/tpsl", {
+            action: "place-position",
+            params: { symbol: "BTCUSDT", positionId, tpPrice: "52000" },
+        });
+
+        await modifyPosition({
+            symbol: "BTCUSDT",
+            positionId,
+            tpPrice: "53000",
+            slPrice: "49000",
+        });
+
+        const [row] = await pending();
+        expect(row.tpPrice).toBe("53000");
+    });
+
+    it("refuses a modify against a position that does not exist", async () => {
+        await expect(
+            modifyPosition({
+                symbol: "BTCUSDT",
+                positionId: "nope",
+                tpPrice: "52000",
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_NO_POSITION" });
+    });
+
+    it("refuses a wrong-side carried-over level", async () => {
+        await open("1");
+        const positionId = paperState.positions[0].positionId;
+
+        await expect(
+            modifyPosition({
+                symbol: "BTCUSDT",
+                positionId,
+                tpPrice: "49000",
+                slPrice: "49000",
+            }),
+        ).rejects.toMatchObject({ code: "PAPER_TPSL_INVALID" });
+    });
+});

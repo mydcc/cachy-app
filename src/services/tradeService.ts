@@ -96,6 +96,7 @@ import { createSessionDispatch, type DispatchContext } from "./trade/dispatchSes
 import { createPairMetaLoader } from "./trade/pairMeta";
 import {
     createTpSlService,
+    type ModifyPositionTpSlParams,
     type ModifyTpSlParams,
     type PlacePositionTpSlParams,
     type PlaceTpSlParams,
@@ -1142,6 +1143,17 @@ class TradeService {
      */
     public async placePositionTpSl(params: PlacePositionTpSlParams): Promise<unknown> {
         return this.tpSl.placePositionTpSl(params);
+    }
+
+    /**
+     * Adds a leg to the existing position-wide plan — BUG-0687.
+     *
+     * The venue allows one position-wide plan per position, so creating the
+     * missing leg again through `placePositionTpSl` would replace the leg
+     * that is already there. Both legs travel in one modify instead.
+     */
+    public async modifyPositionTpSl(params: ModifyPositionTpSlParams): Promise<unknown> {
+        return this.tpSl.modifyPositionTpSl(params);
     }
 
     /**

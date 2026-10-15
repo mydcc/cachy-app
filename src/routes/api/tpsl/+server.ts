@@ -67,6 +67,10 @@ const WRITE_PATHS: Record<string, string> = {
   cancel: "/api/v1/futures/tpsl/cancel_order",
   modify: "/api/v1/futures/tpsl/modify_order",
   "place-position": "/api/v1/futures/tpsl/position/place_order",
+  // BUG-0687: adds a missing leg to the existing position-wide plan.
+  // `place-position` would replace that plan instead, because the venue
+  // allows exactly one per position.
+  "modify-position": "/api/v1/futures/tpsl/position/modify_order",
   place: "/api/v1/futures/tpsl/place_order",
 };
 

@@ -64,6 +64,9 @@ const MUTATING_ACTIONS = [
     "modify-order",
     "place",
     "place-position",
+    // BUG-0687: adds a leg to an existing position-wide plan; it moves the
+    // plan's levels like the others and is gated the same way.
+    "modify-position",
 ];
 
 interface Bypass {

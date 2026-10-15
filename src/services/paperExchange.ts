@@ -277,6 +277,8 @@ class PaperExchange {
             case "place":
             case "place-position":
                 return this.placeTpSlPlan(params, action === "place-position");
+            case "modify-position":
+                return this.modifyTpSlPlan(payload, params, "positionId");
             case "cancel":
                 return this.cancelTpSlPlan(payload, params);
             case "modify":
@@ -384,6 +386,46 @@ class PaperExchange {
         return entry;
     }
 
+    /**
+     * One plan row for a leg, in the shape both the create and the
+     * add-a-leg paths need — BUG-0687 factored this out of `placeTpSlPlan`
+     * so the two cannot drift.
+     */
+    private planLeg(
+        positionWide: boolean,
+        position: { symbol: string; side: string; amount: unknown; positionId: string },
+        params: Record<string, unknown>,
+        prefix: "tp" | "sl",
+        planType: "TP" | "SL",
+        groupId: string,
+        entry: Decimal,
+    ): PaperOrder | null {
+        const trigger = toDecimal(params[`${prefix}Price`]);
+        if (trigger === null || trigger.lte(0)) return null;
+        const qty = positionWide
+            ? new Decimal(String(position.amount))
+            : (toDecimal(params[`${prefix}Qty`]) ?? new Decimal(String(position.amount)));
+
+        return {
+            orderId: paperState.takeId("paper-plan"),
+            planGroupId: groupId,
+            symbol: position.symbol,
+            // The position's own side, which is what the close path reads.
+            side: position.side === "long" ? "BUY" : "SELL",
+            orderType: String(params[`${prefix}OrderType`] ?? "MARKET").toUpperCase(),
+            qty: qty.toString(),
+            triggerPrice: trigger.toString(),
+            triggerDirection: trigger.gt(entry) ? "above" : "below",
+            planType,
+            planScope: positionWide ? "position" : "partial",
+            stopType: String(params[`${prefix}StopType`] ?? "MARK_PRICE"),
+            reduceOnly: true,
+            tradeSide: "CLOSE",
+            positionId: position.positionId,
+            createdAt: Date.now(),
+        };
+    }
+
     private placeTpSlPlan(
         params: Record<string, unknown>,
         positionWide: boolean,
@@ -410,30 +452,16 @@ class PaperExchange {
             ["tp", "TP"],
             ["sl", "SL"],
         ] as const) {
-            const trigger = toDecimal(params[`${prefix}Price`]);
-            if (trigger === null || trigger.lte(0)) continue;
-            const qty = positionWide
-                ? new Decimal(position.amount)
-                : (toDecimal(params[`${prefix}Qty`]) ?? new Decimal(position.amount));
-
-            created.push({
-                orderId: paperState.takeId("paper-plan"),
-                planGroupId: groupId,
-                symbol: position.symbol,
-                // The position's own side, which is what the close path reads.
-                side: position.side === "long" ? "BUY" : "SELL",
-                orderType: String(params[`${prefix}OrderType`] ?? "MARKET").toUpperCase(),
-                qty: qty.toString(),
-                triggerPrice: trigger.toString(),
-                triggerDirection: trigger.gt(entry) ? "above" : "below",
+            const leg = this.planLeg(
+                positionWide,
+                position,
+                params,
+                prefix,
                 planType,
-                planScope: positionWide ? "position" : "partial",
-                stopType: String(params[`${prefix}StopType`] ?? "MARK_PRICE"),
-                reduceOnly: true,
-                tradeSide: "CLOSE",
-                positionId: position.positionId,
-                createdAt: Date.now(),
-            });
+                groupId,
+                entry,
+            );
+            if (leg) created.push(leg);
         }
 
         if (created.length === 0) {
@@ -477,13 +505,48 @@ class PaperExchange {
         return flat({ orderId: groupId });
     }
 
-    /** Moves the trigger of one leg of an existing plan. */
+    /**
+     * Moves the trigger of one leg of an existing plan, and — when the caller
+     * selects the plan by `positionId` rather than by `orderId` — adds a leg
+     * the plan does not carry yet.
+     *
+     * The venue distinguishes the two: `modify_order` addresses the row by id
+     * and only changes the legs it names, while `position/modify_order`
+     * addresses the position and writes the plan's full leg set. A leg missing
+     * from a position-addressed modify is therefore the BUG-0687 case — the
+     * trader is adding it — and it has to be created, not skipped, or the
+     * second leg of a bracket could never be set on a plan that already
+     * carries the first.
+     */
     private modifyTpSlPlan(
         payload: Record<string, unknown>,
         params: Record<string, unknown>,
+        selector: "orderId" | "positionId" = "orderId",
     ): Record<string, unknown> {
-        const groupId = String(params.orderId ?? payload.orderId ?? "");
         const orders = [...paperState.orders];
+        let groupId: string;
+        let position: (typeof paperState.positions)[number] | undefined;
+
+        if (selector === "positionId") {
+            const positionId = typeof params.positionId === "string" ? params.positionId : "";
+            position = paperState.positions.find((p) => p.positionId === positionId);
+            if (!position) {
+                throw new PaperExchangeError(
+                    "PAPER_NO_POSITION",
+                    "tradeErrors.positionNotFound",
+                );
+            }
+            groupId =
+                orders.find(
+                    (o) => o.positionId === positionId && o.planScope === "position",
+                )?.planGroupId ?? paperState.takeId("paper-tpsl");
+        } else {
+            groupId = String(params.orderId ?? payload.orderId ?? "");
+            position = paperState.positions.find((p) =>
+                orders.some((o) => o.planGroupId === groupId && o.positionId === p.positionId),
+            );
+        }
+
         let touched = false;
 
         for (const [prefix, planType] of [
@@ -499,18 +562,35 @@ class PaperExchange {
             const index = orders.findIndex(
                 (o) => o.planGroupId === groupId && o.planType === planType,
             );
-            if (index === -1) continue;
 
-            const position = paperState.positions.find(
+            if (index === -1) {
+                if (!position) continue;
+                const entry = this.paperEntryPrice(position);
+                this.assertTpSlLevels({ [`${prefix}Price`]: raw }, position.side, entry);
+                const leg = this.planLeg(
+                    true,
+                    position,
+                    params,
+                    prefix,
+                    planType,
+                    groupId,
+                    entry,
+                );
+                if (leg) orders.push(leg);
+                touched = true;
+                continue;
+            }
+
+            const legPosition = paperState.positions.find(
                 (p) => p.positionId === orders[index].positionId,
             );
-            if (!position) {
+            if (!legPosition) {
                 throw new PaperExchangeError("PAPER_NO_POSITION", "tradeErrors.positionNotFound");
             }
             this.assertTpSlLevels(
                 { [`${prefix}Price`]: raw },
-                position.side,
-                this.paperEntryPrice(position),
+                legPosition.side,
+                this.paperEntryPrice(legPosition),
             );
             const qty = toDecimal(params[`${prefix}Qty`]);
             orders[index] = {
@@ -520,8 +600,8 @@ class PaperExchange {
                 // entry turns it into a plan that fires the other way, and a
                 // stale direction would leave it waiting for a move that
                 // never comes.
-                triggerDirection: position
-                    ? trigger.gt(position.entryPrice)
+                triggerDirection: legPosition
+                    ? trigger.gt(legPosition.entryPrice)
                         ? "above"
                         : "below"
                     : orders[index].triggerDirection,

@@ -143,6 +143,7 @@ const trading: TradingPort = {
     cancelTpSlOrder: (order: TpSlOrder) => tradeService.cancelTpSlOrder(order),
     modifyTpSlOrder: (params) => tradeService.modifyTpSlOrder(params),
     placePositionTpSl: (params) => tradeService.placePositionTpSl(params),
+    modifyPositionTpSl: (params) => tradeService.modifyPositionTpSl(params),
     placeTpSlOrder: (params) => tradeService.placeTpSlOrder(params),
 };
 

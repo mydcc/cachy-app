@@ -176,26 +176,76 @@ import { Decimal } from "decimal.js";
 
   async function handleCreatePositionWide() {
     if (!position.positionId) {
-      positionWideError = $_("modals.createTpSl.missingPositionId");
+      positionWideError = $_(`modals.createTpSl.missingPositionId`);
       return;
     }
     if (!tpPrice && !slPrice) {
-      positionWideError = $_("apiErrors.tpslNoLeg");
+      positionWideError = $_(`apiErrors.tpslNoLeg`);
       return;
     }
     if (hasInvalidTpSl(tpPrice, slPrice, (message) => (positionWideError = message))) return;
 
+    function stopTypeOrDefault(kind: unknown): "LAST_PRICE" | "MARK_PRICE" {
+      return kind === "LAST_PRICE" || kind === "MARK_PRICE" ? kind : "MARK_PRICE";
+    }
+
     positionWideLoading = true;
     positionWideError = "";
     try {
-      await activeExchange().trading.placePositionTpSl({
-        symbol: position.symbol,
-        positionId: position.positionId,
-        context: { side: position.side, entryPrice: position.entryPrice },
-        tickSize,
-        takeProfit: tpPrice ? { price: new Decimal(tpPrice), stopType } : undefined,
-        stopLoss: slPrice ? { price: new Decimal(slPrice), stopType } : undefined,
-      });
+      /*
+       * BUG-0687: one leg is already covered, so the missing one cannot be
+       * *created* — the venue allows a single position-wide plan per position,
+       * and a second place-order cancels the leg that is already set. Both
+       * legs therefore travel in one modify instead, the existing one carried
+       * over from the plan on screen. With neither leg covered this stays the
+       * create it always was; with both covered the section offers edit links
+       * only and this never runs.
+       */
+      if (tpCoveredByPositionPlan || slCoveredByPositionPlan) {
+        const takeProfit = tpCoveredByPositionPlan
+          ? {
+              price: new Decimal(String(existingPlans.profit?.triggerPrice ?? "0")),
+              stopType: stopTypeOrDefault(existingPlans.profit?.workingType),
+            }
+          : tpPrice
+            ? { price: new Decimal(tpPrice), stopType }
+            : null;
+        const stopLoss = slCoveredByPositionPlan
+          ? {
+              price: new Decimal(String(existingPlans.loss?.triggerPrice ?? "0")),
+              stopType: stopTypeOrDefault(existingPlans.loss?.workingType),
+            }
+          : slPrice
+            ? { price: new Decimal(slPrice), stopType }
+            : null;
+
+        if (!takeProfit || !stopLoss) {
+          // Unreachable: the both-covered case renders no submit button, and
+          // the missing leg is required before this line by the guard above.
+          // Refusing is still the right failure — a modify here would silently
+          // drop the leg the trader can see.
+          positionWideError = $_(`apiErrors.tpslNoLeg`);
+          return;
+        }
+
+        await activeExchange().trading.modifyPositionTpSl({
+          symbol: position.symbol,
+          positionId: position.positionId,
+          context: { side: position.side, entryPrice: position.entryPrice },
+          tickSize,
+          takeProfit,
+          stopLoss,
+        });
+      } else {
+        await activeExchange().trading.placePositionTpSl({
+          symbol: position.symbol,
+          positionId: position.positionId,
+          context: { side: position.side, entryPrice: position.entryPrice },
+          tickSize,
+          takeProfit: tpPrice ? { price: new Decimal(tpPrice), stopType } : undefined,
+          stopLoss: slPrice ? { price: new Decimal(slPrice), stopType } : undefined,
+        });
+      }
       tpSlState.invalidate();
       onsuccess?.();
     } catch (e: unknown) {

@@ -65,6 +65,7 @@ const tradeServiceMock = vi.hoisted(() => ({
     cancelTpSlOrder: vi.fn(async () => ({ ok: true })),
     modifyTpSlOrder: vi.fn(async () => ({ ok: true })),
     placePositionTpSl: vi.fn(async () => ({ ok: true })),
+    modifyPositionTpSl: vi.fn(async () => ({ ok: true })),
     placeTpSlOrder: vi.fn(async () => ({ ok: true })),
     fetchLeverageMarginMode: vi.fn(async () => undefined),
     // The real accessor reads the store; this mirrors it so the adapter's
@@ -117,6 +118,19 @@ describe("FEAT-0229 — a write the venue cannot do never reaches the transport"
             }),
         ).rejects.toBeInstanceOf(ExchangeUnsupportedError);
         expect(tradeServiceMock.modifyTpSlOrder).not.toHaveBeenCalled();
+    });
+
+    it("refuses modifyPositionTpSl without calling tradeService (BUG-0687)", async () => {
+        // The new verb must sit behind the same flag as its siblings: without
+        // this a Bitget session would sign a Bitunix-only envelope.
+        await expect(
+            bitget().trading.modifyPositionTpSl({
+                symbol: "BTCUSDT",
+                positionId: "1",
+                stopLoss: { price: new Decimal(49000) },
+            }),
+        ).rejects.toBeInstanceOf(ExchangeUnsupportedError);
+        expect(tradeServiceMock.modifyPositionTpSl).not.toHaveBeenCalled();
     });
 
     it("names the venue and the feature on the error", async () => {
@@ -330,6 +344,19 @@ const TRADING_VERBS: Record<string, VerbSpec> = {
         kind: "write",
         args: [{ symbol: "BTCUSDT", positionId: "1", takeProfit: { price: new Decimal(70000) } }],
         transport: "placePositionTpSl",
+    },
+    modifyPositionTpSl: {
+        gate: "tpSl",
+        kind: "write",
+        args: [
+            {
+                symbol: "BTCUSDT",
+                positionId: "1",
+                takeProfit: { price: new Decimal(70000) },
+                stopLoss: { price: new Decimal(55000) },
+            },
+        ],
+        transport: "modifyPositionTpSl",
     },
     placeTpSlOrder: {
         gate: "tpSl",

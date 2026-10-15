@@ -63,12 +63,10 @@ WS/refetch, not the REST response alone.
 - Trailing stops (no endpoint in the current doc crawl; M3 lists them —
   revisit when the API supports it or emulate client-side under a separate
   item).
-- Adding a missing leg to an *existing* position-wide plan without going
-  through the single-leg edit modal. `POST /tpsl/position/modify_order`
-  (the endpoint that would do this in one call) is not integrated —
-  `INTEGRATION_STATUS.md` line 92. The edit-instead-of-create path this item
-  ships works today because a leg-level edit through `tpsl/modify_order`
-  changes the price and quantity of one leg of that same position-wide row.
+- Adding a missing leg to an *existing* position-wide plan is now wired
+  (BUG-0687, `modify-position`): the create modal sends both legs through
+  `POST /tpsl/position/modify_order` when one is already covered, because a
+  second `place-order` is a replacement on this venue.
 - Reconciling this feature's `scopeGuess` inference against a live account.
   Needs credentials and an open position; the risk if it is wrong is
   documented on BUG-0292 (a refused create, or a second plan where the

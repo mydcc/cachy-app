@@ -49,8 +49,11 @@ vi.mock("../../locales/i18n", async () => {
 const placePositionTpSl = vi.hoisted(() => vi.fn(async () => ({ ok: true })));
 const placeTpSlOrder = vi.hoisted(() => vi.fn(async () => ({ ok: true })));
 const modifyTpSlOrder = vi.hoisted(() => vi.fn(async () => ({ ok: true })));
+const modifyPositionTpSl = vi.hoisted(() => vi.fn(async () => ({ ok: true })));
 vi.mock("../../services/exchange", () => ({
-    activeExchange: () => ({ trading: { placePositionTpSl, placeTpSlOrder, modifyTpSlOrder } }),
+    activeExchange: () => ({
+        trading: { placePositionTpSl, placeTpSlOrder, modifyTpSlOrder, modifyPositionTpSl },
+    }),
 }));
 
 const plansFor = vi.hoisted(() => vi.fn(() => ({} as Record<string, unknown>)));
@@ -238,18 +241,20 @@ describe("FEAT-0070 — position-wide create", () => {
 });
 
 describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offers edit, not create", () => {
+    /** The plan shape `normalizeTpSlRow` produces; `workingType` carries the stop type. */
+    const positionPlan = (planType: "PROFIT" | "LOSS", triggerPrice: string, workingType?: string) => ({
+        orderId: `123-${planType === "PROFIT" ? "tp" : "sl"}`,
+        sourceOrderId: "123",
+        symbol: "BTCUSDT",
+        planType,
+        triggerPrice,
+        status: "NEW",
+        scopeGuess: "position",
+        ...(workingType !== undefined ? { workingType } : {}),
+    });
+
     it("shows the existing take-profit with an Edit link instead of an input", () => {
-        plansFor.mockReturnValue({
-            profit: {
-                orderId: "123-tp",
-                sourceOrderId: "123",
-                symbol: "BTCUSDT",
-                planType: "PROFIT",
-                triggerPrice: "50000",
-                status: "NEW",
-                scopeGuess: "position",
-            },
-        });
+        plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
         render();
 
         expect(host.querySelector("#tpsl-create-tp-price")).toBeNull();
@@ -258,17 +263,7 @@ describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offer
     });
 
     it("still offers create for the uncovered leg", () => {
-        plansFor.mockReturnValue({
-            profit: {
-                orderId: "123-tp",
-                sourceOrderId: "123",
-                symbol: "BTCUSDT",
-                planType: "PROFIT",
-                triggerPrice: "50000",
-                status: "NEW",
-                scopeGuess: "position",
-            },
-        });
+        plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
         render();
 
         expect(host.querySelector("#tpsl-create-sl-price")).not.toBeNull();
@@ -296,23 +291,88 @@ describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offer
     });
 
     it("opens the existing single-leg edit modal on click", () => {
-        plansFor.mockReturnValue({
-            profit: {
-                orderId: "123-tp",
-                sourceOrderId: "123",
-                symbol: "BTCUSDT",
-                planType: "PROFIT",
-                triggerPrice: "50000",
-                status: "NEW",
-                scopeGuess: "position",
-            },
-        });
+        plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
         render();
 
         buttonSaying(lookup("modals.createTpSl.editExisting")).click();
         settle();
 
         expect(host.querySelector('input[name="tpslTriggerPrice"]')).not.toBeNull();
+    });
+
+    describe("BUG-0687 — adding the missing leg modifies the plan instead of replacing it", () => {
+        it("sends both legs through the modify endpoint when a take-profit is already set", async () => {
+            plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
+            render();
+
+            setValue(field("tpsl-create-sl-price"), "45000");
+            buttonSaying(lookup("modals.createTpSl.submit")).click();
+            await settleAsync();
+
+            // The defect: a second place-order with only the stop, which the
+            // venue treats as a replacement and which cancelled the target.
+            expect(placePositionTpSl).not.toHaveBeenCalled();
+
+            expect(modifyPositionTpSl).toHaveBeenCalledTimes(1);
+            const sent = modifyPositionTpSl.mock.calls[0][0] as {
+                symbol: string;
+                positionId: string;
+                takeProfit?: { price: Decimal; stopType?: string };
+                stopLoss?: { price: Decimal; stopType?: string };
+            };
+            expect(sent.symbol).toBe("BTCUSDT");
+            expect(sent.positionId).toBe("pos-1");
+            // The leg that is already set travels carried over, the new one
+            // as entered — both in one request.
+            expect(sent.takeProfit?.price.toString()).toBe("50000");
+            expect(sent.stopLoss?.price.toString()).toBe("45000");
+        });
+
+        it("carries the existing leg's stop type rather than resetting it", async () => {
+            plansFor.mockReturnValue({
+                profit: positionPlan("PROFIT", "50000", "LAST_PRICE"),
+            });
+            render();
+
+            setValue(field("tpsl-create-sl-price"), "45000");
+            buttonSaying(lookup("modals.createTpSl.submit")).click();
+            await settleAsync();
+
+            const sent = modifyPositionTpSl.mock.calls[0][0] as {
+                takeProfit?: { stopType?: string };
+                stopLoss?: { stopType?: string };
+            };
+            expect(sent.takeProfit?.stopType).toBe("LAST_PRICE");
+            expect(sent.stopLoss?.stopType).toBe("MARK_PRICE");
+        });
+
+        it("mirrors the case — a stop is set and the target is added", async () => {
+            plansFor.mockReturnValue({ loss: positionPlan("LOSS", "45000") });
+            render();
+
+            setValue(field("tpsl-create-tp-price"), "55000");
+            buttonSaying(lookup("modals.createTpSl.submit")).click();
+            await settleAsync();
+
+            expect(placePositionTpSl).not.toHaveBeenCalled();
+            const sent = modifyPositionTpSl.mock.calls[0][0] as {
+                takeProfit?: { price: Decimal };
+                stopLoss?: { price: Decimal };
+            };
+            expect(sent.takeProfit?.price.toString()).toBe("55000");
+            expect(sent.stopLoss?.price.toString()).toBe("45000");
+        });
+
+        it("still places — never modifies — a position with no leg covered", async () => {
+            render();
+
+            setValue(field("tpsl-create-tp-price"), "70000");
+            buttonSaying(lookup("modals.createTpSl.submit")).click();
+            await settleAsync();
+
+            expect(placePositionTpSl).toHaveBeenCalledTimes(1);
+            expect(modifyPositionTpSl).not.toHaveBeenCalled();
+        });
     });
 });
 

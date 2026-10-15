@@ -69,6 +69,25 @@ export interface PlacePositionTpSlParams {
     tickSize?: Decimal;
 }
 
+/**
+ * Adding a leg to the one position-wide plan a position may carry — BUG-0687.
+ *
+ * Same documented request shape as `PlacePositionTpSlParams`, because the
+ * venue's `position/modify_order` takes the same fields as
+ * `position/place_order` (`06_tp_sl.md`). It is a separate type anyway: the
+ * two mean different things at the caller, and a signature that made them
+ * interchangeable would let a future edit route an add through the endpoint
+ * that replaces the plan.
+ */
+export interface ModifyPositionTpSlParams {
+    symbol: string;
+    positionId: string;
+    takeProfit?: { price: Decimal; stopType?: "LAST_PRICE" | "MARK_PRICE" };
+    stopLoss?: { price: Decimal; stopType?: "LAST_PRICE" | "MARK_PRICE" };
+    context?: { side: "long" | "short"; entryPrice: Decimal };
+    tickSize?: Decimal;
+}
+
 export interface PlaceTpSlParams {
     symbol: string;
     positionId: string;
@@ -113,6 +132,7 @@ export interface TpSlService {
     cancelTpSlOrder(order: TpSlOrder): Promise<unknown>;
     modifyTpSlOrder(params: ModifyTpSlParams): Promise<unknown>;
     placePositionTpSl(params: PlacePositionTpSlParams): Promise<unknown>;
+    modifyPositionTpSl(params: ModifyPositionTpSlParams): Promise<unknown>;
     placeTpSlOrder(params: PlaceTpSlParams): Promise<unknown>;
 }
 
@@ -407,6 +427,65 @@ export function createTpSlService(ports: TpSlPorts): TpSlService {
     }
 
     /**
+     * Adds a leg to the one position-wide plan a position already carries —
+     * BUG-0687.
+     *
+     * The create endpoint is replace-only on the venue side: a second
+     * `position/place_order` with only the missing leg cancels the leg that is
+     * already there, which is how a trader who added a stop to a position with
+     * a target lost the target (and vice versa). The caller therefore passes
+     * *both* legs — the existing one carried over from the plan on screen and
+     * the one being added — and this sends them through the modify endpoint,
+     * which changes the plan in place instead of re-creating it.
+     *
+     * `kind: "modify"` for the same reason as `placePositionTpSl`: adjusting
+     * protection reduces exposure and must keep working while the kill switch
+     * is engaged.
+     */
+    async function modifyPositionTpSl(params: ModifyPositionTpSlParams) {
+        if (!params.takeProfit && !params.stopLoss) {
+            throw new Error("apiErrors.tpslNoLeg");
+        }
+
+        const wire: Record<string, unknown> = {
+            symbol: params.symbol,
+            positionId: params.positionId,
+        };
+        if (params.takeProfit) {
+            wire.tpPrice = formatApiNum(params.takeProfit.price);
+            wire.tpStopType = params.takeProfit.stopType ?? "MARK_PRICE";
+        }
+        if (params.stopLoss) {
+            wire.slPrice = formatApiNum(params.stopLoss.price);
+            wire.slStopType = params.stopLoss.stopType ?? "MARK_PRICE";
+        }
+
+        return ports.gatedRequest({
+            kind: "modify",
+            endpoint: "/api/tpsl",
+            payload: {
+                exchange: "bitunix",
+                action: "modify-position",
+                symbol: params.symbol,
+                params: wire,
+            },
+            displayed: {
+                symbol: params.symbol,
+                positionId: params.positionId,
+                positionSide: params.context?.side.toUpperCase(),
+                entryPrice: params.context?.entryPrice,
+                tickSize: params.tickSize,
+                takeProfits: params.takeProfit ? [params.takeProfit.price] : undefined,
+                stopLossPrice: params.stopLoss?.price,
+            },
+            priceFields: {
+                takeProfit: "params.tpPrice",
+                stopLoss: "params.slPrice",
+            },
+        });
+    }
+
+    /**
      * Creates a partial TP/SL plan with an explicit quantity (FEAT-0070).
      *
      * Unlike the position-wide plan, several of these can coexist, and each
@@ -486,6 +565,7 @@ export function createTpSlService(ports: TpSlPorts): TpSlService {
         cancelTpSlOrder,
         modifyTpSlOrder,
         placePositionTpSl,
+        modifyPositionTpSl,
         placeTpSlOrder,
     };
 }
