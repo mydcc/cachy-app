@@ -27,7 +27,7 @@ indicators are read inside.
 
 ## Proposal
 
-A fifth Academy tab, *Market Structure, Trend & Regime*, covering:
+A fourth Academy tab, *Market Structure, Trend & Regime*, covering:
 
 - **Multi-timeframe bias** — reading the higher timeframe first, and what "the 4h is
   bearish" actually commits you to.
@@ -54,16 +54,16 @@ recomputing or re-describing anything.
 
 ## Acceptance criteria
 
-- [ ] The tab defines regime terms in words and shows them on a chart, and does not
+- [x] The tab defines regime terms in words and shows them on a chart, and does not
       state or imply a classification of the current market as a product feature.
-- [ ] Every indicator named is one FEAT-0677 already teaches; no indicator is
+- [x] Every indicator named is one FEAT-0677 already teaches; no indicator is
       introduced here that is not in `INDICATOR_CATALOGUE`.
-- [ ] Content covers what each reading is good for and what it is bad for — a regime
+- [x] Content covers what each reading is good for and what it is bad for — a regime
       indicator that is right in a trend and useless in a range says so.
-- [ ] The tab teaches completely offline, with no connection and no provider.
-- [ ] Structure definitions are drawn or shown consistently across both languages, and
+- [x] The tab teaches completely offline, with no connection and no provider.
+- [x] Structure definitions are drawn or shown consistently across both languages, and
       the DE and EN versions agree on the terms they use.
-- [ ] The tab obeys the same mobile rules as the existing tabs
+- [x] The tab obeys the same mobile rules as the existing tabs
       (`BUG-0047` — the Academy is currently not usable on a phone).
 
 ## Out of scope
@@ -91,7 +91,7 @@ recomputing or re-describing anything.
 
 - FEAT-0677 — indicator lessons this builds on, and the regime indicators it names
 - FEAT-0678 — the live-context feature on the same lessons
-- FEAT-0678 — the live-context feature on the same lessons
+- FEAT-0686 — the live readings this tab later gained
 - `src/lib/alerts/indicatorCatalogue.ts` — `INDICATOR_GROUP_ORDER`, where trend and
   volatility indicators already sit in groups
 - BUG-0047 — Academy unusable on mobile
