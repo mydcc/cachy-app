@@ -66,3 +66,12 @@ once, and the dial-failure code is named. `npx vitest run --project=unit
 src/lib/server/urlValidator.test.ts src/routes/api/ai` → 10 files, 89 tests
 pass. End-to-end against the real module: dead proxy → direct connection works,
 live proxy → still used, no proxy variables → unchanged.
+
+## Follow-up
+
+The probe this item introduced only asked whether the proxy's port accepts a
+connection, which is not the same question as whether the proxy can carry a
+request. A proxy that answers TCP and refuses `CONNECT` slipped through and left
+every guarded route broken again — see
+[BUG-0690](BUG-0690-ai-egress-proxy-refuses-tunnel.md), which replaced the probe
+with a per-request fallback between the two guarded paths.
