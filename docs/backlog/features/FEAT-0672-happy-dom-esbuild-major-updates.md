@@ -2,7 +2,7 @@
 id: FEAT-0672
 title: Apply major dependency updates for happy-dom and esbuild
 type: feature
-status: ready
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -37,10 +37,10 @@ its own commit so a failure points at exactly one package:
 
 ## Acceptance criteria
 
-- [ ] `happy-dom` bumped to `^21` and the unit + component tests pass
-- [ ] `esbuild` bumped to `^0.28` and `npm run build` succeeds
-- [ ] `npm run check` passes
-- [ ] Any breaking change from either migration is addressed, or the bump is
+- [x] `happy-dom` bumped to `^21` and the unit + component tests pass
+- [x] `esbuild` bumped to `^0.28` and `npm run build` succeeds
+- [x] `npm run check` passes
+- [x] Any breaking change from either migration is addressed, or the bump is
       reverted with a note
 
 ## Out of scope
@@ -54,8 +54,11 @@ its own commit so a failure points at exactly one package:
 
 ## Open questions
 
-- None blocking. Confirm while bumping whether `happy-dom` 21 changed a default
-  the tests rely on; that is part of the work, not a precondition.
+- None blocking. Resolved during the bump: `happy-dom` 21 switches CSS and
+  iframe file loading off by default (SSRF fix); nothing in the test suite
+  relies on either, and the new settings are unused. `esbuild` 0.28 is a
+  deliberate upstream breaking release at install time (integrity checks);
+  no JS API change affects the consumers here.
 
 ## Links
 
