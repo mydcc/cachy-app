@@ -270,26 +270,39 @@ const PROXY_PROBE_TIMEOUT_MS = 1000;
  * checked before it is trusted. The probe is a plain TCP connect — it does not
  * speak HTTP, which would be both slower and stricter than needed here.
  */
-function probeProxy(proxy: URL | null): Promise<boolean> {
-  if (!proxy) return Promise.resolve(false);
+function probeProxy(proxy: URL): Promise<boolean> {
   const port = proxy.port
     ? Number(proxy.port)
     : proxy.protocol === "https:"
       ? 443
       : 80;
   return new Promise<boolean>((resolve) => {
-    const socket = net.connect({
-      host: normalizeHostname(proxy.hostname),
-      port,
-    });
+    let socket: net.Socket;
+    let settled = false;
     const settle = (reachable: boolean): void => {
+      // A real socket can report more than one of these — a refused connect
+      // fires `error` and then `close`, a timed-out one fires `timeout` and
+      // then `close` — so the cleanup runs exactly once.
+      if (settled) return;
+      settled = true;
       socket.removeAllListeners();
       socket.destroy();
       resolve(reachable);
     };
+    try {
+      socket = net.connect({ host: normalizeHostname(proxy.hostname), port });
+    } catch {
+      // A host or port the runtime rejects outright is not a usable proxy.
+      resolve(false);
+      return;
+    }
+    // The probe waits for at most a second; it must not be what keeps the
+    // process alive in that second.
+    socket.unref();
     socket.setTimeout(PROXY_PROBE_TIMEOUT_MS, () => settle(false));
     socket.once("connect", () => settle(true));
     socket.once("error", () => settle(false));
+    socket.once("close", () => settle(false));
   });
 }
 
@@ -309,7 +322,10 @@ let _trustedProxyAddresses: ReadonlySet<string> = new Set<string>();
  *
  * Egress is routed through the environment's proxy (`EnvHttpProxyAgent`) only
  * when that proxy is configured *and* answering; see `probeProxy` for why a
- * configured-but-dead value must not be adopted blindly.
+ * configured-but-dead value must not be adopted blindly. Falling back to a
+ * direct connection means the proxy no longer filters or audits that traffic —
+ * a deliberate trade, because the alternative (adopting a dead proxy) broke
+ * every guarded route, and the dial-time guard keeps applying either way.
  */
 export async function getSafeDispatcher(): Promise<unknown> {
   if (!_safeDispatcher) {
@@ -319,13 +335,28 @@ export async function getSafeDispatcher(): Promise<unknown> {
       const proxyHosts = configuredProxyHosts();
       const { http, https } = configuredProxyUrls();
 
-      // Adopt the proxy only if it is actually answering. The HTTPS entry is
-      // the one that matters for the AI routes, so it is probed first.
-      const probeTarget = https ?? http;
-      const useProxy = probeTarget !== null && (await probeProxy(probeTarget));
-      if (probeTarget && !useProxy) {
+      // Adopt the environment's proxy configuration only as a whole. undici's
+      // `EnvHttpProxyAgent` re-reads the environment for every entry it is not
+      // given explicitly (`httpsProxy ?? process.env.https_proxy ?? …`), so a
+      // half-adopted configuration cannot be expressed through it at all — and
+      // a half-answering proxy setup is broken anyway. Any dead entry therefore
+      // means "no proxy", named out loud once. The decision holds for the
+      // lifetime of the process (the dispatcher is built once), so a proxy that
+      // dies later is re-evaluated only at the next start — deliberately:
+      // per-request probing would put the probe on the hot path.
+      const [httpAnswers, httpsAnswers] = await Promise.all([
+        http ? probeProxy(http) : Promise.resolve(false),
+        https ? probeProxy(https) : Promise.resolve(false),
+      ]);
+      const deadEntries = [
+        http && !httpAnswers ? http : null,
+        https && !httpsAnswers ? https : null,
+      ].filter((entry): entry is URL => entry !== null);
+      const useProxy =
+        (http !== null || https !== null) && deadEntries.length === 0;
+      for (const entry of deadEntries) {
         console.warn(
-          `[urlValidator] configured egress proxy ${probeTarget.host} is not reachable; using a direct connection`,
+          `[urlValidator] configured egress proxy ${entry.host} is not reachable; using a direct connection`,
         );
       }
 
@@ -353,7 +384,11 @@ export async function getSafeDispatcher(): Promise<unknown> {
           // strict, which fails the dial closed instead of opening a hole.
         }
       }
-      _trustedProxyAddresses = trustedProxyAddresses;
+      // The exemption only has a purpose while the proxy is in use; on the
+      // direct path the guard stays maximally strict and the set stays empty.
+      _trustedProxyAddresses = useProxy
+        ? trustedProxyAddresses
+        : new Set<string>();
       // Optional exports are read defensively: a partial test double of
       // `undici` (as in urlValidator.test.ts) has no such binding, and an
       // ESM-style namespace throws on an unknown named read. That must not
@@ -410,6 +445,9 @@ export async function getSafeDispatcher(): Promise<unknown> {
 
       const EnvHttpProxyAgent = optionalExport("EnvHttpProxyAgent");
       if (useProxy && typeof EnvHttpProxyAgent === "function") {
+        // NB: on this path the target hostname is resolved by the proxy, so the
+        // pre-flight check is the only SSRF decision made about the target
+        // itself; the dial-time guard still covers the hop to the proxy.
         _safeDispatcher = new (EnvHttpProxyAgent as new (opts: unknown) => unknown)({
           connect: { lookup },
           ...(http ? { httpProxy: http.href } : {}),
@@ -426,21 +464,41 @@ export async function getSafeDispatcher(): Promise<unknown> {
 }
 
 /**
+ * Dial-failure codes that may be named in an error message. A closed list on
+ * purpose: the body of a 500 from an AI route is visible to whoever sent the
+ * request, so only codes that say "your upstream could not be reached" — and
+ * nothing else — are allowed through. Anything else, including an arbitrary
+ * `cause.name`, passes through unchanged.
+ */
+const NAMED_DIAL_FAILURES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ECONNABORTED",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "EAI_FAIL",
+  "ETIMEDOUT",
+  "EPIPE",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+/**
  * undici reports every dial failure as a bare `TypeError("fetch failed")` and
  * keeps the real reason in `cause`. Its *code* — never an address — is the one
  * piece of information that makes a 500 from an AI route diagnosable from
- * outside the server, so it is appended to the message. Anything without a code
- * is passed through untouched.
+ * outside the server, so a known code is appended to the message. Errors
+ * without one, and non-`Error` values, are passed through untouched.
  */
 function describeFetchFailure(error: unknown): unknown {
   if (!(error instanceof Error)) return error;
-  const cause = (error as { cause?: { code?: unknown; name?: unknown } }).cause;
+  const cause = (error as { cause?: { code?: unknown } }).cause;
   const code =
-    typeof cause?.code === "string"
+    typeof cause?.code === "string" && NAMED_DIAL_FAILURES.has(cause.code)
       ? cause.code
-      : typeof cause?.name === "string" && cause.name !== "Error"
-        ? cause.name
-        : null;
+      : null;
   if (!code) return error;
   return new Error(`${error.message} [${code}]`, { cause: error });
 }
