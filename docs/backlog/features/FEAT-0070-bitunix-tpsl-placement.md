@@ -50,10 +50,14 @@ WS/refetch, not the REST response alone.
       venue enforces that bound).
 - [x] The API constraint "one position-TP/SL per position" is reflected in the
       UI: a leg already covered by a position-wide plan
-      (`scopeGuess === "position"`, BUG-0292) shows its price with an Edit
-      link into the existing `TpSlEditModal` instead of a second create
-      input. A partial leg does not gate this — several partial plans may
-      coexist per the API docs, so only the position-wide type is limited.
+      (`scopeGuess === "position"`, BUG-0292) is shown prefilled in the same
+      form as the other one, and a single save sends both. A partial leg does
+      not gate this — several partial plans may coexist per the API docs, so
+      only the position-wide type is limited. (The original shape of this
+      criterion — a read-only price with an Edit link into `TpSlEditModal` —
+      was superseded by [`BUG-0688`](../bugs/BUG-0688-one-form-per-position-wide-plan.md):
+      two per-leg dialogs around one venue plan read as two objects and closed
+      both on one save.)
 - [x] Trigger type (`LAST_PRICE`/`MARK_PRICE`) is selectable, defaulting to
       `MARK_PRICE` — the same default `placePositionTpSl`/`placeTpSlOrder`
       and the (now-fixed, BUG-0293) modify flow already use.

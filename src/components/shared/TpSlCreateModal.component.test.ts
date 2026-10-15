@@ -66,14 +66,6 @@ vi.mock("../../stores/market.svelte", () => ({
     marketState: { symbolMeta: { BTCUSDT: { symbol: "BTCUSDT", quotePrecision: 2 } } },
 }));
 
-// TpSlEditModal, nested for the AC#3 edit path, imports these too.
-vi.mock("../../stores/account.svelte", () => ({
-    accountState: { positions: [] as unknown[] },
-}));
-vi.mock("../../stores/trade.svelte", () => ({
-    tradeState: { fees: undefined },
-}));
-
 /*
  * `ModalFrame` renders nothing where it is declared — it hands its `children`
  * snippet to the WindowManager. The stub invokes the snippet in place; see
@@ -240,7 +232,7 @@ describe("FEAT-0070 — position-wide create", () => {
     });
 });
 
-describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offers edit, not create", () => {
+describe("BUG-0688 — one form edits both legs of a position-wide plan", () => {
     /** The plan shape `normalizeTpSlRow` produces; `workingType` carries the stop type. */
     const positionPlan = (planType: "PROFIT" | "LOSS", triggerPrice: string, workingType?: string) => ({
         orderId: `123-${planType === "PROFIT" ? "tp" : "sl"}`,
@@ -253,20 +245,78 @@ describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offer
         ...(workingType !== undefined ? { workingType } : {}),
     });
 
-    it("shows the existing take-profit with an Edit link instead of an input", () => {
+    it("prefills a covered take-profit and keeps it editable", () => {
+        // The BUG-0688 defect: a covered leg used to render as a read-only
+        // line behind an "Edit" link, which opened a second modal — so a
+        // bracket change took two dialogs and saving the first closed both.
         plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
         render();
 
-        expect(host.querySelector("#tpsl-create-tp-price")).toBeNull();
-        expect(host.textContent).toContain("50000");
-        expect(buttonSaying(lookup("modals.createTpSl.editExisting"))).toBeTruthy();
+        expect(field("tpsl-create-tp-price").value).toBe("50000");
     });
 
-    it("still offers create for the uncovered leg", () => {
+    it("keeps the uncovered leg editable alongside it", () => {
         plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
         render();
 
         expect(host.querySelector("#tpsl-create-sl-price")).not.toBeNull();
+    });
+
+    it("offers one Save — not an Edit link — when a plan exists", () => {
+        plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
+        render();
+
+        expect(buttonSaying(lookup("common.save"))).toBeTruthy();
+        // No second dialog is reachable from here any more: the old "Edit"
+        // link is gone, so nothing opens on top of this form.
+        const buttons = Array.from(host.querySelectorAll<HTMLButtonElement>("button")).map(
+            (b) => b.textContent?.trim() ?? "",
+        );
+        expect(buttons).not.toContain("Edit");
+    });
+
+    it("edits both legs in a single save", async () => {
+        plansFor.mockReturnValue({
+            profit: positionPlan("PROFIT", "50000"),
+            loss: positionPlan("LOSS", "45000"),
+        });
+        render();
+
+        setValue(field("tpsl-create-tp-price"), "51000");
+        buttonSaying(lookup("common.save")).click();
+        await settleAsync();
+
+        expect(placePositionTpSl).not.toHaveBeenCalled();
+        expect(modifyPositionTpSl).toHaveBeenCalledTimes(1);
+        const sent = modifyPositionTpSl.mock.calls[0][0] as {
+            takeProfit?: { price: Decimal };
+            stopLoss?: { price: Decimal };
+        };
+        // The untouched stop travels exactly as the form shows it, and the
+        // dialog closes once — not once per leg.
+        expect(sent.takeProfit?.price.toString()).toBe("51000");
+        expect(sent.stopLoss?.price.toString()).toBe("45000");
+        // No second modal was opened on the way.
+        expect(host.querySelector('input[name="tpslTriggerPrice"]')).toBeNull();
+    });
+
+    it("refuses to clear a leg that is set", async () => {
+        // `position/modify_order` says nothing about the leg a request omits,
+        // so an emptied field must not be guessed away: removing a leg stays
+        // in the TP/SL list's cancel action.
+        plansFor.mockReturnValue({
+            profit: positionPlan("PROFIT", "50000"),
+            loss: positionPlan("LOSS", "45000"),
+        });
+        render();
+
+        setValue(field("tpsl-create-tp-price"), "");
+        buttonSaying(lookup("common.save")).click();
+        await settleAsync();
+
+        expect(host.textContent).toContain(lookup("modals.createTpSl.legCannotBeCleared"));
+        expect(modifyPositionTpSl).not.toHaveBeenCalled();
+        expect(placePositionTpSl).not.toHaveBeenCalled();
     });
 
     it("does not gate create on a partial plan — only a position-wide one blocks it", () => {
@@ -290,23 +340,13 @@ describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offer
         expect(host.querySelector("#tpsl-create-tp-price")).not.toBeNull();
     });
 
-    it("opens the existing single-leg edit modal on click", () => {
-        plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
-        render();
-
-        buttonSaying(lookup("modals.createTpSl.editExisting")).click();
-        settle();
-
-        expect(host.querySelector('input[name="tpslTriggerPrice"]')).not.toBeNull();
-    });
-
     describe("BUG-0687 — adding the missing leg modifies the plan instead of replacing it", () => {
         it("sends both legs through the modify endpoint when a take-profit is already set", async () => {
             plansFor.mockReturnValue({ profit: positionPlan("PROFIT", "50000") });
             render();
 
             setValue(field("tpsl-create-sl-price"), "45000");
-            buttonSaying(lookup("modals.createTpSl.submit")).click();
+            buttonSaying(lookup("common.save")).click();
             await settleAsync();
 
             // The defect: a second place-order with only the stop, which the
@@ -322,20 +362,27 @@ describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offer
             };
             expect(sent.symbol).toBe("BTCUSDT");
             expect(sent.positionId).toBe("pos-1");
-            // The leg that is already set travels carried over, the new one
-            // as entered — both in one request.
+            // The leg that is already set travels prefilled, the new one as
+            // entered — both in one request.
             expect(sent.takeProfit?.price.toString()).toBe("50000");
             expect(sent.stopLoss?.price.toString()).toBe("45000");
         });
 
-        it("carries the existing leg's stop type rather than resetting it", async () => {
+        it("prefills the plan's trigger type and applies it to both legs", async () => {
             plansFor.mockReturnValue({
                 profit: positionPlan("PROFIT", "50000", "LAST_PRICE"),
             });
             render();
 
+            // One form produces one request, so one select governs both legs;
+            // it opens on the plan's own type rather than resetting to a
+            // default the trader never chose.
+            expect(
+                host.querySelector<HTMLSelectElement>("#tpsl-create-trigger-type")!.value,
+            ).toBe("LAST_PRICE");
+
             setValue(field("tpsl-create-sl-price"), "45000");
-            buttonSaying(lookup("modals.createTpSl.submit")).click();
+            buttonSaying(lookup("common.save")).click();
             await settleAsync();
 
             const sent = modifyPositionTpSl.mock.calls[0][0] as {
@@ -343,7 +390,7 @@ describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offer
                 stopLoss?: { stopType?: string };
             };
             expect(sent.takeProfit?.stopType).toBe("LAST_PRICE");
-            expect(sent.stopLoss?.stopType).toBe("MARK_PRICE");
+            expect(sent.stopLoss?.stopType).toBe("LAST_PRICE");
         });
 
         it("mirrors the case — a stop is set and the target is added", async () => {
@@ -351,7 +398,7 @@ describe("FEAT-0070 AC#3 — a leg already covered by a position-wide plan offer
             render();
 
             setValue(field("tpsl-create-tp-price"), "55000");
-            buttonSaying(lookup("modals.createTpSl.submit")).click();
+            buttonSaying(lookup("common.save")).click();
             await settleAsync();
 
             expect(placePositionTpSl).not.toHaveBeenCalled();

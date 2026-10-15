@@ -16,22 +16,19 @@
 -->
 
 <!--
-  FEAT-0070 — creating TP/SL where none exists.
-
-  `TpSlEditModal` edits one leg of a plan that already exists; this creates
-  one for a position that has none, or is only partly covered. Kept separate
-  rather than folded into the edit modal because the two are driven by
-  different things — an existing `TpSlOrder` there, an `OMSPosition` here —
-  and a single component juggling both would need to branch on which one it
-  was given for nearly every field.
+  FEAT-0070 — creating TP/SL where none exists; BUG-0688 gave it one form for
+  the whole plan.
 
   Two sections, matching the two endpoints Bitunix exposes (`06_tp_sl.md`):
   position-wide (max one per position, tracks its size, closes at market)
-  and partial (several may coexist, each covering an explicit quantity). A
-  leg already covered by a position-wide plan shows its price with an Edit
-  link into the existing modal instead of a second create input — the "one
-  per position" limit reflected as a UI choice rather than a refusal from the
-  venue (AC#3).
+  and partial (several may coexist, each covering an explicit quantity).
+
+  The position-wide section is a single editor for both legs: they are one
+  plan at the venue (one row, one endpoint), so they are one form here. A leg
+  that is already set opens prefilled and a single save sends both — the
+  "one per position" limit is still reflected, but as one edit rather than
+  two dialogs. `TpSlEditModal` remains the per-leg editor for the TP/SL list,
+  where each row genuinely is one leg.
 -->
 
 <script lang="ts">
@@ -44,7 +41,6 @@ import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import ModalFrame from "./ModalFrame.svelte";
   import TpSlPriceInput from "./TpSlPriceInput.svelte";
-  import TpSlEditModal from "./TpSlEditModal.svelte";
   import { tpSlState } from "../../stores/tpsl.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
@@ -60,10 +56,10 @@ import { Decimal } from "decimal.js";
   let { position, onclose, onsuccess }: Props = $props();
 
   /*
-   * Read once, at open — not reactively. What this modal offers (create vs.
-   * edit-existing, per leg) is a decision made when the trader opens it; a
-   * plan created moments later by this same modal should not cause its own
-   * sections to swap out from under an in-progress edit.
+   * Read once, at open — not reactively. What this modal offers is a decision
+   * made when the trader opens it; a plan created moments later by this same
+   * modal should not cause its own sections to swap out from under an
+   * in-progress edit.
    *
    * `scopeGuess` is BUG-0292's named inference, not a documented field — see
    * that item. Gating "position-wide create" on it is the one place this
@@ -74,10 +70,48 @@ import { Decimal } from "decimal.js";
   const existingPlans = untrack(() => tpSlState.plansFor(position.symbol));
   const tpCoveredByPositionPlan = existingPlans.profit?.scopeGuess === "position";
   const slCoveredByPositionPlan = existingPlans.loss?.scopeGuess === "position";
+  /** Whether the position already carries a plan — decides place vs. modify. */
+  const positionWidePlanExists = tpCoveredByPositionPlan || slCoveredByPositionPlan;
 
-  let tpPrice = $state("");
-  let slPrice = $state("");
-  let stopType = $state<"LAST_PRICE" | "MARK_PRICE">("MARK_PRICE");
+  /**
+   * BUG-0688 — one form for the whole plan.
+   *
+   * A position-wide plan is *one* thing at the venue (one row, one endpoint,
+   * "max. one per position"), so it is one form here too: both legs are
+   * editable side by side and a single save sends both. The previous split —
+   * a read-only price with an "Edit" link that opened a second modal per leg —
+   * meant changing a bracket took two dialogs, and saving the first closed
+   * both, so the second leg had to be found again from the start.
+   *
+   * A leg that is set opens prefilled with its live value, so "move the stop"
+   * is one edit and one save.
+   */
+  function stopTypeOf(order: TpSlOrder | undefined): "LAST_PRICE" | "MARK_PRICE" | null {
+    const kind = order?.workingType;
+    return kind === "LAST_PRICE" || kind === "MARK_PRICE" ? kind : null;
+  }
+  const tpLegStopType = stopTypeOf(existingPlans.profit);
+  const slLegStopType = stopTypeOf(existingPlans.loss);
+  /*
+   * One trigger type now governs both legs, because one form produces one
+   * request. Prefilled from the plan — the type both legs agree on, the only
+   * leg's type when there is one, the venue's own default when they disagree —
+   * so the select shows exactly what a save would send.
+   */
+  const initialStopType: "LAST_PRICE" | "MARK_PRICE" =
+    tpLegStopType !== null && slLegStopType !== null
+      ? tpLegStopType === slLegStopType
+        ? tpLegStopType
+        : "MARK_PRICE"
+      : (tpLegStopType ?? slLegStopType ?? "MARK_PRICE");
+
+  let tpPrice = $state(
+    tpCoveredByPositionPlan ? String(existingPlans.profit?.triggerPrice ?? "") : "",
+  );
+  let slPrice = $state(
+    slCoveredByPositionPlan ? String(existingPlans.loss?.triggerPrice ?? "") : "",
+  );
+  let stopType = $state<"LAST_PRICE" | "MARK_PRICE">(initialStopType);
   let positionWideLoading = $state(false);
   let positionWideError = $state("");
 
@@ -87,9 +121,6 @@ import { Decimal } from "decimal.js";
   let partialQty = $state("");
   let partialLoading = $state(false);
   let partialError = $state("");
-
-  /** Editing an already-covered leg opens the existing single-leg modal on top. */
-  let editingLeg = $state<TpSlOrder | null>(null);
 
   const positionSize = $derived(position.size ?? position.amount);
 
@@ -164,19 +195,20 @@ import { Decimal } from "decimal.js";
     return false;
   }
 
-  function openEdit(order: TpSlOrder | undefined) {
-    if (order) editingLeg = order;
-  }
-
-  function handleEditSuccess() {
-    editingLeg = null;
-    tpSlState.invalidate();
-    onsuccess?.();
-  }
-
-  async function handleCreatePositionWide() {
+  async function handleSavePositionWide() {
     if (!position.positionId) {
       positionWideError = $_(`modals.createTpSl.missingPositionId`);
+      return;
+    }
+    /*
+     * BUG-0688 — a leg that is set cannot be emptied here.
+     * `position/modify_order` documents "at least one of tpPrice/slPrice" and
+     * says nothing about the leg a request omits; guessing would risk clearing
+     * the leg the trader only meant to leave alone. Removing a leg stays where
+     * it is unambiguous: the cancel action in the TP/SL list.
+     */
+    if ((tpCoveredByPositionPlan && !tpPrice) || (slCoveredByPositionPlan && !slPrice)) {
+      positionWideError = $_(`modals.createTpSl.legCannotBeCleared`);
       return;
     }
     if (!tpPrice && !slPrice) {
@@ -185,66 +217,27 @@ import { Decimal } from "decimal.js";
     }
     if (hasInvalidTpSl(tpPrice, slPrice, (message) => (positionWideError = message))) return;
 
-    function stopTypeOrDefault(kind: unknown): "LAST_PRICE" | "MARK_PRICE" {
-      return kind === "LAST_PRICE" || kind === "MARK_PRICE" ? kind : "MARK_PRICE";
-    }
-
     positionWideLoading = true;
     positionWideError = "";
     try {
       /*
-       * BUG-0687: one leg is already covered, so the missing one cannot be
-       * *created* — the venue allows a single position-wide plan per position,
-       * and a second place-order cancels the leg that is already set. Both
-       * legs therefore travel in one modify instead, the existing one carried
-       * over from the plan on screen. With neither leg covered this stays the
-       * create it always was; with both covered the section offers edit links
-       * only and this never runs.
+       * One request for the whole plan, carrying both legs exactly as the form
+       * shows them. `modify-position` when the position already carries a plan
+       * (BUG-0687: a second place-order would *replace* it and drop the leg
+       * that is already set), `place-position` when it carries none.
        */
-      if (tpCoveredByPositionPlan || slCoveredByPositionPlan) {
-        const takeProfit = tpCoveredByPositionPlan
-          ? {
-              price: new Decimal(String(existingPlans.profit?.triggerPrice ?? "0")),
-              stopType: stopTypeOrDefault(existingPlans.profit?.workingType),
-            }
-          : tpPrice
-            ? { price: new Decimal(tpPrice), stopType }
-            : null;
-        const stopLoss = slCoveredByPositionPlan
-          ? {
-              price: new Decimal(String(existingPlans.loss?.triggerPrice ?? "0")),
-              stopType: stopTypeOrDefault(existingPlans.loss?.workingType),
-            }
-          : slPrice
-            ? { price: new Decimal(slPrice), stopType }
-            : null;
-
-        if (!takeProfit || !stopLoss) {
-          // Unreachable: the both-covered case renders no submit button, and
-          // the missing leg is required before this line by the guard above.
-          // Refusing is still the right failure — a modify here would silently
-          // drop the leg the trader can see.
-          positionWideError = $_(`apiErrors.tpslNoLeg`);
-          return;
-        }
-
-        await activeExchange().trading.modifyPositionTpSl({
-          symbol: position.symbol,
-          positionId: position.positionId,
-          context: { side: position.side, entryPrice: position.entryPrice },
-          tickSize,
-          takeProfit,
-          stopLoss,
-        });
+      const payload = {
+        symbol: position.symbol,
+        positionId: position.positionId,
+        context: { side: position.side, entryPrice: position.entryPrice },
+        tickSize,
+        takeProfit: tpPrice ? { price: new Decimal(tpPrice), stopType } : undefined,
+        stopLoss: slPrice ? { price: new Decimal(slPrice), stopType } : undefined,
+      };
+      if (positionWidePlanExists) {
+        await activeExchange().trading.modifyPositionTpSl(payload);
       } else {
-        await activeExchange().trading.placePositionTpSl({
-          symbol: position.symbol,
-          positionId: position.positionId,
-          context: { side: position.side, entryPrice: position.entryPrice },
-          tickSize,
-          takeProfit: tpPrice ? { price: new Decimal(tpPrice), stopType } : undefined,
-          stopLoss: slPrice ? { price: new Decimal(slPrice), stopType } : undefined,
-        });
+        await activeExchange().trading.placePositionTpSl(payload);
       }
       tpSlState.invalidate();
       onsuccess?.();
@@ -339,7 +332,8 @@ import { Decimal } from "decimal.js";
       </select>
     </div>
 
-    <!-- Position-wide section (AC#1, AC#3) -->
+    <!-- Position-wide section (AC#1, BUG-0688) — one form for the plan's
+         two legs; a covered leg opens prefilled instead of behind a link. -->
     <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
       <div class="text-xs font-bold text-[var(--text-primary)]">
         {$_("modals.createTpSl.positionWide")}
@@ -348,19 +342,7 @@ import { Decimal } from "decimal.js";
         {$_("modals.createTpSl.positionWideHint")}
       </div>
 
-      {#if tpCoveredByPositionPlan}
-        <div class="flex justify-between items-center text-xs">
-          <span class="text-[var(--success-color)]"
-            >TP {existingPlans.profit?.triggerPrice} — {$_("modals.createTpSl.alreadySet")}</span
-          >
-          <button
-            class="text-[var(--accent-color)] hover:underline text-xs"
-            onclick={() => openEdit(existingPlans.profit)}
-          >
-            {$_("modals.createTpSl.editExisting")}
-          </button>
-        </div>
-      {:else if tpSlContext}
+      {#if tpSlContext}
         <TpSlPriceInput
           ctx={tpSlContext}
           kind="TP"
@@ -386,19 +368,7 @@ import { Decimal } from "decimal.js";
         </div>
       {/if}
 
-      {#if slCoveredByPositionPlan}
-        <div class="flex justify-between items-center text-xs">
-          <span class="text-[var(--danger-color)]"
-            >SL {existingPlans.loss?.triggerPrice} — {$_("modals.createTpSl.alreadySet")}</span
-          >
-          <button
-            class="text-[var(--accent-color)] hover:underline text-xs"
-            onclick={() => openEdit(existingPlans.loss)}
-          >
-            {$_("modals.createTpSl.editExisting")}
-          </button>
-        </div>
-      {:else if tpSlContext}
+      {#if tpSlContext}
         <TpSlPriceInput
           ctx={tpSlContext}
           kind="SL"
@@ -428,17 +398,15 @@ import { Decimal } from "decimal.js";
         <div class="text-xs text-[var(--danger-color)]">{positionWideError}</div>
       {/if}
 
-      {#if !tpCoveredByPositionPlan || !slCoveredByPositionPlan}
-        <button
-          class="w-full py-1.5 rounded text-xs font-bold text-white bg-[var(--accent-color)] hover:bg-opacity-90 disabled:opacity-50"
-          onclick={handleCreatePositionWide}
-          disabled={positionWideLoading || (!tpPrice && !slPrice)}
-        >
-          {positionWideLoading
-            ? $_("modals.createTpSl.submit") + "..."
-            : $_("modals.createTpSl.submit")}
-        </button>
-      {/if}
+      <button
+        class="w-full py-1.5 rounded text-xs font-bold text-white bg-[var(--accent-color)] hover:bg-opacity-90 disabled:opacity-50"
+        onclick={handleSavePositionWide}
+        disabled={positionWideLoading || (!tpPrice && !slPrice)}
+      >
+        {positionWideLoading
+          ? $_(positionWidePlanExists ? "common.save" : "modals.createTpSl.submit") + "..."
+          : $_(positionWidePlanExists ? "common.save" : "modals.createTpSl.submit")}
+      </button>
     </div>
 
     <!-- Partial section (AC#2) — always offered; several partial plans may
@@ -523,11 +491,3 @@ import { Decimal } from "decimal.js";
     </div>
   </div>
 </ModalFrame>
-
-{#if editingLeg}
-  <TpSlEditModal
-    order={editingLeg}
-    onclose={() => (editingLeg = null)}
-    onsuccess={handleEditSuccess}
-  />
-{/if}
