@@ -32,6 +32,7 @@ import {
   sanitizeUserProviders,
   seedBuiltinEntries,
   validateProviderConfig,
+  apiKeyUrlForBaseUrl,
   type ProviderConfig,
 } from "./aiProviders";
 
@@ -467,5 +468,58 @@ describe("single-registry unification", () => {
     expect(modelProviderForFlavor("openai-responses")).toBe("openai");
     expect(modelProviderForFlavor("anthropic-messages")).toBe("anthropic");
     expect(modelProviderForFlavor("google-generate")).toBe("gemini");
+  });
+});
+
+describe("apiKeyUrlForBaseUrl", () => {
+  it("resolves the key page of the vendor behind a built-in endpoint", () => {
+    expect(apiKeyUrlForBaseUrl(builtinPreset("openai")?.defaultBaseUrl)).toBe(
+      "https://platform.openai.com/api-keys",
+    );
+    expect(apiKeyUrlForBaseUrl(builtinPreset("gemini")?.defaultBaseUrl)).toBe(
+      "https://aistudio.google.com/app/apikey",
+    );
+    expect(apiKeyUrlForBaseUrl(builtinPreset("anthropic")?.defaultBaseUrl)).toBe(
+      "https://console.anthropic.com/settings/keys",
+    );
+  });
+
+  it("resolves a key page for every preset that publishes one", () => {
+    for (const preset of VENDOR_PRESETS) {
+      const url = apiKeyUrlForBaseUrl(preset.baseUrl);
+      if (preset.id === "omniroute") {
+        // A local gateway has no vendor key page — the UI shows no link.
+        expect(url).toBeNull();
+        continue;
+      }
+      expect(url, `preset ${preset.id}`).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("matches on the hostname, so an edited path keeps the link", () => {
+    expect(apiKeyUrlForBaseUrl("https://api.openai.com/v1/chat/completions")).toBe(
+      "https://platform.openai.com/api-keys",
+    );
+    expect(apiKeyUrlForBaseUrl("api.openai.com")).toBe(
+      "https://platform.openai.com/api-keys",
+    );
+  });
+
+  it("accepts a subdomain of the vendor host", () => {
+    expect(apiKeyUrlForBaseUrl("https://gateway.api.groq.com/openai/v1")).toBe(
+      "https://console.groq.com/keys",
+    );
+  });
+
+  it("returns null for a self-hosted, unknown or unusable endpoint", () => {
+    expect(apiKeyUrlForBaseUrl("http://localhost:20128/v1")).toBeNull();
+    expect(apiKeyUrlForBaseUrl("https://my-gateway.internal/v1")).toBeNull();
+    expect(apiKeyUrlForBaseUrl("")).toBeNull();
+    expect(apiKeyUrlForBaseUrl(undefined)).toBeNull();
+    expect(apiKeyUrlForBaseUrl("not a url")).toBeNull();
+  });
+
+  it("does not match a vendor name that only appears in a foreign host", () => {
+    expect(apiKeyUrlForBaseUrl("https://api.openai.com.attacker.example/v1")).toBeNull();
   });
 });

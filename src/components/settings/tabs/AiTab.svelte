@@ -20,6 +20,9 @@
     import { settingsState, type AiProvider } from "../../../stores/settings.svelte";
     import {
         BUILTIN_ENTRY_IDS,
+        OLLAMA_SETUP_URL,
+        apiKeyUrlForBaseUrl,
+        builtinPreset,
         isBuiltinEntryId,
     } from "../../../stores/settings/aiProviders";
     import {
@@ -46,7 +49,21 @@
         baseUrlLabel: string;
         baseUrlPlaceholder: string;
         baseUrlHint: string;
+        /** Link to the vendor's key-creation page; empty renders no link. */
+        apiKeyUrl: string;
+        /** Translated label for that link. */
+        apiKeyUrlLabel: string;
     }
+
+    /**
+     * The key-creation page for a built-in vendor, derived from its default
+     * endpoint so the URL lives in one table rather than in this component.
+     */
+    function keyUrlForVendor(vendor: AiProvider): string {
+        return apiKeyUrlForBaseUrl(builtinPreset(vendor)?.defaultBaseUrl) ?? "";
+    }
+
+    const createKeyLabel = $_("settings.ai.createApiKey");
 
     const providerTabs: ProviderTab[] = [
         {
@@ -59,6 +76,9 @@
             baseUrlLabel: $_("settings.ai.ollamaBaseUrl"),
             baseUrlPlaceholder: "http://localhost:11434",
             baseUrlHint: $_("settings.ai.ollamaBaseUrlDesc"),
+            // Ollama needs no key; its link goes to the installer instead.
+            apiKeyUrl: OLLAMA_SETUP_URL,
+            apiKeyUrlLabel: $_("settings.ai.installOllama"),
         },
         {
             id: BUILTIN_ENTRY_IDS.openai,
@@ -70,6 +90,8 @@
             baseUrlLabel: $_("settings.ai.customBaseUrl"),
             baseUrlPlaceholder: "http://localhost:8000/v1",
             baseUrlHint: $_("settings.ai.customBaseUrlDesc"),
+            apiKeyUrl: keyUrlForVendor("openai"),
+            apiKeyUrlLabel: createKeyLabel,
         },
         {
             id: BUILTIN_ENTRY_IDS.gemini,
@@ -81,6 +103,8 @@
             baseUrlLabel: $_("settings.ai.customBaseUrl"),
             baseUrlPlaceholder: "https://generativelanguage.googleapis.com",
             baseUrlHint: $_("settings.ai.geminiCustomBaseUrlDesc"),
+            apiKeyUrl: keyUrlForVendor("gemini"),
+            apiKeyUrlLabel: createKeyLabel,
         },
         {
             id: BUILTIN_ENTRY_IDS.anthropic,
@@ -92,6 +116,8 @@
             baseUrlLabel: $_("settings.ai.customBaseUrl"),
             baseUrlPlaceholder: "https://api.anthropic.com",
             baseUrlHint: $_("settings.ai.customBaseUrlDesc"),
+            apiKeyUrl: keyUrlForVendor("anthropic"),
+            apiKeyUrlLabel: createKeyLabel,
         },
     ];
 
@@ -287,6 +313,8 @@
                             baseUrlLabel={activeTab.baseUrlLabel}
                             baseUrlPlaceholder={activeTab.baseUrlPlaceholder}
                             baseUrlHint={activeTab.baseUrlHint}
+                            apiKeyUrl={activeTab.apiKeyUrl}
+                            apiKeyUrlLabel={activeTab.apiKeyUrlLabel}
                         />
                     {/if}
                 </div>

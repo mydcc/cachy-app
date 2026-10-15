@@ -1659,6 +1659,8 @@
       "openaiApiKey": "OpenAI API Schlüssel",
       "geminiApiKey": "Gemini API Schlüssel",
       "anthropicApiKey": "Anthropic API Schlüssel",
+      "createApiKey": "API-Schlüssel erstellen",
+      "installOllama": "Ollama installieren",
       "discord": {
         "title": "Discord Bot",
         "token": "Bot Token",
