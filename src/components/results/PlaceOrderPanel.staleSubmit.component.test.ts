@@ -42,6 +42,7 @@ import en from "../../locales/locales/en.json";
 import type { TradingPairInfo } from "../../stores/market/types";
 
 import PlaceOrderPanel from "./PlaceOrderPanel.svelte";
+import { tradeCalculator } from "../../services/tradeCalculator.svelte";
 
 vi.mock("../../services/logger", () => ({
     logger: { log: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -272,6 +273,7 @@ async function settle(budgetMs = 120) {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    tradeCalculator.pending = false;
     showMock.mockResolvedValue(true);
     split.calculated.entry = "60000";
     split.calculated.stop = "58000";
@@ -362,6 +364,25 @@ describe("BUG-0648 — the summary says when its figures are no longer current",
 
         expect(text).toContain(lookup("orderEntry.summary.size"));
         expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
+    });
+
+    it("holds back the label while a recalculation is already queued", async () => {
+        split.inputs.entry = "61000";
+        await mountPanel();
+        expect(host.textContent ?? "").toContain(
+            lookup("orderEntry.notes.staleCalculation"),
+        );
+
+        // The throttle has queued the trailing recalculation: the mismatch is
+        // transient knowledge the calculator is about to resolve, so the note
+        // must not flash on every keystroke of a burst.
+        tradeCalculator.pending = true;
+        flushSync();
+
+        const text = host.textContent ?? "";
+        expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
+        // The figures stay put, and the submit guard is unchanged.
+        expect(text).toContain(lookup("orderEntry.summary.size"));
     });
 
     it("names the cleared stop when the figures were calculated with one", async () => {

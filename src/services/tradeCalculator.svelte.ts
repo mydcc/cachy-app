@@ -31,6 +31,16 @@ class TradeCalculator {
     private stopEffects: (() => void) | null = null;
 
     /**
+     * True while a recalculation is queued on the throttle's trailing edge.
+     * Reactive so the UI can hold back the "stale calculation" note during the
+     * debounce window instead of flashing it on every keystroke — the displayed
+     * figures are only behind because the recalculation is already on its way.
+     * The leading edge runs synchronously inside the effect, so it never needs
+     * this flag: by the time Svelte renders, the figures already match again.
+     */
+    pending = $state(false);
+
+    /**
      * Validates inputs and runs the calculation. Used by both the leading
      * edge (direct effect run) and the trailing edge (scheduled timer) so a
      * rapid mutation burst always ends in a calculation of the final state
@@ -59,6 +69,7 @@ class TradeCalculator {
             clearTimeout(this.trailingTimer);
             this.trailingTimer = null;
         }
+        this.pending = false;
         // Stop the reactive watcher so a re-init starts clean instead of
         // stacking another $effect.root on top of the old one.
         this.stopEffects?.();
@@ -134,14 +145,17 @@ class TradeCalculator {
                 if (now - this.lastCalcTime < this.CALC_THROTTLE_MS) {
                     const remaining = this.CALC_THROTTLE_MS - (now - this.lastCalcTime);
                     if (this.trailingTimer) clearTimeout(this.trailingTimer);
+                    this.pending = true;
                     this.trailingTimer = setTimeout(() => {
                         this.trailingTimer = null;
+                        this.pending = false;
                         this.executeCalculation();
                     }, remaining);
                     return;
                 }
 
                 // 3. Validation and Execution
+                this.pending = false;
                 this.executeCalculation();
             });
         });

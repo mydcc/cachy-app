@@ -96,4 +96,19 @@ describe("TradeCalculator throttle", () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(calc).toHaveBeenCalledTimes(1); // trailing never fired
   });
+
+  it("reports pending only while a recalculation is queued", async () => {
+    tradeCalculator.init(vi.fn());
+
+    tradeState.riskPercentage = "1";
+    await vi.advanceTimersByTimeAsync(0);
+    expect(tradeCalculator.pending).toBe(false); // leading edge finished
+
+    tradeState.riskPercentage = "2";
+    await vi.advanceTimersByTimeAsync(0);
+    expect(tradeCalculator.pending).toBe(true); // trailing queued
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(tradeCalculator.pending).toBe(false); // trailing finished
+  });
 });
