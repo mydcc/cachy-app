@@ -74,7 +74,7 @@
    /** A locale string, or the key when absent — mirrors IndicatorLessonsView. */
    function text(key: string, values?: Record<string, string | number>): string {
       const value = values
-         ? $_(key as TranslationKey, { values })
+         ? $_(key as TranslationKey, { values: values ?? {} })
          : $_(key as TranslationKey);
       return value === key || value === "" ? key : value;
    }
@@ -92,7 +92,7 @@
    /** Display-only decimals (ADR-0021): adaptive precision, never computed on. */
    function formatPrice(value: number): string {
       if (!Number.isFinite(value)) return "—";
-      return String(Number(value.toPrecision(6)));
+      return String(Number(value.toPrecision(6))); // audit: safe — display string, never computed on
    }
 
    function format1(value: number): string {
@@ -148,10 +148,10 @@
       const out: Bar[] = [];
       let lastTime = -Infinity;
       for (const kline of klines.slice(-300)) {
-         const time = Number(kline.time);
-         const high = Number(kline.high);
-         const low = Number(kline.low);
-         const close = Number(kline.close);
+         const time = Number(kline.time); // audit: safe — epoch-ms timestamp
+         const high = Number(kline.high); // audit: safe — f64 indicator-engine input (ADR-0021)
+         const low = Number(kline.low); // audit: safe — f64 indicator-engine input (ADR-0021)
+         const close = Number(kline.close); // audit: safe — f64 indicator-engine input (ADR-0021)
          if (!Number.isFinite(time) || time <= 0 || time <= lastTime) continue;
          if (!Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) continue;
          lastTime = time;
@@ -182,7 +182,7 @@
       for (let i = values.length - 1; i >= 0; i--) {
          const raw = values[i];
          if (raw === null || raw === undefined) continue;
-         const parsed = Number(raw);
+         const parsed = Number(raw); // audit: safe — f64 indicator display value, never money math (ADR-0021)
          if (Number.isFinite(parsed)) return parsed;
       }
       return null;
@@ -208,7 +208,7 @@
       for (let i = values.length - 1; i >= 0; i--) {
          const raw = values[i];
          if (raw === null || raw === undefined) continue;
-         const parsed = Number(raw);
+         const parsed = Number(raw); // audit: safe — f64 indicator display value, never money math (ADR-0021)
          if (!Number.isFinite(parsed)) continue;
          seen++;
          if (seen === 2) return parsed;
@@ -246,17 +246,28 @@
       return text("academy.structure.read.chochDown");
    }
 
+   /**
+    * A resolved colour for the canvas. The chart library cannot read
+    * `var(...)`, so the theme token is resolved here at draw time; the
+    * literal is only a documented fallback for SSR/tests, mirroring
+    * IndicatorLessonChart.
+    */
+   function cssColor(name: string, fallback: string): string {
+      if (typeof window === "undefined") return fallback;
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+   }
+
    function markerColor(kind: string): string {
-      if (kind === "BOS-up") return "#26a69a";
-      if (kind === "BOS-down") return "#ef5350";
-      return "#ffb300";
+      if (kind === "BOS-up") return cssColor("--success-color", "#26a69a");
+      if (kind === "BOS-down") return cssColor("--danger-color", "#ef5350");
+      return cssColor("--warning-color", "#ffb300");
    }
 
    function markersForChart(): { time: number; position: "aboveBar" | "belowBar"; color: string; shape: "arrowUp" | "arrowDown" | "circle"; text?: string }[] {
       const swingMarks = swings.slice(-12).map((swing) => ({
          time: Math.floor(bars[swing.index]?.time ?? 0) / 1000,
          position: "aboveBar" as const,
-         color: "#2962ff",
+         color: cssColor("--accent-color", "#2962ff"),
          shape: "circle" as const,
       }));
       const breakMarks = breaks.map((event) => ({
@@ -273,7 +284,7 @@
       const higherSwings = findSwings(higherBars.map((bar) => ({ high: bar.high, low: bar.low, close: bar.close })));
       return recentLevels(higherSwings, higherCloses[higherCloses.length - 1], 3).map((level) => ({
          price: level.price,
-         color: level.side === "resistance" ? "#ef5350" : "#26a69a",
+         color: level.side === "resistance" ? cssColor("--danger-color", "#ef5350") : cssColor("--success-color", "#26a69a"),
          title: level.side === "resistance" ? "R" : "S",
       }));
    }
@@ -319,7 +330,7 @@
                   <dd class="font-mono text-[var(--text-primary)]">{biasTf}</dd>
                </div>
                <div class="flex justify-between gap-3">
-                  <dt class="text-[var(--text-secondary)]">EMA</dt>
+                  <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.ema")}</dt>
                   <dd class="font-mono text-[var(--text-primary)]">
                      {#if emaNow === null || lastHigher === null}
                         {text("academy.structure.read.noData")}
@@ -369,13 +380,13 @@
             {@const chopNow = lineValue("choppiness", bars, "value")}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
-                  <dt class="text-[var(--text-secondary)]">ADX</dt>
+                  <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.adx")}</dt>
                   <dd class="font-mono text-[var(--text-primary)]">
                      {adxNow === null ? text("academy.structure.read.noData") : `${format1(adxNow)} · ${text("academy.structure.read.adxThreshold")}`}
                   </dd>
                </div>
                <div class="flex justify-between gap-3">
-                  <dt class="text-[var(--text-secondary)]">Choppiness</dt>
+                  <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.choppiness")}</dt>
                   <dd class="font-mono text-[var(--text-primary)]">
                      {chopNow === null ? text("academy.structure.read.noData") : `${format1(chopNow)} · ${text("academy.structure.read.chopThreshold")}`}
                   </dd>
@@ -388,11 +399,11 @@
             {@const atrNow = lineValue("atr", bars, "value")}
             <dl class="flex flex-col gap-1 text-sm">
                <div class="flex justify-between gap-3">
-                  <dt class="text-[var(--text-secondary)]">Bandwidth</dt>
+                  <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.output.bandwidth")}</dt>
                   <dd class="font-mono text-[var(--text-primary)]">{bwNow === null ? text("academy.structure.read.noData") : `${format1(bwNow)} %`}</dd>
                </div>
                <div class="flex justify-between gap-3">
-                  <dt class="text-[var(--text-secondary)]">ATR</dt>
+                  <dt class="text-[var(--text-secondary)]">{text("dashboard.alerts.indicators.name.atr")}</dt>
                   <dd class="font-mono text-[var(--text-primary)]">{atrNow === null ? text("academy.structure.read.noData") : formatPrice(atrNow)}</dd>
                </div>
             </dl>
