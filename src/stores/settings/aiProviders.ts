@@ -426,6 +426,74 @@ export function providerFromPreset(preset: VendorPreset): ProviderConfig {
   };
 }
 
+/** Where Ollama is installed from — it takes no API key, so this is its link. */
+export const OLLAMA_SETUP_URL = "https://ollama.com/download";
+
+/**
+ * Where a user creates an API key for a vendor, keyed by the hostname its API
+ * lives on. One table answers for a built-in tab and for a user-added preset
+ * alike, and the match follows the endpoint an entry actually points at rather
+ * than a stored label.
+ *
+ * A vendor with no entry gets no link: a self-hosted gateway has no key page,
+ * and a wrong link is worse than none.
+ */
+const API_KEY_URLS: ReadonlyArray<{ host: string; url: string }> = [
+  { host: "api.openai.com", url: "https://platform.openai.com/api-keys" },
+  {
+    host: "generativelanguage.googleapis.com",
+    url: "https://aistudio.google.com/app/apikey",
+  },
+  { host: "api.anthropic.com", url: "https://console.anthropic.com/settings/keys" },
+  { host: "openrouter.ai", url: "https://openrouter.ai/keys" },
+  { host: "api.x.ai", url: "https://console.x.ai/" },
+  { host: "api.deepseek.com", url: "https://platform.deepseek.com/api_keys" },
+  { host: "api.mistral.ai", url: "https://console.mistral.ai/api-keys" },
+  { host: "api.groq.com", url: "https://console.groq.com/keys" },
+  { host: "opencode.ai", url: "https://opencode.ai/zen" },
+  { host: "commandcode.ai", url: "https://commandcode.ai/settings" },
+];
+
+/**
+ * The key-creation page for a base URL, or null when the vendor is unknown.
+ * Matching is on the hostname, so a preset keeps its link after the user edits
+ * the path; a subdomain of the vendor host (`api.commandcode.ai`) still
+ * matches, while a host that merely embeds the name (`api.openai.com.evil.tld`)
+ * does not. Case, IPv6 brackets and a trailing root dot are folded, and a
+ * reserved or unparseable URL resolves to no link at all.
+ */
+export function apiKeyUrlForBaseUrl(
+  baseUrl: string | null | undefined,
+): string | null {
+  const trimmed = text(baseUrl).trim();
+  if (!trimmed) return null;
+
+  let rawHost: string;
+  try {
+    rawHost = new URL(trimmed).hostname;
+  } catch {
+    // A scheme-less base URL is accepted elsewhere in the app
+    // (`resolveProviderEndpoint` prepends one), so match it here too rather
+    // than silently dropping the link.
+    try {
+      rawHost = new URL(`https://${trimmed}`).hostname;
+    } catch {
+      return null;
+    }
+  }
+
+  // `URL.hostname` already lower-cases and IDNA-encodes, but a trailing root
+  // dot survives; a homoglyph host never equals a table entry and so misses.
+  const host = rawHost.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.+$/, "");
+
+  const match = API_KEY_URLS.find(
+    (entry) => host === entry.host || host.endsWith(`.${entry.host}`),
+  );
+  // The table is static and https, but the value becomes an anchor `href` at
+  // the call site, so the scheme is asserted here as well.
+  return match && /^https:\/\//i.test(match.url) ? match.url : null;
+}
+
 /** True when the entry carries what the send path requires. */
 export function providerConfigReady(
   provider: ProviderConfig | undefined | null,

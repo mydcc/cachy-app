@@ -29,6 +29,7 @@
   import {
     AI_API_FLAVORS,
     VENDOR_PRESETS,
+    apiKeyUrlForBaseUrl,
     buildUserProvider,
     isBuiltinEntryId,
     isLoopbackBaseUrl,
@@ -116,6 +117,7 @@
   {:else}
     <div class="flex flex-col gap-3">
       {#each customProviders as provider (provider.id)}
+        {@const apiKeyUrl = apiKeyUrlForBaseUrl(provider.baseUrl)}
         <div
           class="provider-card"
           class:active={settingsState.activeProviderId === provider.id}
@@ -188,9 +190,24 @@
             </div>
 
             <div class="field-group">
-              <label for={`cp-key-${provider.id}`}
-                >{$_("settings.ai.customProviders.apiKey")}</label
-              >
+              <div class="field-label-row">
+                <label for={`cp-key-${provider.id}`}
+                  >{$_("settings.ai.customProviders.apiKey")}</label
+                >
+                {#if apiKeyUrl && /^https?:\/\//i.test(apiKeyUrl)}
+                  <a
+                    class="key-link"
+                    href={apiKeyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    referrerpolicy="no-referrer"
+                  >
+                    {$_("settings.ai.createApiKey")}<span aria-hidden="true"
+                      >↗</span
+                    >
+                  </a>
+                {/if}
+              </div>
               <input
                 id={`cp-key-${provider.id}`}
                 type="password"
@@ -233,6 +250,25 @@
 </section>
 
 <style>
+  .field-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .key-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--accent-color);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .key-link:hover {
+    text-decoration: underline;
+  }
   .section-title {
     font-size: var(--text-sm);
     font-weight: var(--font-bold);

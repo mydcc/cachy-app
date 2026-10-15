@@ -1438,6 +1438,8 @@ export type TranslationKey =
   | "settings.ai.openaiApiKey"
   | "settings.ai.geminiApiKey"
   | "settings.ai.anthropicApiKey"
+  | "settings.ai.createApiKey"
+  | "settings.ai.installOllama"
   | "settings.ai.discord.title"
   | "settings.ai.discord.token"
   | "settings.ai.discord.channelId"
