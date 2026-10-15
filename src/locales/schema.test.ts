@@ -37,6 +37,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { flattenKeys } from "../../scripts/lib/i18nKeys.mjs";
+import de from "./locales/de.json";
 import en from "./locales/en.json";
 
 const SCHEMA_PATH = resolve(process.cwd(), "src/locales/schema.d.ts");
@@ -80,5 +81,23 @@ describe("generated TranslationKey union", () => {
             members.slice().sort(),
             `the committed union is stale — run \`${GENERATE_COMMAND}\``,
         ).toEqual(dictionary.slice().sort());
+    });
+});
+
+describe("academy.structure DE/EN parity (FEAT-0679 AC5)", () => {
+    it("carries the same structure keys in both languages", () => {
+        const prefix = "academy.structure.";
+        const enKeys = (
+            flattenKeys(en as Record<string, unknown>) as string[]
+        )
+            .filter((key) => key.startsWith(prefix))
+            .sort();
+        const deKeys = (
+            flattenKeys(de as Record<string, unknown>) as string[]
+        )
+            .filter((key) => key.startsWith(prefix))
+            .sort();
+        expect(enKeys.length).toBeGreaterThan(0);
+        expect(deKeys).toEqual(enKeys);
     });
 });
