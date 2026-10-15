@@ -130,11 +130,11 @@
   const staleness = $derived.by(() => describeStaleness(data, tradeState));
   const staleInputs = $derived(staleness.stale);
   /**
-   * A recalculation that is already queued on the throttle's trailing edge
-   * explains a transient mismatch between the form and `currentTradeData`.
-   * `staleInputs` still blocks a submit with those figures — only the note is
-   * held back, so the trader is not shown "not current" on every keystroke for
-   * a discrepancy the calculator is about to resolve on its own.
+   * A queued microtask recalculation explains a transient mismatch between
+   * the form and `currentTradeData`. `staleInputs` still blocks a submit with
+   * those figures — only the note is held back, so the trader is not shown
+   * "not current" on every keystroke for a discrepancy the calculator is
+   * about to resolve on its own.
    */
   const calcPending = $derived(tradeCalculator.pending);
   /**

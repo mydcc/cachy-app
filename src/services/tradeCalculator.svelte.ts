@@ -13,13 +13,13 @@ import { tradeState } from "../stores/trade.svelte";
 /**
  * The exact input surface the calculator consumes, as one comparable key.
  *
- * The calculation writes some inputs back into the store (the risk amount
- * follows the risk percentage, and vice versa; in ATR mode the stop loss is
- * derived from the ATR inputs). Those write-backs used to re-trigger the
- * watcher, and a 250 ms throttle was the only thing stopping the loop. The
- * key removes that failure mode by construction: it contains exactly the
- * fields a trader can edit, never the field the calculation derives from
- * them, so a calculation can no longer schedule itself.
+ * The calculation writes the derived side of two-way fields back into the
+ * store (the risk amount follows the risk percentage, and vice versa; in ATR
+ * mode the stop loss is derived from the ATR inputs). Those write-backs must
+ * not re-trigger the watcher, which used to be the job of a 250 ms throttle.
+ * The key removes that failure mode by construction: it contains exactly the
+ * fields a trader can edit, never the side the calculation derives from
+ * them.
  *
  * The two-way risk pair is the subtle part. Only the side the trader actually
  * edits is an input:
@@ -27,6 +27,11 @@ import { tradeState } from "../stores/trade.svelte";
  * - risk amount locked → the dirty side is the amount, the percentage is a result;
  * - position size locked → both are results, neither belongs in the key;
  * - otherwise → the dirty side is the percentage, the amount is a result.
+ *
+ * One deliberate exception: when the calculation flips a *mode* the key does
+ * track — the position-size lock auto-reset on a failed sizing — the key
+ * changes and exactly one extra run follows, with the new mode's semantics.
+ * That run is required, not a loop: the flip is one-way, so it converges.
  */
 function inputKey(s: typeof tradeState): string {
   const targets = s.targets
@@ -92,10 +97,15 @@ class TradeCalculator {
 
     /**
      * True while a recalculation is queued for the current task's microtask
-     * checkpoint. Reactive so the UI can hold back the "stale calculation"
-     * note during that window instead of flashing it on every keystroke — the
-     * displayed figures are only behind because the recalculation is already
-     * on its way.
+     * checkpoint, or running inside it. Reactive so the UI can hold back the
+     * "stale calculation" note during that window instead of flashing it on
+     * every keystroke — the displayed figures are only behind because the
+     * recalculation is already on its way.
+     *
+     * Written only by the scheduler below, `destroy()`, and tests driving the
+     * note-visibility contract. Reading it never affects the submit guard:
+     * `PlaceOrderPanel.submit()` refuses on `staleInputs` alone, so even a
+     * stuck flag could hide the note but never let a stale order through.
      */
     pending = $state(false);
 
@@ -133,8 +143,14 @@ class TradeCalculator {
         queueMicrotask(() => {
             if (generation !== this.generation) return; // destroyed since
             this.scheduled = false;
-            this.pending = false;
-            this.runCalculation();
+            try {
+                this.runCalculation();
+            } finally {
+                // Cleared after the run, not before: the flag covers the whole
+                // queued-or-running window, and a throwing calculation cannot
+                // wedge it set.
+                this.pending = false;
+            }
         });
     }
 

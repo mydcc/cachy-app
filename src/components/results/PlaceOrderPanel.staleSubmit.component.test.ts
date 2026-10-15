@@ -373,7 +373,7 @@ describe("BUG-0648 — the summary says when its figures are no longer current",
             lookup("orderEntry.notes.staleCalculation"),
         );
 
-        // The throttle has queued the trailing recalculation: the mismatch is
+        // A queued microtask recalculation explains the mismatch: it is
         // transient knowledge the calculator is about to resolve, so the note
         // must not flash on every keystroke of a burst.
         tradeCalculator.pending = true;
@@ -383,6 +383,31 @@ describe("BUG-0648 — the summary says when its figures are no longer current",
         expect(text).not.toContain(lookup("orderEntry.notes.staleCalculation"));
         // The figures stay put, and the submit guard is unchanged.
         expect(text).toContain(lookup("orderEntry.summary.size"));
+
+        // When the queue drains the note comes back: the mismatch outlived
+        // the recalculation, so it is real staleness again, not a transient.
+        tradeCalculator.pending = false;
+        flushSync();
+        expect(host.textContent ?? "").toContain(
+            lookup("orderEntry.notes.staleCalculation"),
+        );
+    });
+
+    it("still refuses a submit while the label is held back", async () => {
+        split.inputs.entry = "61000";
+        tradeCalculator.pending = true;
+        await mountPanel();
+        expect(host.textContent ?? "").not.toContain(
+            lookup("orderEntry.notes.staleCalculation"),
+        );
+
+        const button = host.querySelector<HTMLButtonElement>("button.submit-btn");
+        if (!button) throw new Error("submit button not rendered");
+        expect(button.disabled).toBe(false);
+        button.click();
+        await settle();
+
+        expectRefusal();
     });
 
     it("names the cleared stop when the figures were calculated with one", async () => {

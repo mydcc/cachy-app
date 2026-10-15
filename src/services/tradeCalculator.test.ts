@@ -127,6 +127,59 @@ describe("TradeCalculator trigger", () => {
     expect(calc).toHaveBeenCalledTimes(1);
   });
 
+  it("does not recalculate from the locked position-size write-back pair", async () => {
+    // The position-size branch writes back BOTH risk fields at once
+    // (`calculatorService`: riskPercentage and riskAmount). In that mode both
+    // are results, so neither may re-trigger the watcher.
+    tradeState.isPositionSizeLocked = true;
+    const calc = vi.fn(() => {
+      tradeState.riskPercentage = String(Number(tradeState.riskPercentage) + 1);
+      tradeState.riskAmount = String(Number(tradeState.riskAmount ?? "10") + 5);
+    });
+    tradeCalculator.init(calc);
+    await flush();
+    calc.mockClear();
+
+    tradeState.entryPrice = "51000";
+    await flush();
+    await flush();
+
+    expect(calc).toHaveBeenCalledTimes(1);
+  });
+
+  it("converges after the one permitted extra run of a lock mode flip", async () => {
+    // The position-size lock auto-reset writes a key member
+    // (`isPositionSizeLocked`), so the flip schedules exactly one more run
+    // with the new mode's semantics — then the key is stable. That run is
+    // required, not a loop: the flip is one-way.
+    tradeState.isPositionSizeLocked = true;
+    const calc = vi.fn(() => {
+      tradeState.isPositionSizeLocked = false;
+    });
+    tradeCalculator.init(calc);
+    await flush();
+    await flush();
+    await flush();
+
+    expect(calc).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports pending while a recalculation is queued or running", async () => {
+    let pendingDuringRun = false;
+    tradeCalculator.init(() => {
+      pendingDuringRun = tradeCalculator.pending;
+    });
+    await flush();
+
+    tradeState.riskPercentage = "2";
+    await flush();
+
+    // The flag covered the whole queued-or-running window...
+    expect(pendingDuringRun).toBe(true);
+    // ...and is cleared once the run finished.
+    expect(tradeCalculator.pending).toBe(false);
+  });
+
   it("treats the stop loss as an input only outside ATR mode", async () => {
     const calc = vi.fn();
     tradeCalculator.init(calc);
@@ -179,6 +232,28 @@ describe("TradeCalculator trigger", () => {
     tradeState.riskPercentage = "2";
     tradeCalculator.destroy();
     await flush();
+
+    expect(calc).not.toHaveBeenCalled();
+  });
+
+  it("destroy() after the effect ran kills the already-queued microtask", async () => {
+    // The generation-guard branch: unmount or HMR mid-keystroke, after the
+    // effect queued the microtask but before it ran. Needs real timers:
+    // Svelte flushes the effect and the queued microtask in FIFO microtask
+    // order, and only real `await Promise.resolve()` turns let the test slip
+    // between the two. The bound keeps a regression (pending never set) a
+    // fast failure instead of a hang.
+    vi.useRealTimers();
+    const calc = vi.fn();
+    tradeCalculator.init(calc);
+    for (let i = 0; i < 10 && !tradeCalculator.pending; i++) {
+      await Promise.resolve();
+    }
+    expect(tradeCalculator.pending).toBe(true);
+
+    tradeCalculator.destroy();
+    expect(tradeCalculator.pending).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(calc).not.toHaveBeenCalled();
   });
