@@ -189,6 +189,75 @@ describe("urlValidator", () => {
         vi.resetModules();
       }
     });
+
+    /**
+     * Runs `safeFetch` against a fetch stub that rejects with `error` and
+     * returns the message it threw with. The target is a public IP literal, so
+     * `dns.lookup` resolves it without touching the network.
+     */
+    async function messageOfFailedFetch(error: unknown): Promise<string> {
+      vi.resetModules();
+      vi.doMock("undici", () => ({
+        Agent: class {
+          close(): Promise<void> {
+            return Promise.resolve();
+          }
+        },
+      }));
+      vi.doMock("node:dns", () => {
+        const lookupFn = (
+          _hostname: string,
+          _options: unknown,
+          callback: (err: null, addresses: unknown) => void,
+        ) => callback(null, [{ address: "93.184.216.34", family: 4 }]);
+        const promises = {
+          lookup: async () => [{ address: "93.184.216.34", family: 4 }],
+        };
+        return { default: { lookup: lookupFn, promises }, lookup: lookupFn, promises };
+      });
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(error));
+      try {
+        const { safeFetch } = await import("./urlValidator");
+        await safeFetch("https://93.184.216.34/");
+        return "";
+      } catch (thrown) {
+        return thrown instanceof Error ? thrown.message : String(thrown);
+      } finally {
+        vi.unstubAllGlobals();
+        vi.doUnmock("undici");
+        vi.doUnmock("node:dns");
+        vi.resetModules();
+      }
+    }
+
+    it("names a known dial failure code and leaves everything else alone", async () => {
+      const withCode = (code: unknown): TypeError =>
+        new TypeError("fetch failed", {
+          cause: Object.assign(new Error("dial failed"), { code }),
+        });
+
+      expect(await messageOfFailedFetch(withCode("ECONNREFUSED"))).toBe(
+        "fetch failed [ECONNREFUSED]",
+      );
+      // Only the closed list is named. Everything else — an unrecognised code,
+      // a numeric errno, a bare name, no cause at all — stays as it was.
+      expect(await messageOfFailedFetch(withCode("SOMETHING_ELSE"))).toBe(
+        "fetch failed",
+      );
+      expect(await messageOfFailedFetch(withCode(111))).toBe("fetch failed");
+      expect(
+        await messageOfFailedFetch(
+          new TypeError("fetch failed", {
+            cause: Object.assign(new Error("timed out"), {
+              name: "ConnectTimeoutError",
+            }),
+          }),
+        ),
+      ).toBe("fetch failed");
+      expect(await messageOfFailedFetch(new TypeError("fetch failed"))).toBe(
+        "fetch failed",
+      );
+    });
   });
 
   describe("getSafeDispatcher undici lookup contract", () => {
@@ -333,6 +402,48 @@ describe("urlValidator", () => {
     // simulate the proxy hostname rebinding after construction.
     let dialTable: Record<string, Array<{ address: string; family: number }>> = {};
 
+    // Answers the reachability probe of a configured proxy, so a test can
+    // simulate a proxy that is configured but not listening.
+    let proxyProbeReachable = true;
+    let proxyProbeCalls = 0;
+    type ProbeOutcome = "connect" | "error" | "timeout" | "close" | "hang";
+    const proxyProbeOutcomes: Record<string, ProbeOutcome> = {};
+
+    interface FakeSocket {
+      once(event: string, callback: () => void): FakeSocket;
+      setTimeout(ms: number, callback: () => void): FakeSocket;
+      removeAllListeners(): FakeSocket;
+      unref(): FakeSocket;
+      destroy(): void;
+      fire(event: string): void;
+    }
+
+    function makeSocket(): FakeSocket {
+      const listeners: Record<string, (() => void) | undefined> = {};
+      const socket: FakeSocket = {
+        once(event, callback) {
+          listeners[event] = callback;
+          return socket;
+        },
+        setTimeout(_ms, callback) {
+          listeners.timeout = callback;
+          return socket;
+        },
+        removeAllListeners() {
+          for (const key of Object.keys(listeners)) delete listeners[key];
+          return socket;
+        },
+        unref() {
+          return socket;
+        },
+        destroy() {},
+        fire(event) {
+          listeners[event]?.();
+        },
+      };
+      return socket;
+    }
+
     const isIpLiteral = (host: string): boolean =>
       host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 
@@ -401,6 +512,22 @@ describe("urlValidator", () => {
         };
       });
 
+      vi.doMock("node:net", () => ({
+        default: {
+          connect: (options: { host: string }) => {
+            proxyProbeCalls += 1;
+            const socket = makeSocket();
+            const outcome: ProbeOutcome =
+              proxyProbeOutcomes[options.host] ??
+              (proxyProbeReachable ? "connect" : "error");
+            if (outcome !== "hang") {
+              queueMicrotask(() => socket.fire(outcome));
+            }
+            return socket;
+          },
+        },
+      }));
+
       const { getSafeDispatcher } = await import("./urlValidator");
       await getSafeDispatcher();
       return built;
@@ -419,8 +546,14 @@ describe("urlValidator", () => {
 
     afterEach(() => {
       restoreProxyEnv();
+      proxyProbeReachable = true;
+      proxyProbeCalls = 0;
+      for (const key of Object.keys(proxyProbeOutcomes)) {
+        delete proxyProbeOutcomes[key];
+      }
       vi.doUnmock("undici");
       vi.doUnmock("node:dns");
+      vi.doUnmock("node:net");
       vi.resetModules();
     });
 
@@ -441,6 +574,98 @@ describe("urlValidator", () => {
 
       expect(built).toHaveLength(1);
       expect(built[0].kind).toBe("agent");
+    });
+
+    it("falls back to a direct Agent when the configured proxy does not answer", async () => {
+      clearProxyEnv();
+      proxyProbeReachable = false;
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const built = await buildDispatcher({
+          HTTPS_PROXY: "http://proxy.internal:3128",
+        });
+
+        expect(built).toHaveLength(1);
+        expect(built[0].kind).toBe("agent");
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining("proxy.internal"),
+        );
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it("probes a configured proxy and stays quiet without one", async () => {
+      clearProxyEnv();
+      await buildDispatcher({});
+      expect(proxyProbeCalls).toBe(0);
+
+      await buildDispatcher({ HTTPS_PROXY: "http://proxy.internal:3128" });
+      expect(proxyProbeCalls).toBe(1);
+    });
+
+    it.each(["timeout", "close"] as const)(
+      "falls back to a direct Agent when the probe socket reports %s",
+      async (outcome) => {
+        clearProxyEnv();
+        proxyProbeOutcomes["proxy.internal"] = outcome;
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        try {
+          const built = await buildDispatcher({
+            HTTPS_PROXY: "http://proxy.internal:3128",
+          });
+
+          expect(built).toHaveLength(1);
+          expect(built[0].kind).toBe("agent");
+          expect(warn).toHaveBeenCalledWith(
+            expect.stringContaining("proxy.internal"),
+          );
+        } finally {
+          warn.mockRestore();
+        }
+      },
+    );
+
+    it("ignores the whole proxy configuration when one entry does not answer", async () => {
+      clearProxyEnv();
+      proxyProbeOutcomes["dead.internal"] = "error";
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const built = await buildDispatcher({
+          HTTP_PROXY: "http://alive.internal:3128",
+          HTTPS_PROXY: "http://dead.internal:3128",
+        });
+
+        // undici re-reads the environment for entries it is not given, so a
+        // partially dead configuration is not expressible: it is all or none.
+        expect(built).toHaveLength(1);
+        expect(built[0].kind).toBe("agent");
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining("dead.internal"),
+        );
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it("keeps no proxy exemption once the proxy is out of use", async () => {
+      clearProxyEnv();
+      proxyProbeReachable = false;
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const built = await buildDispatcher({
+          HTTPS_PROXY: "http://proxy.internal:3128",
+        });
+        const lookup = built[0].opts.connect?.lookup;
+        if (!lookup) throw new Error("lookup was not wired into the dispatcher");
+
+        // `proxy.internal` resolves to a private address. With the direct path
+        // in use nothing is exempt any more, so the strict rule applies.
+        const viaDeadProxy = await invoke(lookup, "proxy.internal");
+        expect(viaDeadProxy.err?.message).toContain("SSRF guard");
+      } finally {
+        warn.mockRestore();
+      }
     });
 
     it("exempts the configured proxy host but still blocks a private target", async () => {
