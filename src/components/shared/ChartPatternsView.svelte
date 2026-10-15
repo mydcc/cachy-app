@@ -197,7 +197,7 @@
                     class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all flex justify-between items-center group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)]
                            {selectedPatternId === pattern.id
                         ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)]'}"
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-primary)]'}"
                     onclick={() => selectPattern(pattern.id)}
                 >
                     <div class="flex items-center gap-2 truncate">
