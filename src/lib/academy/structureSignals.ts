@@ -111,6 +111,10 @@ export function findSwings(bars: readonly PriceBar[], strength = 2): Swing[] {
  * close below the last swing low breaks character first (CHOCH-down) and the
  * trend flips — further closes below keep breaking structure downward.
  * Mirrored in a downtrend. Equal closes never break: a tie holds the level.
+ *
+ * One event per level: a break marks its reference as spent, so a steady run
+ * of closes beyond the same swing emits exactly one event instead of one per
+ * bar. A new swing on that side re-arms its reference.
  */
 export function detectBreaks(
     closes: readonly number[],
@@ -120,30 +124,41 @@ export function detectBreaks(
     let trend: 1 | -1 | 0 = 0;
     let lastHigh = -Infinity;
     let lastLow = Infinity;
+    let highSpent = false;
+    let lowSpent = false;
     let swingCursor = 0;
     for (let i = 0; i < closes.length; i++) {
         while (swingCursor < swings.length && swings[swingCursor].index < i) {
             const swing = swings[swingCursor];
-            if (swing.side === "high") lastHigh = swing.price;
-            else lastLow = swing.price;
+            if (swing.side === "high") {
+                lastHigh = swing.price;
+                highSpent = false;
+            } else {
+                lastLow = swing.price;
+                lowSpent = false;
+            }
             swingCursor++;
         }
         const close = closes[i];
         // Both bounds must be known: without a confirmed high and low the
         // first close would always "break" against infinity.
         if (!Number.isFinite(lastHigh) || !Number.isFinite(lastLow)) continue;
-        if (trend >= 0 && close > lastHigh) {
+        if (trend >= 0 && close > lastHigh && !highSpent) {
             out.push({ index: i, price: close, kind: "BOS-up" });
             trend = 1;
-        } else if (trend <= 0 && close < lastLow) {
+            highSpent = true;
+        } else if (trend <= 0 && close < lastLow && !lowSpent) {
             out.push({ index: i, price: close, kind: "BOS-down" });
             trend = -1;
-        } else if (trend === 1 && close < lastLow) {
+            lowSpent = true;
+        } else if (trend === 1 && close < lastLow && !lowSpent) {
             out.push({ index: i, price: close, kind: "CHOCH-down" });
             trend = -1;
-        } else if (trend === -1 && close > lastHigh) {
+            lowSpent = true;
+        } else if (trend === -1 && close > lastHigh && !highSpent) {
             out.push({ index: i, price: close, kind: "CHOCH-up" });
             trend = 1;
+            highSpent = true;
         }
     }
     return out;

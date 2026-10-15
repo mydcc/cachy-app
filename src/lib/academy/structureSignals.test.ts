@@ -90,7 +90,22 @@ describe("detectBreaks", () => {
         expect(detectBreaks(closes, swings)).toEqual([
             { index: 3, price: 12.5, kind: "BOS-up" },
             { index: 5, price: 8, kind: "CHOCH-down" },
-            { index: 6, price: 7.5, kind: "BOS-down" },
+        ]);
+    });
+
+    it("emits one event per level on a steady run beyond the same swing", () => {
+        const closes = [9.5, 11, 10, 12.5, 11, 13.5, 14];
+        expect(detectBreaks(closes, swings)).toEqual([
+            { index: 3, price: 12.5, kind: "BOS-up" },
+            { index: 5, price: 13.5, kind: "BOS-up" },
+        ]);
+    });
+
+    it("mirrors the turn: BOS-down first, then CHOCH-up", () => {
+        const closes = [11, 10, 9, 8, 9, 10, 13.5];
+        expect(detectBreaks(closes, swings)).toEqual([
+            { index: 3, price: 8, kind: "BOS-down" },
+            { index: 6, price: 13.5, kind: "CHOCH-up" },
         ]);
     });
 
