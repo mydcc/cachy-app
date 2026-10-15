@@ -17,6 +17,7 @@
 
 
 import type { ThemeColors, AddInteractiveElement } from './chartPatterns.types';
+import { ensureContrast, readCssColor, type StyleReader } from '../lib/themeColors';
 
 export const DEFAULT_PATTERN_COLORS: ThemeColors = {
   text: "#e5e7eb",
@@ -37,6 +38,82 @@ export const DEFAULT_PATTERN_COLORS: ThemeColors = {
 
 
 // --- Helper Functions ---
+
+/** Minimum grid-vs-card contrast: below this a line is effectively invisible. */
+const GRID_MIN_CONTRAST = 1.5;
+
+/**
+ * Resolves the canvas palette against the active theme. `getVal` reads one
+ * custom property (the caller wires it to `getComputedStyle`, tests pass a
+ * stub map), so this stays testable without a DOM. Unresolvable tokens fall
+ * back to documented dark defaults, which only apply without a document.
+ * Token values that are themselves `var(--other)` references are resolved
+ * through the shared chain-walk — most themes wire tokens to each other,
+ * and a plain read would hand the canvas an unpaintable reference.
+ *
+ * Grid and border go through a visibility guard, but only when the theme
+ * actually provides `--border-color`: several themes wire it to the very
+ * card they sit on, which would dissolve them into the background. The
+ * fallback is the neutral tone, already used for structural strokes in the
+ * same drawings. Where nothing resolves, the documented defaults pass
+ * through untouched.
+ */
+export function getThemeColors(getVal: (name: string) => string): ThemeColors {
+    // Helper to add alpha to hex if possible, otherwise return default
+    const withAlpha = (color: string, alpha: string) => {
+        if (color && color.startsWith("#") && (color.length === 7 || color.length === 4)) {
+            return color + alpha;
+        }
+        return color; // Return raw color if not hex (alpha will be missing, opaque)
+    };
+
+    // Themes wire tokens to each other (`--border-color: var(--blue-800)`):
+    // a plain read returns the specified `var(...)` reference, which no
+    // canvas can paint. Resolve through the shared chain-walk on the
+    // caller's source, so production themes and stub maps behave alike.
+    const reader: StyleReader = { getPropertyValue: (name) => getVal(name) ?? "" };
+    const themed = (name: string, fallback: string): string =>
+        readCssColor(name, fallback, reader);
+
+    const text = themed("--text-primary", DEFAULT_PATTERN_COLORS.text);
+    const background = themed("--bg-tertiary", DEFAULT_PATTERN_COLORS.background);
+    const neutral = themed("--text-secondary", DEFAULT_PATTERN_COLORS.neutral);
+    // Guard only theme-provided chrome: the documented dark defaults sit
+    // below the floor against each other, so guarding them would rewrite
+    // the SSR/test fallback the catalogue relies on. One read feeds both
+    // grid and border — they are the same token by design.
+    const borderProvided = (getVal("--border-color") ?? "").trim() !== "";
+    const chromeRaw = borderProvided
+        ? themed("--border-color", DEFAULT_PATTERN_COLORS.border)
+        : null;
+    const chrome =
+        chromeRaw === null
+            ? null
+            : ensureContrast(chromeRaw, background, neutral, GRID_MIN_CONTRAST);
+    const grid = chrome ?? DEFAULT_PATTERN_COLORS.grid;
+    const border = chrome ?? DEFAULT_PATTERN_COLORS.border;
+    const bullish = getVal("--success-color") || DEFAULT_PATTERN_COLORS.bullish;
+    const bearish = getVal("--danger-color") || DEFAULT_PATTERN_COLORS.bearish;
+    const highlight = getVal("--warning-color") || DEFAULT_PATTERN_COLORS.highlight;
+    const gray = getVal("--text-tertiary") || DEFAULT_PATTERN_COLORS.gray;
+
+    return {
+        text,
+        grid,
+        border,
+        bullish,
+        bullishLight: bullish, // Fallback to main color if we can't easily lighten
+        bullishFill: withAlpha(bullish, "33"),
+        bearish,
+        bearishLight: bearish,
+        bearishFill: withAlpha(bearish, "33"),
+        neutral,
+        neutralLight: neutral,
+        highlight,
+        gray,
+        background
+    };
+}
 
 export function drawLine(
   ctx: CanvasRenderingContext2D,

@@ -94,7 +94,7 @@
          tabindex={selected ? 0 : -1}
          class="flex-1 min-w-[140px] py-2.5 text-center text-xs font-black uppercase tracking-widest rounded-md transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)] {selected
             ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] shadow-sm'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--accent-color)] opacity-70 hover:opacity-100'}"
+            : 'text-[var(--text-secondary)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--text-primary)] opacity-70 hover:opacity-100'}"
          onclick={() => onTabChange(tab)}
       >
          {$_(TAB_LABELS[tab])}

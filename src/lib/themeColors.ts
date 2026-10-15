@@ -53,18 +53,23 @@ export function parseColorToRgb(color: string): Rgb | null {
   if (trimmed.startsWith("#")) {
     const hex = trimmed.slice(1);
     if (hex.length === 3) {
-      return [
+      const triple = [
         parseInt(hex[0] + hex[0], 16),
         parseInt(hex[1] + hex[1], 16),
         parseInt(hex[2] + hex[2], 16),
       ];
+      // Non-hex digits parse to NaN — report unparseable, like any
+      // other unknown format, so callers keep their fallback instead of
+      // comparing NaN luminances.
+      return triple.every(Number.isFinite) ? (triple as Rgb) : null;
     }
     if (hex.length >= 6) {
-      return [
+      const triple = [
         parseInt(hex.slice(0, 2), 16),
         parseInt(hex.slice(2, 4), 16),
         parseInt(hex.slice(4, 6), 16),
       ];
+      return triple.every(Number.isFinite) ? (triple as Rgb) : null;
     }
     return null;
   }
@@ -88,6 +93,45 @@ export function isLightColor(color: Rgb | string, threshold = 0.5): boolean {
   if (!rgb) return false;
   const [r, g, b] = [rgb[0] / 255, rgb[1] / 255, rgb[2] / 255];
   return (Math.max(r, g, b) + Math.min(r, g, b)) / 2 > threshold;
+}
+
+/**
+ * WCAG 2.1 contrast ratio between two RGB triples: 1 is identical, 21 is
+ * black on white. Canvas line colours cannot rely on the theme author
+ * checking every pairing, so charts use this to skip a palette colour that
+ * would dissolve into the chart background (3.0 is the non-text minimum).
+ */
+export function contrastRatio(a: Rgb, b: Rgb): number {
+  const luminance = ([r, g, bl]: Rgb): number => {
+    const linear = (c: number): number => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(bl);
+  };
+  const [lighter, darker] =
+    luminance(a) >= luminance(b) ? [a, b] : [b, a];
+  return (luminance(lighter) + 0.05) / (luminance(darker) + 0.05);
+}
+
+/**
+ * Returns `fg` when it meets `minContrast` against `bg`, else `fallback`.
+ * All three are resolved color strings. Anything unparseable keeps `fg`:
+ * without measurable values there is nothing to judge, so historical
+ * behavior wins. Charts use this because several themes wire a chrome
+ * token to the very surface it sits on (e.g. `--border-color` equal to
+ * `--bg-tertiary`), which would otherwise dissolve grid and separators.
+ */
+export function ensureContrast(
+  fg: string,
+  bg: string,
+  fallback: string,
+  minContrast: number,
+): string {
+  const f = parseColorToRgb(fg);
+  const b = parseColorToRgb(bg);
+  if (!f || !b) return fg;
+  return contrastRatio(f, b) >= minContrast ? fg : fallback;
 }
 
 function defaultStyleReader(): StyleReader | null {

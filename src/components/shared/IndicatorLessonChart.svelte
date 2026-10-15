@@ -84,6 +84,13 @@
     import { normalizeTimeframeInput } from "../../utils/utils";
     import { safeLocalStorage } from "../../utils/storageWrapper";
     import {
+        contrastRatio,
+        ensureContrast,
+        parseColorToRgb,
+        readCssColor,
+        type Rgb,
+    } from "../../lib/themeColors";
+    import {
         CrosshairValueBadge,
         type BadgePoint,
     } from "../../lib/chart/crosshairValueBadge";
@@ -208,8 +215,63 @@
         "--text-secondary",
     ] as const;
 
+    /** Fallbacks mirroring the default dark theme; only used without DOM. */
+    const LINE_FALLBACKS: Record<(typeof LINE_COLOR_VARS)[number], string> = {
+        "--accent-color": "#0ea5e9",
+        "--success-color": "#22c55e",
+        "--warning-color": "#facc15",
+        "--danger-color": "#ef4444",
+        "--text-secondary": "#a0adc0",
+    };
+
+    /** WCAG non-text minimum: below this a line dissolves into the card. */
+    const MIN_LINE_CONTRAST = 3;
+
+    function lineFallback(token: string): string {
+        return (LINE_FALLBACKS as Record<string, string>)[token] ?? "#2962ff";
+    }
+
+    /**
+     * The token each line actually paints with. A theme can legally pair a
+     * palette colour with a near-identical card background (nord danger,
+     * monokai accent), so each slot takes the first palette entry with
+     * enough contrast against the resolved card — never reusing one within
+     * the same chart while palette entries remain — and falls back to the
+     * primary text, which is readable on every card by theme contract.
+     */
+    let lineTokens = $state<string[]>([]);
+
+    function resolveLineTokens(count: number): string[] {
+        const bg = parseColorToRgb(cssColor("--bg-tertiary", "#1e293b"));
+        const chosen: string[] = [];
+        for (let i = 0; i < count; i++) {
+            chosen.push(pickLineToken(i, chosen, bg));
+        }
+        return chosen;
+    }
+
+    /**
+     * One slot of the line palette. Each slot takes the first palette entry
+     * with enough contrast that is not already taken; a second pass allows
+     * reuse so a 6th+ line still gets a visible colour instead of every
+     * overflow line collapsing onto the same fallback.
+     */
+    function pickLineToken(index: number, chosen: string[], bg: Rgb | null): string {
+        for (const allowReuse of [false, true]) {
+            for (let k = 0; k < LINE_COLOR_VARS.length; k++) {
+                const token = LINE_COLOR_VARS[(index + k) % LINE_COLOR_VARS.length];
+                if (!allowReuse && chosen.includes(token)) continue;
+                const fg = parseColorToRgb(cssColor(token, LINE_FALLBACKS[token]));
+                if (!bg || !fg || contrastRatio(fg, bg) >= MIN_LINE_CONTRAST) {
+                    return token;
+                }
+            }
+        }
+        return "--text-primary";
+    }
+
     function lineColor(index: number): string {
-        return `var(${LINE_COLOR_VARS[index % LINE_COLOR_VARS.length]})`;
+        return `var(${lineTokens[index] ?? LINE_COLOR_VARS[index % LINE_COLOR_VARS.length]})`;
     }
 
     /**
@@ -219,7 +281,11 @@
      */
     function cssColor(name: string, fallback: string): string {
         if (typeof window === "undefined") return fallback;
-        return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+        // `readCssColor` walks `var(--other)` chains: most themes wire
+        // tokens to each other, and a plain `getPropertyValue` returns the
+        // specified (unresolved) reference, which neither the contrast guard
+        // nor the chart library could paint with.
+        return readCssColor(name, fallback);
     }
 
     /** The app-wide selected symbol. Never a chart-window's own symbol. */
@@ -314,7 +380,7 @@
     function refreshBadgeTheme(): void {
         badgeTheme.bg = cssColor("--bg-secondary", "#1e293b");
         badgeTheme.text = cssColor("--text-primary", "#e2e8f0");
-        badgeTheme.line = LINE_COLOR_VARS.map((token) => cssColor(token, "#2962ff"));
+        badgeTheme.line = lineTokens.map((token) => cssColor(token, lineFallback(token)));
     }
 
     /** Markers in the chart library's own shape; times are Unix seconds. */
@@ -419,6 +485,25 @@
         return out;
     }
 
+    /** WCAG-adjacent floor for hairlines: below this they read as absent. */
+    const GRID_MIN_CONTRAST = 1.5;
+
+    /**
+     * Chrome (grid, scale borders, separator) that stays visible even when a
+     * theme wires `--border-color` to the very card it sits on. Healthy
+     * themes resolve byte-identically; the fallback keeps the historical
+     * subtle tone where nothing resolves (SSR, tests).
+     */
+    function themedChrome(fallback: string): string {
+        const card = cssColor("--bg-tertiary", "#1e293b");
+        return ensureContrast(
+            cssColor("--border-color", fallback),
+            card,
+            cssColor("--text-secondary", "#a0adc0"),
+            GRID_MIN_CONTRAST,
+        );
+    }
+
     /**
      * Re-reads the theme's colours and re-applies them. The chart resolves CSS
      * variables to concrete colours at creation (the canvas cannot read
@@ -433,16 +518,19 @@
                 // The pane separator defaults to the library's hardcoded #E0E3EB;
                 // without this it stays white in every theme.
                 panes: {
-                    separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                    // Kept in sync with creation: re-applying panes must not
+                    // silently re-enable the lesson pane's resize handle.
+                    enableResize: false,
+                    separatorColor: themedChrome("rgba(255, 255, 255, 0.1)"),
                     separatorHoverColor: cssColor("--accent-color", "#2962ff"),
                 },
             },
             grid: {
-                vertLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
-                horzLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
+                vertLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
+                horzLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
             },
-            rightPriceScale: { borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)") },
-            timeScale: { borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)") },
+            rightPriceScale: { borderColor: themedChrome("rgba(255, 255, 255, 0.1)") },
+            timeScale: { borderColor: themedChrome("rgba(255, 255, 255, 0.1)") },
         });
         candleSeries.applyOptions({
             upColor: cssColor("--success-color", "#26a69a"),
@@ -450,9 +538,13 @@
             wickUpColor: cssColor("--success-color", "#26a69a"),
             wickDownColor: cssColor("--danger-color", "#ef5350"),
         });
+        // Re-resolve first: after a theme switch the previous choice may now
+        // clash with the card, so choose before painting.
+        lineTokens = resolveLineTokens(drawnLines.length);
         drawnLines.forEach((line, index) => {
+            const token = lineTokens[index] ?? LINE_COLOR_VARS[index % LINE_COLOR_VARS.length];
             line.series.applyOptions({
-                color: cssColor(LINE_COLOR_VARS[index % LINE_COLOR_VARS.length], "#2962ff"),
+                color: cssColor(token, lineFallback(token)),
             });
         });
         // Badge pills read the cached theme colours at draw time.
@@ -469,19 +561,23 @@
                 textColor: cssColor("--text-secondary", "#d1d4dc"),
                 fontFamily: "Inter, sans-serif",
                 panes: {
-                    separatorColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                    // Fixed pedagogical layout: resizing would only invite
+                    // accidental drags, and the grab affordance renders as a
+                    // thick bar. Colours stay themed in case this flips back.
+                    enableResize: false,
+                    separatorColor: themedChrome("rgba(255, 255, 255, 0.1)"),
                     separatorHoverColor: cssColor("--accent-color", "#2962ff"),
                 },
             },
             grid: {
-                vertLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
-                horzLines: { color: cssColor("--border-color", "rgba(255, 255, 255, 0.05)") },
+                vertLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
+                horzLines: { color: themedChrome("rgba(255, 255, 255, 0.05)") },
             },
             rightPriceScale: {
-                borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                borderColor: themedChrome("rgba(255, 255, 255, 0.1)"),
             },
             timeScale: {
-                borderColor: cssColor("--border-color", "rgba(255, 255, 255, 0.1)"),
+                borderColor: themedChrome("rgba(255, 255, 255, 0.1)"),
                 timeVisible: true,
                 secondsVisible: false,
             },
@@ -610,15 +706,22 @@
                     line.series.detachPrimitive(line.badge);
                     activeChart.removeSeries(line.series);
                 }
+                // Resolve once into a local: reading back `$state` here would
+                // subscribe this effect to `lineTokens` and schedule a
+                // redundant re-run on every lesson change.
+                const tokens = resolveLineTokens(series.lines.length);
+                lineTokens = tokens;
+                // Badges cache the resolved colours: refresh the cache now
+                // that the choice exists, so pills agree with legend and
+                // series on first paint (not just after a theme switch).
+                refreshBadgeTheme();
                 drawnLines = series.lines.map((line, index) => {
                     const lineIndex = index;
+                    const token = tokens[lineIndex] ?? LINE_COLOR_VARS[lineIndex % LINE_COLOR_VARS.length];
                     const created = activeChart.addSeries(
                         LineSeries,
                         {
-                            color: cssColor(
-                                LINE_COLOR_VARS[index % LINE_COLOR_VARS.length],
-                                "#2962ff",
-                            ),
+                            color: cssColor(token, lineFallback(token)),
                             lineWidth: 2,
                             priceLineVisible: false,
                             lastValueVisible: false,
@@ -631,9 +734,7 @@
                         colors: () => ({
                             bg: badgeTheme.bg,
                             text: badgeTheme.text,
-                            border:
-                                badgeTheme.line[lineIndex % LINE_COLOR_VARS.length] ??
-                                badgeTheme.text,
+                            border: badgeTheme.line[lineIndex] ?? badgeTheme.text,
                         }),
                     });
                     created.attachPrimitive(badge);

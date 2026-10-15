@@ -19,6 +19,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   parseColorToRgb,
   isLightColor,
+  contrastRatio,
+  ensureContrast,
   readCssColor,
   getThemePalette,
   invalidateThemePalette,
@@ -57,6 +59,11 @@ describe("parseColorToRgb", () => {
     expect(parseColorToRgb("transparent")).toBeNull();
     expect(parseColorToRgb("#12")).toBeNull();
   });
+
+  it("returns null for non-hex digits", () => {
+    expect(parseColorToRgb("#zzzzzz")).toBeNull();
+    expect(parseColorToRgb("#zzz")).toBeNull();
+  });
 });
 
 describe("isLightColor", () => {
@@ -72,6 +79,46 @@ describe("isLightColor", () => {
 
   it("treats unparseable input as not light", () => {
     expect(isLightColor("nonsense")).toBe(false);
+  });
+});
+
+describe("contrastRatio", () => {
+  it("returns 21 for black on white and 1 for identical colors", () => {
+    expect(contrastRatio([0, 0, 0], [255, 255, 255])).toBeCloseTo(21, 1);
+    expect(contrastRatio([68, 71, 90], [68, 71, 90])).toBeCloseTo(1, 5);
+  });
+
+  it("is symmetric and matches a known theme pairing", () => {
+    // Dracula danger on its card background — just under the 3.0 minimum.
+    const danger: [number, number, number] = [255, 85, 85];
+    const card: [number, number, number] = [68, 71, 90];
+    expect(contrastRatio(danger, card)).toBeCloseTo(2.91, 1);
+    expect(contrastRatio(card, danger)).toBeCloseTo(contrastRatio(danger, card), 5);
+  });
+});
+
+describe("ensureContrast", () => {
+  it("keeps a readable foreground and swaps a dissolving one", () => {
+    expect(ensureContrast("#e2e8f0", "#0f172a", "#a0adc0", 1.5)).toBe("#e2e8f0");
+    expect(ensureContrast("#44475a", "#44475a", "#c8aed6", 1.5)).toBe("#c8aed6");
+  });
+
+  it("keeps the foreground when either side is unparseable", () => {
+    expect(ensureContrast("var(--x)", "#0f172a", "#a0adc0", 1.5)).toBe("var(--x)");
+    expect(ensureContrast("#e2e8f0", "", "#a0adc0", 1.5)).toBe("#e2e8f0");
+  });
+
+  it("keeps invalid hex instead of swapping on NaN", () => {
+    // A typo is unparseable, not low-contrast: history wins over the fallback.
+    expect(ensureContrast("#zzzzzz", "#0f172a", "#a0adc0", 1.5)).toBe("#zzzzzz");
+  });
+
+  it("keeps the translucent fallback tone without compositing alpha", () => {
+    // The chrome fallback is deliberately translucent; the guard judges the
+    // parsed channels as-is, so the historical subtle tone is preserved.
+    expect(ensureContrast("rgba(255, 255, 255, 0.05)", "#1e293b", "#a0adc0", 1.5)).toBe(
+      "rgba(255, 255, 255, 0.05)",
+    );
   });
 });
 
