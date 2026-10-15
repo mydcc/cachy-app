@@ -48,6 +48,10 @@
       higherTimeframe,
       recentLevels,
    } from "../../lib/academy/structureSignals";
+   import type {
+      LessonChartLine,
+      LessonChartMarker,
+   } from "../../lib/academy/lessonChartAnnotations";
    import { CONSTANTS, TIMEFRAME_QUICK_PICKS } from "../../lib/constants";
    import { tradeState } from "../../stores/trade.svelte";
    import { marketState } from "../../stores/market.svelte";
@@ -276,7 +280,7 @@
       return cssColor("--warning-color", "#ffb300");
    }
 
-   function markersForChart(): { time: number; position: "aboveBar" | "belowBar"; color: string; shape: "arrowUp" | "arrowDown" | "circle"; text?: string }[] {
+   function markersForChart(): LessonChartMarker[] {
       const swingMarks = swings.slice(-12).flatMap((swing) => {
          const timeMs = bars[swing.index]?.time;
          if (timeMs === undefined) return [];
@@ -304,7 +308,7 @@
       return [...swingMarks, ...breakMarks];
    }
 
-   function levelsForChart(): { price: number; color: string; title?: string }[] {
+   function levelsForChart(): LessonChartLine[] {
       if (higherCloses.length === 0) return [];
       return recentLevels(higherSwings, higherCloses[higherCloses.length - 1], 3).map((level) => ({
          price: level.price,

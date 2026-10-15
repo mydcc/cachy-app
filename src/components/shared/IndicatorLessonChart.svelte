@@ -88,23 +88,10 @@
         type BadgePoint,
     } from "../../lib/chart/crosshairValueBadge";
     import TimeframeDropdown from "./TimeframeDropdown.svelte";
-
-    /** A marker on the candle series (FEAT-0686 cockpit annotations). */
-    interface LessonChartMarker {
-        /** Unix seconds, like the candle data. */
-        time: number;
-        position: "aboveBar" | "belowBar";
-        color: string;
-        shape: "arrowUp" | "arrowDown" | "circle";
-        text?: string;
-    }
-
-    /** A horizontal level on the candle series. */
-    interface LessonChartLine {
-        price: number;
-        color: string;
-        title?: string;
-    }
+    import type {
+        LessonChartLine,
+        LessonChartMarker,
+    } from "../../lib/academy/lessonChartAnnotations";
 
     interface Props {
         /** The lesson currently open in the view. */
@@ -353,6 +340,17 @@
         return lines.map((line) => `${line.price}:${line.color}:${line.title ?? ""}`).join(",");
     }
 
+    /** One string per marker; the join is the recreate-when-changed signature. */
+    function markerSignature(annotations: readonly LessonChartMarker[] | undefined): string {
+        if (!annotations) return "";
+        return annotations
+            .map(
+                (marker) =>
+                    `${marker.time}:${marker.position}:${marker.shape}:${marker.color}:${marker.text ?? ""}`,
+            )
+            .join(",");
+    }
+
     /*
      * FEAT-0686 cockpit annotations. Markers replace wholesale per render;
      * price lines are recreated only when their set changes, mirroring the
@@ -360,6 +358,7 @@
      */
     let drawnPriceLines: IPriceLine[] = [];
     let drawnPriceLinesSignature = "";
+    let drawnMarkersSignature = "";
     let markersPlugin: ISeriesMarkersPluginApi<Time> | null = null;
 
     function translatedOutput(name: string): string {
@@ -532,6 +531,7 @@
             drawnSignature = "";
             drawnPriceLines = [];
             drawnPriceLinesSignature = "";
+            drawnMarkersSignature = "";
             markersPlugin = null;
         };
     });
@@ -655,7 +655,14 @@
             if (!markersPlugin) {
                 markersPlugin = createSeriesMarkers(activeCandles, []);
             }
-            markersPlugin.setMarkers(toSeriesMarkers(markers));
+            // Same recreate-when-changed discipline as the price lines: a live
+            // tick rebuilds the array, but an identical set must not re-push
+            // markers the chart already draws.
+            const markersSignature = markerSignature(markers);
+            if (markersSignature !== drawnMarkersSignature) {
+                markersPlugin.setMarkers(toSeriesMarkers(markers));
+                drawnMarkersSignature = markersSignature;
+            }
 
             const linesSignature = priceLineSignature(priceLines);
             if (linesSignature !== drawnPriceLinesSignature) {

@@ -66,9 +66,10 @@ const lw = vi.hoisted(() => {
         setData: vi.fn(),
         applyOptions: vi.fn(),
         paneIndex: 0,
-        // The library draws these on the candle series; the cockpit passes
-        // markers and levels, so the mock models them like the real API.
-        setMarkers: vi.fn(),
+        // Levels are drawn on the candle series. Markers are not: since v5
+        // they go through the `createSeriesMarkers` plugin below, so the
+        // series must NOT offer setMarkers — its absence is what proves the
+        // component took the plugin path.
         createPriceLine: vi.fn((options: Record<string, unknown>) => ({ ...options })),
         removePriceLine: vi.fn(),
     };
