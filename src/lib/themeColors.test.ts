@@ -59,6 +59,11 @@ describe("parseColorToRgb", () => {
     expect(parseColorToRgb("transparent")).toBeNull();
     expect(parseColorToRgb("#12")).toBeNull();
   });
+
+  it("returns null for non-hex digits", () => {
+    expect(parseColorToRgb("#zzzzzz")).toBeNull();
+    expect(parseColorToRgb("#zzz")).toBeNull();
+  });
 });
 
 describe("isLightColor", () => {
@@ -101,6 +106,19 @@ describe("ensureContrast", () => {
   it("keeps the foreground when either side is unparseable", () => {
     expect(ensureContrast("var(--x)", "#0f172a", "#a0adc0", 1.5)).toBe("var(--x)");
     expect(ensureContrast("#e2e8f0", "", "#a0adc0", 1.5)).toBe("#e2e8f0");
+  });
+
+  it("keeps invalid hex instead of swapping on NaN", () => {
+    // A typo is unparseable, not low-contrast: history wins over the fallback.
+    expect(ensureContrast("#zzzzzz", "#0f172a", "#a0adc0", 1.5)).toBe("#zzzzzz");
+  });
+
+  it("keeps the translucent fallback tone without compositing alpha", () => {
+    // The chrome fallback is deliberately translucent; the guard judges the
+    // parsed channels as-is, so the historical subtle tone is preserved.
+    expect(ensureContrast("rgba(255, 255, 255, 0.05)", "#1e293b", "#a0adc0", 1.5)).toBe(
+      "rgba(255, 255, 255, 0.05)",
+    );
   });
 });
 

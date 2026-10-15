@@ -114,10 +114,11 @@
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
-    // Get dynamic colors
-    const colors = getThemeColors((name) =>
-        getComputedStyle(canvas).getPropertyValue(name).trim(),
-    );
+    // Get dynamic colors. One style lookup per draw: the resolver reads
+    // several tokens, and a fresh `getComputedStyle` per token would force
+    // a style recalculation for each of them on every resize tick.
+    const style = getComputedStyle(canvas);
+    const colors = getThemeColors((name) => style.getPropertyValue(name).trim());
 
     // Clear
     ctx.clearRect(0, 0, width, height);

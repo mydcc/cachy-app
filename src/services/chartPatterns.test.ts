@@ -179,4 +179,26 @@ describe('getThemeColors', () => {
     expect(colors.grid).toBe('#c8aed6');
     expect(colors.border).toBe('#c8aed6');
   });
+
+  it('leaves the documented defaults untouched when nothing resolves', () => {
+    // SSR and bare stubs resolve nothing: the guard must not rewrite the
+    // catalogue fallback (the defaults sit below the floor by design).
+    const colors = getThemeColors(reader({}));
+    expect(colors.grid).toBe(DEFAULT_PATTERN_COLORS.grid);
+    expect(colors.border).toBe(DEFAULT_PATTERN_COLORS.border);
+  });
+
+  it('resolves var() chains before guarding', () => {
+    // Most themes wire tokens to each other; the raw reference would hand
+    // the canvas an unpaintable `var(...)` string and bypass the guard.
+    const colors = getThemeColors(
+      reader({
+        '--bg-tertiary': '#44475a',
+        '--border-color': 'var(--bg-tertiary)',
+        '--text-secondary': '#c8aed6',
+      }),
+    );
+    expect(colors.grid).toBe('#c8aed6');
+    expect(colors.border).toBe('#c8aed6');
+  });
 });

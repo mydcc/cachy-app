@@ -53,18 +53,23 @@ export function parseColorToRgb(color: string): Rgb | null {
   if (trimmed.startsWith("#")) {
     const hex = trimmed.slice(1);
     if (hex.length === 3) {
-      return [
+      const triple = [
         parseInt(hex[0] + hex[0], 16),
         parseInt(hex[1] + hex[1], 16),
         parseInt(hex[2] + hex[2], 16),
       ];
+      // Non-hex digits parse to NaN — report unparseable, like any
+      // other unknown format, so callers keep their fallback instead of
+      // comparing NaN luminances.
+      return triple.every(Number.isFinite) ? (triple as Rgb) : null;
     }
     if (hex.length >= 6) {
-      return [
+      const triple = [
         parseInt(hex.slice(0, 2), 16),
         parseInt(hex.slice(2, 4), 16),
         parseInt(hex.slice(4, 6), 16),
       ];
+      return triple.every(Number.isFinite) ? (triple as Rgb) : null;
     }
     return null;
   }
