@@ -112,9 +112,37 @@ if [[ -f "$SCRIPT_DIR/../discord-notify.sh" ]]; then
   fi
 fi
 
-# --- Bei Auffälligkeiten: Jules-Session anstoßen ---
+# --- Bei Auffälligkeiten: Jules-Session anstoßen (mit Dedup-Guard) ---
+# Der Monitor ist zustandslos (frische CI-VM, reports/ ist ephemer): ohne
+# diesen Guard erzeugt jeder Lauf mit derselben Live-Lage eine neue
+# Jules-Session mit fast identischem Prompt (13./14./15.10.2026: drei
+# Sessions, ein PR). Geprüft wird die Jules-Session-Liste wie in
+# dispatch-backlog.mjs — nicht das Dateisystem. Report und Discord oben
+# laufen trotzdem; nur der teure Jules-Run wird gedrosselt.
+JULES_DEDUP_DAYS="${JULES_DEDUP_DAYS:-7}"
 if [[ ${#ISSUES[@]} -gt 0 && -n "${JULES_API_KEY:-}" ]]; then
-  PROMPT=$(cat <<EOF
+  ISSUES_FILE="$REPORT_DIR/.issues-$DATE_STAMP.txt"
+  printf -- '%s\n' "${ISSUES[@]}" > "$ISSUES_FILE"
+  ISSUE_SIGNATURE=$(node "$SCRIPT_DIR/monitor-dedup.mjs" --print-signature --issues-file "$ISSUES_FILE")
+  MONITOR_TITLE="Production-Monitor: $ISSUE_SIGNATURE"
+  DEDUP_RESULT=$("$SCRIPT_DIR/list-sessions.sh" "${JULES_SESSION_PAGE_SIZE:-100}" 2>/dev/null \
+    | node "$SCRIPT_DIR/monitor-dedup.mjs" --title "$MONITOR_TITLE" --issues-file "$ISSUES_FILE" --days "$JULES_DEDUP_DAYS" \
+    || echo "ERROR|-|session list unloadable")
+  rm -f "$ISSUES_FILE"
+  DEDUP_DECISION="${DEDUP_RESULT%%|*}"
+  DEDUP_REST="${DEDUP_RESULT#*|}"
+  DEDUP_LAST="${DEDUP_REST%%|*}"
+  case "$DEDUP_DECISION" in
+    SKIP)
+      echo "⏭️  Keine neue Jules-Session: Signatur $ISSUE_SIGNATURE bereits bearbeitet ($DEDUP_LAST). Cooldown: $JULES_DEDUP_DAYS Tage."
+      ;;
+    PROCEED)
+      if [[ "$DEDUP_LAST" != "-" ]]; then
+        LAST_NOTE="Derselbe Befund (Signatur $ISSUE_SIGNATURE) wurde bereits in $DEDUP_LAST bearbeitet, ohne dass er in Produktion verschwand."
+      else
+        LAST_NOTE="Zu dieser Signatur ($ISSUE_SIGNATURE) ist keine frühere Bearbeitung bekannt."
+      fi
+      PROMPT=$(cat <<EOF
 Der tägliche Production-Monitor für $PRODUCTION_URL hat ${#ISSUES[@]} Auffälligkeit(en) gefunden:
 
 $(printf -- '- %s\n' "${ISSUES[@]}")
@@ -124,9 +152,23 @@ Halte dich strikt an AGENTS.md: keine Risiko-/Positionsgrößen-Logik und keine
 Signatur-/Crypto-Logik ohne expliziten menschlichen Review anfassen. Bei reinen
 Security-Header- oder Performance-Themen (z. B. hooks.server.ts, vite.config.ts,
 Asset-Größen) darfst du eigenständig einen Fix vorschlagen.
+
+---
+$LAST_NOTE
+Beachte das Deploy-Mapping, bevor du Code änderst: $PRODUCTION_URL läuft vom
+Stable-Zweig (main, siehe deploy.sh), develop geht nach dev.cachy.app. Ein Fix
+auf develop erreicht die Produktion erst mit dem nächsten Stable-Release plus
+Prod-Deploy. Prüfe außerdem die nginx-Ebene (add_header-Vererbung, siehe
+DEPLOYMENT.md): Code-Header aus hooks.server.ts/server.js greifen nicht, wenn
+nginx statisch ausliefert.
 EOF
 )
-  "$SCRIPT_DIR/create-session.sh" "$PROMPT"
+      "$SCRIPT_DIR/create-session.sh" --title "$MONITOR_TITLE" "$PROMPT"
+      ;;
+    *)
+      echo "⚠️  Session-Liste nicht ladbar ($DEDUP_REST) — keine Jules-Session ohne Dedup-Schutz (Fail-closed wie dispatch-backlog.mjs)."
+      ;;
+  esac
 else
   echo "ℹ️  Keine Jules-Session ausgelöst (keine Probleme oder JULES_API_KEY fehlt)."
 fi
