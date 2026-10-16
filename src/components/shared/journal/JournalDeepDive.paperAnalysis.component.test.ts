@@ -25,7 +25,12 @@
  *
  * The chart wrappers are replaced by `ChartDataSpy`, which renders the props
  * a chart received as JSON: the assertions are about what fed the chart, not
- * about Chart.js — and what fed the chart is exactly what this item is.
+ * about Chart.js — and what fed the chart is exactly what this item is. The
+ * preset sweep is an equivalence check: adding the *other* population to the
+ * journal must not change a single figure of the mode under test, preset by
+ * preset. That pins the source of every chart — including the ones the
+ * component computes itself (rolling, leakage) — without hard-coding
+ * intermediate values.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -81,6 +86,10 @@ vi.mock("../charts/RadarChart.svelte", async () => ({
     default: (await import("../../../tests/helpers/ChartDataSpy.svelte"))
         .default,
 }));
+vi.mock("../charts/CalendarHeatmap.svelte", async () => ({
+    default: (await import("../../../tests/helpers/ChartDataSpy.svelte"))
+        .default,
+}));
 
 import { journalState } from "../../../stores/journal.svelte";
 import type { JournalEntry } from "../../../stores/types";
@@ -94,7 +103,14 @@ const THEME = {
     textSecondary: "#94a3b8",
 };
 
-function entry(id: string, pnl: string, isPaper?: boolean): JournalEntry {
+type TradeMode = "live" | "paper" | "all";
+
+function entry(
+    id: string,
+    pnl: string,
+    isPaper?: boolean,
+    overrides: Partial<JournalEntry> = {},
+): JournalEntry {
     return {
         id,
         date: new Date("2026-08-16T10:00:00Z").toISOString(),
@@ -117,16 +133,37 @@ function entry(id: string, pnl: string, isPaper?: boolean): JournalEntry {
         targets: [],
         calculatedTpDetails: [],
         ...(isPaper === undefined ? {} : { isPaper }),
+        ...overrides,
     } as JournalEntry;
 }
 
+/**
+ * A full population with enough closed trades and enough per-trade context
+ * (risk, ATR, MFE/MAE, tags) that every preset has something to render —
+ * otherwise the sweep would compare two silences. 30 is the smallest sample
+ * the SQN family accepts.
+ */
+const POPULATION_SIZE = 30;
+
+function population(isPaper: boolean): JournalEntry[] {
+    return Array.from({ length: POPULATION_SIZE }, (_, i) =>
+        entry(`${isPaper ? "p" : "r"}${i}`, isPaper ? "-4" : "10", isPaper, {
+            atrValue: new Decimal(isPaper ? "2" : "1"),
+            mae: new Decimal(isPaper ? 2 : 1),
+            mfe: new Decimal(isPaper ? 0.5 : 2),
+            tags: [isPaper ? "paperTag" : "realTag"],
+        }),
+    );
+}
+
 interface SpyChart {
+    title?: string;
     labels?: unknown[];
     datasets?: Array<{ data?: unknown[] }>;
 }
 
 let host: HTMLElement;
-let component: Record<string, unknown> | null = null;
+let component: ReturnType<typeof mount> | null = null;
 
 beforeEach(() => {
     journalState.set([]);
@@ -135,16 +172,21 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    if (component) unmount(component);
-    component = null;
+    unmountView();
     host.remove();
 });
 
-function render(tradeMode: "live" | "paper" | "all"): HTMLElement {
+function unmountView() {
+    if (component) unmount(component);
+    component = null;
+    host.innerHTML = "";
+}
+
+function render(tradeMode: TradeMode): HTMLElement {
     component = mount(JournalDeepDive, {
         target: host,
         props: { themeColors: THEME, tradeMode },
-    }) as never;
+    });
     flushSync();
     return host;
 }
@@ -157,10 +199,14 @@ function chartSpies(el: HTMLElement): HTMLElement[] {
 
 /** The data each stubbed chart received, in render order. */
 function charts(el: HTMLElement): SpyChart[] {
-    return chartSpies(el).map(
-        (spy) =>
-            JSON.parse(spy.getAttribute("data-json") ?? "null") as SpyChart,
-    );
+    return chartSpies(el).map((spy) => ({
+        title: spy.getAttribute("data-title") ?? "",
+        ...(JSON.parse(spy.getAttribute("data-json") ?? "null") as SpyChart),
+    }));
+}
+
+function chartByTitle(el: HTMLElement, titleKey: string): SpyChart | undefined {
+    return charts(el).find((chart) => chart.title === lookup(titleKey));
 }
 
 function clickPreset(el: HTMLElement, label: string) {
@@ -172,24 +218,85 @@ function clickPreset(el: HTMLElement, label: string) {
     flushSync();
 }
 
+const PRESETS: Array<[string, string]> = [
+    ["performance", "journal.deepDive.performance"],
+    ["execution", "journal.deepDive.execution"],
+    ["risk", "journal.deepDive.risk"],
+    ["market", "journal.deepDive.market"],
+    ["leakage", "journal.deepDive.leakage"],
+    ["time", "journal.deepDive.time"],
+    ["strategies", "journal.deepDive.strategies"],
+    ["behavior", "journal.deepDive.behavior"],
+    ["quality", "journal.deepDive.systemQuality"],
+    // `forecast` is deliberately absent: its cone is resampled with
+    // Math.random on every render, so two renders cannot be compared. Its
+    // input is the same mode-selected `journal` array that feeds rolling and
+    // leakage, and those two the sweep does pin.
+];
+
+/** Every preset's charts, in render order, for the given mode. */
+function chartsByPreset(tradeMode: TradeMode): Record<string, SpyChart[]> {
+    const el = render(tradeMode);
+    const snapshot: Record<string, SpyChart[]> = {};
+    for (const [id, labelKey] of PRESETS) {
+        if (id !== "performance") clickPreset(el, lookup(labelKey));
+        snapshot[id] = charts(el);
+    }
+    return snapshot;
+}
+
 describe("JournalDeepDive — paper analysis (FEAT-0692)", () => {
     it("draws the paper run from paper entries alone in paper mode", () => {
         journalState.set([entry("r1", "-30"), entry("p1", "-40", true)]);
 
-        const data = charts(render("paper"));
+        const drawdown = chartByTitle(
+            render("paper"),
+            "journal.deepDive.charts.titles.drawdown",
+        );
 
-        // With a single closed trade, only the drawdown chart carries data.
-        expect(data).toHaveLength(1);
-        expect(data[0].datasets?.[0]?.data).toEqual([-40]);
+        expect(drawdown).toBeDefined();
+        expect(drawdown?.datasets?.[0]?.data).toEqual([-40]);
     });
 
     it("draws the real run from real entries alone in live mode", () => {
         journalState.set([entry("r1", "-30"), entry("p1", "-40", true)]);
 
-        const data = charts(render("live"));
+        const drawdown = chartByTitle(
+            render("live"),
+            "journal.deepDive.charts.titles.drawdown",
+        );
 
-        expect(data[0].datasets?.[0]?.data).toEqual([-30]);
+        expect(drawdown).toBeDefined();
+        expect(drawdown?.datasets?.[0]?.data).toEqual([-30]);
     });
+
+    it.each(["paper", "live"] as const)(
+        "changes no %s preset when the other population joins",
+        (mode) => {
+            const other = population(mode !== "paper");
+            const own = population(mode === "paper");
+
+            journalState.set([...other, ...own]);
+            const withBoth = chartsByPreset(mode);
+            unmountView();
+
+            journalState.set(own);
+            const ownOnly = chartsByPreset(mode);
+
+            for (const [id] of PRESETS) {
+                // Non-vacuity: a preset that renders nothing in both runs
+                // could not fail this comparison.
+                expect(
+                    withBoth[id].length,
+                    `preset ${id} should render charts for this fixture`,
+                ).toBeGreaterThan(0);
+                expect(
+                    withBoth[id],
+                    `preset ${id} changed when the other population joined`,
+                ).toEqual(ownOnly[id]);
+            }
+        },
+    );
 
     it("marks the paper run as simulated", () => {
         journalState.set([entry("p1", "-40", true)]);
@@ -216,7 +323,24 @@ describe("JournalDeepDive — paper analysis (FEAT-0692)", () => {
             el.querySelector('[data-testid="deepdive-mode-banner"]')
                 ?.textContent,
         ).toContain(lookup("journal.deepDive.allModeHint"));
-        expect(charts(el)[0].datasets?.[0]?.data).toEqual([-30]);
+        expect(
+            chartByTitle(el, "journal.deepDive.charts.titles.drawdown")
+                ?.datasets?.[0]?.data,
+        ).toEqual([-30]);
+    });
+
+    it("does not stack the all-mode hint on top of the empty state", () => {
+        journalState.set([entry("p1", "-40", true)]);
+
+        const el = render("all");
+
+        expect(
+            el.querySelector('[data-testid="deepdive-mode-banner"]'),
+        ).toBeNull();
+        expect(
+            el.querySelector('[data-testid="deepdive-empty-state"]')
+                ?.textContent,
+        ).toContain(lookup("journal.deepDive.realOnlyHint"));
     });
 
     it("carries no banner in live mode", () => {
@@ -267,10 +391,12 @@ describe("JournalDeepDive — paper analysis (FEAT-0692)", () => {
         const el = render("paper");
         clickPreset(el, lookup("journal.deepDive.execution"));
 
-        const sixSegment = charts(el).find(
-            (chart) => chart.datasets?.[0]?.data?.length === 6,
+        const sixSegment = chartByTitle(
+            el,
+            "journal.deepDive.charts.titles.sixSegment",
         );
         // One losing long paper trade: the loss-long bucket alone.
+        expect(sixSegment).toBeDefined();
         expect(sixSegment?.datasets?.[0]?.data).toEqual([0, 0, 1, 0, 0, 0]);
     });
 });

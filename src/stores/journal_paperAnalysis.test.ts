@@ -36,7 +36,12 @@ vi.mock("./settings.svelte", () => ({ settingsState: settings }));
 import { journalState } from "./journal.svelte";
 import type { JournalEntry } from "./types";
 
-function entry(id: string, pnl: string, isPaper?: boolean): JournalEntry {
+function entry(
+    id: string,
+    pnl: string,
+    isPaper?: boolean,
+    overrides: Partial<JournalEntry> = {},
+): JournalEntry {
     return {
         id,
         date: new Date("2026-08-16T10:00:00Z").toISOString(),
@@ -59,6 +64,7 @@ function entry(id: string, pnl: string, isPaper?: boolean): JournalEntry {
         targets: [],
         calculatedTpDetails: [],
         ...(isPaper === undefined ? {} : { isPaper }),
+        ...overrides,
     } as JournalEntry;
 }
 
@@ -66,6 +72,25 @@ beforeEach(() => {
     settings.journalPaperTrades = true;
     journalState.set([]);
 });
+
+/**
+ * A full population with enough closed trades and enough per-trade context
+ * (risk, ATR, MFE/MAE, tags) that every metric family has something to say —
+ * otherwise the cross-population guard below would compare two silences.
+ * 30 is the smallest sample the SQN family accepts.
+ */
+const POPULATION_SIZE = 30;
+
+function population(isPaper: boolean): JournalEntry[] {
+    return Array.from({ length: POPULATION_SIZE }, (_, i) =>
+        entry(`${isPaper ? "p" : "r"}${i}`, isPaper ? "-4" : "10", isPaper, {
+            atrValue: new Decimal(isPaper ? "2" : "1"),
+            mae: new Decimal(isPaper ? 2 : 1),
+            mfe: new Decimal(isPaper ? 0.5 : 2),
+            tags: [isPaper ? "paperTag" : "realTag"],
+        }),
+    );
+}
 
 describe("journal — the paper analysis mirror (FEAT-0692)", () => {
     it("splits the entries into a real and a paper population", () => {
@@ -93,7 +118,7 @@ describe("journal — the paper analysis mirror (FEAT-0692)", () => {
         ).toEqual([100]);
     });
 
-    it("moves a paper fill only in the paper series, a real fill only in the real one", () => {
+    it("leaves every real figure untouched when a paper fill lands", () => {
         journalState.set([entry("r1", "100")]);
         const realBefore = journalState.performanceMetrics;
         expect(journalState.paperPerformanceMetrics.equityCurve).toEqual([]);
@@ -138,5 +163,52 @@ describe("journal — the paper analysis mirror (FEAT-0692)", () => {
         expect(
             journalState.paperPerformanceMetrics.equityCurve,
         ).toEqual([]);
+    });
+
+    it("computes every metric family from its own population alone", () => {
+        const families: Array<{
+            name: string;
+            paper: () => unknown;
+            real: () => unknown;
+        }> = [
+            { name: "performance", paper: () => journalState.paperPerformanceMetrics, real: () => journalState.performanceMetrics },
+            { name: "quality", paper: () => journalState.paperQualityMetrics, real: () => journalState.qualityMetrics },
+            { name: "execution", paper: () => journalState.paperExecutionMetrics, real: () => journalState.executionMetrics },
+            { name: "risk", paper: () => journalState.paperRiskMetrics, real: () => journalState.riskMetrics },
+            { name: "riskRadar", paper: () => journalState.paperRiskRadarMetrics, real: () => journalState.riskRadarMetrics },
+            { name: "market", paper: () => journalState.paperMarketMetrics, real: () => journalState.marketMetrics },
+            { name: "marketContext", paper: () => journalState.paperMarketContextMetrics, real: () => journalState.marketContextMetrics },
+            { name: "asset", paper: () => journalState.paperAssetMetrics, real: () => journalState.assetMetrics },
+            { name: "systemQuality", paper: () => journalState.paperSystemQualityMetrics, real: () => journalState.systemQualityMetrics },
+            { name: "calendar", paper: () => journalState.paperCalendarMetrics, real: () => journalState.calendarMetrics },
+            { name: "confluence", paper: () => journalState.paperConfluenceMetrics, real: () => journalState.confluenceMetrics },
+            { name: "tag", paper: () => journalState.paperTagMetrics, real: () => journalState.tagMetrics },
+            { name: "tagEvolution", paper: () => journalState.paperTagEvolutionMetrics, real: () => journalState.tagEvolutionMetrics },
+            { name: "psychology", paper: () => journalState.paperPsychologyMetrics, real: () => journalState.psychologyMetrics },
+        ];
+
+        journalState.set(population(true));
+        const paperAlone = families.map((family) => family.paper());
+        journalState.set(population(false));
+        const realAlone = families.map((family) => family.real());
+
+        journalState.set([...population(false), ...population(true)]);
+        families.forEach((family, i) => {
+            // Non-vacuity: if the fixture ever goes silent for a family, the
+            // leak checks below could not fail — this guard turns that into a
+            // red test instead of a green illusion.
+            expect(
+                paperAlone[i],
+                `${family.name}: fixture must let the two populations differ`,
+            ).not.toEqual(realAlone[i]);
+            expect(
+                family.paper(),
+                `${family.name}: a real fill leaked into the paper figures`,
+            ).toEqual(paperAlone[i]);
+            expect(
+                family.real(),
+                `${family.name}: a paper fill leaked into the real figures`,
+            ).toEqual(realAlone[i]);
+        });
     });
 });
