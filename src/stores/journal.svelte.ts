@@ -293,6 +293,14 @@ export class JournalManager {
    */
   analysisEntries = $derived(this.entries.filter((e) => e.isPaper !== true));
 
+  /**
+   * The simulated counterpart of `analysisEntries` — the deep dive's paper
+   * source (FEAT-0692). Same calculators, same shapes, a separate population:
+   * a paper run is analysed against itself and never averaged into a real
+   * figure, so the two sets cannot mix by construction.
+   */
+  paperEntries = $derived(this.entries.filter((e) => e.isPaper === true));
+
   /** How many stored entries are simulated. Drives the list's paper filter. */
   paperEntryCount = $derived(
     this.entries.length - this.analysisEntries.length,
@@ -324,6 +332,29 @@ export class JournalManager {
   riskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.analysisEntries, this.analysisContext));
   marketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.analysisEntries, this.analysisContext));
   systemQualityMetrics = $derived(calculator.getSystemQualityData(this.analysisEntries, this.analysisContext));
+
+  // -- Paper analytics (FEAT-0692) --
+  // The same calculators over the simulated population. Separate $deriveds on
+  // purpose: "never mixed" is enforced by there being no expression that adds
+  // one set to the other, not by a convention someone has to remember.
+  private paperAnalysisContext = $derived(
+    calculator.getJournalContext(this.paperEntries),
+  );
+
+  paperPerformanceMetrics = $derived(calculator.getPerformanceData(this.paperEntries, this.paperAnalysisContext));
+  paperQualityMetrics = $derived(calculator.getQualityData(this.paperEntries, this.paperAnalysisContext));
+  paperExecutionMetrics = $derived(calculator.getExecutionEfficiencyData(this.paperEntries, this.paperAnalysisContext));
+  paperRiskMetrics = $derived(calculator.getRiskData(this.paperEntries, this.paperAnalysisContext));
+  paperRiskRadarMetrics = $derived(calculator.getVisualRiskRadarData(this.paperEntries, this.paperAnalysisContext));
+  paperMarketMetrics = $derived(calculator.getMarketData(this.paperEntries, this.paperAnalysisContext));
+  paperMarketContextMetrics = $derived(calculator.getVolatilityMatrixData(this.paperEntries, this.paperAnalysisContext));
+  paperAssetMetrics = $derived(calculator.getAssetData(this.paperEntries, this.paperAnalysisContext));
+  paperSystemQualityMetrics = $derived(calculator.getSystemQualityData(this.paperEntries, this.paperAnalysisContext));
+  paperCalendarMetrics = $derived(calculator.getCalendarData(this.paperEntries, this.paperAnalysisContext));
+  paperConfluenceMetrics = $derived(calculator.getConfluenceData(this.paperEntries, this.paperAnalysisContext));
+  paperTagMetrics = $derived(calculator.getTagData(this.paperEntries, this.paperAnalysisContext));
+  paperTagEvolutionMetrics = $derived(calculator.getTagEvolution(this.paperEntries, this.paperAnalysisContext));
+  paperPsychologyMetrics = $derived(calculator.getPsychologyData(this.paperEntries, this.paperAnalysisContext));
 
   // Legacy subscribe for backward compatibility
   subscribe(fn: (value: JournalEntry[]) => void) {

@@ -2,7 +2,7 @@
 id: FEAT-0692
 title: Let the deep dive analyse paper trades, never mixed with real ones
 type: feature
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: feat/paper-deepdive-analysis
 ---
 
 # FEAT-0692 — Let the deep dive analyse paper trades, never mixed with real ones
