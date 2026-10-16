@@ -416,6 +416,76 @@ function isGuardRefusal(error: unknown): boolean {
 }
 
 /**
+ * Whether the failure is the *runtime* refusing our dispatcher rather than the
+ * network refusing the target.
+ *
+ * Node bundles its own copy of undici, and the runtime's `fetch` cannot drive a
+ * dispatcher built by a different, newer standalone `undici`:
+ *
+ * | runtime | bundled undici | `fetch(url, { dispatcher })` |
+ * |---|---|---|
+ * | Node 22 | 6.28 | `fetch failed` (`UND_ERR_INVALID_ARG`) at once |
+ * | Node 24 | 7.29 | `fetch failed` (`UND_ERR_INVALID_ARG`) at once |
+ * | Node 26 | 8.11 | works |
+ *
+ * The message behind the code is "invalid onRequestStart method" — the runtime
+ * validates the dispatcher against its own base class. `undici`'s own `fetch`
+ * accepts its own dispatcher on all three, so it takes over — see BUG-0691.
+ */
+function isDispatcherIncompatibility(error: unknown): boolean {
+  for (const err of causeChain(error)) {
+    if ((err as { code?: unknown }).code === "UND_ERR_INVALID_ARG") return true;
+  }
+  return false;
+}
+
+/**
+ * Set once the runtime has shown it cannot drive our dispatcher. From then on a
+ * request goes straight to `undici`'s own fetch instead of paying a failed
+ * attempt first.
+ */
+let _usePackageFetch = false;
+
+/**
+ * Performs one guarded request.
+ *
+ * The runtime's own `fetch` is preferred — it is the function the rest of the
+ * app goes through, so a deployment that configures it centrally keeps working.
+ * Only when it proves unable to drive the dispatcher does the `undici`
+ * package's `fetch` take over, permanently for this process.
+ */
+async function performGuardedFetch(
+  url: string | URL,
+  init: RequestInit | undefined,
+  dispatcher: unknown,
+): Promise<Response> {
+  if (!_usePackageFetch) {
+    try {
+      // @ts-expect-error Node fetch supports dispatcher option via undici
+      return await fetch(url, { ...init, dispatcher });
+    } catch (error) {
+      if (!isDispatcherIncompatibility(error)) throw error;
+      _usePackageFetch = true;
+      warnOnce(
+        "[urlValidator] this runtime's fetch cannot drive the guarded dispatcher; using undici's own fetch",
+      );
+    }
+  }
+
+  const undici = await import("undici");
+  const packageFetch = (undici as { fetch?: unknown }).fetch;
+  if (typeof packageFetch !== "function") {
+    throw new Error("SSRF guard unavailable");
+  }
+  return await (
+    packageFetch as (
+      input: string | URL,
+      init?: RequestInit & { dispatcher?: unknown },
+    ) => Promise<Response>
+  )(url, { ...init, dispatcher });
+}
+
+/**
  * Addresses the configured proxy answers with, pinned once per process. Only
  * these are exempt from the private-range rule, and only on the proxy path.
  */
@@ -651,6 +721,11 @@ function describeFetchFailure(error: unknown): unknown {
  * The trade is deliberate: a request that falls back is no longer filtered or
  * audited by the operator's proxy, while the dial-time guard keeps applying on
  * both paths.
+ *
+ * One further recovery sits underneath both paths: a runtime whose bundled
+ * undici is older than the `undici` package cannot drive a dispatcher at all
+ * (Node 22/24 answer every request with `UND_ERR_INVALID_ARG`), so the request
+ * goes through `undici`'s own fetch instead — see `performGuardedFetch`.
  */
 export async function safeFetch(url: string | URL, init?: RequestInit): Promise<Response> {
   const urlStr = typeof url === "string" ? url : url.toString();
@@ -667,8 +742,7 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
   }
 
   try {
-    // @ts-expect-error Node fetch supports dispatcher option via undici
-    return await fetch(url, { ...init, dispatcher: egress.dispatcher });
+    return await performGuardedFetch(url, init, egress.dispatcher);
   } catch (error) {
     if (
       egress.path !== "proxy" ||
@@ -686,8 +760,7 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
     );
 
     try {
-      // @ts-expect-error Node fetch supports dispatcher option via undici
-      const response = await fetch(url, { ...init, dispatcher: alternate });
+      const response = await performGuardedFetch(url, init, alternate);
       // Remember a path only once it has carried a request: a failure on both
       // paths must not move the preference, or every later request would pay two
       // failed dials in the opposite order.

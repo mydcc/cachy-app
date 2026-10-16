@@ -404,6 +404,9 @@ describe("urlValidator", () => {
     // simulate the proxy hostname rebinding after construction.
     let dialTable: Record<string, Array<{ address: string; family: number }>> = {};
 
+    /** What the `undici` package's own fetch was asked to carry (BUG-0691). */
+    let packageFetchCalls: Array<{ url: string; dispatcher: unknown }> = [];
+
     const isIpLiteral = (host: string): boolean =>
       host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 
@@ -456,6 +459,12 @@ describe("urlValidator", () => {
             return Promise.resolve();
           }
         },
+        // `undici`'s own fetch, which a runtime whose bundled undici is older
+        // than this package needs (BUG-0691).
+        fetch: (url: string | URL, init?: { dispatcher?: unknown }) => {
+          packageFetchCalls.push({ url: url.toString(), dispatcher: init?.dispatcher });
+          return Promise.resolve(new Response("{}", { status: 200 }));
+        },
       }));
       vi.doMock("node:dns", () => {
         dialTable = {
@@ -496,6 +505,7 @@ describe("urlValidator", () => {
 
     afterEach(() => {
       restoreProxyEnv();
+      packageFetchCalls = [];
       vi.doUnmock("undici");
       vi.doUnmock("node:dns");
       vi.resetModules();
@@ -518,6 +528,48 @@ describe("urlValidator", () => {
 
       expect(built).toHaveLength(1);
       expect(built[0].kind).toBe("agent");
+    });
+
+    it("moves to undici's own fetch when the runtime rejects the dispatcher", async () => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({});
+      const direct = dispatchers.find((d) => d.kind === "agent")?.instance;
+
+      // What Node 22 (internal undici 6.28) and Node 24 (7.29) answer with when
+      // handed a dispatcher from the newer `undici` package (BUG-0691).
+      const runtimeRejects = new TypeError("fetch failed", {
+        cause: Object.assign(new Error("invalid onRequestStart method"), {
+          code: "UND_ERR_INVALID_ARG",
+        }),
+      });
+      const previous = globalThis.fetch;
+      const runtimeCalls: unknown[] = [];
+      globalThis.fetch = vi.fn(
+        async (_url: unknown, init?: { dispatcher?: unknown }) => {
+          runtimeCalls.push(init?.dispatcher);
+          throw runtimeRejects;
+        },
+      ) as unknown as typeof globalThis.fetch;
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const response = await module.safeFetch("https://public.example/v1/models");
+        expect(response.status).toBe(200);
+        // The runtime refused the dispatcher; the package's fetch carried it.
+        expect(runtimeCalls).toHaveLength(1);
+        expect(packageFetchCalls).toEqual([
+          { url: "https://public.example/v1/models", dispatcher: direct },
+        ]);
+
+        // Sticky: the next request skips the runtime's fetch entirely, and the
+        // operator is told once.
+        await module.safeFetch("https://public.example/v1/models");
+        expect(runtimeCalls).toHaveLength(1);
+        expect(packageFetchCalls).toHaveLength(2);
+        expect(warn).toHaveBeenCalledTimes(1);
+      } finally {
+        globalThis.fetch = previous;
+        warn.mockRestore();
+      }
     });
 
     /** Stubs `fetch` so a chosen dispatcher fails, and records what each call used. */
