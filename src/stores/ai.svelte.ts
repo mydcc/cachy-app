@@ -162,10 +162,69 @@ export function toRecentTradeEntry(t: JournalEntry): RecentTradeEntry {
     };
 }
 
+/**
+ * Provider answers a retry cannot improve: a rejected key (401), a billing
+ * problem (402), a missing permission or region block (403). Retrying those
+ * spends quota and buries the real message under two more failures, so they
+ * leave the send loop on the first answer.
+ */
+export function isRetryableProviderStatus(status: number): boolean {
+    return status === 429 || status >= 500;
+}
+
+/**
+ * How much of a provider's own wording reaches the UI. A broken or hostile
+ * provider can answer with megabytes; the message is escaped, but it should
+ * still not decide how large the error box gets (BUG-0694).
+ */
+const MAX_PROVIDER_DETAIL = 300;
+
+/**
+ * The message shown for a provider answer. The status is part of it on purpose:
+ * it is what the console shows, and matching the two is how a reader gets from
+ * "the chat says no" to "which request failed". The detail is collapsed to one
+ * line and capped, because it is provider-controlled text.
+ */
+export function providerFailureMessage(status: number, body: unknown): string {
+    const record = (body ?? {}) as { error?: unknown; message?: unknown };
+    const nested =
+        record.error && typeof record.error === "object"
+            ? (record.error as { message?: unknown }).message
+            : undefined;
+    const raw =
+        (typeof nested === "string" && nested) ||
+        (typeof record.error === "string" && record.error) ||
+        (typeof record.message === "string" && record.message) ||
+        "no details in the response";
+    const detail = raw.replace(/\s+/g, " ").trim();
+    const capped =
+        detail.length > MAX_PROVIDER_DETAIL
+            ? `${detail.slice(0, MAX_PROVIDER_DETAIL)}…`
+            : detail;
+    return `HTTP ${status}: ${capped}`;
+}
+
+/** Thrown for a provider answer the send loop must not retry. */
+export class ProviderRequestError extends Error {
+    readonly status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.name = "ProviderRequestError";
+        this.status = status;
+    }
+}
+
 class AiManager {
   messages = $state<AiMessage[]>([]);
   isStreaming = $state(false);
   error = $state<string | null>(null);
+  /**
+   * The provider status behind `error`, when there is one. The view needs it to
+   * tell a rate limit from a rejected key without matching on message text —
+   * a provider is free to write "quota" in any error (BUG-0694).
+   */
+  errorStatus = $state<number | null>(null);
   pendingActions = $state<Map<string, PendingAction>>(new Map());
   lastContext = $state<AiContext | null>(null); // Expose context for UI indicators
   contextSummary = $state<{
@@ -220,6 +279,7 @@ class AiManager {
   clearHistory() {
     this.messages = [];
     this.error = null;
+    this.errorStatus = null;
     this.isStreaming = false;
     this.save();
   }
@@ -239,6 +299,7 @@ class AiManager {
     this.messages = [...this.messages, userMsg].slice(-MAX_MESSAGES);
     this.isStreaming = true;
     this.error = null;
+    this.errorStatus = null;
     this.save();
 
     try {
@@ -425,8 +486,10 @@ class AiManager {
 
       // 5. Call API with Retry & Stream Handling
       let res: Response | null = null;
-      let attempt = 0;
-      const MAX_RETRIES = 3;
+      /** Attempts, not retries: three attempts means two re-sends (BUG-0694). */
+      const MAX_ATTEMPTS = 3;
+      /** The last provider answer or network error, so the final message names it. */
+      let lastFailure = "";
 
       // Browser-direct: the key never reaches the Cachy server. A CORS or
       // network failure is surfaced with the relay as the suggested fix.
@@ -445,14 +508,12 @@ class AiManager {
           });
           if (!directRes.ok) {
             const err = await directRes.json().catch(() => ({}));
-            throw new Error(
-              err.error?.message ||
-                err.error ||
-                `Request failed with status ${directRes.status}`,
-            );
+            this.errorStatus = directRes.status;
+            throw new Error(providerFailureMessage(directRes.status, err));
           }
           res = directRes;
           this.error = null;
+          this.errorStatus = null;
         } catch (err) {
           this.isStreaming = false;
           const message = err instanceof Error ? err.message : String(err);
@@ -477,9 +538,11 @@ class AiManager {
           if (directRes.ok) {
             res = directRes;
             this.error = null;
+            this.errorStatus = null;
           } else {
             const err = await directRes.json().catch(() => ({}));
-            throw new Error(err.error?.message || err.error || `Ollama request failed with status ${directRes.status}`);
+            this.errorStatus = directRes.status;
+            throw new Error(providerFailureMessage(directRes.status, err));
           }
         } catch (err) {
           // Direct browser fetch failed — fail closed! ADR-0011 forbids falling back to server proxy in local mode.
@@ -490,9 +553,17 @@ class AiManager {
         }
       }
 
-      while (!res && attempt < MAX_RETRIES) {
+      // Up to MAX_ATTEMPTS provider attempts per send: a rate limit backs off,
+      // a server fault gets one more try, and an answer a retry cannot improve
+      // (rejected key, billing, permission) leaves at once — each keeping the
+      // provider's own message with its status. A 5xx can have been accepted
+      // upstream before its answer was lost, so a re-send can repeat a paid
+      // request; the window is bounded by MAX_ATTEMPTS (BUG-0694).
+      const providerLabel = userProvider?.label ?? provider;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        let candidate: Response;
         try {
-          res = await appFetch(endpoint, {
+          candidate = await appFetch(endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -504,43 +575,58 @@ class AiManager {
               ...(baseUrl?.trim() ? { baseUrl: baseUrl.trim() } : {}),
             }),
           });
-
-          if (res.ok) {
-            this.error = null;
-            break; // Success!
+        } catch (networkError) {
+          // No answer at all: a transport failure, retried like a server fault.
+          const message =
+            networkError instanceof Error
+              ? networkError.message
+              : String(networkError);
+          lastFailure = `Failed to connect to ${providerLabel} after ${MAX_ATTEMPTS} attempts: ${message}`;
+          if (attempt === MAX_ATTEMPTS) {
+            throw new Error(lastFailure, { cause: networkError });
           }
-
-          if (res.status === 429) {
-            attempt++;
-            const delay = Math.pow(2, attempt) * 1000;
-            if (import.meta.env.DEV) {
-              console.warn(
-                `Rate limited (429). Retrying in ${delay / 1000}s...`,
-              );
-            }
-            this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
-            await new Promise((r) => setTimeout(r, delay));
-            continue;
-          }
-
-          const err = await res.json();
-          throw new Error(
-            err.error || `Request failed with status ${res.status}`,
-          );
-        } catch (e) {
-          if (attempt === MAX_RETRIES - 1) throw e; // Final failure
-          attempt++;
           if (import.meta.env.DEV) {
-            const message = e instanceof Error ? e.message : String(e);
             console.warn(`API Error: ${message}. Retrying...`);
           }
           await new Promise((r) => setTimeout(r, 1000));
+          continue;
         }
+
+        if (candidate.ok) {
+          res = candidate;
+          this.error = null;
+          this.errorStatus = null;
+          break; // Success!
+        }
+
+        const body = await candidate.json().catch(() => ({}));
+        const failure = providerFailureMessage(candidate.status, body);
+        lastFailure = failure;
+        this.errorStatus = candidate.status;
+
+        if (
+          !isRetryableProviderStatus(candidate.status) ||
+          attempt === MAX_ATTEMPTS
+        ) {
+          throw new ProviderRequestError(failure, candidate.status);
+        }
+
+        const delay =
+          candidate.status === 429 ? Math.pow(2, attempt) * 1000 : 1000;
+        if (candidate.status === 429) {
+          this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
+        } else {
+          this.error = failure;
+        }
+        if (import.meta.env.DEV) {
+          console.warn(`API Error: ${failure}. Retrying in ${delay / 1000}s...`);
+        }
+        await new Promise((r) => setTimeout(r, delay));
       }
 
-      if (!res || !res.ok) {
-        throw new Error("Failed to connect to AI provider after retries.");
-      }
+      // The loop only leaves on a response or a throw — this narrowing is for
+      // the type checker, not a user-facing failure path.
+      if (!res) throw new Error(lastFailure || "AI provider returned no response");
       if (!res.body) throw new Error("No response body");
 
       const reader = res.body.getReader();
