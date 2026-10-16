@@ -533,7 +533,7 @@
                  but the provider's line stays visible underneath, because it is
                  what names the status and the detail. The status comes from the
                  store: matching on text would hide a 402 that happens to mention
-                 "quota" (BUG-0692). -->
+                 "quota" (BUG-0694). -->
             {@const isRateLimit = errorMessage
                 ? /quota|429/i.test(shownError)
                 : aiState.errorStatus === 429}

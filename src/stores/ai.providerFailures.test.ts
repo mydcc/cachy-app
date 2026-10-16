@@ -16,7 +16,7 @@
  */
 
 /*
- * BUG-0692 — a provider answer a retry cannot improve.
+ * BUG-0694 — a provider answer a retry cannot improve.
  *
  * One click in the assistant used to turn into three provider requests with
  * three different statuses (500, 503, 429), because every answer except 429 was

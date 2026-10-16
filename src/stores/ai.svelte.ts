@@ -175,7 +175,7 @@ export function isRetryableProviderStatus(status: number): boolean {
 /**
  * How much of a provider's own wording reaches the UI. A broken or hostile
  * provider can answer with megabytes; the message is escaped, but it should
- * still not decide how large the error box gets (BUG-0692).
+ * still not decide how large the error box gets (BUG-0694).
  */
 const MAX_PROVIDER_DETAIL = 300;
 
@@ -222,7 +222,7 @@ class AiManager {
   /**
    * The provider status behind `error`, when there is one. The view needs it to
    * tell a rate limit from a rejected key without matching on message text —
-   * a provider is free to write "quota" in any error (BUG-0692).
+   * a provider is free to write "quota" in any error (BUG-0694).
    */
   errorStatus = $state<number | null>(null);
   pendingActions = $state<Map<string, PendingAction>>(new Map());
@@ -486,7 +486,7 @@ class AiManager {
 
       // 5. Call API with Retry & Stream Handling
       let res: Response | null = null;
-      /** Attempts, not retries: three attempts means two re-sends (BUG-0692). */
+      /** Attempts, not retries: three attempts means two re-sends (BUG-0694). */
       const MAX_ATTEMPTS = 3;
       /** The last provider answer or network error, so the final message names it. */
       let lastFailure = "";
@@ -558,7 +558,7 @@ class AiManager {
       // (rejected key, billing, permission) leaves at once — each keeping the
       // provider's own message with its status. A 5xx can have been accepted
       // upstream before its answer was lost, so a re-send can repeat a paid
-      // request; the window is bounded by MAX_ATTEMPTS (BUG-0692).
+      // request; the window is bounded by MAX_ATTEMPTS (BUG-0694).
       const providerLabel = userProvider?.label ?? provider;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
         let candidate: Response;

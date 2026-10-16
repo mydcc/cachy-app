@@ -17,7 +17,7 @@
  */
 
 /*
- * BUG-0693 — KaTeX warned about every typographic dash inside a formula.
+ * BUG-0695 — KaTeX warned about every typographic dash inside a formula.
  *
  * An assistant answer that writes a range as `$BTC–USDT$` logged
  * `Unrecognized Unicode character "–"` for each one, in strict mode. In math a

@@ -1,5 +1,5 @@
 ---
-id: BUG-0692
+id: BUG-0694
 title: A provider failure in the AI chat is not retried, not shown, and its message is discarded
 type: bug
 status: done
@@ -13,7 +13,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0692 — A provider failure in the AI chat is not retried, not shown, and its message is discarded
+# BUG-0694 — A provider failure in the AI chat is not retried, not shown, and its message is discarded
 
 ## Symptom
 

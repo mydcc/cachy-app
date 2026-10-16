@@ -1,5 +1,5 @@
 ---
-id: BUG-0693
+id: BUG-0695
 title: KaTeX warns about every typographic dash inside an AI answer's formulas
 type: bug
 status: done
@@ -13,7 +13,7 @@ adr: none
 depends_on: []
 ---
 
-# BUG-0693 — KaTeX warns about every typographic dash inside an AI answer's formulas
+# BUG-0695 — KaTeX warns about every typographic dash inside an AI answer's formulas
 
 ## Symptom
 
