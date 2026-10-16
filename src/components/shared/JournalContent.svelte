@@ -841,6 +841,7 @@
         <div class="deepdive-view">
             <JournalDeepDive
                 {themeColors}
+                {tradeMode}
                 onfilterDateChange={(data) => handleDateFilterChange(data)}
             />
         </div>

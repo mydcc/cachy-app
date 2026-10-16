@@ -2,7 +2,7 @@
 id: FEAT-0692
 title: Let the deep dive analyse paper trades, never mixed with real ones
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: feat/paper-deepdive-analysis
 ---
 
 # FEAT-0692 — Let the deep dive analyse paper trades, never mixed with real ones
@@ -54,18 +56,18 @@ statistic" tests stay untouched and green.
 
 ## Acceptance criteria
 
-- [ ] `tradeMode = paper` drives every deep-dive chart from paper journal
+- [x] `tradeMode = paper` drives every deep-dive chart from paper journal
       entries; `tradeMode = live` from real ones — asserted by a component test
       whose two trades carry distinct values
-- [ ] A store test proves the sets cannot mix: a paper fill moves only the
+- [x] A store test proves the sets cannot mix: a paper fill moves only the
       paper series, a real fill only the real series
-- [ ] Paper mode carries a permanent, visible simulation marker on the deep
+- [x] Paper mode carries a permanent, visible simulation marker on the deep
       dive
-- [ ] `tradeMode = all` renders real trades only, with a visible hint that
+- [x] `tradeMode = all` renders real trades only, with a visible hint that
       paper trades are not part of the analysis
-- [ ] A mode with no closed trades shows a named empty state, not blank axes
-- [ ] Every new text exists in DE and EN; no hardcoded strings
-- [ ] The existing paper/journal tests stay green, in particular the pinned
+- [x] A mode with no closed trades shows a named empty state, not blank axes
+- [x] Every new text exists in DE and EN; no hardcoded strings
+- [x] The existing paper/journal tests stay green, in particular the pinned
       "a paper trade never moves a real statistic" pair
 
 ## Out of scope
@@ -83,6 +85,19 @@ statistic" tests stay untouched and green.
 
 None — `all` deliberately means "real trades only, hint shown", and the mode
 switch stays the journal's existing Live/Paper/All filter.
+
+## What shipped
+
+- `src/stores/journal.svelte.ts` — `paperEntries` plus the paper mirror of
+  every deep-dive metric: same calculators, separate `$derived`s, so the two
+  populations cannot mix.
+- `src/components/shared/journal/JournalDeepDive.svelte` — source selection by
+  the journal's Live/Paper/All filter, a permanent SIM marker in paper mode, a
+  hint in `all`, and named empty states instead of blank axes.
+- `src/components/shared/JournalContent.svelte` — passes `tradeMode` down.
+- DE/EN strings; `src/stores/journal_paperAnalysis.test.ts` and
+  `JournalDeepDive.paperAnalysis.component.test.ts` pin the split, the marker
+  and the empty states.
 
 ## Links
 

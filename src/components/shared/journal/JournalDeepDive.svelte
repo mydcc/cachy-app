@@ -52,10 +52,20 @@
 
     interface Props {
         themeColors: ThemeColors;
+        /**
+         * The journal's Live/Paper/All filter (FEAT-0692). `paper` reads the
+         * simulated population and is marked as such; `live` and `all` read
+         * the real one — a figure is never mixed from both.
+         */
+        tradeMode?: "live" | "paper" | "all";
         onfilterDateChange?: (data: { date: string }) => void;
     }
 
-    let { themeColors, onfilterDateChange }: Props = $props();
+    let {
+        themeColors,
+        tradeMode = "live",
+        onfilterDateChange,
+    }: Props = $props();
 
     // Local State
     let activeDeepDivePreset = $state("performance");
@@ -74,10 +84,31 @@
     };
 
     // --- Data Logic derived from stores ---
-    // Real trades only — a simulated fill in these trends would describe a
-    // discipline the trader never actually had. Paper entries stay visible in
-    // the journal list; see journalState.analysisEntries.
-    let journal = $derived(journalState.analysisEntries);
+    // Real and paper analysis stay apart (FEAT-0692): `paper` reads the
+    // simulated population and is badged as such, everything else reads the
+    // real one. A simulated fill never describes real performance, and a real
+    // figure is never inflated by one.
+    let isPaperSource = $derived(tradeMode === "paper");
+    let journal = $derived(
+        isPaperSource ? journalState.paperEntries : journalState.analysisEntries,
+    );
+
+    // A mode whose population has no closed trades yet gets a named empty
+    // state instead of blank axes, and says where the other population lives.
+    // `Won`/`Lost` is the pair every deep-dive calculator treats as analysable
+    // (aggregators and charts filter on exactly these two) — deliberately not
+    // `CLOSED_JOURNAL_STATUSES`, whose legacy `Closed` label the calculators
+    // ignore and which would let a blank dashboard through.
+    let hasClosedTrades = $derived(
+        journal.some((e) => e.status === "Won" || e.status === "Lost"),
+    );
+    let emptyStateText = $derived(
+        isPaperSource
+            ? $_("journal.deepDive.paperEmpty")
+            : journalState.paperEntryCount > 0
+              ? $_("journal.deepDive.realOnlyHint")
+              : $_("journal.deepDive.noTrades"),
+    );
 
     // 1. PERFORMANCE (Trends)
     let rollingData = $derived(
@@ -120,7 +151,7 @@
             : null,
     );
     // Performance Drawdown
-    let perfMetrics = $derived(journalState.performanceMetrics || {});
+    let perfMetrics = $derived((isPaperSource ? journalState.paperPerformanceMetrics : journalState.performanceMetrics) || {});
     let drawdownData = $derived({
         labels: (perfMetrics.drawdownSeries || []).map((d) =>
             new Date(d.x).toLocaleDateString(),
@@ -138,8 +169,8 @@
     });
 
     // 2. EXECUTION
-    let execData = $derived(journalState.executionMetrics || {});
-    let qualMetrics = $derived(journalState.qualityMetrics || {});
+    let execData = $derived((isPaperSource ? journalState.paperExecutionMetrics : journalState.executionMetrics) || {});
+    let qualMetrics = $derived((isPaperSource ? journalState.paperQualityMetrics : journalState.qualityMetrics) || {});
     let sixSegmentData = $derived({
         labels: [
             $_("journal.deepDive.charts.labels.winLong"),
@@ -165,7 +196,7 @@
     });
 
     // 3. RISK
-    let riskRadarData = $derived(journalState.riskRadarMetrics || {});
+    let riskRadarData = $derived((isPaperSource ? journalState.paperRiskRadarMetrics : journalState.riskRadarMetrics) || {});
     let rDistData = $derived({
         labels: Object.keys(qualMetrics.rHistogram || {}),
         datasets: [
@@ -176,7 +207,7 @@
             },
         ],
     });
-    let riskScatterData = $derived(journalState.riskMetrics || {});
+    let riskScatterData = $derived((isPaperSource ? journalState.paperRiskMetrics : journalState.riskMetrics) || {});
     let riskRewardScatter = $derived({
         datasets: [
             {
@@ -190,7 +221,7 @@
     });
 
     // 4. MARKET
-    let marketCtx = $derived(journalState.marketContextMetrics || null);
+    let marketCtx = $derived(isPaperSource ? journalState.paperMarketContextMetrics : journalState.marketContextMetrics);
     let marketAtrData = $derived(
         marketCtx
             ? {
@@ -224,7 +255,7 @@
             : null,
     );
 
-    let marketData = $derived(journalState.marketMetrics || {});
+    let marketData = $derived((isPaperSource ? journalState.paperMarketMetrics : journalState.marketMetrics) || {});
     let leverageDistData = $derived({
         labels: marketData.leverageLabels || [],
         datasets: [
@@ -236,7 +267,7 @@
         ],
     });
     // Asset Bubble
-    let assetData = $derived(journalState.assetMetrics || {});
+    let assetData = $derived((isPaperSource ? journalState.paperAssetMetrics : journalState.assetMetrics) || {});
     let assetBubbleData = $derived({
         datasets: [
             {
@@ -320,12 +351,16 @@
 
     // 6. TIME
     let confluenceData = $derived(
-        (journalState.confluenceMetrics || []).map((row) => ({
+        (
+            (isPaperSource
+                ? journalState.paperConfluenceMetrics
+                : journalState.confluenceMetrics) || []
+        ).map((row) => ({
             ...row,
             hours: row.hours.map((h) => ({ ...h, pnl: toChartNum(h.pnl) })),
         })),
     );
-    let calendarData = $derived(journalState.calendarMetrics || []);
+    let calendarData = $derived((isPaperSource ? journalState.paperCalendarMetrics : journalState.calendarMetrics) || []);
     let availableYears = $derived(
         (() => {
             const years = new Set<number>();
@@ -342,7 +377,7 @@
     }
 
     // 7. STRATEGIES
-    let tagData = $derived(journalState.tagMetrics || {});
+    let tagData = $derived((isPaperSource ? journalState.paperTagMetrics : journalState.tagMetrics) || {});
     let tagPnlData = $derived({
         labels: tagData.labels || [],
         datasets: [
@@ -356,7 +391,9 @@
         ],
     });
     let tagEvolutionData = $derived(
-        journalState.tagEvolutionMetrics || { datasets: [] },
+        (isPaperSource
+            ? journalState.paperTagEvolutionMetrics
+            : journalState.tagEvolutionMetrics) || { datasets: [] },
     );
     let tagEvolutionChartData = $derived({
         datasets: (tagEvolutionData.datasets || []).map((ds, i) => ({
@@ -379,7 +416,7 @@
     });
 
     // 8. BEHAVIOR (Psychology)
-    let psychData = $derived(journalState.psychologyMetrics || {});
+    let psychData = $derived((isPaperSource ? journalState.paperPsychologyMetrics : journalState.psychologyMetrics) || {});
     let winStreakData = $derived({
         labels: psychData.streakLabels || [],
         datasets: [
@@ -453,7 +490,7 @@
     );
 
     // 10. SYSTEM QUALITY (SQN)
-    let sqnMetrics = $derived(journalState.systemQualityMetrics || null);
+    let sqnMetrics = $derived(isPaperSource ? journalState.paperSystemQualityMetrics : journalState.systemQualityMetrics);
     let rollingSQNData = $derived(
         rollingData
             ? {
@@ -483,6 +520,28 @@
         </h3>
     </div>
 
+    {#if isPaperSource}
+        <div
+            class="mb-3 flex items-center gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)]"
+            data-testid="deepdive-mode-banner"
+            role="status"
+        >
+            <span
+                class="rounded border border-[var(--border-color)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[10px] font-bold"
+                >{$_("journal.deepDive.simBadge")}</span
+            >
+            <span>{$_("journal.deepDive.paperBanner")}</span>
+        </div>
+    {:else if tradeMode === "all" && hasClosedTrades}
+        <div
+            class="mb-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)]"
+            data-testid="deepdive-mode-banner"
+            role="status"
+        >
+            {$_("journal.deepDive.allModeHint")}
+        </div>
+    {/if}
+
     <DashboardNav
         activePreset={activeDeepDivePreset}
         presets={[
@@ -500,6 +559,7 @@
         onselect={(id) => (activeDeepDivePreset = id)}
     />
 
+    {#if hasClosedTrades}
     <div
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 min-h-[250px] mt-4"
     >
@@ -988,7 +1048,7 @@
                 class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center col-span-1 min-h-[250px]"
             >
                 {#if sqnMetrics}
-                    <div class="text-center p-6">
+                    <div class="text-center p-6" data-testid="deepdive-sqn">
                         <div
                             class="text-sm text-[var(--text-secondary)] uppercase tracking-widest"
                         >
@@ -1009,4 +1069,12 @@
             </div>
         {/if}
     </div>
+    {:else}
+        <div
+            class="mb-6 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] p-8 text-center text-sm text-[var(--text-secondary)]"
+            data-testid="deepdive-empty-state"
+        >
+            {emptyStateText}
+        </div>
+    {/if}
 </div>

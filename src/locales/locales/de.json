@@ -1123,7 +1123,13 @@
         }
       },
       "assets": "Assets",
-      "analytics": "& Analysen"
+      "analytics": "& Analysen",
+      "simBadge": "SIM",
+      "paperBanner": "Simulierte Ausführungen — diese Auswertung beschreibt kein echtes Geld.",
+      "allModeHint": "Modus Alle: Die Analyse zeigt ausschließlich echte Trades — Paper-Trades zählen hier nicht mit.",
+      "paperEmpty": "Noch keine abgeschlossenen Paper-Trades — schließe eine simulierte Position, um hier auszuwerten.",
+      "realOnlyHint": "Nur echte Trades fließen in diese Auswertung ein — deine Paper-Trades bleiben in der Journal-Liste, erreichbar über den Live/Paper/Alle-Filter.",
+      "noTrades": "Noch keine auswertbaren Trades — die Auswertung füllt sich, sobald ein Trade abgeschlossen ist."
     },
     "days": {
       "mon": "Mo",

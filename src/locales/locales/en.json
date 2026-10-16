@@ -1123,7 +1123,13 @@
         }
       },
       "assets": "Assets",
-      "analytics": "& Analytics"
+      "analytics": "& Analytics",
+      "simBadge": "SIM",
+      "paperBanner": "Simulated fills — this analysis describes no real money.",
+      "allModeHint": "Mode All: the analysis shows real trades only — paper trades are not part of it.",
+      "paperEmpty": "No closed paper trades yet — close a simulated position to analyse it here.",
+      "realOnlyHint": "Only real trades flow into this analysis — your paper trades stay in the journal list, reachable through the Live/Paper/All filter.",
+      "noTrades": "No analysable trades yet — the analysis fills once a trade is closed."
     },
     "days": {
       "mon": "Mon",
