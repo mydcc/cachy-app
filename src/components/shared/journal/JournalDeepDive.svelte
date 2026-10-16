@@ -95,6 +95,10 @@
 
     // A mode whose population has no closed trades yet gets a named empty
     // state instead of blank axes, and says where the other population lives.
+    // `Won`/`Lost` is the pair every deep-dive calculator treats as analysable
+    // (aggregators and charts filter on exactly these two) — deliberately not
+    // `CLOSED_JOURNAL_STATUSES`, whose legacy `Closed` label the calculators
+    // ignore and which would let a blank dashboard through.
     let hasClosedTrades = $derived(
         journal.some((e) => e.status === "Won" || e.status === "Lost"),
     );
@@ -528,7 +532,7 @@
             >
             <span>{$_("journal.deepDive.paperBanner")}</span>
         </div>
-    {:else if tradeMode === "all"}
+    {:else if tradeMode === "all" && hasClosedTrades}
         <div
             class="mb-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 text-xs text-[var(--text-secondary)]"
             data-testid="deepdive-mode-banner"
