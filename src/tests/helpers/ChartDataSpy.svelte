@@ -18,16 +18,13 @@
 <script lang="ts">
   // Test-only spy for the chart wrappers: renders nothing visible and
   // surfaces the props a parent test cares about as data attributes, so a
-  // test can pin which data fed a chart without booting Chart.js. Decimals
-  // are flattened to numbers, the way the chart edge does (ADR-0021).
+  // test can pin which data fed a chart without booting Chart.js. Decimal
+  // values serialize through their own `toJSON` (as strings), which is
+  // deterministic and comparable across renders — and chart props are
+  // numbers at the edge anyway (ADR-0021).
   const props: Record<string, unknown> = $props();
 
-  const flattenDecimal = (_key: string, value: unknown) =>
-    value && typeof value === "object" && "toNumber" in value
-      ? (value as { toNumber(): number }).toNumber()
-      : value;
-
-  const json = $derived(JSON.stringify(props.data ?? null, flattenDecimal));
+  const json = $derived(JSON.stringify(props.data ?? null));
 </script>
 
 <span

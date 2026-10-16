@@ -187,6 +187,12 @@ describe("journal — the paper analysis mirror (FEAT-0692)", () => {
             { name: "psychology", paper: () => journalState.paperPsychologyMetrics, real: () => journalState.psychologyMetrics },
         ];
 
+        journalState.set([]);
+        const emptyAlone = families.map((family) => ({
+            paper: family.paper(),
+            real: family.real(),
+        }));
+
         journalState.set(population(true));
         const paperAlone = families.map((family) => family.paper());
         journalState.set(population(false));
@@ -194,9 +200,18 @@ describe("journal — the paper analysis mirror (FEAT-0692)", () => {
 
         journalState.set([...population(false), ...population(true)]);
         families.forEach((family, i) => {
-            // Non-vacuity: if the fixture ever goes silent for a family, the
-            // leak checks below could not fail — this guard turns that into a
-            // red test instead of a green illusion.
+            // Non-vacuity, per side: a family that stays silent for one
+            // population would pass its own leak check without testing
+            // anything — the guards turn that into a red test instead of a
+            // green illusion.
+            expect(
+                paperAlone[i],
+                `${family.name}: paper side is silent for this fixture`,
+            ).not.toEqual(emptyAlone[i].paper);
+            expect(
+                realAlone[i],
+                `${family.name}: real side is silent for this fixture`,
+            ).not.toEqual(emptyAlone[i].real);
             expect(
                 paperAlone[i],
                 `${family.name}: fixture must let the two populations differ`,

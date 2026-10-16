@@ -25,12 +25,17 @@
  *
  * The chart wrappers are replaced by `ChartDataSpy`, which renders the props
  * a chart received as JSON: the assertions are about what fed the chart, not
- * about Chart.js — and what fed the chart is exactly what this item is. The
- * preset sweep is an equivalence check: adding the *other* population to the
- * journal must not change a single figure of the mode under test, preset by
- * preset. That pins the source of every chart — including the ones the
- * component computes itself (rolling, leakage) — without hard-coding
- * intermediate values.
+ * about Chart.js — and what fed the chart is exactly what this item is.
+ *
+ * The preset sweep is an equivalence check: adding the *other* population to
+ * the journal must not change a single figure of the mode under test. That
+ * pins isolation for every chart that renders — including the ones the
+ * component computes itself (rolling, leakage, and the forecast cone, whose
+ * resampling is stubbed so the two runs are comparable). Isolation alone
+ * cannot catch a swap between two families of the *same* population, so the
+ * most confusable pairs carry explicit identity probes: the execution
+ * six-segment split, the strategy tags, the market charts whose shapes differ
+ * (three volatility buckets vs five leverage buckets) and the SQN card.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -141,18 +146,24 @@ function entry(
  * A full population with enough closed trades and enough per-trade context
  * (risk, ATR, MFE/MAE, tags) that every preset has something to render —
  * otherwise the sweep would compare two silences. 30 is the smallest sample
- * the SQN family accepts.
+ * the SQN family accepts. The per-trade PnL varies so the risk multiples do,
+ * which is what gives the SQN card a sign per population.
  */
 const POPULATION_SIZE = 30;
 
 function population(isPaper: boolean): JournalEntry[] {
     return Array.from({ length: POPULATION_SIZE }, (_, i) =>
-        entry(`${isPaper ? "p" : "r"}${i}`, isPaper ? "-4" : "10", isPaper, {
-            atrValue: new Decimal(isPaper ? "2" : "1"),
-            mae: new Decimal(isPaper ? 2 : 1),
-            mfe: new Decimal(isPaper ? 0.5 : 2),
-            tags: [isPaper ? "paperTag" : "realTag"],
-        }),
+        entry(
+            `${isPaper ? "p" : "r"}${i}`,
+            isPaper ? `${-(4 + i)}` : `${10 + i}`,
+            isPaper,
+            {
+                atrValue: new Decimal(isPaper ? "2" : "1"),
+                mae: new Decimal(isPaper ? 2 : 1),
+                mfe: new Decimal(isPaper ? 0.5 : 2),
+                tags: [isPaper ? "paperTag" : "realTag"],
+            },
+        ),
     );
 }
 
@@ -227,11 +238,8 @@ const PRESETS: Array<[string, string]> = [
     ["time", "journal.deepDive.time"],
     ["strategies", "journal.deepDive.strategies"],
     ["behavior", "journal.deepDive.behavior"],
+    ["forecast", "journal.deepDive.forecast"],
     ["quality", "journal.deepDive.systemQuality"],
-    // `forecast` is deliberately absent: its cone is resampled with
-    // Math.random on every render, so two renders cannot be compared. Its
-    // input is the same mode-selected `journal` array that feeds rolling and
-    // leakage, and those two the sweep does pin.
 ];
 
 /** Every preset's charts, in render order, for the given mode. */
@@ -273,30 +281,86 @@ describe("JournalDeepDive — paper analysis (FEAT-0692)", () => {
     it.each(["paper", "live"] as const)(
         "changes no %s preset when the other population joins",
         (mode) => {
-            const other = population(mode !== "paper");
-            const own = population(mode === "paper");
+            // The forecast cone resamples with Math.random on every render;
+            // fixing the source of randomness makes the two runs comparable
+            // while leaving the sampling logic in place.
+            const random = vi.spyOn(Math, "random").mockReturnValue(0.5);
+            try {
+                const other = population(mode !== "paper");
+                const own = population(mode === "paper");
 
-            journalState.set([...other, ...own]);
-            const withBoth = chartsByPreset(mode);
-            unmountView();
+                journalState.set([...other, ...own]);
+                const withBoth = chartsByPreset(mode);
+                unmountView();
 
-            journalState.set(own);
-            const ownOnly = chartsByPreset(mode);
+                journalState.set(own);
+                const ownOnly = chartsByPreset(mode);
 
-            for (const [id] of PRESETS) {
-                // Non-vacuity: a preset that renders nothing in both runs
-                // could not fail this comparison.
-                expect(
-                    withBoth[id].length,
-                    `preset ${id} should render charts for this fixture`,
-                ).toBeGreaterThan(0);
-                expect(
-                    withBoth[id],
-                    `preset ${id} changed when the other population joined`,
-                ).toEqual(ownOnly[id]);
+                for (const [id] of PRESETS) {
+                    // Non-vacuity: a preset that renders nothing in both runs
+                    // could not fail this comparison.
+                    expect(
+                        withBoth[id].length,
+                        `preset ${id} should render charts for this fixture`,
+                    ).toBeGreaterThan(0);
+                    expect(
+                        withBoth[id],
+                        `preset ${id} changed when the other population joined`,
+                    ).toEqual(ownOnly[id]);
+                }
+            } finally {
+                random.mockRestore();
             }
         },
     );
+
+    it("feeds the strategy tags from the paper population in paper mode", () => {
+        journalState.set(population(true));
+
+        const el = render("paper");
+        clickPreset(el, lookup("journal.deepDive.strategies"));
+
+        // Isolation alone cannot see a swap between two same-population
+        // families; the tag names make the paper origin visible.
+        expect(JSON.stringify(charts(el))).toContain("paperTag");
+        expect(JSON.stringify(charts(el))).not.toContain("realTag");
+    });
+
+    it("feeds each market chart from its own paper family", () => {
+        journalState.set(population(true));
+
+        const el = render("paper");
+        clickPreset(el, lookup("journal.deepDive.market"));
+
+        // The two families are the confusable pair: swapping their sources
+        // must not pass. Only the volatility matrix carries PnL — a wrong
+        // source would draw zeros — and only the leverage family has five
+        // buckets.
+        const atrPoints = (chartByTitle(
+            el,
+            "journal.deepDive.charts.titles.atrMatrix",
+        )?.datasets?.[0]?.data ?? []) as number[];
+
+        expect(atrPoints).toHaveLength(3);
+        expect(atrPoints.some((value) => value !== 0)).toBe(true);
+        expect(
+            chartByTitle(el, "journal.deepDive.charts.leverageDist")
+                ?.datasets?.[0]?.data,
+        ).toHaveLength(5);
+    });
+
+    it("feeds the SQN card from the paper population in paper mode", () => {
+        journalState.set([...population(false), ...population(true)]);
+
+        const el = render("paper");
+        clickPreset(el, lookup("journal.deepDive.systemQuality"));
+
+        // Every paper r-multiple is negative, every real one positive: a
+        // negative SQN can only come from the paper population.
+        const card = el.querySelector('[data-testid="deepdive-sqn"]');
+        expect(card).not.toBeNull();
+        expect(card?.textContent).toMatch(/-\d+\.\d{2}/);
+    });
 
     it("marks the paper run as simulated", () => {
         journalState.set([entry("p1", "-40", true)]);
