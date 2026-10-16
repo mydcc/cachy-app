@@ -527,10 +527,11 @@
             {/if}
         {/if}
 
-        {#if errorMessage}
+        {#if errorMessage || aiState.error}
+            {@const shownError = errorMessage || aiState.error || ""}
             {@const isRateLimit =
-                errorMessage.toLowerCase().includes("quota") ||
-                errorMessage.includes("429")}
+                shownError.toLowerCase().includes("quota") ||
+                shownError.includes("429")}
             <div
                 class="error-msg"
                 class:is-danger={!isRateLimit}
@@ -543,9 +544,9 @@
                             >{$_("assistant.errorQuotaExceeded")}</span
                         >
                     </div>
-                {:else}{$_(errorMessage as TranslationKey) ||
-                        errorMessage ||
-                        aiState.error}{/if}
+                {:else}{errorMessage
+                        ? $_(errorMessage as TranslationKey) || errorMessage
+                        : shownError}{/if}
             </div>
         {/if}
 

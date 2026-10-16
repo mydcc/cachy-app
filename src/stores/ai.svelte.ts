@@ -162,6 +162,46 @@ export function toRecentTradeEntry(t: JournalEntry): RecentTradeEntry {
     };
 }
 
+/**
+ * Provider answers a retry cannot improve: a rejected key (401), a billing
+ * problem (402), a missing permission or region block (403). Retrying those
+ * spends quota and buries the real message under two more failures, so they
+ * leave the send loop on the first answer.
+ */
+export function isRetryableProviderStatus(status: number): boolean {
+    return status === 429 || status >= 500;
+}
+
+/**
+ * The message shown for a provider answer. The status is part of it on purpose:
+ * it is what the console shows, and matching the two is how a reader gets from
+ * "the chat says no" to "which request failed".
+ */
+export function providerFailureMessage(status: number, body: unknown): string {
+    const record = (body ?? {}) as { error?: unknown; message?: unknown };
+    const nested =
+        record.error && typeof record.error === "object"
+            ? (record.error as { message?: unknown }).message
+            : undefined;
+    const detail =
+        (typeof nested === "string" && nested) ||
+        (typeof record.error === "string" && record.error) ||
+        (typeof record.message === "string" && record.message) ||
+        "no details in the response";
+    return `HTTP ${status}: ${detail}`;
+}
+
+/** Thrown for a provider answer the send loop must not retry. */
+export class ProviderRequestError extends Error {
+    readonly status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.name = "ProviderRequestError";
+        this.status = status;
+    }
+}
+
 class AiManager {
   messages = $state<AiMessage[]>([]);
   isStreaming = $state(false);
@@ -425,8 +465,9 @@ class AiManager {
 
       // 5. Call API with Retry & Stream Handling
       let res: Response | null = null;
-      let attempt = 0;
       const MAX_RETRIES = 3;
+      /** The last provider answer or network error, so the final message names it. */
+      let lastFailure = "";
 
       // Browser-direct: the key never reaches the Cachy server. A CORS or
       // network failure is surfaced with the relay as the suggested fix.
@@ -490,9 +531,17 @@ class AiManager {
         }
       }
 
-      while (!res && attempt < MAX_RETRIES) {
+      // Up to three provider attempts per send: a rate limit backs off, a
+      // server fault or a network error gets one more try, and an answer a
+      // retry cannot improve (rejected key, billing, permission) leaves at
+      // once — each with the provider's own message, status included.
+      for (
+        let attempt = 1;
+        attempt <= MAX_RETRIES && !res;
+        attempt += 1
+      ) {
         try {
-          res = await appFetch(endpoint, {
+          const candidate = await appFetch(endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -505,41 +554,46 @@ class AiManager {
             }),
           });
 
-          if (res.ok) {
+          if (candidate.ok) {
+            res = candidate;
             this.error = null;
             break; // Success!
           }
 
-          if (res.status === 429) {
-            attempt++;
-            const delay = Math.pow(2, attempt) * 1000;
-            if (import.meta.env.DEV) {
-              console.warn(
-                `Rate limited (429). Retrying in ${delay / 1000}s...`,
-              );
-            }
-            this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
-            await new Promise((r) => setTimeout(r, delay));
-            continue;
+          const body = await candidate.json().catch(() => ({}));
+          const failure = providerFailureMessage(candidate.status, body);
+          lastFailure = failure;
+
+          if (!isRetryableProviderStatus(candidate.status) || attempt === MAX_RETRIES) {
+            throw new ProviderRequestError(failure, candidate.status);
           }
 
-          const err = await res.json();
-          throw new Error(
-            err.error || `Request failed with status ${res.status}`,
-          );
-        } catch (e) {
-          if (attempt === MAX_RETRIES - 1) throw e; // Final failure
-          attempt++;
+          const delay =
+            candidate.status === 429 ? Math.pow(2, attempt) * 1000 : 1000;
+          if (candidate.status === 429) {
+            this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
+          } else {
+            this.error = failure;
+          }
           if (import.meta.env.DEV) {
-            const message = e instanceof Error ? e.message : String(e);
-            console.warn(`API Error: ${message}. Retrying...`);
+            console.warn(`API Error: ${failure}. Retrying in ${delay / 1000}s...`);
+          }
+          await new Promise((r) => setTimeout(r, delay));
+        } catch (e) {
+          if (e instanceof ProviderRequestError) throw e;
+          lastFailure = e instanceof Error ? e.message : String(e);
+          if (attempt === MAX_RETRIES) throw e;
+          if (import.meta.env.DEV) {
+            console.warn(`API Error: ${lastFailure}. Retrying...`);
           }
           await new Promise((r) => setTimeout(r, 1000));
         }
       }
 
       if (!res || !res.ok) {
-        throw new Error("Failed to connect to AI provider after retries.");
+        throw new Error(
+          lastFailure || "Failed to connect to AI provider after retries.",
+        );
       }
       if (!res.body) throw new Error("No response body");
 

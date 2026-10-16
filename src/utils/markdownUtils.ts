@@ -29,6 +29,38 @@ marked.use(markedKatex({
 }));
 
 /**
+ * Typographic dashes a model likes to use inside a formula, where KaTeX warns
+ * about every one of them in strict mode and where a minus is meant anyway.
+ */
+const MATH_DASHES = /[\u2012\u2013\u2014\u2015\u2212]/g;
+
+/**
+ * Segments in which a `$` does not open math: fenced blocks, inline code,
+ * display math, inline math — in that order of precedence.
+ */
+const MATH_SEGMENT =
+    /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`|\$\$[\s\S]*?\$\$|\$[^$\n]+\$)/g;
+
+/**
+ * Rewrites typographic dashes to ASCII `-` **inside math spans only**.
+ *
+ * KaTeX's strict mode logs `Unrecognized Unicode character "–"` for each of
+ * them, which turns every assistant answer that writes a range like
+ * `$BTC–USDT$` into console noise. Outside math the dash is correct typography
+ * and is left alone, and code is never touched — an unclosed fence or inline
+ * code span is the one shape this scan cannot see through.
+ */
+export function normalizeMathDashes(markdown: string): string {
+    return markdown.replace(MATH_SEGMENT, (segment) => {
+        const isDisplayMath = segment.startsWith("$$");
+        if (!isDisplayMath && !segment.startsWith("$")) return segment;
+        const delimiter = isDisplayMath ? "$$" : "$";
+        const inner = segment.slice(delimiter.length, -delimiter.length);
+        return `${delimiter}${inner.replace(MATH_DASHES, "-")}${delimiter}`;
+    });
+}
+
+/**
  * Renders Markdown to HTML with sanitization (DOMPurify).
  * Handles AI streaming artifacts (e.g. JSON blocks).
  *
@@ -44,7 +76,7 @@ export function renderSafeMarkdown(text: string): string | DocumentFragment {
             .replace(/```json\s*[\s\S]*?("action"|$)[\s\S]*?(?:```|$)/g, "")
             .trim();
 
-        const raw = marked.parse(cleaned) as string;
+        const raw = marked.parse(normalizeMathDashes(cleaned)) as string;
 
         if (typeof window !== "undefined") {
             return DOMPurify.sanitize(raw, { RETURN_DOM_FRAGMENT: true });
@@ -73,7 +105,7 @@ export function renderTrustedMarkdown(text: string): string {
             .replace(/```json\s*[\s\S]*?("action"|$)[\s\S]*?(?:```|$)/g, "")
             .trim();
 
-        const raw = marked.parse(cleaned) as string;
+        const raw = marked.parse(normalizeMathDashes(cleaned)) as string;
 
         if (typeof window !== "undefined") {
             // On client, we can still sanitize for extra safety,
