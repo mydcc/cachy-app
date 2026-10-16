@@ -37,20 +37,33 @@ typographic dash because the *prose* around it wants one.
 - [x] A typographic dash inside `$…$` or `$$…$$` is rewritten to `-` before KaTeX sees it.
 - [x] A dash in prose is left alone.
 - [x] Fenced code and inline code are never rewritten.
+- [x] An escaped `\$` is not a delimiter, so `Preis \$100 – \$200` keeps its typography.
+- [x] Both render paths are covered — the assistant's own (`renderSafeMarkdown`)
+      as well as the documentation one.
 
 ## Fix
 
 `src/utils/markdownUtils.ts` gains `normalizeMathDashes()`, called by both
 render paths before `marked.parse`. One scan matches, in order of precedence,
 fenced blocks, inline code, display math and inline math; only the math matches
-have their inner dashes rewritten. Code is skipped because a `$` in a fence is
-not math, and the one shape the scan cannot see through — an *unclosed* fence or
-inline-code span — is documented at the function.
+have their inner dashes rewritten, and a delimiter never counts when it is
+escaped (`\$`). Code is skipped because a `$` in a fence is not math. The shapes
+the scan cannot see through — an *unclosed* fence or inline-code span,
+double-backtick inline code and 4-space-indented blocks, all cosmetic — are
+documented at `MATH_SEGMENT`.
 
 ## Verification
 
 `src/utils/markdownUtils.test.ts` (new) covers inline math, display math, the
-U+2212 minus, prose, fenced and inline code, several spans on one line, and an
-unmatched `$`. `renderTrustedMarkdown("**Range** $BTC–USDT$")` asserts the
-rendered output contains KaTeX and no longer contains the en dash — verified red
-by dropping the call from the renderer.
+U+2212 minus, prose, fenced and inline code, several spans on one line, an
+unclosed `$` (`"$5–6 off"` is left alone) and an escaped `\$`. A second case
+records the intended behaviour of a *second* `$`: `"$5 – $6 too"` is a math span
+for the renderer, so rewriting it is correct, not a miss.
+
+Both render paths are pinned: `renderTrustedMarkdown("**Range** $BTC–USDT$")`
+asserts KaTeX output without the en dash, and `renderSafeMarkdown(…)` — the path
+the assistant uses — asserts the rendered text carries no en dash either. The
+test file runs under `happy-dom` for that second assertion. Verified red by
+dropping the normalization from `renderSafeMarkdown` alone, which is the exact
+gap an earlier version of this file had (it exercised only the documentation
+renderer).

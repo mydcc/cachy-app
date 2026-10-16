@@ -68,6 +68,7 @@ describe("AI provider failures while sending", () => {
     aiState.messages = [];
     aiState.pendingActions = new Map();
     aiState.error = null;
+    aiState.errorStatus = null;
 
     tradeState.symbol = "BTCUSDT";
     settingsState.showTechnicals = false;
@@ -100,6 +101,8 @@ describe("AI provider failures while sending", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(aiState.error).toBe("HTTP 402: Insufficient quota");
+    // The view branches on this instead of searching the message for "quota".
+    expect(aiState.errorStatus).toBe(402);
   });
 
   it("still retries a server fault and finishes on the second answer", async () => {
@@ -112,6 +115,43 @@ describe("AI provider failures while sending", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(aiState.error).toBeNull();
+    expect(aiState.errorStatus).toBeNull();
+  });
+
+  it("names the last server fault when every attempt fails", async () => {
+    const fetchMock = vi.mocked(appFetch);
+    // A fresh Response per attempt: a Response body can only be read once.
+    fetchMock.mockImplementation(async () =>
+      errorResponse(503, { error: "Service Unavailable" }),
+    );
+
+    await aiState.sendMessage("analyse the market");
+
+    // Three attempts, and the message is the provider's, not a generic one.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(aiState.error).toBe("HTTP 503: Service Unavailable");
+    expect(aiState.errorStatus).toBe(503);
+  });
+
+  it("backs off on a rate limit and completes on the retry", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.mocked(appFetch);
+      fetchMock
+        .mockResolvedValueOnce(errorResponse(429, { error: "Rate limited" }))
+        .mockResolvedValueOnce(streamResponse("ok"));
+
+      const pending = aiState.sendMessage("analyse the market");
+      // 429 backs off 2^attempt seconds; the retry then succeeds.
+      await vi.advanceTimersByTimeAsync(2000);
+      await pending;
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(aiState.error).toBeNull();
+      expect(aiState.errorStatus).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -148,5 +188,14 @@ describe("providerFailureMessage", () => {
     expect(providerFailureMessage(500, "not json")).toBe(
       "HTTP 500: no details in the response",
     );
+  });
+
+  it("collapses and caps the detail, which is provider-controlled text", () => {
+    expect(providerFailureMessage(500, { error: "a\n\n  b" })).toBe(
+      "HTTP 500: a b",
+    );
+    const long = "x".repeat(400);
+    const message = providerFailureMessage(500, { error: long });
+    expect(message).toBe(`HTTP 500: ${"x".repeat(300)}…`);
   });
 });

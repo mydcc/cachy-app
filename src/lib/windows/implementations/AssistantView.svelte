@@ -529,9 +529,14 @@
 
         {#if errorMessage || aiState.error}
             {@const shownError = errorMessage || aiState.error || ""}
-            {@const isRateLimit =
-                shownError.toLowerCase().includes("quota") ||
-                shownError.includes("429")}
+            <!-- A rate limit is the one case with its own translated headline —
+                 but the provider's line stays visible underneath, because it is
+                 what names the status and the detail. The status comes from the
+                 store: matching on text would hide a 402 that happens to mention
+                 "quota" (BUG-0692). -->
+            {@const isRateLimit = errorMessage
+                ? /quota|429/i.test(shownError)
+                : aiState.errorStatus === 429}
             <div
                 class="error-msg"
                 class:is-danger={!isRateLimit}
@@ -544,6 +549,7 @@
                             >{$_("assistant.errorQuotaExceeded")}</span
                         >
                     </div>
+                    <div class="opacity-80">{shownError}</div>
                 {:else}{errorMessage
                         ? $_(errorMessage as TranslationKey) || errorMessage
                         : shownError}{/if}

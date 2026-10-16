@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /*
  * Copyright (C) 2026 MYDCT
  *
@@ -25,7 +26,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { normalizeMathDashes, renderTrustedMarkdown } from "./markdownUtils";
+import {
+  normalizeMathDashes,
+  renderSafeMarkdown,
+  renderTrustedMarkdown,
+} from "./markdownUtils";
 
 describe("normalizeMathDashes", () => {
   it("rewrites typographic dashes inside inline and display math", () => {
@@ -55,8 +60,30 @@ describe("normalizeMathDashes", () => {
   });
 
   it("needs a closing delimiter before it rewrites anything", () => {
-    const prices = "$5 off $6 too";
+    const unclosed = "$5\u20136 off";
+    expect(normalizeMathDashes(unclosed)).toBe(unclosed);
+    // A second `$` does close a span, and the renderer treats that pair as math
+    // — so rewriting it is the intended behaviour, not a miss.
+    expect(normalizeMathDashes("$5 \u2013 $6 too")).toBe("$5 - $6 too");
+  });
+
+  it("leaves an escaped dollar alone", () => {
+    // `\$` is plain prose that happens to contain a dollar sign.
+    const prices = "Preis \\$100 \u2013 \\$200";
     expect(normalizeMathDashes(prices)).toBe(prices);
+    expect(normalizeMathDashes("\\$a\u2013\\$b")).toBe("\\$a\u2013\\$b");
+  });
+});
+
+describe("renderSafeMarkdown math output", () => {
+  it("renders the assistant's own path without the typographic dash", () => {
+    const html = renderSafeMarkdown("**Range** $BTC\u2013USDT$");
+    // A string on the SSR path, a DocumentFragment in the browser. The rendered
+    // text is what matters here — and it also carries KaTeX's own annotation of
+    // the source, so this fails if the normalization is missing on this path.
+    const text = typeof html === "string" ? html : (html.textContent ?? "");
+    expect(text).toContain("BTC");
+    expect(text).not.toContain("\u2013");
   });
 });
 

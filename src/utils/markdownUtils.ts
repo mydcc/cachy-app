@@ -36,10 +36,15 @@ const MATH_DASHES = /[\u2012\u2013\u2014\u2015\u2212]/g;
 
 /**
  * Segments in which a `$` does not open math: fenced blocks, inline code,
- * display math, inline math — in that order of precedence.
+ * display math, inline math — in that order of precedence. A `$` escaped with a
+ * backslash never opens or closes a span, so `Preis \$100 – \$200` keeps its
+ * typography (the span scan would otherwise rewrite plain prose).
+ *
+ * Known shapes this scan cannot see through, all cosmetic: an unclosed fence or
+ * inline code span, double-backtick inline code, and 4-space-indented blocks.
  */
 const MATH_SEGMENT =
-    /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`|\$\$[\s\S]*?\$\$|\$[^$\n]+\$)/g;
+    /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`|(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$|(?<!\\)\$[^$\n]+(?<!\\)\$)/g;
 
 /**
  * Rewrites typographic dashes to ASCII `-` **inside math spans only**.
@@ -47,8 +52,8 @@ const MATH_SEGMENT =
  * KaTeX's strict mode logs `Unrecognized Unicode character "–"` for each of
  * them, which turns every assistant answer that writes a range like
  * `$BTC–USDT$` into console noise. Outside math the dash is correct typography
- * and is left alone, and code is never touched — an unclosed fence or inline
- * code span is the one shape this scan cannot see through.
+ * and is left alone, and code is never touched. The shapes this scan cannot see
+ * through are listed at `MATH_SEGMENT`.
  */
 export function normalizeMathDashes(markdown: string): string {
     return markdown.replace(MATH_SEGMENT, (segment) => {
