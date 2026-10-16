@@ -41,10 +41,11 @@ cannot drive a dispatcher from a *newer* standalone package:
 
 The failure's cause chain is
 `TypeError: fetch failed` → `InvalidArgumentError: invalid onRequestStart method`
-(`code: "UND_ERR_INVALID_ARG"`): the runtime validates the dispatcher against its
-own base class and rejects it before any connection is attempted. That also
-explains the bare message with no `[CODE]` suffix that BUG-0689 and BUG-0690
-were chasing — and why 0.15 s was too fast for any network attempt.
+(`code: "UND_ERR_INVALID_ARG"`): the *package's* handler validation
+(`assertRequestHandler`), reached from the older runtime's client through our
+dispatcher, rejects the newer handler shape before any connection is attempted.
+That also explains the bare message with no `[CODE]` suffix that BUG-0689 and
+BUG-0690 were chasing — and why 0.15 s was too fast for any network attempt.
 
 ## Cause
 
@@ -58,12 +59,19 @@ never the cause: the request never reached a proxy.
 
 ## Fix
 
-`src/lib/server/urlValidator.ts` in #4123:
+`src/lib/server/urlValidator.ts` in #4124:
 
-- `performGuardedFetch()` wraps the request. The runtime's own `fetch` is
-  preferred (it is what the rest of the app goes through), and when it rejects
-  with `UND_ERR_INVALID_ARG` the `undici` package's own `fetch` takes over the
-  same dispatcher — the pairing that works on every supported runtime.
+- `performGuardedFetch()` wraps the request. The runtime's own `fetch` is tried
+  first, and when it rejects with the dispatcher-rejection shape — the code
+  `UND_ERR_INVALID_ARG` **and** the `invalid on… method` message — the `undici`
+  package's own `fetch` takes over the same dispatcher, the pairing that works
+  on every supported runtime. The shape is matched that narrowly on purpose:
+  undici raises the same code for a proxy answering `407`, and that failure
+  *did* reach the network, so it must not trigger a takeover.
+- The flag is only latched after the package has shown it really exports a
+  `fetch`; without one the request fails closed and the next attempt still tries
+  the runtime's own fetch instead of skipping straight to a package that cannot
+  help.
 - The takeover is sticky and announced once, so only the first request pays the
   rejected attempt.
 - Nothing else changes: same guard, same dial-time private-range rule, same
@@ -74,10 +82,20 @@ An operator-side alternative would be to upgrade the runtime to Node 26, but
 
 ## Verification
 
-- Unit test `moves to undici's own fetch when the runtime rejects the
-  dispatcher`, verified red without the recovery: asserts the package fetch
-  receives the same dispatcher instance, that the next request skips the
-  runtime's fetch entirely, and that the warning is logged once.
+- Four unit tests, each verified red without the behaviour it pins:
+  `moves to undici's own fetch when the runtime rejects the dispatcher` (the
+  package fetch receives the **same** dispatcher instance — asserted by
+  identity, not by structural equality — the next request skips the runtime's
+  fetch entirely, the warning names the code and is logged once),
+  `does not mistake a proxy's 407 for a dispatcher rejection`,
+  `fails closed and keeps trying the runtime fetch when the package has none`
+  (also pins that the switch is not latched in that case), and
+  `composes the takeover with the egress fallback` (takeover, then the
+  proxy→direct fallback, both carried by the package fetch).
 - End-to-end with the real module on all three runtimes:
-  `google models → 403` (a real upstream answer) and `example.com → 200` on
-  Node 22, `403` on Node 24, `403` on Node 26 with no switch needed.
+  `google models → 403` on Node 22, 24 and 26 — with one warning on 22 and 24
+  (the takeover) and none on 26 (nothing to take over) — plus
+  `example.com → 200` on Node 22.
+- Targeted run: `urlValidator` + `/api/ai` + `article-content` + the RSS SSRF
+  suite → 12 files, 108 tests pass; `eslint` and `svelte-check` clean for the
+  changed files.

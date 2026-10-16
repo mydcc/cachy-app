@@ -271,6 +271,13 @@ type EgressPath = "proxy" | "direct";
  */
 const GUARD_REFUSAL_MARKER = "SSRF guard";
 
+/**
+ * Message every "there is no guarded dispatcher to send with" failure carries,
+ * so a caller (or a test) can recognise it without matching prose. The two
+ * sites that raise it differ only in what was missing.
+ */
+const GUARD_UNAVAILABLE_MARKER = "SSRF guard unavailable";
+
 /** A refusal from the dial-time guard, tagged so it survives being rewrapped. */
 function guardRefusal(): Error {
   return Object.assign(
@@ -428,61 +435,21 @@ function isGuardRefusal(error: unknown): boolean {
  * | Node 24 | 7.29 | `fetch failed` (`UND_ERR_INVALID_ARG`) at once |
  * | Node 26 | 8.11 | works |
  *
- * The message behind the code is "invalid onRequestStart method" — the runtime
- * validates the dispatcher against its own base class. `undici`'s own `fetch`
- * accepts its own dispatcher on all three, so it takes over — see BUG-0691.
+ * The throw is the package's own handler validation (`assertRequestHandler`),
+ * reached from the runtime's client through our dispatcher, and it happens
+ * before a socket is opened. The shape is matched narrowly — code *and* message —
+ * rather than accepting every `UND_ERR_INVALID_ARG`: undici raises that same
+ * code for a proxy answering `407`, and *that* failure did reach the network
+ * (BUG-0691).
  */
+const DISPATCHER_REJECTION = /invalid on[A-Za-z]+ method/i;
+
 function isDispatcherIncompatibility(error: unknown): boolean {
   for (const err of causeChain(error)) {
-    if ((err as { code?: unknown }).code === "UND_ERR_INVALID_ARG") return true;
+    if ((err as { code?: unknown }).code !== "UND_ERR_INVALID_ARG") continue;
+    if (DISPATCHER_REJECTION.test(err.message)) return true;
   }
   return false;
-}
-
-/**
- * Set once the runtime has shown it cannot drive our dispatcher. From then on a
- * request goes straight to `undici`'s own fetch instead of paying a failed
- * attempt first.
- */
-let _usePackageFetch = false;
-
-/**
- * Performs one guarded request.
- *
- * The runtime's own `fetch` is preferred — it is the function the rest of the
- * app goes through, so a deployment that configures it centrally keeps working.
- * Only when it proves unable to drive the dispatcher does the `undici`
- * package's `fetch` take over, permanently for this process.
- */
-async function performGuardedFetch(
-  url: string | URL,
-  init: RequestInit | undefined,
-  dispatcher: unknown,
-): Promise<Response> {
-  if (!_usePackageFetch) {
-    try {
-      // @ts-expect-error Node fetch supports dispatcher option via undici
-      return await fetch(url, { ...init, dispatcher });
-    } catch (error) {
-      if (!isDispatcherIncompatibility(error)) throw error;
-      _usePackageFetch = true;
-      warnOnce(
-        "[urlValidator] this runtime's fetch cannot drive the guarded dispatcher; using undici's own fetch",
-      );
-    }
-  }
-
-  const undici = await import("undici");
-  const packageFetch = (undici as { fetch?: unknown }).fetch;
-  if (typeof packageFetch !== "function") {
-    throw new Error("SSRF guard unavailable");
-  }
-  return await (
-    packageFetch as (
-      input: string | URL,
-      init?: RequestInit & { dispatcher?: unknown },
-    ) => Promise<Response>
-  )(url, { ...init, dispatcher });
 }
 
 /**
@@ -572,7 +539,7 @@ function warnOnce(message: string): void {
 
 /** The direct path: a plain guarded Agent, no exemption of any kind. */
 async function buildDirectDispatcher(): Promise<unknown> {
-  const undici = await import("undici");
+  const undici = await loadUndiciPackage();
   return new undici.Agent({
     connect: {
       lookup: makeGuardedLookup(new Set<string>(), new Set<string>()),
@@ -591,7 +558,7 @@ async function buildDirectDispatcher(): Promise<unknown> {
  */
 async function buildProxyDispatcher(): Promise<unknown | null> {
   if (!isProxyConfigured()) return null;
-  const undici = await import("undici");
+  const undici = await loadUndiciPackage();
 
   // Optional exports are read defensively: a partial test double of `undici`
   // (as in urlValidator.test.ts) has no such binding, and an ESM-style
@@ -666,6 +633,93 @@ function getDispatcherFor(path: EgressPath): Promise<unknown | null> {
  * `null` only when even the direct path could not be built, which is the case
  * `safeFetch` fails closed on.
  */
+/** `undici`, imported once instead of on every request. */
+let _undiciPackage: Promise<typeof import("undici")> | null = null;
+
+function loadUndiciPackage(): Promise<typeof import("undici")> {
+  return (_undiciPackage ??= import("undici"));
+}
+
+/**
+ * The package's own `fetch`, the one that can drive a dispatcher of its own
+ * generation. Throws — fail closed — when the package exposes none: a request
+ * must never leave this module without a guarded dispatcher.
+ */
+async function loadPackageFetch(): Promise<
+  (
+    input: string | URL,
+    init?: RequestInit & { dispatcher?: unknown },
+  ) => Promise<Response>
+> {
+  const undici = await loadUndiciPackage();
+  // Read defensively: a partial test double of `undici` has no such binding,
+  // and an ESM-style namespace (or vitest's module mock) throws on an unknown
+  // named read instead of answering `undefined`.
+  let packageFetch: unknown;
+  try {
+    packageFetch = (undici as { fetch?: unknown }).fetch;
+  } catch {
+    packageFetch = undefined;
+  }
+  if (typeof packageFetch !== "function") {
+    throw new Error(
+      `${GUARD_UNAVAILABLE_MARKER}: undici exports no fetch to drive the guarded dispatcher`,
+    );
+  }
+  return packageFetch as (
+    input: string | URL,
+    init?: RequestInit & { dispatcher?: unknown },
+  ) => Promise<Response>;
+}
+
+/**
+ * Set once the runtime has shown it cannot drive our dispatcher. From then on a
+ * request goes straight to `undici`'s own fetch instead of paying a failed
+ * attempt first.
+ */
+let _runtimeFetchRejectsDispatcher = false;
+
+/**
+ * Performs one guarded request.
+ *
+ * The runtime's own `fetch` goes first, so a runtime that *can* drive the
+ * dispatcher behaves exactly as it did before this fallback existed. Only when
+ * the runtime proves unable to drive it does the package's own `fetch` take
+ * over — permanently for this process. Whichever function carries the request
+ * gets the *same* dispatcher instance, so the dial-time guard is identical on
+ * both.
+ *
+ * Repeating the request in the takeover is safe because the shape it reacts to
+ * is a local validation throw that happens before a socket is opened (BUG-0691:
+ * zero connections), and no other failure reaches this branch. The outer egress
+ * fallback keeps its own replay gate.
+ */
+async function performGuardedFetch(
+  url: string | URL,
+  init: RequestInit | undefined,
+  dispatcher: unknown,
+): Promise<Response> {
+  if (!_runtimeFetchRejectsDispatcher) {
+    try {
+      // @ts-expect-error Node fetch supports dispatcher option via undici
+      return await fetch(url, { ...init, dispatcher });
+    } catch (error) {
+      if (!isDispatcherIncompatibility(error)) throw error;
+      // Resolved before the flag is set: a package without a `fetch` must not
+      // leave the process permanently skipping the runtime's own fetch.
+      const packageFetch = await loadPackageFetch();
+      _runtimeFetchRejectsDispatcher = true;
+      warnOnce(
+        `[urlValidator] this runtime's fetch cannot drive the guarded dispatcher (${causeCode(error) ?? "no code"}); using undici's own fetch`,
+      );
+      return packageFetch(url, { ...init, dispatcher });
+    }
+  }
+
+  const packageFetch = await loadPackageFetch();
+  return packageFetch(url, { ...init, dispatcher });
+}
+
 async function resolveEgress(): Promise<{
   dispatcher: unknown;
   path: EgressPath;
@@ -738,7 +792,7 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
   if (!egress) {
     // Fail closed: without the dial-time DNS guard a validated URL can still be
     // re-resolved to an internal address (DNS rebinding/TOCTOU) before connect.
-    throw new Error("SSRF guard unavailable");
+    throw new Error(GUARD_UNAVAILABLE_MARKER);
   }
 
   try {
