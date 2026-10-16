@@ -404,6 +404,12 @@ describe("urlValidator", () => {
     // simulate the proxy hostname rebinding after construction.
     let dialTable: Record<string, Array<{ address: string; family: number }>> = {};
 
+    /** What the `undici` package's own fetch was asked to carry (BUG-0691). */
+    let packageFetchCalls: Array<{ url: string; dispatcher: unknown }> = [];
+
+    /** Per-test hook: which dispatcher the package's own fetch should fail for. */
+    let packageFetchFails: (dispatcher: unknown) => Error | null = () => null;
+
     const isIpLiteral = (host: string): boolean =>
       host.includes(":") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
 
@@ -429,6 +435,7 @@ describe("urlValidator", () => {
      */
     async function buildEgress(
       proxyEnv: Record<string, string>,
+      options: { withoutPackageFetch?: boolean } = {},
     ): Promise<{
       dispatchers: BuiltDispatcher[];
       module: typeof import("./urlValidator");
@@ -456,6 +463,23 @@ describe("urlValidator", () => {
             return Promise.resolve();
           }
         },
+        // `undici`'s own fetch, which a runtime whose bundled undici is older
+        // than this package needs (BUG-0691). A per-test hook can make it fail
+        // for a chosen dispatcher; `withoutPackageFetch` drops it entirely to
+        // exercise the fail-closed branch.
+        ...(options.withoutPackageFetch
+          ? {}
+          : {
+              fetch: (url: string | URL, init?: { dispatcher?: unknown }) => {
+                packageFetchCalls.push({
+                  url: url.toString(),
+                  dispatcher: init?.dispatcher,
+                });
+                const failure = packageFetchFails(init?.dispatcher);
+                if (failure) return Promise.reject(failure);
+                return Promise.resolve(new Response("{}", { status: 200 }));
+              },
+            }),
       }));
       vi.doMock("node:dns", () => {
         dialTable = {
@@ -496,6 +520,8 @@ describe("urlValidator", () => {
 
     afterEach(() => {
       restoreProxyEnv();
+      packageFetchCalls = [];
+      packageFetchFails = () => null;
       vi.doUnmock("undici");
       vi.doUnmock("node:dns");
       vi.resetModules();
@@ -518,6 +544,124 @@ describe("urlValidator", () => {
 
       expect(built).toHaveLength(1);
       expect(built[0].kind).toBe("agent");
+    });
+
+    /**
+     * What Node 22 (internal undici 6.28) and Node 24 (7.29) answer with when
+     * handed a dispatcher from the newer `undici` package (BUG-0691).
+     */
+    function dispatcherRejection(): TypeError {
+      return new TypeError("fetch failed", {
+        cause: Object.assign(new Error("invalid onRequestStart method"), {
+          code: "UND_ERR_INVALID_ARG",
+        }),
+      });
+    }
+
+    it("moves to undici's own fetch when the runtime rejects the dispatcher", async () => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({});
+      const direct = dispatchers.find((d) => d.kind === "agent")?.instance;
+
+      const { calls: runtimeCalls, restore } = stubFetchFailing(dispatcherRejection);
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const response = await module.safeFetch("https://public.example/v1/models");
+        expect(response.status).toBe(200);
+        // The runtime refused the dispatcher; the package's fetch carried the
+        // request — with the very same dispatcher, not just an equal one.
+        expect(runtimeCalls).toHaveLength(1);
+        expect(packageFetchCalls).toHaveLength(1);
+        expect(packageFetchCalls[0].url).toBe("https://public.example/v1/models");
+        expect(packageFetchCalls[0].dispatcher).toBe(direct);
+
+        // Sticky: the next request skips the runtime's fetch entirely, and the
+        // operator is told once, naming the reason.
+        await module.safeFetch("https://public.example/v1/models");
+        expect(runtimeCalls).toHaveLength(1);
+        expect(packageFetchCalls).toHaveLength(2);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(String(warn.mock.calls[0][0])).toContain("UND_ERR_INVALID_ARG");
+      } finally {
+        restore();
+        warn.mockRestore();
+      }
+    });
+
+    it("does not mistake a proxy's 407 for a dispatcher rejection", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      // Same code undici raises for a refused tunnel, but this one reached the
+      // network (the proxy answered) — a takeover here would re-send the
+      // request and abandon the runtime's fetch for good.
+      const proxyAnswered = new TypeError("fetch failed", {
+        cause: Object.assign(new Error("Proxy Authentication Required (407)"), {
+          code: "UND_ERR_INVALID_ARG",
+        }),
+      });
+      const { calls, restore } = stubFetchFailing(() => proxyAnswered);
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        await expect(
+          module.safeFetch("https://public.example/v1/models"),
+        ).rejects.toThrow("fetch failed");
+        expect(calls).toHaveLength(1);
+        expect(packageFetchCalls).toHaveLength(0);
+        expect(warn).not.toHaveBeenCalled();
+      } finally {
+        restore();
+        warn.mockRestore();
+      }
+    });
+
+    it("fails closed and keeps trying the runtime fetch when the package has none", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({}, { withoutPackageFetch: true });
+      const { calls, restore } = stubFetchFailing(dispatcherRejection);
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        await expect(
+          module.safeFetch("https://public.example/v1/models"),
+        ).rejects.toThrow("SSRF guard unavailable");
+        expect(calls).toHaveLength(1);
+
+        // The switch must not have been latched: a second attempt still tries
+        // the runtime's own fetch instead of skipping straight to a package
+        // that cannot help.
+        await expect(
+          module.safeFetch("https://public.example/v1/models"),
+        ).rejects.toThrow("SSRF guard unavailable");
+        expect(calls).toHaveLength(2);
+      } finally {
+        restore();
+        warn.mockRestore();
+      }
+    });
+
+    it("composes the takeover with the egress fallback", async () => {
+      clearProxyEnv();
+      const { dispatchers, module } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      // The runtime refuses every dispatcher, so the takeover carries both
+      // attempts; the package's own fetch then fails for the proxy only.
+      const { calls: runtimeCalls, restore } = stubFetchFailing(dispatcherRejection);
+      packageFetchFails = (dispatcher) =>
+        dispatcher === proxy ? dialFailure("ECONNREFUSED") : null;
+      try {
+        const response = await module.safeFetch("https://public.example/v1/models");
+        expect(response.status).toBe(200);
+        expect(runtimeCalls).toHaveLength(1);
+        expect(packageFetchCalls).toHaveLength(2);
+        // The direct dispatcher is built lazily, on the fallback.
+        const direct = dispatchers.find((d) => d.kind === "agent")?.instance;
+        expect(packageFetchCalls[0].dispatcher).toBe(proxy);
+        expect(direct).toBeDefined();
+        expect(packageFetchCalls[1].dispatcher).toBe(direct);
+      } finally {
+        restore();
+      }
     });
 
     /** Stubs `fetch` so a chosen dispatcher fails, and records what each call used. */

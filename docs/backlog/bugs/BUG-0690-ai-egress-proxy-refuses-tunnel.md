@@ -105,3 +105,13 @@ End-to-end against the real module: a proxy that refuses `CONNECT` → recovers
 over the direct path for both GET and POST; a dead proxy → recovers; a live proxy
 → still used.
 
+## Follow-up
+
+The proxy configuration was **not** what broke staging: the requests never
+reached a proxy. The real cause was that the runtime's `fetch` cannot drive a
+dispatcher from the newer `undici` package at all on Node 22 and 24, so the
+guarded path failed before any connection — see
+[BUG-0691](BUG-0691-guarded-fetch-unusable-on-node-22-24.md). The path fallback
+this item introduced stays: it is what makes a genuinely unusable proxy
+configuration survivable.
+
