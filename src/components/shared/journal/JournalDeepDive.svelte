@@ -1048,7 +1048,7 @@
                 class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center col-span-1 min-h-[250px]"
             >
                 {#if sqnMetrics}
-                    <div class="text-center p-6">
+                    <div class="text-center p-6" data-testid="deepdive-sqn">
                         <div
                             class="text-sm text-[var(--text-secondary)] uppercase tracking-widest"
                         >
