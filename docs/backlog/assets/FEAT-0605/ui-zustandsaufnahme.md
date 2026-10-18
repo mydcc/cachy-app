@@ -355,7 +355,7 @@ nowhere under `src/components/settings/`. Outside settings, two components
 implement the pattern properly and are the references to copy:
 `src/components/alerts/AlertPanelView.svelte:210` (`onTabKeydown`) and
 `src/components/shared/AcademyTabs.svelte:81`. The inconsistency is wider than
-settings: `grep -rl 'role="tablist"' src --include='*.svelte'` returns six
+settings: `grep -rl 'role="tablist"' src --include='*.svelte'` returns five
 files, and `alerts/tabs/ManageTab.svelte` and `shared/TpSlPriceInput.svelte`
 carry neither `tabindex` nor arrow keys either. Both settings tab bars need
 settling before more tabs are added.
