@@ -436,7 +436,7 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
         ]);
     });
 
-    it("leaves positionId absent when the push carries none", () => {
+    it("leaves positionId absent when the push carries none and creates the leg", () => {
         tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
 
         expect(tpSlState.ordersFor("SOLUSDT")[0].positionId).toBeUndefined();

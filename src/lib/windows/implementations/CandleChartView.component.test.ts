@@ -1743,12 +1743,13 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
         );
     });
 
-    it("falls back to the base row id when a WebSocket push erased sourceOrderId", async () => {
-        // `updateFromWs` rebuilds a leg from a fixed field list and does not
-        // carry `sourceOrderId`, so a pushed row is present in the store but
-        // carries nothing to resolve from. That is the one shape the store
-        // lookup cannot answer, and it is exactly what `stripLegSuffix` is
-        // still here for.
+    it("falls back to the base row id when the store holds no row for it", async () => {
+        // Since BUG-0665 `updateFromWs` names the row from the frame itself,
+        // so a pushed leg does carry `sourceOrderId`. The shape this seeds by
+        // hand is still reachable for reasons the push is not responsible
+        // for: a row the store never held, and one it no longer holds because
+        // the leg was pruned. That is the shape the store lookup cannot
+        // answer, and it is what `stripLegSuffix` is still here for.
         async function hydrateWithoutSourceOrderId() {
             fetchTpSlOrders.mockResolvedValue([
                 {
@@ -1757,7 +1758,8 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
                     planType: "PROFIT",
                     triggerPrice: "120",
                     status: "NEW",
-                    // No sourceOrderId — as after a WS push.
+                    // No sourceOrderId — the row id is not resolvable from the
+                    // store, whatever put the leg there.
                 },
             ]);
             await tpSlState.ensureFresh();
