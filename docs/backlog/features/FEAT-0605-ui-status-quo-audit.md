@@ -2,7 +2,8 @@
 id: FEAT-0605
 title: Audit the UI status quo: windows, elements, control sizes, CSS debt
 type: feature
-status: ready
+status: done
+assignee: claude
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -51,19 +52,24 @@ of its claims are still unverified and are the actual work left here.
 
 ## Acceptance criteria
 
-- [ ] `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` exists and names
+- [x] `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` exists and names
       every finding with a file reference or a count
-- [ ] N4 resolved by measurement: the settings window's `minWidth` is compared
+- [x] N4 resolved by measurement: the settings window's `minWidth` is compared
       against `SettingsGrid`'s 560 px container threshold, and the answer
-      recorded. If `minWidth < 560`, that is filed as its own item
-- [ ] N8 resolved by measurement: `SettingsContent`'s tablist is checked for
+      recorded. `minWidth` is 200, so it is filed as its own item → BUG-0696
+- [x] N8 resolved by measurement: `SettingsContent`'s tablist is checked for
       `role="tab"`, `aria-selected`, roving tabindex and arrow-key navigation;
       `VisualsTab`'s pills are checked for roles. Recorded either way
-- [ ] N9 resolved by reading [FEAT-0328](FEAT-0328-compact-account-controls-and-fee-display.md)
+- [x] N9 resolved by reading [FEAT-0328](FEAT-0328-compact-account-controls-and-fee-display.md)
       and [BUG-0411](../bugs/BUG-0411-modal-windows-oversized-polish.md) for
       what they deliberately did not change
-- [ ] Every count in the document can be reproduced with the grep it names
-- [ ] Each finding that later becomes work has a child item linked from it
+- [ ] Every count in the document can be reproduced with the grep it names —
+      **not verified for sections 1–6.** This PR re-ran and corrected the counts
+      in section 7 only. The counts in sections 1–6 still stand as the
+      2026-10-03 baseline recorded them; this criterion is left open
+      deliberately rather than ticked.
+- [x] Each finding that later becomes work has a child item linked from it →
+      N4 → [BUG-0696](../bugs/BUG-0696-settings-window-inherits-an-inert-minwidth.md)
 
 ## Out of scope
 
@@ -89,3 +95,13 @@ of its claims are still unverified and are the actual work left here.
 - [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) — settings track
 - [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — the enabler
 - [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — the goal
+
+## State
+
+Done 2026-10-18 on branch `feature/feat-0605-ui-status-quo`. N4, N8 and N9 are
+resolved in `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md`, section 7.
+N4 produced the child item BUG-0696. No behaviour was changed.
+
+Open after this PR: acceptance criterion 5 was re-run for section 7 only. The
+counts in sections 1–6 of the audit draft are the 2026-10-03 baseline and were
+not re-verified against this branch.
