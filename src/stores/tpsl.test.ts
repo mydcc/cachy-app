@@ -452,6 +452,130 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
 });
 
 /*
+ * BUG-0665 — a push says what changed about one leg; it is not the whole
+ * truth about that leg.
+ *
+ * The frame names the venue row and carries the fields that moved.
+ * Everything the fetch recorded *about* the row — above all `sourceOrderId`,
+ * the id cancel and edit address the venue with — the push does not repeat,
+ * because it cannot: it names the row, not the leg this app split out of it.
+ * A handler that rebuilds the leg from the frame therefore drops it, and
+ * every consumer reading it falls back to the invented leg id.
+ *
+ * These tests hydrate the way the fetch path does, then push. They assert at
+ * the store boundary — the field the consumer reads — rather than through the
+ * component, which is the gap IDEA-0564 records.
+ */
+describe("tpSlState — a push keeps what the fetch recorded (BUG-0665)", () => {
+    /** A leg as `normalizeTpSlRow` builds it, i.e. after a fetch. */
+    const FETCHED_LEG = {
+        orderId: "123-tp",
+        symbol: "BTCUSDT",
+        planType: "PROFIT" as const,
+        triggerPrice: "50000",
+        status: "NEW",
+        sourceOrderId: "123",
+        scopeGuess: "position" as const,
+        ctime: 1_700_000_000_000,
+    };
+
+    /** The one field the frame does carry that the fetch also recorded. */
+    const PUSH = {
+        orderId: "123",
+        symbol: "BTCUSDT",
+        status: "NEW",
+        tpPrice: "51000",
+    };
+
+    async function hydrateFetchedLeg(): Promise<void> {
+        fetchTpSl.mockResolvedValue([{ ...FETCHED_LEG }]);
+        await tpSlState.ensureFresh();
+    }
+
+    it("keeps the fields the push does not repeat", async () => {
+        await hydrateFetchedLeg();
+
+        tpSlState.updateFromWs({ ...PUSH });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.triggerPrice).toBe("51000");
+        expect(leg?.sourceOrderId).toBe("123");
+        expect(leg?.scopeGuess).toBe("position");
+        expect(leg?.ctime).toBe(1_700_000_000_000);
+    });
+
+    it("still resolves the venue's row id rather than the invented leg id", async () => {
+        // The chain `tpSlService.cancelTpSlOrder` and `TpSlEditModal.handleSave`
+        // both resolve with ("`sourceOrderId` first (BUG-0292)"). Without the
+        // merge this reads "123-tp" — a row the venue has never heard of.
+        await hydrateFetchedLeg();
+
+        tpSlState.updateFromWs({ ...PUSH });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.sourceOrderId || leg?.orderId || leg?.id).toBe("123");
+    });
+
+    it("still reads as position-wide, so create offers an edit", async () => {
+        // What `TpSlCreateModal` gates its create-vs-edit decision on. Dropped,
+        // an existing position-wide plan reads as absent and the trader is
+        // offered a second one beside it (BUG-0665, consequence B).
+        await hydrateFetchedLeg();
+
+        tpSlState.updateFromWs({ ...PUSH });
+
+        const legs = tpSlState.ordersFor("BTCUSDT");
+        expect(legs.map((l) => l.scopeGuess)).toEqual(["position"]);
+    });
+
+    it("carries the venue's stop type across the push", async () => {
+        // `workingType` is read: `TpSlCreateModal.stopTypeOf` prefills the
+        // trigger type from it, so losing it on the first push would silently
+        // reset a stop's type to the venue default.
+        fetchTpSl.mockResolvedValue([{ ...FETCHED_LEG, workingType: "MARK_PRICE" }]);
+        await tpSlState.ensureFresh();
+
+        tpSlState.updateFromWs({ ...PUSH });
+
+        expect(tpSlState.plansFor("BTCUSDT").profit?.workingType).toBe("MARK_PRICE");
+    });
+
+    it("keeps the position a push does not mention", async () => {
+        // A frame that names no position says nothing about which position the
+        // leg protects, so the fetched one stands — otherwise a push would
+        // un-scope a stop that `restingStopPrice` needs scoped (BUG-0524).
+        fetchTpSl.mockResolvedValue([{ ...FETCHED_LEG, positionId: "pos-1" }]);
+        await tpSlState.ensureFresh();
+
+        tpSlState.updateFromWs({ ...PUSH });
+
+        expect(tpSlState.plansFor("BTCUSDT").profit?.positionId).toBe("pos-1");
+    });
+
+    it("leaves a leg the push creates without what only a fetch can know", async () => {
+        // Nothing was hydrated, so there is no row to inherit from. The leg
+        // still lands, still without a `sourceOrderId` — which is why the
+        // drag path's `stripLegSuffix` fallback stays (BUG-0660).
+        tpSlState.updateFromWs({ ...PUSH });
+
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        expect(leg?.triggerPrice).toBe("51000");
+        expect(leg?.sourceOrderId).toBeUndefined();
+    });
+
+    it("forgets the row when the plan closes, so a later leg inherits nothing", async () => {
+        await hydrateFetchedLeg();
+
+        tpSlState.updateFromWs({ ...PUSH, event: "CLOSE" });
+        expect(tpSlState.plansFor("BTCUSDT").profit).toBeUndefined();
+
+        tpSlState.updateFromWs({ ...PUSH });
+        expect(tpSlState.plansFor("BTCUSDT").profit?.ctime).toBeUndefined();
+        expect(tpSlState.plansFor("BTCUSDT").profit?.sourceOrderId).toBeUndefined();
+    });
+});
+
+/*
  * BUG-0292 — the regression this file previously could not have caught.
  *
  * Every other test here builds its plans with the `plan()` helper above:

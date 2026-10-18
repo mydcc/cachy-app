@@ -300,7 +300,21 @@ class TpSlManager {
                 if (index !== -1) this._orders.splice(index, 1);
                 return;
             }
+            /*
+             * Merge into the stored leg rather than rebuilding it (BUG-0665).
+             *
+             * The frame names the venue row and carries what changed about
+             * it. It cannot carry what this app derived from the row: the
+             * `sourceOrderId` cancel and edit address the venue with
+             * (BUG-0292), the `scopeGuess` create-versus-edit turns on, the
+             * timestamps the list renders, the stop type the create modal
+             * prefills. Rebuilding from the frame alone dropped all of it on
+             * the first push. A leg the push creates has no row to inherit
+             * from, so it still comes out without them.
+             */
+            const stored = index !== -1 ? this._orders[index] : undefined;
             const updated: TpSlOrder = {
+                ...stored,
                 orderId: legId,
                 symbol,
                 planType,

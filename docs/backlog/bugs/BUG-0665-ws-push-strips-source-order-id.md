@@ -2,7 +2,7 @@
 id: BUG-0665
 title: A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had
 type: bug
-status: specced
+status: in-progress
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,9 +10,12 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: claude
 ---
 
 # BUG-0665 — A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had
+
+Branch: `fix/bug-0665-ws-push-strips-source-order-id`
 
 ## Symptom
 
@@ -52,8 +55,8 @@ failing test before it, per the template's rule for derived bugs.
   `orderId`, `symbol`, `planType`, `triggerPrice`, `status`, `positionId`.
 
 - Consequence A, cancel — `src/components/shared/TpSlList.svelte:90` hands
-  the store row straight to `cancelTpSlOrder`, which resolves the id at
-  `src/services/trade/tpSlService.ts:237`:
+  the store row straight to `activeExchange().trading.cancelTpSlOrder(order)`,
+  which resolves the id at `src/services/trade/tpSlService.ts:270`:
 
   ```ts
   const orderId = order.sourceOrderId || order.orderId || order.id;
@@ -65,17 +68,17 @@ failing test before it, per the template's rule for derived bugs.
   something."* After a push the first term is gone, so the leg id goes out
   instead.
 
-- Consequence A, edit — `src/components/shared/TpSlEditModal.svelte:180`
+- Consequence A, edit — `src/components/shared/TpSlEditModal.svelte:205`
   resolves the same way, with the same reasoning in its comment.
 
-- Consequence B — `src/components/shared/TpSlCreateModal.svelte:75-76`:
+- Consequence B — `src/components/shared/TpSlCreateModal.svelte:71-72`:
 
   ```ts
   const tpCoveredByPositionPlan = existingPlans.profit?.scopeGuess === "position";
   ```
 
   `scopeGuess` is dropped too, so an existing position-wide plan reads as
-  absent. That file's own comment (`:70-72`) names the two outcomes:
+  absent. That file's own comment (`:64-68`) names the two outcomes:
   *"either a refused create (visible) or a second plan where the trader
   expected an edit (quiet)"*.
 
@@ -116,11 +119,23 @@ A leg the push *creates* (`index === -1`) still has nothing to inherit, so
 its `sourceOrderId` stays `undefined` — correct, and the reason BUG-0660's
 `stripLegSuffix` fallback must stay.
 
-**Open question, decide before implementing.** `positionId` is spread
-conditionally above, so a push *without* a position id keeps the row's
-previous one. That is probably right (the leg has not stopped belonging to
-the position) but it is a judgement, not a documented rule — check it
-against a real push that carries no `positionId`.
+**`positionId`, decided: kept.** A push that names no position keeps the
+row's previous one. A frame that omits the position says nothing about which
+position the leg protects, whereas dropping it would silently un-scope a leg
+that `restingStopPrice()` needs scoped in hedge mode (BUG-0524). The window
+in which a stale id could be inherited is closed by the handler itself: a
+`CLOSE`/`CANCELED` push splices the leg out, so a later push for the same
+row creates a fresh leg that inherits nothing. Not confirmed against a live
+push — the reasoning above is why it is safe either way, and it is asserted
+in the tests.
+
+**`workingType`, deliberately carried.** The merge keeps it, and the item's
+earlier claim that it "is read nowhere today" was wrong: `TpSlCreateModal`
+prefills its trigger-type select from the plan (`stopTypeOf`, `:90`). So
+carrying is the better behaviour — dropping it meant the first push reset a
+stop's trigger type to the venue default. The spread also carries `qty`,
+`price`, `orderType`, `ctime` and `createTime` for the same reason: the fetch
+is the only place they can come from.
 
 ## Acceptance criteria
 
@@ -131,9 +146,16 @@ against a real push that carries no `positionId`.
 - [ ] Cancelling a plan after a WS push sends the row id, not the leg id
 - [ ] `TpSlCreateModal` still treats a position-wide plan as covering after
       a push (consequence B, the quiet one)
-- [ ] `workingType` is deliberately dropped rather than spread — it is read
-      nowhere today; if the fix spreads it, say so in the item rather than
-      carrying it by accident
+- [x] `workingType` — settled, not carried by accident: the fix spreads it
+      on purpose. The premise this criterion was written on ("read nowhere
+      today") is wrong — `TpSlCreateModal.stopTypeOf` (`:90`) reads it to
+      prefill the trigger-type select, so the push was resetting a stop's
+      type to the venue default. See the correction under *Fix*.
+
+The two middle criteria are proven at the store boundary: the field each
+consumer resolves with survives the push. Neither consumer was wrong, so
+neither is touched — a chain test from component to store is IDEA-0564's
+gap, not this fix's, and this item does not claim to close it.
 
 ## Links
 
