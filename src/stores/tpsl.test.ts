@@ -36,8 +36,9 @@ vi.mock("../services/tradeService", () => ({
     tradeService: { fetchTpSlOrders: fetchTpSl },
 }));
 
-import { tpSlState, MAX_AGE_MS } from "./tpsl.svelte";
+import { tpSlState, MAX_AGE_MS, type RawWsTpSl } from "./tpsl.svelte";
 import { normalizeTpSlRows } from "../services/tpslNormalize";
+import { logger } from "../services/logger";
 
 function plan(symbol: string, planType: string, triggerPrice: string, id = "1") {
     return { orderId: `${symbol}-${planType}-${id}`, symbol, planType, triggerPrice, status: "NEW" };
@@ -608,6 +609,85 @@ describe("tpSlState — a venue-initiated cancel is terminal (BUG-0697)", () => 
 
         expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")).toBeNull();
         expect(tpSlState.restingStopPrice("SOLUSDT", "long")).toBeNull();
+    });
+});
+
+/*
+ * BUG-0699 — a `CLOSE` event ends the row even when the status beside it says
+ * the order is still active.
+ *
+ * `docs/bitunix-api/08_websocket.md:404` warns that a `CLOSE` on its own is not
+ * a final state, and this store reads the event alone anyway. That is kept
+ * deliberately, not by oversight — see the block comment in `tpsl.svelte.ts`.
+ * The vendor sentence is about reading the event *alone*, this channel pushes a
+ * status that is terminal in practice, and erring terminal is the cheap
+ * direction: a leg wrongly removed only refuses an `add` until the cache window
+ * expires, while a leg wrongly kept is a phantom stop the risk engine measures
+ * against.
+ *
+ * Pinned here so the decision is a test the next reader finds rather than a
+ * behaviour that drifts.
+ */
+describe("tpSlState — a CLOSE event wins over a non-terminal status (BUG-0699)", () => {
+    it("removes the row on CLOSE even though the status says NEW", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" });
+        expect(tpSlState.plansFor("SOLUSDT").loss?.triggerPrice).toBe("85");
+        expect(tpSlState.plansFor("SOLUSDT").profit?.triggerPrice).toBe("93");
+
+        tpSlState.updateFromWs({
+            orderId: "42",
+            symbol: "SOLUSDT",
+            event: "CLOSE",
+            status: "NEW",
+            tpPrice: "93",
+        });
+
+        const plans = tpSlState.plansFor("SOLUSDT");
+        expect(plans.profit).toBeUndefined();
+        expect(plans.loss).toBeUndefined();
+    });
+});
+
+/*
+ * BUG-0700 — the same handler's unvalidated input and its quiet drops.
+ */
+describe("tpSlState — a malformed or unreadable push (BUG-0700)", () => {
+    it("creates no leg when the frame's orderId is null", () => {
+        // `String(null)` is the truthy `"null"`, which walked through the
+        // `!== undefined` guard and produced a `null-tp` leg the venue has never
+        // heard of. `channelDispatch` forwards the frame verbatim, so the wire
+        // can carry `null` even though `RawWsTpSl` says it cannot.
+        tpSlState.updateFromWs({
+            orderId: null,
+            symbol: "SOLUSDT",
+            status: "NEW",
+            tpPrice: "93",
+        } as unknown as RawWsTpSl);
+
+        expect(tpSlState.orders).toEqual([]);
+    });
+
+    it("reports no stop and says why when a stored trigger cannot be read", () => {
+        tpSlState.updateFromWs({
+            orderId: "42",
+            symbol: "SOLUSDT",
+            status: "NEW",
+            slPrice: "not-a-number",
+            positionId: "pos-1",
+        });
+        // Positive anchor first: the log below would also be absent if the leg
+        // had never been stored.
+        expect(tpSlState.plansFor("SOLUSDT").loss?.triggerPrice).toBe("not-a-number");
+
+        logger.debug.mockClear();
+
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")).toBeNull();
+        expect(logger.debug).toHaveBeenCalledWith(
+            "api",
+            "[TpSl] unreadable trigger skipped",
+            expect.objectContaining({ orderId: "42-sl" }),
+        );
     });
 });
 

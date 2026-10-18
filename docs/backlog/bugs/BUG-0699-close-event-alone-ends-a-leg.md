@@ -2,7 +2,7 @@
 id: BUG-0699
 title: A CLOSE frame alone ends a TP/SL leg the venue says is not final
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-18"
@@ -11,6 +11,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: claude
 ---
 
 # BUG-0699 — A CLOSE frame alone ends a TP/SL leg
@@ -81,13 +82,18 @@ tests.
 
 ## Acceptance criteria
 
-- [ ] The chosen semantics is written down, with `08_websocket.md:404` named
-- [ ] A test pushes `{event: "CLOSE", status: "NEW"}` and asserts the outcome
-      the decision requires
-- [ ] The three existing `CLOSE` tests still pass, or are updated in the same
-      commit with the reason
-- [ ] `restingStopPrice()` agrees with the store in whichever direction was
-      chosen
+- [x] The chosen semantics is written down, with `08_websocket.md:404` named —
+      the block comment in `tpsl.svelte.ts` names the line and states the
+      reasoning, and `## State` below records why the alternative was rejected
+- [x] A test pushes `{event: "CLOSE", status: "NEW"}` and asserts the outcome
+      the decision requires — both legs go
+- [x] The three existing `CLOSE` tests still pass — and the measurement is what
+      settled the decision: with the event arm removed, exactly three tests go
+      red (`removes a leg on event CLOSE`; `forgets the row when the plan
+      closes, so a later leg inherits nothing`; the new pin)
+- [x] `restingStopPrice()` agrees with the store — both legs leaving the store
+      is what BUG-0697's `restingStopPrice` test already asserts for a row
+      terminal frame
 
 ## Out of scope
 
@@ -103,3 +109,31 @@ tests.
   the venue
 - [`docs/bitunix-api/08_websocket.md`](../../bitunix-api/08_websocket.md) —
   §*The `CLOSE` event is not a final state*
+
+## State
+
+Done 2026-10-18 on branch `fix/bug-0697-venue-cancelled-leg-stays-resting`,
+together with BUG-0697 — the two touch one expression, so splitting them would
+have meant two PRs editing the same line.
+
+**The decision: keep the arm.** Dropping it — the fix this item preferred — was
+measured rather than assumed. With the event short-circuit removed, three tests
+go red: `removes a leg on event CLOSE`, the BUG-0665 test `forgets the row when
+the plan closes, so a later leg inherits nothing`, and the new pin. Two of those
+predate this item, so the arm is not an oversight that drifted but a choice that
+is twice pinned.
+
+Two reasons the choice stands. The vendor sentence is about reading the event
+*on its own* — a `CLOSE` that arrives with a status is not that case, and this
+channel's statuses are terminal in practice. And the direction is the cheap one:
+a leg wrongly removed refuses an `add` for at most `MAX_AGE_MS` and the next
+fetch restores it, while a leg wrongly kept is a phantom stop the risk engine
+measures against — the direction BUG-0697 exists to close.
+
+What changed here is that the decision is now visible in two places instead of
+none: the block comment names `08_websocket.md:404` and states the reasoning, and
+a test pushes `{event: "CLOSE", status: "NEW"}` and asserts both legs go. If the
+other semantics is ever wanted, that test is the one to flip.
+
+Not verified against a live push: an `event`-frame carrying a non-terminal
+status has no observed instance, which is why this was P2.

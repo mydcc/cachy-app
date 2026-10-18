@@ -2,7 +2,7 @@
 id: BUG-0700
 title: The tp_sl channel forwards frames unvalidated, and the store hides what it cannot use
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 created: "2026-10-18"
@@ -11,6 +11,7 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: claude
 ---
 
 # BUG-0700 — Unvalidated tp_sl frames, and drops with no trace
@@ -66,11 +67,20 @@ Smallest useful change per case, and nothing more:
 
 ## Acceptance criteria
 
-- [ ] A push with `orderId: null` creates no leg
-- [ ] A dropped frame whose price field is missing is logged at `debug`
-- [ ] A leg whose `triggerPrice` cannot be parsed is logged at `debug`
-- [ ] `restingStopPrice()` behaviour for an unparseable leg is unchanged
-      (fail-closed, no number invented)
+- [x] A push with `orderId: null` creates no leg — the guard is `!= null` now,
+      and the test casts deliberately, because the point is that the wire does
+      not honour the type
+- [x] A leg whose `triggerPrice` cannot be parsed is logged at `debug`
+- [x] `restingStopPrice()` behaviour for an unparseable leg is unchanged —
+      still `null`, never an invented number; the test asserts both the absence
+      and the log
+- [x] ~~A dropped frame whose price field is missing is logged at `debug`~~ —
+      **rejected, the premise was wrong.** A rename makes *both* legs price-less
+      on every frame, which is indistinguishable per frame from a frame that
+      concerns only the other leg. A log there would fire on every ordinary
+      single-leg push: noise, not a trace. That the guard covers a rename was
+      itself the defect — the comment above it is what changed, and the fetch
+      path is what surfaces a rename.
 
 ## Out of scope
 
@@ -85,3 +95,22 @@ Smallest useful change per case, and nothing more:
 - [BUG-0698](BUG-0698-push-carries-fields-the-handler-ignores.md) — the same
   channel, the other half: fields it carries and nobody reads
 - `src/services/bitunixWs/channelDispatch.ts` — the unvalidated boundary
+
+## State
+
+Done 2026-10-18 on branch `fix/bug-0697-venue-cancelled-leg-stays-resting`,
+together with BUG-0697 and BUG-0699 — same handler, and two of these fixes sit
+on lines BUG-0697 already touched.
+
+Two of the three are real fixes with a test each; the third turned out to be a
+comment defect rather than a code one. Both fixes are pinned: reverting the
+`orderId` guard produces
+`expected [ { sourceOrderId: 'null', …(5) } ] to deeply equal []`, and removing
+the log fails with `expected "vi.fn()" to be called with arguments`.
+
+The `orderId` guard is `!= null` rather than `!== undefined`, which is what a
+trust boundary wants: `channelDispatch` forwards `tp_sl` frames verbatim, so the
+type is an assertion about the wire that the wire does not honour.
+
+Not verified against live frames — no observed `orderId: null` and no observed
+unparseable trigger. Both guards are defensive, and both are cheap.

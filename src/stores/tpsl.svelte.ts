@@ -184,6 +184,14 @@ class TpSlManager {
                 if (!price.isFinite() || price.lte(0)) continue;
                 return price;
             } catch {
+                // Not a normal absence: the store holds this leg and its stored
+                // trigger cannot be read, which would otherwise surface as "no
+                // stop" with nothing saying why. Still skipped — inventing a
+                // number is the one outcome worse than reporting none.
+                logger.debug("api", "[TpSl] unreadable trigger skipped", {
+                    orderId: loss.orderId,
+                    triggerPrice: loss.triggerPrice,
+                });
                 continue;
             }
         }
@@ -283,7 +291,8 @@ class TpSlManager {
      * needing something else (like opening the TP/SL tab) to force a refetch.
      */
     public updateFromWs(data: RawWsTpSl): void {
-        const orderId = data.orderId !== undefined ? String(data.orderId) : "";
+        const orderId =
+            data.orderId !== undefined && data.orderId !== null ? String(data.orderId) : "";
         if (!orderId || !data.symbol) {
             // A drop with no trace is the failure mode that cannot be
             // diagnosed after the fact, and a renamed field on this channel
@@ -315,10 +324,14 @@ class TpSlManager {
          * The `event === "CLOSE"` arm is untouched and obeys neither rule
          * above: `:404` says "Read `event` together with `status`, always. A
          * `CLOSE` on its own is not a final state", yet this arm removes a leg
-         * on `{event: "CLOSE", status: "NEW"}`. Pre-existing — it
-         * short-circuited the same way before this change, and `tpsl.test.ts`
-         * pins it — so it is left alone here: replacing it is a semantic
-         * decision this item is not about.
+         * on `{event: "CLOSE", status: "NEW"}`. Kept deliberately (BUG-0699):
+         * the vendor sentence is about reading the event *alone*, and this
+         * channel pushes a status that is terminal in practice, so the arm is
+         * the belt to the status arm's braces. Erring terminal is also the
+         * cheap direction here — a leg wrongly kept is a phantom stop for the
+         * risk engine to measure, while one wrongly removed only refuses an
+         * `add` until the cache window expires. `tpsl.test.ts` pins both frame
+         * shapes, so changing this is a test change, not a refactor.
          */
         const status = data.status;
         const closed =
@@ -357,6 +370,18 @@ class TpSlManager {
                 }
                 return;
             }
+            /*
+             * A push concerns whichever of the two legs it carries, so a
+             * missing price is normal here rather than anomalous.
+             *
+             * It is also where a renamed price field would die, and no log
+             * belongs here: a rename makes *both* legs price-less on every
+             * frame, which is indistinguishable from this frame being about the
+             * other leg. The fetch path is what surfaces a rename, within the
+             * cache window. The `orderId`/`symbol` guard above is the one that
+             * can tell a malformed frame from a narrow one, which is why it is
+             * the one that speaks.
+             */
             if (price === undefined) return;
             /*
              * Merge into the stored leg rather than rebuilding it (BUG-0665).
