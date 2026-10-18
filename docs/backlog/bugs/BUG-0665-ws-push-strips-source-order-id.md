@@ -103,21 +103,31 @@ falls back to the invented leg id.
 
 ## Fix
 
-Spread the existing row instead of rebuilding it, so the push updates the
-fields it actually carries and the rest survives:
+Merge the frame into the existing row instead of rebuilding it, so the push
+updates the fields it actually carries and the rest survives:
 
 ```ts
-this._orders[index] = {
-    ...this._orders[index],
+const stored = index !== -1 ? this._orders[index] : undefined;
+const updated: TpSlOrder = {
+    ...stored,
+    sourceOrderId: orderId,
     orderId: legId, symbol, planType, triggerPrice: price,
     status: data.status ?? "NEW",
     ...(positionId !== undefined ? { positionId } : {}),
 };
 ```
 
-A leg the push *creates* (`index === -1`) still has nothing to inherit, so
-its `sourceOrderId` stays `undefined` — correct, and the reason BUG-0660's
-`stripLegSuffix` fallback must stay.
+`sourceOrderId` is **set from the frame, not inherited**: the frame names the
+row itself (`data.orderId` is the identifier `normalizeTpSlRow` records as
+`sourceOrderId`), so a leg the push *creates* gets it too. Without that, a plan
+arriving by push before the first fetch succeeds could be neither cancelled nor
+edited.
+
+The terminal check runs **before** the price guard. A close frame need not echo
+the leg's price, and with the guard first such a close removed nothing.
+
+`stripLegSuffix` in the drag path stays and is untouched: it covers rows the
+store does not hold at all, which is BUG-0660.
 
 **`positionId`, decided: kept.** A push that names no position keeps the
 row's previous one. A frame that omits the position says nothing about which
@@ -168,6 +178,10 @@ component-to-store propagation.
   `<sourceOrderId>-tp` / `-sl`, invented locally)
 - BUG-0660 — the drag path's `stripLegSuffix` fallback, one of whose reasons
   is a WebSocket-pushed leg carrying no `sourceOrderId`
+- [BUG-0697](BUG-0697-a-venue-cancelled-leg-stays-resting.md) — a
+  venue-initiated cancel is not terminal, so a cancelled leg stays resting
+- [BUG-0698](BUG-0698-push-carries-fields-the-handler-ignores.md) — the push
+  carries fields the handler does not read
 - BUG-0647 — priority calibration: same `area: execution`, a modify that
   re-sent the wrong thing to a live venue, also P1
 - Found while reviewing #4007 / #4008; reported there as a follow-up and
@@ -176,17 +190,32 @@ component-to-store propagation.
 ## State
 
 Done 2026-10-18 on branch `fix/bug-0665-ws-push-strips-source-order-id`.
-`updateFromWs` merges the frame into the stored leg instead of rebuilding it,
-so `sourceOrderId`, `scopeGuess`, `workingType`, `ctime`, `qty`, `price` and
-`orderType` survive a push. `positionId` is kept when the frame omits it. No
-consumer was changed: both were correct, they were simply handed a row that
+`updateFromWs` merges the frame into the stored leg instead of rebuilding it.
+`sourceOrderId` is set from the frame, so it survives a push *and* exists on a
+leg the push creates; `scopeGuess`, `workingType`, `ctime`, `qty`, `price` and
+`orderType` survive from the fetch. `positionId` is kept when the frame omits
+it. The terminal check now runs before the price guard, so a price-less close
+still removes the leg — which is what the retained `positionId` depends on.
+
+No consumer was changed: both were correct, they were simply handed a row that
 had lost its provenance.
+
+A four-way review of #4134 (tests, correctness, comments, silent failures) is
+folded in. It found two further defects in the same function, filed rather than
+fixed here because both are pre-existing and neither is the push-merge bug:
+
+- [BUG-0697](BUG-0697-a-venue-cancelled-leg-stays-resting.md) — a
+  venue-initiated cancel is not recognised as terminal, so the risk engine can
+  measure a position against a stop the venue no longer holds. **The retained
+  `positionId` is only safe while this is open**: a leg that outlives its own
+  terminal frame keeps an id it should have lost.
+- [BUG-0698](BUG-0698-push-carries-fields-the-handler-ignores.md) — the frame
+  carries the live stop type, quantity and order type, and the handler reads
+  none of them, so the merge preserves a value it should replace.
 
 Verified at the store boundary, which is where the defect lives. A chain test
 from `TpSlList` / `TpSlCreateModal` through to the store is **not** added here,
 and no backlog item owns that gap.
 
 Not verified against a live Bitunix push: paper mode has no WebSocket, so the
-observation needs a funded live account. The reasoning for `positionId` is
-recorded under *Fix* and asserted in the tests; it is safe either way because
-a `CLOSE`/`CANCELED` push splices the leg out.
+observation needs a funded live account.
