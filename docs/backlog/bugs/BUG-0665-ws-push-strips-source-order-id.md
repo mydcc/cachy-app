@@ -133,9 +133,9 @@ in the tests.
 earlier claim that it "is read nowhere today" was wrong: `TpSlCreateModal`
 prefills its trigger-type select from the plan (`stopTypeOf`, `:90`). So
 carrying is the better behaviour — dropping it meant the first push reset a
-stop's trigger type to the venue default. The spread also carries `qty`,
-`price`, `orderType`, `ctime` and `createTime` for the same reason: the fetch
-is the only place they can come from.
+stop's trigger type to the modal's default. The spread also carries `qty`,
+`price`, `orderType`, `ctime` and `createTime`, none of which the frame
+repeats.
 
 ## Acceptance criteria
 
@@ -156,15 +156,18 @@ is the only place they can come from.
 
 The two middle criteria are proven at the store boundary: the field each
 consumer resolves with survives the push. Neither consumer was wrong, so
-neither is touched — a chain test from component to store is IDEA-0564's
-gap, not this fix's, and this item does not claim to close it.
+neither is touched. A chain test from component to store is **not** added
+here: the defect lives at the store boundary, and the components' own id
+resolution is unchanged. It is not IDEA-0564's either — that item covers two
+validation seams (tick misalignment, the position-less chart drop), not
+component-to-store propagation.
 
 ## Links
 
 - BUG-0292 — the leg-id scheme this depends on (`orderId` is
   `<sourceOrderId>-tp` / `-sl`, invented locally)
-- BUG-0660 — the drag path's `stripLegSuffix` fallback, which exists
-  precisely because a WebSocket-pushed leg carries no `sourceOrderId`
+- BUG-0660 — the drag path's `stripLegSuffix` fallback, one of whose reasons
+  is a WebSocket-pushed leg carrying no `sourceOrderId`
 - BUG-0647 — priority calibration: same `area: execution`, a modify that
   re-sent the wrong thing to a live venue, also P1
 - Found while reviewing #4007 / #4008; reported there as a follow-up and
@@ -180,8 +183,8 @@ consumer was changed: both were correct, they were simply handed a row that
 had lost its provenance.
 
 Verified at the store boundary, which is where the defect lives. A chain test
-from `TpSlList` / `TpSlCreateModal` through to the store is **not** added here
-— that gap is IDEA-0564's, and this item does not claim to close it.
+from `TpSlList` / `TpSlCreateModal` through to the store is **not** added here,
+and no backlog item owns that gap.
 
 Not verified against a live Bitunix push: paper mode has no WebSocket, so the
 observation needs a funded live account. The reasoning for `positionId` is
