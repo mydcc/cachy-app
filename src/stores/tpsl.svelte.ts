@@ -293,25 +293,37 @@ class TpSlManager {
         }
         const symbol = data.symbol;
         /*
-         * Terminal on this channel is any status other than `NEW`; a frame
-         * that names no status leaves the leg as it was.
+         * Terminal on this channel is any status other than `NEW`; a status
+         * that says nothing — absent, or empty — leaves the leg as it was.
          *
          * `docs/bitunix-api/08_websocket.md:366` documents the enum as `NEW`
          * / `CANCELED` / `SYSTEM_CANCELED` / `FILLED` / `FAILED`. The
-         * hand-written pair that stood here (`CANCELED`, `FILLED`) was
-         * written from the vendor's original post and predates that
-         * correction, so it missed `SYSTEM_CANCELED` — the value that tells a
-         * venue-initiated cancel from a user-initiated one — and `FAILED`
-         * entirely (BUG-0697). A leg the venue had cancelled stayed resting,
-         * and `restingStopPrice()` went on reporting a stop the venue no
-         * longer held.
+         * hand-written pair that stood here (`CANCELED`, `FILLED`) predates
+         * that page's correction, so it missed `SYSTEM_CANCELED` — the value
+         * that tells a venue-initiated cancel from a user-initiated one — and
+         * `FAILED` entirely (BUG-0697). A leg the venue had cancelled stayed
+         * resting, and `restingStopPrice()` went on reporting a stop the venue
+         * no longer held.
          *
-         * Inverted rather than extended: the next value the enum grows is
-         * then terminal by default, and of the two ways to be wrong only the
-         * resting one leaves a phantom stop for the risk engine to read.
+         * Inverted rather than extended, so an unlisted status is terminal.
+         * That is a bet on the venue's push discipline, not a proof: the same
+         * page names `PENDING_CANCEL` and `TRIGGER_WAIT_PLACE` as statuses that
+         * exist and are not pushed (`:386`), and either would be non-terminal
+         * if it ever arrived. Still the direction to err in — of the two ways
+         * to be wrong, only resting leaves a phantom stop to size against.
+         *
+         * The `event === "CLOSE"` arm is untouched and obeys neither rule
+         * above: `:404` says "Read `event` together with `status`, always. A
+         * `CLOSE` on its own is not a final state", yet this arm removes a leg
+         * on `{event: "CLOSE", status: "NEW"}`. Pre-existing — it
+         * short-circuited the same way before this change, and `tpsl.test.ts`
+         * pins it — so it is left alone here: replacing it is a semantic
+         * decision this item is not about.
          */
+        const status = data.status;
         const closed =
-            data.event === "CLOSE" || (data.status !== undefined && data.status !== "NEW");
+            data.event === "CLOSE" ||
+            (status !== undefined && status !== "" && status !== "NEW");
         const positionId =
             data.positionId !== undefined && data.positionId !== null && data.positionId !== ""
                 ? String(data.positionId)
@@ -331,10 +343,11 @@ class TpSlManager {
                 if (index !== -1) {
                     // Not silent, for the reason the superseded guard above is
                     // not: a leg that disappears is the display contradicting
-                    // the venue, and a removal with no trace is the one
-                    // failure mode that cannot be diagnosed after the fact.
-                    // `debug`, and bounded by real venue events rather than by
-                    // polling.
+                    // the venue. `debug` follows that guard and the item's own
+                    // wording. Note what the level does not promise: `logger.ts`
+                    // gates `debug` on DEV and on `debugMode`, so this traces
+                    // in development and is not a production record. Bounded by
+                    // real venue events rather than by polling.
                     logger.debug("api", "[TpSl] leg removed on terminal push", {
                         orderId: legId,
                         status: data.status,
@@ -375,6 +388,18 @@ class TpSlManager {
             if (index !== -1) this._orders[index] = updated;
             else this._orders.push(updated);
         };
+
+        /*
+         * A terminal frame mutates the store, so it has to invalidate the way
+         * `invalidate()` does. A fetch issued before this frame read the row
+         * while it still rested; writing its rows back afterwards re-stamps the
+         * cancelled leg as current for a whole window — BUG-0697's consequence,
+         * reached through the fetch path instead of the status test. Bumped
+         * once per frame rather than per leg. `_loadedAt` is deliberately left
+         * alone: what the store holds now came from the venue itself, newer
+         * than any response still in flight.
+         */
+        if (closed) this.generation++;
 
         applyLeg("tp", "PROFIT", data.tpPrice);
         applyLeg("sl", "LOSS", data.slPrice);

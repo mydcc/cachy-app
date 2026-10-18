@@ -466,23 +466,134 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
  * The venue pushes one status per frame, so each test pushes one.
  */
 describe("tpSlState — a venue-initiated cancel is terminal (BUG-0697)", () => {
-    it("removes a leg the venue cancelled itself (SYSTEM_CANCELED)", () => {
+    /**
+     * Pushes the venue's own "a stop is resting" frame and proves it landed.
+     *
+     * The positive assertion is the point: every test below asserts a leg is
+     * *gone*, and an assertion about nothing passes on a store that never held
+     * the leg.
+     */
+    function seedRestingStop(): void {
         tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        expect(tpSlState.plansFor("SOLUSDT").loss?.triggerPrice).toBe("85");
+    }
+
+    it("removes a leg the venue cancelled itself (SYSTEM_CANCELED)", () => {
+        seedRestingStop();
         tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "SYSTEM_CANCELED" });
 
         expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
     });
 
     it("removes a leg the venue reports as FAILED", () => {
-        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        seedRestingStop();
         tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "FAILED" });
 
         expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
     });
 
+    it("removes it on a terminal frame that still echoes the price", () => {
+        // The other frame shape. A cancel need not be price-less, and one that
+        // carries a price must not reach the merge path below the terminal
+        // check.
+        seedRestingStop();
+        tpSlState.updateFromWs({
+            orderId: "42",
+            symbol: "SOLUSDT",
+            status: "SYSTEM_CANCELED",
+            slPrice: "85",
+        });
+
+        expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
+    });
+
+    it("removes it on a status this app has never seen", () => {
+        // What "terminal unless NEW" buys over a longer list: a value the enum
+        // grows after this test was written is terminal with no code change.
+        // A whitelist of the five documented statuses keeps every other test
+        // here green, this one red.
+        seedRestingStop();
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "EXPIRED" });
+
+        expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
+    });
+
+    it("keeps the leg when a push names no status", () => {
+        // `status` is optional on this channel, and a frame that says nothing
+        // about the leg leaves it as it was. `status !== "NEW"` without the
+        // `undefined` term would delete the leg on every such push, and no
+        // other test here would notice.
+        seedRestingStop();
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", slPrice: "86" });
+
+        expect(tpSlState.plansFor("SOLUSDT").loss?.triggerPrice).toBe("86");
+    });
+
+    it("keeps the leg when a push names an empty status", () => {
+        // An empty string says as little as a missing one, so it gets the same
+        // reading.
+        seedRestingStop();
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "", slPrice: "86" });
+
+        expect(tpSlState.plansFor("SOLUSDT").loss?.triggerPrice).toBe("86");
+    });
+
+    it("removes both legs, because the status is the row's and not a leg's", () => {
+        // One venue row holds both legs and one `orderId` names it, so a
+        // terminal status ends the row. Pinned rather than left to the reader:
+        // a later leg-scoped change would otherwise pass unnoticed.
+        seedRestingStop();
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", tpPrice: "93" });
+        expect(tpSlState.plansFor("SOLUSDT").profit?.triggerPrice).toBe("93");
+
+        // The frame names the take-profit price only; the stop-loss leg has to
+        // go with it.
+        tpSlState.updateFromWs({
+            orderId: "42",
+            symbol: "SOLUSDT",
+            status: "SYSTEM_CANCELED",
+            tpPrice: "93",
+        });
+
+        const plans = tpSlState.plansFor("SOLUSDT");
+        expect(plans.profit).toBeUndefined();
+        expect(plans.loss).toBeUndefined();
+    });
+
+    it("is not undone by a fetch that was already in flight", async () => {
+        // A read issued before the cancel carries the row as it stood then, and
+        // `ensureFresh` writes the whole list back. Without the generation bump
+        // that re-stamps the cancelled leg as current for a whole window — this
+        // item's consequence, reached through the fetch path instead of the
+        // status test.
+        seedRestingStop();
+
+        // The snapshot the venue would have returned a moment before the
+        // cancel: it still lists the leg.
+        let release: (rows: unknown[]) => void = () => {};
+        fetchTpSl.mockReturnValue(new Promise((resolve) => (release = resolve)));
+        const inFlight = tpSlState.ensureFresh();
+
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "SYSTEM_CANCELED" });
+        expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
+
+        release([
+            {
+                orderId: "42-sl",
+                symbol: "SOLUSDT",
+                planType: "LOSS",
+                triggerPrice: "85",
+                status: "NEW",
+            },
+        ]);
+        await inFlight;
+
+        expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
+    });
+
     it("stops reporting a stop the venue no longer holds", () => {
-        // What the risk engine reads. The positive assertion goes first:
-        // without it the one below passes on a store that never held the leg.
+        // What the risk engine reads, in both the position-scoped and the
+        // unscoped form.
         tpSlState.updateFromWs({
             orderId: "42",
             symbol: "SOLUSDT",
@@ -491,10 +602,12 @@ describe("tpSlState — a venue-initiated cancel is terminal (BUG-0697)", () => 
             positionId: "pos-1",
         });
         expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")?.toString()).toBe("85");
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long")?.toString()).toBe("85");
 
         tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "SYSTEM_CANCELED" });
 
         expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")).toBeNull();
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long")).toBeNull();
     });
 });
 

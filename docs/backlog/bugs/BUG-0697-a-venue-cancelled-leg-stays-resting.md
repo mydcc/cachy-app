@@ -84,6 +84,19 @@ nothing about it.
 The removal is logged at `debug`, the way the superseded-response guard is, so
 a leg that disappears is never invisible.
 
+Two terms and one line were added in the review round on #4137, each pinned by a
+test that goes red without it:
+
+- `status !== ""` — an empty string says as little as a missing one, so it gets
+the same reading. `status !== undefined` alone read `""` as terminal.
+- `if (closed) this.generation++`, before the two `applyLeg` calls. A terminal
+frame mutates the store, so it has to invalidate the way `invalidate()` does: a
+fetch issued before the frame read the row while it still rested, and writing
+its rows back re-stamped the cancelled leg as current for a whole window. That is
+this item's consequence reached through the fetch path instead of the status
+test. `_loadedAt` is deliberately left alone — what the store holds now came from
+the venue itself, newer than any response still in flight.
+
 ## Acceptance criteria
 
 - [x] A test pushes `status: "SYSTEM_CANCELED"` and asserts the leg leaves the store
@@ -102,7 +115,20 @@ a leg that disappears is never invisible.
 All three tests go red with `src/stores/tpsl.svelte.ts` reverted, and the
 messages name the defect: the leg dump still reports `status: "NEW"` with its
 `triggerPrice`, and `restingStopPrice` returns `85` where the test expects
-`null`. With the fix, `src/stores/tpsl.test.ts` is 52 passed of 52.
+`null`. With the fix, `src/stores/tpsl.test.ts` is 58 passed of 58.
+
+Six more tests came out of the review round on #4137. Each was checked against
+the implementation it guards rather than assumed to guard it:
+
+- A whitelist (`["CANCELED","FILLED","SYSTEM_CANCELED","FAILED"]`) leaves seven
+  of the eight tests in this block green and fails **only** "removes it on a
+  status this app has never seen" — which is the whole point of inverting rather
+  than extending, and was unpinned before.
+- `status !== "NEW"` without the `undefined` and empty terms fails exactly the
+  two "keeps the leg" tests.
+- Removing `if (closed) this.generation++` fails only the in-flight-fetch test,
+  with `expected { orderId: '42-sl', …(4) } to be undefined` — the cancelled leg
+  coming back.
 
 ## Out of scope
 
@@ -114,6 +140,11 @@ messages name the defect: the leg dump still reports `status: "NEW"` with its
 
 - [BUG-0665](BUG-0665-ws-push-strips-source-order-id.md) — the review this was found in
 - [BUG-0660](BUG-0660-tpsl-drag-paper-order-not-found.md) — the drag path's `stripLegSuffix` fallback
+- [BUG-0699](BUG-0699-close-event-alone-ends-a-leg.md) — the `event === "CLOSE"`
+  arm this item left alone: filed rather than settled, because it was not this
+  item's and changing it inverts behaviour three existing tests pin
+- [BUG-0700](BUG-0700-unvalidated-tp-sl-frames-and-silent-drops.md) — the same
+  handler's silent drops, filed
 - [`docs/bitunix-api/08_websocket.md`](../../bitunix-api/08_websocket.md) — the channel's status enum
 
 ## State
@@ -135,5 +166,14 @@ stage on a funded account, and paper mode has no WebSocket, so the statuses are
 taken from the channel document whose own correction note this defect was
 derived from. `FAILED` is documented only — no observed frame.
 
-Deleted nothing and added no abstraction: one condition, one log line, three
+Deleted nothing and added no abstraction. After the review round on #4137 the
+change is one condition of three terms, one log line, one counter bump and nine
 tests.
+
+That review found the `event === "CLOSE"` arm beside this code contradicting
+`08_websocket.md:404`, and three silent drops in the same handler. Neither is
+this item's, and settling the arm would invert behaviour three existing tests
+pin, so both are filed —
+[BUG-0699](BUG-0699-close-event-alone-ends-a-leg.md) and
+[BUG-0700](BUG-0700-unvalidated-tp-sl-frames-and-silent-drops.md) — rather than
+folded in here.
