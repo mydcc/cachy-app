@@ -303,11 +303,18 @@ settings UI.** Six touchpoints per flag × three modes. `migrations.ts` already
 exists; the new setting must register there or it becomes the seventh ad-hoc
 flag.
 
-**N4 — `SettingsGrid`'s 560 px threshold may be unreachable.** It is a
-container query on the settings window. If the settings window's `minWidth` is
-below 560 px, the two-column layout silently never triggers and no test would
-notice. Worth checking before the grid work, because it decides whether the
-breakpoint is real.
+**N4 — `SettingsGrid`'s 560 px threshold is real; the settings window's
+`minWidth` is the part that is unreachable. Measured.** The grid is a container
+query (`src/components/settings/shared/SettingsGrid.svelte:56`, `gridClass`:
+`@min-[560px]:grid-cols-2`, `@min-[960px]:grid-cols-3`). The settings window
+(`src/lib/windows/WindowRegistry.svelte.ts:321`) spreads `...baseLayout` and
+overrides only `width` and `height` (`:336`), so it inherits `minWidth: 200`
+(`:95`) — but its flags set `isResizable: false` (`:330`). The window is fixed
+at 1000 px, so the inherited minimum never applies and the threshold is always
+cleared. **The two-column layout is not unreachable; the `minWidth` is.** The
+only path below 560 px is the responsive one (`edgeToEdgeBreakpoint: 768`,
+`:333`), which hands the container the viewport width. Filed as
+[BUG-0696](../../bugs/BUG-0696-settings-window-inherits-an-inert-minwidth.md).
 
 **N5 — Nothing measures density.** Playwright is configured. A global control
 height change with no screenshot baseline turns "does it look better" into an
@@ -322,19 +329,33 @@ overlapping.
 `#reset-btn`. Once windows can be snapped and sidebars resized, a user needs a
 way back to a known state, or a bad arrangement is permanent.
 
-**N8 — ARIA is inconsistent between the two tab bars.** `SettingsContent` has
-`role="tablist"`; whether it also has `role="tab"` / `aria-selected` / roving
-tabindex / arrow-key navigation needs checking. `VisualsTab`'s pills appear to
-have no roles at all. Adding tabs and sub-tabs without settling this makes it
-worse.
+**N8 — ARIA is inconsistent between the two tab bars. Measured.**
+`src/components/settings/SettingsContent.svelte` carries `role="tablist"`
+(`:95`), `role="tab"` (`:104`) and `aria-selected` (`:105`) — but the file
+contains no `tabindex`, no `ArrowRight`/`ArrowLeft` and no keydown handler at
+all. The tab list is announced correctly and is **not** keyboard-operable: no
+roving tabindex, no arrow navigation.
+`src/components/settings/tabs/VisualsTab.svelte`'s sub-navigation (`:52`) is
+bare `<button>` elements with no role and no `aria-selected`, while its wrapper
+claims `role="tabpanel"` (`:46`) — a tabpanel with no tab pointing at it.
+Outside settings, `src/components/alerts/AlertPanelView.svelte:210`
+(`onTabKeydown`) is a working reference for both. Two of the three tab bars need
+settling before more tabs are added.
 
-**N9 — One compaction precedent exists, and it was narrow.**
+**N9 — One compaction precedent exists, and it was narrow. Measured.**
 [FEAT-0328](../../features/FEAT-0328-compact-account-controls-and-fee-display.md)
-shipped in 1.6.0-beta.195 and compacted exactly one component.
-[BUG-0411](../../bugs/BUG-0411-modal-windows-oversized-polish.md)
-(`done`) already took a pass at modal sizing. Both mean: a density item that
-claims "compact the whole app" will collide with history, and should be scoped
-as *token infrastructure* plus *adoption in named areas*.
+shipped in 1.6.0-beta.195 and compacted exactly one component. Its `## Out of
+scope` (line 289) excludes multi-trade / hedge-mode order entry and changing
+*how* position size is computed from leverage, and it records a deliberate
+non-build — "max position size" (line 103) — because a cap the exchange would
+refuse is a misleading number on a money screen.
+[BUG-0411](../../bugs/BUG-0411-modal-windows-oversized-polish.md) (`done`) is
+pure frame polish: its out-of-scope line (61) excludes **any** behaviour change
+— picks, confirms, writes and reads belong to BUG-0409/BUG-0410 — plus new
+settings and new dialogs; only the frame was wrong, the dialog content itself
+was verified correct. Both mean: a density item that claims "compact the whole
+app" will collide with history, and should be scoped as *token infrastructure*
+plus *adoption in named areas*.
 
 **N10 — Window sizing was already touched once.** BUG-0411 is `done`. Magnetic
 tiling and window sizing overlap; the new items must not re-open that
@@ -345,7 +366,9 @@ conclusion without saying what it changed.
 ## 8. Reading this document
 
 Sections 1–6 are measurements. If a number drifts, the number is stale, not the
-code. Sections 7's N1–N4 and N9 are the ones that constrain *ordering* rather
+code. Sections 7's N1–N3 and N9 are the ones that constrain *ordering* rather
 than describing state — those are why the token layer precedes the density mode,
 and why the density mode precedes the settings reorganisation in execution even
-though the settings work is specced first.
+though the settings work is specced first. N4, N8 and N9 were the three open
+claims of the original brief; all three are measured above, and N4's outcome
+lives on as [BUG-0696](../../bugs/BUG-0696-settings-window-inherits-an-inert-minwidth.md).

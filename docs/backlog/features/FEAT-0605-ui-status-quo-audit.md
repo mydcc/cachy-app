@@ -2,7 +2,7 @@
 id: FEAT-0605
 title: Audit the UI status quo: windows, elements, control sizes, CSS debt
 type: feature
-status: in-progress
+status: done
 assignee: claude
 priority: P2
 milestone: none
@@ -93,6 +93,6 @@ of its claims are still unverified and are the actual work left here.
 
 ## State
 
-Claimed 2026-10-18 by `claude` on branch `feature/feat-0605-ui-status-quo`.
-Open: the three unverified claims N4, N8 and N9 in
-`docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` still have to be measured.
+Done 2026-10-18 on branch `feature/feat-0605-ui-status-quo`. N4, N8 and N9 are
+measured in `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md`, section 7.
+N4 produced the child item BUG-0696. No behaviour was changed.
