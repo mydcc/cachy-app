@@ -81,12 +81,13 @@ const chart = vi.hoisted(() => {
         update: vi.fn(),
         setData: vi.fn(),
         applyOptions: vi.fn(),
-        createPriceLine: vi.fn((options: { price: number; title: string }) => {
-            const state = { price: options.price, title: options.title };
+        createPriceLine: vi.fn((options: { price: number; title: string; color?: string }) => {
+            const state = { price: options.price, title: options.title, color: options.color };
             const handle = {
-                applyOptions: (next: { price?: number; title?: string }) => {
+                applyOptions: (next: { price?: number; title?: string; color?: string }) => {
                     if (next.price !== undefined) state.price = next.price;
                     if (next.title !== undefined) state.title = next.title;
+                    if (next.color !== undefined) state.color = next.color;
                 },
                 options: () => ({ ...state }),
             };
@@ -376,7 +377,7 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
         // same millisecond, so the value would not change and the effect could
         // not re-run. Bump by one instead of re-reading the clock.
         const stored = marketState.data["BTCUSDT"];
-        stored.lastUpdated = stored.lastUpdated + 1;
+        stored.lastUpdated = (stored.lastUpdated ?? 0) + 1;
         await settle();
 
         expect(chart.candleSeries.update).toHaveBeenCalledTimes(1);
@@ -412,7 +413,7 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
     });
 
     it("keeps live updates flowing when the slow-path indicator step throws", async () => {
-        vi.mocked(JSIndicators.ema).mockImplementation((_closes: number[]) => {
+        vi.mocked(JSIndicators.ema).mockImplementation(() => {
             throw new Error("simulated indicator failure");
         });
 
