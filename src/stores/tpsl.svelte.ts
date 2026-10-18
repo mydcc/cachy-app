@@ -292,7 +292,26 @@ class TpSlManager {
             return;
         }
         const symbol = data.symbol;
-        const closed = data.event === "CLOSE" || ["CANCELED", "FILLED"].includes(data.status ?? "");
+        /*
+         * Terminal on this channel is any status other than `NEW`; a frame
+         * that names no status leaves the leg as it was.
+         *
+         * `docs/bitunix-api/08_websocket.md:366` documents the enum as `NEW`
+         * / `CANCELED` / `SYSTEM_CANCELED` / `FILLED` / `FAILED`. The
+         * hand-written pair that stood here (`CANCELED`, `FILLED`) was
+         * written from the vendor's original post and predates that
+         * correction, so it missed `SYSTEM_CANCELED` — the value that tells a
+         * venue-initiated cancel from a user-initiated one — and `FAILED`
+         * entirely (BUG-0697). A leg the venue had cancelled stayed resting,
+         * and `restingStopPrice()` went on reporting a stop the venue no
+         * longer held.
+         *
+         * Inverted rather than extended: the next value the enum grows is
+         * then terminal by default, and of the two ways to be wrong only the
+         * resting one leaves a phantom stop for the risk engine to read.
+         */
+        const closed =
+            data.event === "CLOSE" || (data.status !== undefined && data.status !== "NEW");
         const positionId =
             data.positionId !== undefined && data.positionId !== null && data.positionId !== ""
                 ? String(data.positionId)
@@ -309,7 +328,20 @@ class TpSlManager {
              * `positionId`, and the next push for that row merged into it.
              */
             if (closed) {
-                if (index !== -1) this._orders.splice(index, 1);
+                if (index !== -1) {
+                    // Not silent, for the reason the superseded guard above is
+                    // not: a leg that disappears is the display contradicting
+                    // the venue, and a removal with no trace is the one
+                    // failure mode that cannot be diagnosed after the fact.
+                    // `debug`, and bounded by real venue events rather than by
+                    // polling.
+                    logger.debug("api", "[TpSl] leg removed on terminal push", {
+                        orderId: legId,
+                        status: data.status,
+                        event: data.event,
+                    });
+                    this._orders.splice(index, 1);
+                }
                 return;
             }
             if (price === undefined) return;

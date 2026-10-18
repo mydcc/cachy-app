@@ -452,6 +452,53 @@ describe("tpSlState — updateFromWs (Tp Sl Channel)", () => {
 });
 
 /*
+ * BUG-0697 — the venue can cancel a stop on its own, and on this channel it
+ * says so in a status the store did not recognise.
+ *
+ * `docs/bitunix-api/08_websocket.md:366` lists five statuses; the store tested
+ * two of them. A `SYSTEM_CANCELED` — a liquidation, a filled bracket, an ADL
+ * event — therefore read as an ordinary update: the leg stayed in the store,
+ * the position card kept rendering it, and `restingStopPrice()` went on
+ * returning a trigger the venue no longer held. That number is what the risk
+ * engine measures, so the display and the sizing were both wrong with nothing
+ * saying so.
+ *
+ * The venue pushes one status per frame, so each test pushes one.
+ */
+describe("tpSlState — a venue-initiated cancel is terminal (BUG-0697)", () => {
+    it("removes a leg the venue cancelled itself (SYSTEM_CANCELED)", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "SYSTEM_CANCELED" });
+
+        expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
+    });
+
+    it("removes a leg the venue reports as FAILED", () => {
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "NEW", slPrice: "85" });
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "FAILED" });
+
+        expect(tpSlState.plansFor("SOLUSDT").loss).toBeUndefined();
+    });
+
+    it("stops reporting a stop the venue no longer holds", () => {
+        // What the risk engine reads. The positive assertion goes first:
+        // without it the one below passes on a store that never held the leg.
+        tpSlState.updateFromWs({
+            orderId: "42",
+            symbol: "SOLUSDT",
+            status: "NEW",
+            slPrice: "85",
+            positionId: "pos-1",
+        });
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")?.toString()).toBe("85");
+
+        tpSlState.updateFromWs({ orderId: "42", symbol: "SOLUSDT", status: "SYSTEM_CANCELED" });
+
+        expect(tpSlState.restingStopPrice("SOLUSDT", "long", "pos-1")).toBeNull();
+    });
+});
+
+/*
  * BUG-0665 — a push says what changed about one leg; it is not the whole
  * truth about that leg.
  *
