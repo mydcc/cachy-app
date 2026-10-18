@@ -2,7 +2,8 @@
 id: FEAT-0605
 title: Audit the UI status quo: windows, elements, control sizes, CSS debt
 type: feature
-status: ready
+status: in-progress
+assignee: claude
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -89,3 +90,9 @@ of its claims are still unverified and are the actual work left here.
 - [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) — settings track
 - [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — the enabler
 - [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — the goal
+
+## State
+
+Claimed 2026-10-18 by `claude` on branch `feature/feat-0605-ui-status-quo`.
+Open: the three unverified claims N4, N8 and N9 in
+`docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` still have to be measured.
