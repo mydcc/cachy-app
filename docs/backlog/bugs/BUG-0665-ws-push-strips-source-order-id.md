@@ -2,7 +2,7 @@
 id: BUG-0665
 title: A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had
 type: bug
-status: in-progress
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -139,12 +139,14 @@ is the only place they can come from.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect: hydrate a leg with `sourceOrderId`
+- [x] A test reproduces the defect: hydrate a leg with `sourceOrderId`
       (and `scopeGuess`, `ctime`), push a WebSocket update for it, and
-      assert those fields survive. It fails without the fix.
-- [ ] The test passes with the fix
-- [ ] Cancelling a plan after a WS push sends the row id, not the leg id
-- [ ] `TpSlCreateModal` still treats a position-wide plan as covering after
+      assert those fields survive. It fails without the fix — 5 of the
+      new tests go red with `src/stores/tpsl.svelte.ts` reverted, and the
+      messages name the defect (`expected '123-tp' to be '123'`)
+- [x] The test passes with the fix — 48/48 in `src/stores/tpsl.test.ts`
+- [x] Cancelling a plan after a WS push sends the row id, not the leg id
+- [x] `TpSlCreateModal` still treats a position-wide plan as covering after
       a push (consequence B, the quiet one)
 - [x] `workingType` — settled, not carried by accident: the fix spreads it
       on purpose. The premise this criterion was written on ("read nowhere
@@ -167,3 +169,21 @@ gap, not this fix's, and this item does not claim to close it.
   re-sent the wrong thing to a live venue, also P1
 - Found while reviewing #4007 / #4008; reported there as a follow-up and
   deliberately not fixed inside either PR
+
+## State
+
+Done 2026-10-18 on branch `fix/bug-0665-ws-push-strips-source-order-id`.
+`updateFromWs` merges the frame into the stored leg instead of rebuilding it,
+so `sourceOrderId`, `scopeGuess`, `workingType`, `ctime`, `qty`, `price` and
+`orderType` survive a push. `positionId` is kept when the frame omits it. No
+consumer was changed: both were correct, they were simply handed a row that
+had lost its provenance.
+
+Verified at the store boundary, which is where the defect lives. A chain test
+from `TpSlList` / `TpSlCreateModal` through to the store is **not** added here
+— that gap is IDEA-0564's, and this item does not claim to close it.
+
+Not verified against a live Bitunix push: paper mode has no WebSocket, so the
+observation needs a funded live account. The reasoning for `positionId` is
+recorded under *Fix* and asserted in the tests; it is safe either way because
+a `CLOSE`/`CANCELED` push splices the leg out.
