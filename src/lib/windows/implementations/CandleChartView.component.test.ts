@@ -81,12 +81,13 @@ const chart = vi.hoisted(() => {
         update: vi.fn(),
         setData: vi.fn(),
         applyOptions: vi.fn(),
-        createPriceLine: vi.fn((options: { price: number; title: string }) => {
-            const state = { price: options.price, title: options.title };
+        createPriceLine: vi.fn((options: { price: number; title: string; color?: string }) => {
+            const state = { price: options.price, title: options.title, color: options.color };
             const handle = {
-                applyOptions: (next: { price?: number; title?: string }) => {
+                applyOptions: (next: { price?: number; title?: string; color?: string }) => {
                     if (next.price !== undefined) state.price = next.price;
                     if (next.title !== undefined) state.title = next.title;
+                    if (next.color !== undefined) state.color = next.color;
                 },
                 options: () => ({ ...state }),
             };
@@ -376,7 +377,7 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
         // same millisecond, so the value would not change and the effect could
         // not re-run. Bump by one instead of re-reading the clock.
         const stored = marketState.data["BTCUSDT"];
-        stored.lastUpdated = stored.lastUpdated + 1;
+        stored.lastUpdated = (stored.lastUpdated ?? 0) + 1;
         await settle();
 
         expect(chart.candleSeries.update).toHaveBeenCalledTimes(1);
@@ -412,7 +413,7 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
     });
 
     it("keeps live updates flowing when the slow-path indicator step throws", async () => {
-        vi.mocked(JSIndicators.ema).mockImplementation((_closes: number[]) => {
+        vi.mocked(JSIndicators.ema).mockImplementation(() => {
             throw new Error("simulated indicator failure");
         });
 
@@ -1743,12 +1744,13 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
         );
     });
 
-    it("falls back to the base row id when a WebSocket push erased sourceOrderId", async () => {
-        // `updateFromWs` rebuilds a leg from a fixed field list and does not
-        // carry `sourceOrderId`, so a pushed row is present in the store but
-        // carries nothing to resolve from. That is the one shape the store
-        // lookup cannot answer, and it is exactly what `stripLegSuffix` is
-        // still here for.
+    it("falls back to the base row id when the store holds no row for it", async () => {
+        // Since BUG-0665 `updateFromWs` names the row from the frame itself,
+        // so a pushed leg does carry `sourceOrderId`. The shape this seeds by
+        // hand is still reachable for reasons the push is not responsible
+        // for: a row the store never held, and one it no longer holds because
+        // the leg was pruned. That is the shape the store lookup cannot
+        // answer, and it is what `stripLegSuffix` is still here for.
         async function hydrateWithoutSourceOrderId() {
             fetchTpSlOrders.mockResolvedValue([
                 {
@@ -1757,7 +1759,8 @@ describe("BUG-0660 — paper TP/SL drag addresses the plan row, not the syntheti
                     planType: "PROFIT",
                     triggerPrice: "120",
                     status: "NEW",
-                    // No sourceOrderId — as after a WS push.
+                    // No sourceOrderId — the row id is not resolvable from the
+                    // store, whatever put the leg there.
                 },
             ]);
             await tpSlState.ensureFresh();

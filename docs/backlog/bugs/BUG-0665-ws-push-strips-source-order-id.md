@@ -2,7 +2,7 @@
 id: BUG-0665
 title: A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -10,9 +10,12 @@ area: execution
 data_class: none
 adr: none
 depends_on: []
+assignee: claude
 ---
 
 # BUG-0665 — A TP/SL WebSocket push strips sourceOrderId, so cancel and edit address a row the venue never had
+
+Branch: `fix/bug-0665-ws-push-strips-source-order-id`
 
 ## Symptom
 
@@ -52,8 +55,8 @@ failing test before it, per the template's rule for derived bugs.
   `orderId`, `symbol`, `planType`, `triggerPrice`, `status`, `positionId`.
 
 - Consequence A, cancel — `src/components/shared/TpSlList.svelte:90` hands
-  the store row straight to `cancelTpSlOrder`, which resolves the id at
-  `src/services/trade/tpSlService.ts:237`:
+  the store row straight to `activeExchange().trading.cancelTpSlOrder(order)`,
+  which resolves the id at `src/services/trade/tpSlService.ts:270`:
 
   ```ts
   const orderId = order.sourceOrderId || order.orderId || order.id;
@@ -65,17 +68,17 @@ failing test before it, per the template's rule for derived bugs.
   something."* After a push the first term is gone, so the leg id goes out
   instead.
 
-- Consequence A, edit — `src/components/shared/TpSlEditModal.svelte:180`
+- Consequence A, edit — `src/components/shared/TpSlEditModal.svelte:205`
   resolves the same way, with the same reasoning in its comment.
 
-- Consequence B — `src/components/shared/TpSlCreateModal.svelte:75-76`:
+- Consequence B — `src/components/shared/TpSlCreateModal.svelte:71-72`:
 
   ```ts
   const tpCoveredByPositionPlan = existingPlans.profit?.scopeGuess === "position";
   ```
 
   `scopeGuess` is dropped too, so an existing position-wide plan reads as
-  absent. That file's own comment (`:70-72`) names the two outcomes:
+  absent. That file's own comment (`:64-68`) names the two outcomes:
   *"either a refused create (visible) or a second plan where the trader
   expected an edit (quiet)"*.
 
@@ -100,48 +103,119 @@ falls back to the invented leg id.
 
 ## Fix
 
-Spread the existing row instead of rebuilding it, so the push updates the
-fields it actually carries and the rest survives:
+Merge the frame into the existing row instead of rebuilding it, so the push
+updates the fields it actually carries and the rest survives:
 
 ```ts
-this._orders[index] = {
-    ...this._orders[index],
+const stored = index !== -1 ? this._orders[index] : undefined;
+const updated: TpSlOrder = {
+    ...stored,
+    sourceOrderId: orderId,
     orderId: legId, symbol, planType, triggerPrice: price,
     status: data.status ?? "NEW",
     ...(positionId !== undefined ? { positionId } : {}),
 };
 ```
 
-A leg the push *creates* (`index === -1`) still has nothing to inherit, so
-its `sourceOrderId` stays `undefined` — correct, and the reason BUG-0660's
-`stripLegSuffix` fallback must stay.
+`sourceOrderId` is **set from the frame, not inherited**: the frame names the
+row itself (`data.orderId` is the identifier `normalizeTpSlRow` records as
+`sourceOrderId`), so a leg the push *creates* gets it too. Without that, a plan
+arriving by push before the first fetch succeeds could be neither cancelled nor
+edited.
 
-**Open question, decide before implementing.** `positionId` is spread
-conditionally above, so a push *without* a position id keeps the row's
-previous one. That is probably right (the leg has not stopped belonging to
-the position) but it is a judgement, not a documented rule — check it
-against a real push that carries no `positionId`.
+The terminal check runs **before** the price guard. A close frame need not echo
+the leg's price, and with the guard first such a close removed nothing.
+
+`stripLegSuffix` in the drag path stays and is untouched: it covers rows the
+store does not hold at all, which is BUG-0660.
+
+**`positionId`, decided: kept.** A push that names no position keeps the
+row's previous one. A frame that omits the position says nothing about which
+position the leg protects, whereas dropping it would silently un-scope a leg
+that `restingStopPrice()` needs scoped in hedge mode (BUG-0524). The window
+in which a stale id could be inherited is closed by the handler itself: a
+`CLOSE`/`CANCELED` push splices the leg out, so a later push for the same
+row creates a fresh leg that inherits nothing. Not confirmed against a live
+push — the reasoning above is why it is safe either way, and it is asserted
+in the tests.
+
+**`workingType`, deliberately carried.** The merge keeps it, and the item's
+earlier claim that it "is read nowhere today" was wrong: `TpSlCreateModal`
+prefills its trigger-type select from the plan (`stopTypeOf`, `:90`). So
+carrying is the better behaviour — dropping it meant the first push reset a
+stop's trigger type to the modal's default. The spread also carries `qty`,
+`price`, `orderType`, `ctime` and `createTime`, none of which the frame
+repeats.
 
 ## Acceptance criteria
 
-- [ ] A test reproduces the defect: hydrate a leg with `sourceOrderId`
+- [x] A test reproduces the defect: hydrate a leg with `sourceOrderId`
       (and `scopeGuess`, `ctime`), push a WebSocket update for it, and
-      assert those fields survive. It fails without the fix.
-- [ ] The test passes with the fix
-- [ ] Cancelling a plan after a WS push sends the row id, not the leg id
-- [ ] `TpSlCreateModal` still treats a position-wide plan as covering after
+      assert those fields survive. It fails without the fix — 5 of the
+      new tests go red with `src/stores/tpsl.svelte.ts` reverted, and the
+      messages name the defect (`expected '123-tp' to be '123'`)
+- [x] The test passes with the fix — 48/48 in `src/stores/tpsl.test.ts`
+- [x] Cancelling a plan after a WS push sends the row id, not the leg id
+- [x] `TpSlCreateModal` still treats a position-wide plan as covering after
       a push (consequence B, the quiet one)
-- [ ] `workingType` is deliberately dropped rather than spread — it is read
-      nowhere today; if the fix spreads it, say so in the item rather than
-      carrying it by accident
+- [x] `workingType` — settled, not carried by accident: the fix spreads it
+      on purpose. The premise this criterion was written on ("read nowhere
+      today") is wrong — `TpSlCreateModal.stopTypeOf` (`:90`) reads it to
+      prefill the trigger-type select, so the push was resetting a stop's
+      type to the venue default. See the correction under *Fix*.
+
+The two middle criteria are proven at the store boundary: the field each
+consumer resolves with survives the push. Neither consumer was wrong, so
+neither is touched. A chain test from component to store is **not** added
+here: the defect lives at the store boundary, and the components' own id
+resolution is unchanged. It is not IDEA-0564's either — that item covers two
+validation seams (tick misalignment, the position-less chart drop), not
+component-to-store propagation.
 
 ## Links
 
 - BUG-0292 — the leg-id scheme this depends on (`orderId` is
   `<sourceOrderId>-tp` / `-sl`, invented locally)
-- BUG-0660 — the drag path's `stripLegSuffix` fallback, which exists
-  precisely because a WebSocket-pushed leg carries no `sourceOrderId`
+- BUG-0660 — the drag path's `stripLegSuffix` fallback, one of whose reasons
+  is a WebSocket-pushed leg carrying no `sourceOrderId`
+- [BUG-0697](BUG-0697-a-venue-cancelled-leg-stays-resting.md) — a
+  venue-initiated cancel is not terminal, so a cancelled leg stays resting
+- [BUG-0698](BUG-0698-push-carries-fields-the-handler-ignores.md) — the push
+  carries fields the handler does not read
 - BUG-0647 — priority calibration: same `area: execution`, a modify that
   re-sent the wrong thing to a live venue, also P1
 - Found while reviewing #4007 / #4008; reported there as a follow-up and
   deliberately not fixed inside either PR
+
+## State
+
+Done 2026-10-18 on branch `fix/bug-0665-ws-push-strips-source-order-id`.
+`updateFromWs` merges the frame into the stored leg instead of rebuilding it.
+`sourceOrderId` is set from the frame, so it survives a push *and* exists on a
+leg the push creates; `scopeGuess`, `workingType`, `ctime`, `qty`, `price` and
+`orderType` survive from the fetch. `positionId` is kept when the frame omits
+it. The terminal check now runs before the price guard, so a price-less close
+still removes the leg — which is what the retained `positionId` depends on.
+
+No consumer was changed: both were correct, they were simply handed a row that
+had lost its provenance.
+
+A four-way review of #4134 (tests, correctness, comments, silent failures) is
+folded in. It found two further defects in the same function, filed rather than
+fixed here because both are pre-existing and neither is the push-merge bug:
+
+- [BUG-0697](BUG-0697-a-venue-cancelled-leg-stays-resting.md) — a
+  venue-initiated cancel is not recognised as terminal, so the risk engine can
+  measure a position against a stop the venue no longer holds. **The retained
+  `positionId` is only safe while this is open**: a leg that outlives its own
+  terminal frame keeps an id it should have lost.
+- [BUG-0698](BUG-0698-push-carries-fields-the-handler-ignores.md) — the frame
+  carries the live stop type, quantity and order type, and the handler reads
+  none of them, so the merge preserves a value it should replace.
+
+Verified at the store boundary, which is where the defect lives. A chain test
+from `TpSlList` / `TpSlCreateModal` through to the store is **not** added here,
+and no backlog item owns that gap.
+
+Not verified against a live Bitunix push: paper mode has no WebSocket, so the
+observation needs a funded live account.
