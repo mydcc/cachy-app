@@ -16,47 +16,68 @@ depends_on: []
 # BUG-0696 — The settings window inherits a minWidth it can never use
 
 Found while measuring FEAT-0605; this is finding N4 of
-`docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md`.
+`docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md`. It removes a dead value
+and does not resize any window — see Out of scope.
 
 ## Problem
 
 `src/lib/windows/WindowRegistry.svelte.ts` defines the settings window at
 `:321`. Its `layout` (`:336`) spreads `...baseLayout` and overrides only `width`
 and `height`, so it inherits `minWidth: 200` from `baseLayout` (`:95`). Its
-flags, however, set `isResizable: false` (`:330`). The window is fixed at
-1000 px, so the inherited minimum is unreachable — the value is inert.
+flags, however, set `isResizable: false` (`:330`), and the resize grips are
+gated on exactly that
+(`src/components/shared/windows/WindowFrame.svelte:956`). No path consults the
+minimum: the grips never render, and maximize assigns the viewport width
+directly (`src/lib/windows/WindowBase.svelte.ts:646`), bypassing the size clamp.
+The value is inert.
 
 That is worse than a dead number: it reads as a real constraint. The FEAT-0605
 audit first read it as one and concluded that `SettingsGrid`'s two-column layout
-might never trigger. It does trigger — at a fixed 1000 px container, the 560 px
-threshold is always cleared.
+might never trigger. It does trigger, at the 1000 px floating width — and it is
+lost again below the container threshold, which is reachable through responsive
+auto-maximize (`WindowBase.svelte.ts:364`, `edgeToEdgeBreakpoint: 768`, `:333`)
+and through a double-click maximize (`allowMaximize` `:326`,
+`doubleClickAction: 'maximize'` `:87`).
 
 Two things are actually open:
 
-1. An inert `minWidth` on a non-resizable window is a false statement about that
-   window, in the one file every window reads its geometry from.
-2. The responsive path is the only one that can go below the threshold
-   (`edgeToEdgeBreakpoint: 768`, `:333`). What a 360–559 px viewport does to
-   `SettingsGrid` is unmeasured and untested.
+1. An inert `minWidth` on a window whose resize grips never render is a false
+   statement about that window, in the one file every window reads its geometry
+   from.
+2. The container is the padded content div
+   (`src/components/settings/SettingsContent.svelte:135`, `p-4 md:p-8`), so the
+   grid drops to one column at roughly 630 px of *window* width — 560 px of
+   container plus 64 px of padding and the frame chrome — not at 560 px. That
+   band is unmeasured and untested.
 
 ## Fix proposal
 
-- Either drop the inherited `minWidth`/`minHeight` from the `settings` layout or
-  set a value the window can act on. Leaving a default that `isResizable: false`
-  makes unreachable is the thing to remove.
-- Cover the sub-560 px container with a component test on `SettingsGrid`, so the
-  single-column band is asserted rather than assumed.
+- Stop declaring a minimum the window cannot act on, and make the effective
+  value explicit rather than inherited.
+- Assert the single-column band where it can actually be observed. The existing
+  component test asserts class-string membership only, which is true at every
+  width; the band needs a Playwright assertion.
 
 ## Acceptance criteria
 
-- The `settings` entry no longer carries a `minWidth` that `isResizable: false`
-  renders unreachable.
-- A test exercises `SettingsGrid` below the 560 px container threshold and
-  asserts a single column.
+- The `settings` window's *effective* minimum width stops being an inert
+  default. Deleting the `minWidth` key alone does not achieve this:
+  `src/lib/windows/WindowBase.svelte.ts:514` falls back to `l.minWidth ?? 200`,
+  and the class default is `200` (`:194`). Either set a value the window can act
+  on, or stop declaring a minimum the window cannot use.
+- The single-column band is asserted at a resolution that can observe it. A
+  Vitest component test cannot: `gridClass` is derived from the `cols` prop
+  (`src/components/settings/shared/SettingsGrid.svelte:56`) and the class string
+  is identical at every container width, which is all
+  `SettingsGrid.component.test.ts:61` checks. Use a Playwright assertion, or
+  reword this criterion to the class contract the component does promise.
 
 ## Out of scope
 
-- The threshold value itself: 560 px is defined and documented in
-  `src/components/settings/shared/SettingsGrid.svelte:56` as deliberate, and is
-  not up for renegotiation here.
+- Any conclusion about window sizing, which BUG-0411 already settled and
+  FEAT-0605 lists as out of scope. This item removes a dead value; it does not
+  resize a window.
+- The threshold value itself: 560 px is documented as deliberate in the header
+  block of `src/components/settings/shared/SettingsGrid.svelte` (`:18-34`); the
+  code line is `:56`. It is not up for renegotiation here.
 - The geometry of every other window in the registry.

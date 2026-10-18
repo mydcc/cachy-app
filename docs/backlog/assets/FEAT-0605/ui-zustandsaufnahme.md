@@ -304,16 +304,24 @@ exists; the new setting must register there or it becomes the seventh ad-hoc
 flag.
 
 **N4 — `SettingsGrid`'s 560 px threshold is real; the settings window's
-`minWidth` is the part that is unreachable. Measured.** The grid is a container
+`minWidth` is what can never take effect. Measured.** The grid is a container
 query (`src/components/settings/shared/SettingsGrid.svelte:56`, `gridClass`:
-`@min-[560px]:grid-cols-2`, `@min-[960px]:grid-cols-3`). The settings window
-(`src/lib/windows/WindowRegistry.svelte.ts:321`) spreads `...baseLayout` and
-overrides only `width` and `height` (`:336`), so it inherits `minWidth: 200`
-(`:95`) — but its flags set `isResizable: false` (`:330`). The window is fixed
-at 1000 px, so the inherited minimum never applies and the threshold is always
-cleared. **The two-column layout is not unreachable; the `minWidth` is.** The
-only path below 560 px is the responsive one (`edgeToEdgeBreakpoint: 768`,
-`:333`), which hands the container the viewport width. Filed as
+`@min-[560px]:grid-cols-2`, `@min-[960px]:grid-cols-3`) on the padded content
+div (`src/components/settings/SettingsContent.svelte:135`, `p-4 md:p-8`), so it
+measures the settings content box, not the window frame. The settings window
+(`src/lib/windows/WindowRegistry.svelte.ts:321`) spreads `...baseLayout`,
+overrides only `width` and `height` (`:336`) and so inherits `minWidth: 200`
+(`:95`) — but its flags set `isResizable: false` (`:330`), and the resize grips
+are gated on exactly that
+(`src/components/shared/windows/WindowFrame.svelte:956`). No path consults the
+minimum: the grips never render, and maximize assigns the viewport width
+directly (`src/lib/windows/WindowBase.svelte.ts:646`), bypassing the size clamp.
+**The layout is not unreachable — the `minWidth` is.** It is reached at the
+1000 px floating width and lost below the container threshold, which is
+reachable through responsive auto-maximize (`WindowBase.svelte.ts:364`,
+`edgeToEdgeBreakpoint: 768` at `WindowRegistry.svelte.ts:333`) and through a
+double-click maximize (`allowMaximize` `:326`, `doubleClickAction: 'maximize'`
+`:87`). Filed as
 [BUG-0696](../../bugs/BUG-0696-settings-window-inherits-an-inert-minwidth.md).
 
 **N5 — Nothing measures density.** Playwright is configured. A global control
@@ -329,20 +337,32 @@ overlapping.
 `#reset-btn`. Once windows can be snapped and sidebars resized, a user needs a
 way back to a known state, or a bad arrangement is permanent.
 
-**N8 — ARIA is inconsistent between the two tab bars. Measured.**
+**N8 — ARIA is inconsistent between the two settings tab bars. Measured.**
 `src/components/settings/SettingsContent.svelte` carries `role="tablist"`
 (`:95`), `role="tab"` (`:104`) and `aria-selected` (`:105`) — but the file
 contains no `tabindex`, no `ArrowRight`/`ArrowLeft` and no keydown handler at
-all. The tab list is announced correctly and is **not** keyboard-operable: no
-roving tabindex, no arrow navigation.
+all. The tabs are native `<button>` elements (`:98`), so each is Tab-focusable
+and Enter/Space-activatable; what is missing is the APG roving-tabindex and
+arrow-key pattern, which leaves the tab list announced correctly but
+pointer-only in practice.
 `src/components/settings/tabs/VisualsTab.svelte`'s sub-navigation (`:52`) is
 bare `<button>` elements with no role and no `aria-selected`, while its wrapper
-claims `role="tabpanel"` (`:46`) — a tabpanel with no tab pointing at it.
-Outside settings, `src/components/alerts/AlertPanelView.svelte:210`
-(`onTabKeydown`) is a working reference for both. Two of the three tab bars need
+claims `role="tabpanel"` (`:46`) — a tabpanel with no tab pointing at it. That
+pairing is not a quirk of this component: five settings tabpanels exist
+(`VisualsTab.svelte:46`, `AiTab.svelte:215`, `ConnectionsTab.svelte:101`,
+`TradingTab.svelte:71`, `SystemTab.svelte:261`) and `aria-controls` appears
+nowhere under `src/components/settings/`. Outside settings, two components
+implement the pattern properly and are the references to copy:
+`src/components/alerts/AlertPanelView.svelte:210` (`onTabKeydown`) and
+`src/components/shared/AcademyTabs.svelte:81`. The inconsistency is wider than
+settings: `grep -rl 'role="tablist"' src --include='*.svelte'` returns six
+files, and `alerts/tabs/ManageTab.svelte` and `shared/TpSlPriceInput.svelte`
+carry neither `tabindex` nor arrow keys either. Both settings tab bars need
 settling before more tabs are added.
 
-**N9 — One compaction precedent exists, and it was narrow. Measured.**
+**N9 — One compaction precedent exists, and it was narrow. Out-of-scope clauses
+read; the item's other claims are its own record and were not re-measured
+here.**
 [FEAT-0328](../../features/FEAT-0328-compact-account-controls-and-fee-display.md)
 shipped in 1.6.0-beta.195 and compacted exactly one component. Its `## Out of
 scope` (line 289) excludes multi-trade / hedge-mode order entry and changing
@@ -370,5 +390,5 @@ code. Sections 7's N1–N3 and N9 are the ones that constrain *ordering* rather
 than describing state — those are why the token layer precedes the density mode,
 and why the density mode precedes the settings reorganisation in execution even
 though the settings work is specced first. N4, N8 and N9 were the three open
-claims of the original brief; all three are measured above, and N4's outcome
+claims of the original brief; all three are resolved above, and N4's outcome
 lives on as [BUG-0696](../../bugs/BUG-0696-settings-window-inherits-an-inert-minwidth.md).
