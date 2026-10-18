@@ -284,7 +284,13 @@ class TpSlManager {
      */
     public updateFromWs(data: RawWsTpSl): void {
         const orderId = data.orderId !== undefined ? String(data.orderId) : "";
-        if (!orderId || !data.symbol) return;
+        if (!orderId || !data.symbol) {
+            // A drop with no trace is the failure mode that cannot be
+            // diagnosed after the fact, and a renamed field on this channel
+            // would make every push vanish exactly here.
+            logger.debug("api", "[TpSl] push dropped, no orderId or symbol", { data });
+            return;
+        }
         const symbol = data.symbol;
         const closed = data.event === "CLOSE" || ["CANCELED", "FILLED"].includes(data.status ?? "");
         const positionId =
@@ -293,28 +299,40 @@ class TpSlManager {
                 : undefined;
 
         const applyLeg = (leg: "tp" | "sl", planType: "PROFIT" | "LOSS", price: string | undefined) => {
-            if (price === undefined) return;
             const legId = `${orderId}-${leg}`;
             const index = this._orders.findIndex((o) => o.orderId === legId);
+            /*
+             * The terminal check runs before the price guard on purpose. A
+             * close frame need not echo the leg's price, and with the guard
+             * first a price-less close was a silent no-op: the leg stayed
+             * resting in the store carrying its `sourceOrderId` and
+             * `positionId`, and the next push for that row merged into it.
+             */
             if (closed) {
                 if (index !== -1) this._orders.splice(index, 1);
                 return;
             }
+            if (price === undefined) return;
             /*
              * Merge into the stored leg rather than rebuilding it (BUG-0665).
              *
              * The frame names the venue row and carries what changed about
-             * it. It cannot carry what this app derived from the row: the
-             * `sourceOrderId` cancel and edit address the venue with
-             * (BUG-0292), the `scopeGuess` create-versus-edit turns on, the
+             * it. What it cannot carry is what this app *derived* from the
+             * row: the `scopeGuess` create-versus-edit turns on, the
              * timestamps the list renders, the stop type the create modal
-             * prefills. Rebuilding from the frame alone dropped all of it on
-             * the first push. A leg the push creates has no row to inherit
-             * from, so it still comes out without them.
+             * prefills, the quantity the row was fetched with. Rebuilding
+             * from the frame alone dropped all of it on the first push.
+             *
+             * `sourceOrderId` is the exception, and the reason this is filed
+             * as a bug: the frame names the row itself, so the id cancel and
+             * edit address the venue with (BUG-0292) is known here — it does
+             * not have to be inherited, and a leg the push *creates* gets it
+             * too.
              */
             const stored = index !== -1 ? this._orders[index] : undefined;
             const updated: TpSlOrder = {
                 ...stored,
+                sourceOrderId: orderId,
                 orderId: legId,
                 symbol,
                 planType,

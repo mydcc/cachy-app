@@ -501,6 +501,9 @@ describe("tpSlState — a push keeps what the fetch recorded (BUG-0665)", () => 
         expect(leg?.triggerPrice).toBe("51000");
         expect(leg?.sourceOrderId).toBe("123");
         expect(leg?.scopeGuess).toBe("position");
+        // Pins the *store*: it preserves the numeric ctime the fetch handed
+        // it. Whether a real fetch produces one is `normalizeTpSlRow`'s rule
+        // (`typeof row.ctime === "number"`), pinned in that file's own test.
         expect(leg?.ctime).toBe(1_700_000_000_000);
     });
 
@@ -552,15 +555,17 @@ describe("tpSlState — a push keeps what the fetch recorded (BUG-0665)", () => 
         expect(tpSlState.plansFor("BTCUSDT").profit?.positionId).toBe("pos-1");
     });
 
-    it("leaves a leg the push creates without what only a fetch can know", async () => {
-        // Nothing was hydrated, so there is no row to inherit from. The leg
-        // still lands, still without a `sourceOrderId` — which is why the
-        // drag path's `stripLegSuffix` fallback stays (BUG-0660).
+    it("gives a leg the push creates the row id the frame names", async () => {
+        // Nothing was hydrated, so there is no fetched row to inherit from —
+        // but `sourceOrderId` is not inherited, it is *named by the frame*:
+        // `data.orderId` is the row `normalizeTpSlRow` records as
+        // `sourceOrderId`. Without it, a plan that arrives by push before the
+        // first fetch succeeds can be neither cancelled nor edited.
         tpSlState.updateFromWs({ ...PUSH });
 
         const leg = tpSlState.plansFor("BTCUSDT").profit;
         expect(leg?.triggerPrice).toBe("51000");
-        expect(leg?.sourceOrderId).toBeUndefined();
+        expect(leg?.sourceOrderId).toBe("123");
     });
 
     it("forgets the row when the plan closes, so a later leg inherits nothing", async () => {
@@ -570,8 +575,25 @@ describe("tpSlState — a push keeps what the fetch recorded (BUG-0665)", () => 
         expect(tpSlState.plansFor("BTCUSDT").profit).toBeUndefined();
 
         tpSlState.updateFromWs({ ...PUSH });
-        expect(tpSlState.plansFor("BTCUSDT").profit?.ctime).toBeUndefined();
-        expect(tpSlState.plansFor("BTCUSDT").profit?.sourceOrderId).toBeUndefined();
+        const leg = tpSlState.plansFor("BTCUSDT").profit;
+        // The positive assertion goes first: without it everything below is
+        // `undefined` behind `?.` and would pass on an empty store too.
+        expect(leg?.triggerPrice).toBe("51000");
+        expect(leg?.ctime).toBeUndefined();
+        expect(leg?.scopeGuess).toBeUndefined();
+    });
+
+    it("removes the leg on a close that carries no price", async () => {
+        // A close frame need not echo the leg's price. With the price guard
+        // ahead of the terminal check this was a silent no-op: the leg stayed
+        // resting in the store with its `sourceOrderId` and its `positionId`,
+        // and the next push for that row merged into it rather than creating
+        // it — which is what makes the retained `positionId` dangerous.
+        await hydrateFetchedLeg();
+
+        tpSlState.updateFromWs({ orderId: "123", symbol: "BTCUSDT", status: "CANCELED" });
+
+        expect(tpSlState.plansFor("BTCUSDT").profit).toBeUndefined();
     });
 });
 
