@@ -23,6 +23,7 @@ import {
   isOpenCodeTarget,
   resolveProviderEndpoint,
 } from "../../../../../lib/server/aiEndpoint";
+import { resolveSessionId } from "../../../../../lib/server/aiSession";
 import {
   isUrlAllowedAsync,
   safeFetch,
@@ -73,8 +74,11 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     "User-Agent": "CachyApp/1.0 (SvelteKit)",
   };
   if (isOpenCodeTarget(targetUrl)) {
-    headers["x-opencode-session"] =
-      request.headers.get("x-session-id") || crypto.randomUUID();
+    // The model picker has no conversation of its own — a fresh id is enough
+    // here, it only has to exist for OpenCode to route the call (BUG-0701).
+    headers["x-opencode-session"] = resolveSessionId(
+      request.headers.get("x-session-id"),
+    );
   }
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`;

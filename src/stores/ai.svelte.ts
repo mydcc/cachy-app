@@ -215,6 +215,20 @@ export class ProviderRequestError extends Error {
     }
 }
 
+/**
+ * A conversation id that ends up in a provider-visible header. Unlike
+ * `generateId()`, it has no `Math.random()` fallback: without a secure context
+ * the id stays empty and the relay fills one in server-side, where `crypto` is
+ * always available. Randomness in a header-bound value is what CodeQL flags as
+ * insecure (BUG-0701).
+ */
+function newSessionId(): string {
+    return typeof crypto !== "undefined" &&
+        typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : "";
+}
+
 class AiManager {
   messages = $state<AiMessage[]>([]);
   isStreaming = $state(false);
@@ -231,7 +245,7 @@ class AiManager {
    * other provider ignores the header. `clearHistory()` rotates it, because a
    * new conversation should not inherit the old one's routing.
    */
-  sessionId: string = generateId();
+  sessionId: string = newSessionId();
   pendingActions = $state<Map<string, PendingAction>>(new Map());
   lastContext = $state<AiContext | null>(null); // Expose context for UI indicators
   contextSummary = $state<{
@@ -291,7 +305,7 @@ class AiManager {
     this.messages = [];
     this.error = null;
     this.errorStatus = null;
-    this.sessionId = generateId();
+    this.sessionId = newSessionId();
     this.isStreaming = false;
     this.save();
   }
@@ -580,7 +594,9 @@ class AiManager {
             headers: {
               "Content-Type": "application/json",
               "x-api-key": apiKey,
-              "x-session-id": this.sessionId,
+              // Empty in a non-secure context (no `crypto.randomUUID`); the
+              // relay then fills a session id in server-side (BUG-0701).
+              ...(this.sessionId ? { "x-session-id": this.sessionId } : {}),
             },
             body: JSON.stringify({
               messages: payloadMessages,

@@ -113,7 +113,9 @@ export function resolveProviderEndpoint(
  */
 export function isOpenCodeTarget(targetUrl: string): boolean {
   try {
-    const host = new URL(targetUrl).hostname.toLowerCase();
+    // `URL` preserves a trailing dot (`opencode.ai.`), which is DNS-equal to
+    // the bare host; drop it so the check agrees with `urlValidator`.
+    const host = new URL(targetUrl).hostname.toLowerCase().replace(/\.$/, "");
     return host === "opencode.ai" || host.endsWith(".opencode.ai");
   } catch {
     return false;

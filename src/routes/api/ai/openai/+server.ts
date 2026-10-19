@@ -24,6 +24,7 @@ import {
   isOpenCodeTarget,
   resolveProviderEndpoint,
 } from "../../../../lib/server/aiEndpoint";
+import { resolveSessionId } from "../../../../lib/server/aiSession";
 import {
   isUrlAllowedAsync,
   safeFetch,
@@ -88,7 +89,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       // OpenCode Go rejects a request without a stable per-conversation id
       // (`400 ... cannot be routed efficiently`). The client sends its own; the
       // fallback keeps other callers of this route working (BUG-0701).
-      headers["x-opencode-session"] = sessionId || crypto.randomUUID();
+      headers["x-opencode-session"] = resolveSessionId(sessionId);
     }
     if (apiKey) {
       headers.Authorization = `Bearer ${apiKey}`;

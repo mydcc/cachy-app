@@ -58,17 +58,36 @@ without doubling `/v1`.
 - `src/lib/server/aiEndpoint.ts::isOpenCodeTarget` recognises the gateway (host
   `opencode.ai` and its subdomains).
 - Both OpenAI-wire routes translate the id for that target only:
-  `x-opencode-session: <id>`, with `crypto.randomUUID()` as the fallback for a
-  caller that has no conversation of its own. No other provider sees the header.
+  `x-opencode-session: <id>`. A missing id, or one outside the allowed header
+  shape, is replaced by a fresh UUID (`src/lib/server/aiSession.ts`) — an
+  invalid header character would otherwise throw inside `fetch` and surface as
+  a 500. No other provider sees the header.
 - Both routes also send `User-Agent: CachyApp/1.0 (SvelteKit)`, matching the
   Gemini route.
 
 ## Verification
 
 `src/routes/api/ai/openai/server.test.ts` pins that an OpenCode target receives
-`x-opencode-session` and the Cachy user agent, and that OpenAI's endpoint does
-not receive the session header. `src/stores/ai.providerFailures.test.ts` pins
-that the id is stable across sends and changes after `clearHistory()`.
+`x-opencode-session` and the Cachy user agent, that OpenAI's endpoint does not
+receive the session header, that the models route forwards the id too, and that
+a missing or header-unsafe id is replaced by a fresh UUID.
+`src/lib/server/aiEndpoint.test.ts` pins the host rule (subdomain and trailing
+dot match; `evil-opencode.ai` and `opencode.ai.attacker.com` do not).
+`src/stores/ai.providerFailures.test.ts` pins that the id is stable across
+sends and changes after `clearHistory()`.
 
-Both assertions were verified red by removing their line: the route test fails
-without the forwarded header, the store test fails without `x-session-id`.
+The forwarding and store assertions were verified red by removing their line:
+the route test fails without the forwarded header, the store test fails without
+`x-session-id`.
+
+## Scope
+
+The fix covers the server relay. The browser-direct path cannot reach
+`opencode.ai` (it sends no CORS headers), so no session id is added there.
+
+A cross-origin redirect issued by `opencode.ai` would forward the header:
+undici strips `Authorization` on a cross-origin redirect but not custom header
+names. Accepted, not mitigated — the header only exists when the initial target
+is `opencode.ai`, and the caller already controls `baseUrl` and the API key, so
+the redirect adds no capability. The guarded dispatcher still blocks private
+addresses at dial time.
