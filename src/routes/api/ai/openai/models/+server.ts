@@ -19,8 +19,10 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
-import { isOpenCodeUrl } from "../../../../../lib/ai/opencodeTarget";
+import {
+  isOpenCodeTarget,
+  resolveProviderEndpoint,
+} from "../../../../../lib/server/aiEndpoint";
 import { resolveSessionId } from "../../../../../lib/ai/sessionId";
 import {
   isUrlAllowedAsync,
@@ -71,7 +73,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     // id to OpenCode, which refuses a request without one (BUG-0701).
     "User-Agent": "CachyApp/1.0 (SvelteKit)",
   };
-  if (isOpenCodeUrl(targetUrl)) {
+  if (isOpenCodeTarget(targetUrl)) {
     // The model picker has no conversation of its own — a fresh id is enough
     // here, it only has to exist for OpenCode to route the call (BUG-0701).
     headers["x-opencode-session"] = resolveSessionId(null);

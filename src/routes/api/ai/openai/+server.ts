@@ -20,8 +20,10 @@ import type { RequestHandler } from "./$types";
 import { getErrorMessage } from "../../../../utils/errorUtils";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { AiRequestSchema } from "../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
-import { isOpenCodeUrl } from "../../../../lib/ai/opencodeTarget";
+import {
+  isOpenCodeTarget,
+  resolveProviderEndpoint,
+} from "../../../../lib/server/aiEndpoint";
 import { resolveSessionId } from "../../../../lib/ai/sessionId";
 import {
   isUrlAllowedAsync,
@@ -83,7 +85,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
     if (isOpenRouterTarget(targetUrl)) {
       headers["X-Title"] = "Cachy";
     }
-    if (isOpenCodeUrl(targetUrl)) {
+    if (isOpenCodeTarget(targetUrl)) {
       // OpenCode Go rejects a request without a stable per-conversation id
       // (`400 ... cannot be routed efficiently`). The client sends its own; the
       // fallback keeps other callers of this route working (BUG-0701).

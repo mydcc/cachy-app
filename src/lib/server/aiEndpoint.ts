@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { isOpenCodeUrl } from "../ai/opencodeTarget";
+
 /**
  * Resolves a target endpoint URL given an optional custom base URL and a default full URL.
  *
@@ -101,4 +103,15 @@ export function resolveProviderEndpoint(
     const qs = mergedParams.toString();
     return qs ? `${resolvedPath}?${qs}` : resolvedPath;
   }
+}
+
+/**
+ * True when a resolved endpoint points at OpenCode's inference gateway.
+ *
+ * The rule itself lives in `src/lib/ai/opencodeTarget.ts`: the client needs
+ * the same answer (the settings form decides what to show), and one rule for
+ * both sides is the point. This keeps the server-side name for it.
+ */
+export function isOpenCodeTarget(targetUrl: string): boolean {
+  return isOpenCodeUrl(targetUrl);
 }
