@@ -4782,12 +4782,13 @@
   },
   "assistant": {
     "sources": {
+      "label": "Quellen",
       "currentTime": "Aktuelle Zeit",
       "activeSymbol": "Aktives Symbol",
       "realTimePrice": "Echtzeitkurs",
       "priceChange24h": "24h-Änderung",
       "marketDetails": "Marktdetails",
-      "currentPrice": "Aktueller Kurs",
+      "currentPrice": "Marktkurs",
       "high24h": "24h-Hoch",
       "low24h": "24h-Tief",
       "volume24h": "24h-Volumen",

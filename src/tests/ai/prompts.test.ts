@@ -49,13 +49,21 @@ describe('promptBuilder', () => {
 });
 
 describe('BUG-0703 number presentation', () => {
-  it('separates calculation precision from the presentation in prose', () => {
-    const prompt = buildSystemPrompt({ mode: 'risk', context: {} });
+  const prompt = buildSystemPrompt({ mode: 'risk', context: {} });
 
-    expect(prompt).toContain('NUMBER PRESENTATION');
+  it('keeps exact values for calculations and JSON, and rounds only the visible text', () => {
+    expect(prompt).toContain('**NUMBER PRESENTATION**');
+    expect(prompt).toContain('the EXACT numbers from the context for every calculation');
     expect(prompt).toContain('round prices, levels and distances to at most 2 decimals');
-    // The old rule forbade rounding outright, which is why the model echoed
-    // four-decimal floats into the chat (BUG-0703).
+    // A price below 0.01 must not collapse to 0.01 in prose.
+    expect(prompt).toContain("Never round below 0.01: '0.0123456' stays");
+  });
+
+  it('leaves no blanket prohibition on rounding anywhere in the prompt', () => {
+    // `baseRole` and `safetyRules` are concatenated into one prompt, and the
+    // old prohibition lived in both files. The assembled text is what counts.
+    expect(prompt).not.toContain('NO ROUNDING');
+    expect(prompt).not.toContain('Never round numbers provided in the context');
     expect(prompt).not.toContain('DO NOT round numbers yourself');
   });
 });

@@ -3879,6 +3879,7 @@ export type TranslationKey =
   | "news.scoreLabel"
   | "news.articlesAnalyzed"
   | "timeframes.addPlaceholder"
+  | "assistant.sources.label"
   | "assistant.sources.currentTime"
   | "assistant.sources.activeSymbol"
   | "assistant.sources.realTimePrice"

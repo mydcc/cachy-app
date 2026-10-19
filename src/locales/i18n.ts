@@ -116,6 +116,14 @@ const TECHNICAL_KEYS = [
   "settings.technicals.pivots",
   "settings.technicals.buy",
   "settings.technicals.sell",
+  // The assistant's source footer names the same indicators; "Force English
+  // Technical Terms" must not split one term across two languages on screen.
+  "assistant.sources.oscillators",
+  "assistant.sources.movingAverages",
+  "assistant.sources.pivots",
+  "assistant.sources.divergences",
+  "assistant.sources.volatility",
+  "assistant.sources.orderbook",
   "settings.technicals.neutral",
   "settings.technicals.strongBuy",
   "settings.technicals.strongSell",

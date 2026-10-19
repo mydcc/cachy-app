@@ -1207,7 +1207,10 @@ class AiManager {
           ? marketData.lowPrice.toString()
           : undefined,
         volume24h: marketData.volume
-          ? Math.round(Number(marketData.volume)).toLocaleString() // audit: safe — display formatting: volume converted to number only for toLocaleString() UI rendering
+          // audit: safe — display formatting: the AI context uses the machine
+          // format the prompt requires (dot decimal, no thousands separator);
+          // toLocaleString() would hand the model "1.234.567" on a German device
+          ? String(Math.round(Number(marketData.volume)))
           : undefined,
         fundingRate: marketData.fundingRate
           ? marketData.fundingRate.times(100).toFixed(4) + "%"
