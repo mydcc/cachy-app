@@ -23,7 +23,7 @@
     import { tradeState } from "../../../stores/trade.svelte";
     import { _ } from "../../../locales/i18n";
     import type { TranslationKey } from "../../../locales/schema";
-    import { markdown } from "../../../actions/markdown";
+    import { assistantMarkdown } from "../../../actions/assistantMarkdown";
     import type { WindowBase } from "../WindowBase.svelte";
     import { resolveActiveProvider } from "../../../stores/settings/aiProviders";
 
@@ -256,7 +256,7 @@
                             <div
                                 class="markdown-content"
                                 class:terminal-md={isTerminal}
-                                use:markdown={msg.content}
+                                use:assistantMarkdown={msg.content}
                             ></div>
                         {:else if msg.role === "system"}
                             {@const pendingMatch =
