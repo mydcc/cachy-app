@@ -3939,6 +3939,7 @@ export type TranslationKey =
   | "assistant.placeholderAi"
   | "assistant.placeholderNote"
   | "assistant.suggestedChanges"
+  | "assistant.unverifiedActionPrices"
   | "assistant.roleUser"
   | "assistant.contextDuration"
   | "assistant.contextNews"

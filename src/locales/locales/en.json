@@ -4845,6 +4845,7 @@
     "placeholderAi": "Message AI...",
     "placeholderNote": "Type note...",
     "suggestedChanges": "Suggested Changes",
+    "unverifiedActionPrices": "Not found in the context: {values}. Check these values before applying them.",
     "roleUser": "User",
     "contextDuration": "⏱ Context: {ms}ms",
     "contextNews": "📰 {count} News",

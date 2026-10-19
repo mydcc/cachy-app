@@ -4845,6 +4845,7 @@
     "placeholderAi": "Nachricht an KI...",
     "placeholderNote": "Notiz eingeben...",
     "suggestedChanges": "Vorgeschlagene Änderungen",
+    "unverifiedActionPrices": "Nicht im Kontext gefunden: {values}. Prüfe diese Werte, bevor du sie übernimmst.",
     "roleUser": "Benutzer",
     "contextDuration": "⏱ Kontext: {ms}ms",
     "contextNews": "📰 {count} News",

@@ -304,6 +304,33 @@
                                                 </tbody>
                                             </table>
                                         </div>
+                                        {#if pending.unverifiedPrices?.length}
+                                            <!-- BUG-0704: a price the context cannot
+                                                 vouch for still applies only after
+                                                 this click, never silently. -->
+                                            <div class="action-warning">
+                                                <span aria-hidden="true">⚠</span>
+                                                <span
+                                                    >{$_(
+                                                        "assistant.unverifiedActionPrices",
+                                                        {
+                                                            values: {
+                                                                values: pending.unverifiedPrices
+                                                                    .map(
+                                                                        (
+                                                                            entry,
+                                                                        ) =>
+                                                                            entry.value,
+                                                                    )
+                                                                    .join(
+                                                                        ", ",
+                                                                    ),
+                                                            },
+                                                        },
+                                                    )}</span
+                                                >
+                                            </div>
+                                        {/if}
                                         <div class="flex gap-2 mt-2">
                                             <button
                                                 class="confirm-btn"
@@ -843,6 +870,19 @@
     .action-mini-table {
         width: 100%;
         font-size: 11px;
+    }
+    .action-warning {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 6px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        line-height: 1.35;
+        color: var(--warning-color);
+        border: 1px solid var(--warning-color);
+        background: color-mix(in srgb, var(--warning-color) 12%, transparent);
     }
     .confirm-btn {
         background: var(--accent-color);

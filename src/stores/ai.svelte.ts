@@ -47,6 +47,10 @@ import {
   validateAiAction,
   type ValidatedAiAction,
 } from "../lib/ai/actionValidation";
+import {
+  findUnverifiedPrices,
+  type UnverifiedPrice,
+} from "../lib/ai/actionContextCheck";
 import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
@@ -113,6 +117,12 @@ export interface PendingAction {
   id: string;
   actions: AiAction[];
   timestamp: number;
+  /**
+   * Price actions that match no context level within `PRICE_MATCH_TOLERANCE`
+   * (BUG-0704). The confirmation block names them; the user can still apply
+   * the batch, because correcting a model value is not this guard's job.
+   */
+  unverifiedPrices?: UnverifiedPrice[];
 }
 
 const LOCAL_STORAGE_KEY = "cachy_ai_history";
@@ -806,6 +816,20 @@ class AiManager {
             });
           }
 
+          // 1c. Context check (BUG-0704): a price the model wrote must be a
+          // level it could have read from the context it was handed. The
+          // verdict is shown in the confirmation block; it never rewrites a
+          // value, because the user decides what reaches the form.
+          const unverifiedPrices = findUnverifiedPrices(
+            permitted,
+            this.lastContext,
+          );
+          if (unverifiedPrices.length > 0) {
+            logger.warn("ai", "AI action prices not found in context", {
+              actions: unverifiedPrices.map((entry) => entry.action),
+            });
+          }
+
           // 2. Code-level R:R guard: block execution if the suggested setup is mathematically poor
           const entryAction = permitted.find((a) => a.action === "setEntryPrice");
           const slAction = permitted.find((a) => a.action === "setStopLoss");
@@ -853,7 +877,10 @@ class AiManager {
           if (permitted.length > 0) {
             if (confirmActions) {
               // Create a batch pending action
-              const actionId = this.addPendingAction(permitted);
+              const actionId = this.addPendingAction(
+                permitted,
+                unverifiedPrices,
+              );
 
               // Add ONE system message for the whole batch
               const sysMsg: AiMessage = {
@@ -1557,12 +1584,16 @@ class AiManager {
   /**
    * Add action to pending queue for user confirmation
    */
-  private addPendingAction(actions: AiAction[]): string {
+  private addPendingAction(
+    actions: AiAction[],
+    unverifiedPrices: UnverifiedPrice[] = [],
+  ): string {
     const id = generateId();
     this.pendingActions.set(id, {
       id,
       actions,
       timestamp: Date.now(),
+      ...(unverifiedPrices.length > 0 ? { unverifiedPrices } : {}),
     });
     return id;
   }
