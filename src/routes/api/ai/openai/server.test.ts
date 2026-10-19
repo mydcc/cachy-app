@@ -32,6 +32,9 @@ const sseResponse = () =>
     { status: 200, headers: { "content-type": "text/event-stream" } },
   );
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard (BUG-0291)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -100,6 +103,10 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard 
       }),
     );
     expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty("X-Title");
+    // A custom gateway is not OpenCode, so it must not see the conversation id.
+    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty(
+      "x-opencode-session",
+    );
   });
 
   it("keeps the OpenRouter attribution header when relaying to an OpenRouter baseUrl", async () => {
@@ -133,6 +140,156 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard 
         }),
       }),
     );
+  });
+
+  it("sends the conversation id and an identifying user agent to OpenCode (BUG-0701)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse());
+    globalThis.fetch = fetchMock;
+
+    const request = new Request("http://localhost/api/ai/openai", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-app-access-token": issueToken(),
+        "x-api-key": "sk-oc-test",
+        "x-session-id": "conversation-42",
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "kimi-k3",
+        baseUrl: "https://opencode.ai/inference/go/v1",
+      }),
+    });
+
+    const res = await POST(event(request));
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://opencode.ai/inference/go/v1/chat/completions",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer sk-oc-test",
+          // Required by OpenCode Go: it answers 400 without this header.
+          "x-opencode-session": "conversation-42",
+          "User-Agent": "CachyApp/1.0 (SvelteKit)",
+        }),
+      }),
+    );
+  });
+
+  it("keeps the OpenCode session header off other providers", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse());
+    globalThis.fetch = fetchMock;
+
+    const request = new Request("http://localhost/api/ai/openai", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-app-access-token": issueToken(),
+        "x-api-key": "sk-test-key",
+        "x-session-id": "conversation-42",
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "gpt-4o",
+      }),
+    });
+
+    await POST(event(request));
+
+    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty(
+      "x-opencode-session",
+    );
+  });
+
+  it("falls back to a fresh session id when the client sends none (BUG-0701)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse());
+    globalThis.fetch = fetchMock;
+
+    const request = new Request("http://localhost/api/ai/openai", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-app-access-token": issueToken(),
+        "x-api-key": "sk-oc-test",
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "kimi-k3",
+        baseUrl: "https://opencode.ai/inference/go/v1",
+      }),
+    });
+
+    const res = await POST(event(request));
+
+    expect(res.status).toBe(200);
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers["x-opencode-session"]).toMatch(UUID_RE);
+  });
+
+  it("replaces a session id that is not header-safe instead of failing", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse());
+    globalThis.fetch = fetchMock;
+
+    const request = new Request("http://localhost/api/ai/openai", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-app-access-token": issueToken(),
+        "x-api-key": "sk-oc-test",
+        "x-session-id": "not a valid id",
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "hello" }],
+        model: "kimi-k3",
+        baseUrl: "https://opencode.ai/inference/go/v1",
+      }),
+    });
+
+    const res = await POST(event(request));
+
+    expect(res.status).toBe(200);
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers["x-opencode-session"]).toMatch(UUID_RE);
+  });
+
+  it("gives the model listing a session id of its own (BUG-0701)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: "kimi-k3" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    // The picker has no conversation, so the client sends no id — the route
+    // still has to hand OpenCode a well-formed one.
+    const request = new Request(
+      "http://localhost/api/ai/openai/models?baseUrl=https://opencode.ai/inference/go/v1",
+      {
+        method: "GET",
+        headers: { "x-app-access-token": issueToken() },
+      },
+    );
+
+    const res = await GET_MODELS({
+      url: new URL(request.url),
+      request,
+      getClientAddress: () => "127.0.0.1",
+    } as unknown as Parameters<typeof GET_MODELS>[0]);
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://opencode.ai/inference/go/v1/models",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "User-Agent": "CachyApp/1.0 (SvelteKit)",
+        }),
+      }),
+    );
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers["x-opencode-session"]).toMatch(UUID_RE);
   });
 
   it("rejects a reserved/loopback custom baseUrl with 403 (BUG-0291)", async () => {
@@ -187,7 +344,10 @@ describe("POST /api/ai/openai - Custom baseUrl support (FEAT-0306) & SSRF guard 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://gateway.example.com/v1/models",
       expect.objectContaining({
-        headers: {},
+        // The route identifies Cachy instead of a raw HTTP library. No key
+        // means no Authorization, and a non-OpenCode target means no session
+        // header.
+        headers: { "User-Agent": "CachyApp/1.0 (SvelteKit)" },
       }),
     );
   });

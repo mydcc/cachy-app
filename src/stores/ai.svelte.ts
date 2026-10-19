@@ -27,6 +27,11 @@ import {
   type StreamUsage,
 } from "../lib/ai/streamAdapters";
 import { buildDirectRequest } from "../lib/ai/directRequest";
+import {
+  isSessionId,
+  newSessionId,
+  SESSION_ID_HEADER,
+} from "../lib/ai/sessionId";
 import { peekCachedModel } from "../services/aiModelsService";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { stripMarkdownLinks } from "../lib/ai/prompts/contextFormatter";
@@ -225,6 +230,16 @@ class AiManager {
    * a provider is free to write "quota" in any error (BUG-0694).
    */
   errorStatus = $state<number | null>(null);
+  /**
+   * Stable id for the current conversation. OpenCode Go requires it as
+   * `x-opencode-session` and rejects a request without one (BUG-0701); every
+   * other provider ignores the header. `clearHistory()` rotates it, because a
+   * new conversation should not inherit the old one's routing.
+   *
+   * Deliberately not `$state`: it is read imperatively when sending and never
+   * rendered, so a reactive proxy would buy nothing.
+   */
+  sessionId: string = newSessionId();
   pendingActions = $state<Map<string, PendingAction>>(new Map());
   lastContext = $state<AiContext | null>(null); // Expose context for UI indicators
   contextSummary = $state<{
@@ -250,6 +265,11 @@ class AiManager {
         if (parsed.messages) {
           this.messages = parsed.messages;
         }
+        // A stored id that no longer fits the header shape would be replaced by
+        // a fresh one on every request; keep the generated one instead.
+        if (isSessionId(parsed.sessionId)) {
+          this.sessionId = parsed.sessionId;
+        }
       }
     } catch (e) {
       if (import.meta.env.DEV) {
@@ -265,6 +285,7 @@ class AiManager {
         LOCAL_STORAGE_KEY,
         JSON.stringify({
           messages: this.messages,
+          sessionId: this.sessionId,
           isStreaming: false,
           error: null,
         }),
@@ -280,6 +301,7 @@ class AiManager {
     this.messages = [];
     this.error = null;
     this.errorStatus = null;
+    this.sessionId = newSessionId();
     this.isStreaming = false;
     this.save();
   }
@@ -568,6 +590,11 @@ class AiManager {
             headers: {
               "Content-Type": "application/json",
               "x-api-key": apiKey,
+              // Omitted when the platform has no CSPRNG; the relay then fills
+              // a session id in server-side (BUG-0701).
+              ...(this.sessionId
+                ? { [SESSION_ID_HEADER]: this.sessionId }
+                : {}),
             },
             body: JSON.stringify({
               messages: payloadMessages,

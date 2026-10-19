@@ -102,3 +102,23 @@ export function resolveProviderEndpoint(
     return qs ? `${resolvedPath}?${qs}` : resolvedPath;
   }
 }
+
+/**
+ * True when a resolved endpoint points at OpenCode's inference gateway.
+ *
+ * OpenCode Go requires a stable per-conversation id in `x-opencode-session`
+ * and answers `400 Request is missing x-opencode-session` without one, so the
+ * relay has to translate Cachy's own conversation id into that header. Both
+ * relay routes need the rule, so it lives here instead of in either of them.
+ */
+export function isOpenCodeTarget(targetUrl: string): boolean {
+  try {
+    // `urlValidator` rejects a host that starts or ends with a dot, so the
+    // relay never sees `opencode.ai.` — the normalisation below only keeps
+    // this predicate correct for a direct caller.
+    const host = new URL(targetUrl).hostname.toLowerCase().replace(/\.$/, "");
+    return host === "opencode.ai" || host.endsWith(".opencode.ai");
+  } catch {
+    return false;
+  }
+}

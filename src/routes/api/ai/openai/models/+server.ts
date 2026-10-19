@@ -19,7 +19,11 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../../lib/server/clientToken";
 import type { AiModelInfo } from "../../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../../lib/server/aiEndpoint";
+import {
+  isOpenCodeTarget,
+  resolveProviderEndpoint,
+} from "../../../../../lib/server/aiEndpoint";
+import { resolveSessionId } from "../../../../../lib/ai/sessionId";
 import {
   isUrlAllowedAsync,
   safeFetch,
@@ -35,8 +39,9 @@ interface OpenAiModel {
 // chat models. Filter down to what actually works with /v1/chat/completions.
 //
 // This describes OpenAI's *own* catalog only. A custom base URL (aggregator,
-// gateway, OpenCode Zen, Command Code) returns its own ids, so the filter must
-// not run there — otherwise every non-GPT and `*-free` model is hidden.
+// gateway, OpenCode's Go/pay-as-you-go endpoints, Command Code) returns its own
+// ids, so the filter must not run there — otherwise every non-GPT and `*-free`
+// model is hidden.
 const CHAT_MODEL_RE = /^(gpt-|o1|o3|o4|chatgpt)/i;
 const EXCLUDE_RE =
   /(embedding|whisper|tts|dall-e|moderation|davinci|babbage|ada|curie|realtime|audio|transcribe|instruct|image)/i;
@@ -63,7 +68,16 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
     return json({ error: "Invalid or prohibited base URL" }, { status: 403 });
   }
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    // See the completions route: identify the agent, and carry a conversation
+    // id to OpenCode, which refuses a request without one (BUG-0701).
+    "User-Agent": "CachyApp/1.0 (SvelteKit)",
+  };
+  if (isOpenCodeTarget(targetUrl)) {
+    // The model picker has no conversation of its own — a fresh id is enough
+    // here, it only has to exist for OpenCode to route the call (BUG-0701).
+    headers["x-opencode-session"] = resolveSessionId(null);
+  }
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`;
   }
