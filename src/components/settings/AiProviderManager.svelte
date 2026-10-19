@@ -231,11 +231,7 @@
                 : "direct"}
             />
 
-            {#if isOpenCodeUrl(provider.baseUrl)}
-              <span class="text-[10px] text-[var(--text-secondary)]">
-                {$_("settings.ai.customProviders.relayRequired")}
-              </span>
-            {:else}
+            {#if !isOpenCodeUrl(provider.baseUrl)}
               <label class="relay-row">
                 <input
                   type="checkbox"

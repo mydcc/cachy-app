@@ -38,9 +38,8 @@ the one provider that *has* to go through the relay.
 - `src/lib/ai/opencodeTarget.ts::isOpenCodeUrl` — one rule for "this is
   OpenCode", shared by the client (the settings form) and the server (the
   relay routes). It replaces the server-only `isOpenCodeTarget`.
-- The settings form hides the toggle for an OpenCode base URL and says
-  instead that the connection always uses the relay
-  (`settings.ai.customProviders.relayRequired`).
+- The settings form hides the toggle and its description for an OpenCode base
+  URL: there is no choice to offer, so nothing is shown in its place.
 - The model picker and the provider card use the server transport for
   OpenCode, so the model list works.
 - The store skips the browser-direct path for OpenCode, whatever the toggle

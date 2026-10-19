@@ -1586,8 +1586,7 @@
         "active": "Aktiv",
         "delete": "Provider löschen",
         "relay": "Server-Relay erlauben",
-        "relayDesc": "Nur nötig, wenn ein Provider Browser-Anfragen blockiert (CORS). Aus (Standard): Der Browser spricht direkt mit dem Provider, dein Schlüssel erreicht den Cachy-Server nie. An: Deine Prompts und der geteilte Kontext laufen über die Cachy-Infrastruktur, um den Provider zu erreichen.",
-        "relayRequired": "Opencode nimmt keine Browser-Anfragen an — diese Verbindung nutzt immer den Server-Relay."
+        "relayDesc": "Nur nötig, wenn ein Provider Browser-Anfragen blockiert (CORS). Aus (Standard): Der Browser spricht direkt mit dem Provider, dein Schlüssel erreicht den Cachy-Server nie. An: Deine Prompts und der geteilte Kontext laufen über die Cachy-Infrastruktur, um den Provider zu erreichen."
       },
       "provider": {
         "openai": "OpenAI",
