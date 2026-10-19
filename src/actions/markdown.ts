@@ -15,6 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
+import { humanizeSourceFooter } from "../lib/ai/sourceLabels";
 import { ensureKatexCss, renderSafeMarkdown } from "../utils/markdownUtils";
 
 /**
@@ -24,6 +27,9 @@ import { ensureKatexCss, renderSafeMarkdown } from "../utils/markdownUtils";
  * Svelte actions only run client-side, so this is the choke point that
  * guarantees KaTeX math styles for every use:markdown consumer (Assistant
  * chat, Flashcards, pattern views) — independent of loadInstruction.
+ *
+ * It also rewrites the assistant's "Quellen:" footer from context keys to
+ * localized words (BUG-0703): the model cites keys, the reader gets labels.
  */
 export function markdown(node: HTMLElement, content: string) {
     const update = (newContent: string) => {
@@ -33,7 +39,8 @@ export function markdown(node: HTMLElement, content: string) {
             return;
         }
 
-        const rendered = renderSafeMarkdown(newContent);
+        const readable = humanizeSourceFooter(newContent, (key) => get(_)(key));
+        const rendered = renderSafeMarkdown(readable);
         node.replaceChildren(rendered); // Works for both string (SSR fallback) and DocumentFragment
     };
 
