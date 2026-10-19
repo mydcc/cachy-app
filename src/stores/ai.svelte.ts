@@ -1206,12 +1206,13 @@ class AiManager {
         low24h: marketData.lowPrice
           ? marketData.lowPrice.toString()
           : undefined,
-        volume24h: marketData.volume
-          // audit: safe — display formatting: the AI context uses the machine
-          // format the prompt requires (dot decimal, no thousands separator);
-          // toLocaleString() would hand the model "1.234.567" on a German device
-          ? String(Math.round(Number(marketData.volume)))
-          : undefined,
+        // The exact value, not a rounded one. The context is the model's only
+        // source for calculations, so it keeps the machine format (dot decimal,
+        // no thousands separator); shortening belongs to the prose, where the
+        // prompt allows at most two decimals (SAFETY RULES → NUMBER
+        // PRESENTATION). `Math.round(Number(…))` here was both a precision loss
+        // and a decimal-audit violation.
+        volume24h: marketData.volume ? marketData.volume.toString() : undefined,
         fundingRate: marketData.fundingRate
           ? marketData.fundingRate.times(100).toFixed(4) + "%"
           : "N/A",
