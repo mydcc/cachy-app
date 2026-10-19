@@ -89,11 +89,8 @@ const MAX_TAGS = 10;
  * the validator accepts what the parser understands ("1,200.50", "50,5")
  * and rejects what it would silently turn into 0 ("high", true, arrays).
  * Returns null when the input is not numeric at all.
- *
- * Exported because `actionContextCheck.ts` must read a price exactly the way
- * the validator accepted it; two parsers would drift apart.
  */
-export function toFiniteNumber(value: string | number): number | null {
+function toFiniteNumber(value: string | number): number | null {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
   }

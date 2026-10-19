@@ -17,8 +17,9 @@
 
 /*
  * BUG-0704 — the context check has to reach the batch the confirmation block
- * renders, not just exist as a helper. These tests drive the real send path
- * with a streamed action block and read the queued batch back.
+ * renders, and it must not turn into a gate: the flagged value stays in the
+ * batch and is applied when the user confirms it. These tests drive the real
+ * send path with a streamed action block and read the queued batch back.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -82,6 +83,8 @@ describe("action prices against the context", () => {
     aiState.errorStatus = null;
 
     tradeState.symbol = "BTCUSDT";
+    tradeState.entryPrice = "";
+    tradeState.stopLossPrice = "";
     settingsState.showTechnicals = false;
     settingsState.enableCmcContext = false;
     settingsState.enableNewsAnalysis = false;
@@ -114,6 +117,7 @@ describe("action prices against the context", () => {
     expect(queuedBatch()?.unverifiedPrices).toEqual([
       { action: "setEntryPrice", value: "12345" },
     ]);
+    expect(queuedBatch()?.pricesUnchecked).toBeUndefined();
   });
 
   it("leaves a price the context carried unflagged", async () => {
@@ -127,7 +131,7 @@ describe("action prices against the context", () => {
     expect(queuedBatch()?.unverifiedPrices).toBeUndefined();
   });
 
-  it("flags the whole batch when only one target is invented", async () => {
+  it("flags the batched target when only one of them is invented", async () => {
     vi.mocked(appFetch).mockResolvedValue(
       actionResponse([
         { action: "setEntryPrice", value: "81859.7" },
@@ -143,17 +147,48 @@ describe("action prices against the context", () => {
     ]);
   });
 
+  it("flags a suffixed price the executor would scale", async () => {
+    // `executeAction` turns this into 81 859 700; the guard has to see the
+    // same number or it verifies a value nobody applies.
+    vi.mocked(appFetch).mockResolvedValue(
+      actionResponse([{ action: "setEntryPrice", value: "81859.7k" }]),
+    );
+
+    await aiState.sendMessage("analyse the market");
+
+    expect(queuedBatch()?.unverifiedPrices).toEqual([
+      { action: "setEntryPrice", value: "81859.7k" },
+    ]);
+  });
+
+  it("keeps the flagged value and applies it when the user confirms", async () => {
+    // The verdict is evidence, not a gate (BUG-0704 acceptance criterion).
+    vi.mocked(appFetch).mockResolvedValue(
+      actionResponse([{ action: "setEntryPrice", value: 12345 }]),
+    );
+
+    await aiState.sendMessage("analyse the market");
+    const batch = queuedBatch();
+    expect(batch?.actions).toHaveLength(1);
+    expect(batch?.unverifiedPrices).toHaveLength(1);
+
+    aiState.confirmAction(batch!.id);
+
+    expect(tradeState.entryPrice).toBe("12345");
+  });
+
   it("does not flag a batch without price actions", async () => {
-    // Notes follow the toggle, so they queue only when confirmation is on —
-    // that is the only batch shape besides prices that reaches the UI.
+    // A note-only batch is the only non-price batch that can apply without
+    // confirmation; setup/risk-only batches queue as well and carry no price.
     settingsState.aiConfirmActions = true;
     vi.mocked(appFetch).mockResolvedValue(
-      actionResponse([{ action: "setNotes", value: "wait for the retest" }]),
+      actionResponse([{ action: "setNotes", value: "12345" }]),
     );
 
     await aiState.sendMessage("note this");
 
     expect(queuedBatch()?.actions).toHaveLength(1);
     expect(queuedBatch()?.unverifiedPrices).toBeUndefined();
+    expect(queuedBatch()?.pricesUnchecked).toBeUndefined();
   });
 });

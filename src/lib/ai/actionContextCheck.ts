@@ -28,10 +28,13 @@
  * is testable on its own.
  */
 
-import { toFiniteNumber } from "./actionValidation";
+import { AI_PRICE_ACTIONS } from "./actionPolicy";
+import type { ValidatedAiAction } from "./actionValidation";
+import type { AiContext } from "../../stores/ai.svelte";
+import { parseAiValue } from "../../utils/utils";
 
 /**
- * How far a price may sit from a context value and still count as that value.
+ * How far a price may sit from a context level and still count as that level.
  * Relative, so it holds for BTC and for sub-cent assets alike. 0.1 % sits far
  * above rounding noise and far below a magnitude error: rounding 82209.4676 to
  * 82209.47 is 0.000003 %, while 0.0123456 → 0.01 is 19 %.
@@ -39,47 +42,52 @@ import { toFiniteNumber } from "./actionValidation";
 export const PRICE_MATCH_TOLERANCE = 0.001;
 
 /**
- * A level a trade could actually use sits within this factor of the live
- * price. It keeps percentages and scores in the context (RSI 44.5, a
- * confluence score of 2) from vouching for a price on a sub-dollar asset,
- * where the magnitudes collide.
+ * How deep a context branch may nest. The shapes are fixed and shallow; the
+ * bound only exists so a malformed or hostile context cannot recurse forever.
  */
-export const PRICE_BAND = 5;
-
-/** Actions whose `value` is a price the trade form will use. */
-const PRICE_ACTIONS: ReadonlySet<string> = new Set([
-  "setEntryPrice",
-  "setStopLoss",
-  "setTakeProfit",
-  "addTakeProfit",
-]);
-
-/** Context branches that can carry a price. Portfolio, news and stats cannot. */
-const PRICE_BRANCHES = [
-  "marketDetails",
-  "technicals",
-  "tradeSetup",
-  "openPositions",
-] as const;
+const MAX_CONTEXT_DEPTH = 8;
 
 /**
- * The part of `AiContext` this check reads. Declared structurally so the module
- * does not import the store; `AiContext` is assignable to it.
+ * The only context leaves that are prices. Walking every number instead let
+ * unrelated values vouch for a price — `volume24h` at 21622.5, an RSI of
+ * 44.53, a confluence score of 50 or a take-profit percentage all sit within
+ * an order of magnitude of a real level for some asset. A key that is not a
+ * level must never answer "yes, the model read this".
+ *
+ * `*` matches one array element or one dynamic key. Keeping the list explicit
+ * also means a new price-bearing context key shows up as a missing candidate
+ * in a test rather than silently widening the pool.
  */
-export interface PriceCheckContext {
-  REAL_TIME_PRICE?: string;
-  marketDetails?: Record<string, unknown> | null;
-  technicals?: Record<string, unknown> | null;
-  tradeSetup?: Record<string, unknown>;
-  openPositions?: Array<Record<string, unknown>>;
-}
+const PRICE_PATHS: ReadonlyArray<readonly string[]> = [
+  ["REAL_TIME_PRICE"],
+  ["marketDetails", "currentPrice"],
+  ["marketDetails", "high24h"],
+  ["marketDetails", "low24h"],
+  ["marketDetails", "orderbook", "topBids", "*"],
+  ["marketDetails", "orderbook", "topAsks", "*"],
+  ["technicals", "movingAverages", "*", "value"],
+  ["technicals", "pivots", "classic", "*"],
+  ["technicals", "divergences", "*", "priceStart"],
+  ["technicals", "divergences", "*", "priceEnd"],
+  ["tradeSetup", "entry"],
+  ["tradeSetup", "sl"],
+  ["tradeSetup", "tp", "*", "price"],
+  ["openPositions", "*", "entry"],
+];
+
+/** The part of `AiContext` this check reads. A type-only link, so a rename in
+ * `AiContext` breaks the build instead of silently emptying the candidate
+ * list (which would make the guard fail open). */
+export type PriceCheckContext = Pick<
+  AiContext,
+  "REAL_TIME_PRICE" | "marketDetails" | "technicals" | "tradeSetup" | "openPositions"
+>;
 
 /** The part of an AI action this check reads. */
-export interface PriceActionLike {
-  action: string;
-  value?: unknown;
-  index?: number;
-}
+export type PriceActionLike = Pick<
+  ValidatedAiAction,
+  "action" | "value" | "index"
+>;
 
 /** One price the confirmation UI should flag before the user applies it. */
 export interface UnverifiedPrice {
@@ -88,91 +96,100 @@ export interface UnverifiedPrice {
   value: string;
 }
 
-function asPositiveNumber(value: unknown): number | null {
-  if (typeof value !== "number" && typeof value !== "string") return null;
-  const parsed = toFiniteNumber(value);
-  return parsed !== null && Number.isFinite(parsed) && parsed > 0
-    ? parsed
-    : null;
+/** Verdict for one batch of actions. */
+export interface ActionPriceCheck {
+  /** Price actions the context cannot vouch for. */
+  unverified: UnverifiedPrice[];
+  /**
+   * False only when the batch carries a price but the context carries no
+   * price at all (a gather timeout, a missing ticker). The UI says "could not
+   * be checked" then — silence must not read as "verified".
+   */
+  checked: boolean;
 }
 
-/** Every price-like value the model could have cited from the context. */
+/**
+ * Parse exactly the way `executeAction` will. `validateAiAction` accepts a
+ * `k`/`m` suffix, and `parseAiValue` scales it — checking with a different
+ * parser would verify 81859.7 and execute 81859700.
+ */
+function asPositiveNumber(value: unknown): number | null {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  const parsed = parseAiValue(value);
+  if (!parsed.isFinite() || parsed.lte(0)) return null;
+  return parsed.toNumber();
+}
+
+function matchesPricePath(path: readonly string[]): boolean {
+  return PRICE_PATHS.some(
+    (pattern) =>
+      pattern.length === path.length &&
+      pattern.every((segment, index) => segment === "*" || segment === path[index]),
+  );
+}
+
+/** Every price the model could have cited from the context. */
 function collectCandidates(
   context: PriceCheckContext | null | undefined,
 ): number[] {
   if (!context) return [];
   const found: number[] = [];
-  const visit = (node: unknown, depth: number): void => {
-    if (depth > 8 || node === null || node === undefined) return;
-    const scalar = asPositiveNumber(node);
-    if (scalar !== null) {
-      found.push(scalar);
+  const visit = (node: unknown, path: string[], depth: number): void => {
+    if (depth > MAX_CONTEXT_DEPTH) return;
+    if (matchesPricePath(path)) {
+      const price = asPositiveNumber(node);
+      if (price !== null) found.push(price);
       return;
     }
     if (Array.isArray(node)) {
-      for (const entry of node) visit(entry, depth + 1);
+      for (const entry of node) visit(entry, [...path, "*"], depth + 1);
       return;
     }
-    if (typeof node === "object") {
-      for (const value of Object.values(node as Record<string, unknown>)) {
-        visit(value, depth + 1);
+    if (node && typeof node === "object") {
+      for (const [key, value] of Object.entries(node)) {
+        visit(value, [...path, key], depth + 1);
       }
     }
   };
-  visit(context.REAL_TIME_PRICE, 0);
-  for (const branch of PRICE_BRANCHES) visit(context[branch], 0);
+  for (const [key, value] of Object.entries(context)) visit(value, [key], 0);
   return found;
 }
 
-function readLivePrice(
-  context: PriceCheckContext | null | undefined,
-): number | null {
-  const direct = asPositiveNumber(context?.REAL_TIME_PRICE);
-  if (direct !== null) return direct;
-  return asPositiveNumber(context?.marketDetails?.currentPrice);
-}
-
 /**
- * The price actions that match no context level within
- * `PRICE_MATCH_TOLERANCE`. Empty when the context is missing or carries no
- * price at all: an unverifiable value is not evidence of a wrong one, and a
- * warning on every action would train the user to click past it.
+ * Which price actions match no context level within `PRICE_MATCH_TOLERANCE`.
+ * A batch without a price is `checked: true` (nothing to check); a batch with
+ * a price but no context level is `checked: false` (nothing to check against).
  */
-export function findUnverifiedPrices(
+export function checkActionPrices(
   actions: readonly PriceActionLike[],
   context: PriceCheckContext | null | undefined,
-): UnverifiedPrice[] {
-  if (!context) return [];
-  const all = collectCandidates(context);
-  if (all.length === 0) return [];
-
-  const live = readLivePrice(context);
-  // With a live price the band always keeps at least the live price itself.
-  const candidates =
-    live === null
-      ? all
-      : all.filter((price) => price >= live / PRICE_BAND && price <= live * PRICE_BAND);
-
-  const unverified: UnverifiedPrice[] = [];
-  for (const action of actions) {
-    if (!PRICE_ACTIONS.has(action.action)) continue;
+): ActionPriceCheck {
+  const priceActions = actions.flatMap((action) => {
+    if (!AI_PRICE_ACTIONS.includes(action.action)) return [];
     const price = asPositiveNumber(action.value);
     // A percent-only take profit carries no price, and shape validation has
     // already dropped non-numbers, so there is nothing to check here.
-    if (price === null) continue;
+    return price === null ? [] : [{ action, price }];
+  });
+  if (priceActions.length === 0) return { unverified: [], checked: true };
 
-    const verified = candidates.some(
-      (candidate) =>
-        Math.abs(price - candidate) <=
-        Math.abs(candidate) * PRICE_MATCH_TOLERANCE,
-    );
-    if (!verified) {
-      unverified.push({
-        action: action.action,
-        ...(typeof action.index === "number" ? { index: action.index } : {}),
-        value: String(action.value),
-      });
-    }
-  }
-  return unverified;
+  const candidates = collectCandidates(context);
+  if (candidates.length === 0) return { unverified: [], checked: false };
+
+  const unverified = priceActions
+    .filter(
+      ({ price }) =>
+        !candidates.some(
+          (candidate) =>
+            Math.abs(price - candidate) <= candidate * PRICE_MATCH_TOLERANCE,
+        ),
+    )
+    .map(({ action, price }) => ({
+      action: action.action,
+      ...(typeof action.index === "number" ? { index: action.index } : {}),
+      // Keep the model's own spelling; it is what the table shows above.
+      value: typeof action.value === "string" ? action.value : String(price),
+    }));
+
+  return { unverified, checked: true };
 }

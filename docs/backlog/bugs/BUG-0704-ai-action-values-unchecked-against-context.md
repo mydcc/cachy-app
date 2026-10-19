@@ -61,60 +61,78 @@ handed?*
   and for sub-cent assets alike. It sits far above rounding noise (rounding
   `82209.4676` to `82209.47` is 0.000003 %) and far below a magnitude error
   (`0.0123456` → `0.01` is 19 %).
-- `PRICE_BAND = 5` — a usable level lies within 5× the live price. This keeps
-  percentages and scores in the context (RSI `44.53`, a confluence score of
-  `2`) from vouching for a price on a sub-dollar asset, where the magnitudes
-  collide.
-- Candidates come from `REAL_TIME_PRICE`, `marketDetails`, `technicals`,
-  `tradeSetup` and `openPositions`. Portfolio stats, news, history and the
-  24 h change are excluded: they cannot be a level.
-- A missing or price-less context (a `gatherContext` timeout, for example)
-  yields **no** verdicts. An unverifiable value is not evidence of a wrong one,
-  and a warning on every action would train the user to click past it.
-- Prices are parsed with `toFiniteNumber`, exported from `actionValidation.ts`,
-  so the check reads a value exactly the way the validator accepted it.
+- **Action values are parsed with `parseAiValue`** — the same parser
+  `executeAction` uses. `validateAiAction` accepts a `k`/`m` suffix and the
+  executor scales it, so a check with a different parser would verify
+  `81859.7` and write `81859700`. This is the parser-parity rule, and it has a
+  test.
+- **Only real levels are candidates.** An explicit `PRICE_PATHS` list names
+  `REAL_TIME_PRICE`, `marketDetails.{currentPrice,high24h,low24h}`,
+  `orderbook.{topBids,topAsks}[]`, `technicals.movingAverages[].value`,
+  `technicals.pivots.classic.*`, `technicals.divergences[].{priceStart,priceEnd}`,
+  `tradeSetup.{entry,sl,tp[].price}` and `openPositions[].entry`. Walking every
+  number instead let `volume24h` (21622.5 on BTC), an RSI of 44.53 on a $50
+  asset, a confluence score or a take-profit percentage vouch for an invented
+  price — each has a regression test.
+- **No magnitude band.** Because the candidate set is now price-only, a limit
+  entry at `10000` while the live price is `80000`, and an old position opened
+  far away, are legitimate context levels and must not be flagged.
+- **A context without prices is reported, not silent.** `checkActionPrices`
+  returns `{ unverified, checked }`; `checked: false` means the batch carries a
+  price but the context carried none (a gather timeout, a missing ticker). The
+  block then says the prices could not be checked — silence must not read as
+  "verified".
+- **The request-local context is used**, not `this.lastContext`: a second send
+  can overwrite the shared field before this stream's actions run.
+- `AI_PRICE_ACTIONS` lives in `actionPolicy.ts` next to the catalog; a test
+  asserts every id is a known catalog action and requires confirmation, so a
+  future price action cannot silently skip the guard.
+- `AssistantView.svelte` renders `UnverifiedPriceWarning.svelte` (new): one
+  warning per batch, one list entry per value (`70000 (TP 2)`), `role="status"`
+  so a screen reader hears it, and a neutral line for the unchecked state.
+  Nothing is dropped or rewritten — the user still decides.
 
-Wiring:
-
-- `src/stores/ai.svelte.ts` computes the verdict after the permission filter and
-  stores it on the batch (`PendingAction.unverifiedPrices`) instead of dropping
-  or rewriting anything. A hit is logged.
-- `AssistantView.svelte` shows one warning line in the confirmation block
-  naming the values (`assistant.unverifiedActionPrices`, DE/EN). The user can
-  still apply or ignore the batch.
-- The guard is informational by construction: every price action is a catalog
-  action, and `requiresConfirmation` excludes only notes and tags, so a price
-  batch always stops at the confirmation block before anything is applied.
+The guard is informational by construction: every price action is a catalog
+action, and `requiresConfirmation` excludes only notes and tags, so a price
+batch always stops at the confirmation block before anything is applied.
 
 ## Verification
 
-`src/lib/ai/actionContextCheck.test.ts` (11 cases): exact context level,
-2-decimal rounding of one, live price, 24 h high/low, an invented level, the
-sub-cent collapse, a percentage that must not vouch for a sub-cent price, a
-take-profit index that survives into the verdict, the tolerance boundary, a
-missing context, and actions that carry no price (leverage, risk, a
-percent-only target, notes).
+- `src/lib/ai/actionContextCheck.test.ts` — **18 cases**: exact level,
+  2-decimal rounding, live price, 24h high, pivot, order-book bid, invented but
+  plausible level, sub-cent collapse, volume, RSI on a $50 asset, take-profit
+  percentage, distant limit entry and open-position entry, `addTakeProfit`, the
+  take-profit index in the verdict, relative tolerance, the exact 0.1 %
+  boundary (`100100` accepted, `100101` flagged), `k`/`m` parser parity,
+  technicals-only context without a live price, missing/empty context →
+  `checked: false`, price-less batch → `checked: true`, and the catalog
+  invariant.
+- `src/stores/ai.actionContext.test.ts` — **6 cases** through the real send
+  path: invented entry flagged, live price unflagged, one invented target flags
+  the batch, `81859.7k` flagged (the executor would write 81 859 700), the
+  flagged value stays in the batch and `confirmAction` applies it to
+  `tradeState.entryPrice`, and a note-only batch stays unflagged and checked.
+- `src/lib/windows/implementations/UnverifiedPriceWarning.component.test.ts` —
+  **3 cases**: both entries with `(TP 2)`, the unchecked line, and no markup at
+  all when everything matched.
+- Four mutations were each caught: parsing without the `k`/`m` multiplier,
+  collecting every scalar instead of the price paths, an exclusive tolerance
+  boundary, and dropping the target index from the warning.
 
-`src/stores/ai.actionContext.test.ts` (4 cases) drives the real send path with a
-streamed action block and reads the queued batch back: an invented entry is
-flagged, the live price is not, a batch is flagged when only one of its three
-prices is invented, and a note-only batch stays unflagged.
+Targeted run: **55 tests in 5 files** (unit, including the action-policy and
+provider-failure suites) plus **3 component tests**. `eslint` clean,
+`svelte-check` no findings for the touched files, `npm run backlog:check` 576
+items valid, `validate-i18n.js` all keys present, `schema.d.ts` regenerated
+(3957 keys).
 
-Three mutations were each caught: not handing the verdict to the batch, replacing
-the tolerance with exact equality (the rounded level then fails), and removing the
-magnitude band (the percentage then vouches for `44.53` on a sub-cent asset).
-
-Targeted run: 50 tests in 6 files, including the decimal audit and the
-provider-failure suite. `npx eslint` clean, `svelte-check` no findings for the
-touched files, `npm run backlog:check` 575 items valid, `validate-i18n.js` all
-keys present, `schema.d.ts` regenerated (3956 keys).
-
-Not covered: the warning line's markup has no mount test — `AssistantView` is a
-window view without a harness (`AssistantView.test.ts` covers the provider
-gate, not the markup). The helper and the batch it feeds are tested; the CSS is
-not.
+Not covered: the store's `pricesUnchecked` flag is not driven end-to-end — a
+gather timeout needs a five-second race, so the pure test covers
+`checked: false` and the component test covers its rendering. The component
+test does not mount `AssistantView` itself; that view has no harness
+(`AssistantView.test.ts` covers the provider gate only).
 
 ## Out of scope
 
 Changing the prompt further, and any automatic correction of a model value —
-the user still decides what is written into the form.
+the user still decides what is written into the form. `addTakeProfit` on a full
+setup still overwrites the last target (BUG-0705, filed separately).
