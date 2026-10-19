@@ -21,6 +21,7 @@
         isLoopbackBaseUrl,
         type AiApiFlavor,
     } from "../../stores/settings/aiProviders";
+    import { isOpenCodeUrl } from "../../lib/ai/opencodeTarget";
     import AiModelPicker from "./AiModelPicker.svelte";
 
     let {
@@ -53,7 +54,9 @@
         settingsState.userProviders.find((candidate) => candidate.id === entryId),
     );
     let transport = $derived<"server" | "direct">(
-        entry && entry.allowServerRelay && !isLoopbackBaseUrl(entry.baseUrl)
+        entry &&
+        (isOpenCodeUrl(entry.baseUrl) ||
+            (entry.allowServerRelay && !isLoopbackBaseUrl(entry.baseUrl)))
             ? "server"
             : "direct",
     );

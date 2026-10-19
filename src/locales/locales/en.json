@@ -1561,7 +1561,8 @@
         "active": "Active",
         "delete": "Delete provider",
         "relay": "Allow server relay",
-        "relayDesc": "Only needed when a provider blocks browser requests (CORS). Off (default): the browser talks to the provider directly and your key never reaches the Cachy server. On: your prompts and shared context travel via Cachy infrastructure to reach the provider."
+        "relayDesc": "Only needed when a provider blocks browser requests (CORS). Off (default): the browser talks to the provider directly and your key never reaches the Cachy server. On: your prompts and shared context travel via Cachy infrastructure to reach the provider.",
+        "relayRequired": "OpenCode does not accept browser requests — this connection always uses the server relay."
       },
       "provider": {
         "openai": "OpenAI",

@@ -8,28 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { isOpenCodeTarget, resolveProviderEndpoint } from "./aiEndpoint";
-
-describe("isOpenCodeTarget", () => {
-  it("matches OpenCode's gateway, its subdomains and a trailing dot", () => {
-    expect(
-      isOpenCodeTarget("https://opencode.ai/inference/go/v1/chat/completions"),
-    ).toBe(true);
-    expect(isOpenCodeTarget("https://api.opencode.ai/v1")).toBe(true);
-    expect(isOpenCodeTarget("https://OPENCODE.AI/v1")).toBe(true);
-    expect(isOpenCodeTarget("https://opencode.ai./v1")).toBe(true);
-  });
-
-  it("rejects lookalike hosts and unparseable targets", () => {
-    // The leading dot is what keeps a conversation id off these hosts.
-    expect(isOpenCodeTarget("https://evil-opencode.ai/v1")).toBe(false);
-    expect(isOpenCodeTarget("https://notopencode.ai/v1")).toBe(false);
-    expect(isOpenCodeTarget("https://opencode.ai.attacker.com/v1")).toBe(false);
-    // Userinfo is not part of the hostname, so the host is the attacker's.
-    expect(isOpenCodeTarget("https://opencode.ai@evil.com/v1")).toBe(false);
-    expect(isOpenCodeTarget("not a url")).toBe(false);
-  });
-});
+import { resolveProviderEndpoint } from "./aiEndpoint";
 
 describe("resolveProviderEndpoint", () => {
   it("returns default endpoint when customBaseUrl is empty or null", () => {

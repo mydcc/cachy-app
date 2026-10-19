@@ -38,6 +38,7 @@
     type AiApiFlavor,
   } from "../../stores/settings/aiProviders";
   import type { TranslationKey } from "../../locales/schema";
+  import { isOpenCodeUrl } from "../../lib/ai/opencodeTarget";
   import AiModelPicker from "./AiModelPicker.svelte";
 
   const FLAVOR_LABEL_KEYS: Record<AiApiFlavor, TranslationKey> = {
@@ -223,25 +224,32 @@
               baseUrl={provider.baseUrl}
               bind:model={provider.model}
               flavor={provider.flavor}
-              transport={provider.allowServerRelay &&
-              !isLoopbackBaseUrl(provider.baseUrl)
+              transport={isOpenCodeUrl(provider.baseUrl) ||
+              (provider.allowServerRelay &&
+              !isLoopbackBaseUrl(provider.baseUrl))
                 ? "server"
                 : "direct"}
             />
 
-            <label class="relay-row">
-              <input
-                type="checkbox"
-                bind:checked={provider.allowServerRelay}
-                disabled={isLoopbackBaseUrl(provider.baseUrl)}
-              />
-              <span class="relay-label"
-                >{$_("settings.ai.customProviders.relay")}</span
-              >
-            </label>
-            <span class="text-[10px] text-[var(--text-secondary)]">
-              {$_("settings.ai.customProviders.relayDesc")}
-            </span>
+            {#if isOpenCodeUrl(provider.baseUrl)}
+              <span class="text-[10px] text-[var(--text-secondary)]">
+                {$_("settings.ai.customProviders.relayRequired")}
+              </span>
+            {:else}
+              <label class="relay-row">
+                <input
+                  type="checkbox"
+                  bind:checked={provider.allowServerRelay}
+                  disabled={isLoopbackBaseUrl(provider.baseUrl)}
+                />
+                <span class="relay-label"
+                  >{$_("settings.ai.customProviders.relay")}</span
+                >
+              </label>
+              <span class="text-[10px] text-[var(--text-secondary)]">
+                {$_("settings.ai.customProviders.relayDesc")}
+              </span>
+            {/if}
           </div>
         </div>
       {/each}

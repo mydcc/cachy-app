@@ -27,6 +27,7 @@ import {
   type StreamUsage,
 } from "../lib/ai/streamAdapters";
 import { buildDirectRequest } from "../lib/ai/directRequest";
+import { isOpenCodeUrl } from "../lib/ai/opencodeTarget";
 import {
   isSessionId,
   newSessionId,
@@ -515,7 +516,13 @@ class AiManager {
 
       // Browser-direct: the key never reaches the Cachy server. A CORS or
       // network failure is surfaced with the relay as the suggested fix.
-      if (userProvider && !userProvider.allowServerRelay) {
+      // OpenCode is the exception: its gateway sends no CORS headers, so a
+      // direct request can never work — the relay is used either way.
+      if (
+        userProvider &&
+        !userProvider.allowServerRelay &&
+        !isOpenCodeUrl(userProvider.baseUrl)
+      ) {
         try {
           const direct = buildDirectRequest(streamFlavor, {
             baseUrl,

@@ -178,6 +178,28 @@ describe("AI provider failures while sending", () => {
     expect(lastHeaders()["x-session-id"]).not.toBe(first);
   });
 
+  it("uses the server relay for OpenCode even when the toggle is off", async () => {
+    const fetchMock = vi.mocked(appFetch);
+    fetchMock.mockImplementation(async () => streamResponse("ok"));
+    const browserFetch = vi.spyOn(globalThis, "fetch");
+
+    // OpenCode's gateway sends no CORS headers, so a direct request can never
+    // work — the relay is used whatever the toggle says.
+    settingsState.userProviders[0].baseUrl =
+      "https://opencode.ai/inference/go/v1";
+    settingsState.userProviders[0].allowServerRelay = false;
+
+    try {
+      await aiState.sendMessage("analyse the market");
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(browserFetch).not.toHaveBeenCalled();
+      expect(aiState.error).toBeNull();
+    } finally {
+      browserFetch.mockRestore();
+    }
+  });
+
   it("omits the conversation id when the platform has no CSPRNG", async () => {
     const fetchMock = vi.mocked(appFetch);
     fetchMock.mockImplementation(async () => streamResponse("ok"));

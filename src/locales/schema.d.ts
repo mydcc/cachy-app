@@ -1379,6 +1379,7 @@ export type TranslationKey =
   | "settings.ai.customProviders.delete"
   | "settings.ai.customProviders.relay"
   | "settings.ai.customProviders.relayDesc"
+  | "settings.ai.customProviders.relayRequired"
   | "settings.ai.provider.openai"
   | "settings.ai.provider.gemini"
   | "settings.ai.provider.anthropic"
