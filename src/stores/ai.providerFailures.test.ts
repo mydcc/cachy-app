@@ -153,6 +153,27 @@ describe("AI provider failures while sending", () => {
       vi.useRealTimers();
     }
   });
+
+  it("sends a stable conversation id and rotates it when the chat is cleared", async () => {
+    const fetchMock = vi.mocked(appFetch);
+    fetchMock.mockImplementation(async () => streamResponse("ok"));
+
+    const headersOf = (call: number) =>
+      (fetchMock.mock.calls[call][1] as RequestInit)
+        .headers as Record<string, string>;
+
+    await aiState.sendMessage("erste Frage");
+    const first = headersOf(0)["x-session-id"];
+    expect(first).toBeTruthy();
+
+    await aiState.sendMessage("zweite Frage");
+    expect(headersOf(1)["x-session-id"]).toBe(first);
+
+    // A new conversation must not inherit the old routing.
+    aiState.clearHistory();
+    await aiState.sendMessage("neue Konversation");
+    expect(headersOf(2)["x-session-id"]).not.toBe(first);
+  });
 });
 
 describe("isRetryableProviderStatus", () => {

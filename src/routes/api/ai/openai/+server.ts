@@ -20,7 +20,10 @@ import type { RequestHandler } from "./$types";
 import { getErrorMessage } from "../../../../utils/errorUtils";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { AiRequestSchema } from "../../../../types/ai";
-import { resolveProviderEndpoint } from "../../../../lib/server/aiEndpoint";
+import {
+  isOpenCodeTarget,
+  resolveProviderEndpoint,
+} from "../../../../lib/server/aiEndpoint";
 import {
   isUrlAllowedAsync,
   safeFetch,
@@ -52,6 +55,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     const { messages, model, tools, baseUrl } = parseResult.data;
     const apiKey = request.headers.get("x-api-key");
+    /** Cachy's conversation id, translated for providers that need one. */
+    const sessionId = request.headers.get("x-session-id");
 
     if (!apiKey && !baseUrl?.trim()) {
       return json({ error: "Missing API Key" }, { status: 401 });
@@ -69,12 +74,21 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      // Identify Cachy instead of passing as a generic HTTP library. OpenCode
+      // Go asks its clients for that explicitly; other targets ignore it.
+      "User-Agent": "CachyApp/1.0 (SvelteKit)",
     };
     // Migrated OpenRouter entries relay through this route (the wire format
     // picks the route, not the vendor): keep the attribution header the
     // dedicated OpenRouter route sends so those requests stay attributed.
     if (isOpenRouterTarget(targetUrl)) {
       headers["X-Title"] = "Cachy";
+    }
+    if (isOpenCodeTarget(targetUrl)) {
+      // OpenCode Go rejects a request without a stable per-conversation id
+      // (`400 ... cannot be routed efficiently`). The client sends its own; the
+      // fallback keeps other callers of this route working (BUG-0701).
+      headers["x-opencode-session"] = sessionId || crypto.randomUUID();
     }
     if (apiKey) {
       headers.Authorization = `Bearer ${apiKey}`;
