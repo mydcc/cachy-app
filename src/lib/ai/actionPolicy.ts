@@ -62,6 +62,19 @@ export const AI_ACTION_GROUPS: readonly AiActionGroup[] = [
 ];
 
 /**
+ * The actions whose value is a price the trade form will use. The context
+ * check (BUG-0704) covers exactly these, and every one of them requires
+ * confirmation — a new price-carrying action belongs in this list and in the
+ * catalog together, which `actionContextCheck.test.ts` asserts.
+ */
+export const AI_PRICE_ACTIONS: readonly string[] = [
+  "setEntryPrice",
+  "setStopLoss",
+  "setTakeProfit",
+  "addTakeProfit",
+];
+
+/**
  * Actions that never touch the trade setup or the risk posture. They follow
  * the `aiConfirmActions` toggle; everything else asks unconditionally.
  */

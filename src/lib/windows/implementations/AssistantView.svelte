@@ -26,6 +26,7 @@
     import { assistantMarkdown } from "../../../actions/assistantMarkdown";
     import type { WindowBase } from "../WindowBase.svelte";
     import { resolveActiveProvider } from "../../../stores/settings/aiProviders";
+    import UnverifiedPriceWarning from "./UnverifiedPriceWarning.svelte";
 
     interface Props {
         window: WindowBase;
@@ -304,6 +305,12 @@
                                                 </tbody>
                                             </table>
                                         </div>
+                                        <UnverifiedPriceWarning
+                                            entries={pending.unverifiedPrices ??
+                                                []}
+                                            unchecked={pending.pricesUnchecked ??
+                                                false}
+                                        />
                                         <div class="flex gap-2 mt-2">
                                             <button
                                                 class="confirm-btn"

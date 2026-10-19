@@ -4845,6 +4845,8 @@
     "placeholderAi": "Nachricht an KI...",
     "placeholderNote": "Notiz eingeben...",
     "suggestedChanges": "Vorgeschlagene Änderungen",
+    "actionPricesUnchecked": "Der Kontext enthielt keine Preisangaben — die Aktionspreise konnten nicht geprüft werden.",
+    "unverifiedActionPrices": "Vom Kontext nicht bestätigt — prüfe diese Werte, bevor du sie anwendest:",
     "roleUser": "Benutzer",
     "contextDuration": "⏱ Kontext: {ms}ms",
     "contextNews": "📰 {count} News",

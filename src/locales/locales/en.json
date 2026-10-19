@@ -4845,6 +4845,8 @@
     "placeholderAi": "Message AI...",
     "placeholderNote": "Type note...",
     "suggestedChanges": "Suggested Changes",
+    "actionPricesUnchecked": "The context carried no price data — the action prices could not be checked.",
+    "unverifiedActionPrices": "Not confirmed by the context — check these values before applying them:",
     "roleUser": "User",
     "contextDuration": "⏱ Context: {ms}ms",
     "contextNews": "📰 {count} News",
