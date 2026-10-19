@@ -24,7 +24,7 @@ import {
   isOpenCodeTarget,
   resolveProviderEndpoint,
 } from "../../../../lib/server/aiEndpoint";
-import { resolveSessionId } from "../../../../lib/server/aiSession";
+import { resolveSessionId } from "../../../../lib/ai/sessionId";
 import {
   isUrlAllowedAsync,
   safeFetch,

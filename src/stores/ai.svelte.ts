@@ -27,6 +27,11 @@ import {
   type StreamUsage,
 } from "../lib/ai/streamAdapters";
 import { buildDirectRequest } from "../lib/ai/directRequest";
+import {
+  isSessionId,
+  newSessionId,
+  SESSION_ID_HEADER,
+} from "../lib/ai/sessionId";
 import { peekCachedModel } from "../services/aiModelsService";
 import { buildSystemPromptParts } from "../lib/ai/prompts/promptBuilder";
 import { stripMarkdownLinks } from "../lib/ai/prompts/contextFormatter";
@@ -215,20 +220,6 @@ export class ProviderRequestError extends Error {
     }
 }
 
-/**
- * A conversation id that ends up in a provider-visible header. Unlike
- * `generateId()`, it has no `Math.random()` fallback: without a secure context
- * the id stays empty and the relay fills one in server-side, where `crypto` is
- * always available. Randomness in a header-bound value is what CodeQL flags as
- * insecure (BUG-0701).
- */
-function newSessionId(): string {
-    return typeof crypto !== "undefined" &&
-        typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : "";
-}
-
 class AiManager {
   messages = $state<AiMessage[]>([]);
   isStreaming = $state(false);
@@ -244,6 +235,9 @@ class AiManager {
    * `x-opencode-session` and rejects a request without one (BUG-0701); every
    * other provider ignores the header. `clearHistory()` rotates it, because a
    * new conversation should not inherit the old one's routing.
+   *
+   * Deliberately not `$state`: it is read imperatively when sending and never
+   * rendered, so a reactive proxy would buy nothing.
    */
   sessionId: string = newSessionId();
   pendingActions = $state<Map<string, PendingAction>>(new Map());
@@ -271,7 +265,9 @@ class AiManager {
         if (parsed.messages) {
           this.messages = parsed.messages;
         }
-        if (typeof parsed.sessionId === "string" && parsed.sessionId) {
+        // A stored id that no longer fits the header shape would be replaced by
+        // a fresh one on every request; keep the generated one instead.
+        if (isSessionId(parsed.sessionId)) {
           this.sessionId = parsed.sessionId;
         }
       }
@@ -594,9 +590,11 @@ class AiManager {
             headers: {
               "Content-Type": "application/json",
               "x-api-key": apiKey,
-              // Empty in a non-secure context (no `crypto.randomUUID`); the
-              // relay then fills a session id in server-side (BUG-0701).
-              ...(this.sessionId ? { "x-session-id": this.sessionId } : {}),
+              // Omitted when the platform has no CSPRNG; the relay then fills
+              // a session id in server-side (BUG-0701).
+              ...(this.sessionId
+                ? { [SESSION_ID_HEADER]: this.sessionId }
+                : {}),
             },
             body: JSON.stringify({
               messages: payloadMessages,

@@ -23,7 +23,10 @@ describe("isOpenCodeTarget", () => {
   it("rejects lookalike hosts and unparseable targets", () => {
     // The leading dot is what keeps a conversation id off these hosts.
     expect(isOpenCodeTarget("https://evil-opencode.ai/v1")).toBe(false);
+    expect(isOpenCodeTarget("https://notopencode.ai/v1")).toBe(false);
     expect(isOpenCodeTarget("https://opencode.ai.attacker.com/v1")).toBe(false);
+    // Userinfo is not part of the hostname, so the host is the attacker's.
+    expect(isOpenCodeTarget("https://opencode.ai@evil.com/v1")).toBe(false);
     expect(isOpenCodeTarget("not a url")).toBe(false);
   });
 });

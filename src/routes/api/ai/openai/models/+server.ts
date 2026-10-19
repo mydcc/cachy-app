@@ -23,7 +23,7 @@ import {
   isOpenCodeTarget,
   resolveProviderEndpoint,
 } from "../../../../../lib/server/aiEndpoint";
-import { resolveSessionId } from "../../../../../lib/server/aiSession";
+import { resolveSessionId } from "../../../../../lib/ai/sessionId";
 import {
   isUrlAllowedAsync,
   safeFetch,
@@ -76,9 +76,7 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
   if (isOpenCodeTarget(targetUrl)) {
     // The model picker has no conversation of its own — a fresh id is enough
     // here, it only has to exist for OpenCode to route the call (BUG-0701).
-    headers["x-opencode-session"] = resolveSessionId(
-      request.headers.get("x-session-id"),
-    );
+    headers["x-opencode-session"] = resolveSessionId(null);
   }
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`;

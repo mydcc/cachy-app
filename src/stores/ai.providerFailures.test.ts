@@ -40,6 +40,7 @@ import {
 import { settingsState } from "./settings.svelte";
 import { tradeState } from "./trade.svelte";
 import { AI_ALLOWED_ACTIONS_DEFAULT } from "../lib/ai/actionPolicy";
+import { newSessionId } from "../lib/ai/sessionId";
 
 function errorResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -69,6 +70,7 @@ describe("AI provider failures while sending", () => {
     aiState.pendingActions = new Map();
     aiState.error = null;
     aiState.errorStatus = null;
+    aiState.sessionId = newSessionId();
 
     tradeState.symbol = "BTCUSDT";
     settingsState.showTechnicals = false;
@@ -158,21 +160,36 @@ describe("AI provider failures while sending", () => {
     const fetchMock = vi.mocked(appFetch);
     fetchMock.mockImplementation(async () => streamResponse("ok"));
 
-    const headersOf = (call: number) =>
-      (fetchMock.mock.calls[call][1] as RequestInit)
+    // The newest request is the last call — no assumption about call indexes.
+    const lastHeaders = () =>
+      (fetchMock.mock.calls[fetchMock.mock.calls.length - 1][1] as RequestInit)
         .headers as Record<string, string>;
 
     await aiState.sendMessage("erste Frage");
-    const first = headersOf(0)["x-session-id"];
+    const first = lastHeaders()["x-session-id"];
     expect(first).toBeTruthy();
 
     await aiState.sendMessage("zweite Frage");
-    expect(headersOf(1)["x-session-id"]).toBe(first);
+    expect(lastHeaders()["x-session-id"]).toBe(first);
 
     // A new conversation must not inherit the old routing.
     aiState.clearHistory();
     await aiState.sendMessage("neue Konversation");
-    expect(headersOf(2)["x-session-id"]).not.toBe(first);
+    expect(lastHeaders()["x-session-id"]).not.toBe(first);
+  });
+
+  it("omits the conversation id when the platform has no CSPRNG", async () => {
+    const fetchMock = vi.mocked(appFetch);
+    fetchMock.mockImplementation(async () => streamResponse("ok"));
+
+    // Without a secure context there is no id to send; the relay fills one in.
+    aiState.sessionId = "";
+
+    await aiState.sendMessage("analyse the market");
+
+    const headers = (fetchMock.mock.calls[0][1] as RequestInit)
+      .headers as Record<string, string>;
+    expect(headers["x-session-id"]).toBeUndefined();
   });
 });
 
