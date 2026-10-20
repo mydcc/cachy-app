@@ -5,6 +5,20 @@
     "AGENTS.md",
     ".claude/commands/backlog-groom.md"
   ],
+  "plugins": [
+    {
+      "package": "opencode-supervisor@0.1.0",
+      "options": {
+        "model": "opencode/deepseek-v4.1-flash-free",
+        "instructions": "Never push directly to develop or main; work only on feature branches with pull requests. Never force-push shared branches. Never edit .env files, files containing API keys, or commit secrets. Never run destructive commands (rm -rf, database migrations, schema changes) without explicit instruction. Financial values always via decimal.js, never native number. Never import spacetimedb or cloudService into core code (Local-First boundary). Never modify, delete, or clean up another agent's worktree, branch, or backlog claim.",
+        "mode": "blocking",
+        "action": "deny",
+        "scope": ["tools"],
+        "ignore": ["read", "grep", "glob", "webfetch", "list"],
+        "fallback": "allow"
+      }
+    }
+  ],
   "mcp": {
     "gortex": {
       "command": [
