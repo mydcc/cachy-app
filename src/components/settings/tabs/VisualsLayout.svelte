@@ -135,7 +135,10 @@
                     <span class="text-sm font-medium">{$_("settings.dockingCentered")}</span>
                     <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.dockingCenteredDesc")}</span>
                 </div>
-                <Toggle bind:checked={settingsState.enableDockingCentered} />
+                <Toggle
+                    id="docking-centered"
+                    bind:checked={settingsState.enableDockingCentered}
+                />
             </label>
             <div class="field-group">
                 <label for="docking-position">{$_("settings.dockingPosition")}</label>
@@ -162,5 +165,15 @@
         border: 1px solid var(--border-color);
         border-radius: var(--radius-xl);
         cursor: pointer;
+    }
+    .field-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .field-group label {
+        font-size: var(--text-xs);
+        font-weight: var(--font-semibold);
+        color: var(--text-secondary);
     }
 </style>

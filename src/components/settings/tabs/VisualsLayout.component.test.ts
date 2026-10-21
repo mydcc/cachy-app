@@ -111,11 +111,16 @@ describe("FEAT-0346 — VisualsLayout writes through to the stores", () => {
     it("renders the docking controls and binds the centered toggle", () => {
         render();
 
-        host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[2].click();
+        const centered = host.querySelector<HTMLInputElement>("#docking-centered");
+        if (!centered) throw new Error("docking centered toggle not rendered");
+        centered.click();
         expect(settingsMock.enableDockingCentered).toBe(false);
 
         const select = host.querySelector<HTMLSelectElement>("#docking-position");
         if (!select) throw new Error("docking position select not rendered");
+        // happy-dom does not resolve :checked for options, so Svelte's select
+        // write-through cannot be exercised here; the option set is what a
+        // component test can pin without a real browser.
         expect([...select.options].map((option) => option.value)).toEqual([
             "top",
             "bottom",

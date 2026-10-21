@@ -368,14 +368,20 @@
                     <!-- Display: PnL mode (moved from Chart → Indicators) -->
                     <div class="field-group">
                         <span
+                            id="pnl-mode-label"
                             class="text-xs font-semibold text-[var(--text-secondary)]"
                         >
                             {$_("settings.technicals.pnlMode")}
                         </span>
-                        <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
+                        <div
+                            class="flex bg-[var(--bg-tertiary)] rounded p-1"
+                            role="group"
+                            aria-labelledby="pnl-mode-label"
+                        >
                             {#each [{ value: "value", label: $_("settings.technicals.pnlModes.absolute") }, { value: "percent", label: $_("settings.technicals.pnlModes.percent") }, { value: "bar", label: $_("settings.technicals.pnlModes.bar") }] as mode}
                                 <button
                                     type="button"
+                                    aria-pressed={settingsState.pnlViewMode === mode.value}
                                     class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'text-[var(--text-secondary)]'}"
                                     onclick={() =>
                                         (settingsState.pnlViewMode =
