@@ -2,7 +2,7 @@
 id: FEAT-0606
 title: Audit button placement, visibility and enablement dependencies
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,6 +12,8 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0605]
+assignee: opencode
+branch: docs/feat-0606-button-audit
 ---
 
 # FEAT-0606 — Audit button placement, visibility and dependencies
@@ -53,18 +55,18 @@ hidden inside a styling change.
 
 ## Acceptance criteria
 
-- [ ] A table covers every interactive control in the app shell, settings,
+- [x] A table covers every interactive control in the app shell, settings,
       journal and window frames, with columns: surface, control, action, enabling
       state, is-that-state-visible
-- [ ] Every "enabling state is not visible" case is filed as a `BUG` item with
+- [x] Every "enabling state is not visible" case is filed as a `BUG` item with
       `area: ui` and linked from this item
-- [ ] Every control that acts on a different surface than it appears on is
+- [x] Every control that acts on a different surface than it appears on is
       called out explicitly
-- [ ] The destructive controls (`#reset-btn`, `#delete-preset-btn`, and any
+- [x] The destructive controls (`#reset-btn`, `#delete-preset-btn`, and any
       other) are listed together with how each is confirmed or not confirmed
-- [ ] `#save-preset-btn` / `#delete-preset-btn` / `#preset-loader` are checked
+- [x] `#save-preset-btn` / `#delete-preset-btn` / `#preset-loader` are checked
       against each other for consistency and the result recorded
-- [ ] The table is added to
+- [x] The table is added to
       [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md)
       as a new section, not as a separate document
 
@@ -76,17 +78,50 @@ hidden inside a styling change.
 - Changing any enablement logic.
 - Iconography, labels, and i18n of button text.
 
-## Open questions
+## Resolved question
 
-- Should the audit cover controls inside popovers and dropdowns (symbol picker,
-  preset loader, account switcher), or only always-visible surfaces? Including
-  them roughly doubles the table.
+The open question asked whether popovers and dropdowns belong in the table.
+Answer recorded in §8: always-visible surfaces are exhaustive; a popover is
+included only where it carries a destructive or money-relevant control (preset
+loader, account switcher, provider manager, column settings). The symbol picker
+is excluded — it is a search surface with no state of its own. This keeps the
+table bounded without dropping the controls where a hidden precondition costs
+something.
+
+## Progress — 2026-10-21
+
+Branch `docs/feat-0606-button-audit`. Snapshot `develop` at `8fcbcd251`.
+
+§8 of the audit asset now lists 182 interactive controls in the four surfaces
+(180 `<button>` elements, the preset select and the window title's
+`role="button"`), with enabling state and visibility per control, plus the
+destructive-control table, the preset-trio comparison and the cross-surface
+list.
+
+Five defects were filed from it, each with file:line evidence:
+
+- BUG-0712 — window zoom and font controls never disable at their bounds
+- BUG-0713 — "Add feed" disables at five with no visible reason
+- BUG-0714 — remove-account's reason lives in a `title` on a disabled button
+- BUG-0715 — rail toggles act on a sidebar that may not exist or not be visible
+- BUG-0716 — header reset and delete-preset act without confirmation
+
+No button was moved, restyled or re-wired: the item measured, as its out-of-scope
+clause requires. The observations that did not merit their own item (dead
+`SettingsButton`, duplicated news-behaviour control, undiscoverable right-click
+theme gesture, last-timeframe no-op, quick-date feedback) are recorded at the end
+of §8.8 so FEAT-0607/0610 do not rediscover them.
 
 ## Links
 
-- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §5
+- Evidence: [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md) §8 (this audit) and §5 (button counts)
 - [FEAT-0605](FEAT-0605-ui-status-quo-audit.md)
 - [FEAT-0610](FEAT-0610-extend-and-adopt-the-button-primitive.md) — consumes this
+- Filed from this audit: [BUG-0712](../bugs/BUG-0712-window-zoom-controls-stay-enabled-at-limits.md),
+  [BUG-0713](../bugs/BUG-0713-add-feed-cap-has-no-visible-reason.md),
+  [BUG-0714](../bugs/BUG-0714-account-remove-reason-is-hover-only.md),
+  [BUG-0715](../bugs/BUG-0715-sidebar-toggles-act-on-hidden-surfaces.md),
+  [BUG-0716](../bugs/BUG-0716-header-destructive-buttons-have-no-confirmation.md)
 - [BUG-0410](../bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md)
 - [BUG-0412](../bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md)
 - [BUG-0423](../bugs/BUG-0423-coalesce-duplicate-account-fetches.md)

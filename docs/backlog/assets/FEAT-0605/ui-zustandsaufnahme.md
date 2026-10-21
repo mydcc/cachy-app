@@ -383,7 +383,281 @@ conclusion without saying what it changed.
 
 ---
 
-## 8. Reading this document
+## 8. Buttons — placement, visibility and enablement (FEAT-0606)
+
+Snapshot: `develop` at `8fcbcd251`, 2026-10-21. Method: `grep -c '<button'` plus a
+read of every control in the four surfaces named by the item; not a visual audit.
+
+Scope decision (the item's open question): the always-visible surfaces are
+covered exhaustively. Popovers and dropdowns are included where they carry a
+destructive or money-relevant control — the preset loader, the account switcher,
+the custom-provider manager, the column-settings popover. The symbol picker is
+not covered; it is a search surface with no state of its own.
+
+Counts in scope: **180 `<button>` elements**, plus the `#preset-loader` select
+and the window title's `role="button"` — 182 interactive controls, all listed
+below. The app-wide total from §5 (364 buttons across 167 files) includes
+surfaces this item does not name.
+
+Reading the tables: "Enabling state" is the condition that decides whether the
+control can act, whether or not it is expressed as `disabled`. "Visible?" asks
+whether that condition is readable on screen without hovering, and whether it is
+readable *at the moment the control is shown*. "—" means the control has no
+precondition.
+
+### 8.1 App shell
+
+| Surface | Control | Action | Enabling state | Visible? |
+| --- | --- | --- | --- | --- |
+| Header | `#journal-toggle-btn` (mobile, `md:hidden`) | opens the journal modal | — | — |
+| Header | `#preset-loader` (select) | applies the chosen preset on change | — | — (selection is shown) |
+| Header | `#save-preset-btn` | prompts for a name, then saves | — | — |
+| Header | `#delete-preset-btn` | deletes the selected preset, immediately | a preset is selected | yes — the loader shows its placeholder when none is |
+| Header | `#reset-btn` | replaces the whole trade form with the initial state | — | — |
+| Header | `#theme-switcher` | cycles theme forward; right-click cycles backward | — | icon shows the current theme; the backward gesture is undiscoverable |
+| Header | `#view-journal-btn-desktop` (`hidden md:inline-block`) | opens the journal modal | — | — |
+| Header | pulse `🚀` | projectile effect | — | — |
+| Footer | Guide / Changelog / Privacy / Whitepaper | open the matching modal | — | — |
+| Left rail | Dashboard | opens the market dashboard | — | — |
+| Left rail | Settings | opens the settings window | — | — |
+| Left rail | Alerts | opens the alert panel | — | — |
+| Left rail | Academy | opens the academy window | — | — |
+| Left rail | Assistant | toggles the assistant panel | — | yes — `class:active` |
+| Left rail | Journal restore | raises and restores a minimized journal window | a journal window is minimized | the button exists only then |
+| Left rail | Technicals | sets `showTechnicals` | sidebar column rendered **and** `xl` viewport | **no** — BUG-0715 |
+| Left rail | Market overview | sets `showMarketOverview` | sidebar column rendered **and** `xl` viewport | **no** — BUG-0715 |
+| Left rail | Market activity | sets `showSidebarActivity` | panel renders from `effectiveShowSidebarActivity` (keys or paper account) | **no** — the active class shows a different value than the panel — BUG-0715 |
+| Left rail | Sentiment | sets `showMarketSentiment` | sidebar column rendered **and** `xl` viewport | **no** — BUG-0715 |
+
+The two journal buttons are the same action twice, one per breakpoint
+(`md:hidden` / `hidden md:inline-block`). Not a defect, but it means the header
+has one visible control where the markup has two.
+
+### 8.2 Journal
+
+| Surface | Control | Action | Enabling state | Visible? |
+| --- | --- | --- | --- | --- |
+| Journal window header | Sync history | fetches Bitunix history | Pro **and** not fetching **and** not `uiState.isLoading` | partly — lock icon for Pro, spinner for fetching; `isLoading` has no cue |
+| Journal body | Table / Overview / Deep Dive tabs | switch the main view | — | yes — active class |
+| Journal body | Column settings `OK` | closes the popover | — | — |
+| Journal body | Column presets: compact / standard / fees / all | apply a column set | — | — |
+| Journal body | Export CSV | downloads the journal | — | — |
+| Journal body | Import CSV | opens the file picker | — | — |
+| Journal body | Clear all | empties the journal | — | confirmed (`modalState`) |
+| Journal filters | Live / Paper / All | switch the trade-mode filter | — | yes — active class |
+| Journal filters | Table settings (gear) | toggles the column popover | — | the popover is the state |
+| Journal filters | Today / Week / Month / 30 days / YTD / All | set the date range | — | no active marker; the date inputs show the result |
+| Journal filters | Reset filters | clears all filters | — | — |
+| Journal table | Group toggle (per symbol row) | expands or collapses the group | — | icon rotation |
+| Journal table | Screenshot zoom (parent and sub rows) | opens the lightbox | the trade has a screenshot | the button renders only then |
+| Journal table | Open detail (parent and sub rows) | opens the drawer | — | — |
+| Journal table | Delete (parent row) | deletes the trade | — | confirmed (`confirm()`) |
+| Journal table | Previous / next page | paginate | page is not first / not last | yes — page indicator |
+| Journal table | Lightbox close | closes the lightbox | — | — |
+| Trade drawer | Close | closes the drawer | — | — |
+| Trade drawer | Save notes | writes the notes | — | — (no disabled-when-unchanged state) |
+| Trade drawer | Open screenshot / close screenshot | lightbox | — | — |
+| Deep dive | Year pill (per year) | selects the year | — | yes — active class |
+| Overview | Preset tab (per preset) | selects the chart preset | — | yes — active class |
+| Entry tags | Remove tag (`×`) | removes the tag | — | — |
+| Entry tags | Suggestion chip | adds the suggested tag | — | — |
+
+### 8.3 Window frames
+
+| Surface | Control | Action | Enabling state | Visible? |
+| --- | --- | --- | --- | --- |
+| Window frame | Header control (per `win.headerControls`) | `ctrl.action()` | `headerControls.length > 0` and not minimized | yes — `ctrl.active` |
+| Window frame | Window title (`role="button"`) | toggles the window mode | `headerAction === "toggle-mode"` | no — only the cursor changes |
+| Window frame | Zoom out / in | 50 %–200 % content zoom | `allowZoom` | **no** — never disables at the bound — BUG-0712 |
+| Window frame | Export | `onHeaderExport()` | `headerButtons` includes `export` | — |
+| Window frame | Delete | `onHeaderDelete()` | `headerButtons` includes `delete` | — (confirmation is the window's own concern) |
+| Window frame | Open in new tab | `onHeaderOpenInNewTab()` | `headerButtons` includes `openInNewTab` | — |
+| Window frame | `A-` / `A+` | 8 px–32 px font size | `allowFontSize` | **no** — never disables at the bound, and the size is not displayed — BUG-0712 |
+| Window frame | Feed duck `🍞` | triggers the duck effect | `allowFeedDuck` | — |
+| Window frame | Minimize | minimizes | `showMinimizeButton` | — |
+| Window frame | Maximize / restore | toggles maximize | `showMaximizeButton` | yes — icon and title follow the state |
+| Window frame | Close | closes the window | — | — |
+| Window frame | Context-menu item (per action) | runs the action | the menu is open and `hasContextMenu` | danger items are styled |
+
+### 8.4 Settings
+
+The settings window is the bulk of the count: 106 buttons across 31 components.
+Sub-tab rails are one row each, because every tab in a rail shares the same
+handler shape and the same active marker.
+
+| Surface | Control | Action | Enabling state | Visible? |
+| --- | --- | --- | --- | --- |
+| Settings — rail | Tab (8 tabs) | switches the tab | — | yes — `aria-selected` + border marker; no arrow keys (§7 N8) |
+| Connections → Accounts | Make active (per account) | switches the active account | account is not active | yes — the card carries an active badge |
+| Connections → Accounts | Remove (per account) | removes the account | more than one account exists | **no** — reason lives in a `title` on a disabled button — BUG-0714 |
+| Connections → Accounts | Add Bitget / Add Bitunix | adds an account | — | — |
+| Connections → Accounts | Reveal key | toggles key visibility | — | — |
+| Connections | Sub-tab rail (3: exchanges, data, RSS) | switches the sub-tab | — | yes — active class |
+| Connections | Reveal app token / ImgBB key | toggles visibility | — | — |
+| Connections | Create access token (two sections) | requests a token | token status is not `loading` | opacity only |
+| Connections → RSS | Remove feed (per feed) | removes the feed | — | — |
+| Connections → RSS | Add feed | adds a feed | fewer than five feeds | **no** — no counter, no title — BUG-0713 |
+| AI | Provider segmented control (Ollama, OpenAI, Gemini, Anthropic, Custom) | selects the built-in provider | — | yes — active class |
+| AI | Sub-tab rail (3: intelligence, behaviour, agents) | switches the sub-tab | — | yes — active class |
+| AI | Custom providers | opens the provider manager | — | — |
+| AI → Behaviour | News open behaviour (4 options) | sets the behaviour | — | yes — check mark |
+| AI → Agents | Remove Discord channel (per row) | removes the channel | — | — (no confirmation) |
+| AI → Agents | Add Discord channel | appends a row | — | — |
+| AI | Model refresh | reloads the model list | not loading | yes — label becomes "testing…" |
+| AI → Custom providers | Add provider | appends a provider | — | — |
+| AI → Custom providers | Activate (per provider) | makes it active | not already active | yes — label becomes "Active" |
+| AI → Custom providers | Delete (per provider) | removes it | — | — (no confirmation) |
+| Trading | Sub-tab rail (3: market, chart, risk) | switches the sub-tab | — | yes — active class |
+| Trading | Fee preference (maker / taker) | sets the fee assumption | — | yes — active class |
+| Trading | PnL view mode (per option) | sets the mode | — | yes — active class |
+| Trading → Chart | Manage performance `⚡` | switches to System → Performance | — | **cross-surface** (§8.7) |
+| Chart | Reset chart settings | restores chart defaults | — | — (no confirmation) |
+| System | Sub-tab rail (5: performance, dashboard, data, maintenance, hotkeys) | switches the sub-tab | — | yes — active class |
+| System → Data | Create snapshot | triggers a backup | — | — |
+| System → Data | File target: reconnect / choose / clear (four buttons) | rebinds a backup target | — | — |
+| System → Data | Backup | writes a backup (asks about encryption) | — | confirmed for the encryption choice |
+| System → Maintenance | Clear cache | clears news and market caches | — | — (no confirmation) |
+| System → Maintenance | Reload app | reloads the page | — | — (no confirmation) |
+| System → Maintenance | Start onboarding tour | starts the app-wide tour after 2 s | — | no state while the tour is pending; a second click restarts the timer |
+| System → Maintenance | Factory reset | wipes local data | — | confirmed (`modalState`) |
+| System → Hotkeys | Switch to custom | sets `hotkeyMode = "custom"` | — | — |
+| System → Hotkeys | Reset to defaults | restores hotkey defaults | — | confirmed (`confirm()`) |
+| System → Hotkeys | Edit (per action) | captures a new key | — | — |
+| Automation | Edit bot (per row) | opens the row in edit mode | — | — |
+| Automation | Remove bot (per row) | deletes the bot | — | — (no confirmation) |
+| Automation | Save / Cancel | commit or discard the edit | — | — |
+| Automation | Promote | promotes the stop distance | a source bot is selected | yes — the select is adjacent |
+| Visuals | Sub-tab rail (3: appearance, layout, background) | switches the sub-tab | — | yes — active class |
+| Visuals → Appearance | Border effect (2) | sets fire or glow | — | yes — active class |
+| Visuals → Appearance | Burning-border intensity (3) | sets the intensity | — | yes — active class |
+| Visuals → Appearance | Border colour mode (4) | sets the mode | — | yes — active class |
+| Visuals → Appearance | Ambient topline mode (3) | sets the mode | — | yes — active class |
+| Visuals → Appearance | Ambient topline intensity (3) | sets the intensity | — | yes — active class |
+| Visuals → Background | Background type (per type) | sets the background | — | yes — active class |
+| Visuals → Background | Reset galaxy / reset trade flow | restores defaults | — | — (no confirmation) |
+| Visuals → Background | Flow mode / colour mode (per option) | sets the mode | — | yes — active class |
+| Visuals → Layout | News open behaviour (4 options) | sets the behaviour | — | yes — check mark; duplicates the AI tab control |
+| Data maintenance | Scan all | scans the journal for gaps | not scanning or repairing | yes — label becomes "scanning" |
+| Data maintenance | Repair ATR / MFE-MAE / symbols | rewrites journal fields | the matching gap count is above zero | the button renders only then; no confirmation |
+| Risk | Release kill switch | releases the block | — | confirmed (`modalState`) |
+| Risk | Engage kill switch | blocks new orders | — | — (the safe direction; no confirmation) |
+| Risk | Close all positions | runs the close-all flow | not already closing | opacity only |
+| Risk | Reset limits | restores risk limits | — | confirmed (`modalState`) |
+| Paper trading | Switch mode | toggles paper/live | — | confirmed (`modalState`) |
+| Paper trading | Reset book | empties the paper book | — | confirmed (`modalState`) |
+| Paper trading | Failure mode (per option) | sets the simulation mode | — | yes — active class |
+| Notifications | Preview tone | plays a test sound | sound is supported | yes — availability text is rendered |
+| Notifications | Restore defaults | resets policy and sound | — | — (no confirmation) |
+| External channels | Look up chats | resolves Telegram chats | a bot token is present | yes — the token field is adjacent |
+| External channels | Clear delivery log | empties the log | — | — (no confirmation) |
+| External channel card | Send test | sends a test message | no configuration problem, not testing | yes — the problem text is rendered |
+| External channel card | Clear | clears the channel config | — | — (no confirmation) |
+| Order audit | Export / Refresh | download or reload the log | — | — |
+| Order audit | Clear log | empties the log | — | confirmed (`modalState`) |
+| Order audit | Expand row (per entry) | shows the detail | — | — |
+| Hotkeys | Reset to defaults | restores defaults | — | confirmed (`confirm()`) |
+| Hotkeys | Edit (per action) | captures a key | — | — |
+| API quota | Reset CryptoPanic / Reset NewsAPI | resets the quota counter | — | confirmed (`confirm()`) |
+| Calculation | Preset (per preset) | applies a calculation profile | — | — |
+| Calculation | Timeframe toggle (per timeframe) | adds or removes a timeframe | at least two timeframes remain | **no** — the last one stays enabled and does nothing |
+| Confirmations | Reset policy | restores the confirmation defaults | — | — (no confirmation) |
+| Engine debug | Refresh | reloads the debug data | — | — |
+| Engine debug | Recent history toggle | expands the history | — | yes — label and `aria` follow the state |
+| Indicator settings | Category rail (6) | switches the category | — | yes — active class |
+| Indicator settings | Pivot type (per option) | sets the pivot method | — | yes — active class |
+| Indicator alert action | Open alert panel | seeds and opens the panel | the indicator is alertable and not refused | yes — `aria-disabled` + `title` (the precedent to copy) |
+| Settings entry | `SettingsButton` | opens the settings window | — | **imported by zero components** — dead, like `Button.svelte` (§5) |
+
+### 8.5 Destructive controls, and how each is confirmed
+
+| Control | What is lost | Confirmed? |
+| --- | --- | --- |
+| `#reset-btn` (header) | every trade-form value | **no** — BUG-0716 |
+| `#delete-preset-btn` (header) | the selected preset | **no** — BUG-0716 |
+| Journal → Clear all | the whole journal | yes — `modalState` |
+| Journal table → Delete | one trade | yes — `confirm()` |
+| System → Factory reset | all local data | yes — `modalState` |
+| System → Clear cache | news and market caches | no (low risk) |
+| System → Reload app | nothing persisted; the page reloads | no |
+| Data maintenance → Repair ×3 | rewrites derived journal fields | no (scoped, but silent) |
+| Risk → Release kill switch | the trading block | yes — `modalState` |
+| Risk → Engage kill switch | nothing; it is the safe direction | no (deliberate) |
+| Risk → Close all | all open positions | yes — `confirmAndCloseAllPositions()` |
+| Risk → Reset limits | the configured limits | yes — `modalState` |
+| Paper trading → Switch mode / Reset book | the paper book | yes — `modalState` |
+| Cloud → Erase my messages | the user's chat messages | yes — two-step inline label |
+| Accounts → Remove | the account and its keys | yes — `modalState` |
+| Custom providers → Delete | the provider config | **no** |
+| Automation → Remove bot | the bot config | **no** |
+| Connections → Remove feed | the feed | **no** |
+| External channel → Clear | the channel config | **no** |
+| AI → Remove Discord channel | the channel row | **no** |
+| Chart → Reset chart settings | chart preferences | **no** |
+| Visuals → Reset galaxy / trade flow | those settings | **no** |
+| Notifications → Restore defaults | notification policy and sound | **no** |
+| Confirmations → Reset policy | confirmation policy | **no** |
+| Hotkeys → Reset to defaults | hotkey bindings | yes — `confirm()` |
+| API quota → Reset | the quota counter | yes — `confirm()` |
+
+Two patterns are defensible as they stand: engaging the kill switch is the safe
+direction, and the "restore defaults" family is recoverable by reconfiguring.
+The header pair is not in that class — the form values and a saved preset are
+gone in one click, next to a theme switch.
+
+### 8.6 The preset trio, checked against each other
+
+| Control | Interaction model | Disabled state | Confirmation |
+| --- | --- | --- | --- |
+| `#preset-loader` | applies on `change` | never | — |
+| `#save-preset-btn` | opens a name prompt | never | the prompt is the gate |
+| `#delete-preset-btn` | deletes on click | when nothing is selected | **none** |
+
+Three different models for one object. Save is the only one that asks, and it
+asks for a name rather than for consent. The loader's placeholder option doubles
+as the empty selection, which is why the delete button's disabled state is
+readable at all. Aligning delete on the save pattern (a confirm naming the
+preset) is BUG-0716.
+
+### 8.7 Controls that act on another surface
+
+| Control | Lives on | Acts on |
+| --- | --- | --- |
+| Technicals / market overview / activity / sentiment toggles | left rail | the main page's sidebar column, which may not be rendered |
+| Journal restore | left rail | a minimized window |
+| Manage performance `⚡` | Settings → Trading → Chart | Settings → System → Performance (switches both tab and sub-tab) |
+| Start onboarding tour | Settings → System | closes settings and starts an app-wide overlay |
+| Custom providers | Settings → AI | a modal over the settings window |
+| Dashboard / Settings / Alerts / Academy / Assistant | left rail | windows and overlays |
+| Window header export / delete / open-in-new-tab | window frame | the window's own content and the clipboard/tab |
+| Sync history | journal window header | journal data (same window) |
+| Theme switcher | main header | the whole app, persisted |
+
+### 8.8 Findings filed from this audit
+
+| Item | Finding |
+| --- | --- |
+| [BUG-0712](../bugs/BUG-0712-window-zoom-controls-stay-enabled-at-limits.md) | Zoom and font-size controls never disable at their bounds |
+| [BUG-0713](../bugs/BUG-0713-add-feed-cap-has-no-visible-reason.md) | "Add feed" disables at five with no visible reason |
+| [BUG-0714](../bugs/BUG-0714-account-remove-reason-is-hover-only.md) | Remove-account's disabled reason is hover-only |
+| [BUG-0715](../bugs/BUG-0715-sidebar-toggles-act-on-hidden-surfaces.md) | Rail toggles act on surfaces that may not exist or not be visible |
+| [BUG-0716](../bugs/BUG-0716-header-destructive-buttons-have-no-confirmation.md) | Header reset and delete-preset act without confirmation |
+
+Observations that are not defects on their own, recorded so the button-primitive
+work does not rediscover them:
+
+- `SettingsButton.svelte` is imported by zero components — the same shape as the
+  dead `Button.svelte` in §5, and a second reason to settle the primitive before
+  adopting it.
+- The news open behaviour is configured in two places (AI → Behaviour and
+  Visuals → Layout) with identical options. One of them should go when the
+  settings vocabulary is harmonised (FEAT-0607).
+- The theme switcher's backward gesture is a right-click with no affordance.
+- The calculation timeframe toggle stays enabled when only one timeframe is
+  left; the handler silently refuses.
+- Quick-date buttons leave no active marker; the resulting date inputs are the
+  only feedback.
+
+## 9. Reading this document
 
 Sections 1–6 are measurements. If a number drifts, the number is stale, not the
 code. Sections 7's N1–N3 and N9 are the ones that constrain *ordering* rather
