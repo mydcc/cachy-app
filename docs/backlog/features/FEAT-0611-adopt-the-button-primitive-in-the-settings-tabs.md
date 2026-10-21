@@ -2,7 +2,7 @@
 id: FEAT-0611
 title: Adopt the button primitive across the settings tabs
 type: feature
-status: in-progress
+status: ready
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,11 +12,15 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0608, FEAT-0610]
-assignee: opencode
 branch: feature/feat-0611-settings-buttons
 ---
 
 # FEAT-0611 — Adopt the button primitive across the settings tabs
+
+> **State note.** Stage 1 (button primitive in the settings tabs) landed in
+> #4181. The remaining acceptance criteria are open, so the item is back to
+> `ready` and the stale `in-progress` claim is dropped — it was blocking the
+> item for every other agent.
 
 The settings window holds the largest number of hand-styled buttons after the
 app shell. It is also the window the density control will appear in, so its
