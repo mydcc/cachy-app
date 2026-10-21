@@ -165,23 +165,27 @@ unused selectors).
 Branch `feature/feat-0611-settings-cards`, based on `11a45396c` (Stage 1). This
 closes the item: 40 sites in the 18 card components.
 
-### Migrated (32 sites)
+### Migrated (33 sites)
 
 `AccountList` (3), `AiModelPicker` (1), `AiProviderManager` (3),
 `ApiQuotaStatus` (2), `ConfirmationSettings` (1), `DataMaintenance` (4),
-`EngineDebugPanel` (1), `ExternalChannelCard` (2), `ExternalChannelSettings`
+`EngineDebugPanel` (2), `ExternalChannelCard` (2), `ExternalChannelSettings`
 (2), `HotkeySettings` (2), `NotificationSettings` (2), `OrderAuditSettings`
 (3), `PaperTradingSettings` (2), `RiskLimitsSettings` (4).
 
-### Escaped with a comment (8 sites)
+### Escaped with a comment (7 sites)
 
 The reveal toggle inside `AccountCard`'s key inputs (icon-only, absolutely
 positioned — the primitive's padding would shift it), `CalculationSettings`'
-preset cards and timeframe toggles, `EngineDebugPanel`'s history disclosure
-and `OrderAuditSettings`' audit-entry disclosure (both carry `aria-expanded`,
-which the primitive does not pass through), `PaperTradingSettings`' failure-mode
-segmented control, `SettingsContent`'s tab rail, and `SettingsButton` — a
-component with no importer, so migrating it would hide the dead-code finding.
+preset cards and timeframe toggles, `OrderAuditSettings`' audit-entry
+disclosure (a full-width, left-aligned row; the primitive centers its content),
+`PaperTradingSettings`' failure-mode segmented control, `SettingsContent`'s tab
+rail, and `SettingsButton` — a component with no production importer, so
+migrating it would hide the dead-code finding.
+
+The engine-debug history disclosure was initially escaped for a missing
+`aria-expanded` passthrough; the review on #4192 turned that into a prop on the
+primitive (`ariaExpanded`/`ariaControls`) and the control migrated.
 
 ### Primitive extensions
 
@@ -193,9 +197,13 @@ Two variants, both because the cards needed them:
 - `outline-accent` — `AiProviderManager`'s add and activate actions are
   outlined in the accent role, not in the neutral border `outline` uses.
 
-`Button.svelte` also widens `onClick` to `(event: MouseEvent) => void`: the
-hotkey capture button needs `stopPropagation`, and the narrower signature
-rejected it at the type level.
+`Button.svelte` also widens `onClick` to `(event: MouseEvent) => void` (the
+hotkey capture button needs `stopPropagation`) and forwards `ariaExpanded` /
+`ariaControls` (the engine-debug history disclosure needs the former; escaping
+it for a missing passthrough was the alternative). `themes.css` gains
+`.btn-base.btn-mono` — `.btn-base` sets `font-family: inherit` unlayered, so
+the `font-mono` utility could not override it and the key display had lost its
+monospace face.
 
 ### Normalization, stated (stage 2)
 
@@ -208,6 +216,13 @@ rejected it at the type level.
   neutral bordered buttons → `outline`; the danger *hover* tint on the two
   clear buttons (`ExternalChannelCard`, `OrderAuditSettings`) is dropped — the
   destructive affordance there belongs in a confirmation, not in a hover.
+  Note the token swap this implies: the paired classes filled with
+  `--danger-color`/`--accent-color`, the variants fill with
+  `--btn-danger-bg`/`--btn-accent-bg`, and the two pairs diverge in seven
+  themes (default, light, VIP, matrix, gruvbox-dark, github-dark,
+  github-light). The kill-switch, close-all and remove buttons therefore
+  change shade in those themes; in VIP the danger fill changes hue. That is
+  the price of one role token per variant and is deliberate.
 - **Geometry** — `.action` (AccountList), `.add-btn`, `.activate-btn`,
   `.delete-btn`, `.refresh-btn` were component-scoped and lost their
   consumers; they are removed. `AccountList`'s `makeActive`/`remove` keep
@@ -218,11 +233,16 @@ rejected it at the type level.
 ### Checks
 
 - `settingsButtons.test.ts` — `ROOTS` widened to `src/components/settings`,
-  so cards and tabs are both covered (8 escapes, all named).
-- `src/components/settings` + `Button.component.test.ts` — 19 files, 135
+  so cards and tabs are both covered (7 escapes, all named), plus a companion
+  assertion that every `<Button>` carries `onClick` — the review on #4192
+  found that hole (a `<Button>` without a handler passes every other check).
+- `src/components/settings` + `Button.component.test.ts` — 19 files, 136
   tests green.
 - `tests/e2e/settings-buttons-width.spec.ts` — the settings window opens at
-  540 px and 1024 px without horizontal overflow (AC7).
+  540 px and 1024 px without horizontal overflow (AC7). It navigates to a
+  sub-tab that actually renders migrated controls and asserts none is clipped
+  inside `.window-content`; the first version only measured the document, which
+  the window's own `overflow: hidden` made unfalsifiable.
 - `npm run check` — 0 errors, 6 pre-existing warnings.
-- Audit §5 re-counted: **303** raw `<button>` across 92 files (368 before
+- Audit §5 re-counted: **302** raw `<button>` across 91 files (368 before
   FEAT-0610, 335 after stage 1).

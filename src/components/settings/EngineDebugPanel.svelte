@@ -211,10 +211,16 @@
 
     <!-- Recent History -->
     <div class="section">
-        <!-- FEAT-0611 escape: disclosure header carrying aria-expanded and an inline counter; the primitive has no aria-expanded passthrough -->
-        <button type="button" class="history-toggle" onclick={() => showHistory = !showHistory} aria-expanded={showHistory} aria-label={$_("settings.system.debug.aria.recentHistoryToggle")}>
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            ariaExpanded={showHistory}
+            ariaLabel={$_("settings.system.debug.aria.recentHistoryToggle")}
+            onClick={() => showHistory = !showHistory}
+        >
             {showHistory ? '▾' : '▸'} {$_("settings.system.debug.recentHistory")} ({telemetry.performanceHistory.length})
-        </button>
+        </Button>
         
         {#if showHistory && recentHistory.length > 0}
             <table class="stats-table history-table">
@@ -361,21 +367,6 @@
         color: var(--accent-primary);
         display: flex;
         align-items: center;
-    }
-    .history-toggle {
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        font-size: 0.7rem;
-        cursor: pointer;
-        padding: 2px 0;
-        font-weight: var(--font-semibold);
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .history-toggle:hover {
-        color: var(--text-primary);
     }
     .history-table {
         margin-top: 0.35rem;

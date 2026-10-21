@@ -175,7 +175,7 @@
                 type="button"
                 variant={editingId === action.id ? "accent" : "outline"}
                 size="sm"
-                extraClasses="font-mono min-w-[80px] shrink-0 {editingId === action.id ? 'animate-pulse' : ''}"
+                extraClasses="btn-mono min-w-[80px] shrink-0 {editingId === action.id ? 'animate-pulse' : ''}"
                 onClick={(e) => {
                   e.stopPropagation();
                   startEditing(action.id);

@@ -178,7 +178,7 @@ describe("EngineDebugPanel", () => {
     it("reports the history toggle's open state via aria-expanded", async () => {
         await renderFresh();
 
-        const toggle = host!.querySelector<HTMLButtonElement>("button.history-toggle");
+        const toggle = host!.querySelector<HTMLButtonElement>("button[aria-expanded]");
         expect(toggle, "history toggle button is present").not.toBeNull();
         expect(toggle!.getAttribute("aria-expanded")).toBe("false");
 
@@ -190,7 +190,7 @@ describe("EngineDebugPanel", () => {
 
     it("names the history toggle for assistive tech in both locales", async () => {
         await renderFresh();
-        const english = host!.querySelector<HTMLButtonElement>("button.history-toggle");
+        const english = host!.querySelector<HTMLButtonElement>("button[aria-expanded]");
         expect(english, "history toggle button is present").not.toBeNull();
         // WCAG 2.5.3 (Label in Name): the accessible name must contain the
         // visible label, or voice control users cannot invoke the button.
@@ -199,7 +199,7 @@ describe("EngineDebugPanel", () => {
 
         locale.current = "de";
         await renderFresh();
-        const german = host!.querySelector<HTMLButtonElement>("button.history-toggle");
+        const german = host!.querySelector<HTMLButtonElement>("button[aria-expanded]");
         expect(german, "history toggle button is present").not.toBeNull();
         expect(german!.getAttribute("aria-label")).toBe("Verlauf — ein- oder ausblenden");
         expect(german!.textContent).toContain("Verlauf");

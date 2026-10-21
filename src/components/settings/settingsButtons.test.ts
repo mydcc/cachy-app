@@ -87,4 +87,34 @@ describe("FEAT-0611 — settings controls go through the button primitive", () =
     // worthless: the migrated controls must be gone from this count.
     expect(escaped).toBeGreaterThan(0);
   });
+
+  it("wires a click handler on every <Button>", () => {
+    // The companion hole to the check above: `<Button>` without `onClick` is
+    // a control that renders but does nothing, and it would pass every other
+    // assertion in this file (FEAT-0611 stage 2 review).
+    const offenders: string[] = [];
+
+    for (const root of ROOTS) {
+      for (const file of svelteFiles(root)) {
+        const lines = readFileSync(file, "utf8").split("\n");
+        lines.forEach((line, index) => {
+          if (!line.includes("<Button")) return;
+
+          const tag: string[] = [line];
+          for (
+            let i = index + 1;
+            i < lines.length && !tag[tag.length - 1].trim().endsWith(">");
+            i++
+          ) {
+            tag.push(lines[i]);
+          }
+          if (!tag.join("\n").includes("onClick")) {
+            offenders.push(`${file}:${index + 1}`);
+          }
+        });
+      }
+    }
+
+    expect(offenders, `<Button> without onClick:\n${offenders.join("\n")}`).toEqual([]);
+  });
 });

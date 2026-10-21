@@ -38,6 +38,13 @@
     id?: string;
     title?: string;
     ariaLabel?: string;
+    /**
+     * Disclosure state for the button itself. The two settings disclosures
+     * (engine debug history, order-audit entry) needed it, and escaping them
+     * for a missing passthrough was the alternative (FEAT-0611 stage 2).
+     */
+    ariaExpanded?: boolean;
+    ariaControls?: string;
     onClick?: (event: MouseEvent) => void;
     oncontextmenu?: (event: MouseEvent) => void;
     children?: import("svelte").Snippet;
@@ -60,6 +67,8 @@
     id,
     title,
     ariaLabel,
+    ariaExpanded,
+    ariaControls,
     onClick,
     oncontextmenu,
     children,
@@ -79,6 +88,8 @@
   oncontextmenu={oncontextmenu}
   {title}
   aria-label={ariaLabel || title}
+  aria-expanded={ariaExpanded}
+  aria-controls={ariaControls}
   use:trackClick={track}
 >
   {#if children}
