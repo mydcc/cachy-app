@@ -141,6 +141,22 @@ class WindowManager {
     }
 
     /**
+     * Persist the session after a change that a window serializes but does not
+     * trigger open()/close() for — a chart window's timeframe (BUG-0711).
+     * Debounced through the same timer as the lifecycle saves; meaningful only
+     * for a window already registered via open().
+     */
+    requestSessionSave() {
+        try {
+            this.saveSession();
+        } catch (e) {
+            // Blocked storage (privacy mode, opaque origin) must not break the
+            // action that changed the state.
+            console.error("Failed to schedule window session save:", e);
+        }
+    }
+
+    /**
      * Internal method to execute the session save logic.
      */
     private _performSaveSession() {
@@ -216,7 +232,10 @@ class WindowManager {
         switch (d.type) {
             case 'chart': {
                 const { ChartWindow } = await import("./implementations/ChartWindow.svelte");
-                return new ChartWindow(d.symbol || "BTCUSDT", { timeframe: d.timeframe });
+                // The session JSON is untrusted input; a non-string would
+                // become a durable, never-matching timeframe in the window.
+                const timeframe = typeof d.timeframe === "string" ? d.timeframe : undefined;
+                return new ChartWindow(d.symbol || "BTCUSDT", { timeframe });
             }
             case 'channel': {
                 const { ChannelWindow } = await import("./implementations/ChannelWindow.svelte");

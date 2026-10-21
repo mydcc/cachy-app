@@ -46,7 +46,18 @@ interface ChartWindowOptions extends WindowOptions {
 
 export class ChartWindow extends WindowBase {
     /** The active aggregation interval (e.g., 1h, 15m). */
-    timeframe = $state("1h");
+    private _timeframe = $state("1h");
+    get timeframe() {
+        return this._timeframe;
+    }
+    set timeframe(value: string) {
+        if (value === this._timeframe) return;
+        this._timeframe = value;
+        // serialize() includes the timeframe; without this the session keeps
+        // the value from the last open/close until another window action
+        // happens (BUG-0711).
+        windowManager.requestSessionSave();
+    }
     showTimeframeDropdown = $state(false);
 
     constructor(symbol: string, options: ChartWindowOptions = {}) {
@@ -59,7 +70,9 @@ export class ChartWindow extends WindowBase {
             windowType: "chart",
             ...options
         });
-        if (options.timeframe) this.timeframe = options.timeframe;
+        // Write the backing field: a restored value is not a user change and
+        // must not schedule a save before the window is registered.
+        if (options.timeframe) this._timeframe = options.timeframe;
         this.updateHeaderControls();
     }
 
