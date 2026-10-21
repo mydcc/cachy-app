@@ -419,6 +419,7 @@
             id="view-journal-btn-desktop"
             variant="accent"
             title={$_("app.journalButtonTitle")}
+            ariaLabel={$_("app.journalButton")}
             onClick={() => uiState.toggleJournalModal(true)}
             track={{
               category: "Navigation",

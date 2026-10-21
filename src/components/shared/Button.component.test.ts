@@ -48,6 +48,7 @@ let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+    vi.clearAllMocks();
     document.head.innerHTML = "";
     const style = document.createElement("style");
     style.textContent = THEMES;
@@ -126,7 +127,7 @@ describe("FEAT-0610 — variants, sizes and events", () => {
         }
     });
 
-    it("maps each variant onto an existing --btn-* colour pair", () => {
+    it("maps each variant onto its own --btn-* colour pair", () => {
         const colours = new Map<string, string>();
 
         for (const variant of ["default", "accent", "danger", "success"]) {
@@ -138,15 +139,38 @@ describe("FEAT-0610 — variants, sizes and events", () => {
             const el = button();
             expect(el.classList.contains(`btn-${variant}`), variant).toBe(true);
 
+            // Resolve the expected fill through a probe, so a swapped mapping
+            // (danger <-> success) fails instead of passing on distinctness.
+            const probe = document.createElement("div");
+            probe.style.backgroundColor = `var(--btn-${variant}-bg)`;
+            document.body.appendChild(probe);
+            const expected = getComputedStyle(probe).backgroundColor;
+            probe.remove();
+
             const background = getComputedStyle(el).backgroundColor;
-            expect(background, variant).not.toBe("");
             expect(background, variant).not.toBe("rgba(0, 0, 0, 0)");
+            expect(background, variant).toBe(expected);
             colours.set(variant, background);
         }
 
-        // Four roles, four different fills: a mapping that collapsed would
-        // still pass the class assertion above.
         expect(new Set(colours.values()).size).toBe(4);
+    });
+
+    it("does not style a raw variant class without .btn-base", () => {
+        // JournalContent carries bare `.btn-danger` etc. as inert tokens; the
+        // primitive's variants must not reach them (FEAT-0613 owns that).
+        const raw = document.createElement("button");
+        raw.className = "btn-danger";
+        document.body.appendChild(raw);
+
+        const probe = document.createElement("div");
+        probe.style.backgroundColor = "var(--btn-danger-bg)";
+        document.body.appendChild(probe);
+        const fill = getComputedStyle(probe).backgroundColor;
+
+        expect(getComputedStyle(raw).backgroundColor).not.toBe(fill);
+        probe.remove();
+        raw.remove();
     });
 
     it("names the transitioned properties instead of transitioning all", () => {
@@ -188,7 +212,6 @@ describe("FEAT-0610 — variants, sizes and events", () => {
     });
 
     it("does not track when no action is passed", () => {
-        vi.mocked(trackCustomEvent).mockClear();
         render();
 
         button().click();

@@ -2570,6 +2570,11 @@ input[type="number"] {
  * Geometry comes from the FEAT-0609 control tokens; colour roles reuse the
  * existing --btn-* pairs. Transitions name their properties instead of
  * animating `all`, which used to move layout-affecting values on every click.
+ *
+ * The variant selectors require `.btn-base`. Bare `.btn-accent` / `.btn-danger`
+ * / `.btn-success` are carried by a few raw buttons (JournalContent) as inert
+ * tokens; without the extra class this section would have restyled them, which
+ * belongs to FEAT-0613, not the header pilot.
  */
 .btn-base {
   display: inline-flex;
@@ -2608,39 +2613,39 @@ input[type="number"] {
   font-size: var(--text-base);
 }
 
-.btn-default {
+.btn-base.btn-default {
   background-color: var(--btn-default-bg);
   color: var(--btn-default-text);
 }
 
-.btn-default:hover:not(:disabled) {
+.btn-base.btn-default:hover:not(:disabled) {
   background-color: var(--btn-default-hover-bg);
 }
 
-.btn-accent {
+.btn-base.btn-accent {
   background-color: var(--btn-accent-bg);
   color: var(--btn-accent-text);
 }
 
-.btn-accent:hover:not(:disabled) {
+.btn-base.btn-accent:hover:not(:disabled) {
   background-color: var(--btn-accent-hover-bg);
 }
 
-.btn-danger {
+.btn-base.btn-danger {
   background-color: var(--btn-danger-bg);
   color: var(--btn-danger-text);
 }
 
-.btn-danger:hover:not(:disabled) {
+.btn-base.btn-danger:hover:not(:disabled) {
   background-color: var(--btn-danger-hover-bg);
 }
 
-.btn-success {
+.btn-base.btn-success {
   background-color: var(--btn-success-bg);
   color: var(--btn-success-text);
 }
 
-.btn-success:hover:not(:disabled) {
+.btn-base.btn-success:hover:not(:disabled) {
   background-color: var(--btn-success-hover-bg);
 }
 

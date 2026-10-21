@@ -43,6 +43,26 @@ describe("tracking.ts - trackClick", () => {
     }
   });
 
+  it("stays silent while params are undefined and starts tracking after update", () => {
+    const actionReturn = trackClick(node, undefined);
+
+    node.click();
+    expect(trackCustomEventSpy).not.toHaveBeenCalled();
+
+    actionReturn.update({
+      category: "UpdatedCategory",
+      action: "UpdatedAction",
+      name: "UpdatedName",
+    });
+
+    node.click();
+    expect(trackCustomEventSpy).toHaveBeenCalledWith(
+      "UpdatedCategory",
+      "UpdatedAction",
+      "UpdatedName",
+    );
+  });
+
   it("should attach click listener and track click with initial params", () => {
     const actionReturn = trackClick(node, initialParams);
     expect(trackCustomEventSpy).not.toHaveBeenCalled();

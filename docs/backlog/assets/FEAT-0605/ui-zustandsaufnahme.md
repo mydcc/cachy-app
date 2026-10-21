@@ -238,7 +238,7 @@ designed for, control geometry was not.
 | --- | --- |
 | Raw `<button>` elements | **363** across 106 `.svelte` files (post-pilot, 2026-10-21 at `189045285`; was 368 before FEAT-0610) |
 | Uses of `btn-accent-bg` / `btn-default-bg` / `btn-danger-bg` | **16** |
-| Vertical-padding variants on `<button>` | `py-1.5` ×49, `py-2` ×44, `py-1` ×37, `py-2.5` ×11, `py-0.5` ×5, `py-3` ×4 |
+| Vertical-padding variants on `<button>` | `py-1.5` ×49, `py-2` ×44, `py-1` ×38, `py-2.5` ×8, `py-0.5` ×5, `py-3` ×4 (post-pilot, re-counted at `189045285`) |
 | `src/components/shared/Button.svelte` | adopted by the app shell header (5 controls) in FEAT-0610; variants/sizes in tokens, `Button.component.test.ts` covers both |
 
 Six heights for one conceptual control. FEAT-0610 gave the primitive variants

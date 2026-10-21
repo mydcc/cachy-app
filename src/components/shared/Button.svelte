@@ -32,6 +32,12 @@
     onClick?: () => void;
     oncontextmenu?: (event: MouseEvent) => void;
     children?: import("svelte").Snippet;
+    /**
+     * Layout-only classes. The primitive's rules live unlayered in
+     * `themes.css`, so a Tailwind utility here cannot override its geometry
+     * (`height`, `padding`, `display`) — wrap the button instead, the way the
+     * header does for its responsive hide.
+     */
     extraClasses?: string;
     disabled?: boolean;
     type?: "button" | "submit" | "reset";

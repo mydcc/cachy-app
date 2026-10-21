@@ -25,6 +25,10 @@ export interface TrackClickParams {
   name: string;
 }
 
+/**
+ * `undefined` is a no-op: the button primitive applies this action
+ * unconditionally and only tracks when a caller passes an action.
+ */
 export function trackClick(
   node: HTMLElement,
   params: TrackClickParams | undefined,

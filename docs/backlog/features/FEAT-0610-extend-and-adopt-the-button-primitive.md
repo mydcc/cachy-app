@@ -68,7 +68,7 @@ This item does not do them.
       `#delete-preset-btn`, same right-click behaviour on `#theme-switcher`
 - [x] `#preset-loader` is either migrated or explicitly left as a `<select>`,
       with the reason recorded
-- [x] The migrated controls render identically to `develop` at default settings
+- [x] The migrated controls render identically to `develop` at default settings — deliberately deviated: the cluster unifies on the 42 px control height and the token padding (see Progress)
 - [x] `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` §5 is updated with
       the post-pilot counts
 
@@ -157,7 +157,7 @@ token.
 
 ### Tests
 
-`Button.component.test.ts` grew to 12 cases: each size's computed height
+`Button.component.test.ts` grew to 13 cases: each size's computed height
 (34/42/48), each variant's class plus four distinct computed fills, the named
 transition (and that `all` is absent), `type=button` by default, the
 contextmenu handler with `preventDefault`, the analytics action firing with
@@ -165,6 +165,24 @@ contextmenu handler with `preventDefault`, the analytics action firing with
 cases stay.
 
 `npm run check`: 0 errors (6 pre-existing warnings). `backlog:check`: valid.
+
+### Review fixes
+
+- The variant selectors are `.btn-base.btn-*`. Bare `.btn-accent` / `.btn-danger`
+  / `.btn-success` are carried by three raw journal buttons in
+  `JournalContent.svelte` as inert tokens; without the extra class the new
+  section would have restyled them, which belongs to FEAT-0613.
+- The `extraClasses` prop documents the constraint that the primitive's rules
+  are unlayered and a Tailwind utility there cannot override its geometry.
+- `#view-journal-btn-desktop` keeps its accessible name: it passes the visible
+  journal label as `ariaLabel`, so the name stays "Journal" rather than
+  switching to the tooltip text.
+- The variant test resolves each expected fill through a probe element, so a
+  swapped mapping fails instead of passing on distinctness; `clearAllMocks`
+  replaced the manual `mockClear`; `tracking.test.ts` covers the
+  `undefined` → defined update path.
+- AC7's note now names the padding change too, and §5's padding histogram is
+  re-counted at the merge base.
 
 ### Audit
 
