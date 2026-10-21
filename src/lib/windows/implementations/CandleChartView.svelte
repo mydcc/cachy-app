@@ -326,9 +326,23 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
     let isInitialLoad = $state(true);
     let isLoadingHistory = $state(false);
     let allHistoryLoaded = $state(false);
-    let lastRenderedTime: Time | null = $state(null);
-    let lastRenderedCount = $state(0);
-    let lastRenderedSettingsJson = $state("");
+    /**
+     * Which series is actually in the chart right now.
+     *
+     * The live-tick fast path may only fire for the market and timeframe the
+     * series was rendered from. Without that identity, a timeframe switch
+     * whose new series starts on the same candle open time and has the same
+     * length is mistaken for a tick: only the last candle is updated and the
+     * rest of the series keeps the old interval (BUG-0709).
+     */
+    type RenderedSeries = {
+        symbol: string;
+        timeframe: string;
+        lastTime: Time | null;
+        count: number;
+        settingsJson: string;
+    };
+    let renderedSeries = $state<RenderedSeries | null>(null);
     let lastRenderTimestamp = 0;
     let renderThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1306,9 +1320,12 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                 const lastKline = klines[klines.length - 1];
                 const lastTime = (lastKline.time / 1000) as Time;
                 const isLiveUpdate =
-                    lastRenderedSettingsJson === currentIndicatorSettingsJson &&
-                    lastRenderedTime === lastTime &&
-                    klines.length === lastRenderedCount;
+                    renderedSeries !== null &&
+                    renderedSeries.symbol === normalized &&
+                    renderedSeries.timeframe === timeframe &&
+                    renderedSeries.settingsJson === currentIndicatorSettingsJson &&
+                    renderedSeries.lastTime === lastTime &&
+                    renderedSeries.count === klines.length;
 
                 if (isLiveUpdate && !isInitialLoad) {
                     const renderTick = () => {
@@ -1361,8 +1378,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                             lastRenderTimestamp = Date.now();
                         } catch (e) {
                             console.error("[CandleChartView] Live update failed, will full-render next cycle:", e);
-                            lastRenderedTime = null;
-                            lastRenderedCount = 0;
+                            renderedSeries = null;
                         }
                     };
 
@@ -1454,12 +1470,19 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                         // keep flowing via candleSeries.update() instead of
                         // permanently disarming the fast path and freezing the
                         // chart after its initial render.
-                        lastRenderedTime =
-                            unique.length > 0
-                                ? unique[unique.length - 1].time
-                                : null;
-                        lastRenderedCount = klines.length;
-                        lastRenderedSettingsJson = currentIndicatorSettingsJson;
+                        // The record names the series this data belongs to, so
+                        // a timeframe or market switch can never be mistaken
+                        // for a tick (BUG-0709).
+                        renderedSeries = {
+                            symbol: normalized,
+                            timeframe,
+                            lastTime:
+                                unique.length > 0
+                                    ? unique[unique.length - 1].time
+                                    : null,
+                            count: klines.length,
+                            settingsJson: currentIndicatorSettingsJson,
+                        };
                         lastRenderTimestamp = 0;
                         isInitialLoad = false;
 
@@ -1471,8 +1494,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                         console.error("[CandleChartView] Render error:", e);
                         // Disarm so the next cycle retries the slow path
                         // instead of silently skipping renders forever.
-                        lastRenderedTime = null;
-                        lastRenderedCount = 0;
+                        renderedSeries = null;
                     }
                 }
             }

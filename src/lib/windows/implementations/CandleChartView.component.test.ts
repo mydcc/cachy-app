@@ -446,6 +446,131 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
 });
 
 /*
+ * BUG-0709 — a timeframe (or market) switch must rebuild the series.
+ *
+ * The live-tick fast path used to be armed on "same last candle open time,
+ * same array length, same indicator settings" alone. A switch to an interval
+ * whose current candle opens at the same instant (5m/15m/1h/4h all do at the
+ * top of a 4h bucket) and whose history had already reached the same length
+ * therefore looked like a tick: only the last candle was updated and the
+ * chart kept the previous interval's candles under the new header.
+ */
+describe("BUG-0709 — interval and market switches rebuild the series", () => {
+    // Aligned to 5m, so a 1m and a 5m candle can open at the same instant.
+    const LAST_OPEN_MS = 1700000100000;
+    const TIMES_1M = [LAST_OPEN_MS - 120000, LAST_OPEN_MS - 60000, LAST_OPEN_MS];
+    const TIMES_5M = [LAST_OPEN_MS - 600000, LAST_OPEN_MS - 300000, LAST_OPEN_MS];
+
+    function seedMarket(
+        symbol: string,
+        klines: Record<string, ReturnType<typeof makeKlines>>,
+    ) {
+        const data: MarketData = {
+            symbol,
+            lastPrice: null,
+            indexPrice: null,
+            markPrice: null,
+            fundingRate: null,
+            nextFundingTime: null,
+            klines,
+            klinesBuffers: new Map(),
+            lastUpdated: Date.now(),
+        };
+        marketState.data[symbol] = data;
+    }
+
+    function lastRenderedSeries(): Array<{ close: number }> {
+        const calls = chart.candleSeries.setData.mock.calls;
+        return (calls[calls.length - 1]?.[0] ?? []) as Array<{ close: number }>;
+    }
+
+    it("re-renders when the new interval has the same last open time and length", async () => {
+        const props = makeReactiveProps({
+            symbol: "BTCUSDT",
+            timeframe: "1m",
+            window: fakeWindow,
+        });
+        component = mount(CandleChartView, { target: host, props }) as never;
+        await settle();
+
+        seedMarket("BTCUSDT", {
+            "1m": makeKlines(TIMES_1M, 60000),
+            "5m": makeKlines(TIMES_5M, 61000),
+        });
+        await settle();
+        expect(chart.candleSeries.setData).toHaveBeenCalled();
+        vi.clearAllMocks();
+
+        props.timeframe = "5m";
+        await settle();
+
+        // The 5m candles must replace the 1m series, not just the last point.
+        expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
+        const series = lastRenderedSeries();
+        expect(series).toHaveLength(TIMES_5M.length);
+        expect(series[0]?.close).toBe(61050);
+    });
+
+    it("re-renders when the new market has the same last open time and length", async () => {
+        const props = makeReactiveProps({
+            symbol: "BTCUSDT",
+            timeframe: "1m",
+            window: fakeWindow,
+        });
+        component = mount(CandleChartView, { target: host, props }) as never;
+        await settle();
+
+        seedMarket("BTCUSDT", { "1m": makeKlines(TIMES_1M, 60000) });
+        seedMarket("ETHUSDT", { "1m": makeKlines(TIMES_1M, 62000) });
+        await settle();
+        expect(chart.candleSeries.setData).toHaveBeenCalled();
+        vi.clearAllMocks();
+
+        props.symbol = "ETHUSDT";
+        await settle();
+
+        expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
+        const series = lastRenderedSeries();
+        expect(series).toHaveLength(TIMES_1M.length);
+        expect(series[0]?.close).toBe(62050);
+    });
+
+    it("keeps the fast path armed for the interval it just rendered", async () => {
+        const props = makeReactiveProps({
+            symbol: "BTCUSDT",
+            timeframe: "1m",
+            window: fakeWindow,
+        });
+        component = mount(CandleChartView, { target: host, props }) as never;
+        await settle();
+
+        seedMarket("BTCUSDT", {
+            "1m": makeKlines(TIMES_1M, 60000),
+            "5m": makeKlines(TIMES_5M, 61000),
+        });
+        await settle();
+
+        props.timeframe = "5m";
+        await settle();
+        vi.clearAllMocks();
+
+        // A real tick on the newly rendered series still takes the fast path.
+        const arr = marketState.data["BTCUSDT"].klines["5m"];
+        arr[arr.length - 1] = {
+            ...arr[arr.length - 1],
+            close: new Decimal("62000"),
+        };
+        marketState.data["BTCUSDT"].lastUpdated = Date.now();
+        await settle();
+
+        expect(chart.candleSeries.update).toHaveBeenCalledWith(
+            expect.objectContaining({ close: 62000 }),
+        );
+        expect(chart.candleSeries.setData).not.toHaveBeenCalled();
+    });
+});
+
+/*
  * FEAT-0247 — dragging a TP/SL price line submits a modification.
  *
  * Exercises the actual wiring in CandleChartView (not just PriceLineManager
