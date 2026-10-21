@@ -21,10 +21,8 @@
  * The point of the token layer is that a later density mode changes a value,
  * not a rule. A stylesheet assertion alone would not catch a control that still
  * renders its old literal, so the height assertions read the *computed* style
- * and compare it to the token the document actually declares.
- *
- * Values are the shipped ones (42 / 34 / 70 px), which is also the proof that
- * this change is a visual no-op.
+ * and compare it to the token the document actually declares. The override case
+ * proves the DOM follows the token, not just that both happen to agree.
  */
 
 // @vitest-environment happy-dom
@@ -53,35 +51,55 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+/** Fails when a declaration in the rule body names a raw length. */
+function expectNoRawGeometry(body: string): void {
+  const normalized = body.replace(/\s+/g, " ");
+  expect(normalized).not.toMatch(
+    /(?:^|;)\s*(?:max-)?height:\s*[^;]*(?:\d+px|\d+(?:\.\d+)?rem)/,
+  );
+  expect(normalized).not.toContain("!important");
+}
+
 beforeEach(() => {
   document.head.innerHTML = "";
   document.body.innerHTML = "";
+  document.documentElement.removeAttribute("style");
   const style = document.createElement("style");
   style.textContent = CSS;
   document.head.appendChild(style);
 });
 
 describe("control-geometry tokens (FEAT-0609)", () => {
-  it("computes .input-field's height from the token, not a literal", () => {
+  it("ships the pre-token values (no-op lock; FEAT-0614 updates this)", () => {
+    const root = getComputedStyle(document.documentElement);
+    expect(root.getPropertyValue("--control-height").trim()).toBe("42px");
+    expect(root.getPropertyValue("--control-height-sm").trim()).toBe("34px");
+    expect(root.getPropertyValue("--control-number-width").trim()).toBe("70px");
+  });
+
+  it("computes .input-field's height from the token and follows a change", () => {
     const token = getComputedStyle(document.documentElement)
       .getPropertyValue("--control-height")
       .trim();
-
-    expect(token).toBe("42px");
+    expect(token).toMatch(/^\d+(?:\.\d+)?px$/);
 
     const input = element("input", "input-field");
     const cs = getComputedStyle(input);
-
     expect(cs.height).toBe(token);
     expect(cs.maxHeight).toBe(token);
     expect(cs.paddingLeft).toBe("12px");
     expect(cs.borderRadius).toBe("6px");
 
-    // The rule may only name the token, never a pixel height.
+    // The point of the layer: changing the token changes the rendered control.
+    // Without this, "42px literal + 42px token" would satisfy the equality
+    // above while proving nothing about the cascade.
+    document.documentElement.style.setProperty("--control-height", "32px");
+    expect(getComputedStyle(input).height).toBe("32px");
+
     const body = rule(".input-field");
     expect(body).toContain("height: var(--control-height)");
     expect(body).toContain("padding: 0 var(--control-padding-x)");
-    expect(body).not.toMatch(/(^|\n)\s*(max-)?height:\s*\d+px/);
+    expectNoRawGeometry(body);
   });
 
   it("keeps .input-field-sm one step smaller, without !important", () => {
@@ -92,11 +110,10 @@ describe("control-geometry tokens (FEAT-0609)", () => {
     expect(cs.maxHeight).toBe("34px");
     expect(cs.fontSize).toBe("12px");
 
-    const body = rule(".input-field-sm");
+    const body = rule(".input-field.input-field-sm");
     expect(body).toContain("height: var(--control-height-sm)");
     expect(body).toContain("font-size: var(--control-font-size-sm)");
-    expect(body).not.toContain("!important");
-    expect(body).not.toMatch(/(max-)?height:\s*\d+px/);
+    expectNoRawGeometry(body);
   });
 
   it("sizes .settings-number-input from the number tokens", () => {
@@ -114,9 +131,10 @@ describe("control-geometry tokens (FEAT-0609)", () => {
     );
   });
 
-  it("leaves the token set in :root and inherits it in every theme", () => {
-    // One declaration, one source: a theme that overrides geometry has to
-    // name the token, so it cannot silently re-introduce a literal.
+  it("leaves the token set in :root and lets the shipped themes inherit it", () => {
+    // One declaration, one source. The shipped themes inherit; a theme that
+    // wants different geometry has to override these tokens, which fails this
+    // test until the deliberate exception is written down here.
     expect(CSS.match(/--control-height:/g)).toHaveLength(1);
 
     const themeBlocks = [
@@ -125,6 +143,36 @@ describe("control-geometry tokens (FEAT-0609)", () => {
     expect(themeBlocks.length).toBeGreaterThan(20);
     for (const block of themeBlocks) {
       expect(block[1]).not.toContain("--control-");
+    }
+  });
+
+  it("keeps the converted .svelte sites on the tokens", () => {
+    // These are Tailwind utilities, so happy-dom cannot compute them without
+    // the compiled utility sheet. Asserting the token in the source is the
+    // cheap guard against a revert to the literal: the browser then resolves
+    // the token, which the cases above already prove.
+    const sites: Array<[file: string, expected: string, forbidden: string]> = [
+      [
+        "src/components/inputs/TagInputs.svelte",
+        "min-h-[var(--control-height)]",
+        "min-h-[42px]",
+      ],
+      [
+        "src/components/shared/TimeframeSelector.svelte",
+        "min-h-[var(--control-height)]",
+        "min-h-[42px]",
+      ],
+      [
+        "src/components/shared/journal/JournalFilters.svelte",
+        "var(--control-height-sm)",
+        "34px",
+      ],
+    ];
+
+    for (const [file, expected, forbidden] of sites) {
+      const source = readFileSync(file, "utf8");
+      expect(source, `${file} no longer names ${expected}`).toContain(expected);
+      expect(source, `${file} reintroduced ${forbidden}`).not.toContain(forbidden);
     }
   });
 });

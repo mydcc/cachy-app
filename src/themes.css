@@ -2306,10 +2306,12 @@ textarea.input-field {
 }
 
 /*
- * One step smaller, expressed in tokens (FEAT-0609). No `!important`: the rule
- * follows `.input-field` in the same stylesheet and wins on source order.
+ * One step smaller, expressed in tokens (FEAT-0609). No `!important`: the
+ * two-class selector outranks the base `.input-field` and also
+ * `textarea.input-field` (0,2,0 vs 0,1,1), which a bare `.input-field-sm`
+ * would lose against.
  */
-.input-field-sm {
+.input-field.input-field-sm {
   height: var(--control-height-sm);
   max-height: var(--control-height-sm);
   font-size: var(--control-font-size-sm);

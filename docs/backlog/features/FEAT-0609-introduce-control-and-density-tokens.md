@@ -2,7 +2,7 @@
 id: FEAT-0609
 title: Introduce control-geometry and density tokens
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -110,18 +110,26 @@ Branch `feature/feat-0609-control-geometry-tokens`, based on `c29f46ab8`.
 `--control-font-size-sm: 0.75rem`, `--control-radius: var(--radius-md)`,
 `--control-number-width: 70px`, `--control-number-padding-x/y`.
 
-The values equal the shipped ones — the diff is a visual no-op by value. Themes
-inherit the block: custom properties inherit from `:root`, and no `.theme-*`
-block declares a control token or a control literal. `themes.controlTokens.test.ts`
-pins that (one `--control-height` declaration, no `--control-` in any other
-theme block), so a theme that wants different geometry has to name the token.
+The values equal the shipped ones — the diff is a visual no-op by value. The
+shipped themes inherit the block: custom properties inherit from `:root`, and no
+`.theme-*` block declares a control token. `themes.controlTokens.test.ts` pins
+that (one `--control-height` declaration, no `--control-` in another theme block);
+a theme that wants different geometry must override these tokens, which fails
+that guard until the deliberate exception is recorded there.
+
+`--control-font-size` is a reference value, not applied to `.input-field`:
+adding `font-size: var(--control-font-size)` there would not be a no-op, because
+the unlayered rule would outrank the `text-sm` / `text-xs` utilities that
+several controls use today. FEAT-0614 can apply it when it changes the mode.
 
 ### Classes
 
 - `.input-field`: `height`/`max-height` from `--control-height`, padding from
   `--control-padding-x`, radius from `--control-radius`. No height literal.
-- `.input-field-sm`: redefined as `--control-height-sm` + `--control-font-size-sm`;
-  both `!important` declarations are gone, and the rule wins on source order.
+- `.input-field-sm`: redefined as `--control-height-sm` + `--control-font-size-sm`
+  and selected as `.input-field.input-field-sm`. Both `!important`
+  declarations are gone; the two-class selector outranks `textarea.input-field`
+  (0,2,0 vs 0,1,1), which a bare `.input-field-sm` would lose against.
 - `.settings-number-input`: width and padding from the number tokens.
 - `#preset-loader`: `px-3 py-2` removed. They were already dead — `.input-field`
   is unlayered and sets `padding: 0 var(--control-padding-x)`, so the utilities
@@ -151,17 +159,23 @@ Listed for later, not converted:
 
 ### Test
 
-`src/themes.controlTokens.test.ts` injects `themes.css`, reads
+`src/themes.controlTokens.test.ts` (6 cases) injects `themes.css`, reads
 `--control-height` from the document and asserts `.input-field`'s **computed**
-height/max-height equal it, plus padding 12 px, radius 6 px; `.input-field-sm`
-computes 34 px / 12 px with no `!important` in its rule; `.settings-number-input`
-computes 70 px wide with 4/8 px padding. RED proof: setting the token to 32 px
-fails the test (`expected '32px' to be '42px'`) and re-adding `!important` fails
-the small-rule assertion.
+height/max-height equal it, plus padding 12 px, radius 6 px. It then overrides
+the token at runtime and asserts the rendered control follows to 32 px — the
+proof that the DOM reads the token rather than agreeing with a literal.
+`.input-field-sm` computes 34 px / 12 px with no `!important` in its rule;
+`.settings-number-input` computes 70 px wide with 4/8 px padding. A source guard
+keeps the three converted `.svelte` sites on the token (Tailwind utilities cannot
+be computed without the compiled sheet, so revert protection there is textual).
+RED proof: removing `var(--control-height)` in favour of a literal fails the
+rule assertion, re-adding `!important` fails the small-rule assertion, and
+reverting a `.svelte` site to `42px` / `34px` fails the source guard.
 
 ### No-op argument
 
 Every converted declaration resolves to the same value as before
 (42/34/70/12/8/4/6 px), the removed preset utilities were already overridden by
-the unlayered `.input-field` rule, and no other selector changes. A pixel
-comparison therefore has nothing to compare; the test pins the values.
+the unlayered `.input-field` rule, and no other selector changes. This is
+established by value and cascade analysis, not by a screenshot diff; the test
+pins the resolved values and the token wiring.
