@@ -428,20 +428,17 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
     });
   });
 
-  describe("channels the public socket must refuse", () => {
-    it.each(["orders", "positions", "account"])(
-      "refuses the private channel %s with a loud warning and sends no frame",
+  describe("private channels never reach the public wire", () => {
+    it.each(["orders", "positions"])(
+      "hands %s to the authenticated socket and sends no public frame",
       (channel) => {
-        const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+        const connect = vi.spyOn(bitgetWsPrivate, "connect").mockImplementation(() => {});
 
         service.subscribe(BTC_WIRE, channel);
 
         expect(socket.frames()).toHaveLength(0);
-        expect(warn).toHaveBeenCalledWith(
-          "network",
-          expect.stringContaining(channel),
-          expect.anything(),
-        );
+        expect(connect).toHaveBeenCalled();
+        expect(service.subscriptions.has(`${channel}:default`)).toBe(false);
       },
     );
 
@@ -466,13 +463,14 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
     it("hands a private subscription to the authenticated socket", () => {
       const connect = vi.spyOn(bitgetWsPrivate, "connect").mockImplementation(() => {});
 
-      internals.subscribePrivate();
+      service.subscribe(BTC_WIRE, "orders");
 
-      // The public endpoint has no login and drops a socket that tries, so a
-      // private request must never be answered here. Since the private half is
-      // wired, asking for its channels opens the second socket (BUG-0598).
+      // The public endpoint has no login and drops a socket that tries, so the
+      // channel never reaches this socket — not the wire, not its ledger. The
+      // authenticated instance owns it and adopts it at login (BUG-0598).
       expect(connect).toHaveBeenCalled();
       expect(socket.frames()).toHaveLength(0);
+      expect(service.subscriptions.has("orders:default")).toBe(false);
     });
 
     it("keeps the login frame builder signable for the pending private socket", () => {

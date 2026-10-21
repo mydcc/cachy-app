@@ -90,8 +90,14 @@ const WS_INST_TYPE = "USDT-FUTURES";
  * Channels that V2 only serves on the authenticated private socket. The public
  * endpoint rejects them, so subscribing here would trade a loud failure for a
  * silent one.
+ *
+ * `account` is deliberately absent. Its documented payload is keyed by `coin`
+ * rather than `instId` and carries `usdtEquity`/`assetsMode`, which
+ * `accountState.updateBalanceFromWs` cannot read — subscribing would open a
+ * second silent stream, the failure this ticket is about. Wiring the account
+ * channel needs its own item once the payload has been observed.
  */
-const PRIVATE_CHANNELS = ["orders", "positions", "account"] as const;
+const PRIVATE_CHANNELS = ["orders", "positions"] as const;
 
 const PING_INTERVAL = 25000; // Bitget requires ping every 30s
 const WATCHDOG_TIMEOUT = 35000;
@@ -130,6 +136,12 @@ export class BitgetWebSocketService {
 
   private isAuthenticated = false;
   private isDestroyed = false;
+  /** `activeConnections` is a gauge, not a counter: every increment must be
+   *  paired with exactly one decrement, whatever teardown path runs. Without
+   *  this flag the reconnect-driven `cleanup()` dropped `onclose` before it
+   *  could decrement, so each switch left the gauge one too high. */
+  private countedInTelemetry = false;
+  private isLifecycleAttached = false;
 
   /**
    * Which half of the V2 split this instance is. The default is the public
@@ -156,7 +168,7 @@ export class BitgetWebSocketService {
    * therefore reports nothing here; its own state is the ledger and the login
    * flag.
    */
-  private reportStatus(status: "connecting" | "connected" | "reconnecting" | "disconnected") {
+  private reportStatus(status: typeof marketState.connectionStatus) {
     if (this.isPrivateSocket) return;
     marketState.connectionStatus = status;
   }
@@ -182,41 +194,53 @@ export class BitgetWebSocketService {
     this.isPrivateSocket = opts?.isPrivate ?? false;
     this.instanceId = ++BitgetWebSocketService.instanceCount;
     logger.log("governance", `[BitgetWS] Instance #${this.instanceId} Created`);
-    if (typeof window !== "undefined") {
-      window.addEventListener("online", this.handleOnline);
-      window.addEventListener("offline", this.handleOffline);
+    this.attachLifecycle();
+  }
 
-      this.globalMonitorInterval = setInterval(() => {
-        if (this.isDestroyed) return;
+  /**
+   * `destroy()` removes the `online`/`offline` listeners and the monitor
+   * interval; `connect()` has to put them back. They used to be attached only
+   * in the constructor, so the first provider switch — which runs `destroy()`
+   * through `killAll()` — left every later reconnect blind to the network
+   * coming back (BUG-0598 review).
+   */
+  private attachLifecycle() {
+    if (this.isLifecycleAttached || typeof window === "undefined") return;
+    this.isLifecycleAttached = true;
 
-        this.pruneThrottleMap();
+    window.addEventListener("online", this.handleOnline);
+    window.addEventListener("offline", this.handleOffline);
 
-        const status = marketState.connectionStatus;
+    this.globalMonitorInterval = setInterval(() => {
+      if (this.isDestroyed) return;
 
-        if (typeof navigator !== "undefined" && !navigator.onLine) {
-          if (status !== "disconnected")
-            this.reportStatus("disconnected");
-          return;
-        }
+      this.pruneThrottleMap();
 
-        // If Bitget is NOT the active provider, we must NOT touch the global status,
-        if (settingsState.apiProvider !== "bitget") {
+      const status = marketState.connectionStatus;
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        if (status !== "disconnected")
+          this.reportStatus("disconnected");
+        return;
+      }
+
+      // If Bitget is NOT the active provider, we must NOT touch the global status,
+      if (settingsState.apiProvider !== "bitget") {
+        this.cleanup();
+        return;
+      }
+
+      // If market data is globally disabled, then we can force disconnect.
+      if (!settingsState.entitlement.capabilities.marketData) {
+        if (status !== "disconnected") {
+          this.reportStatus("disconnected");
           this.cleanup();
-          return;
         }
+        return;
+      }
 
-        // If market data is globally disabled, then we can force disconnect.
-        if (!settingsState.entitlement.capabilities.marketData) {
-          if (status !== "disconnected") {
-            this.reportStatus("disconnected");
-            this.cleanup();
-          }
-          return;
-        }
-
-        // No autonomous reconnections here.
-      }, 5000);
-    }
+      // No autonomous reconnections here.
+    }, 5000);
   }
 
 
@@ -257,6 +281,7 @@ export class BitgetWebSocketService {
       window.removeEventListener("online", this.handleOnline);
       window.removeEventListener("offline", this.handleOffline);
     }
+    this.isLifecycleAttached = false;
     this.cleanup();
     this.throttleMap.clear();
 
@@ -281,8 +306,25 @@ export class BitgetWebSocketService {
   connect(force?: boolean) {
     logger.log("governance", `[BitgetWS] #${this.instanceId} connect(force=${force}) entering. isDestroyed was: ${this.isDestroyed}`);
     this.isDestroyed = false;
+    this.attachLifecycle();
     if (this.isDestroyed || !settingsState.entitlement.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;
+
+    // TLS is the only protection for the login frame: it carries the API key,
+    // the passphrase and an HMAC. The endpoint is constructor-injectable, so
+    // the private instance refuses a non-wss URL before it reads credentials,
+    // mirroring `bitunixWs.connectPrivate`.
+    if (this.isPrivateSocket && !this.endpoint.startsWith("wss://")) {
+      logger.error(
+        "network",
+        "[WS-Bitget] Insecure WebSocket URL detected (Private). Aborting connection.",
+      );
+      return;
+    }
+
+    // Cleared here, before any early return, so a secret never outlives the
+    // attempt that read it — including the offline path below.
+    this.pendingKeys = null;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       this.reportStatus("disconnected");
@@ -316,7 +358,6 @@ export class BitgetWebSocketService {
     // honest path. Critically this returns *before* any reconnect is
     // scheduled — a missing-key retry loop would hammer a login endpoint
     // while the trader has simply not entered credentials yet.
-    this.pendingKeys = null;
     if (this.isPrivateSocket) {
       const keys = keysForActiveAccount(
         settingsState.accounts,
@@ -364,7 +405,12 @@ export class BitgetWebSocketService {
           logger.log("network", "[WS-Bitget] Connected");
         }
         this.reportStatus("connected");
-        marketState.updateTelemetry({ activeConnections: (marketState.telemetry.activeConnections || 0) + 1 });
+        if (!this.countedInTelemetry) {
+          this.countedInTelemetry = true;
+          marketState.updateTelemetry({
+            activeConnections: (marketState.telemetry.activeConnections || 0) + 1,
+          });
+        }
 
         // Notify Manager. The private socket is not the provider's market-data
         // connection, so it must not be able to report Bitget as up while the
@@ -391,6 +437,10 @@ export class BitgetWebSocketService {
             this.pendingKeys.secret,
             this.pendingKeys.passphrase ?? "",
           );
+          // Single use. The frame is on the wire; leaving the secret on a
+          // module-level singleton for the socket's lifetime would only widen
+          // the blast radius of a state dump. A reconnect re-reads it.
+          this.pendingKeys = null;
         }
         this.resubscribe();
       };
@@ -404,7 +454,9 @@ export class BitgetWebSocketService {
           const now = Date.now();
           if (this.lastPingTime > 0) {
             const latency = now - this.lastPingTime;
-            if (latency >= 0 && latency < 10000) {
+            // The panel renders this as market-data latency; a pong from the
+            // account socket must not overwrite it (BUG-0598 review).
+            if (!this.isPrivateSocket && latency >= 0 && latency < 10000) {
               marketState.updateTelemetry({ wsLatency: latency });
             }
           }
@@ -422,7 +474,16 @@ export class BitgetWebSocketService {
       ws.onclose = () => {
         if (this.isDestroyed) return;
         if (this.ws === ws) {
-          marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
+          // This socket is gone, so the login no longer describes anything.
+          // Leaving it true until the reconnect timer fires would let a
+          // `resubscribe()` in that window emit private frames pre-login.
+          this.isAuthenticated = false;
+          if (this.countedInTelemetry) {
+            this.countedInTelemetry = false;
+            marketState.updateTelemetry({
+              activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1),
+            });
+          }
           // BUG-0565 / IDEA-0563: demote at close, not at the next connect —
           // the reconnect runs after a backoff delay, and until then the
           // measurement would stay trusted with a dead stream behind it.
@@ -523,25 +584,29 @@ export class BitgetWebSocketService {
     this.ws = null;
     this.isReconnecting = false;
     this.isAuthenticated = false;
+    if (this.countedInTelemetry) {
+      this.countedInTelemetry = false;
+      marketState.updateTelemetry({
+        activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1),
+      });
+    }
     // Teardown leaves no key material behind: the next connect re-reads the
     // active account anyway, so anything kept here could only be stale — or,
     // after destroy(), reachable from a dead instance (review on #3921).
     this.pendingKeys = null;
-    // BUG-0565 / IDEA-0563: single socket, shared fate — when it goes down
-    // the authenticated stream goes with it, so a live measurement stops
-    // being one until the next push or REST poll re-stamps it.
+    // BUG-0565 / IDEA-0563: each socket demotes at close, and the private one
+    // shares the account identity with the public one — so a dead account
+    // stream also means the balance measurement has to be re-stamped.
     accountState.markBalanceUnmeasured();
   }
 
   /**
    * Builds the V2 private-socket login frame.
    *
-   * BUG-0598: no caller on this socket. The public endpoint has no login to
-   * perform and drops a connection that tries, so the public half never calls
-   * this. It is kept, and pinned by `bitgetWs.v2.test.ts`, because the private
-   * socket needs exactly this signature and BUG-0581 already settled the
-   * matching response handling — deleting it would mean re-deriving the signing
-   * input later, with no test to catch a wrong guess.
+   * Called from `onopen` on the private instance only; the public endpoint has
+   * no login to perform and drops a connection that tries. The sign input is
+   * the V1 one, unchanged in V2 and verified by BUG-0581 for the response
+   * handling; `bitgetWs.private.test.ts` pins the frame shape.
    */
   private login(apiKey: string, apiSecret: string, passphrase: string) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
@@ -626,6 +691,11 @@ export class BitgetWebSocketService {
           // `subscribe()` here would increment the ledger on every reconnect,
           // so a count that should stay at one would grow to N and survive
           // the single unsubscribe a teardown sends (BUG-0598).
+          //
+          // These entries are presence markers, not refcounts: the socket
+          // owns them for its lifetime and nothing releases them one at a
+          // time. A consumer subscribing the same channel lands on the
+          // existing count and must not expect one unsubscribe to close it.
           for (const channel of PRIVATE_CHANNELS) {
             const key = `${channel}:${PRIVATE_SUBSCRIBE_INST_ID}`;
             if (!this.subscriptions.has(key)) {
@@ -638,7 +708,13 @@ export class BitgetWebSocketService {
         }
         return;
       }
-      logger.warn("network", `[WS-Bitget] Unrecognized login code: ${code}`, msg);
+      // A rejected login is terminal for this attempt: the venue will reject
+      // the same key pair on every reconnect, and retrying forever produced
+      // nothing but a warn line every backoff interval. Stop here without
+      // scheduling; a provider or account switch calls `connect(force)` and
+      // retries with whatever credentials are current then.
+      logger.error("network", `[WS-Bitget] Login rejected: ${code}`, msg);
+      this.cleanup();
       return;
     }
 
@@ -803,6 +879,17 @@ export class BitgetWebSocketService {
     // mangle it into a key nothing reads, so it bypasses `normalizeSymbol`
     // here and travels to the wire verbatim (BUG-0598).
     const isPrivateChannel = (PRIVATE_CHANNELS as readonly string[]).includes(channel);
+
+    // A consumer asking the active instance for a private channel must not get
+    // a silently dropped subscription. The channel belongs to the
+    // authenticated socket; ask it to open and let its login handler adopt the
+    // channel in its own ledger. Returning here also keeps the public ledger
+    // free of entries its socket can never serve.
+    if (isPrivateChannel && !this.isPrivateSocket) {
+      this.subscribePrivate();
+      return;
+    }
+
     const normalizedSymbol = isPrivateChannel
       ? PRIVATE_SUBSCRIBE_INST_ID
       : normalizeSymbol(symbol, "bitget");
@@ -849,7 +936,11 @@ export class BitgetWebSocketService {
     this.subscriptions.set(subKey, currentCount + 1);
 
     if (currentCount === 0) {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      if (this.isPrivateSocket && !this.isAuthenticated && isPrivateChannel) {
+        // Ledger only. V2 answers a private subscribe sent before the login
+        // ack with an error and never opens the channel; the login handler
+        // replays this entry once `isAuthenticated` flips.
+      } else if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.sendSubscribe(this.ws, normalizedSymbol, bitgetChannel);
       } else {
         this.connect();

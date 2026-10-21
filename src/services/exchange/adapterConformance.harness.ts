@@ -29,7 +29,12 @@ import type { ExchangeId } from "./types";
  * the suite's AC "adding an adapter requires no change to the suite itself".
  */
 export interface AdapterTestHarness {
-    /** Open the adapter's WebSocket connections — the same path the app uses. */
+    /**
+     * Open the socket(s) this suite drives. The Bitget harness deliberately
+     * opens only the public socket: the conformance cases inject private
+     * fixtures directly, and the private lifecycle has its own suite. Calling
+     * this is not the same as `adapter.connection.connect` for that reason.
+     */
     connect(force?: boolean): void;
     /** The authenticated socket the suite drives onopen / close against. */
     getPrivateSocket(): WebSocket | null;

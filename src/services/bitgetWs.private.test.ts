@@ -37,6 +37,7 @@ import { BitgetWebSocketService } from "./bitgetWs";
 import { accountState } from "../stores/account.svelte";
 import { marketState } from "../stores/market.svelte";
 import { settingsState } from "../stores/settings.svelte";
+import { connectionManager } from "./connectionManager";
 
 const V2_PRIVATE_URL = "wss://ws.bitget.com/v2/ws/private";
 const V2_PUBLIC_URL = "wss://ws.bitget.com/v2/ws/public";
@@ -75,6 +76,7 @@ global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
 
 type WsInternals = {
   ws: WebSocket | null;
+  isAuthenticated: boolean;
   connect(force?: boolean): void;
   handleMessage(message: Record<string, unknown>): void;
   getBitgetChannel(internalChannel: string): string | null;
@@ -106,6 +108,7 @@ function openPrivateSocket(): MockWebSocket {
 
 beforeEach(() => {
   accountState.reset();
+  marketState.connectionStatus = "disconnected";
   MockWebSocket.instances = [];
 });
 
@@ -156,6 +159,21 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
       expect(MockWebSocket.instances).toHaveLength(0);
     });
 
+    it("refuses a non-wss private endpoint before reading credentials", () => {
+      withCredentials();
+      service = new BitgetWebSocketService({
+        url: "ws://insecure.example/ws",
+        isPrivate: true,
+      });
+      internals = service as unknown as WsInternals;
+
+      internals.connect();
+
+      // TLS is the only protection for the login frame, which carries the API
+      // key, passphrase and an HMAC.
+      expect(MockWebSocket.instances).toHaveLength(0);
+    });
+
     it("keeps the default instance on the public endpoint", () => {
       withCredentials();
 
@@ -173,12 +191,12 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
       withCredentials();
       openPrivateSocket();
 
-      for (const channel of ["orders", "positions", "account"]) {
+      for (const channel of ["orders", "positions"]) {
         expect(internals.getBitgetChannel(channel)).toBe(channel);
       }
     });
 
-    it("subscribes all three private channels after a login success", () => {
+    it("subscribes both private channels after a login success", () => {
       withCredentials();
       const opened = openPrivateSocket();
 
@@ -187,7 +205,10 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
 
       const subscribes = opened.frames().filter((f) => f.op === "subscribe");
       const channels = subscribes.map((f) => f.args?.[0]?.channel).sort();
-      expect(channels).toEqual(["account", "orders", "positions"]);
+      // `account` is not subscribed: its documented payload is keyed by `coin`
+      // and carries fields no store reads, so it would be a second silent
+      // stream. See PRIVATE_CHANNELS.
+      expect(channels).toEqual(["orders", "positions"]);
       for (const sub of subscribes) {
         expect(sub.args?.[0]?.instType).toBe("USDT-FUTURES");
         // The account-wide selector reaches the wire verbatim (see below).
@@ -199,8 +220,15 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
       withCredentials();
       const opened = openPrivateSocket();
 
+      // Pre-login the subscribe is ledger-only; the login handler replays it.
       service.subscribe("whatever-the-caller-passed", "orders");
-      const frame = opened.frames().find((f) => f.op === "subscribe");
+      expect(service.subscriptions.has("orders:default")).toBe(true);
+
+      internals.handleMessage({ event: "login", code: 0 });
+
+      const frame = opened
+        .frames()
+        .find((f) => f.op === "subscribe" && f.args?.[0]?.channel === "orders");
 
       // `normalizeSymbol("default")` would produce a key nothing reads; the
       // subscription is account-wide, so the caller's symbol is irrelevant
@@ -231,41 +259,38 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
       pub.destroy();
     });
 
-    it("leaves no key material behind on teardown", () => {
+    it("does not retain key material after the login frame", () => {
       withCredentials();
       openPrivateSocket();
       type WithKeys = WsInternals & { pendingKeys: unknown };
 
-      expect((internals as WithKeys).pendingKeys).not.toBeNull();
+      // Single use: the frame is on the wire, so the secret must not sit on a
+      // live singleton for the socket's lifetime.
+      expect((internals as WithKeys).pendingKeys).toBeNull();
 
       service.destroy();
 
-      // The next connect re-reads the active account anyway; anything kept
-      // here could only be stale — or reachable from a dead instance.
+      // Defensive: teardown must leave nothing behind even if a future change
+      // reintroduces retention.
       expect((internals as WithKeys).pendingKeys).toBeNull();
     });
   });
 
   describe("reconnect and status isolation", () => {
-    it("does not ask for private channels before the login is acknowledged", () => {
-      withCredentials();
-      const opened = openPrivateSocket();
-
-      // `onopen` sends the login frame. Replaying the ledger in that same
-      // tick would put an unauthenticated subscribe on the wire, which V2
-      // answers with an error and never opens (BUG-0598).
-      expect(opened.frames().filter((f) => f.op === "subscribe")).toHaveLength(0);
-
-      internals.handleMessage({ event: "login", code: 0 });
-
-      expect(opened.frames().filter((f) => f.op === "subscribe")).toHaveLength(3);
-    });
-
-    it("re-authenticates and replays the ledger exactly once after a reconnect", async () => {
+    it("re-authenticates with the current key and replays the ledger once", async () => {
       withCredentials();
       openPrivateSocket();
       internals.handleMessage({ event: "login", code: 0 });
       expect(service.subscriptions.get("orders:default")).toBe(1);
+
+      // Rotate the key while the socket is live: the reconnect must log in
+      // with the current credentials, not the ones the dead socket used.
+      settingsState.accounts = [{
+        id: "acct-1",
+        name: "Bitget",
+        exchange: "bitget",
+        keys: { key: "k2", secret: "s2", passphrase: "p2" },
+      }];
 
       vi.useFakeTimers();
       try {
@@ -275,35 +300,55 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
         // would pass because nothing happened.
         MockWebSocket.instances[0].readyState = MockWebSocket.CLOSED;
         MockWebSocket.instances[0].onclose?.();
+        // The dead socket must not keep claiming an authenticated state.
+        expect(internals.isAuthenticated).toBe(false);
         await vi.advanceTimersByTimeAsync(2000);
 
         const reconnected = MockWebSocket.instances[1];
         expect(reconnected.url).toBe(V2_PRIVATE_URL);
-
         reconnected.onopen?.();
-        expect(reconnected.frames().some((f) => f.op === "login")).toBe(true);
+
+        const login = reconnected.frames().find((f) => f.op === "login");
+        expect(login?.args?.[0]).toMatchObject({ apiKey: "k2" });
+
+        // Before the ack, the replay must not race the login. This is the
+        // invariant the `resubscribe()` guard exists for, and it used to be
+        // asserted by a separate test that could not fail.
+        expect(reconnected.frames().filter((f) => f.op === "subscribe")).toHaveLength(0);
+
         internals.handleMessage({ event: "login", code: 0 });
 
-        // The channel was adopted once, so the reconnect replays it rather
+        // The channels were adopted once, so the reconnect replays each rather
         // than incrementing the count to 2 — a count that would then survive
         // the single unsubscribe a teardown sends.
-        expect(service.subscriptions.get("orders:default")).toBe(1);
-        const ordersFrames = reconnected
-          .frames()
-          .filter((f) => f.op === "subscribe" && f.args?.[0]?.channel === "orders");
-        expect(ordersFrames).toHaveLength(1);
+        for (const channel of ["orders", "positions"]) {
+          expect(service.subscriptions.get(`${channel}:default`)).toBe(1);
+          const frames = reconnected
+            .frames()
+            .filter((f) => f.op === "subscribe" && f.args?.[0]?.channel === channel);
+          expect(frames).toHaveLength(1);
+        }
       } finally {
         vi.unstubAllGlobals();
         vi.useRealTimers();
       }
     });
 
-    it("does not drive the global market-data status", async () => {
+    it("does not drive global status or the provider lifecycle", async () => {
       withCredentials();
-      marketState.connectionStatus = "connected";
+      marketState.connectionStatus = "disconnected";
+      const baseActive = marketState.telemetry.activeConnections || 0;
+      const onConnected = vi.spyOn(connectionManager, "onProviderConnected");
+      const onDisconnected = vi.spyOn(connectionManager, "onProviderDisconnected");
 
       const opened = openPrivateSocket();
-      expect(marketState.connectionStatus).toBe("connected");
+
+      // A private `onopen` must not claim the venue is connected: the market
+      // feed may still be down. Seeding "disconnected" instead of "connected"
+      // makes this catch an onopen write, which the old seed could not.
+      expect(marketState.connectionStatus).toBe("disconnected");
+      expect(onConnected).not.toHaveBeenCalled();
+      expect(marketState.telemetry.activeConnections || 0).toBe(baseActive + 1);
 
       vi.useFakeTimers();
       try {
@@ -312,13 +357,51 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
         opened.onclose?.();
         await vi.advanceTimersByTimeAsync(2000);
 
-        // The private socket is reconnecting; public market data is fine. The
-        // offline banner must not appear for an account stream alone.
-        expect(marketState.connectionStatus).toBe("connected");
+        // The reconnect really ran; otherwise the status assertion proves
+        // nothing about the close path.
+        expect(MockWebSocket.instances).toHaveLength(2);
+        // Bring the reconnected socket to OPEN, so the forced teardown below
+        // has a live, counted socket to clean up.
+        MockWebSocket.instances[1].onopen?.();
+        expect(marketState.connectionStatus).toBe("disconnected");
+        expect(onConnected).not.toHaveBeenCalled();
+        expect(onDisconnected).not.toHaveBeenCalled();
+
+        // A forced reconnect tears a live socket down through `cleanup()`,
+        // which used to skip the decrement because it detached `onclose`
+        // first. Without the paired flag the gauge would now read 2.
+        internals.connect(true);
+        MockWebSocket.instances[MockWebSocket.instances.length - 1].onopen?.();
+        expect(marketState.telemetry.activeConnections || 0).toBe(baseActive + 1);
       } finally {
         vi.unstubAllGlobals();
         vi.useRealTimers();
       }
+    });
+
+    it("restores the online listener after destroy and a forced connect", () => {
+      withCredentials();
+      const cycle = new BitgetWebSocketService({ url: V2_PRIVATE_URL, isPrivate: true });
+      const cycleInternals = cycle as unknown as WsInternals;
+
+      cycleInternals.connect();
+      cycle.destroy();
+
+      // `destroy()` removes the online/offline listeners. The next connect has
+      // to put them back, or a provider switch would leave the socket blind to
+      // the network returning.
+      cycleInternals.connect();
+      const live = cycleInternals.ws;
+
+      window.dispatchEvent(new Event("online"));
+
+      // The assertion is on *this* instance's socket: the module-level
+      // singletons also listen, so counting sockets globally would pass even
+      // with the listener missing here.
+      expect(cycleInternals.ws).not.toBe(live);
+      expect(cycleInternals.ws).not.toBeNull();
+
+      cycle.destroy();
     });
   });
 });

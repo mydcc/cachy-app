@@ -127,7 +127,7 @@ describe("BUG-0598 — the Bitget adapter drives both V2 sockets", () => {
         expect(bitgetWsPrivateMock.connect).toHaveBeenCalledWith(true);
     });
 
-    it("tears down both sockets on a provider switch", () => {
+    it("destroys both sockets through the connection port", () => {
         getExchangeAdapter("bitget").connection.destroy();
 
         expect(bitgetWsMock.destroy).toHaveBeenCalled();

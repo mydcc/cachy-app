@@ -89,11 +89,15 @@ against V2 without doing it risks reintroducing the mismatch.
 - [x] The public socket connects to `/v2/ws/public` and sends
       `instType: "USDT-FUTURES"`
 - [x] The private socket connects to `/v2/ws/private` with the same `instType`
-- [x] The connection survives the venue's 24-hour forced disconnect
+- [ ] The connection survives the venue's 24-hour forced disconnect — the
+      reconnect path is covered by a forced-close test; only a live session can
+      confirm the venue's own close behaves the same way
 - [x] The subscription refcount ledger is preserved **per socket**
 - [x] Ping (25 s), watchdog (35 s) and disconnect grace (2 min) are unchanged
-- [x] The field-name mismatch recorded in `docs/TODO.md` is resolved or
-      re-confirmed against V2
+- [ ] The field-name mismatch recorded in `docs/TODO.md` is resolved or
+      re-confirmed against V2 — the login-schema half is fixed; the order and
+      position field naming is re-confirmed as `cumExecQty` but the filled-order
+      capture stays open in BUG-0589
 - [x] The test passes with the fix
 
 ## State — public half landed, private half open
@@ -178,17 +182,35 @@ Branch `fix/bug-0598-ws-private-lifecycle`. The 2026-10-07 note stopped at
   login handler adopts them once in the ledger and then replays. A reconnect
   therefore sends one subscribe per channel instead of raising the count to N,
   which the single unsubscribe of a teardown could never release.
-- Four new cases in `bitgetWs.private.test.ts` (no private subscribe before
-  login, re-login plus a single replay after a forced close, ledger stays at
-  one, global status untouched) and two adapter cases in
-  `exchangeAdapter.test.ts` (connect and destroy both sockets).
+- `subscribe()` hands a private-channel request to the authenticated instance
+  instead of dropping it through `getBitgetChannel`. A direct subscribe on the
+  private socket before the login ack is recorded in the ledger but not sent.
+- `activeConnections` is now a paired gauge (flag, not a blind decrement), the
+  private pong no longer overwrites the market-data latency, and `destroy()`
+  re-attaches the `online`/`offline` listeners on the next `connect()`.
+- A rejected login stops the attempt instead of reconnecting forever; a
+  provider or account switch retries with the current credentials.
+- Two new cases in `bitgetWs.private.test.ts` (reconnect with a rotated key and
+  a single replay; global status plus provider lifecycle untouched), the
+  key-retention case tightened, and two adapter cases in
+  `exchangeAdapter.test.ts` (connect and destroy both sockets). The v2 case now
+  drives `subscribe()` rather than the private method, so it pins the path a
+  caller uses.
 - `docs/TODO.md` field mismatch: the login-schema half is already fixed
   (`BitgetWSMessageSchema` accepts `event`/`code`); the order/position naming
   is tracked as BUG-0589 and reads `cumExecQty` today.
 
+**Deliberately not subscribed: `account`.** Its documented payload is keyed by
+`coin` rather than `instId` and carries `usdtEquity`/`assetsMode`, which no store
+reads. Subscribing it would create a second silent stream — the failure this
+item is about. Wiring it needs its own item once the payload has been observed.
+`balance` therefore still comes from REST.
+
 **Still open, and only a trader can close it:** one live login on the private
 socket. Everything up to the wire is tested; the venue's acknowledgement is
-not.
+not. Also worth a follow-up rather than a change here: `bitgetWs.ts` is now
+past the 800-line soft ceiling and carries seven `isPrivateSocket` branches; a
+private subclass would remove that class of leak.
 
 ## Links
 

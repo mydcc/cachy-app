@@ -88,10 +88,11 @@ const connection: ConnectionPort = {
     connect: (force) => {
         bitgetWs.connect(force);
         // BUG-0598: V2 splits the stream. Market data stays on the public
-        // socket; orders, positions and balance arrive on the authenticated
-        // one, with its own login and its own subscription ledger. The private
-        // instance refuses on its own when the active account has no keys, so
-        // calling it unconditionally is safe.
+        // socket; orders and positions arrive on the authenticated one, with
+        // its own login and its own subscription ledger. (Balance is still
+        // REST-polled: the `account` channel has no verified mapping yet.)
+        // The private instance refuses on its own when the active account has
+        // no keys, so calling it unconditionally is safe.
         bitgetWsPrivate.connect(force);
     },
     destroy: () => {
