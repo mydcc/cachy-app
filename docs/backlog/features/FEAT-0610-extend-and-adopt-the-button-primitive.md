@@ -22,11 +22,11 @@ nothing. This item gives it what it lacks and proves it on one surface.
 ## Problem
 
 `src/components/shared/Button.svelte` exists with `Button.component.test.ts`.
-Zero components import it. There are 364 raw `<button>` elements across 167
-files and only sixteen uses of the `btn-accent-bg` / `btn-default-bg` /
-`btn-danger-bg` utilities. Vertical padding across `<button>` openings
-distributes as `py-1.5` ×49, `py-2` ×44, `py-1` ×37, `py-2.5` ×11, `py-0.5` ×5,
-`py-3` ×4 — six heights for one conceptual control.
+Zero components import it. There are 368 raw `<button>` elements across 106
+files (re-measured 2026-10-21, §5 of the audit) and only sixteen uses of the
+`btn-accent-bg` / `btn-default-bg` / `btn-danger-bg` utilities. Vertical padding
+across `<button>` openings distributes as `py-1.5` ×49, `py-2` ×44, `py-1` ×37,
+`py-2.5` ×11, `py-0.5` ×5, `py-3` ×4 — six heights for one conceptual control.
 
 The existing primitive cannot be adopted as it stands. Its props are `title`,
 `ariaLabel`, `onClick`, `children`, `extraClasses`, `disabled` — no variant, no
@@ -72,7 +72,7 @@ This item does not do them.
 
 ## Out of scope
 
-- Migrating the other 359 buttons. That is FEAT-0611 through FEAT-0613.
+- Migrating the other 363 buttons. That is FEAT-0611 through FEAT-0613.
 - Deciding *which* buttons exist or where they sit — that is
       [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md).
 - Changing button colours, contrast, or any theme value.

@@ -92,19 +92,22 @@ something.
 
 Branch `docs/feat-0606-button-audit`. Snapshot `develop` at `8fcbcd251`.
 
-§8 of the audit asset now lists 182 interactive controls in the four surfaces
-(180 `<button>` elements, the preset select and the window title's
+§8 of the audit asset now lists 206 interactive controls in the four surfaces
+(204 `<button>` source occurrences, the preset select and the window title's
 `role="button"`), with enabling state and visibility per control, plus the
 destructive-control table, the preset-trio comparison and the cross-surface
-list.
+list. Split: 106 settings, 45 app shell, 40 journal, 13 window frames.
 
-Five defects were filed from it, each with file:line evidence:
+Eight defects were filed from it, each with file:line evidence:
 
 - BUG-0712 — window zoom and font controls never disable at their bounds
 - BUG-0713 — "Add feed" disables at five with no visible reason
 - BUG-0714 — remove-account's reason lives in a `title` on a disabled button
-- BUG-0715 — rail toggles act on a sidebar that may not exist or not be visible
+- BUG-0715 — rail toggles can stay lit while their panel is not rendered
 - BUG-0716 — header reset and delete-preset act without confirmation
+- BUG-0717 — window titles carry button semantics where the title does nothing
+- BUG-0718 — the last calculation-timeframe toggle stays enabled and refuses
+- BUG-0719 — journal sync disables on `uiState.isLoading` with no cue
 
 No button was moved, restyled or re-wired: the item measured, as its out-of-scope
 clause requires. The observations that did not merit their own item (dead
@@ -121,7 +124,10 @@ of §8.8 so FEAT-0607/0610 do not rediscover them.
   [BUG-0713](../bugs/BUG-0713-add-feed-cap-has-no-visible-reason.md),
   [BUG-0714](../bugs/BUG-0714-account-remove-reason-is-hover-only.md),
   [BUG-0715](../bugs/BUG-0715-sidebar-toggles-act-on-hidden-surfaces.md),
-  [BUG-0716](../bugs/BUG-0716-header-destructive-buttons-have-no-confirmation.md)
+  [BUG-0716](../bugs/BUG-0716-header-destructive-buttons-have-no-confirmation.md),
+  [BUG-0717](../bugs/BUG-0717-window-title-announces-as-a-button-when-it-is-not.md),
+  [BUG-0718](../bugs/BUG-0718-last-timeframe-toggle-stays-enabled.md),
+  [BUG-0719](../bugs/BUG-0719-sync-disables-on-loading-without-a-cue.md)
 - [BUG-0410](../bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md)
 - [BUG-0412](../bugs/BUG-0412-duplicate-sidebar-account-fetch-race.md)
 - [BUG-0423](../bugs/BUG-0423-coalesce-duplicate-account-fetches.md)

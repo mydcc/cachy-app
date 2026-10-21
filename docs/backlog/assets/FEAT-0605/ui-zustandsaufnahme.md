@@ -236,7 +236,7 @@ designed for, control geometry was not.
 
 | Fact | Value |
 | --- | --- |
-| Raw `<button>` elements | **364** across 167 `.svelte` files |
+| Raw `<button>` elements | **368** across 106 `.svelte` files (re-measured 2026-10-21 at `8fcbcd251`; was 364 at the baseline) |
 | Uses of `btn-accent-bg` / `btn-default-bg` / `btn-danger-bg` | **16** |
 | Vertical-padding variants on `<button>` | `py-1.5` ×49, `py-2` ×44, `py-1` ×37, `py-2.5` ×11, `py-0.5` ×5, `py-3` ×4 |
 | `src/components/shared/Button.svelte` | exists, has `Button.component.test.ts`, **imported by zero components** |
@@ -394,10 +394,12 @@ destructive or money-relevant control — the preset loader, the account switche
 the custom-provider manager, the column-settings popover. The symbol picker is
 not covered; it is a search surface with no state of its own.
 
-Counts in scope: **180 `<button>` elements**, plus the `#preset-loader` select
-and the window title's `role="button"` — 182 interactive controls, all listed
-below. The app-wide total from §5 (364 buttons across 167 files) includes
-surfaces this item does not name.
+Counts in scope: **204 `<button>` source occurrences** across 48 components,
+plus the `#preset-loader` select and the window title's `role="button"` — 206
+source sites, all listed below. Several rows are `{#each}` templates that render
+more than one control; rows labelled "(N)" or "per …" say how many. The count is
+therefore a count of code sites, not of rendered buttons — the runtime number is
+higher. The app-wide count is in §5.
 
 Reading the tables: "Enabling state" is the condition that decides whether the
 control can act, whether or not it is expressed as `disabled`. "Visible?" asks
@@ -413,10 +415,14 @@ precondition.
 | Header | `#preset-loader` (select) | applies the chosen preset on change | — | — (selection is shown) |
 | Header | `#save-preset-btn` | prompts for a name, then saves | — | — |
 | Header | `#delete-preset-btn` | deletes the selected preset, immediately | a preset is selected | yes — the loader shows its placeholder when none is |
-| Header | `#reset-btn` | replaces the whole trade form with the initial state | — | — |
+| Header | `#reset-btn` | resets every input except symbol and trade type | — | — |
 | Header | `#theme-switcher` | cycles theme forward; right-click cycles backward | — | icon shows the current theme; the backward gesture is undiscoverable |
 | Header | `#view-journal-btn-desktop` (`hidden md:inline-block`) | opens the journal modal | — | — |
-| Header | pulse `🚀` | projectile effect | — | — |
+| Trade-form footer | pulse `🚀` | projectile effect | — | — |
+| Footer | Language DE / EN | sets the locale | — | yes — active flag |
+| Footer | Quiz | starts the quiz | — | — |
+| Footer | Iframe toggle | shows or hides the floating iframe | — | yes — icon follows the state |
+| Footer | Iframe channel (per channel) | opens that channel | — | — |
 | Footer | Guide / Changelog / Privacy / Whitepaper | open the matching modal | — | — |
 | Left rail | Dashboard | opens the market dashboard | — | — |
 | Left rail | Settings | opens the settings window | — | — |
@@ -424,20 +430,28 @@ precondition.
 | Left rail | Academy | opens the academy window | — | — |
 | Left rail | Assistant | toggles the assistant panel | — | yes — `class:active` |
 | Left rail | Journal restore | raises and restores a minimized journal window | a journal window is minimized | the button exists only then |
-| Left rail | Technicals | sets `showTechnicals` | sidebar column rendered **and** `xl` viewport | **no** — BUG-0715 |
-| Left rail | Market overview | sets `showMarketOverview` | sidebar column rendered **and** `xl` viewport | **no** — BUG-0715 |
-| Left rail | Market activity | sets `showSidebarActivity` | panel renders from `effectiveShowSidebarActivity` (keys or paper account) | **no** — the active class shows a different value than the panel — BUG-0715 |
-| Left rail | Sentiment | sets `showMarketSentiment` | sidebar column rendered **and** `xl` viewport | **no** — BUG-0715 |
-
-The two journal buttons are the same action twice, one per breakpoint
-(`md:hidden` / `hidden md:inline-block`). Not a defect, but it means the header
-has one visible control where the markup has two.
+| Left rail | Technicals | sets `showTechnicals` | panel also needs `isTechnicalsVisible` (chevron in MarketOverview) | **no** — the rail lights on `showTechnicals` alone — BUG-0715 |
+| Left rail | Market overview | sets `showMarketOverview` | sidebar column rendered; the panel exists at both widths | yes — the panel follows the flag |
+| Left rail | Market activity | sets `showSidebarActivity` | panel renders from `effectiveShowSidebarActivity` (Pro, keys or paper account) | **no** — the active class shows a different value than the panel — BUG-0715 |
+| Left rail | Sentiment | sets `showMarketSentiment` | at `xl` the panel follows the flag; below `xl` the mobile copy renders on `enableNewsAnalysis` + news keys instead | **no** — the toggle has no effect below `xl` — BUG-0715 |
+| Right sidebar | Toggle technicals (`#btn-toggle-technicals`) | shows or hides the panel | the sidebar column exists | — |
+| Right sidebar | Open chart | opens a chart window | — | — |
+| Right sidebar | Refresh stats | refetches the price | — | — |
+| Right sidebar | Open / close channel | toggles the channel view | — | yes — icon and title follow the state |
+| Right sidebar | Favorite | adds or removes the symbol | — | yes — icon and title follow the state |
+| Sidebars | Refresh news (two placements) | refetches the feed | — | — |
+| Sidebars | Open news settings (two placements) | opens Settings → Connections | — | — |
+| Sidebars | Open article in new tab (per item) | opens the article | — | — |
+| Sidebars | Expand / collapse the feed | toggles the panel | — | yes — label follows the state |
+| Sidebars | Positions tab rail (4: positions, orders, TP/SL, history) | switches the tab | — | yes — active class |
+| Sidebars | View mode (2: detailed, focus) | sets the row density | — | yes — check mark |
+| Sidebars | Technicals → market settings | opens Settings → Trading → Market | — | — |
 
 ### 8.2 Journal
 
 | Surface | Control | Action | Enabling state | Visible? |
 | --- | --- | --- | --- | --- |
-| Journal window header | Sync history | fetches Bitunix history | Pro **and** not fetching **and** not `uiState.isLoading` | partly — lock icon for Pro, spinner for fetching; `isLoading` has no cue |
+| Journal toolbar (filters) | Sync history | fetches Bitunix history | Pro **and** not fetching **and** not `uiState.isLoading` | partly — lock icon for Pro, spinner for fetching; `isLoading` has no cue (BUG-0719) |
 | Journal body | Table / Overview / Deep Dive tabs | switch the main view | — | yes — active class |
 | Journal body | Column settings `OK` | closes the popover | — | — |
 | Journal body | Column presets: compact / standard / fees / all | apply a column set | — | — |
@@ -467,7 +481,7 @@ has one visible control where the markup has two.
 | Surface | Control | Action | Enabling state | Visible? |
 | --- | --- | --- | --- | --- |
 | Window frame | Header control (per `win.headerControls`) | `ctrl.action()` | `headerControls.length > 0` and not minimized | yes — `ctrl.active` |
-| Window frame | Window title (`role="button"`) | toggles the window mode | `headerAction === "toggle-mode"` | no — only the cursor changes |
+| Window frame | Window title (`role="button"`) | toggles the window mode | `headerAction === "toggle-mode"` | no — the clickability is cursor-only, and the button semantics exist on every window — BUG-0717 |
 | Window frame | Zoom out / in | 50 %–200 % content zoom | `allowZoom` | **no** — never disables at the bound — BUG-0712 |
 | Window frame | Export | `onHeaderExport()` | `headerButtons` includes `export` | — |
 | Window frame | Delete | `onHeaderDelete()` | `headerButtons` includes `delete` | — (confirmation is the window's own concern) |
@@ -507,7 +521,7 @@ handler shape and the same active marker.
 | AI → Custom providers | Add provider | appends a provider | — | — |
 | AI → Custom providers | Activate (per provider) | makes it active | not already active | yes — label becomes "Active" |
 | AI → Custom providers | Delete (per provider) | removes it | — | — (no confirmation) |
-| Trading | Sub-tab rail (3: market, chart, risk) | switches the sub-tab | — | yes — active class |
+| Trading | Sub-tab rail (5: market, chart, risk, paper, audit) | switches the sub-tab | — | yes — active class |
 | Trading | Fee preference (maker / taker) | sets the fee assumption | — | yes — active class |
 | Trading | PnL view mode (per option) | sets the mode | — | yes — active class |
 | Trading → Chart | Manage performance `⚡` | switches to System → Performance | — | **cross-surface** (§8.7) |
@@ -523,6 +537,9 @@ handler shape and the same active marker.
 | System → Hotkeys | Switch to custom | sets `hotkeyMode = "custom"` | — | — |
 | System → Hotkeys | Reset to defaults | restores hotkey defaults | — | confirmed (`confirm()`) |
 | System → Hotkeys | Edit (per action) | captures a new key | — | — |
+| Cloud | Connect | connects to the SpacetimeDB backend | shown only while disconnected | the button's existence is the state |
+| Cloud | Erase my messages | erases the user's own chat messages | connected **and** deletion available | yes — explanation paragraph plus a two-step label |
+| Cloud | Send | posts a chat message | connected | yes — the input is disabled and the state is printed |
 | Automation | Edit bot (per row) | opens the row in edit mode | — | — |
 | Automation | Remove bot (per row) | deletes the bot | — | — (no confirmation) |
 | Automation | Save / Cancel | commit or discard the edit | — | — |
@@ -555,11 +572,9 @@ handler shape and the same active marker.
 | Order audit | Export / Refresh | download or reload the log | — | — |
 | Order audit | Clear log | empties the log | — | confirmed (`modalState`) |
 | Order audit | Expand row (per entry) | shows the detail | — | — |
-| Hotkeys | Reset to defaults | restores defaults | — | confirmed (`confirm()`) |
-| Hotkeys | Edit (per action) | captures a key | — | — |
 | API quota | Reset CryptoPanic / Reset NewsAPI | resets the quota counter | — | confirmed (`confirm()`) |
 | Calculation | Preset (per preset) | applies a calculation profile | — | — |
-| Calculation | Timeframe toggle (per timeframe) | adds or removes a timeframe | at least two timeframes remain | **no** — the last one stays enabled and does nothing |
+| Calculation | Timeframe toggle (per timeframe) | adds or removes a timeframe | at least two timeframes remain | **no** — the last one stays enabled and does nothing — BUG-0718 |
 | Confirmations | Reset policy | restores the confirmation defaults | — | — (no confirmation) |
 | Engine debug | Refresh | reloads the debug data | — | — |
 | Engine debug | Recent history toggle | expands the history | — | yes — label and `aria` follow the state |
@@ -572,7 +587,7 @@ handler shape and the same active marker.
 
 | Control | What is lost | Confirmed? |
 | --- | --- | --- |
-| `#reset-btn` (header) | every trade-form value | **no** — BUG-0716 |
+| `#reset-btn` (header) | every trade-form value except symbol and trade type | **no** — BUG-0716 |
 | `#delete-preset-btn` (header) | the selected preset | **no** — BUG-0716 |
 | Journal → Clear all | the whole journal | yes — `modalState` |
 | Journal table → Delete | one trade | yes — `confirm()` |
@@ -599,10 +614,13 @@ handler shape and the same active marker.
 | Hotkeys → Reset to defaults | hotkey bindings | yes — `confirm()` |
 | API quota → Reset | the quota counter | yes — `confirm()` |
 
-Two patterns are defensible as they stand: engaging the kill switch is the safe
-direction, and the "restore defaults" family is recoverable by reconfiguring.
-The header pair is not in that class — the form values and a saved preset are
-gone in one click, next to a theme switch.
+The "no" rows are not one class. Engaging the kill switch is the safe direction;
+clearing a cache or reloading loses nothing persisted; the "restore defaults"
+family is recoverable by reconfiguring, though it is itself inconsistent —
+hotkeys confirm, notification policy does not. The header pair is none of these:
+form values and a saved preset are gone in one click, next to a theme switch.
+BUG-0716 covers the header pair; the rest are listed so FEAT-0607 can decide one
+rule for the family instead of a different one per tab.
 
 ### 8.6 The preset trio, checked against each other
 
@@ -620,27 +638,34 @@ preset) is BUG-0716.
 
 ### 8.7 Controls that act on another surface
 
+"Cross-surface" here means the control's visible target lives in another window,
+column or overlay, or the control changes which surface is focused. Controls that
+change app-wide state (theme, paper mode, factory reset) are not listed — their
+effect is the surface they sit on.
+
 | Control | Lives on | Acts on |
 | --- | --- | --- |
-| Technicals / market overview / activity / sentiment toggles | left rail | the main page's sidebar column, which may not be rendered |
+| Technicals / market overview / activity / sentiment toggles | left rail | the main page's sidebar column and its mobile stack, which may not be rendered |
 | Journal restore | left rail | a minimized window |
 | Manage performance `⚡` | Settings → Trading → Chart | Settings → System → Performance (switches both tab and sub-tab) |
 | Start onboarding tour | Settings → System | closes settings and starts an app-wide overlay |
 | Custom providers | Settings → AI | a modal over the settings window |
 | Dashboard / Settings / Alerts / Academy / Assistant | left rail | windows and overlays |
-| Window header export / delete / open-in-new-tab | window frame | the window's own content and the clipboard/tab |
-| Sync history | journal window header | journal data (same window) |
-| Theme switcher | main header | the whole app, persisted |
+| Window header export / delete / open-in-new-tab | window frame | a file, the window's content, or a new browser tab |
+| Sync history | journal toolbar | journal data (same window) |
 
 ### 8.8 Findings filed from this audit
 
 | Item | Finding |
 | --- | --- |
-| [BUG-0712](../bugs/BUG-0712-window-zoom-controls-stay-enabled-at-limits.md) | Zoom and font-size controls never disable at their bounds |
-| [BUG-0713](../bugs/BUG-0713-add-feed-cap-has-no-visible-reason.md) | "Add feed" disables at five with no visible reason |
-| [BUG-0714](../bugs/BUG-0714-account-remove-reason-is-hover-only.md) | Remove-account's disabled reason is hover-only |
-| [BUG-0715](../bugs/BUG-0715-sidebar-toggles-act-on-hidden-surfaces.md) | Rail toggles act on surfaces that may not exist or not be visible |
-| [BUG-0716](../bugs/BUG-0716-header-destructive-buttons-have-no-confirmation.md) | Header reset and delete-preset act without confirmation |
+| [BUG-0712](../../bugs/BUG-0712-window-zoom-controls-stay-enabled-at-limits.md) | Zoom and font-size controls never disable at their bounds |
+| [BUG-0713](../../bugs/BUG-0713-add-feed-cap-has-no-visible-reason.md) | "Add feed" disables at five with no visible reason |
+| [BUG-0714](../../bugs/BUG-0714-account-remove-reason-is-hover-only.md) | Remove-account's disabled reason is hover-only |
+| [BUG-0715](../../bugs/BUG-0715-sidebar-toggles-act-on-hidden-surfaces.md) | Rail toggles can stay lit while their panel is not rendered |
+| [BUG-0716](../../bugs/BUG-0716-header-destructive-buttons-have-no-confirmation.md) | Header reset and delete-preset act without confirmation |
+| [BUG-0717](../../bugs/BUG-0717-window-title-announces-as-a-button-when-it-is-not.md) | The window title has button semantics on windows where it does nothing |
+| [BUG-0718](../../bugs/BUG-0718-last-timeframe-toggle-stays-enabled.md) | The last calculation-timeframe toggle stays enabled and silently refuses |
+| [BUG-0719](../../bugs/BUG-0719-sync-disables-on-loading-without-a-cue.md) | Journal sync disables on `uiState.isLoading` with no visible reason |
 
 Observations that are not defects on their own, recorded so the button-primitive
 work does not rediscover them:
@@ -652,10 +677,11 @@ work does not rediscover them:
   Visuals → Layout) with identical options. One of them should go when the
   settings vocabulary is harmonised (FEAT-0607).
 - The theme switcher's backward gesture is a right-click with no affordance.
-- The calculation timeframe toggle stays enabled when only one timeframe is
-  left; the handler silently refuses.
 - Quick-date buttons leave no active marker; the resulting date inputs are the
   only feedback.
+- "Save notes" in the trade drawer stays enabled when nothing changed. Harmless
+  (the write is idempotent), but a button primitive with a `busy`/`dirty` notion
+  would have to decide it.
 
 ## 9. Reading this document
 

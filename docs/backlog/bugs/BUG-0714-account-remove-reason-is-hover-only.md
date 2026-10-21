@@ -19,12 +19,13 @@ depends_on: []
 
 With a single exchange account configured, its `Remove` button is disabled and
 the only explanation is a `title` attribute. A disabled native button is not
-focusable, so keyboard users never see it; on touch there is no hover at all.
-The screen-reader announcement is the button's name, `Remove`, with no reason.
+focusable, so keyboard users never reach the title; on touch there is no hover
+at all. At best a screen reader maps the `title` to an unrequested description —
+the reason is never stated on the surface.
 
 ## Evidence
 
-**Derived.** `src/components/settings/AccountList.svelte:159-171`:
+**Derived.** `src/components/settings/AccountList.svelte:161-173`:
 
 ```svelte
 <button
