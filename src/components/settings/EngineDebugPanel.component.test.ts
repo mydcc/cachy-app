@@ -210,7 +210,12 @@ describe("EngineDebugPanel", () => {
 
         // Icon-only: the glyph is the content, so without an explicit label
         // the button relies on `title` alone, which AT support varies on.
-        const refresh = host!.querySelector<HTMLButtonElement>("button.refresh-btn");
+        // Found by its glyph, so the label assertion below cannot select
+        // itself into passing (FEAT-0611: the scoped class is gone).
+        const refresh =
+            [...host!.querySelectorAll<HTMLButtonElement>("button")].find((b) =>
+                b.textContent?.includes("🔄"),
+            ) ?? null;
         expect(refresh, "refresh button is present").not.toBeNull();
         expect(refresh!.getAttribute("aria-label")).toBe("Refresh");
     });

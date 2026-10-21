@@ -45,6 +45,7 @@
   } from "../../lib/notificationPolicy";
   import { externalChannelsStore } from "../../stores/externalChannels.svelte";
   import type { ExternalChannelId } from "../../lib/notifications/externalChannels";
+  import Button from "../shared/Button.svelte";
 
   const CHANNEL_LABEL_KEYS = {
     "in-app": "settings.notifications.channelInApp",
@@ -261,21 +262,23 @@
         />
       </div>
 
-      <button
+      <Button
         type="button"
-        class="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors disabled:opacity-50"
+        variant="outline"
+        size="sm"
         disabled={soundAvailability === "unsupported"}
-        onclick={previewTone}
+        onClick={previewTone}
       >
         {$_("settings.notifications.soundPreview")}
-      </button>
+      </Button>
     </div>
   </div>
   <div class="mt-3">
-    <button
+    <Button
       type="button"
-      class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-      onclick={() => {
+      variant="outline"
+      size="sm"
+      onClick={() => {
         notificationPolicyStore.reset();
         // "Restore defaults" has to mean all of them; leaving the volume behind
         // would make the button a partial truth.
@@ -283,6 +286,6 @@
       }}
     >
       {$_("settings.notifications.reset")}
-    </button>
+    </Button>
   </div>
 </section>

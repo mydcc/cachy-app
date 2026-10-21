@@ -95,6 +95,7 @@
         role="tablist"
     >
         {#each tabs as tab}
+            <!-- FEAT-0611 escape: settings tab rail with role="tab"/aria-selected; FEAT-0607 owns the navigation pattern -->
             <button
                 class="flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 text-sm font-semibold transition-all text-left focus:outline-none whitespace-nowrap group
                {activeTab === tab.id

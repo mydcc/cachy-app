@@ -123,6 +123,7 @@
 
         <div class="preset-buttons">
             {#each presetEntries as [key, preset] (key)}
+                <!-- FEAT-0611 escape: preset card with title + multi-line spec, not a button shape; the primitive has no card variant -->
                 <button
                     class="preset-btn {selectedPreset === key ? 'active' : ''}"
                     onclick={() => applyPreset(key as PresetType)}
@@ -263,6 +264,7 @@
                 {#each availableTimeframes as tf (tf)}
                     {@const isSelected =
                         settingsState.analysisTimeframes.includes(tf)}
+                    <!-- FEAT-0611 escape: segmented timeframe toggle with a selected state and a last-one guard; FEAT-0607 owns the segmented pattern -->
                     <button
                         class="timeframe-btn {isSelected ? 'selected' : ''}"
                         onclick={() => {

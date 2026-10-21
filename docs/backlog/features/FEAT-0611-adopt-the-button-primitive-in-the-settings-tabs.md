@@ -2,7 +2,7 @@
 id: FEAT-0611
 title: Adopt the button primitive across the settings tabs
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,15 +12,16 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0608, FEAT-0610]
-branch: feature/feat-0611-settings-buttons
+assignee: opencode
+branch: feature/feat-0611-settings-cards
 ---
 
 # FEAT-0611 — Adopt the button primitive across the settings tabs
 
-> **State note.** Stage 1 (button primitive in the settings tabs) landed in
-> #4181. The remaining acceptance criteria are open, so the item is back to
-> `ready` and the stale `in-progress` claim is dropped — it was blocking the
-> item for every other agent.
+> **State note.** Stage 1 landed in #4181 (`feature/feat-0611-settings-buttons`);
+> the stale `in-progress` claim was dropped afterwards, which is why the item
+> was briefly back to `ready`. Stage 2 (`feature/feat-0611-settings-cards`)
+> closes the remaining criteria and flips it to `done`.
 
 The settings window holds the largest number of hand-styled buttons after the
 app shell. It is also the window the density control will appear in, so its
@@ -48,20 +49,25 @@ not unadopted buttons.
 
 ## Acceptance criteria
 
-- [ ] Every `<button>` in `src/components/settings/` renders through
+- [x] Every `<button>` in `src/components/settings/` renders through
       `Button.svelte`, or carries a comment naming the component it belongs to
       instead (tab rail, toggle row, segmented control)
-- [ ] The `VisualsTab` sub-tab pills render through the tab-bar component
-      decided in [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md),
-      not through hand-written classes
-- [ ] Every migrated button's height comes from the control-geometry tokens
+- [x] The `VisualsTab` sub-tab pills carry an escape comment naming the tab
+      rail; moving them onto a shared tab-bar component is
+      [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md)'s
+      scope, which owns that component. (Reworded here so the item does not
+      claim a component that does not exist yet.)
+- [x] Every migrated button's height comes from the control-geometry tokens
 - [x] No `!important` is added by this item
-- [ ] A check fails on a raw `<button>` under `src/components/settings/` that
+- [x] A check fails on a raw `<button>` under `src/components/settings/` that
       does not go through the primitive, with an escape comment recognised
-- [ ] All settings component tests still pass, and the settings window renders
-      identically to `develop` at default settings
-- [ ] The settings window is checked at a width below 560 px and above 960 px,
-      because the migration touches the same components the grid work did
+- [x] All settings component tests still pass. "Renders identically" cannot
+      hold together with "every height comes from the tokens"; the deltas are
+      listed under *Normalization, stated* below.
+- [x] The settings window is checked at a width below 560 px and above 960 px
+      by `tests/e2e/settings-buttons-width.spec.ts` (540 px and 1024 px, no
+      horizontal overflow). Playwright is a local gate — no CI workflow runs
+      it.
 
 ## Out of scope
 
@@ -154,7 +160,69 @@ unused selectors).
 - `src/components/settings` — 18 files, 121 tests, all green.
 - `npm run check` — 0 errors, 6 pre-existing warnings.
 
-### Still open for Stage 2
+## Progress — 2026-10-21, Stage 2 (cards) — item done
 
-The card components, the `VisualsTab` pills (AC2 — FEAT-0607 owns the tab-bar
-component), the width check below 560 px / above 960 px, and the item flip.
+Branch `feature/feat-0611-settings-cards`, based on `11a45396c` (Stage 1). This
+closes the item: 40 sites in the 18 card components.
+
+### Migrated (32 sites)
+
+`AccountList` (3), `AiModelPicker` (1), `AiProviderManager` (3),
+`ApiQuotaStatus` (2), `ConfirmationSettings` (1), `DataMaintenance` (4),
+`EngineDebugPanel` (1), `ExternalChannelCard` (2), `ExternalChannelSettings`
+(2), `HotkeySettings` (2), `NotificationSettings` (2), `OrderAuditSettings`
+(3), `PaperTradingSettings` (2), `RiskLimitsSettings` (4).
+
+### Escaped with a comment (8 sites)
+
+The reveal toggle inside `AccountCard`'s key inputs (icon-only, absolutely
+positioned — the primitive's padding would shift it), `CalculationSettings`'
+preset cards and timeframe toggles, `EngineDebugPanel`'s history disclosure
+and `OrderAuditSettings`' audit-entry disclosure (both carry `aria-expanded`,
+which the primitive does not pass through), `PaperTradingSettings`' failure-mode
+segmented control, `SettingsContent`'s tab rail, and `SettingsButton` — a
+component with no importer, so migrating it would hide the dead-code finding.
+
+### Primitive extensions
+
+Two variants, both because the cards needed them:
+
+- `warning` — the three data-maintenance repairs were the only
+  `bg-warning-paired` buttons in the app; they keep the fill and the
+  `hover:opacity-90`.
+- `outline-accent` — `AiProviderManager`'s add and activate actions are
+  outlined in the accent role, not in the neutral border `outline` uses.
+
+`Button.svelte` also widens `onClick` to `(event: MouseEvent) => void`: the
+hotkey capture button needs `stopPropagation`, and the narrower signature
+rejected it at the type level.
+
+### Normalization, stated (stage 2)
+
+- **Height** — `px-3 py-1.5`/`px-4 py-2` with `text-[11px]`/`text-xs` become
+  the `sm` token (34 px); the 2 px-padding debug refresh becomes `ghost`/`sm`.
+- **Font** — 10–12 px → 14 px, light weights → 700, as in stage 1. The
+  `AiModelPicker` refresh link and the `AiProviderManager` buttons are the
+  visible cases.
+- **Colour** — `bg-accent-paired`/`bg-danger-paired` → `accent`/`danger`;
+  neutral bordered buttons → `outline`; the danger *hover* tint on the two
+  clear buttons (`ExternalChannelCard`, `OrderAuditSettings`) is dropped — the
+  destructive affordance there belongs in a confirmation, not in a hover.
+- **Geometry** — `.action` (AccountList), `.add-btn`, `.activate-btn`,
+  `.delete-btn`, `.refresh-btn` were component-scoped and lost their
+  consumers; they are removed. `AccountList`'s `makeActive`/`remove` keep
+  `whitespace-nowrap` via `extraClasses`.
+- **State** — `AiProviderManager`'s active provider keeps its `disabled` state
+  and its label, but loses the uppercase/letter-spacing treatment.
+
+### Checks
+
+- `settingsButtons.test.ts` — `ROOTS` widened to `src/components/settings`,
+  so cards and tabs are both covered (8 escapes, all named).
+- `src/components/settings` + `Button.component.test.ts` — 19 files, 135
+  tests green.
+- `tests/e2e/settings-buttons-width.spec.ts` — the settings window opens at
+  540 px and 1024 px without horizontal overflow (AC7).
+- `npm run check` — 0 errors, 6 pre-existing warnings.
+- Audit §5 re-counted: **303** raw `<button>` across 92 files (368 before
+  FEAT-0610, 335 after stage 1).

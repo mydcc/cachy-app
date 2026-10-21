@@ -20,6 +20,7 @@
   import { _ } from "svelte-i18n";
 </script>
 
+<!-- FEAT-0611 escape: no importer in src/ — migrating a dead control would hide the dead-code finding; delete or migrate with its first consumer -->
 <button
   type="button"
   class="btn-icon-accent"

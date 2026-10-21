@@ -34,6 +34,7 @@
   import { modalState } from "../../stores/modal.svelte";
   import { translateRefusalField } from "../../services/orderGate";
   import type { TranslationKey } from "../../locales/schema";
+  import Button from "../shared/Button.svelte";
 
   let refreshToken = $state(0);
   let expanded = $state<string | null>(null);
@@ -102,27 +103,30 @@
     </p>
 
     <div class="mt-3 flex flex-wrap gap-2">
-      <button
+      <Button
         type="button"
-        class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-        onclick={() => orderAuditService.downloadExport()}
+        variant="outline"
+        size="sm"
+        onClick={() => orderAuditService.downloadExport()}
       >
         {$_("settings.audit.export")}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-        onclick={() => (refreshToken += 1)}
+        variant="outline"
+        size="sm"
+        onClick={() => (refreshToken += 1)}
       >
         {$_("settings.audit.refresh")}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--danger-color)] hover:border-[var(--danger-color)] transition-colors"
-        onclick={clearLog}
+        variant="outline"
+        size="sm"
+        onClick={clearLog}
       >
         {$_("settings.audit.clear")}
-      </button>
+      </Button>
     </div>
   </section>
 
@@ -139,6 +143,7 @@
       <div class="audit-list">
         {#each entries as entry (entry.id)}
           <div class="audit-row">
+            <!-- FEAT-0611 escape: per-entry disclosure header with aria-expanded; the primitive has no aria-expanded passthrough -->
             <button
               type="button"
               class="audit-head"

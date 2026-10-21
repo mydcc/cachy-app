@@ -93,6 +93,7 @@
   --btn-success-bg: var(--green-500);
   --btn-success-hover-bg: var(--green-600);
   --btn-success-text: var(--blue-950);
+  --btn-warning-bg: var(--warning-color);
 
   /* --- Toggle & UI --- */
   --toggle-bg-off: var(--blue-700);
@@ -2685,6 +2686,37 @@ input[type="number"] {
 
 .btn-base.btn-ghost-danger:hover:not(:disabled) {
   text-decoration: underline;
+}
+
+/*
+ * Warning fill (FEAT-0611 stage 2): the data-maintenance repairs were the
+ * only `bg-warning-paired` buttons in the app, and they kept their fill and
+ * their `hover:opacity-90` — both are reproduced here instead of mapping a
+ * warning action onto the neutral outline.
+ */
+.btn-base.btn-warning {
+  background-color: var(--btn-warning-bg);
+  color: var(--text-on-warning, var(--text-primary));
+}
+
+.btn-base.btn-warning:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/*
+ * Accent-tinted secondary (FEAT-0611 stage 2): the provider manager's add and
+ * activate actions are outlined in the accent role, not in the neutral border
+ * the `outline` variant uses. Resting state stays transparent; hover fills.
+ */
+.btn-base.btn-outline-accent {
+  background-color: transparent;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+}
+
+.btn-base.btn-outline-accent:hover:not(:disabled) {
+  background-color: var(--accent-color);
+  color: var(--btn-accent-text);
 }
 
 .btn-switcher {

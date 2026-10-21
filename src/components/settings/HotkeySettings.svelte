@@ -28,6 +28,7 @@
   import { onMount } from "svelte";
   import DOMPurify from "dompurify";
   import SettingsGrid from "./shared/SettingsGrid.svelte";
+  import Button from "../shared/Button.svelte";
 
   let customHotkeys = { ...settingsState.customHotkeys };
   let editingId: string | null = $state(null);
@@ -145,13 +146,14 @@
         },
       }))}
     </p>
-    <button
+    <Button
       type="button"
-      class="text-xs text-[var(--danger-color)] hover:underline"
-      onclick={resetToDefaults}
+      variant="ghost-danger"
+      size="sm"
+      onClick={resetToDefaults}
     >
       {$_("settings.hotkeys.resetAll")}
-    </button>
+    </Button>
   </div>
 
   <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-6">
@@ -169,13 +171,12 @@
             >
               <span class="text-sm min-w-0">{$_(action.labelKey)}</span>
 
-              <button
+              <Button
                 type="button"
-                class="px-3 py-1 text-xs font-mono rounded border min-w-[80px] text-center transition-colors shrink-0
-                                {editingId === action.id
-                  ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] animate-pulse'
-                  : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
-                onclick={(e) => {
+                variant={editingId === action.id ? "accent" : "outline"}
+                size="sm"
+                extraClasses="font-mono min-w-[80px] shrink-0 {editingId === action.id ? 'animate-pulse' : ''}"
+                onClick={(e) => {
                   e.stopPropagation();
                   startEditing(action.id);
                 }}
@@ -183,7 +184,7 @@
                 {editingId === action.id
                   ? $_("settings.hotkeys.pressKey")
                   : getDisplayKey(action)}
-              </button>
+              </Button>
             </div>
           {/each}
         </SettingsGrid>

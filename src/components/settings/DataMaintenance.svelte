@@ -19,6 +19,7 @@
     import { dataRepairService } from "../../services/dataRepairService";
     import { settingsState } from "../../stores/settings.svelte";
     import { _ } from "../../locales/i18n";
+    import Button from "../shared/Button.svelte";
 
     let missingAtrCount = $state(0);
     let missingMfeMaeCount = $state(0);
@@ -110,14 +111,15 @@
         <h3 class="text-xl font-bold text-[var(--text-primary)]">
             {$_("settings.data.title")}
         </h3>
-        <button
+        <Button
             type="button"
-            class="px-4 py-2 bg-accent-paired rounded hover:opacity-90 transition-opacity disabled:opacity-50"
-            onclick={scan}
+            variant="accent"
+            size="sm"
+            onClick={scan}
             disabled={isScanning || isRepairing}
         >
             {isScanning ? $_("settings.data.scanning") : $_("settings.data.scanAll")}
-        </button>
+        </Button>
     </div>
 
     <div class="mb-6 p-4 bg-[var(--bg-primary)] rounded border border-[var(--border-color)] flex items-center justify-between">
@@ -154,13 +156,14 @@
             </div>
             <div class="flex gap-2">
                 {#if missingAtrCount > 0 && !isRepairing}
-                    <button
+                    <Button
                         type="button"
-                        class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
-                        onclick={repair}
+                        variant="warning"
+                        size="sm"
+                        onClick={repair}
                     >
                         {$_("settings.data.repair")} ({missingAtrCount})
-                    </button>
+                    </Button>
                 {:else}
                     <div class="text-[var(--text-secondary)] italic px-4 py-2">
                         {isScanning ? "..." : missingAtrCount === 0 ? "OK" : ""}
@@ -183,13 +186,14 @@
             </div>
             <div class="flex gap-2">
                 {#if missingMfeMaeCount > 0 && !isRepairing}
-                    <button
+                    <Button
                         type="button"
-                        class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
-                        onclick={repairMfeMae}
+                        variant="warning"
+                        size="sm"
+                        onClick={repairMfeMae}
                     >
                         {$_("settings.data.repair")} ({missingMfeMaeCount})
-                    </button>
+                    </Button>
                 {:else}
                     <div class="text-[var(--text-secondary)] italic px-4 py-2">
                         {isScanning
@@ -216,13 +220,14 @@
             </div>
             <div class="flex gap-2">
                 {#if invalidSymbolCount > 0 && !isRepairing}
-                    <button
+                    <Button
                         type="button"
-                        class="px-4 py-2 bg-warning-paired rounded hover:opacity-90 transition-opacity"
-                        onclick={repairSymbols}
+                        variant="warning"
+                        size="sm"
+                        onClick={repairSymbols}
                     >
                         {$_("settings.data.correct")} ({invalidSymbolCount})
-                    </button>
+                    </Button>
                 {:else}
                     <div class="text-[var(--text-secondary)] italic px-4 py-2">
                         {isScanning

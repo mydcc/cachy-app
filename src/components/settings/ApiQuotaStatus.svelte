@@ -10,6 +10,7 @@
 <script lang="ts">
     import { apiQuotaTracker, type QuotaEntry } from "../../services/apiQuotaTracker.svelte";
     import { _, locale } from "../../locales/i18n";
+    import Button from "../shared/Button.svelte";
 
     // Reactive derived state (no polling needed)
     let cryptoPanicStats = $derived(apiQuotaTracker.getStats("cryptopanic"));
@@ -96,12 +97,14 @@
                     >
                 </div>
             </div>
-            <button
-                class="mt-2 text-xs px-2 py-1 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                onclick={() => handleReset("cryptopanic")}
+            <Button
+                variant="outline"
+                size="sm"
+                extraClasses="mt-2"
+                onClick={() => handleReset("cryptopanic")}
             >
                 {$_("settings.apiQuota.resetButton")}
-            </button>
+            </Button>
         </div>
     {/if}
 
@@ -144,12 +147,14 @@
                     >
                 </div>
             </div>
-            <button
-                class="mt-2 text-xs px-2 py-1 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                onclick={() => handleReset("newsapi")}
+            <Button
+                variant="outline"
+                size="sm"
+                extraClasses="mt-2"
+                onClick={() => handleReset("newsapi")}
             >
                 {$_("settings.apiQuota.resetButton")}
-            </button>
+            </Button>
         </div>
     {/if}
 

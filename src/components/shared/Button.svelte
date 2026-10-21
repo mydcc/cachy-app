@@ -23,9 +23,11 @@
     | "accent"
     | "danger"
     | "success"
+    | "warning"
     | "ghost"
     | "ghost-danger"
-    | "outline";
+    | "outline"
+    | "outline-accent";
   type ButtonSize = "sm" | "md" | "lg";
 
   interface Props {
@@ -36,7 +38,7 @@
     id?: string;
     title?: string;
     ariaLabel?: string;
-    onClick?: () => void;
+    onClick?: (event: MouseEvent) => void;
     oncontextmenu?: (event: MouseEvent) => void;
     children?: import("svelte").Snippet;
     /**

@@ -25,15 +25,15 @@
  * comment directly above it naming what it is instead. Anything else must go
  * through `Button.svelte`.
  *
- * Stage 1 covers `settings/tabs/`; the cards move in Stage 2, which widens
- * `ROOTS`.
+ * Stage 1 covered `settings/tabs/`; stage 2 widened it to the whole settings
+ * window, so a new card cannot slip in a raw button either.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const ROOTS = ["src/components/settings/tabs"];
+const ROOTS = ["src/components/settings"];
 const ESCAPE = "FEAT-0611 escape:";
 
 function svelteFiles(dir: string): string[] {

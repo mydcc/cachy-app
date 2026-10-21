@@ -37,6 +37,7 @@
   import { externalDeliveryLog } from "../../stores/externalDeliveryLog.svelte";
   import { deliverExternal } from "../../services/externalDelivery";
   import type { ExternalChannelId } from "../../lib/notifications/externalChannels";
+  import Button from "../shared/Button.svelte";
 
   interface Props {
     channel: ExternalChannelId;
@@ -119,21 +120,23 @@
       disabled={problem !== null}
       onchange={(e) => onEnabledChange((e.currentTarget as HTMLInputElement).checked)}
     />
-    <button
+    <Button
       type="button"
-      class="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors disabled:opacity-50"
+      variant="outline"
+      size="sm"
       disabled={problem !== null || testing}
-      onclick={sendTest}
+      onClick={sendTest}
     >
       {testing ? $_("settings.externalChannels.testing") : $_("settings.externalChannels.test")}
-    </button>
-    <button
+    </Button>
+    <Button
       type="button"
-      class="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--danger-color)] transition-colors"
-      onclick={onClear}
+      variant="outline"
+      size="sm"
+      onClick={onClear}
     >
       {$_("settings.externalChannels.clear")}
-    </button>
+    </Button>
   </div>
 
   {#if problemText}

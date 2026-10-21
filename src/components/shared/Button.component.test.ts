@@ -130,7 +130,7 @@ describe("FEAT-0610 — variants, sizes and events", () => {
     it("maps each variant onto its own --btn-* colour pair", () => {
         const colours = new Map<string, string>();
 
-        for (const variant of ["default", "accent", "danger", "success"]) {
+        for (const variant of ["default", "accent", "danger", "success", "warning"]) {
             if (component) unmount(component as never);
             component = null;
             host.innerHTML = "";
@@ -153,7 +153,7 @@ describe("FEAT-0610 — variants, sizes and events", () => {
             colours.set(variant, background);
         }
 
-        expect(new Set(colours.values()).size).toBe(4);
+        expect(new Set(colours.values()).size).toBe(5);
     });
 
     it("keeps the text variants transparent and the outline variant bordered", () => {
@@ -195,6 +195,26 @@ describe("FEAT-0610 — variants, sizes and events", () => {
 
         expect(getComputedStyle(button()).backgroundColor).toBe(expected);
         expect(getComputedStyle(button()).borderTopWidth).toBe("1px");
+
+        // `outline-accent` (FEAT-0611 stage 2) is transparent at rest, keeps
+        // the accent border and takes the accent colour for its label.
+        if (component) unmount(component as never);
+        component = null;
+        host.innerHTML = "";
+        render({ variant: "outline-accent" });
+
+        const accentProbe = document.createElement("div");
+        accentProbe.style.color = "var(--accent-color)";
+        document.body.appendChild(accentProbe);
+        const accent = getComputedStyle(accentProbe).color;
+        accentProbe.remove();
+
+        const outlined = button();
+        expect(
+            ["transparent", "rgba(0, 0, 0, 0)"],
+        ).toContain(getComputedStyle(outlined).backgroundColor);
+        expect(getComputedStyle(outlined).color).toBe(accent);
+        expect(getComputedStyle(outlined).borderTopWidth).toBe("1px");
     });
 
     it("does not style a raw variant class without .btn-base", () => {

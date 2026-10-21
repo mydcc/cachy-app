@@ -23,6 +23,7 @@
     type AiApiFlavor,
   } from "../../stores/settings/aiProviders";
   import type { AiProvider } from "../../stores/settings.svelte";
+  import Button from "../shared/Button.svelte";
 
   interface Props {
     provider: AiProvider;
@@ -101,14 +102,16 @@
 <div class="field-group">
   <div class="flex items-center justify-between">
     <label for="ai-model-select-{provider}">{$_("settings.ai.model.label")}</label>
-    <button
+    <Button
       type="button"
-      class="text-[10px] font-semibold text-[var(--accent-color)] hover:underline disabled:opacity-50 disabled:no-underline"
-      onclick={() => runLoad(true)}
+      variant="ghost"
+      size="sm"
+      extraClasses="font-semibold"
+      onClick={() => runLoad(true)}
       disabled={loading}
     >
       {loading ? $_("settings.ai.model.testing") : $_("settings.ai.model.refresh")}
-    </button>
+    </Button>
   </div>
 
   {#if models.length > 0}

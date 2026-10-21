@@ -40,6 +40,7 @@
   import { externalChannelsStore } from "../../stores/externalChannels.svelte";
   import { externalDeliveryLog } from "../../stores/externalDeliveryLog.svelte";
   import { fetchTelegramChats } from "../../services/externalDelivery";
+  import Button from "../shared/Button.svelte";
 
   const config = $derived(externalChannelsStore.config);
 
@@ -244,16 +245,17 @@
           {$_("settings.externalChannels.telegram.lookupChatsHint")}
         </p>
         <div class="mt-1 flex flex-wrap items-end gap-2">
-          <button
+          <Button
             type="button"
-            class="px-3 py-1.5 text-[11px] font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors disabled:opacity-50"
+            variant="outline"
+            size="sm"
             disabled={!config.telegram.botToken.trim() || lookingUpChats}
-            onclick={lookupChats}
+            onClick={lookupChats}
           >
             {lookingUpChats
               ? $_("settings.externalChannels.testing")
               : $_("settings.externalChannels.telegram.lookupChats")}
-          </button>
+          </Button>
 
           {#if config.telegram.knownChats.length > 0}
             <label class="block text-[11px] text-[var(--text-secondary)]">
@@ -292,13 +294,14 @@
         <span class="text-sm font-semibold text-[var(--text-primary)]">
           {$_("settings.externalChannels.logTitle")}
         </span>
-        <button
+        <Button
           type="button"
-          class="px-2 py-1 text-[11px] font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--accent-color)] transition-colors"
-          onclick={() => externalDeliveryLog.clear()}
+          variant="outline"
+          size="sm"
+          onClick={() => externalDeliveryLog.clear()}
         >
           {$_("settings.externalChannels.logClear")}
-        </button>
+        </Button>
       </div>
       <ul class="mt-2 space-y-1" data-testid="external-delivery-log">
         {#each externalDeliveryLog.entries as entry, i (`${entry.channel}-${entry.atMs}-${i}`)}
