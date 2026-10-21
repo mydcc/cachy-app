@@ -1424,6 +1424,8 @@ export type TranslationKey =
   | "settings.ai.permissions.count"
   | "settings.ai.permissions.confirmBadge"
   | "settings.ai.permissions.blockedNotice"
+  | "settings.ai.permissions.tpCapNotice"
+  | "settings.ai.permissions.tpCapBadge"
   | "settings.ai.permissions.malformedCount"
   | "settings.ai.permissions.group.setup"
   | "settings.ai.permissions.group.risk"

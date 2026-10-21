@@ -1613,6 +1613,8 @@
         "count": "{enabled} of {total} allowed",
         "confirmBadge": "asks",
         "blockedNotice": "Blocked by your agent permissions: {actions}",
+        "tpCapNotice": "Add take-profit refused: the setup already has 4 targets.",
+        "tpCapBadge": "Add take-profit refused (4 targets reached)",
         "malformedCount": "{count} malformed",
         "group": {
           "setup": "Trade setup",

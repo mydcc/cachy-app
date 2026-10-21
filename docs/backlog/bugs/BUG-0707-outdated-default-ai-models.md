@@ -2,7 +2,7 @@
 id: BUG-0707
 title: Default AI models reference outdated model generations
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,6 +12,8 @@ adr: none
 depends_on: []
 size: XS
 estimate: 2
+assignee: opencode
+branch: fix/ai-model-defaults-and-tp-overwrite
 ---
 
 # BUG-0707 — Default AI models reference outdated model generations
@@ -66,15 +68,51 @@ likely to hit a retired model.
 
 ## Acceptance criteria
 
-- [ ] A fresh profile's default model per provider is one the provider
+- [x] A fresh profile's default model per provider is one the provider
       currently serves (verified against the provider's model list at
       implementation time).
-- [ ] `defaultSettings` model values and the provider registry's `defaultModel`
+- [x] `defaultSettings` model values and the provider registry's `defaultModel`
       values come from one source or are pinned equal by a test.
-- [ ] No migration forces a retired Gemini model onto existing profiles.
-- [ ] A test fails when a default model is empty or absent from the known-model
+- [x] No migration forces a retired Gemini model onto existing profiles.
+- [x] A test fails when a default model is empty or absent from the known-model
       list.
-- [ ] No behaviour change beyond model IDs.
+- [x] No behaviour change beyond model IDs.
+
+## Progress — 2026-10-21
+
+Branch `fix/ai-model-defaults-and-tp-overwrite`. Checked against the vendors'
+own model lists on 2026-10-21 (Google AI for Developers, OpenAI API docs,
+Anthropic models overview):
+
+| Provider | Was | Now |
+| --- | --- | --- |
+| Gemini | `gemini-1.5-flash` | `gemini-3.5-flash-lite` (current cost-effective Flash-Lite) |
+| OpenAI | `gpt-4o` | `gpt-5.4-mini` |
+| Anthropic | `claude-sonnet-5` | `claude-sonnet-5-5` |
+
+`claude-sonnet-5` was superseded, not retired (Anthropic lists it active until
+at least 2027-06-30); the change is a freshness upgrade. `gemini-1.5-flash`
+and `gemini-2.0-flash` are shut down, `gpt-4o`/`gpt-4o-mini` are deprecated
+with removal on 2027-01-14.
+
+The old IDs also leave the news/sentiment fallbacks, the route defaults and the
+migration pins. `KNOWN_MODELS` in `aiProviders.ts` lists what each built-in is
+known to serve; `aiProviders.defaults.test.ts` pins `defaultSettings` to the
+registry, requires a known entry for every shipped default, scans the live
+fallback files for retired IDs, and checks the migration targets. Verified RED
+by reverting the Gemini default, the news fallback and the migration pin.
+
+Two review findings changed the shape of the fix:
+
+- **`max_completion_tokens`**: OpenAI's GPT-5.x reasoning models reject
+  `max_tokens`, so the shipped `gpt-5.4-mini` default would have failed its
+  first request. The OpenAI route and `directRequest` now send
+  `max_completion_tokens` when the host is `api.openai.com` and keep
+  `max_tokens` for compatible relays that may not know the new name.
+- **Existing profiles keep their stored default.** The migration only rewrites
+  empty/placeholder/legacy IDs, per the "do not rewrite user-saved models" AC —
+  so an install that persisted `gemini-1.5-flash` keeps it until the user picks
+  a model. That is deliberate, not an oversight.
 
 ## Out of scope
 

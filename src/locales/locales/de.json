@@ -1638,6 +1638,8 @@
         "count": "{enabled} von {total} erlaubt",
         "confirmBadge": "fragt",
         "blockedNotice": "Durch deine Agent-Berechtigungen blockiert: {actions}",
+        "tpCapNotice": "Take-Profit hinzufügen abgelehnt: das Setup hat bereits 4 Ziele.",
+        "tpCapBadge": "Take-Profit hinzufügen abgelehnt (4 Ziele erreicht)",
         "malformedCount": "{count} ungültig",
         "group": {
           "setup": "Trade-Setup",

@@ -94,7 +94,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       method: "POST",
       headers,
       body: JSON.stringify({
-        model: model || "gpt-4o",
+        model: model || "gpt-5.4-mini",
         instructions: instructions || undefined,
         input,
         // Chat-completions tools nest the definition under `function`;

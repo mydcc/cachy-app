@@ -132,7 +132,7 @@ describe("providerConfigFromLegacy", () => {
   it("falls back to the preset default model and endpoint when nothing is stored", () => {
     const cfg = providerConfigFromLegacy("anthropic", { apiKey: "", model: "", baseUrl: "" });
     expect(cfg.baseUrl).toBe("https://api.anthropic.com/v1");
-    expect(cfg.model).toBe("claude-sonnet-5");
+    expect(cfg.model).toBe("claude-sonnet-5-5");
     expect(cfg.flavor).toBe("anthropic-messages");
   });
 
@@ -210,7 +210,7 @@ describe("registry input hardening (non-string fields)", () => {
     } as unknown as Parameters<typeof providerConfigFromLegacy>[1]);
 
     expect(cfg.baseUrl).toBe("https://api.openai.com/v1");
-    expect(cfg.model).toBe("gpt-4o");
+    expect(cfg.model).toBe("gpt-5.4-mini");
     expect(cfg.apiKey).toBe("");
   });
 });

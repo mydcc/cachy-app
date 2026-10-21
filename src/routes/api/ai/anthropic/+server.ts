@@ -112,7 +112,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         // claude-3-5-sonnet-20240620 was retired 2025-10-28 — see
         // shared/model-migration.md. This fallback only fires if the client
         // somehow omits a model, which normal use through Settings never does.
-        model: model || "claude-sonnet-5",
+        model: model || "claude-sonnet-5-5",
         max_tokens: 2000,
         system: systemBlocks,
         messages: anthropicMessages,

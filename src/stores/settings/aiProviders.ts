@@ -115,7 +115,7 @@ export const BUILTIN_AI_PROVIDERS: readonly BuiltinProviderPreset[] = [
     label: "OpenAI",
     flavor: "openai-chat",
     defaultBaseUrl: "https://api.openai.com/v1",
-    defaultModel: "gpt-4o",
+    defaultModel: "gpt-5.4-mini",
     requiresKey: true,
     localFirst: false,
   },
@@ -124,7 +124,7 @@ export const BUILTIN_AI_PROVIDERS: readonly BuiltinProviderPreset[] = [
     label: "Google Gemini",
     flavor: "google-generate",
     defaultBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
-    defaultModel: "gemini-1.5-flash",
+    defaultModel: "gemini-3.5-flash-lite",
     requiresKey: true,
     localFirst: false,
   },
@@ -133,7 +133,7 @@ export const BUILTIN_AI_PROVIDERS: readonly BuiltinProviderPreset[] = [
     label: "Anthropic",
     flavor: "anthropic-messages",
     defaultBaseUrl: "https://api.anthropic.com/v1",
-    defaultModel: "claude-sonnet-5",
+    defaultModel: "claude-sonnet-5-5",
     requiresKey: true,
     localFirst: false,
   },
@@ -142,6 +142,27 @@ export const BUILTIN_AI_PROVIDERS: readonly BuiltinProviderPreset[] = [
 const PRESETS_BY_ID = new Map<string, BuiltinProviderPreset>(
   BUILTIN_AI_PROVIDERS.map((p) => [p.id, p]),
 );
+
+/**
+ * Model IDs each built-in provider is known to serve — BUG-0707, checked
+ * 2026-10-21 against the vendors' own model lists (Google AI for Developers,
+ * OpenAI API docs, Anthropic models overview).
+ *
+ * This is a floor, not a picker catalogue: the live picker fetches what the
+ * provider really serves. Its job is to catch a shipped default that points at
+ * a generation the vendor has retired, which is what made the first AI request
+ * of a fresh install fail.
+ */
+export const KNOWN_MODELS: Record<string, readonly string[]> = {
+  openai: ["gpt-5.4-mini", "gpt-5.4"],
+  gemini: ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.6-flash"],
+  anthropic: [
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5",
+    "claude-opus-5-5",
+    "claude-fable-5-1",
+  ],
+};
 
 /** The built-in preset for an id, or `undefined` for a user-created provider. */
 export function builtinPreset(id: string): BuiltinProviderPreset | undefined {

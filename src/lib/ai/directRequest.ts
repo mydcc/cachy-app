@@ -120,6 +120,20 @@ function jsonHeaders(apiKey: string): Record<string, string> {
   return headers;
 }
 
+/**
+ * GPT-5.x reasoning models reject `max_tokens`; OpenAI's own endpoint wants
+ * `max_completion_tokens`. OpenAI-compatible relays may not know the new name,
+ * so the host decides (BUG-0707). Without this the shipped `gpt-5.4-mini`
+ * default would 400 on the first request.
+ */
+function usesMaxCompletionTokens(baseUrl: string): boolean {
+  try {
+    return new URL(baseUrl).hostname.toLowerCase() === "api.openai.com";
+  } catch {
+    return false;
+  }
+}
+
 function buildOpenAiChat(params: DirectChatParams): DirectRequest {
   return {
     url: resolveDirectUrl(params.baseUrl, "v1/chat/completions"),
@@ -127,7 +141,9 @@ function buildOpenAiChat(params: DirectChatParams): DirectRequest {
     body: JSON.stringify({
       model: params.model,
       messages: params.messages,
-      max_tokens: DEFAULT_MAX_TOKENS,
+      ...(usesMaxCompletionTokens(params.baseUrl)
+        ? { max_completion_tokens: DEFAULT_MAX_TOKENS }
+        : { max_tokens: DEFAULT_MAX_TOKENS }),
       stream: true,
       stream_options: { include_usage: true },
     }),

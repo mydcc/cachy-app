@@ -69,7 +69,7 @@ import { logger } from "../services/logger";
 import { appFetch } from "../lib/appAuth";
 import type { JournalEntry } from "./types";
 import type { Position } from "./account.svelte";
-import { app } from "../services/app";
+import { app, MAX_TAKE_PROFIT_TARGETS } from "../services/app";
 import { TechnicalsPresenter } from "../utils/technicalsPresenter";
 import { safeLocalStorage } from "../utils/storageWrapper";
 
@@ -1496,9 +1496,24 @@ class AiManager {
           }
           break;
         case "addTakeProfit": {
-          app.addTakeProfitRow();
-          const newIdx = tradeState.targets.length - 1;
-          if (newIdx >= 0 && action.value !== undefined) {
+          const newIdx = app.addTakeProfitRow();
+          if (newIdx === null) {
+            // BUG-0705: the setup is full. Writing to `length - 1` here used to
+            // overwrite TP4 while the confirmation said "add". Refuse visibly
+            // instead of silently replacing a configured target.
+            const t = get(_);
+            this.messages = [
+              ...this.messages,
+              {
+                id: generateId(),
+                role: "system",
+                content: `⛔ ${t("settings.ai.permissions.tpCapNotice")}`,
+                timestamp: Date.now(),
+              },
+            ];
+            return false;
+          }
+          if (action.value !== undefined) {
             tradeState.targets[newIdx].price = String(parseAiValue(action.value as string));
             if (action.percent !== undefined) {
               tradeState.targets[newIdx].percent = String(parseAiValue(action.percent as string));
@@ -1560,7 +1575,14 @@ class AiManager {
       case "setTradeType":
         return `Richtung: ${String(action.value).toUpperCase()}`;
       case "addTakeProfit":
-        return `TP Hinzufügen: ${action.value} (${action.percent ?? 0}%)`;
+        // BUG-0705: the confirmation must not promise an addition the setup
+        // cannot take. At the cap the action is refused, and saying "add"
+        // would be the same false label that let TP4 be overwritten. The badge
+        // is a static preview: a batch that removes a row before adding can
+        // still show "refused" and then succeed.
+        return tradeState.targets.length >= MAX_TAKE_PROFIT_TARGETS
+          ? `⛔ ${get(_)("settings.ai.permissions.tpCapBadge")}`
+          : `TP Hinzufügen: ${action.value} (${action.percent ?? 0}%)`;
       case "removeTakeProfit":
         return `TP Entfernen: Index ${(action.index ?? 0) + 1}`;
       case "setAtrMode":
@@ -1666,19 +1688,23 @@ class AiManager {
       ];
     }
 
-    // Execute all still-permitted actions in batch
-    permitted.forEach((action) => {
-      this.executeAction(action, false);
-    });
+    // Execute all still-permitted actions in batch. The count matters: a batch
+    // whose only action was refused at execution time must not render as
+    // "confirmed" (BUG-0705 — an addTakeProfit at the four-target cap).
+    let applied = 0;
+    for (const action of permitted) {
+      if (this.executeAction(action, false)) applied += 1;
+    }
 
     // Remove from pending
     this.pendingActions.delete(actionId);
 
     // Update message to show confirmed status — "rejected" when nothing was
-    // still permitted, so a revoked batch never looks confirmed.
+    // still permitted or nothing could be applied, so a refused batch never
+    // looks confirmed.
     this.updateActionMessage(
       actionId,
-      permitted.length > 0 ? "confirmed" : "rejected",
+      applied > 0 ? "confirmed" : "rejected",
     );
     this.save();
   }
