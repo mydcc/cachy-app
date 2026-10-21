@@ -11,7 +11,8 @@ data_class: none
 adr: none
 depends_on: []
 assignee: opencode
-branch: docs/close-bug-0636
+branch: ci/pr-build-and-engine-floor
+shipped: v1.6.0-beta.380
 ---
 
 # BUG-0636 — CI never builds, so a broken server bundle passes every check
@@ -88,9 +89,9 @@ will actually run. No Rust toolchain: `scripts/build_wasm.sh` keeps the
 committed artifacts, and the WASM module is not what a dependency bump puts at
 risk.
 
-Shipped in `1.6.0-beta.390` (merge commit `42abdb9b3`). The status was left on
-`specced` after the merge and is corrected here; closing a backlog item is part
-of the change that delivers it.
+Shipped in `v1.6.0-beta.380` (merge commit `1c74bd197`, PR #3914). The status
+was left on `specced` after the merge and is corrected here; closing a backlog
+item is part of the change that delivers it.
 
 The boot check was verified in all three directions before the workflow was
 merged, against a real local build:
@@ -104,12 +105,13 @@ merged, against a real local build:
 The second row is the one the first incident would have produced. A workflow
 that has only ever reported success is not a check.
 
-## Open questions
+## Rust was not needed
 
-- Does the WASM build step need Rust available for this job, or are the
-  committed `static/wasm/` artifacts enough? `scripts/build_wasm.sh` keeps them
-  when no toolchain is present, so the job should be fine either way — but that
-  is untested on CI.
+The open question ("does the WASM build step need Rust available?") is answered
+by the run history: 15 `PR Build` runs, all green, and the log shows
+`wasm32-unknown-unknown target not installed. Skipping WASM build for now.`
+followed by `healthy after 2 attempt(s)`. The committed `static/wasm/`
+artifacts are enough for a dependency-bump build.
 
 ## Links
 
