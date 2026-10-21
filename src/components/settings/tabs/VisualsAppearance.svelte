@@ -124,39 +124,6 @@
         </label>
     </div>
 
-    <!-- Rendering -->
-    <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
-        <div class="field-group">
-            <label for="visual-quality-select"
-                >{$_("settings.visuals.visualQuality")}</label
-            >
-            <select
-                id="visual-quality-select"
-                value={settingsState.visualQuality}
-                onchange={(e) =>
-                    (settingsState.visualQuality = e.currentTarget
-                        .value as VisualQuality)}
-                class="input-field w-full"
-            >
-                <option value="auto"
-                    >{$_("settings.visuals.quality.auto")}</option
-                >
-                <option value="high"
-                    >{$_("settings.visuals.quality.high")}</option
-                >
-                <option value="balanced"
-                    >{$_("settings.visuals.quality.balanced")}</option
-                >
-                <option value="low"
-                    >{$_("settings.visuals.quality.low")}</option
-                >
-            </select>
-            <span class="text-xs text-[var(--text-secondary)]">
-                {$_("settings.visuals.visualQualityDesc")}
-            </span>
-        </div>
-    </div>
-
     <!-- Glassmorphism -->
     <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
         <div class="toggle-card flex-col items-start gap-4">
@@ -656,6 +623,38 @@
                     </div>
                 </div>
             {/if}
+        </div>
+    </div>
+    <!-- Rendering -->
+    <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
+        <div class="field-group">
+            <label for="visual-quality-select"
+                >{$_("settings.visuals.visualQuality")}</label
+            >
+            <select
+                id="visual-quality-select"
+                value={settingsState.visualQuality}
+                onchange={(e) =>
+                    (settingsState.visualQuality = e.currentTarget
+                        .value as VisualQuality)}
+                class="input-field w-full"
+            >
+                <option value="auto"
+                    >{$_("settings.visuals.quality.auto")}</option
+                >
+                <option value="high"
+                    >{$_("settings.visuals.quality.high")}</option
+                >
+                <option value="balanced"
+                    >{$_("settings.visuals.quality.balanced")}</option
+                >
+                <option value="low"
+                    >{$_("settings.visuals.quality.low")}</option
+                >
+            </select>
+            <span class="text-xs text-[var(--text-secondary)]">
+                {$_("settings.visuals.visualQualityDesc")}
+            </span>
         </div>
     </div>
 </section>

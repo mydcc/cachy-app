@@ -387,6 +387,24 @@
                                         </button>
                                     </div>
                                 </div>
+                                <div class="field-group mt-3">
+                                    <label for="imgbb-expiration">{$_("settings.imgbbExpiration")}</label>
+                                    <select
+                                        id="imgbb-expiration"
+                                        bind:value={settingsState.imgbbExpiration}
+                                        class="api-input"
+                                    >
+                                        <option value={0}>{$_("settings.imgbbPermanent")}</option>
+                                        <option value={600}>{$_("settings.imgbb10m")}</option>
+                                        <option value={3600}>{$_("settings.imgbb1h")}</option>
+                                        <option value={86400}>{$_("settings.imgbb1d")}</option>
+                                        <option value={604800}>{$_("settings.imgbb1w")}</option>
+                                        <option value={2592000}>{$_("settings.imgbb1m")}</option>
+                                    </select>
+                                    <p class="text-xs text-[var(--text-secondary)] mt-1">
+                                        {$_("settings.connections.imgbbExpirationDesc")}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

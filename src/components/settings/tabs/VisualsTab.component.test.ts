@@ -69,8 +69,9 @@ describe("VisualsTab — section split", () => {
         settle();
 
         expect(host.innerHTML).toContain("tab-visuals");
-        // The news-behavior card is the only toggle-card block in the tab
-        // (#2722 switched it from col-span-1 to col-span-full).
+        // The layout tab renders several toggle-card blocks (news behavior,
+        // sidebars, assistant, docking); #2722 switched the first from
+        // col-span-1 to col-span-full.
         expect(host.querySelector(".toggle-card")).toBeTruthy();
         expect(host.querySelector("#theme-select")).toBeNull();
     });

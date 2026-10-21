@@ -1491,6 +1491,7 @@
     "apiProvider": "API Anbieter",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
+    "autoFetchBalanceDesc": "Beim Öffnen den Kontostand automatisch abrufen (signierter Request).",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
     "intervalLabel": "Häufigkeit der Überprüfung (in Sekunden)",
     "autoUpdatePrice": "Preis automatisch aktualisieren",
@@ -1513,6 +1514,14 @@
     "showTechnicals": "Technicals-Panel anzeigen",
     "showIndicatorParams": "Indikator-Parameter anzeigen",
     "hideUnfilledOrders": "Nur ausgeführte Orders anzeigen",
+    "hideUnfilledOrdersDesc": "Nicht ausgeführte Orders im Order-Verlauf ausblenden.",
+    "dockingTitle": "Minimierter Fenster-Dock",
+    "dockingCentered": "Dock zentrieren",
+    "dockingCenteredDesc": "Minimierte Fenster mittig statt linksbündig anordnen.",
+    "dockingPosition": "Dock-Position",
+    "dockingPositionDesc": "Rand, an dem der minimierte Fenster-Dock erscheint.",
+    "dockingTop": "Oben",
+    "dockingBottom": "Unten",
     "stalePriceBadge": "Veralteten Preis mit Badge zeigen",
     "stalePriceBadgeDesc": "Wenn keine Preisquelle live ist, weiter den letzten bekannten Preis mit unübersehbarem ALT-Badge zeigen. Aus bedeutet: Die PnL-Zelle zeigt ehrlich keinen Preis.",
     "feePreference": "Gebühren-Präferenz",
@@ -2163,6 +2172,7 @@
         "verifyStatusAria": "Status des privaten Zugangs: {status}"
       },
       "imgbbRequired": "Erforderlich für Screenshot-Uploads.",
+      "imgbbExpirationDesc": "Ablaufzeit für hochgeladene Screenshots. Dauerhaft empfiehlt sich für Journal-Bilder.",
       "imgbbGetKey": "API-Key anfordern →"
     },
     "trading": {
