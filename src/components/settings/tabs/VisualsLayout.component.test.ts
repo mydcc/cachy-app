@@ -37,7 +37,12 @@ vi.mock("../../../locales/i18n", async () => {
     return { _: readable((key: string) => lookup(key) ?? key), locale: readable("en"), setLocale: vi.fn() };
 });
 
-const settingsMock = vi.hoisted(() => ({ newsOpenBehavior: "smart", showSidebars: false }));
+const settingsMock = vi.hoisted(() => ({
+    newsOpenBehavior: "smart",
+    showSidebars: false,
+    enableDockingCentered: true,
+    dockingPosition: "top",
+}));
 vi.mock("../../../stores/settings.svelte", () => ({ settingsState: settingsMock }));
 
 const uiMock = vi.hoisted(() => ({ showAssistant: false, toggleAssistant: vi.fn() }));
@@ -52,6 +57,8 @@ beforeEach(() => {
     vi.clearAllMocks();
     settingsMock.newsOpenBehavior = "smart";
     settingsMock.showSidebars = false;
+    settingsMock.enableDockingCentered = true;
+    settingsMock.dockingPosition = "top";
     uiMock.showAssistant = false;
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -99,5 +106,19 @@ describe("FEAT-0346 — VisualsLayout writes through to the stores", () => {
         host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1].click();
 
         expect(uiMock.toggleAssistant).toHaveBeenCalledWith(true);
+    });
+
+    it("renders the docking controls and binds the centered toggle", () => {
+        render();
+
+        host.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[2].click();
+        expect(settingsMock.enableDockingCentered).toBe(false);
+
+        const select = host.querySelector<HTMLSelectElement>("#docking-position");
+        if (!select) throw new Error("docking position select not rendered");
+        expect([...select.options].map((option) => option.value)).toEqual([
+            "top",
+            "bottom",
+        ]);
     });
 });

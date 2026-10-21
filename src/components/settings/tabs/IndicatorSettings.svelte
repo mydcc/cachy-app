@@ -18,7 +18,7 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { indicatorState } from "../../../stores/indicator.svelte";
-    import { settingsState, type PnlViewMode } from "../../../stores/settings.svelte";
+    import { settingsState } from "../../../stores/settings.svelte";
     import type { IndicatorSettings } from "../../../types/indicators";
     import Toggle from "../../shared/Toggle.svelte";
     import Field from "./IndicatorField.svelte";
@@ -174,19 +174,6 @@
                                  min={1}
                                  max={4}
                              />
-                            <div class="flex flex-col gap-2 mt-2">
-                                <span class="text-xs text-[var(--text-secondary)]">{$_("settings.technicals.pnlMode")}</span>
-                                <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
-                                    {#each [{ value: "value", label: $_("settings.technicals.pnlModes.absolute") }, { value: "percent", label: $_("settings.technicals.pnlModes.percent") }, { value: "bar", label: $_("settings.technicals.pnlModes.bar") }] as mode}
-                                        <button
-                                            class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'text-[var(--text-secondary)]'}"
-                                            onclick={() => (settingsState.pnlViewMode = mode.value as PnlViewMode)}
-                                        >
-                                            {mode.label}
-                                        </button>
-                                    {/each}
-                                </div>
-                            </div>
                          </div>
                      </section>
                  </SettingsGrid>

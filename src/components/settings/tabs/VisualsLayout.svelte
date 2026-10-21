@@ -124,6 +124,28 @@
                     uiState.toggleAssistant((e.currentTarget as HTMLInputElement).checked)}
             />
         </label>
+
+        <!-- Window docking -->
+        <div class="col-span-full border-t border-[var(--border-color)] pt-4">
+            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                {$_("settings.dockingTitle")}
+            </h4>
+            <label class="toggle-card mb-4 gap-3">
+                <div class="flex flex-col min-w-0 flex-1">
+                    <span class="text-sm font-medium">{$_("settings.dockingCentered")}</span>
+                    <span class="text-[10px] text-[var(--text-secondary)]">{$_("settings.dockingCenteredDesc")}</span>
+                </div>
+                <Toggle bind:checked={settingsState.enableDockingCentered} />
+            </label>
+            <div class="field-group">
+                <label for="docking-position">{$_("settings.dockingPosition")}</label>
+                <select id="docking-position" bind:value={settingsState.dockingPosition} class="input-field w-full">
+                    <option value="top">{$_("settings.dockingTop")}</option>
+                    <option value="bottom">{$_("settings.dockingBottom")}</option>
+                </select>
+                <p class="text-[10px] text-[var(--text-secondary)]">{$_("settings.dockingPositionDesc")}</p>
+            </div>
+        </div>
     </SettingsGrid>
 </section>
 

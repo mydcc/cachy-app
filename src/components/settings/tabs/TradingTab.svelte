@@ -17,7 +17,7 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
-    import { settingsState } from "../../../stores/settings.svelte";
+    import { settingsState, type PnlViewMode } from "../../../stores/settings.svelte";
     import { numberInput } from "../../../utils/inputUtils";
     import Toggle from "../../shared/Toggle.svelte";
     import RiskLimitsSettings from "../RiskLimitsSettings.svelte";
@@ -282,6 +282,22 @@
                         />
                     </label>
 
+                    <!-- Auto Fetch Balance -->
+                    <label class="toggle-card gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.autoFetchBalance")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.autoFetchBalanceDesc")}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.autoFetchBalance}
+                        />
+                    </label>
+
                     <!-- Confirm Deletions -->
                     <label class="toggle-card gap-3">
                         <div class="flex flex-col min-w-0 flex-1">
@@ -332,6 +348,44 @@
                             bind:checked={settingsState.showStalePriceBadge}
                         />
                     </label>
+
+                    <!-- Display: hide unfilled orders -->
+                    <label class="toggle-card gap-3">
+                        <div class="flex flex-col min-w-0 flex-1">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.hideUnfilledOrders")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.hideUnfilledOrdersDesc")}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.hideUnfilledOrders}
+                        />
+                    </label>
+
+                    <!-- Display: PnL mode (moved from Chart → Indicators) -->
+                    <div class="field-group">
+                        <span
+                            class="text-xs font-semibold text-[var(--text-secondary)]"
+                        >
+                            {$_("settings.technicals.pnlMode")}
+                        </span>
+                        <div class="flex bg-[var(--bg-tertiary)] rounded p-1">
+                            {#each [{ value: "value", label: $_("settings.technicals.pnlModes.absolute") }, { value: "percent", label: $_("settings.technicals.pnlModes.percent") }, { value: "bar", label: $_("settings.technicals.pnlModes.bar") }] as mode}
+                                <button
+                                    type="button"
+                                    class="flex-1 text-xs py-1 rounded transition-colors {settingsState.pnlViewMode === mode.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'text-[var(--text-secondary)]'}"
+                                    onclick={() =>
+                                        (settingsState.pnlViewMode =
+                                            mode.value as PnlViewMode)}
+                                >
+                                    {mode.label}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
 
                     <!-- Automation & Advanced (moved from Chart & Data; execution behaviour lives with execution) -->
                     <div class="border-t border-[var(--border-color)] pt-4 mt-4 mb-4 col-span-full">
