@@ -26,7 +26,7 @@
  *
  * That is the whole trick behind "the line you see is the line that fires".
  * Two endpoints joined by a straight stroke would be correct only on a linear
- * price scale; the chart defaults to logarithmic, where the same level curves.
+ * price scale; on a logarithmic scale the same level curves.
  * Sampling delegates every scale question back to the chart's own transform,
  * so the picture follows whatever scale is active without this file knowing
  * which one it is — the criterion's "without duplicating the chart's scale

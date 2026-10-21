@@ -93,7 +93,7 @@ const tradeFlowDefaults: TradeFlowSettings = {
 };
 
 const chartDefaults: ChartResetTarget = {
-    chartPriceScaleMode: "log",
+    chartPriceScaleMode: "linear",
     chartAutoScale: true,
     chartInvertScale: false,
     chartDecimalsMode: "auto",
@@ -201,7 +201,7 @@ describe("resetChart", () => {
     it("restores every chart field to its default", () => {
         // Arrange
         const target: ChartResetTarget = {
-            chartPriceScaleMode: "linear",
+            chartPriceScaleMode: "log",
             chartAutoScale: false,
             chartInvertScale: true,
             chartDecimalsMode: "fixed",

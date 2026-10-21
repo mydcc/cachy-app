@@ -521,9 +521,8 @@ export interface Settings {
   chartRenderIntervalMs: number; // Candle chart render update interval in ms (20-500)
   repairTimeframe: string; // Timeframe used for ATR/MFE/MAE repair (default: 15m)
 
-  // Chart view appearance/behavior (Settings → Chart). Defaults mirror the
-  // options previously hard-coded in CandleChartView so existing users see
-  // no visual change.
+  // Chart view appearance/behavior (Settings → Chart). Stored profiles keep
+  // their saved values; the shipped default is the linear price scale.
   chartPriceScaleMode: ChartPriceScaleMode;
   chartAutoScale: boolean;
   chartInvertScale: boolean;

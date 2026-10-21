@@ -10,7 +10,7 @@
 // Stores
 import { get } from "svelte/store";
 
-import { tradeState } from "../stores/trade.svelte";
+import { tradeState, INITIAL_TRADE_STATE } from "../stores/trade.svelte";
 import { resultsState } from "../stores/results.svelte";
 import { presetState } from "../stores/preset.svelte";
 import { journalState } from "../stores/journal.svelte";
@@ -133,8 +133,48 @@ export const app = {
     }
   },
 
+  /**
+   * One-shot cleanup for profiles that ran the old first-start seed.
+   * Only an untouched seed is cleared: editing the entry, the ATR or any TP
+   * row keeps the profile as user data. The marker makes it idempotent and
+   * stops a later intentional 88480.2 entry from being wiped.
+   */
+  cleanupDemoTradeSeed: () => {
+    if (!browser) return;
+    const CLEANUP_KEY = "cachy_demo_seed_cleaned_v1";
+    if (safeLocalStorage.getItem(CLEANUP_KEY)) return;
+
+    const seedTargets = [
+      { price: "120000", percent: "50" },
+      { price: "122000", percent: "25" },
+      { price: "124000", percent: "25" },
+    ];
+    const targets = tradeState.targets;
+    const isUntouchedSeed =
+      tradeState.entryPrice === "88480.2" &&
+      tradeState.atrValue === "45.5" &&
+      targets.length === seedTargets.length &&
+      seedTargets.every(
+        (seed, index) =>
+          targets[index]?.price === seed.price &&
+          targets[index]?.percent === seed.percent,
+      );
+
+    if (isUntouchedSeed) {
+      tradeState.update((state) => ({
+        ...state,
+        entryPrice: INITIAL_TRADE_STATE.entryPrice,
+        atrValue: INITIAL_TRADE_STATE.atrValue,
+        targets: INITIAL_TRADE_STATE.targets.map((target) => ({ ...target })),
+      }));
+    }
+
+    safeLocalStorage.setItem(CLEANUP_KEY, "true");
+  },
+
   setupFirstStart: () => {
     if (!browser) return;
+    app.cleanupDemoTradeSeed();
     const INIT_KEY = "cachy_init_v501";
     if (!safeLocalStorage.getItem(INIT_KEY)) {
       // Set favorites
@@ -146,7 +186,6 @@ export const app = {
       // Settings for visibility
       settingsState.showMarketActivity = true; // Show details in tiles
       settingsState.showSidebarActivity = true; // Show sidebar activity (Positions & Orders)
-      settingsState.showMarketSentiment = true;
       settingsState.showMarketSentiment = true;
       settingsState.enableNewsAnalysis = true;
       settingsState.marketMode = "balanced"; // Default to smart balanced mode
