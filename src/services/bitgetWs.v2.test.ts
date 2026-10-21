@@ -37,14 +37,14 @@
  *     socket that looks perfectly healthy.
  *
  * Everything here is credential-free and therefore live-verifiable. The
- * private channels (orders, positions, account) are asserted to be *refused
- * loudly* rather than silently dropped, so the gap stays visible until the
- * private socket lands.
+ * private channels (orders, positions, account) live on a second socket; this
+ * file asserts that a request for them leaves the public wire untouched and is
+ * handed to the authenticated instance instead (BUG-0598).
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import CryptoJS from "crypto-js";
-import { BitgetWebSocketService } from "./bitgetWs";
+import { BitgetWebSocketService, bitgetWsPrivate } from "./bitgetWs";
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
@@ -428,20 +428,17 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
     });
   });
 
-  describe("channels the public socket must refuse", () => {
-    it.each(["orders", "positions", "account"])(
-      "refuses the private channel %s with a loud warning and sends no frame",
+  describe("private channels never reach the public wire", () => {
+    it.each(["orders", "positions"])(
+      "hands %s to the authenticated socket and sends no public frame",
       (channel) => {
-        const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+        const connect = vi.spyOn(bitgetWsPrivate, "connect").mockImplementation(() => {});
 
         service.subscribe(BTC_WIRE, channel);
 
         expect(socket.frames()).toHaveLength(0);
-        expect(warn).toHaveBeenCalledWith(
-          "network",
-          expect.stringContaining(channel),
-          expect.anything(),
-        );
+        expect(connect).toHaveBeenCalled();
+        expect(service.subscriptions.has(`${channel}:default`)).toBe(false);
       },
     );
 
@@ -463,13 +460,17 @@ describe("Bitget WebSocket V2 wire contract (BUG-0598)", () => {
       expect(internals.getBitgetChannel("books")).toBeNull();
     });
 
-    it("refuses a private subscription from the private path too", () => {
-      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    it("hands a private subscription to the authenticated socket", () => {
+      const connect = vi.spyOn(bitgetWsPrivate, "connect").mockImplementation(() => {});
 
-      internals.subscribePrivate();
+      service.subscribe(BTC_WIRE, "orders");
 
+      // The public endpoint has no login and drops a socket that tries, so the
+      // channel never reaches this socket — not the wire, not its ledger. The
+      // authenticated instance owns it and adopts it at login (BUG-0598).
+      expect(connect).toHaveBeenCalled();
       expect(socket.frames()).toHaveLength(0);
-      expect(warn).toHaveBeenCalled();
+      expect(service.subscriptions.has("orders:default")).toBe(false);
     });
 
     it("keeps the login frame builder signable for the pending private socket", () => {

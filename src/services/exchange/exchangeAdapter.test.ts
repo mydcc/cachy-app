@@ -49,10 +49,21 @@ const bitunixWsMock = vi.hoisted(() => ({
 vi.mock("../bitunixWs", () => ({ bitunixWs: bitunixWsMock }));
 
 const bitgetWsMock = vi.hoisted(() => ({
+    connect: vi.fn(),
+    destroy: vi.fn(),
     subscribe: vi.fn(),
     unsubscribe: vi.fn(),
 }));
-vi.mock("../bitgetWs", () => ({ bitgetWs: bitgetWsMock }));
+const bitgetWsPrivateMock = vi.hoisted(() => ({
+    connect: vi.fn(),
+    destroy: vi.fn(),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
+}));
+vi.mock("../bitgetWs", () => ({
+    bitgetWs: bitgetWsMock,
+    bitgetWsPrivate: bitgetWsPrivateMock,
+}));
 
 const apiServiceMock = vi.hoisted(() => ({
     fetchTicker24h: vi.fn(async () => ({ symbol: "BTCUSDT" })),
@@ -105,6 +116,22 @@ describe("FEAT-0016 — the registry resolves the active exchange", () => {
 
     it("exposes every adapter for the conformance suite to iterate", () => {
         expect(exchangeAdapters.map((a) => a.id).sort()).toEqual(["bitget", "bitunix"]);
+    });
+});
+
+describe("BUG-0598 — the Bitget adapter drives both V2 sockets", () => {
+    it("connects the public and the authenticated socket", () => {
+        getExchangeAdapter("bitget").connection.connect(true);
+
+        expect(bitgetWsMock.connect).toHaveBeenCalledWith(true);
+        expect(bitgetWsPrivateMock.connect).toHaveBeenCalledWith(true);
+    });
+
+    it("destroys both sockets through the connection port", () => {
+        getExchangeAdapter("bitget").connection.destroy();
+
+        expect(bitgetWsMock.destroy).toHaveBeenCalled();
+        expect(bitgetWsPrivateMock.destroy).toHaveBeenCalled();
     });
 });
 

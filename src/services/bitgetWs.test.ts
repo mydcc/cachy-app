@@ -88,10 +88,10 @@ describe("Bitget WebSocket", () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it("should log an unrecognized login code loudly instead of dropping it (BUG-0581)", () => {
+    it("should log a rejected login loudly and stop instead of retrying (BUG-0581)", () => {
       const wsService = bitgetWs as unknown as BitgetWSService;
       wsService.isAuthenticated = false;
-      const spy = vi.spyOn(logger, "warn");
+      const spy = vi.spyOn(logger, "error");
 
       wsService.handleMessage({ event: "login", code: "99999" });
 

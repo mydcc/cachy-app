@@ -44,7 +44,7 @@
 
 import { apiService } from "../apiService";
 import type { Ticker24h, FundingRateHistoryItem, Kline } from "../apiService";
-import { bitgetWs } from "../bitgetWs";
+import { bitgetWs, bitgetWsPrivate } from "../bitgetWs";
 import { tradeService } from "../tradeService";
 import type { TpSlOrder, ModifyOrderParams, PlaceOrderParams } from "../tradeService";
 import { bitgetCapabilities } from "./bitgetCapabilities";
@@ -85,8 +85,20 @@ const CHANNELS: Record<string, string[]> = {
 };
 
 const connection: ConnectionPort = {
-    connect: (force) => bitgetWs.connect(force),
-    destroy: () => bitgetWs.destroy(),
+    connect: (force) => {
+        bitgetWs.connect(force);
+        // BUG-0598: V2 splits the stream. Market data stays on the public
+        // socket; orders and positions arrive on the authenticated one, with
+        // its own login and its own subscription ledger. (Balance is still
+        // REST-polled: the `account` channel has no verified mapping yet.)
+        // The private instance refuses on its own when the active account has
+        // no keys, so calling it unconditionally is safe.
+        bitgetWsPrivate.connect(force);
+    },
+    destroy: () => {
+        bitgetWs.destroy();
+        bitgetWsPrivate.destroy();
+    },
 };
 
 const marketData: MarketDataPort = {
