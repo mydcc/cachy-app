@@ -2,7 +2,7 @@
 id: BUG-0636
 title: CI never builds, so a dependency bump that breaks the server bundle passes every check
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -10,7 +10,8 @@ area: ci
 data_class: none
 adr: none
 depends_on: []
-# assignee:
+assignee: opencode
+branch: docs/close-bug-0636
 ---
 
 # BUG-0636 — CI never builds, so a broken server bundle passes every check
@@ -86,6 +87,10 @@ rather than a floating major, because the point is to verify what the deploy
 will actually run. No Rust toolchain: `scripts/build_wasm.sh` keeps the
 committed artifacts, and the WASM module is not what a dependency bump puts at
 risk.
+
+Shipped in `1.6.0-beta.390` (merge commit `42abdb9b3`). The status was left on
+`specced` after the merge and is corrected here; closing a backlog item is part
+of the change that delivers it.
 
 The boot check was verified in all three directions before the workflow was
 merged, against a real local build:
