@@ -29,6 +29,10 @@
  * The window used here opts into the control the same way the readers and the
  * Academy do; whether the Academy *opts in* is pinned separately in
  * `WindowRegistry.test.ts`.
+ *
+ * BUG-0710 — header controls raise their window: pressing one must reach the
+ * frame's focus handler, and keyboard activation must do the same. Escape is
+ * the one key the control group does not swallow.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -52,6 +56,7 @@ vi.mock("../../../locales/i18n", async () => {
 
 import WindowFrame from "./WindowFrame.svelte";
 import { WindowBase } from "../../../lib/windows/WindowBase.svelte";
+import { windowManager } from "../../../lib/windows/WindowManager.svelte";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
 import EmptyStub from "../../../tests/helpers/EmptyStub.svelte";
 
@@ -108,6 +113,7 @@ function mountFrame(win: WindowBase = new ProbeWindow()): {
 }
 
 afterEach(() => {
+    vi.restoreAllMocks();
     if (component) unmount(component as never);
     component = null;
     host?.remove();
@@ -185,5 +191,120 @@ describe("FEAT-0685 — the text-size control reaches the window content", () =>
         win.fontSize = 0;
         flushSync();
         expect(content().style.getPropertyValue("--text-scale")).toBe("1");
+    });
+});
+
+describe("BUG-0710 — a header control raises its window", () => {
+    it("brings the window to front when a header control is pressed", () => {
+        const win = new ProbeWindow();
+        const action = vi.fn();
+        win.headerControls = [{ label: "5m", active: true, action }];
+        mountFrame(win);
+
+        const control = host?.querySelector<HTMLButtonElement>(".header-ctrl-btn");
+        const frame = host?.querySelector<HTMLElement>(".window-frame");
+        expect(control, "the frame rendered no header control").not.toBeNull();
+        expect(frame, "the frame rendered no window element").not.toBeNull();
+
+        const bringToFront = vi.spyOn(windowManager, "bringToFront");
+        control!.dispatchEvent(
+            new Event("pointerdown", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+
+        // Pressing a control is a press inside the window, not a special case:
+        // the frame's own focus handler has to see it.
+        expect(bringToFront).toHaveBeenCalledWith(win.id);
+        expect(action).not.toHaveBeenCalled();
+        // ... and the header's drag guard still keeps the control from
+        // starting a window drag.
+        expect(frame!.classList.contains("dragging")).toBe(false);
+
+        // bringToFront() sets isFocused; the click guard must not raise twice.
+        win.isFocused = true;
+        control!.click();
+        flushSync();
+        expect(action).toHaveBeenCalledTimes(1);
+        expect(bringToFront).toHaveBeenCalledTimes(1);
+    });
+
+    it("brings the window to front on keyboard activation", () => {
+        const win = new ProbeWindow();
+        const action = vi.fn();
+        win.headerControls = [{ label: "5m", active: true, action }];
+        mountFrame(win);
+
+        const control = host?.querySelector<HTMLButtonElement>(".header-ctrl-btn");
+        expect(control, "the frame rendered no header control").not.toBeNull();
+
+        const bringToFront = vi.spyOn(windowManager, "bringToFront");
+        win.isFocused = false;
+        control!.focus();
+        control!.click();
+        flushSync();
+
+        // Tab/Enter produces no pointerdown, so the click handler owns the
+        // raise for the keyboard path.
+        expect(bringToFront).toHaveBeenCalledWith(win.id);
+        expect(action).toHaveBeenCalledTimes(1);
+    });
+
+    it("lets Escape through but keeps other keys inside the control group", () => {
+        const win = new ProbeWindow();
+        win.headerControls = [{ label: "5m", active: true, action: vi.fn() }];
+        mountFrame(win);
+
+        const control = host?.querySelector<HTMLButtonElement>(".header-ctrl-btn");
+        expect(control, "the frame rendered no header control").not.toBeNull();
+        control!.focus();
+
+        const reachedWindow = vi.fn();
+        window.addEventListener("keydown", reachedWindow);
+
+        control!.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "Escape",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        expect(reachedWindow).toHaveBeenCalledTimes(1);
+
+        control!.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "a",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        expect(reachedWindow).toHaveBeenCalledTimes(1);
+
+        window.removeEventListener("keydown", reachedWindow);
+    });
+
+    it("still starts a drag from the header background", () => {
+        mountFrame();
+        const frame = host?.querySelector<HTMLElement>(".window-frame");
+        const header = host?.querySelector<HTMLElement>(".window-header");
+        expect(frame, "the frame rendered no window element").not.toBeNull();
+        expect(header, "the frame rendered no header").not.toBeNull();
+
+        header!.dispatchEvent(
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 100,
+                clientY: 100,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+        expect(frame!.classList.contains("dragging")).toBe(true);
+
+        header!.dispatchEvent(
+            new PointerEvent("pointerup", { pointerId: 1, bubbles: true }),
+        );
+        flushSync();
+        expect(frame!.classList.contains("dragging")).toBe(false);
     });
 });
