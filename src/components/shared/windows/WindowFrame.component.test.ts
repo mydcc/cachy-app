@@ -52,6 +52,7 @@ vi.mock("../../../locales/i18n", async () => {
 
 import WindowFrame from "./WindowFrame.svelte";
 import { WindowBase } from "../../../lib/windows/WindowBase.svelte";
+import { windowManager } from "../../../lib/windows/WindowManager.svelte";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
 import EmptyStub from "../../../tests/helpers/EmptyStub.svelte";
 
@@ -185,5 +186,58 @@ describe("FEAT-0685 — the text-size control reaches the window content", () =>
         win.fontSize = 0;
         flushSync();
         expect(content().style.getPropertyValue("--text-scale")).toBe("1");
+    });
+});
+
+describe("BUG-0710 — a header control raises its window", () => {
+    it("brings the window to front when a header control is pressed", () => {
+        const win = new ProbeWindow();
+        const action = vi.fn();
+        win.headerControls = [{ label: "5m", active: true, action }];
+        mountFrame(win);
+
+        const control = host?.querySelector<HTMLButtonElement>(".header-ctrl-btn");
+        expect(control, "the frame rendered no header control").not.toBeNull();
+
+        const bringToFront = vi.spyOn(windowManager, "bringToFront");
+        control!.dispatchEvent(
+            new Event("pointerdown", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+
+        // Pressing a control is a press inside the window, not a special case:
+        // the frame's own focus handler has to see it.
+        expect(bringToFront).toHaveBeenCalledWith(win.id);
+        expect(action).not.toHaveBeenCalled();
+        // ... and the header's drag guard still keeps the control from
+        // starting a window drag.
+        expect(
+            host?.querySelector(".window-frame")?.classList.contains("dragging"),
+        ).toBe(false);
+
+        // The pointerdown must not consume the click that runs the control.
+        control!.click();
+        flushSync();
+        expect(action).toHaveBeenCalledTimes(1);
+
+        bringToFront.mockRestore();
+    });
+
+    it("still starts a drag from the header background", () => {
+        mountFrame();
+        const frame = host?.querySelector<HTMLElement>(".window-frame");
+        const header = host?.querySelector<HTMLElement>(".window-header");
+        expect(frame, "the frame rendered no window element").not.toBeNull();
+        expect(header, "the frame rendered no header").not.toBeNull();
+
+        header!.dispatchEvent(
+            new Event("pointerdown", { bubbles: true, cancelable: true }),
+        );
+        flushSync();
+        expect(frame!.classList.contains("dragging")).toBe(true);
+
+        header!.dispatchEvent(new Event("pointerup", { bubbles: true }));
+        flushSync();
+        expect(frame!.classList.contains("dragging")).toBe(false);
     });
 });

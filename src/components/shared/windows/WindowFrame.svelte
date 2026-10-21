@@ -696,7 +696,6 @@
             {#if win.headerControls.length > 0 && !win.isMinimized}
                 <div 
                     class="header-controls"
-                    onpointerdown={(e) => e.stopPropagation()}
                     onclick={(e) => e.stopPropagation()}
                     ondblclick={(e) => e.stopPropagation()}
                     onkeydown={(e) => e.stopPropagation()}
@@ -706,7 +705,6 @@
                         <button
                             class="header-ctrl-btn"
                             class:active={ctrl.active}
-                            onpointerdown={(e) => e.stopPropagation()}
                             onclick={(e) => {
                                 e.stopPropagation();
                                 ctrl.action();
