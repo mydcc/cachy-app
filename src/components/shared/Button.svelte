@@ -16,50 +16,58 @@
 -->
 
 <script lang="ts">
+  import { trackClick, type TrackClickParams } from "../../actions/tracking";
+
+  type ButtonVariant = "default" | "accent" | "danger" | "success";
+  type ButtonSize = "sm" | "md" | "lg";
+
   interface Props {
+    /** Colour role, mapped to the existing `--btn-*` pairs — no new colours. */
+    variant?: ButtonVariant;
+    /** Three heights, all read from the FEAT-0609 control tokens. */
+    size?: ButtonSize;
+    id?: string;
     title?: string;
     ariaLabel?: string;
     onClick?: () => void;
+    oncontextmenu?: (event: MouseEvent) => void;
     children?: import("svelte").Snippet;
     extraClasses?: string;
     disabled?: boolean;
+    type?: "button" | "submit" | "reset";
+    /** Optional analytics action; the click still fires `onClick` without it. */
+    track?: TrackClickParams;
   }
 
   let {
+    variant = "default",
+    size = "md",
+    id,
     title,
     ariaLabel,
     onClick,
+    oncontextmenu,
     children,
     extraClasses = "",
     disabled = false,
+    type = "button",
+    track,
   }: Props = $props();
 </script>
 
 <button
-  class="btn-base {extraClasses}"
+  class="btn-base btn-{variant} btn-{size} {extraClasses}"
+  {id}
   {disabled}
+  {type}
   onclick={onClick}
+  oncontextmenu={oncontextmenu}
   {title}
   aria-label={ariaLabel || title}
+  use:trackClick={track}
 >
   {#if children}
     {@render children()}
   {/if}
 </button>
 
-<style>
-  .btn-base {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-  }
-
-  .btn-base:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-</style>

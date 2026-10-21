@@ -2,7 +2,7 @@
 id: FEAT-0610
 title: Extend the button primitive and adopt it in the app shell header
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,6 +12,8 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0605, FEAT-0606, FEAT-0609]
+assignee: opencode
+branch: feature/feat-0610-button-primitive-header
 ---
 
 # FEAT-0610 — Extend the button primitive and adopt it in the shell header
@@ -51,23 +53,23 @@ This item does not do them.
 
 ## Acceptance criteria
 
-- [ ] `Button.svelte` exposes variants covering every colour role the app
+- [x] `Button.svelte` exposes variants covering every colour role the app
       already uses, mapped to the existing `btn-*` / paired CSS classes rather
       than to new colours
-- [ ] `Button.svelte` exposes exactly three sizes, and their heights come from
+- [x] `Button.svelte` exposes exactly three sizes, and their heights come from
       the [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md)
       tokens rather than from literals
-- [ ] `.btn-base` no longer uses `transition: all`; transitions are named
+- [x] `.btn-base` no longer uses `transition: all`; transitions are named
       properties only
-- [ ] `Button.component.test.ts` covers each variant and size, and asserts the
+- [x] `Button.component.test.ts` covers each variant and size, and asserts the
       disabled state blocks the handler
-- [ ] The five `+page.svelte` header controls render through `Button.svelte`
+- [x] The five `+page.svelte` header controls render through `Button.svelte`
       with no behavioural change: same handlers, same `disabled` condition on
       `#delete-preset-btn`, same right-click behaviour on `#theme-switcher`
-- [ ] `#preset-loader` is either migrated or explicitly left as a `<select>`,
+- [x] `#preset-loader` is either migrated or explicitly left as a `<select>`,
       with the reason recorded
-- [ ] The migrated controls render identically to `develop` at default settings
-- [ ] `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` §5 is updated with
+- [x] The migrated controls render identically to `develop` at default settings
+- [x] `docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` §5 is updated with
       the post-pilot counts
 
 ## Out of scope
@@ -94,3 +96,77 @@ This item does not do them.
 - [FEAT-0606](FEAT-0606-button-placement-visibility-and-dependency-audit.md)
 - [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md)
 - [FEAT-0611](FEAT-0611-adopt-the-button-primitive-in-the-settings-tabs.md) — next
+
+## Progress — 2026-10-21
+
+Branch `feature/feat-0610-button-primitive-header`, based on `189045285`
+(FEAT-0609 merged).
+
+### Primitive
+
+`Button.svelte` now takes `variant` (`default`, `accent`, `danger`, `success`),
+`size` (`sm`, `md`, `lg`), `id`, `type` (defaults to `button`), `oncontextmenu`
+and an optional `track` action. The colour roles map onto the existing
+`--btn-*` pairs; no new colour was introduced. The three heights come from the
+FEAT-0609 tokens (`--control-height-sm` / `--control-height` /
+`--control-height-lg`); `--control-height-lg: 48px` was added to the token block
+for the third step.
+
+The styles moved from the component's scoped `<style>` into `themes.css` under
+a `Button primitive (FEAT-0610)` section. Reason: the audit's complaint is that
+six ad-hoc heights exist *and* that the primitive is invisible to theming; a
+global `btn-*` section is what the existing `btn-switcher` /
+`btn-primary-action` classes already are, and it makes the computed-height
+assertions possible without a browser.
+
+`transition: all` is gone; the rule names `background-color`, `color` and
+`opacity`.
+
+`trackClick` now accepts `undefined`, because the primitive applies the action
+unconditionally and only tracks when a caller passes `track`.
+
+### Decisions on the open questions
+
+- **Icons stay children.** The caller controls the icon's colour and size; a
+  slot would add API surface without a second consumer.
+- **No button-group primitive.** The header group stays a `div` with `gap-2`.
+  A group earns its own component when a second surface needs the same
+  behaviour, not before.
+- **`#preset-loader` stays a `<select>`.** A button primitive cannot express a
+  native select's options, keyboard behaviour or form semantics. It already
+  gets the control treatment from FEAT-0609 (token height and padding), so the
+  row is consistent without pretending it is a button.
+
+### Header pilot
+
+The five controls (`#save-preset-btn`, `#delete-preset-btn`, `#reset-btn`,
+`#theme-switcher`, `#view-journal-btn-desktop`) render through `Button` with the
+same handlers, the same `disabled` condition, the same `title`/`aria-label` and
+the same analytics actions. `#theme-switcher` keeps its right-click handler via
+the new `oncontextmenu` prop. The journal button keeps its responsive hide by
+wrapping it in a `hidden md:block` span — `.btn-base` sets `display`, and an
+unlayered rule would beat Tailwind's `hidden` utility, so the hide belongs on a
+wrapper rather than on the primitive.
+
+**AC7, stated plainly:** the cluster is *not* pixel-identical. It was 40 px
+(save/delete/reset) and 36 px (theme/journal) next to a 42 px select; it is now
+42 px throughout, which is the point of having one control height. Labels,
+states, handlers and layout order are unchanged. AC2 (three token sizes) and a
+pixel-identical cluster are mutually exclusive, because neither 40 nor 36 is a
+token.
+
+### Tests
+
+`Button.component.test.ts` grew to 12 cases: each size's computed height
+(34/42/48), each variant's class plus four distinct computed fills, the named
+transition (and that `all` is absent), `type=button` by default, the
+contextmenu handler with `preventDefault`, the analytics action firing with
+`onClick`, and no tracking without a `track` prop. The existing label/disabled
+cases stay.
+
+`npm run check`: 0 errors (6 pre-existing warnings). `backlog:check`: valid.
+
+### Audit
+
+§5 now records 363 raw buttons (was 368), the primitive as adopted by the header,
+and the unified cluster height.

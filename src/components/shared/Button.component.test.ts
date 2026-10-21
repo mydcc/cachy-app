@@ -20,12 +20,25 @@
  * FEAT-0346 — Button is the app's button primitive. It has to forward its
  * label to both `title` and `aria-label` so an icon-only button is still
  * named, and a disabled button must not fire.
+ *
+ * FEAT-0610 — the primitive now carries the colour roles and the three control
+ * heights the app already uses. The size cases read the computed height, so a
+ * token change reaches the rendered button; the variant cases assert the
+ * mapping is not collapsed onto one colour.
  */
 
+import { readFileSync } from "node:fs";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync, createRawSnippet } from "svelte";
 
+vi.mock("../../services/trackingService", () => ({
+    trackCustomEvent: vi.fn(),
+}));
+
+import { trackCustomEvent } from "../../services/trackingService";
 import Button from "./Button.svelte";
+
+const THEMES = readFileSync("src/themes.css", "utf8");
 
 const children = createRawSnippet(() => ({
     render: () => `<span data-testid="child">Click me</span>`,
@@ -35,6 +48,10 @@ let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+    document.head.innerHTML = "";
+    const style = document.createElement("style");
+    style.textContent = THEMES;
+    document.head.appendChild(style);
     host = document.createElement("div");
     document.body.appendChild(host);
 });
@@ -92,5 +109,90 @@ describe("FEAT-0346 — Button forwards its label and honours disabled", () => {
         render({ extraClasses: "my-custom-class" });
 
         expect(button().classList.contains("my-custom-class")).toBe(true);
+    });
+});
+
+describe("FEAT-0610 — variants, sizes and events", () => {
+    it("takes the three heights from the control tokens", () => {
+        const expected = { sm: "34px", md: "42px", lg: "48px" } as const;
+
+        for (const [size, height] of Object.entries(expected)) {
+            if (component) unmount(component as never);
+            component = null;
+            host.innerHTML = "";
+            render({ size });
+
+            expect(getComputedStyle(button()).height, size).toBe(height);
+        }
+    });
+
+    it("maps each variant onto an existing --btn-* colour pair", () => {
+        const colours = new Map<string, string>();
+
+        for (const variant of ["default", "accent", "danger", "success"]) {
+            if (component) unmount(component as never);
+            component = null;
+            host.innerHTML = "";
+            render({ variant });
+
+            const el = button();
+            expect(el.classList.contains(`btn-${variant}`), variant).toBe(true);
+
+            const background = getComputedStyle(el).backgroundColor;
+            expect(background, variant).not.toBe("");
+            expect(background, variant).not.toBe("rgba(0, 0, 0, 0)");
+            colours.set(variant, background);
+        }
+
+        // Four roles, four different fills: a mapping that collapsed would
+        // still pass the class assertion above.
+        expect(new Set(colours.values()).size).toBe(4);
+    });
+
+    it("names the transitioned properties instead of transitioning all", () => {
+        render();
+
+        const transition = getComputedStyle(button()).transition;
+        expect(transition).toContain("background-color");
+        expect(transition).not.toMatch(/(^|,\s*)all(\s|,|$)/);
+    });
+
+    it("defaults to type=button so a form cannot be submitted accidentally", () => {
+        render();
+
+        expect(button().getAttribute("type")).toBe("button");
+    });
+
+    it("forwards a contextmenu handler (the theme switcher's right click)", () => {
+        const oncontextmenu = vi.fn((event: MouseEvent) => event.preventDefault());
+        render({ oncontextmenu });
+
+        const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+        button().dispatchEvent(event);
+
+        expect(oncontextmenu).toHaveBeenCalledTimes(1);
+        expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("fires the analytics action and still calls onClick", () => {
+        const onClick = vi.fn();
+        render({
+            onClick,
+            track: { category: "Presets", action: "Click", name: "SavePreset" },
+        });
+
+        button().click();
+
+        expect(trackCustomEvent).toHaveBeenCalledWith("Presets", "Click", "SavePreset");
+        expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not track when no action is passed", () => {
+        vi.mocked(trackCustomEvent).mockClear();
+        render();
+
+        button().click();
+
+        expect(trackCustomEvent).not.toHaveBeenCalled();
     });
 });

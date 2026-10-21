@@ -195,6 +195,7 @@
    */
   --control-height: 42px;
   --control-height-sm: 34px; /* one step below --control-height */
+  --control-height-lg: 48px; /* one step above --control-height */
   --control-padding-x: var(--space-3); /* 12px */
   --control-font-size: 1rem; /* what an unstyled control inherits today */
   --control-font-size-sm: 0.75rem; /* one step below --control-font-size */
@@ -2559,6 +2560,88 @@ input[type="number"] {
   display: flex;
   gap: 0.5rem;
   /* 8px */
+}
+
+/* =================================================================
+   Button primitive (FEAT-0610)
+   ================================================================= */
+
+/*
+ * Geometry comes from the FEAT-0609 control tokens; colour roles reuse the
+ * existing --btn-* pairs. Transitions name their properties instead of
+ * animating `all`, which used to move layout-affecting values on every click.
+ */
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-lg);
+}
+
+.btn-base:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+}
+
+.btn-md {
+  height: var(--control-height);
+  padding: 0 var(--control-padding-x);
+}
+
+.btn-lg {
+  height: var(--control-height-lg);
+  padding: 0 var(--space-4);
+  font-size: var(--text-base);
+}
+
+.btn-default {
+  background-color: var(--btn-default-bg);
+  color: var(--btn-default-text);
+}
+
+.btn-default:hover:not(:disabled) {
+  background-color: var(--btn-default-hover-bg);
+}
+
+.btn-accent {
+  background-color: var(--btn-accent-bg);
+  color: var(--btn-accent-text);
+}
+
+.btn-accent:hover:not(:disabled) {
+  background-color: var(--btn-accent-hover-bg);
+}
+
+.btn-danger {
+  background-color: var(--btn-danger-bg);
+  color: var(--btn-danger-text);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--btn-danger-hover-bg);
+}
+
+.btn-success {
+  background-color: var(--btn-success-bg);
+  color: var(--btn-success-text);
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: var(--btn-success-hover-bg);
 }
 
 .btn-switcher {

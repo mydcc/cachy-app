@@ -236,19 +236,16 @@ designed for, control geometry was not.
 
 | Fact | Value |
 | --- | --- |
-| Raw `<button>` elements | **368** across 106 `.svelte` files (re-measured 2026-10-21 at `8fcbcd251`; was 364 at the baseline) |
+| Raw `<button>` elements | **363** across 106 `.svelte` files (post-pilot, 2026-10-21 at `189045285`; was 368 before FEAT-0610) |
 | Uses of `btn-accent-bg` / `btn-default-bg` / `btn-danger-bg` | **16** |
 | Vertical-padding variants on `<button>` | `py-1.5` ×49, `py-2` ×44, `py-1` ×37, `py-2.5` ×11, `py-0.5` ×5, `py-3` ×4 |
-| `src/components/shared/Button.svelte` | exists, has `Button.component.test.ts`, **imported by zero components** |
+| `src/components/shared/Button.svelte` | adopted by the app shell header (5 controls) in FEAT-0610; variants/sizes in tokens, `Button.component.test.ts` covers both |
 
-Six heights for one conceptual control. And the primitive meant to end that is
-already written and already tested — it just never got adopted.
-
-`Button.svelte` as it stands: props `title`, `ariaLabel`, `onClick`, `children`,
-`extraClasses`, `disabled`; renders `<button class="btn-base {extraClasses}">`;
-scoped `.btn-base` sets `display:inline-flex`, centring, `border:none`,
-`cursor:pointer`, `transition:all .2s ease`, `font-family:inherit`. No variants,
-no sizes, no density awareness.
+Six heights for one conceptual control. FEAT-0610 gave the primitive variants
+(`default`, `accent`, `danger`, `success`), three token-based sizes
+(34 / 42 / 48 px) and named transitions, then moved the five header controls
+onto it. That cluster is now one height (42 px, matching `#preset-loader`);
+the other surfaces still carry the six padding variants until FEAT-0611–0613.
 
 ### 5.1 Navigation is distributed, not designed
 

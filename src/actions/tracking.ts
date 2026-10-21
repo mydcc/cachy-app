@@ -19,13 +19,16 @@
 
 import { trackCustomEvent } from "../services/trackingService";
 
-interface TrackClickParams {
+export interface TrackClickParams {
   category: string;
   action: string;
   name: string;
 }
 
-export function trackClick(node: HTMLElement, params: TrackClickParams) {
+export function trackClick(
+  node: HTMLElement,
+  params: TrackClickParams | undefined,
+) {
   // Legacy attributes for reference (optional, but cleaner to remove to force migration to Data Layer)
   // node.setAttribute("data-mtm-category", params.category);
   // node.setAttribute("data-mtm-action", params.action);
@@ -34,6 +37,9 @@ export function trackClick(node: HTMLElement, params: TrackClickParams) {
   let currentParams = params;
 
   function handleClick(event: Event) {
+    // Optional: the primitive applies this action unconditionally and passes
+    // `undefined` when the caller does not want tracking.
+    if (!currentParams) return;
     // Mark event as handled so the Global Tracker doesn't duplicate it
     (event as Event & { __tracking_handled?: boolean }).__tracking_handled = true;
 
@@ -48,7 +54,7 @@ export function trackClick(node: HTMLElement, params: TrackClickParams) {
   node.addEventListener("click", handleClick);
 
   return {
-    update(newParams: TrackClickParams) {
+    update(newParams: TrackClickParams | undefined) {
       currentParams = newParams;
     },
     destroy() {
