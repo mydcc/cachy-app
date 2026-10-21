@@ -61,6 +61,13 @@ export interface DeviceKeyOptions {
   legacyHexKey?: string;
   /** The `_deviceKeyCanary` blob, used to verify a migrated key before persisting it. */
   canaryBlob?: EncryptedBlob;
+  /**
+   * A real ciphertext blob to verify a migrated key against when no canary
+   * exists (pre-BUG-0053 profiles). Only device-key-era stores qualify: the
+   * caller resolves the device key only in obfuscation mode, where these blobs
+   * are device-key encrypted (BUG-0721).
+   */
+  verificationBlob?: EncryptedBlob;
   /** True when any Class-A ciphertext exists on disk while IndexedDB holds no key. */
   hasOrphanedCiphertext?: boolean;
 }
@@ -112,29 +119,47 @@ class CryptoServiceImpl {
   private sessionKeyCache: Map<string, CryptoKey> = new Map();
 
   /**
-   * Unlocks the session by importing the password as a non-extractable PBKDF2 CryptoKey.
-   * The raw password is discarded after import — only the opaque key handle is retained.
-   * AES keys are derived on-demand per salt during encrypt/decrypt.
-   * Returns true if successful.
+   * Establishes a password session, optionally proving the password against
+   * stored ciphertext.
+   *
+   * PBKDF2 accepts any input, so deriving alone can never tell a right
+   * password from a wrong one. When `verifiers` is non-empty, at least one
+   * blob must decrypt under the derived key; otherwise the session stays
+   * locked and the call returns false (BUG-0721). With no verifier there is
+   * nothing to prove against (a fresh profile or one that has never saved a
+   * blob); the key is still usable and the next save writes a canary.
    */
-  async unlockSession(password: string): Promise<boolean> {
+  async unlockSession(
+    password: string,
+    verifiers: EncryptedBlob[] = [],
+  ): Promise<boolean> {
     try {
       // Import the password as a non-extractable PBKDF2 base key
       const baseKey = await this.getPasswordKey(password);
-      // Verify the key can be used for derivation
-      const testSalt = window.crypto.getRandomValues(new Uint8Array(SALT_SIZE));
-      await window.crypto.subtle.deriveKey(
-        { name: "PBKDF2", salt: testSalt as unknown as BufferSource, iterations: STRONG_ITERATIONS, hash: "SHA-512" },
-        baseKey,
-        { name: "AES-GCM", length: KEY_SIZE },
-        false,
-        ["encrypt", "decrypt"]
-      );
       this.sessionBaseKey = baseKey;
       this.sessionKeyCache.clear();
+
+      if (verifiers.length > 0) {
+        let opened = false;
+        for (const blob of verifiers) {
+          try {
+            await this.decrypt(blob);
+            opened = true;
+            break;
+          } catch {
+            // Wrong key for this blob; another one may be the right verifier.
+          }
+        }
+        if (!opened) {
+          this.lockSession();
+          return false;
+        }
+      }
+
       return true;
     } catch (e) {
       console.error("Failed to unlock session", e);
+      this.lockSession();
       return false;
     }
   }
@@ -453,19 +478,25 @@ class CryptoServiceImpl {
         false, // non-extractable
         ["deriveKey"]
       );
-      // Verify the migrated key opens the canary before committing to it —
-      // a key that fails is not written, and the call still reports loss.
-      // No canary (legacy data predating BUG-0053) skips the check, same as
-      // isDeviceKeyLost: absence of a canary is never evidence of loss.
-      const canaryBlob = options?.canaryBlob;
-      if (canaryBlob) {
+      // Verify the migrated key opens the canary — or, for pre-canary data,
+      // a real ciphertext blob — before committing to it. A key that fails is
+      // not written, and the call reports loss. With neither blob there is
+      // nothing to verify: the migration still works for this session but is
+      // not persisted, so a tampered localStorage value cannot become the
+      // long-lived device key (BUG-0721).
+      const verifier = options?.canaryBlob ?? options?.verificationBlob;
+      if (verifier) {
         try {
-          await this.decrypt(canaryBlob, migrated);
+          await this.decrypt(verifier, migrated);
         } catch {
           throw new Error("DeviceKeyLost: Migrated legacy key cannot open the stored secrets.");
         }
+        await this.saveKeyToDB(DEVICE_KEY_ALIAS, migrated);
+      } else {
+        console.warn(
+          "[crypto] legacy device key migrated without a canary or verifier; not persisting the unverified key",
+        );
       }
-      await this.saveKeyToDB(DEVICE_KEY_ALIAS, migrated);
       return migrated;
     }
 

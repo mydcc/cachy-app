@@ -2,7 +2,7 @@
 id: BUG-0721
 title: Security: backup export leaks encrypted provider configs and restore injects credentials without validation
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,16 @@ depends_on: []
 ---
 
 # BUG-0721 — Security: backup export leaks encrypted provider configs and restore injects credentials without validation
+
+> **State note.** All six sub-findings are fixed. Unencrypted export and
+> restore share one scrubber (provider configs included); an unencrypted
+> restore can no longer inject a credential, while an encrypted backup keeps
+> its credentials. `unlockSession` proves the password against a stored blob
+> (canary first) and stays locked on a mismatch. Restore rejects an
+> unsupported `kdfHash`. Pre-canary migration verifies the legacy key against
+> a real ciphertext blob and refuses to persist it when it opens nothing.
+> A locked save redacts every plaintext credential and reports it as unsaved,
+> which the existing "re-enter" banner surfaces.
 
 ## Symptom
 
@@ -54,13 +64,13 @@ Fingerprints: `backup:sanitize:encryptedProviderConfigsLeak`, `backup:restore:cr
 
 ## Acceptance criteria
 
-- [ ] No `encrypted*` key survives unencrypted export sanitization
-- [ ] Restore strips credential fields (apiKeys, encryptedAccountKeys, encryptedSecrets, encryptedProviderConfigs, accounts[].keys)
-- [ ] `unlockSession` returns `false` for wrong password
-- [ ] `kdfHash` validated against allowlist on restore
-- [ ] Legacy migration fails closed without canary when ciphertext exists
-- [ ] No plaintext credential persists in locked session
-- [ ] Regression tests for all fixes
+- [x] No `encrypted*` key survives unencrypted export sanitization
+- [x] Restore strips credential fields (apiKeys, encryptedAccountKeys, encryptedSecrets, encryptedProviderConfigs, accounts[].keys)
+- [x] `unlockSession` returns `false` for wrong password
+- [x] `kdfHash` validated against allowlist on restore
+- [x] Legacy migration fails closed without canary when ciphertext exists
+- [x] No plaintext credential persists in locked session
+- [x] Regression tests for all fixes
 
 ## Links
 

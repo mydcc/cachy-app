@@ -94,6 +94,39 @@ describe("CryptoService", () => {
   });
 });
 
+// BUG-0721: PBKDF2 accepts any input, so deriving a key proves nothing about
+// whether the password matches the stored ciphertext. A wrong password used to
+// mark the session unlocked; a later save could then re-encrypt recoverable
+// secrets under the wrong key.
+describe("CryptoService — password verification on unlock (BUG-0721)", () => {
+  afterEach(() => {
+    cryptoService.lockSession();
+  });
+
+  it("rejects a wrong password against a stored blob and leaves the session locked", async () => {
+    const verifier = await cryptoService.encrypt("canary", "correct-password");
+
+    await expect(
+      cryptoService.unlockSession("wrong-password", [verifier]),
+    ).resolves.toBe(false);
+    expect(cryptoService.isUnlocked()).toBe(false);
+  });
+
+  it("accepts the password that opens the stored blob", async () => {
+    const verifier = await cryptoService.encrypt("canary", "correct-password");
+
+    await expect(
+      cryptoService.unlockSession("correct-password", [verifier]),
+    ).resolves.toBe(true);
+    expect(cryptoService.isUnlocked()).toBe(true);
+  });
+
+  it("opens a profile with no stored blob (nothing to prove against yet)", async () => {
+    await expect(cryptoService.unlockSession("any-password")).resolves.toBe(true);
+    expect(cryptoService.isUnlocked()).toBe(true);
+  });
+});
+
 // BUG-0004: legacy AES-CBC credential blobs (pre-Web-Crypto rewrite,
 // commit 560a15c7) were encrypted with PBKDF2 at LEGACY_ITERATIONS (10000)
 // and SHA-1, but attemptDecrypt() always derived at STRONG_ITERATIONS
@@ -259,16 +292,26 @@ describe("CryptoService — legacy migration vs loss guard (BUG-0517/0518)", () 
     await expect(cryptoService.decrypt(canaryBlob, migrated)).resolves.toBe("canary");
   });
 
-  it("migrates legacy data predating the canary without a check", async () => {
+  it("migrates legacy data predating the canary without persisting the unverified key", async () => {
     const saveSpy = stubDb();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    const migrated = await cryptoService.getOrGenerateDeviceKey({
-      legacyHexKey: LEGACY_HEX,
-      hasOrphanedCiphertext: true,
-    });
+    try {
+      const migrated = await cryptoService.getOrGenerateDeviceKey({
+        legacyHexKey: LEGACY_HEX,
+        hasOrphanedCiphertext: true,
+      });
 
-    expect(migrated).toBeDefined();
-    expect(saveSpy).toHaveBeenCalledTimes(1);
+      expect(migrated).toBeDefined();
+      // Nothing verified this key. Writing it would let a tampered
+      // `cachy_device_id` become the long-lived device key; the session can
+      // still use the deterministic derivation, and the next load repeats the
+      // migration (BUG-0721).
+      expect(saveSpy).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("persists nothing and still reports DeviceKeyLost when the migrated key fails the canary", async () => {
@@ -280,6 +323,38 @@ describe("CryptoService — legacy migration vs loss guard (BUG-0517/0518)", () 
       cryptoService.getOrGenerateDeviceKey({
         legacyHexKey: LEGACY_HEX,
         canaryBlob: foreignCanary,
+        hasOrphanedCiphertext: true,
+      }),
+    ).rejects.toThrow("DeviceKeyLost");
+    expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  it("persists a pre-canary migration when a real ciphertext blob verifies the key", async () => {
+    const saveSpy = stubDb();
+    const legacyKey = await importLegacyKey(LEGACY_HEX);
+    const verificationBlob = await cryptoService.encrypt(
+      '{"key":"legacy"}',
+      legacyKey,
+    );
+
+    await cryptoService.getOrGenerateDeviceKey({
+      legacyHexKey: LEGACY_HEX,
+      verificationBlob,
+      hasOrphanedCiphertext: true,
+    });
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a pre-canary migration whose key cannot open the stored ciphertext", async () => {
+    const saveSpy = stubDb();
+    const otherKey = await importLegacyKey("cd".repeat(32));
+    const foreignBlob = await cryptoService.encrypt("secret", otherKey);
+
+    await expect(
+      cryptoService.getOrGenerateDeviceKey({
+        legacyHexKey: LEGACY_HEX,
+        verificationBlob: foreignBlob,
         hasOrphanedCiphertext: true,
       }),
     ).rejects.toThrow("DeviceKeyLost");

@@ -1591,7 +1591,24 @@ export class SettingsManager {
   }
 
   async unlock(password: string): Promise<boolean> {
-    const success = await cryptoService.unlockSession(password);
+    // Any stored blob can prove the password: the canary first (always
+    // written by `applyFieldEncryption`, cheapest single check), then the
+    // other secrets, then accounts and provider configs. Without this a
+    // mistyped password still marked the session unlocked and a later save
+    // re-encrypted recoverable secrets under the wrong key (BUG-0721).
+    const secretEntries = Object.entries(this.encryptedSecrets ?? {});
+    const verifiers: EncryptedBlob[] = [
+      ...secretEntries
+        .filter(([key]) => key === "_deviceKeyCanary")
+        .map(([, blob]) => blob),
+      ...secretEntries
+        .filter(([key]) => key !== "_deviceKeyCanary")
+        .map(([, blob]) => blob),
+      ...Object.values(this.encryptedAccountKeys ?? {}),
+      ...(this.encryptedProviderConfigs ? [this.encryptedProviderConfigs] : []),
+    ];
+
+    const success = await cryptoService.unlockSession(password, verifiers);
     if (!success) return false;
 
     let aborted = false;

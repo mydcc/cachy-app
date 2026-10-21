@@ -391,9 +391,9 @@ describe("SecretsLoader legacy plaintext credential (openrouterApiKey)", () => {
   // `openrouterApiKey` shipped outside `SENSITIVE_KEYS`, so it is the one
   // credential a user can be holding on disk as plaintext today. Adding it
   // must not cost those users the key: with no key available in this session
-  // the value cannot become ciphertext, and redacting it would make the only
-  // copy disappear. Redacting a key that *is* already protected stays the
-  // rule, so `lock()` still clears the screen.
+  // the value cannot become ciphertext. It is therefore redacted and reported
+  // as not saved — the existing "re-enter" warning is the recovery path
+  // (BUG-0721). Keeping it would persist a Class-A secret in cleartext.
   const blob = {
     ciphertext: "c",
     iv: "i",
@@ -432,17 +432,19 @@ describe("SecretsLoader legacy plaintext credential (openrouterApiKey)", () => {
     expect(out.openrouterApiKey).toBe("");
   });
 
-  it("keeps a legacy plaintext key when the session cannot encrypt it", async () => {
+  it("redacts a legacy plaintext key when the session cannot encrypt it", async () => {
     vi.mocked(cryptoService.encrypt).mockRejectedValue(new Error("no key"));
     const loader = new SecretsLoader();
     const data = { openrouterApiKey: "sk-or-v1-secret" } as never;
 
     await expect(
       loader.applyFieldEncryption(data, false, undefined),
-    ).resolves.toBe(0);
+    ).resolves.toBe(1);
 
+    // Persisting the plaintext would put a credential on disk; the count
+    // surfaces through `encryptionFailures` so the UI says "re-enter them".
     expect((data as unknown as { openrouterApiKey: string }).openrouterApiKey).toBe(
-      "sk-or-v1-secret",
+      "",
     );
   });
 
@@ -466,18 +468,17 @@ describe("SecretsLoader legacy plaintext credential (openrouterApiKey)", () => {
     ).toEqual(blob);
   });
 
-  it("still blanks the ten older keys without a blob when locked (fail-closed)", async () => {
-    // The carve-out above is scoped to the one migration key on purpose: the
-    // other ten keep the scrubber they always had. A plaintext-without-blob
-    // there is an anomaly (restored merge, hand-edited storage), and the
-    // locked save removes it from disk rather than persisting it.
+  it("blanks an older key without a blob when locked (fail-closed)", async () => {
+    // A plaintext-without-blob there is an anomaly (restored merge, hand-edited
+    // storage). The locked save removes it from disk rather than persisting it,
+    // and counts it as not saved so the user is told to re-enter it.
     vi.mocked(cryptoService.encrypt).mockRejectedValue(new Error("no key"));
     const loader = new SecretsLoader();
     const data = { openaiApiKey: "sk-anomaly" } as never;
 
     await expect(
       loader.applyFieldEncryption(data, false, undefined),
-    ).resolves.toBe(0);
+    ).resolves.toBe(1);
 
     expect((data as unknown as { openaiApiKey: string }).openaiApiKey).toBe("");
   });
@@ -562,6 +563,13 @@ describe("readPersistedCiphertextState (BUG-0518)", () => {
     expect(state.canaryBlob).toEqual(canaryBlob);
   });
 
+  it("surfaces a real blob so a pre-canary migration can be verified", () => {
+    storeSettings({ encryptedSecrets: { openaiApiKey: cipherBlob } });
+
+    const state = readPersistedCiphertextState();
+    expect(state.verificationBlob).toEqual(cipherBlob);
+  });
+
   it("counts encryptedAccountKeys toward the guard on their own", () => {
     storeSettings({ encryptedAccountKeys: { "acc-1": cipherBlob } });
 
@@ -644,6 +652,7 @@ describe("SecretsLoader.getDeviceKey central guard (BUG-0517/0518)", () => {
     expect(cryptoService.getOrGenerateDeviceKey).toHaveBeenCalledWith({
       legacyHexKey: LEGACY_HEX,
       canaryBlob,
+      verificationBlob: cipherBlob,
       hasOrphanedCiphertext: true,
     });
   });
