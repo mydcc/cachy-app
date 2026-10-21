@@ -598,7 +598,10 @@ export const defaultSettings: Settings = {
   favoriteTimeframes: ["5m", "15m", "1h", "4h"],
   favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
   syncRsiTimeframe: true,
-  imgbbApiKey: "25e953ac23d0704c1adc548c9a61b382",
+  // No shipped key: a default here would put a working credential into every
+  // visitor's bundle. Users paste their own ImgBB key in Settings → Connections
+  // (BUG-0720).
+  imgbbApiKey: "",
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   // Class B defaults per ADR-0001: off, and pointing at a local module rather

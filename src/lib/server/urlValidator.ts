@@ -758,30 +758,69 @@ function describeFetchFailure(error: unknown): unknown {
 }
 
 /**
- * Safe fetch wrapper that enforces both pre-flight URL validation and
- * dial-time DNS verification against private/reserved/internal IP ranges, and
- * that recovers once when the configured egress path turns out to be unusable.
- *
- * The recovery is deliberately narrow and one-directional: a failed dial on the
- * proxy path is retried once over the direct path, which applies the dial-time
- * guard to the target itself. The reverse is never offered — the proxy resolves
- * the target, so replaying a request there would tunnel it past the guard the
- * direct attempt just applied. The repeat also never happens after a guard
- * refusal, never for a body that cannot be sent twice, and never for a
- * non-idempotent request whose failure does not prove it never left the process.
- * A path that carried a request becomes the one the next request starts on, so
- * an unusable proxy costs one failed attempt per process — BUG-0690.
- *
- * The trade is deliberate: a request that falls back is no longer filtered or
- * audited by the operator's proxy, while the dial-time guard keeps applying on
- * both paths.
- *
- * One further recovery sits underneath both paths: a runtime whose bundled
- * undici is older than the `undici` package cannot drive a dispatcher at all
- * (Node 22/24 answer every request with `UND_ERR_INVALID_ARG`), so the request
- * goes through `undici`'s own fetch instead — see `performGuardedFetch`.
+ * Maximum number of HTTP redirects `safeFetch` will follow. Every hop is
+ * validated like a fresh request, so the cap only bounds the work an attacker
+ * can spend on redirect chains, not the trust decision.
  */
-export async function safeFetch(url: string | URL, init?: RequestInit): Promise<Response> {
+const MAX_REDIRECT_HOPS = 5;
+
+/** Statuses that carry a `Location` worth following. */
+function isRedirectStatus(status: number): boolean {
+  return (
+    status === 301 || status === 302 || status === 303 || status === 307 || status === 308
+  );
+}
+
+/**
+ * Whether a request body can be sent a second time.
+ *
+ * Fetch bodies may be streams, which are consumed by the first request. A
+ * redirect that has to preserve the method (307/308) can only be followed when
+ * the body is a concrete value.
+ */
+function canReplayBody(body: RequestInit["body"]): boolean {
+  if (body === undefined || body === null) return true;
+  if (typeof body === "string") return true;
+  if (body instanceof URLSearchParams) return true;
+  if (body instanceof ArrayBuffer) return true;
+  if (ArrayBuffer.isView(body)) return true;
+  if (typeof Blob !== "undefined" && body instanceof Blob) return true;
+  if (typeof FormData !== "undefined" && body instanceof FormData) return true;
+  return false;
+}
+
+/**
+ * Headers that authenticate the caller rather than describe the request. A
+ * cross-origin redirect must not carry them to the new host: an attacker who
+ * controls a public URL could otherwise redirect to their own server and
+ * collect the provider key.
+ */
+const CREDENTIAL_HEADER_NAMES = [
+  "authorization",
+  "proxy-authorization",
+  "cookie",
+  "x-api-key",
+  "x-goog-api-key",
+];
+
+function stripCredentialHeaders(
+  headers: HeadersInit | undefined,
+): HeadersInit | undefined {
+  if (headers === undefined) return undefined;
+  const next = new Headers(headers);
+  for (const name of CREDENTIAL_HEADER_NAMES) next.delete(name);
+  return next;
+}
+
+/**
+ * One guarded request without redirect handling. `safeFetch` owns the redirect
+ * loop so every hop passes through this function — and therefore through
+ * `isUrlAllowedAsync` and the dial-time guard.
+ */
+async function safeFetchOnce(
+  url: string | URL,
+  init: RequestInit | undefined,
+): Promise<Response> {
   const urlStr = typeof url === "string" ? url : url.toString();
   const allowed = await isUrlAllowedAsync(urlStr);
   if (!allowed) {
@@ -823,5 +862,93 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
     } catch (secondError) {
       throw describeFetchFailure(secondError);
     }
+  }
+}
+
+/**
+ * Safe fetch wrapper that enforces both pre-flight URL validation and
+ * dial-time DNS verification against private/reserved/internal IP ranges, and
+ * that recovers once when the configured egress path turns out to be unusable.
+ *
+ * Redirects are followed here, never by the runtime: every hop is resolved
+ * against the previous URL, re-validated by `isUrlAllowedAsync`, and sent
+ * through the same dial-time guard as the first request. A redirect into a
+ * private address therefore fails exactly like a direct request would. Method
+ * rewriting follows the Fetch standard (303 and POST 301/302 become GET;
+ * 307/308 keep method and body and are only followed when the body can be sent
+ * again). Credential headers are dropped when a redirect leaves the origin, and
+ * a chain longer than `MAX_REDIRECT_HOPS` is refused.
+ *
+ * The egress recovery is deliberately narrow and one-directional: a failed dial
+ * on the proxy path is retried once over the direct path, which applies the
+ * dial-time guard to the target itself. The reverse is never offered — the
+ * proxy resolves the target, so replaying a request there would tunnel it past
+ * the guard the direct attempt just applied. The repeat also never happens
+ * after a guard refusal, never for a body that cannot be sent twice, and never
+ * for a non-idempotent request whose failure does not prove it never left the
+ * process. A path that carried a request becomes the one the next request
+ * starts on, so an unusable proxy costs one failed attempt per process —
+ * BUG-0690.
+ *
+ * The trade is deliberate: a request that falls back is no longer filtered or
+ * audited by the operator's proxy, while the dial-time guard keeps applying on
+ * both paths.
+ *
+ * One further recovery sits underneath both paths: a runtime whose bundled
+ * undici is older than the `undici` package cannot drive a dispatcher at all
+ * (Node 22/24 answer every request with `UND_ERR_INVALID_ARG`), so the request
+ * goes through `undici`'s own fetch instead — see `performGuardedFetch`.
+ */
+export async function safeFetch(url: string | URL, init?: RequestInit): Promise<Response> {
+  let target = typeof url === "string" ? url : url.toString();
+  // `manual` makes the loop the only redirect authority. A caller's own
+  // `redirect` setting is deliberately overridden: `follow` would let the
+  // runtime resolve the next hop without the guard.
+  let requestInit: RequestInit = { ...init, redirect: "manual" };
+
+  for (let hop = 0; ; hop++) {
+    const response = await safeFetchOnce(target, requestInit);
+
+    if (!isRedirectStatus(response.status)) return response;
+
+    const location = response.headers.get("location");
+    if (!location) return response;
+
+    if (hop >= MAX_REDIRECT_HOPS) {
+      await response.body?.cancel();
+      throw new Error("Too many redirects");
+    }
+
+    let nextUrl: string;
+    try {
+      nextUrl = new URL(location, target).toString();
+    } catch {
+      await response.body?.cancel();
+      throw new Error("Invalid redirect location");
+    }
+
+    const method = (requestInit.method ?? "GET").toUpperCase();
+    const becomesGet =
+      response.status === 303
+        ? method !== "GET" && method !== "HEAD"
+        : (response.status === 301 || response.status === 302) && method === "POST";
+
+    const nextInit: RequestInit = { ...requestInit };
+    if (becomesGet) {
+      nextInit.method = "GET";
+      nextInit.body = undefined;
+    } else if (!canReplayBody(requestInit.body)) {
+      await response.body?.cancel();
+      throw new Error("Cannot follow a redirect with a non-replayable body");
+    }
+
+    // A redirect may leave the origin; the provider key must not go with it.
+    if (new URL(nextUrl).origin !== new URL(target).origin) {
+      nextInit.headers = stripCredentialHeaders(requestInit.headers);
+    }
+
+    await response.body?.cancel();
+    target = nextUrl;
+    requestInit = nextInit;
   }
 }

@@ -501,8 +501,8 @@ describe("a failed encryption drops the superseded blob and surfaces (BUG-0519)"
 
   it("counts the failure on the manager instead of swallowing it", async () => {
     const mgr = new SettingsManager();
-    // `defaultSettings.imgbbApiKey` ships a public demo key, so every save
-    // encrypts it too. Clear it to isolate the account path under test.
+    // The default ImgBB key is empty since BUG-0720; clear it anyway so this
+    // test keeps isolating the account path if a shipped default ever returns.
     mgr.imgbbApiKey = "";
     mgr.accountFor("bitunix").keys = { key: "new-key", secret: "new-secret" };
 

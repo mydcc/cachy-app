@@ -2,7 +2,7 @@
 id: BUG-0720
 title: Security: hardcoded ImgBB API key in shipped bundle and SSRF via HTTP redirect following
 type: bug
-status: specced
+status: done
 priority: P0
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,13 @@ depends_on: []
 ---
 
 # BUG-0720 — Security: hardcoded ImgBB API key in shipped bundle and SSRF via HTTP redirect following
+
+> **State note.** Both fixes landed together: the ImgBB default is empty and
+> `safeFetch` follows redirects only through its own loop, re-validating every
+> hop with `isUrlAllowedAsync` and the dial-time guard (with hop cap, method
+> rewriting and credential-header stripping on origin change). The leaked key
+> `25e953ac…` still has to be revoked at ImgBB by the owner — removing it from
+> the bundle does not invalidate it. That is the one action no agent can do.
 
 ## Symptom
 
@@ -44,11 +51,11 @@ Fingerprints: `imgbb:defaultApiKey:shippedInBundle`, `ssrf:safeFetch:redirectFol
 
 ## Acceptance criteria
 
-- [ ] `imgbbApiKey` default is `""` (consistent with all other credentials)
-- [ ] No live API key present in default settings or shipped bundle
-- [ ] `safeFetch` rejects 3xx responses by default
-- [ ] Any route requiring redirects re-validates each redirect target via `isUrlAllowedAsync`
-- [ ] Regression tests for both fixes
+- [x] `imgbbApiKey` default is `""` (consistent with all other credentials)
+- [x] No live API key present in default settings or shipped bundle
+- [x] `safeFetch` does not let the runtime follow a redirect; it re-validates every hop itself
+- [x] Any route requiring redirects re-validates each redirect target via `isUrlAllowedAsync`
+- [x] Regression tests for both fixes
 
 ## Links
 
