@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
@@ -46,13 +47,9 @@
         <h2 class="text-lg font-semibold text-[var(--text-primary)]">
             {$_("settings.chart.title") || "Chart Settings"}
         </h2>
-        <button
-            type="button"
-            class="text-xs text-[var(--accent-color)] hover:underline transition-colors"
-            onclick={() => settingsState.resetChartSettings()}
-        >
+        <Button variant="ghost" size="sm" onClick={() => settingsState.resetChartSettings()}>
             {$_("settings.chart.reset") || "Alle zurücksetzen"}
-        </button>
+        </Button>
     </div>
 
     <!-- Scale Settings -->

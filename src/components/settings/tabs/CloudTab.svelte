@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
   import { cloudService, type CloudStatus } from '../../../services/cloudService';
   import { settingsState } from '../../../stores/settings.svelte';
   import { _ } from '../../../locales/i18n';
@@ -157,9 +158,9 @@
         <p class="text-xs" style="color: var(--text-secondary);">
           {$_("cloud.tokenHelp")}
         </p>
-        <button onclick={connect} class="cloud-button bg-accent-paired hover-bg-accent-paired">
+        <Button variant="accent" size="sm" onClick={connect}>
           {$_("cloud.connectButton")}
-        </button>
+        </Button>
       {:else}
         <p class="text-sm" style="color: var(--success-color);">
           {$_("connection.connected")}
@@ -182,13 +183,9 @@
         {$_("cloud.retentionNotice")}
       </p>
 
-      <button
-        onclick={eraseMyMessages}
-        disabled={!canErase}
-        class="cloud-button bg-danger-paired hover-bg-danger-paired"
-      >
+      <Button variant="danger" size="sm" onClick={eraseMyMessages} disabled={!canErase}>
         {confirmingErase ? $_("cloud.eraseConfirm") : $_("cloud.eraseButton")}
-      </button>
+      </Button>
 
       {#if !connected}
         <p class="text-xs" style="color: var(--text-secondary);">
@@ -226,13 +223,9 @@
         disabled={!connected}
         class="cloud-input flex-1"
       />
-      <button
-        onclick={send}
-        disabled={!connected}
-        class="cloud-button bg-success-paired hover-bg-success-paired"
-      >
+      <Button variant="success" size="sm" onClick={send} disabled={!connected}>
         {$_("cloud.sendButton")}
-      </button>
+      </Button>
     </div>
   {/if}
 </div>
@@ -295,18 +288,6 @@
     opacity: 0.5;
   }
 
-  .cloud-button {
-    padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-md);
-    font-weight: var(--font-medium);
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-  }
-
-  .cloud-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
 
   .cloud-log {
     height: 12rem;

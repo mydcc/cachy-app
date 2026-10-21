@@ -232,6 +232,7 @@
                                 {$_("settings.visuals.effectStyle")}
                             </span>
                             <div class="grid grid-cols-2 gap-2">
+                                <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                 <button
                                     type="button"
                                     class="h-8 px-3 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.borderEffect ===
@@ -244,6 +245,7 @@
                                 >
                                     {$_("settings.visuals.fire")}
                                 </button>
+                                <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                 <button
                                     type="button"
                                     class="h-8 px-3 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.borderEffect ===
@@ -267,6 +269,7 @@
                             </span>
                             <div class="grid grid-cols-3 gap-2">
                                 {#each ["low", "medium", "high"] as const as intensity}
+                                    <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                     <button
                                         type="button"
                                         class="h-8 px-2 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.burningBordersIntensity ===
@@ -296,6 +299,7 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
                                 {#each ["theme", "interactive", "custom", "classic"] as const as mode}
+                                    <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                     <button
                                         type="button"
                                         class="h-8 px-2 text-xs capitalize rounded border transition-colors flex items-center justify-center {settingsState.borderEffectColorMode ===
@@ -484,6 +488,7 @@
                                 )}
                                 underline={false}
                             >
+                                <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                 <button
                                     type="button"
                                     class="w-full h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineMode ===
@@ -505,6 +510,7 @@
                                 )}
                                 underline={false}
                             >
+                                <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                 <button
                                     type="button"
                                     class="w-full h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineMode ===
@@ -526,6 +532,7 @@
                                 )}
                                 underline={false}
                             >
+                                <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                 <button
                                     type="button"
                                     class="w-full h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineMode ===
@@ -554,6 +561,7 @@
                             )}
                         </span>
                         <div class="grid grid-cols-3 gap-2">
+                            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
                                 type="button"
                                 class="h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineIntensity ===
@@ -568,6 +576,7 @@
                                     "settings.appearance.ambientToplineIntensitySubtle" as TranslationKey,
                                 )}
                             </button>
+                            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
                                 type="button"
                                 class="h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineIntensity ===
@@ -582,6 +591,7 @@
                                     "settings.appearance.ambientToplineIntensityStandard" as TranslationKey,
                                 )}
                             </button>
+                            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
                                 type="button"
                                 class="h-8 px-2 text-xs rounded border transition-colors flex items-center justify-center {settingsState.ambientToplineIntensity ===

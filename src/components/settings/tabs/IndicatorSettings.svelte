@@ -56,6 +56,7 @@
     <!-- Tabs -->
     <div class="flex border-b border-[var(--border-color)] overflow-x-auto no-scrollbar bg-[var(--bg-tertiary)] pt-1 px-2">
         {#each tabs as tab}
+            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
             <button
                 class="px-5 py-3 text-sm font-semibold whitespace-nowrap transition-all duration-200 relative {activeCategory === tab.id
                     ? 'text-[var(--accent-color)]'
@@ -299,6 +300,7 @@
                         <span class="text-xs text-[var(--text-secondary)]">{$_("settings.technicals.calculationMode")}</span>
                         <SettingsGrid gap="gap-2">
                             {#each pivotTypes as pType}
+                                <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                 <button
                                     class="text-xs py-1.5 rounded border border-[var(--border-color)] transition-colors {indicatorState.pivots.type === pType.value ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]' : 'bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)]'}"
                                     onclick={() => indicatorState.pivots.type = pType.value as IndicatorSettings['pivots']['type']}

@@ -115,6 +115,7 @@
 {#if availability !== "not-alertable"}
     <!-- aria-disabled rather than disabled: a disabled button leaves the tab
          order, and the reason it gives would be unreachable by keyboard. -->
+    <!-- FEAT-0611 escape: inline alert chip — needs an aria-disabled passthrough and a 24px size the primitive does not have yet; its refused styling is component-scoped. -->
     <button
         type="button"
         class="alert-action"

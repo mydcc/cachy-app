@@ -18,7 +18,14 @@
 <script lang="ts">
   import { trackClick, type TrackClickParams } from "../../actions/tracking";
 
-  type ButtonVariant = "default" | "accent" | "danger" | "success";
+  type ButtonVariant =
+    | "default"
+    | "accent"
+    | "danger"
+    | "success"
+    | "ghost"
+    | "ghost-danger"
+    | "outline";
   type ButtonSize = "sm" | "md" | "lg";
 
   interface Props {

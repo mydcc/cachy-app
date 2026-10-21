@@ -37,6 +37,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
     import { onMount } from "svelte";
     import { _, locale } from "../../../locales/i18n";
     import { isRuleRefusedError, ruleSchema } from "../../../lib/rules/ruleSchema";
@@ -314,21 +315,13 @@
                                         )}
                                 />
                                 {#if !bot.action.order?.reduce_only}
-                                    <button
-                                        type="button"
-                                        class="text-xs text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-                                        onclick={() => beginEdit(bot)}
-                                    >
+                                    <Button variant="ghost" size="sm" onClick={() => beginEdit(bot)}>
                                         {$_("settings.automation.edit")}
-                                    </button>
+                                    </Button>
                                 {/if}
-                                <button
-                                    type="button"
-                                    class="text-xs text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
-                                    onclick={() => removeBot(bot)}
-                                >
+                                <Button variant="ghost-danger" size="sm" onClick={() => removeBot(bot)}>
                                     {$_("settings.automation.delete")}
-                                </button>
+                                </Button>
                             </div>
                         </div>
 
@@ -428,20 +421,12 @@
                                 {/if}
 
                                 <div class="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        class="bg-accent-paired rounded px-3 py-1.5 text-sm font-semibold"
-                                        onclick={saveBot}
-                                    >
+                                    <Button variant="accent" size="sm" onClick={saveBot}>
                                         {$_("settings.automation.save")}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="text-sm text-[var(--text-secondary)]"
-                                        onclick={cancelEdit}
-                                    >
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={cancelEdit}>
                                         {$_("settings.automation.cancel")}
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         {/if}
@@ -562,14 +547,9 @@
                 {/if}
 
                 <div class="flex items-center gap-3">
-                    <button
-                        type="button"
-                        class="bg-accent-paired rounded px-3 py-1.5 text-sm font-semibold"
-                        onclick={promote}
-                        disabled={!sourceId}
-                    >
+                    <Button variant="accent" size="sm" onClick={promote} disabled={!sourceId}>
                         {$_("settings.automation.promote")}
-                    </button>
+                    </Button>
                     <span class="text-xs text-[var(--text-secondary)]">
                         {$_("settings.automation.startsDisabled")}
                     </span>

@@ -34,6 +34,7 @@
                 </div>
             </div>
             <SettingsGrid gap="gap-2">
+                <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                 <button
                     type="button"
                     class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -48,6 +49,7 @@
                         <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
                     {/if}
                 </button>
+                <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                 <button
                     type="button"
                     class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -62,6 +64,7 @@
                         <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
                     {/if}
                 </button>
+                <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                 <button
                     type="button"
                     class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -76,6 +79,7 @@
                         <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
                     {/if}
                 </button>
+                <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                 <button
                     type="button"
                     class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"

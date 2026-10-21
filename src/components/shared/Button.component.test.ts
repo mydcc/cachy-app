@@ -156,6 +156,47 @@ describe("FEAT-0610 — variants, sizes and events", () => {
         expect(new Set(colours.values()).size).toBe(4);
     });
 
+    it("keeps the text variants transparent and the outline variant bordered", () => {
+        const cases: Array<[string, string]> = [
+            ["ghost", "--accent-color"],
+            ["ghost-danger", "--danger-color"],
+        ];
+
+        for (const [variant, colourVar] of cases) {
+            if (component) unmount(component as never);
+            component = null;
+            host.innerHTML = "";
+            render({ variant });
+
+            const el = button();
+            const probe = document.createElement("div");
+            probe.style.color = `var(${colourVar})`;
+            document.body.appendChild(probe);
+            const expected = getComputedStyle(probe).color;
+            probe.remove();
+
+            expect(
+                ["transparent", "rgba(0, 0, 0, 0)"],
+                variant,
+            ).toContain(getComputedStyle(el).backgroundColor);
+            expect(getComputedStyle(el).color, variant).toBe(expected);
+        }
+
+        if (component) unmount(component as never);
+        component = null;
+        host.innerHTML = "";
+        render({ variant: "outline" });
+
+        const probe = document.createElement("div");
+        probe.style.backgroundColor = "var(--bg-tertiary)";
+        document.body.appendChild(probe);
+        const expected = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+
+        expect(getComputedStyle(button()).backgroundColor).toBe(expected);
+        expect(getComputedStyle(button()).borderTopWidth).toBe("1px");
+    });
+
     it("does not style a raw variant class without .btn-base", () => {
         // JournalContent carries bare `.btn-danger` etc. as inert tokens; the
         // primitive's variants must not reach them (FEAT-0613 owns that).
