@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
@@ -106,6 +107,7 @@
         class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
     >
         {#each subTabs as tab}
+            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
             <button
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
                 tab.id
@@ -177,6 +179,7 @@
                                     class="api-input pr-8"
                                     placeholder={$_("settings.connections.placeholders.appAccessToken")}
                                 />
+                                <!-- FEAT-0611 escape: inline field toggle inside an input. -->
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                     onclick={() => toggleKeyVisibility("app_token")}
@@ -185,13 +188,15 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
                             </div>
-                            <button
-                                class="mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors disabled:opacity-50"
-                                onclick={createAccessToken}
+                            <Button
+                                variant="default"
+                                size="sm"
+                                extraClasses="mt-2"
+                                onClick={createAccessToken}
                                 disabled={tokenStatus === "loading"}
                             >
                                 {$_("settings.connections.createToken")}
-                            </button>
+                            </Button>
                             {#if tokenStatus === "error"}
                                 <p class="text-xs text-[var(--danger-color)] mt-1">{$_("settings.connections.createTokenError")}</p>
                             {/if}
@@ -225,6 +230,7 @@
                                     class="api-input pr-8"
                                     placeholder={$_("settings.connections.placeholders.appAccessToken")}
                                 />
+                                <!-- FEAT-0611 escape: inline field toggle inside an input. -->
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                     onclick={() => toggleKeyVisibility("app_token")}
@@ -233,13 +239,15 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
                             </div>
-                            <button
-                                class="mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors disabled:opacity-50"
-                                onclick={createAccessToken}
+                            <Button
+                                variant="default"
+                                size="sm"
+                                extraClasses="mt-2"
+                                onClick={createAccessToken}
                                 disabled={tokenStatus === "loading"}
                             >
                                 {$_("settings.connections.createToken")}
-                            </button>
+                            </Button>
                             {#if tokenStatus === "error"}
                                 <p class="text-xs text-[var(--danger-color)] mt-1">{$_("settings.connections.createTokenError")}</p>
                             {/if}
@@ -378,6 +386,7 @@
                                             required
                                             placeholder={$_("settings.connections.placeholders.imgbb")}
                                         />
+                                        <!-- FEAT-0611 escape: inline field toggle inside an input. -->
                                         <button
                                             class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                             onclick={() => toggleKeyVisibility("imgbb_k")}
@@ -478,10 +487,12 @@
                                     class="api-input min-w-0 flex-1"
                                     placeholder={$_("settings.connections.placeholders.url")}
                                 />
-                                <button
-                                    class="text-red-500 hover:text-red-400 p-2 shrink-0"
-                                    onclick={() => removeCustomFeed(i)}
-                                    aria-label={$_("settings.connections.aria.removeFeed")}
+                                <Button
+                                    variant="ghost-danger"
+                                    size="sm"
+                                    extraClasses="shrink-0"
+                                    ariaLabel={$_("settings.connections.aria.removeFeed")}
+                                    onClick={() => removeCustomFeed(i)}
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -497,18 +508,19 @@
                                             d="m6 6 12 12"
                                         /></svg
                                     >
-                                </button>
+                                </Button>
                             </div>
                         {/each}
                     {/if}
-                    <button
-                        class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
-                        onclick={addCustomFeed}
-                        disabled={(settingsState.customRssFeeds?.length || 0) >=
-                            5}
+                    <Button
+                        variant="default"
+                        size="sm"
+                        extraClasses="w-max"
+                        onClick={addCustomFeed}
+                        disabled={(settingsState.customRssFeeds?.length || 0) >= 5}
                     >
                         + {$_("settings.connections.addFeed")}
-                    </button>
+                    </Button>
                 </div>
             </section>
         {/if}

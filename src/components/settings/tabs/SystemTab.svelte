@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
@@ -264,6 +265,7 @@
         class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
     >
         {#each subTabs as tab}
+            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
             <button
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
                 tab.id
@@ -364,10 +366,7 @@
                     {$_("settings.system.quickActions")}
                 </h4>
                 <SettingsGrid gap="gap-4">
-                    <button
-                        class="btn-secondary text-xs py-2 flex items-center justify-center gap-2"
-                        onclick={clearAppCache}
-                    >
+                    <Button variant="outline" size="sm" extraClasses="w-full" onClick={clearAppCache}>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
@@ -387,11 +386,8 @@
                             /></svg
                         >
                         {$_("settings.system.clearCache") || "Clear Cache"}
-                    </button>
-                    <button
-                        class="btn-secondary text-xs py-2 flex items-center justify-center gap-2"
-                        onclick={reloadApp}
-                    >
+                    </Button>
+                    <Button variant="outline" size="sm" extraClasses="w-full" onClick={reloadApp}>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
@@ -407,7 +403,7 @@
                             /><path d="M3 3v5h5" /></svg
                         >
                         {$_("settings.system.reloadApp") || "Reload App"}
-                    </button>
+                    </Button>
                 </SettingsGrid>
 
                 <label class="toggle-card mt-4 gap-3">
@@ -478,16 +474,17 @@
                     </div>
 
                     {#if autoBackupState.isOpfsSupported}
-                        <button
-                            type="button"
-                            onclick={() => {
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            extraClasses="self-start sm:self-center"
+                            onClick={() => {
                                 triggerAutoBackup(0);
                                 toastService.success($_("settings.system.snapshotCreated"));
                             }}
-                            class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] transition-colors self-start sm:self-center"
                         >
                             {$_("settings.system.snapshotNow") || "Snapshot Now"}
-                        </button>
+                        </Button>
                     {/if}
                 </div>
 
@@ -534,13 +531,9 @@
                                             <div class="text-[10px] text-[var(--warning-color)] mt-1">
                                                 {$_("settings.system.fileTargetPermissionNeeded")}
                                             </div>
-                                            <button
-                                                type="button"
-                                                class="btn-secondary text-[10px] py-1 px-2 mt-2 w-full"
-                                                onclick={() => handleReconnect(slot as FileTargetSlot)}
-                                            >
+                                            <Button variant="outline" size="sm" extraClasses="mt-2 w-full" onClick={() => handleReconnect(slot as FileTargetSlot)}>
                                                 {$_("settings.system.fileTargetReconnect")}
-                                            </button>
+                                            </Button>
                                         {:else if info.lastError}
                                             <div class="text-[10px] text-[var(--danger-color)] mt-1">
                                                 {$_("settings.system.fileTargetWriteFailed")}
@@ -561,32 +554,20 @@
                                         </label>
 
                                         <div class="flex gap-2 mt-2">
-                                            <button
-                                                type="button"
-                                                class="btn-secondary text-[10px] py-1 px-2 flex-1"
-                                                onclick={() => handlePickFileTarget(slot as FileTargetSlot)}
-                                            >
+                                            <Button variant="outline" size="sm" extraClasses="flex-1" onClick={() => handlePickFileTarget(slot as FileTargetSlot)}>
                                                 {$_("settings.system.fileTargetReplace")}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="btn-secondary text-[10px] py-1 px-2 flex-1"
-                                                onclick={() => clearFileTarget(slot as FileTargetSlot)}
-                                            >
+                                            </Button>
+                                            <Button variant="outline" size="sm" extraClasses="flex-1" onClick={() => clearFileTarget(slot as FileTargetSlot)}>
                                                 {$_("settings.system.fileTargetRemove")}
-                                            </button>
+                                            </Button>
                                         </div>
                                     {:else}
                                         <div class="text-[10px] text-[var(--text-secondary)] mb-2">
                                             {$_("settings.system.fileTargetNotConfigured")}
                                         </div>
-                                        <button
-                                            type="button"
-                                            class="btn-secondary text-[10px] py-1 px-2 w-full"
-                                            onclick={() => handlePickFileTarget(slot as FileTargetSlot)}
-                                        >
+                                        <Button variant="outline" size="sm" extraClasses="w-full" onClick={() => handlePickFileTarget(slot as FileTargetSlot)}>
                                             {$_("settings.system.fileTargetChoose")}
-                                        </button>
+                                        </Button>
                                     {/if}
                                 </div>
                             {/each}
@@ -595,6 +576,7 @@
                 </div>
 
                 <SettingsGrid gap="gap-4">
+                    <!-- FEAT-0611 escape: action card — a multi-line clickable surface, not a button control. -->
                     <button
                         class="flex items-center gap-3 p-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-left group"
                             onclick={handleBackup}
@@ -706,14 +688,15 @@
                                 "Start the interactive 4-step walkthrough of the Cachy trading workstation."}
                         </div>
                     </div>
-                    <button
-                        type="button"
+                    <Button
                         id="start-onboarding-tour-btn"
-                        class="px-4 py-2 rounded-lg text-xs font-bold bg-[var(--btn-accent-bg)] text-[var(--btn-accent-text)] hover:bg-[var(--btn-accent-hover-bg)] shadow transition-all shrink-0"
-                        onclick={() => onboardingState.triggerStartWithDelay(2000)}
+                        variant="accent"
+                        size="sm"
+                        extraClasses="shadow shrink-0"
+                        onClick={() => onboardingState.triggerStartWithDelay(2000)}
                     >
                         {$_("onboarding.start") || "Start tour"}
-                    </button>
+                    </Button>
                 </div>
             </section>
 
@@ -736,12 +719,9 @@
                                 "Wipe all data and start fresh. Irreversible."}
                         </div>
                     </div>
-                    <button
-                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-xs font-bold transition-colors"
-                        onclick={handleReset}
-                    >
+                    <Button variant="danger" size="sm" onClick={handleReset}>
                         {$_("settings.system.resetNow") || "Reset Now"}
-                    </button>
+                    </Button>
                 </div>
             </section>
         {/if}
@@ -783,12 +763,13 @@
                             {settingsState.hotkeyMode === "mode1"
                                 ? $_("settings.hotkeys.mode1Desc")
                                 : $_("settings.hotkeys.mode2Desc")}
-                            <button
-                                class="text-[var(--accent-color)] underline ml-2"
-                                onclick={() =>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                extraClasses="ml-2"
+                                onClick={() =>
                                     (settingsState.hotkeyMode = "custom")}
-                                >{$_("settings.hotkeys.switchToCustom")}</button
-                            >
+                                >{$_("settings.hotkeys.switchToCustom")}</Button>
                         </p>
                         <div class="flex flex-col gap-6">
                             {#each categories as category}
@@ -826,16 +807,5 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         color: var(--text-secondary);
-    }
-    .btn-secondary {
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        border-radius: var(--radius-md);
-        transition: all 0.2s;
-    }
-    .btn-secondary:hover {
-        background: var(--bg-secondary);
-        border-color: var(--accent-color);
     }
 </style>

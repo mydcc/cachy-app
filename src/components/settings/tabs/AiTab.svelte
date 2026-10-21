@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
     import { _ } from "../../../locales/i18n";
     import { settingsState, type AiProvider } from "../../../stores/settings.svelte";
     import {
@@ -218,6 +219,7 @@
         class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
     >
         {#each subTabs as tab}
+            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
             <button
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
                 tab.id
@@ -281,6 +283,7 @@
                     >
                     <div class="segmented-control flex-wrap">
                         {#each providerTabs as tab}
+                            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
                                 class="segmented-btn {activeTabId === tab.id ? 'active' : ''}"
                                 onclick={() => selectBuiltin(tab)}
@@ -288,6 +291,7 @@
                                 {tab.label}
                             </button>
                         {/each}
+                        <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                         <button
                             class="segmented-btn {activeTabId === 'custom' ? 'active' : ''}"
                             onclick={() => (managerOpen = true)}
@@ -350,6 +354,7 @@
                             </div>
                         </div>
                         <SettingsGrid gap="gap-2">
+                            <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                             <button
                                 type="button"
                                 class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -364,6 +369,7 @@
                                     <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
                                 {/if}
                             </button>
+                            <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                             <button
                                 type="button"
                                 class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -378,6 +384,7 @@
                                     <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
                                 {/if}
                             </button>
+                            <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                             <button
                                 type="button"
                                 class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -392,6 +399,7 @@
                                     <span class="text-[var(--accent-color)] font-bold text-xs">✓</span>
                                 {/if}
                             </button>
+                            <!-- FEAT-0611 escape: selection-card group — a single-choice option, not an action button. -->
                             <button
                                 type="button"
                                 class="p-2.5 rounded-lg border text-xs text-left transition-colors cursor-pointer flex items-center justify-between"
@@ -600,10 +608,12 @@
                                     class="input-field min-w-0 flex-1"
                                     placeholder={$_("settings.ai.discord.channelId")}
                                 />
-                                <button
-                                    class="text-red-500 hover:text-red-400 p-2 shrink-0"
-                                    onclick={() => removeDiscordChannel(i)}
-                                    aria-label={$_("settings.ai.aria.removeChannel")}
+                                <Button
+                                    variant="ghost-danger"
+                                    size="sm"
+                                    extraClasses="shrink-0"
+                                    ariaLabel={$_("settings.ai.aria.removeChannel")}
+                                    onClick={() => removeDiscordChannel(i)}
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -619,17 +629,19 @@
                                             d="m6 6 12 12"
                                         /></svg
                                     >
-                                </button>
+                                </Button>
                             </div>
                         {/each}
                     {/if}
-                    <button
-                        class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
-                        onclick={addDiscordChannel}
-                        aria-label={$_("settings.ai.aria.addChannel")}
+                    <Button
+                        variant="default"
+                        size="sm"
+                        extraClasses="w-max"
+                        ariaLabel={$_("settings.ai.aria.addChannel")}
+                        onClick={addDiscordChannel}
                     >
                         {$_("settings.ai.discord.addChannel")}
-                    </button>
+                    </Button>
                 </div>
             </section>
         {/if}

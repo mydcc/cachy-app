@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
     import { _ } from "../../../locales/i18n";
     import type { TranslationKey } from "../../../locales/schema";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -149,6 +150,7 @@
     <!-- Type Selector -->
     <div class="flex gap-2 mb-4 flex-wrap">
         {#each [{ v: "none" as const, l: $_("settings.profile.background.typeNone") }, { v: "image" as const, l: $_("settings.profile.background.typeMedia") }, { v: "animation" as const, l: $_("settings.profile.background.typeAnimation") }, { v: "threejs" as const, l: $_("settings.visuals.bgGalaxy") }, { v: "tradeflow" as const, l: $_("settings.profile.background.typeTradeFlow") }] as type}
+            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
             <button
                 class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
                     type.v ||
@@ -245,9 +247,11 @@
                 >
                     {$_("settings.visuals.bgGalaxy")}
                 </h4>
-                <button
-                    class="px-3 py-1 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded transition-colors flex items-center gap-2"
-                    onclick={() =>
+                <Button
+                    variant="default"
+                    size="sm"
+                    extraClasses="flex items-center gap-2"
+                    onClick={() =>
                         settingsState.resetGalaxySettings()}
                 >
                     <svg
@@ -265,7 +269,7 @@
                         ></path><path d="M3 3v5h5"></path></svg
                     >
                     {$_("dashboard.resetButton")}
-                </button>
+                </Button>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -632,9 +636,11 @@
                 <h4 class="text-sm font-medium text-[var(--text-secondary)] uppercase tracking-wider">
                     {$_("settings.visuals.tradeFlow.config")}
                 </h4>
-                <button
-                    class="px-3 py-1 text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded transition-colors flex items-center gap-2"
-                    onclick={() => settingsState.resetTradeFlowSettings()}
+                <Button
+                    variant="default"
+                    size="sm"
+                    extraClasses="flex items-center gap-2"
+                    onClick={() => settingsState.resetTradeFlowSettings()}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -653,7 +659,7 @@
                         <path d="M3 21v-5h5"></path>
                     </svg>
                     {$_("settings.visuals.tradeFlow.reset")}
-                </button>
+                </Button>
             </div>
 
             <!-- Visualization Mode -->
@@ -664,6 +670,7 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                     {#each ['equalizer', 'raindrops', 'city', 'sonar', 'block', 'galaxy'] as const as mode}
+                        <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                         <button
                             class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.flowMode === mode
                                 ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
@@ -718,6 +725,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex flex-wrap gap-2">
                         {#each ["theme", "custom"] as const as mode}
+                            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
                                 class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.tradeFlowSettings.colorMode ===
                                 mode

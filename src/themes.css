@@ -2649,6 +2649,44 @@ input[type="number"] {
   background-color: var(--btn-success-hover-bg);
 }
 
+/*
+ * Neutral outlined control (FEAT-0611): the settings tabs carry secondary
+ * actions that read as "the default box", not as a coloured role.
+ */
+.btn-base.btn-outline {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-base.btn-outline:hover:not(:disabled) {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent-color);
+}
+
+/*
+ * Text-style variants (FEAT-0611): the settings tabs carry inline actions
+ * that are buttons but read as links. They keep the transparent background
+ * and take their colour from the accent/danger role.
+ */
+.btn-base.btn-ghost {
+  background-color: transparent;
+  color: var(--accent-color);
+}
+
+.btn-base.btn-ghost:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.btn-base.btn-ghost-danger {
+  background-color: transparent;
+  color: var(--danger-color);
+}
+
+.btn-base.btn-ghost-danger:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
 .btn-switcher {
   padding: 0;
   border: none;

@@ -1,0 +1,77 @@
+/*
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/*
+ * FEAT-0611 — a new hand-written `<button>` in the settings tabs is a
+ * regression: the window has to accept a density mode, and a raw button has no
+ * token height.
+ *
+ * The escape hatch is deliberate and textual: a control that is *not* a button
+ * (sub-tab rail, segmented control, selection card, inline chip) carries a
+ * comment directly above it naming what it is instead. Anything else must go
+ * through `Button.svelte`.
+ *
+ * Stage 1 covers `settings/tabs/`; the cards move in Stage 2, which widens
+ * `ROOTS`.
+ */
+
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const ROOTS = ["src/components/settings/tabs"];
+const ESCAPE = "FEAT-0611 escape:";
+
+function svelteFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return svelteFiles(path);
+    return entry.name.endsWith(".svelte") ? [path] : [];
+  });
+}
+
+describe("FEAT-0611 — settings controls go through the button primitive", () => {
+  it("has no raw <button> without an escape comment", () => {
+    const offenders: string[] = [];
+    let escaped = 0;
+
+    for (const root of ROOTS) {
+      for (const file of svelteFiles(root)) {
+        const lines = readFileSync(file, "utf8").split("\n");
+        lines.forEach((line, index) => {
+          if (!line.includes("<button")) return;
+
+          const previous = lines
+            .slice(0, index)
+            .reverse()
+            .find((candidate) => candidate.trim() !== "");
+
+          if (previous?.includes(ESCAPE)) {
+            escaped += 1;
+          } else {
+            offenders.push(`${file}:${index + 1}`);
+          }
+        });
+      }
+    }
+
+    expect(offenders, `raw buttons without an escape comment:\n${offenders.join("\n")}`).toEqual([]);
+    // A check that passes because the escape list swallowed everything is
+    // worthless: the migrated controls must be gone from this count.
+    expect(escaped).toBeGreaterThan(0);
+  });
+});

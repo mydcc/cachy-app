@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import Button from "../../shared/Button.svelte";
     import { _ } from "../../../locales/i18n";
     import { settingsState, type PnlViewMode } from "../../../stores/settings.svelte";
     import { numberInput } from "../../../utils/inputUtils";
@@ -74,6 +75,7 @@
         class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
     >
         {#each subTabs as tab}
+            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
             <button
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
                 tab.id
@@ -101,6 +103,7 @@
                             >{$_("settings.feePreference")}</label
                         >
                         <div class="flex gap-2">
+                            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
                                 class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border transition-all {settingsState.feePreference ===
                                 'maker'
@@ -111,6 +114,7 @@
                             >
                                 {$_("settings.trading.feeMaker")}
                             </button>
+                            <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                             <button
                                 class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border transition-all {settingsState.feePreference ===
                                 'taker'
@@ -379,6 +383,7 @@
                             aria-labelledby="pnl-mode-label"
                         >
                             {#each [{ value: "value", label: $_("settings.technicals.pnlModes.absolute") }, { value: "percent", label: $_("settings.technicals.pnlModes.percent") }, { value: "bar", label: $_("settings.technicals.pnlModes.bar") }] as mode}
+                                <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                 <button
                                     type="button"
                                     aria-pressed={settingsState.pnlViewMode === mode.value}
@@ -426,15 +431,17 @@
                     <h3 class="section-title mb-0">
                         {$_("settings.trading.chartTitle") || "Chart & Data"}
                     </h3>
-                    <button
-                        class="text-xs text-[var(--accent-color)] hover:underline flex items-center gap-1"
-                        onclick={() => {
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        extraClasses="flex items-center gap-1"
+                        onClick={() => {
                             uiState.settingsTab = "system";
                             uiState.settingsSystemSubTab = "performance";
                         }}
                     >
                         ⚡ {$_("settings.trading.managePerformance")}
-                    </button>
+                    </Button>
                 </div>
 
                 <SettingsGrid gap="gap-4">
