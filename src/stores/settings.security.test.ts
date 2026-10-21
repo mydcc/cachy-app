@@ -286,9 +286,8 @@ describe("SettingsManager AI keys do not come from the build environment", () =>
  * Chart settings: the rebasing price-scale modes (Percentage/IndexedTo100)
  * shipped briefly with #2310 and made absolute Entry/Liquidation/TP/SL
  * labels unreadable ("% scale confusion"). They were removed from the type;
- * these tests pin that stored legacy values fold back to the previous
- * hard-coded Logarithmic behavior and that the reset button restores every
- * chart field.
+ * these tests pin that stored legacy values fold back to the shipped default
+ * and that the reset button restores every chart field.
  */
 describe("SettingsManager chart settings (scale modes & reset)", () => {
   const STORAGE_KEY = "cryptoCalculatorSettings";
@@ -300,7 +299,7 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
     settingsState = new SettingsManager();
   });
 
-  it("normalizes a stored 'percent' mode back to logarithmic on load", () => {
+  it("normalizes a stored 'percent' mode back to the default linear on load", () => {
     localStorageMock.setItem(
       STORAGE_KEY,
       JSON.stringify({ chartPriceScaleMode: "percent" }),
@@ -308,10 +307,10 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
 
     const reloaded = new SettingsManager();
 
-    expect(reloaded.chartPriceScaleMode).toBe("log");
+    expect(reloaded.chartPriceScaleMode).toBe("linear");
   });
 
-  it("normalizes a stored 'indexed' mode back to logarithmic on load", () => {
+  it("normalizes a stored 'indexed' mode back to the default linear on load", () => {
     localStorageMock.setItem(
       STORAGE_KEY,
       JSON.stringify({ chartPriceScaleMode: "indexed" }),
@@ -319,7 +318,7 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
 
     const reloaded = new SettingsManager();
 
-    expect(reloaded.chartPriceScaleMode).toBe("log");
+    expect(reloaded.chartPriceScaleMode).toBe("linear");
   });
 
   it("keeps explicit linear/log values", () => {
@@ -337,7 +336,7 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
   });
 
   it("resetChartSettings restores every chart field to its default", () => {
-    settingsState.chartPriceScaleMode = "linear";
+    settingsState.chartPriceScaleMode = "log";
     settingsState.chartInvertScale = true;
     settingsState.chartDecimalsMode = "fixed";
     settingsState.chartFixedDecimals = 7;
@@ -348,7 +347,7 @@ describe("SettingsManager chart settings (scale modes & reset)", () => {
 
     settingsState.resetChartSettings();
 
-    expect(settingsState.chartPriceScaleMode).toBe("log");
+    expect(settingsState.chartPriceScaleMode).toBe("linear");
     expect(settingsState.chartInvertScale).toBe(false);
     expect(settingsState.chartDecimalsMode).toBe("auto");
     expect(settingsState.chartFixedDecimals).toBe(2);

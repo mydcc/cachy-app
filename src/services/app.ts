@@ -140,21 +140,8 @@ export const app = {
       // Set favorites
       favoritesState.items = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"];
 
-      // Update trade state for full action
-      tradeState.update((s) => ({
-        ...s,
-        symbol: "BTCUSDT",
-        entryPrice: "88480.2", // User screenshot value
-        atrValue: "45.5",
-        atrMultiplier: "1.2",
-        useAtrSl: true,
-        atrMode: "auto",
-        targets: [
-          { price: "120000", percent: "50", isLocked: false },
-          { price: "122000", percent: "25", isLocked: false },
-          { price: "124000", percent: "25", isLocked: false },
-        ],
-      }));
+      // Trade inputs keep their shipped defaults (one TP row at 100%);
+      // live price and ATR fill them once market data arrives.
 
       // Settings for visibility
       settingsState.showMarketActivity = true; // Show details in tiles

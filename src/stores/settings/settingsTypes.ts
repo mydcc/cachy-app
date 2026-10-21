@@ -700,7 +700,7 @@ export const defaultSettings: Settings = {
     flowMode: "equalizer",
     gridWidth: 80,
     gridLength: 160,
-    enableAtmosphere: true,
+    enableAtmosphere: false,
     atmosphereIntensity: 1.0,
     atmosphereSpeed: 1.0,
     enableRotation: false,
@@ -810,8 +810,8 @@ export const defaultSettings: Settings = {
   chartRenderIntervalMs: 0,
   repairTimeframe: "15m",
 
-  // Chart view defaults = the previous hard-coded CandleChartView behavior
-  chartPriceScaleMode: "log",
+  // Chart view defaults
+  chartPriceScaleMode: "linear",
   chartAutoScale: true,
   chartInvertScale: false,
   chartDecimalsMode: "auto",
