@@ -134,6 +134,17 @@ describe("SettingsManager.load() -- legacy-shape tolerance", () => {
   });
 });
 
+describe("SettingsManager.load() -- shipped visual defaults", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.clear();
+  });
+
+  it("ships the trade-flow atmosphere off", () => {
+    expect(new SettingsManager().tradeFlowSettings.enableAtmosphere).toBe(false);
+  });
+});
+
 describe("SettingsManager.load() -- broker migration (cachy_v0.94_broker_migrated_v2)", () => {
   beforeEach(() => {
     vi.clearAllMocks();

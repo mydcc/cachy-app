@@ -141,8 +141,8 @@ export function resolveChartPriceDecimals(
  * rebasing modes were removed from settings on purpose (see
  * ChartPriceScaleMode): they rebase every value onto the first visible bar,
  * which makes absolute Entry/Liquidation/TP/SL price lines unreadable.
- * Unknown values fall back to Logarithmic, the long-standing hard-coded
- * behavior.
+ * Values that bypass the settings loader fall back to Logarithmic; the stored
+ * path normalizes unknown values to the shipped default before they get here.
  */
 export function mapPriceScaleMode(mode: "linear" | "log"): 0 | 1 {
     return mode === "linear" ? 0 : 1;

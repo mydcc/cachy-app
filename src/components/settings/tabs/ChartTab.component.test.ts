@@ -44,7 +44,7 @@ afterEach(() => {
 describe("ChartTab — reset button", () => {
     it("restores every chart field to its default on click", async () => {
         // Move fields away from their defaults first.
-        settingsState.chartPriceScaleMode = "linear";
+        settingsState.chartPriceScaleMode = "log";
         settingsState.chartInvertScale = true;
         settingsState.chartFixedDecimals = 7;
         settingsState.chartShowGrid = false;
@@ -62,7 +62,7 @@ describe("ChartTab — reset button", () => {
         resetButton!.click();
         settle();
 
-        expect(settingsState.chartPriceScaleMode).toBe("log");
+        expect(settingsState.chartPriceScaleMode).toBe("linear");
         expect(settingsState.chartInvertScale).toBe(false);
         expect(settingsState.chartFixedDecimals).toBe(2);
         expect(settingsState.chartShowGrid).toBe(true);

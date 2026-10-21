@@ -33,7 +33,7 @@
  *
  * ## Why the interpolation is linear in price
  *
- * The chart defaults to a logarithmic price scale, so a line that is straight
+ * The chart can use a logarithmic price scale, so a line that is straight
  * on screen is not straight in prices, and the two readings differ. This picks
  * prices, for two reasons that outrank how the line looks:
  *

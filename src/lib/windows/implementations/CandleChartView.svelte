@@ -496,7 +496,7 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                     top: 0.1,
                     bottom: 0.2,
                 },
-                mode: 1, // Default Logarithmic
+                mode: 0, // Linear default; the settings effect applies the stored choice
                 autoScale: true, // Always enable Y-axis auto-scaling for trading view consistency
             },
             timeScale: {
@@ -1187,8 +1187,8 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
     // Reactive chart options driven by the Chart settings tab. Mirrors the
     // initial createChart options; updateColors() above only owns colors,
     // this effect owns structure (scale mode, grid, crosshair, time scale,
-    // price format). The defaults equal the previously hard-coded values, so
-    // a fresh install renders exactly as before.
+    // price format). The effect applies the shipped defaults; a fresh install
+    // starts on the linear scale.
     $effect(() => {
         if (!chart || !candleSeries) return;
 

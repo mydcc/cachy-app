@@ -1276,7 +1276,7 @@ describe("Chart settings — scale mode & time scale propagation", () => {
         );
     }
 
-    it("applies the logarithmic scale by default", async () => {
+    it("applies the stored logarithmic scale", async () => {
         settingsState.chartPriceScaleMode = "log";
         component = mount(CandleChartView, {
             target: host,

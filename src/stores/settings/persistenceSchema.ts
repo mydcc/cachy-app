@@ -429,8 +429,8 @@ export function mergeTradeFlowSettings(
 
 /**
  * Migration: the rebasing modes shipped briefly and made absolute price lines
- * unreadable ("%” scale confusion). Fold any stored legacy value back to the
- * previous hard-coded behavior.
+ * unreadable ("%" scale confusion). Fold any stored legacy value back to the
+ * supplied fallback (`defaultSettings` in production).
  */
 export function normalizeStoredPriceScaleMode(
     stored: unknown,
