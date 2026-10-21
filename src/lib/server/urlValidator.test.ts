@@ -1047,6 +1047,466 @@ describe("urlValidator", () => {
       const rebinding = await invoke(lookup, "proxy.internal");
       expect(rebinding.err?.message).toContain("SSRF guard");
     });
+
+    /**
+     * Redirect handling (BUG-0720).
+     *
+     * The runtime's own `fetch` is swapped for a handler so each hop is
+     * observable. `safeFetch` must own the chain: the first request is sent
+     * with `redirect: "manual"`, and every `Location` is validated like a new
+     * request before it is dialled.
+     */
+    function stubRedirectingFetch(
+      handler: (url: string, init?: RequestInit) => Response,
+    ): {
+      calls: Array<{ url: string; init?: RequestInit }>;
+      restore: () => void;
+    } {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const previous = globalThis.fetch;
+      globalThis.fetch = vi.fn(async (input: unknown, init?: RequestInit) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : String(input);
+        calls.push({ url, init });
+        return handler(url, init);
+      }) as unknown as typeof fetch;
+      return {
+        calls,
+        restore: () => {
+          globalThis.fetch = previous;
+        },
+      };
+    }
+
+    it("follows a same-origin redirect and never lets the runtime follow it", async () => {
+      clearProxyEnv();
+      const { module, dispatchers } = await buildEgress({});
+      const direct = dispatchers.find((d) => d.kind === "agent")?.instance;
+      const { calls, restore } = stubRedirectingFetch((url) =>
+        url === "https://public.example/start"
+          ? new Response(null, {
+              status: 302,
+              headers: { location: "/next" },
+            })
+          : new Response("done", { status: 200 }),
+      );
+      try {
+        const response = await module.safeFetch("https://public.example/start", {
+          redirect: "follow",
+        });
+
+        expect(response.status).toBe(200);
+        expect(await response.text()).toBe("done");
+        expect(calls.map((call) => call.url)).toEqual([
+          "https://public.example/start",
+          "https://public.example/next",
+        ]);
+        // The caller's `follow` must not survive: the loop is the only redirect
+        // authority, so the runtime never resolves an unguarded hop.
+        expect(calls[0].init?.redirect).toBe("manual");
+        // Every hop still runs on the guarded dispatcher, so the dial-time
+        // guard applies after a redirect exactly as it does to the first URL.
+        expect(calls[0].init?.dispatcher).toBe(direct);
+        expect(calls[1].init?.dispatcher).toBe(direct);
+      } finally {
+        restore();
+      }
+    });
+
+    it("honours a caller's redirect: error instead of following the hop", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "/next" },
+          }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start", { redirect: "error" }),
+        ).rejects.toThrow("Unexpected redirect");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("re-validates the redirect target and refuses a private address", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://169.254.169.254/latest/meta-data/" },
+          }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start"),
+        ).rejects.toThrow("Prohibited or invalid URL");
+        // The private hop was rejected before any request reached it.
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("re-validates a private redirect target on the proxy egress path too", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "https://internal.example/secret" },
+          }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start"),
+        ).rejects.toThrow("Prohibited or invalid URL");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("keeps every hop on the proxy dispatcher when the proxy path is active", async () => {
+      clearProxyEnv();
+      const { module, dispatchers } = await buildEgress({
+        HTTPS_PROXY: "http://proxy.internal:3128",
+      });
+      const proxy = dispatchers.find((d) => d.kind === "env-proxy")?.instance;
+      const { calls, restore } = stubRedirectingFetch((url) =>
+        url === "https://public.example/start"
+          ? new Response(null, {
+              status: 302,
+              headers: { location: "/next" },
+            })
+          : new Response("done", { status: 200 }),
+      );
+      try {
+        await module.safeFetch("https://public.example/start");
+
+        expect(calls).toHaveLength(2);
+        expect(calls[0].init?.dispatcher).toBe(proxy);
+        expect(calls[1].init?.dispatcher).toBe(proxy);
+      } finally {
+        restore();
+      }
+    });
+
+    it("refuses a redirect chain longer than the hop cap", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      let hop = 0;
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: `/r${++hop}` },
+          }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start"),
+        ).rejects.toThrow("Too many redirects");
+        // Initial request plus five followed hops; the sixth redirect is refused.
+        expect(calls).toHaveLength(6);
+      } finally {
+        restore();
+      }
+    });
+
+    it("refuses a redirect without a Location header", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch(
+        () => new Response(null, { status: 302 }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start"),
+        ).rejects.toThrow("Redirect response without Location");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("refuses a redirect to the same URL", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "#fragment" },
+          }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start"),
+        ).rejects.toThrow("Redirect loop");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("turns a 303 POST into a bodyless GET and drops body headers", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch((url) =>
+        url === "https://public.example/start"
+          ? new Response(null, {
+              status: 303,
+              headers: { location: "/next" },
+            })
+          : new Response("done", { status: 200 }),
+      );
+      try {
+        await module.safeFetch("https://public.example/start", {
+          method: "POST",
+          body: "payload",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": "provider-secret",
+          },
+        });
+
+        expect(calls[1].url).toBe("https://public.example/next");
+        expect(calls[1].init?.method).toBe("GET");
+        expect(calls[1].init?.body).toBeUndefined();
+        const forwarded = new Headers(calls[1].init?.headers);
+        // A bodyless GET must not carry a body description upstream.
+        expect(forwarded.has("content-type")).toBe(false);
+        // Same origin: the provider key stays.
+        expect(forwarded.get("x-api-key")).toBe("provider-secret");
+      } finally {
+        restore();
+      }
+    });
+
+    it("turns a 301 POST into a GET", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch((url) =>
+        url === "https://public.example/start"
+          ? new Response(null, {
+              status: 301,
+              headers: { location: "/next" },
+            })
+          : new Response("done", { status: 200 }),
+      );
+      try {
+        await module.safeFetch("https://public.example/start", {
+          method: "POST",
+          body: "payload",
+        });
+
+        expect(calls[1].init?.method).toBe("GET");
+        expect(calls[1].init?.body).toBeUndefined();
+      } finally {
+        restore();
+      }
+    });
+
+    it("keeps HEAD as HEAD across a 303", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch((url) =>
+        url === "https://public.example/start"
+          ? new Response(null, {
+              status: 303,
+              headers: { location: "/next" },
+            })
+          : new Response(null, { status: 200 }),
+      );
+      try {
+        await module.safeFetch("https://public.example/start", { method: "HEAD" });
+
+        expect(calls[1].init?.method).toBe("HEAD");
+      } finally {
+        restore();
+      }
+    });
+
+    it.each([307, 308])(
+      "preserves method and replayable body across a %i",
+      async (status) => {
+        clearProxyEnv();
+        const { module } = await buildEgress({});
+        const { calls, restore } = stubRedirectingFetch((url) =>
+          url === "https://public.example/start"
+            ? new Response(null, {
+                status,
+                headers: { location: "/next" },
+              })
+            : new Response("done", { status: 200 }),
+        );
+        try {
+          await module.safeFetch("https://public.example/start", {
+            method: "POST",
+            body: "payload",
+            headers: { "content-type": "application/json" },
+          });
+
+          expect(calls[1].init?.method).toBe("POST");
+          expect(calls[1].init?.body).toBe("payload");
+          expect(new Headers(calls[1].init?.headers).get("content-type")).toBe(
+            "application/json",
+          );
+        } finally {
+          restore();
+        }
+      },
+    );
+
+    it("refuses a 307 whose body cannot be sent twice", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 307,
+            headers: { location: "/next" },
+          }),
+      );
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array([1]));
+          controller.close();
+        },
+      });
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start", {
+            method: "POST",
+            body,
+          }),
+        ).rejects.toThrow("non-replayable body");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("refuses a cross-origin redirect that would replay the body", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 307,
+            headers: { location: "https://other-public.example/v1" },
+          }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start", {
+            method: "POST",
+            body: "payload",
+          }),
+        ).rejects.toThrow("cross-origin redirect");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("refuses an https to http downgrade", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch(
+        () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: "http://public.example/insecure" },
+          }),
+      );
+      try {
+        await expect(
+          module.safeFetch("https://public.example/start"),
+        ).rejects.toThrow("downgrades to http");
+        expect(calls).toHaveLength(1);
+      } finally {
+        restore();
+      }
+    });
+
+    it("drops credential-shaped headers when a redirect leaves the origin", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      dialTable["other-public.example"] = [
+        { address: "93.184.216.77", family: 4 },
+      ];
+      const { calls, restore } = stubRedirectingFetch((url) =>
+        url === "https://public.example/start"
+          ? new Response(null, {
+              status: 302,
+              headers: { location: "https://other-public.example/v1" },
+            })
+          : new Response("done", { status: 200 }),
+      );
+      try {
+        await module.safeFetch("https://public.example/start", {
+          headers: {
+            authorization: "Bearer provider-secret",
+            cookie: "session=provider-secret",
+            "x-api-key": "provider-secret",
+            "x-goog-api-key": "provider-secret",
+            "x-opencode-session": "session-id",
+            accept: "application/json",
+          },
+        });
+
+        expect(calls).toHaveLength(2);
+        const forwarded = new Headers(calls[1].init?.headers);
+        expect(forwarded.has("authorization")).toBe(false);
+        expect(forwarded.has("cookie")).toBe(false);
+        expect(forwarded.has("x-api-key")).toBe(false);
+        expect(forwarded.has("x-goog-api-key")).toBe(false);
+        expect(forwarded.has("x-opencode-session")).toBe(false);
+        // Request-describing headers survive.
+        expect(forwarded.get("accept")).toBe("application/json");
+      } finally {
+        delete dialTable["other-public.example"];
+        restore();
+      }
+    });
+
+    it("keeps credential headers on a same-origin redirect", async () => {
+      clearProxyEnv();
+      const { module } = await buildEgress({});
+      const { calls, restore } = stubRedirectingFetch((url) =>
+        url === "https://public.example/start"
+          ? new Response(null, {
+              status: 302,
+              headers: { location: "/next" },
+            })
+          : new Response("done", { status: 200 }),
+      );
+      try {
+        await module.safeFetch("https://public.example/start", {
+          headers: { "x-api-key": "provider-secret" },
+        });
+
+        const forwarded = new Headers(calls[1].init?.headers);
+        expect(forwarded.get("x-api-key")).toBe("provider-secret");
+      } finally {
+        restore();
+      }
+    });
   });
 });
 
