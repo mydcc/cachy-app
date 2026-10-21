@@ -45,6 +45,7 @@
   import LanguageSwitcher from "../components/shared/LanguageSwitcher.svelte";
   import Tooltip from "../components/shared/Tooltip.svelte";
   import CachyIcon from "../components/shared/CachyIcon.svelte";
+  import Button from "../components/shared/Button.svelte";
   import MarketOverview from "../components/shared/MarketOverview.svelte";
   import PositionsSidebar from "../components/shared/PositionsSidebar.svelte";
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
@@ -364,66 +365,69 @@
               <option value={presetName}>{presetName}</option>
             {/each}
           </select>
-          <button
+          <Button
             id="save-preset-btn"
-            class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg"
+            variant="default"
             title={$_("dashboard.savePresetTitle")}
-            aria-label={$_("dashboard.savePresetAriaLabel")}
-            onclick={app.savePreset}
-            use:trackClick={{
+            ariaLabel={$_("dashboard.savePresetAriaLabel")}
+            onClick={app.savePreset}
+            track={{
               category: "Presets",
               action: "Click",
               name: "SavePreset",
-            }}>{@html icons.save}</button
+            }}>{@html icons.save}</Button
           >
-          <button
+          <Button
             id="delete-preset-btn"
-            class="text-sm bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)] font-bold py-2.5 px-2.5 rounded-lg disabled:cursor-not-allowed"
+            variant="danger"
             title={$_("dashboard.deletePresetTitle")}
             disabled={!presetState.selectedPreset}
-            onclick={() => app.deletePreset(presetState.selectedPreset)}
-            use:trackClick={{
+            onClick={() => app.deletePreset(presetState.selectedPreset)}
+            track={{
               category: "Presets",
               action: "Click",
               name: "DeletePreset",
-            }}>{@html icons.delete}</button
+            }}>{@html icons.delete}</Button
           >
-          <button
+          <Button
             id="reset-btn"
-            class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg flex items-center gap-2"
+            variant="default"
             title={$_("dashboard.resetButtonTitle")}
-            onclick={() => tradeState.resetInputs(true)}
-            use:trackClick={{
+            onClick={() => tradeState.resetInputs(true)}
+            track={{
               category: "Actions",
               action: "Click",
               name: "ResetAll",
-            }}>{@html icons.broom}</button
+            }}>{@html icons.broom}</Button
           >
-          <button
+          <Button
             id="theme-switcher"
-            class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2 px-2.5 rounded-lg"
-            aria-label={$_("dashboard.themeSwitcherAriaLabel")}
-            onclick={() => handleThemeSwitch("forward")}
+            variant="default"
+            ariaLabel={$_("dashboard.themeSwitcherAriaLabel")}
+            onClick={() => handleThemeSwitch("forward")}
             oncontextmenu={preventDefault(() => handleThemeSwitch("backward"))}
             title={themeTitle}
-            use:trackClick={{
+            track={{
               category: "Settings",
               action: "Click",
               name: "SwitchTheme",
-            }}>{@html currentThemeIcon}</button
+            }}>{@html currentThemeIcon}</Button
           >
         </div>
-        <button
-          id="view-journal-btn-desktop"
-          class="hidden md:inline-block text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg md:order-2"
-          title={$_("app.journalButtonTitle")}
-          onclick={() => uiState.toggleJournalModal(true)}
-          use:trackClick={{
-            category: "Navigation",
-            action: "Click",
-            name: "ViewJournalDesktop",
-          }}>{$_("app.journalButton")}</button
-        >
+        <span class="hidden md:block md:order-2">
+          <Button
+            id="view-journal-btn-desktop"
+            variant="accent"
+            title={$_("app.journalButtonTitle")}
+            ariaLabel={$_("app.journalButton")}
+            onClick={() => uiState.toggleJournalModal(true)}
+            track={{
+              category: "Navigation",
+              action: "Click",
+              name: "ViewJournalDesktop",
+            }}>{$_("app.journalButton")}</Button
+          >
+        </span>
       </div>
     </div>
 
