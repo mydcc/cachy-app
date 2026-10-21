@@ -189,7 +189,7 @@
                                 </button>
                             </div>
                             <Button
-                                variant="default"
+                                variant="outline"
                                 size="sm"
                                 extraClasses="mt-2"
                                 onClick={createAccessToken}
@@ -240,7 +240,7 @@
                                 </button>
                             </div>
                             <Button
-                                variant="default"
+                                variant="outline"
                                 size="sm"
                                 extraClasses="mt-2"
                                 onClick={createAccessToken}
@@ -513,7 +513,7 @@
                         {/each}
                     {/if}
                     <Button
-                        variant="default"
+                        variant="outline"
                         size="sm"
                         extraClasses="w-max"
                         onClick={addCustomFeed}

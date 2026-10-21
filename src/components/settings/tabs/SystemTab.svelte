@@ -366,7 +366,7 @@
                     {$_("settings.system.quickActions")}
                 </h4>
                 <SettingsGrid gap="gap-4">
-                    <Button variant="outline" size="sm" extraClasses="w-full" onClick={clearAppCache}>
+                    <Button variant="outline" size="sm" extraClasses="w-full gap-2" onClick={clearAppCache}>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
@@ -387,7 +387,7 @@
                         >
                         {$_("settings.system.clearCache") || "Clear Cache"}
                     </Button>
-                    <Button variant="outline" size="sm" extraClasses="w-full" onClick={reloadApp}>
+                    <Button variant="outline" size="sm" extraClasses="w-full gap-2" onClick={reloadApp}>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"

@@ -44,6 +44,24 @@ function svelteFiles(dir: string): string[] {
   });
 }
 
+
+/**
+ * The comment block directly above the control, walked back to its `<!--`.
+ * A blank line or another control in between means the comment does not
+ * belong to this button.
+ */
+function escapeBlockAbove(lines: string[], index: number): string | null {
+  const collected: string[] = [];
+  for (let i = index - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (line.trim() === "") return null;
+    if (line.includes("<button")) return null;
+    collected.unshift(line);
+    if (line.includes("<!--")) return collected.join("\n");
+  }
+  return null;
+}
+
 describe("FEAT-0611 — settings controls go through the button primitive", () => {
   it("has no raw <button> without an escape comment", () => {
     const offenders: string[] = [];
@@ -55,12 +73,7 @@ describe("FEAT-0611 — settings controls go through the button primitive", () =
         lines.forEach((line, index) => {
           if (!line.includes("<button")) return;
 
-          const previous = lines
-            .slice(0, index)
-            .reverse()
-            .find((candidate) => candidate.trim() !== "");
-
-          if (previous?.includes(ESCAPE)) {
+          if (escapeBlockAbove(lines, index)?.includes(ESCAPE)) {
             escaped += 1;
           } else {
             offenders.push(`${file}:${index + 1}`);

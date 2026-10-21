@@ -248,7 +248,7 @@
                     {$_("settings.visuals.bgGalaxy")}
                 </h4>
                 <Button
-                    variant="default"
+                    variant="outline"
                     size="sm"
                     extraClasses="flex items-center gap-2"
                     onClick={() =>
@@ -637,7 +637,7 @@
                     {$_("settings.visuals.tradeFlow.config")}
                 </h4>
                 <Button
-                    variant="default"
+                    variant="outline"
                     size="sm"
                     extraClasses="flex items-center gap-2"
                     onClick={() => settingsState.resetTradeFlowSettings()}

@@ -96,9 +96,10 @@ components (40 sites) and the final flip.
 ### Escaped with a comment (38 sites)
 
 Sub-tab rails (6: AiTab, ConnectionsTab, SystemTab, TradingTab, VisualsTab,
-IndicatorSettings), segmented controls (22), selection-card groups (8), the
-inline alert chip (1), the inline field toggles (3). Each comment names what
-the control is; `settingsButtons.test.ts` enforces the pattern.
+IndicatorSettings), segmented controls (19), selection-card groups (8), the
+inline alert chip (1), the inline field toggles (3), the multi-line backup
+action card (1) — 38 in total. Each comment names what the control is;
+`settingsButtons.test.ts` enforces the pattern.
 
 ### Primitive extensions
 
@@ -108,16 +109,32 @@ to extend the primitive instead of working around it:
 - `ghost` and `ghost-danger` for inline text actions (edit, delete, reset,
   "manage performance"), transparent with accent/danger text.
 - `outline` for the neutral bordered secondary buttons (`btn-secondary` in
-  `SystemTab` was component-scoped styling that the migration retired).
+  `SystemTab` was component-scoped styling that the migration retired). Six
+  further sites that were neutral at rest moved to it as well: the two
+  add-channel/add-feed buttons and the two reset buttons, plus the two
+  create-token buttons in `ConnectionsTab`.
 
 ### Normalization, stated
 
 As in FEAT-0610, "renders identically" cannot hold together with "every height
-comes from the tokens": the tabs' buttons were `py-1`/`py-1.5`/`py-2` with
-`text-xs`/`text-sm` (28–36 px) and are now `sm` (34 px). Colours move from the
-old `bg-*-paired` classes to the `--btn-*` roles where a role exists
-(`CloudTab`'s connect/erase/send, `SystemTab`'s reset). Both changes are the
-point of the migration; AC6's wording is the aspirational half.
+comes from the tokens". What actually changed:
+
+- **Height** — `py-1`/`py-1.5`/`py-2` with `text-xs`/`text-sm` (28–36 px) become
+  the `sm` token (34 px). The file-target buttons in `SystemTab` grow from
+  ~24 px to 34 px.
+- **Font** — `.btn-base` sets 14 px / weight 700, so `text-[10px]`/`text-xs`
+  labels grow to 14 px and light weights become bold. This is the largest
+  visible delta and is not a token decision yet; FEAT-0614 can give the
+  primitive a size-aware font.
+- **Colour** — the paired classes (`bg-*-paired`) give way to the `--btn-*`
+  roles where a role exists (`CloudTab`'s connect/erase/send, the factory
+  reset); neutral buttons become `outline` instead of the filled `default`.
+- **Geometry** — `CloudTab`'s padding drops from `space-2 space-4` to
+  `0 space-2` and its radius grows to `--radius-lg`; the icon-only buttons
+  lose their 40 px square and render 40×34.
+
+AC6's wording is the aspirational half; the migration's point is one control
+language across the window.
 
 ### Retired dead CSS
 

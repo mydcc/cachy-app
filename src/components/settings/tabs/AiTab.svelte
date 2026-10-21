@@ -634,7 +634,7 @@
                         {/each}
                     {/if}
                     <Button
-                        variant="default"
+                        variant="outline"
                         size="sm"
                         extraClasses="w-max"
                         ariaLabel={$_("settings.ai.aria.addChannel")}
