@@ -23,6 +23,11 @@ import { defaultSettings } from "./settings.svelte";
  * every visitor's bundle and in every screenshot of the settings window. The
  * ImgBB default was exactly that (BUG-0720), so the invariant is pinned for
  * every credential-shaped field rather than just the one that was wrong.
+ *
+ * The list mirrors `SENSITIVE_KEYS` in `settings/secretsLoader.ts`; importing
+ * that module here would pull the crypto/browser graph into a plain node test,
+ * so the names are duplicated deliberately. When a new credential is added to
+ * `SENSITIVE_KEYS`, add it here too — the point is to notice the default.
  */
 const CREDENTIAL_DEFAULTS = [
   "imgbbApiKey",

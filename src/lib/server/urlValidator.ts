@@ -760,7 +760,8 @@ function describeFetchFailure(error: unknown): unknown {
 /**
  * Maximum number of HTTP redirects `safeFetch` will follow. Every hop is
  * validated like a fresh request, so the cap only bounds the work an attacker
- * can spend on redirect chains, not the trust decision.
+ * can spend on redirect chains, not the trust decision. Deliberately tighter
+ * than the runtime's own 20.
  */
 const MAX_REDIRECT_HOPS = 5;
 
@@ -772,11 +773,33 @@ function isRedirectStatus(status: number): boolean {
 }
 
 /**
+ * Best-effort discard of a response body we will not read, so the underlying
+ * socket can be reused. `cancel()` rejects on an already disturbed stream; that
+ * must never replace the error the caller is about to see.
+ */
+async function discardBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Already disturbed or errored — nothing left to release.
+  }
+}
+
+/** The same URL with its fragment removed, for loop detection. */
+function withoutHash(url: URL): string {
+  const copy = new URL(url.href);
+  copy.hash = "";
+  return copy.href;
+}
+
+/**
  * Whether a request body can be sent a second time.
  *
  * Fetch bodies may be streams, which are consumed by the first request. A
  * redirect that has to preserve the method (307/308) can only be followed when
- * the body is a concrete value.
+ * the body is a concrete value. This is the redirect-specific rule; the egress
+ * fallback in `isReplayable` additionally requires an idempotent method or a
+ * pre-connect failure and deliberately keeps its narrower body set.
  */
 function canReplayBody(body: RequestInit["body"]): boolean {
   if (body === undefined || body === null) return true;
@@ -794,13 +817,21 @@ function canReplayBody(body: RequestInit["body"]): boolean {
  * cross-origin redirect must not carry them to the new host: an attacker who
  * controls a public URL could otherwise redirect to their own server and
  * collect the provider key.
+ *
+ * Matched by shape, not by an enumeration: a new provider header such as
+ * `x-rapidapi-key` or `x-opencode-session` is covered without editing a list,
+ * and the control cannot silently stop protecting a new caller.
  */
-const CREDENTIAL_HEADER_NAMES = [
-  "authorization",
-  "proxy-authorization",
-  "cookie",
-  "x-api-key",
-  "x-goog-api-key",
+const CREDENTIAL_HEADER =
+  /^(authorization|proxy-authorization|cookie)$|(^|[-_])(api[-_]?key|token|secret|session)([-_]|$)/i;
+
+/** Request headers that only describe a body; a rewrite to GET drops them. */
+const REQUEST_BODY_HEADERS = [
+  "content-encoding",
+  "content-language",
+  "content-location",
+  "content-type",
+  "content-length",
 ];
 
 function stripCredentialHeaders(
@@ -808,7 +839,18 @@ function stripCredentialHeaders(
 ): HeadersInit | undefined {
   if (headers === undefined) return undefined;
   const next = new Headers(headers);
-  for (const name of CREDENTIAL_HEADER_NAMES) next.delete(name);
+  for (const name of [...next.keys()]) {
+    if (CREDENTIAL_HEADER.test(name)) next.delete(name);
+  }
+  return next;
+}
+
+function stripBodyHeaders(
+  headers: HeadersInit | undefined,
+): HeadersInit | undefined {
+  if (headers === undefined) return undefined;
+  const next = new Headers(headers);
+  for (const name of REQUEST_BODY_HEADERS) next.delete(name);
   return next;
 }
 
@@ -876,8 +918,16 @@ async function safeFetchOnce(
  * private address therefore fails exactly like a direct request would. Method
  * rewriting follows the Fetch standard (303 and POST 301/302 become GET;
  * 307/308 keep method and body and are only followed when the body can be sent
- * again). Credential headers are dropped when a redirect leaves the origin, and
- * a chain longer than `MAX_REDIRECT_HOPS` is refused.
+ * again). A body-preserving hop is refused when it leaves the origin, an
+ * `https:` → `http:` downgrade is refused, credential-shaped headers are
+ * dropped on any origin change, a redirect without `Location` is an error, and
+ * a chain longer than `MAX_REDIRECT_HOPS` is refused. A caller that asked for
+ * `redirect: "error"` still gets an error instead of a followed hop.
+ *
+ * The proxy-path caveat is unchanged from the first hop: when an egress proxy
+ * is configured, the proxy resolves the target, so the dial-time guard covers
+ * the hop to the proxy and `isUrlAllowedAsync` remains the only target-side
+ * decision. The redirect loop does not widen or close that gap.
  *
  * The egress recovery is deliberately narrow and one-directional: a failed dial
  * on the proxy path is retried once over the direct path, which applies the
@@ -900,10 +950,16 @@ async function safeFetchOnce(
  * goes through `undici`'s own fetch instead — see `performGuardedFetch`.
  */
 export async function safeFetch(url: string | URL, init?: RequestInit): Promise<Response> {
+  const callerRedirect = init?.redirect;
   let target = typeof url === "string" ? url : url.toString();
   // `manual` makes the loop the only redirect authority. A caller's own
-  // `redirect` setting is deliberately overridden: `follow` would let the
-  // runtime resolve the next hop without the guard.
+  // `follow` is deliberately overridden: it would let the runtime resolve the
+  // next hop without the guard. `error` is honoured below — it is the one mode
+  // that must not become "follow".
+  //
+  // Server-side runtimes expose the real 3xx and its `Location` for `manual`
+  // (verified on Node 26.11 / undici 8.12.2; the Node 22/24 takeover uses the
+  // same package code), unlike browsers, which return an opaque response.
   let requestInit: RequestInit = { ...init, redirect: "manual" };
 
   for (let hop = 0; ; hop++) {
@@ -912,19 +968,41 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
     if (!isRedirectStatus(response.status)) return response;
 
     const location = response.headers.get("location");
-    if (!location) return response;
+    if (!location) {
+      await discardBody(response);
+      throw new Error("Redirect response without Location");
+    }
+
+    if (callerRedirect === "error") {
+      await discardBody(response);
+      throw new Error("Unexpected redirect");
+    }
 
     if (hop >= MAX_REDIRECT_HOPS) {
-      await response.body?.cancel();
+      await discardBody(response);
       throw new Error("Too many redirects");
     }
 
-    let nextUrl: string;
+    let previous: URL;
+    let next: URL;
     try {
-      nextUrl = new URL(location, target).toString();
+      previous = new URL(target);
+      next = new URL(location, target);
     } catch {
-      await response.body?.cancel();
+      await discardBody(response);
       throw new Error("Invalid redirect location");
+    }
+
+    if (previous.protocol === "https:" && next.protocol === "http:") {
+      await discardBody(response);
+      throw new Error("Refusing redirect that downgrades to http");
+    }
+
+    // A fragment-only or self-referential Location would otherwise spend the
+    // whole hop budget on the same request.
+    if (withoutHash(previous) === withoutHash(next)) {
+      await discardBody(response);
+      throw new Error("Redirect loop");
     }
 
     const method = (requestInit.method ?? "GET").toUpperCase();
@@ -932,23 +1010,33 @@ export async function safeFetch(url: string | URL, init?: RequestInit): Promise<
       response.status === 303
         ? method !== "GET" && method !== "HEAD"
         : (response.status === 301 || response.status === 302) && method === "POST";
+    const originChanged = previous.origin !== next.origin;
+
+    // A 307/308 (or a non-POST 301/302) keeps the body. Sending it to a new
+    // origin would hand the payload to a host the caller never chose.
+    if (originChanged && !becomesGet && requestInit.body != null) {
+      await discardBody(response);
+      throw new Error(
+        "Refusing cross-origin redirect that would replay the request body",
+      );
+    }
 
     const nextInit: RequestInit = { ...requestInit };
     if (becomesGet) {
       nextInit.method = "GET";
       nextInit.body = undefined;
-    } else if (!canReplayBody(requestInit.body)) {
-      await response.body?.cancel();
+    } else if (requestInit.body != null && !canReplayBody(requestInit.body)) {
+      await discardBody(response);
       throw new Error("Cannot follow a redirect with a non-replayable body");
     }
 
-    // A redirect may leave the origin; the provider key must not go with it.
-    if (new URL(nextUrl).origin !== new URL(target).origin) {
-      nextInit.headers = stripCredentialHeaders(requestInit.headers);
-    }
+    let nextHeaders = requestInit.headers;
+    if (becomesGet) nextHeaders = stripBodyHeaders(nextHeaders);
+    if (originChanged) nextHeaders = stripCredentialHeaders(nextHeaders);
+    nextInit.headers = nextHeaders;
 
-    await response.body?.cancel();
-    target = nextUrl;
+    await discardBody(response);
+    target = next.toString();
     requestInit = nextInit;
   }
 }
