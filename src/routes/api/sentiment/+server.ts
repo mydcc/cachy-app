@@ -94,8 +94,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
             const openaiModels = Array.from(new Set([
                 model,
-                'gpt-4o-mini',
-                'gpt-4o'
+                'gpt-5.4-mini',
+                'gpt-5-mini'
             ].filter(Boolean)));
 
             let lastOpenAiErr: unknown = null;
@@ -137,11 +137,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
             const geminiModels = Array.from(new Set([
                 model,
-                'gemini-2.5-flash',
-                'gemini-2.0-flash',
-                'gemini-1.5-flash-latest',
-                'gemini-1.5-flash',
-                'gemini-1.5-pro'
+                'gemini-3.5-flash-lite',
+                'gemini-3.8-flash',
+                'gemini-3.5-flash'
             ].filter(Boolean)));
 
             let lastGeminiErr: unknown = null;

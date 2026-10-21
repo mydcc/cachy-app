@@ -1496,9 +1496,24 @@ class AiManager {
           }
           break;
         case "addTakeProfit": {
-          app.addTakeProfitRow();
-          const newIdx = tradeState.targets.length - 1;
-          if (newIdx >= 0 && action.value !== undefined) {
+          const newIdx = app.addTakeProfitRow();
+          if (newIdx === null) {
+            // BUG-0705: the setup is full. Writing to `length - 1` here used to
+            // overwrite TP4 while the confirmation said "add". Refuse visibly
+            // instead of silently replacing a configured target.
+            const t = get(_);
+            this.messages = [
+              ...this.messages,
+              {
+                id: generateId(),
+                role: "system",
+                content: `⛔ ${t("settings.ai.permissions.tpCapNotice")}`,
+                timestamp: Date.now(),
+              },
+            ];
+            return false;
+          }
+          if (action.value !== undefined) {
             tradeState.targets[newIdx].price = String(parseAiValue(action.value as string));
             if (action.percent !== undefined) {
               tradeState.targets[newIdx].percent = String(parseAiValue(action.percent as string));
@@ -1560,7 +1575,12 @@ class AiManager {
       case "setTradeType":
         return `Richtung: ${String(action.value).toUpperCase()}`;
       case "addTakeProfit":
-        return `TP Hinzufügen: ${action.value} (${action.percent ?? 0}%)`;
+        // BUG-0705: the confirmation must not promise an addition the setup
+        // cannot take. At the cap the action is refused, and saying "add"
+        // would be the same false label that let TP4 be overwritten.
+        return tradeState.targets.length >= 4
+          ? `⛔ ${get(_)("settings.ai.permissions.tpCapBadge")}`
+          : `TP Hinzufügen: ${action.value} (${action.percent ?? 0}%)`;
       case "removeTakeProfit":
         return `TP Entfernen: Index ${(action.index ?? 0) + 1}`;
       case "setAtrMode":

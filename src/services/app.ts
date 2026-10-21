@@ -537,9 +537,9 @@ export const app = {
     }));
   },
 
-  addTakeProfitRow() {
+  addTakeProfitRow(): number | null {
     const currentTargets = tradeState.targets;
-    if (currentTargets.length >= 4) return;
+    if (currentTargets.length >= 4) return null;
 
     const newTargets = [
       ...currentTargets,
@@ -547,6 +547,10 @@ export const app = {
     ];
     tradeState.update((s) => ({ ...s, targets: newTargets }));
     app.adjustTpPercentages(null);
+    // BUG-0705: the caller has to be able to address the row it just added.
+    // Returning `void` made `executeAction` write to `length - 1`, which on a
+    // full setup is the row the early return above protected.
+    return newTargets.length - 1;
   },
 
   removeTakeProfitRow(index: number) {

@@ -99,7 +99,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       return json({ error: "Invalid model identifier" }, { status: 400 });
     }
 
-    let selectedModel = rawModel || "gemini-3.5-flash"; // Default: Current stable generation
+    let selectedModel = rawModel || "gemini-3.5-flash-lite"; // Default: current cost-effective generation (BUG-0707)
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
     const encodedModel = encodeURIComponent(selectedModel);

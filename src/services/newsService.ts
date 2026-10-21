@@ -459,7 +459,7 @@ export const newsService = {
         const payload = {
           headlines,
           provider: aiProvider,
-          model: aiProvider === "openai" ? (s.openaiModel || "gpt-4o") : (s.geminiModel || "gemini-1.5-flash"),
+          model: aiProvider === "openai" ? (s.openaiModel || "gpt-5.4-mini") : (s.geminiModel || "gemini-3.5-flash-lite"),
           apiKey: aiProvider === "openai" ? openaiApiKey : geminiApiKey
         };
 

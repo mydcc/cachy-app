@@ -2,7 +2,7 @@
 id: BUG-0705
 title: An AI addTakeProfit on a full setup overwrites the last target
 type: bug
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-19"
@@ -11,7 +11,8 @@ area: ai
 data_class: none
 adr: none
 depends_on: [BUG-0704]
-assignee: unassigned
+assignee: opencode
+branch: fix/ai-model-defaults-and-tp-overwrite
 ---
 
 # BUG-0705 — `addTakeProfit` at the target cap silently rewrites TP4
@@ -35,16 +36,27 @@ an addition, not a replacement.
 
 ## Acceptance criteria
 
-- [ ] `addTakeProfitRow()` reports whether it added a row (or returns the new
+- [x] `addTakeProfitRow()` reports whether it added a row (or returns the new
       index) instead of returning `void`.
-- [ ] `executeAction` writes to the row that was actually added, and does
+- [x] `executeAction` writes to the row that was actually added, and does
       nothing — with a visible notice — when the setup is full.
-- [ ] A test drives the full-setup case and asserts TP4 keeps its value.
-- [ ] The confirmation text distinguishes "added" from "rejected: 4 targets".
+- [x] A test drives the full-setup case and asserts TP4 keeps its value.
+- [x] The confirmation text distinguishes "added" from "rejected: 4 targets".
 
 ## Out of scope
 
 Changing the four-target cap itself.
+
+## Progress — 2026-10-21
+
+Branch `fix/ai-model-defaults-and-tp-overwrite`. `addTakeProfitRow()` returns
+the index it added or `null`; `executeAction` writes to that index and, at the
+cap, refuses with a system notice instead of touching TP4. The confirmation
+badge says "refused (4 targets reached)" rather than promising an addition.
+
+`ai.takeProfitCap.test.ts` drives both halves: the full setup keeps TP4's price
+and percent, and a setup with a free slot receives the new price. The first case
+was RED before the fix (`expected '999' to be '130'`).
 
 ## Notes
 

@@ -72,10 +72,12 @@ export function resolveGeminiModel(stored: string | undefined): string {
   if (stored === "gemma" || !stored) {
     if (import.meta.env.DEV) {
       console.warn(
-        "[Settings] Migrating geminiModel to gemini-1.5-flash for stability.",
+        "[Settings] Migrating geminiModel to gemini-3.5-flash-lite for stability.",
       );
     }
-    return "gemini-1.5-flash";
+    // BUG-0707: the pin used to force gemini-1.5-flash, a generation Google no
+    // longer serves to new callers — the migration was itself the retired ID.
+    return "gemini-3.5-flash-lite";
   }
   return stored;
 }
@@ -89,10 +91,10 @@ export function resolveAnthropicModel(stored: string | undefined): string {
   if (!stored || /^claude-[23]/.test(stored)) {
     if (import.meta.env.DEV) {
       console.warn(
-        `[Settings] Migrating anthropicModel from "${stored}" to claude-sonnet-5 (retired).`,
+        `[Settings] Migrating anthropicModel from "${stored}" to claude-sonnet-5-5 (retired).`,
       );
     }
-    return "claude-sonnet-5";
+    return "claude-sonnet-5-5";
   }
   return stored;
 }

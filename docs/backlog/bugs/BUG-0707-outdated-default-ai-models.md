@@ -2,7 +2,7 @@
 id: BUG-0707
 title: Default AI models reference outdated model generations
 type: bug
-status: specced
+status: done
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -12,6 +12,8 @@ adr: none
 depends_on: []
 size: XS
 estimate: 2
+assignee: opencode
+branch: fix/ai-model-defaults-and-tp-overwrite
 ---
 
 # BUG-0707 — Default AI models reference outdated model generations
@@ -66,15 +68,33 @@ likely to hit a retired model.
 
 ## Acceptance criteria
 
-- [ ] A fresh profile's default model per provider is one the provider
+- [x] A fresh profile's default model per provider is one the provider
       currently serves (verified against the provider's model list at
       implementation time).
-- [ ] `defaultSettings` model values and the provider registry's `defaultModel`
+- [x] `defaultSettings` model values and the provider registry's `defaultModel`
       values come from one source or are pinned equal by a test.
-- [ ] No migration forces a retired Gemini model onto existing profiles.
-- [ ] A test fails when a default model is empty or absent from the known-model
+- [x] No migration forces a retired Gemini model onto existing profiles.
+- [x] A test fails when a default model is empty or absent from the known-model
       list.
-- [ ] No behaviour change beyond model IDs.
+- [x] No behaviour change beyond model IDs.
+
+## Progress — 2026-10-21
+
+Branch `fix/ai-model-defaults-and-tp-overwrite`. Checked against the vendors'
+own model lists on 2026-10-21 (Google AI for Developers, OpenAI API docs,
+Anthropic models overview):
+
+| Provider | Was | Now |
+| --- | --- | --- |
+| Gemini | `gemini-1.5-flash` | `gemini-3.5-flash-lite` (current cost-effective Flash-Lite) |
+| OpenAI | `gpt-4o` | `gpt-5.4-mini` |
+| Anthropic | `claude-sonnet-5` | `claude-sonnet-5-5` |
+
+The retired IDs also leave the news/sentiment fallbacks, the Gemini route's
+own default and the migration pins. `KNOWN_MODELS` in `aiProviders.ts` lists
+what each built-in is known to serve; `aiProviders.defaults.test.ts` pins
+`defaultSettings` to the registry and fails on an empty or unknown default
+(verified RED by reverting the Gemini default).
 
 ## Out of scope
 
