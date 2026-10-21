@@ -371,8 +371,99 @@ function getDataFromLocalStorage(key: string): string | null {
 }
 
 /**
+ * Blanks or removes every credential-shaped field on a parsed settings object.
+ *
+ * Shared by the export path and the restore path (BUG-0721): an unencrypted
+ * backup must carry no Class-A credential, and an unencrypted backup that is
+ * being restored must not be able to inject one. It never adds a field, so a
+ * payload without credentials round-trips unchanged.
+ */
+function scrubCredentialFields(parsed: Record<string, unknown>): void {
+  // Exchange credentials, both shapes. An export taken from a profile that has
+  // not been re-saved since FEAT-0333 still carries the venue-indexed block,
+  // and "we migrated, so the old field cannot be here" is exactly the
+  // assumption that leaks it (BUG-0283).
+  if (Array.isArray(parsed.accounts)) {
+    for (const account of parsed.accounts) {
+      if (!account || typeof account !== "object") continue;
+      const entry = account as Record<string, unknown>;
+      const keys = entry.keys;
+      if (keys && typeof keys === "object") {
+        // Blank only the fields that exist: a Bitunix account has no
+        // passphrase, and adding one would contradict the per-venue shape
+        // `blankKeysFor` documents.
+        const keyFields = keys as Record<string, unknown>;
+        for (const field of ["key", "secret", "passphrase"]) {
+          if (field in keyFields) keyFields[field] = "";
+        }
+      } else {
+        entry.keys = { key: "", secret: "" };
+      }
+    }
+  }
+  if (
+    parsed.apiKeys &&
+    typeof parsed.apiKeys === "object" &&
+    !Array.isArray(parsed.apiKeys)
+  ) {
+    for (const value of Object.values(parsed.apiKeys as Record<string, unknown>)) {
+      if (!value || typeof value !== "object") continue;
+      const keys = value as Record<string, unknown>;
+      for (const field of ["key", "secret", "passphrase"]) {
+        if (field in keys) keys[field] = "";
+      }
+    }
+  }
+  // User-defined AI providers carry a live key and an endpoint. Blanking only
+  // the key is not enough: an empty key with a custom `baseUrl` still routes
+  // prompts to that host, so both go (BUG-0721).
+  if (Array.isArray(parsed.userProviders)) {
+    for (const provider of parsed.userProviders) {
+      if (!provider || typeof provider !== "object") continue;
+      const entry = provider as Record<string, unknown>;
+      if ("apiKey" in entry) entry.apiKey = "";
+      if ("baseUrl" in entry) entry.baseUrl = "";
+    }
+  }
+  // Every encrypted store, by prefix: an explicit list is exactly how
+  // `encryptedProviderConfigs` was forgotten (BUG-0721).
+  for (const key of Object.keys(parsed)) {
+    if (/^encrypted/i.test(key)) delete parsed[key];
+  }
+
+  // Third-party and AI API keys (SENSITIVE_KEYS inventory + extras).
+  for (const key of SENSITIVE_KEYS) {
+    if (key in parsed) {
+      parsed[key] = "";
+    }
+  }
+  // `openrouterApiKey` is in `SENSITIVE_KEYS`, but an older profile can still
+  // carry it in cleartext; being explicit keeps a future edit to the inventory
+  // from silently unprotecting an already-exported backup. (An earlier version
+  // of this comment credited BUG-0654 for removing the field. BUG-0654 removed
+  // `imgurClientId`; this one was never removed.)
+  if ("openrouterApiKey" in parsed) parsed.openrouterApiKey = "";
+  if ("imgurClientId" in parsed) parsed.imgurClientId = "";
+}
+
+/**
+ * Hosts a restored settings payload may point at. An unencrypted backup is
+ * untrusted input, and a redirect of AI prompts, alerts, or sync traffic to a
+ * host the user never chose is the other half of "restore as injection"
+ * (BUG-0721). The values are dropped, so the defaults apply again.
+ */
+const RESTORE_PIVOT_HOSTS = [
+  "spacetimedbHost",
+  "backendUrl",
+  "ollamaCustomHost",
+  "customApiUrl",
+  "proxyUrl",
+  "webhookUrl",
+];
+
+/**
  * Strips exchange credentials, API keys, and sensitive tokens from settings JSON
- * for unencrypted backup exports (BUG-0283).
+ * for unencrypted backup exports (BUG-0283, BUG-0721).
  */
 export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null): string | null {
   if (!settingsJson) return null;
@@ -380,43 +471,34 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
     const parsed = JSON.parse(settingsJson);
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
 
-    // Blank out exchange credentials (BUG-0283). Both shapes are scrubbed:
-    // an export taken from a profile that has not been re-saved since
-    // FEAT-0333 still carries the venue-indexed block, and "we migrated, so
-    // the old field cannot be here" is exactly the assumption that leaks it.
-    if (Array.isArray(parsed.accounts)) {
-      parsed.accounts = parsed.accounts.map(
-        (account: Record<string, unknown>) => ({
-          ...account,
-          keys: { key: "", secret: "", passphrase: "" },
-        }),
-      );
-    }
-    delete parsed.encryptedAccountKeys;
+    scrubCredentialFields(parsed);
+    // The export always carries an explicit empty exchange block, so the
+    // file's shape does not depend on whether the profile ever held keys.
     parsed.apiKeys = {
       bitunix: { key: "", secret: "" },
       bitget: { key: "", secret: "", passphrase: "" },
     };
-    delete parsed.encryptedApiKeys;
-    delete parsed.encryptedSecrets;
 
-    // Blank out third-party and AI API keys (SENSITIVE_KEYS inventory + extras)
-    for (const key of SENSITIVE_KEYS) {
-      if (key in parsed) {
-        parsed[key] = "";
-      }
+    return JSON.stringify(parsed);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Restore-time counterpart of the export scrubber (BUG-0721). An unencrypted
+ * backup is untrusted input: a legitimate one already has every credential
+ * blanked, so the only thing this can remove is an injected key. It never adds
+ * fields, which keeps a credential-free payload semantically unchanged.
+ */
+function sanitizeRestoredSettings(settingsJson: string): string | null {
+  try {
+    const parsed = JSON.parse(settingsJson);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+    scrubCredentialFields(parsed);
+    for (const host of RESTORE_PIVOT_HOSTS) {
+      if (host in parsed) delete parsed[host];
     }
-    parsed.openrouterApiKey = "";
-    // `openrouterApiKey` is a live field (AI provider credential) and is in
-    // `SENSITIVE_KEYS` as of this change, so the loop above already covers it.
-    // This line stays because the export path reads the RAW localStorage
-    // string rather than `toJSON()`: an older profile can still carry the key
-    // in cleartext, and being explicit here means a future edit to the
-    // inventory cannot silently unprotect an already-exported backup.
-    // (An earlier version of this comment credited BUG-0654 for removing the
-    // field. BUG-0654 removed `imgurClientId`; this one was never removed.)
-    parsed.imgurClientId = "";
-
     return JSON.stringify(parsed);
   } catch {
     return null;
@@ -576,12 +658,32 @@ export async function restoreFromBackup(
           };
         }
 
+        // The declared KDF is attacker-controlled input. A value outside the
+        // two hashes this build can produce would silently downgrade the
+        // derivation (SHA-1 is still reachable in the legacy fallback), so it
+        // is refused rather than passed through (BUG-0721).
+        const declaredKdfHash: unknown = backup.kdfHash;
+        if (
+          declaredKdfHash != null &&
+          declaredKdfHash !== "SHA-256" &&
+          declaredKdfHash !== "SHA-512"
+        ) {
+          return {
+            success: false,
+            message:
+              "Invalid backup file format (Unsupported key derivation hash).",
+          };
+        }
+
         decryptedJson = await cryptoService.decrypt({
           ciphertext: backup.encryptedData,
           salt: backup.salt,
           iv: backup.iv,
           method: method,
-          kdfHash: backup.kdfHash
+          kdfHash: (declaredKdfHash ?? undefined) as
+            | "SHA-256"
+            | "SHA-512"
+            | undefined
         }, password);
 
         data = JSON.parse(decryptedJson);
@@ -620,6 +722,27 @@ export async function restoreFromBackup(
     // fields — restoring a pre-feature backup must not wipe newer stores.
     // When adding a payload field, bump BACKUP_VERSION or restores will wipe it.
     const fullReplace = backup.backupVersion >= BACKUP_VERSION;
+
+    // An unencrypted backup is untrusted input. The export path blanks every
+    // credential before writing, so a legitimate unencrypted file carries
+    // none; re-running the same scrubber here rejects an injected key rather
+    // than writing it into localStorage (BUG-0721). Encrypted backups are
+    // trusted by the password the user just supplied. A `null` settings
+    // section is legitimate (the exporter writes null when the live store is
+    // corrupt) and is not a reason to reject the other sections.
+    let settingsPayload: string | null = data.settings ?? null;
+    if (!backup.isEncrypted && data.settings != null) {
+      settingsPayload = sanitizeRestoredSettings(data.settings);
+      if (settingsPayload === null) {
+        return {
+          success: false,
+          message: "app.backupRejected",
+          messageParams: { sections: "settings" },
+          rejectedSections: ["settings"],
+        };
+      }
+    }
+
     const restoreField = (raw: string | null | undefined, key: string) => {
       if (raw) {
         safeLocalStorage.setItem(key, raw);
@@ -627,7 +750,7 @@ export async function restoreFromBackup(
         safeLocalStorage.removeItem(key);
       }
     };
-    restoreField(data.settings, CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
+    restoreField(settingsPayload, CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
     restoreField(data.presets, CONSTANTS.LOCAL_STORAGE_PRESETS_KEY);
     restoreField(data.journal, CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY);
     restoreField(data.tradeState, CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store");

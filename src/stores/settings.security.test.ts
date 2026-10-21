@@ -143,6 +143,34 @@ describe("SettingsManager Security", () => {
     expect(cryptoService.decrypt).toHaveBeenCalled();
     expect(settingsState.accountFor("bitunix").keys.key).toBe("decrypted-key");
   });
+
+  it("stays locked when the service rejects the password (BUG-0721)", async () => {
+    settingsState.isEncrypted = true;
+    settingsState.encryptedAccountKeys = {
+      bitunix: { ciphertext: "abc", iv: "iv", salt: "s", method: "AES-GCM" },
+    };
+    settingsState.lock();
+    vi.mocked(cryptoService.unlockSession).mockResolvedValueOnce(false);
+
+    const result = await settingsState.unlock("wrong-password");
+
+    expect(result).toBe(false);
+    expect(settingsState.isLocked).toBe(true);
+  });
+
+  it("refuses to change the master password while the session is locked (BUG-0721)", async () => {
+    settingsState.isEncrypted = true;
+    settingsState.encryptedAccountKeys = {
+      bitunix: { ciphertext: "abc", iv: "iv", salt: "s", method: "AES-GCM" },
+    };
+    settingsState.lock();
+
+    await expect(settingsState.setMasterPassword("new-password")).rejects.toThrow(
+      "Unlock the session",
+    );
+    // The stored vault is untouched.
+    expect(settingsState.encryptedAccountKeys?.bitunix?.ciphertext).toBe("abc");
+  });
 });
 
 /**

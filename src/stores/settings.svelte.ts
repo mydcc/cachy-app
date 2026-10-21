@@ -1591,8 +1591,44 @@ export class SettingsManager {
   }
 
   async unlock(password: string): Promise<boolean> {
-    const success = await cryptoService.unlockSession(password);
-    if (!success) return false;
+    // Any stored blob can prove the password: the canary first (always
+    // written by `applyFieldEncryption`, one cheap check), then a few other
+    // stores. Without this a mistyped password still marked the session
+    // unlocked and a later save re-encrypted recoverable secrets under the
+    // wrong key (BUG-0721).
+    const isBlob = (value: unknown): value is EncryptedBlob =>
+      !!value &&
+      typeof value === "object" &&
+      typeof (value as EncryptedBlob).ciphertext === "string" &&
+      typeof (value as EncryptedBlob).iv === "string" &&
+      typeof (value as EncryptedBlob).salt === "string";
+
+    const secretEntries = Object.entries(this.encryptedSecrets ?? {}).filter(
+      (entry): entry is [string, EncryptedBlob] => isBlob(entry[1]),
+    );
+    const candidates: EncryptedBlob[] = [
+      ...secretEntries
+        .filter(([key]) => key === "_deviceKeyCanary")
+        .map(([, blob]) => blob),
+      ...secretEntries
+        .filter(([key]) => key !== "_deviceKeyCanary")
+        .map(([, blob]) => blob),
+      ...Object.values(this.encryptedAccountKeys ?? {}).filter(isBlob),
+      ...(this.encryptedProviderConfigs && isBlob(this.encryptedProviderConfigs)
+        ? [this.encryptedProviderConfigs]
+        : []),
+    ];
+    // A typo would otherwise pay one PBKDF2 derivation per stored blob. Three
+    // candidates are enough proof; the canary alone is normally the first.
+    const verifiers = candidates.slice(0, 3);
+
+    const success = await cryptoService.unlockSession(password, verifiers);
+    if (!success) {
+      // The service already cleared its key. Mirror that in the store so a
+      // later save cannot take the "can encrypt" path with no session.
+      this.lock();
+      return false;
+    }
 
     let aborted = false;
     try {
@@ -1707,6 +1743,15 @@ export class SettingsManager {
 
   async setMasterPassword(password: string) {
     if (!browser) return;
+    // Changing the password re-encrypts the in-memory credentials. A locked
+    // session has none (they were redacted on lock), so proceeding would
+    // overwrite the stored vault with empty blobs without proving the old
+    // password (BUG-0721).
+    if (this.isEncrypted && this.isLocked) {
+      throw new Error(
+        "Unlock the session before changing the master password.",
+      );
+    }
     const success = await cryptoService.unlockSession(password);
     if (!success)
       throw new Error("Failed to unlock session with provided password");
@@ -1810,6 +1855,10 @@ export class SettingsManager {
       this.isLocked = apiKeyResult.isLocked;
       this.encryptedAccountKeys = apiKeyResult.encryptedAccountKeys;
       this.encryptedProviderConfigs = merged.encryptedProviderConfigs;
+      // The ciphertext is safe to hold in either mode, and `unlock()` needs it
+      // as the password verifier — in password mode it is the only store that
+      // exists for a secrets-only profile (BUG-0721).
+      this.encryptedSecrets = merged.encryptedSecrets;
       this.accounts = apiKeyResult.accounts;
       this.activeAccountId = apiKeyResult.activeAccountId;
 
@@ -2109,12 +2158,18 @@ export class SettingsManager {
           encryptionPassword,
           !this.providerConfigDecryptPending,
         );
-      // A locked-session save cannot encrypt (every loader returns 0
-      // early) and must not clear a previously reported failure: the
-      // dropped blobs are still gone, so the banner stays until a save
-      // that actually encrypts succeeds and resets the count.
+      // A locked-session save cannot encrypt. It still reports plaintext
+      // credentials it had to redact without a blob (BUG-0721), and it must
+      // not clear a previously reported failure: the dropped blobs are still
+      // gone, so the banner stays until a save that actually encrypts
+      // succeeds and resets the count.
       if (canEncrypt) {
         this.encryptionFailures = encryptionFailures;
+      } else if (encryptionFailures > 0) {
+        this.encryptionFailures = Math.max(
+          this.encryptionFailures,
+          encryptionFailures,
+        );
       }
 
       const current = safeLocalStorage.getItem(

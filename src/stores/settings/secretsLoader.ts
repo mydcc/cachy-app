@@ -73,6 +73,11 @@ export function apiKeyHasMaterial(
 export interface PersistedCiphertextState {
   /** The `_deviceKeyCanary` blob, if the settings blob carries one. */
   canaryBlob?: EncryptedBlob;
+  /**
+   * The first real ciphertext blob, used to verify a migrated device key when
+   * no canary exists (BUG-0721). Absent when only a canary is stored.
+   */
+  verificationBlob?: EncryptedBlob;
   /** True when any Class-A ciphertext exists on disk (canary excluded). */
   hasOrphanedCiphertext: boolean;
 }
@@ -92,6 +97,7 @@ export function readPersistedCiphertextState(): PersistedCiphertextState {
   let parsed: {
     encryptedSecrets?: Record<string, EncryptedBlob>;
     encryptedAccountKeys?: Record<string, EncryptedBlob>;
+    encryptedApiKeys?: Record<string, EncryptedBlob>;
     encryptedProviderConfigs?: EncryptedBlob;
   } | null;
   try {
@@ -101,19 +107,51 @@ export function readPersistedCiphertextState(): PersistedCiphertextState {
     return { hasOrphanedCiphertext: true };
   }
   if (!parsed) return { hasOrphanedCiphertext: false };
+
+  const isBlob = (value: unknown): value is EncryptedBlob =>
+    !!value &&
+    typeof value === "object" &&
+    typeof (value as EncryptedBlob).ciphertext === "string" &&
+    typeof (value as EncryptedBlob).iv === "string" &&
+    typeof (value as EncryptedBlob).salt === "string";
+
   const secrets = parsed.encryptedSecrets;
-  const canaryBlob = secrets?.["_deviceKeyCanary"];
-  const hasSecrets = !!secrets && Object.keys(secrets).some((k) => k !== "_deviceKeyCanary");
+  const canaryBlob = isBlob(secrets?.["_deviceKeyCanary"])
+    ? secrets["_deviceKeyCanary"]
+    : undefined;
+  const firstSecretBlob = secrets
+    ? Object.entries(secrets).find(
+        ([key, blob]) => key !== "_deviceKeyCanary" && isBlob(blob),
+      )?.[1]
+    : undefined;
   const accountKeys = parsed.encryptedAccountKeys;
-  const hasAccountKeys = !!accountKeys && Object.keys(accountKeys).length > 0;
+  const firstAccountBlob = accountKeys
+    ? Object.values(accountKeys).find(isBlob)
+    : undefined;
+  // The venue-indexed block is the store pre-FEAT-0333, pre-canary profiles
+  // actually carry. Leaving it out of the guard let a migration run with no
+  // verifier and then delete the only legacy key (BUG-0721).
+  const legacyApiKeys = parsed.encryptedApiKeys;
+  const firstLegacyApiKeyBlob = legacyApiKeys
+    ? Object.values(legacyApiKeys).find(isBlob)
+    : undefined;
   const providerConfigs = parsed.encryptedProviderConfigs;
-  // An empty object is not a blob (the field is deleted when cleared, so
-  // this is unreachable in practice) — only real ciphertext counts.
-  const hasProviderConfigs =
-    !!providerConfigs && Object.keys(providerConfigs).length > 0;
+  const hasProviderConfigs = isBlob(providerConfigs);
+
+  const verificationBlob =
+    firstSecretBlob ??
+    firstAccountBlob ??
+    firstLegacyApiKeyBlob ??
+    (hasProviderConfigs ? providerConfigs : undefined);
+
   return {
     canaryBlob,
-    hasOrphanedCiphertext: hasSecrets || hasAccountKeys || hasProviderConfigs,
+    verificationBlob,
+    hasOrphanedCiphertext:
+      firstSecretBlob !== undefined ||
+      firstAccountBlob !== undefined ||
+      firstLegacyApiKeyBlob !== undefined ||
+      hasProviderConfigs,
   };
 }
 
@@ -151,7 +189,8 @@ export class SecretsLoader {
     // 1. Check for legacy key in localStorage for migration, and measure
     // the loss guard from every persisted ciphertext store at once.
     const legacyKey = safeLocalStorage.getItem("cachy_device_id");
-    const { canaryBlob, hasOrphanedCiphertext } = readPersistedCiphertextState();
+    const { canaryBlob, verificationBlob, hasOrphanedCiphertext } =
+      readPersistedCiphertextState();
 
     // 2. Get or Generate secure key (migration runs before the guard inside
     // getOrGenerateDeviceKey, BUG-0517).
@@ -159,6 +198,7 @@ export class SecretsLoader {
       .getOrGenerateDeviceKey({
         legacyHexKey: legacyKey || undefined,
         canaryBlob,
+        verificationBlob,
         hasOrphanedCiphertext,
       })
       .then((key) => {
@@ -353,28 +393,24 @@ export class SecretsLoader {
     }
 
     if (!canEncrypt) {
+      let unsaved = 0;
       for (const key of SENSITIVE_KEYS) {
-        // Scoped to the one migration key, deliberately: the other ten have
-        // always been blanked here, and that fail-closed scrubber stays byte
-        // for byte. `openrouterApiKey` is the exception because it shipped
-        // outside this list, so a legacy profile can hold it as plaintext —
-        // redacting that here would destroy the only copy, because this
-        // session has no key to re-encrypt it with. It survives until the next
-        // `canEncrypt` pass, which is the same window in which it becomes
-        // ciphertext. (A generic "keep whatever has no blob" rule would read
-        // cleaner, but it would turn the scrubber fail-open for all eleven
-        // keys to serve a migration exactly one of them needs.)
-        if (key !== "openrouterApiKey") {
-          // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
-          data[key] = "";
-          continue;
-        }
-        const protectedAlready =
+        const value = data[key];
+        const alreadyProtected =
           data.encryptedSecrets !== undefined && key in data.encryptedSecrets;
-        if (!protectedAlready) continue;
+        // A plaintext credential with no blob cannot be protected in this
+        // session. Persisting it would put a Class-A secret on disk in
+        // cleartext, so it is redacted and reported as not saved; the existing
+        // `encryptionWarningMessage` tells the user to re-enter it after
+        // unlock. This used to be a carve-out for `openrouterApiKey` that kept
+        // the plaintext — the value survived, but so did the leak (BUG-0721).
+        if (!alreadyProtected && typeof value === "string" && value.length > 0) {
+          unsaved++;
+        }
+        // @ts-expect-error -- dynamic index over SENSITIVE_KEYS on an untyped payload
         data[key] = "";
       }
-      return 0;
+      return unsaved;
     }
 
     let failures = 0;

@@ -183,6 +183,7 @@ describe("backupService", () => {
       },
       encryptedApiKeys: { bitunix: "cipher-text-1", bitget: "cipher-text-2" },
       encryptedSecrets: "encrypted-secrets-blob",
+      encryptedProviderConfigs: { ciphertext: "provider-config-cipher", iv: "i", salt: "s", method: "AES-GCM" },
       openaiApiKey: "sk-openai-secret-key",
       geminiApiKey: "AIzaSySecretGeminiKey",
       anthropicApiKey: "sk-ant-secret-key",
@@ -195,6 +196,15 @@ describe("backupService", () => {
       imgurClientId: "imgur-client-id",
       cloudToken: "cloud-sync-token",
       appAccessToken: "app-access-token",
+      userProviders: [
+        {
+          id: "custom-1",
+          label: "Custom",
+          flavor: "openai-chat",
+          apiKey: "provider-secret-key",
+          baseUrl: "https://provider.example/v1",
+        },
+      ],
     });
 
     it("should strip all exchange credentials and API keys in unencrypted backups", async () => {
@@ -220,6 +230,9 @@ describe("backupService", () => {
       expect(parsed.apiKeys?.bitget?.passphrase).toBe("");
       expect(parsed.encryptedApiKeys).toBeUndefined();
       expect(parsed.encryptedSecrets).toBeUndefined();
+      // Provider credentials were the one encrypted store the sanitizer
+      // forgot (BUG-0721).
+      expect(parsed.encryptedProviderConfigs).toBeUndefined();
 
       // Third-party and AI API keys and tokens must be stripped
       expect(parsed.openaiApiKey).toBe("");
@@ -234,6 +247,10 @@ describe("backupService", () => {
       expect(parsed.imgurClientId).toBe("");
       expect(parsed.cloudToken).toBe("");
       expect(parsed.appAccessToken).toBe("");
+      // Provider credentials include the endpoint: an empty key with a custom
+      // baseUrl still routes prompts to that host (BUG-0721).
+      expect(parsed.userProviders[0].apiKey).toBe("");
+      expect(parsed.userProviders[0].baseUrl).toBe("");
 
       // Ensure the raw settings string in data does not contain any secret substrings
       const rawSettings = payload?.data?.settings || "";
@@ -274,6 +291,119 @@ describe("backupService", () => {
       expect(restoredSettings.cmcApiKey).toBe("cmc-secret-key-xyz");
       expect(restoredSettings.discordBotToken).toBe("discord-secret-token");
     }, 30000);
+  });
+
+  describe("BUG-0721: unencrypted restore cannot inject credentials", () => {
+    it("blanks injected exchange, secret, and provider fields", async () => {
+      const blob = {
+        ciphertext: "x",
+        iv: "i",
+        salt: "s",
+        method: "AES-GCM",
+      };
+      const backupFile = {
+        appName: backupService.APP_NAME,
+        backupVersion: backupService.BACKUP_VERSION,
+        timestamp: new Date().toISOString(),
+        isEncrypted: false,
+        data: {
+          settings: JSON.stringify({
+            theme: "cyberpunk",
+            apiKeys: {
+              bitunix: { key: "evil-key", secret: "evil-secret" },
+            },
+            accounts: [
+              { id: "bitunix", keys: { key: "evil", secret: "evil" } },
+            ],
+            openaiApiKey: "sk-injected",
+            encryptedSecrets: { openaiApiKey: blob },
+            encryptedProviderConfigs: blob,
+            userProviders: [
+              {
+                id: "injected",
+                flavor: "openai-chat",
+                apiKey: "sk-injected",
+                baseUrl: "https://attacker.example/v1",
+              },
+            ],
+            spacetimedbHost: "https://attacker.example",
+            ollamaCustomHost: "https://attacker.example",
+          }),
+        },
+      };
+
+      localStorage.clear();
+      const result = await backupService.restoreFromBackup(
+        JSON.stringify(backupFile),
+      );
+
+      expect(result.success).toBe(true);
+      const restored = JSON.parse(
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY) || "{}",
+      );
+      expect(restored.theme).toBe("cyberpunk");
+      expect(restored.apiKeys.bitunix.key).toBe("");
+      expect(restored.apiKeys.bitunix.secret).toBe("");
+      expect(restored.accounts[0].keys).toEqual({
+        key: "",
+        secret: "",
+      });
+      expect(restored.openaiApiKey).toBe("");
+      expect(restored.encryptedSecrets).toBeUndefined();
+      expect(restored.encryptedProviderConfigs).toBeUndefined();
+      expect(restored.userProviders[0].apiKey).toBe("");
+      expect(restored.userProviders[0].baseUrl).toBe("");
+      expect(restored.spacetimedbHost).toBeUndefined();
+      expect(restored.ollamaCustomHost).toBeUndefined();
+    });
+
+    it("restores an unencrypted backup whose settings section is null", async () => {
+      localStorage.clear();
+      const backupFile = {
+        appName: backupService.APP_NAME,
+        backupVersion: backupService.BACKUP_VERSION,
+        timestamp: new Date().toISOString(),
+        isEncrypted: false,
+        data: {
+          settings: null,
+          journal: JSON.stringify([{ id: "trade-1" }]),
+        },
+      };
+
+      const result = await backupService.restoreFromBackup(
+        JSON.stringify(backupFile),
+      );
+
+      // The exporter writes `settings: null` when the live store is corrupt;
+      // that must not take the other sections down with it (BUG-0721).
+      expect(result.success).toBe(true);
+      expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY)).toBe(
+        JSON.stringify([{ id: "trade-1" }]),
+      );
+    });
+
+    it("rejects an encrypted backup that declares an unsupported KDF hash", async () => {
+      const backupFile = {
+        appName: backupService.APP_NAME,
+        backupVersion: backupService.BACKUP_VERSION,
+        timestamp: new Date().toISOString(),
+        isEncrypted: true,
+        encryptedData: "AAAA",
+        salt: "AAAA",
+        iv: "AAAA",
+        // SHA-1 is reachable only through the legacy fallback; a file must not
+        // be able to choose it.
+        kdfHash: "SHA-1",
+      };
+
+      const result = await backupService.restoreFromBackup(
+        JSON.stringify(backupFile),
+        "any-password",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Unsupported key derivation hash");
+    });
   });
 
   describe("BUG-0284: Strict validation on backup restore", () => {
