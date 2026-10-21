@@ -19,6 +19,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { windowManager, SAVE_DEBOUNCE_MS } from "./WindowManager.svelte";
 import { WindowBase } from "./WindowBase.svelte";
+import { ChartWindow } from "./implementations/ChartWindow.svelte";
 import { Z_LAYERS, MAX_SAFE_WINDOW_Z_INDEX } from "./zLayers";
 
 class TestWindow extends WindowBase {
@@ -532,5 +533,37 @@ describe("WindowManager keeps the window a modal was opened from (BUG-0667)", ()
         expect(windowManager.isOpen(settings.id)).toBe(false);
         expect(windowManager.isOpen(other.id)).toBe(true);
         openedIds.splice(openedIds.indexOf(settings.id), 1);
+    });
+});
+
+describe("BUG-0711 — a chart window's timeframe is persisted on change", () => {
+    afterEach(() => {
+        vi.useRealTimers();
+        sessionStorage.clear();
+    });
+
+    it("writes the changed timeframe to the session before another window action", () => {
+        vi.useFakeTimers();
+        const win = new ChartWindow("PERSIST-TEST", { timeframe: "1h" });
+        // Several windows of the same type are allowed here; the test only
+        // needs this one to be registered so serialize() includes it.
+        win.allowMultipleInstances = true;
+        windowManager.open(win);
+        // Let the save scheduled by open() run first: otherwise it fires after
+        // the change and would pick the new value up by accident.
+        vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 1);
+
+        win.timeframe = "5m";
+        vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 1);
+
+        const saved = JSON.parse(
+            sessionStorage.getItem("cachy_open_windows") ?? "[]",
+        ) as Array<{ type: string; symbol?: string; timeframe?: string }>;
+        const entry = saved.find(
+            (item) => item.type === "chart" && item.symbol === "PERSIST-TEST",
+        );
+        expect(entry?.timeframe).toBe("5m");
+
+        windowManager.close(win.id);
     });
 });

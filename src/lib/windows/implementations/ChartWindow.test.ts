@@ -15,8 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ChartWindow } from "./ChartWindow.svelte";
+import { windowManager } from "../WindowManager.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
 
 describe("ChartWindow.updateHeaderControls", () => {
@@ -49,5 +50,18 @@ describe("ChartWindow.updateHeaderControls", () => {
 
         const labels = win.headerControls.map((c) => c.label);
         expect(labels).toEqual(["5m", "15m", "1h", "▼"]);
+    });
+
+    it("requests a session save only when the timeframe actually changes", () => {
+        const win = new ChartWindow("BTCUSDT");
+        const save = vi.spyOn(windowManager, "requestSessionSave");
+
+        win.timeframe = "1h"; // the constructor default
+        expect(save).not.toHaveBeenCalled();
+
+        win.timeframe = "5m";
+        expect(save).toHaveBeenCalledTimes(1);
+
+        save.mockRestore();
     });
 });

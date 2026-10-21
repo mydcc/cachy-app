@@ -141,6 +141,15 @@ class WindowManager {
     }
 
     /**
+     * Persist the session after a change that a window serializes but does not
+     * trigger open()/close() for — a chart window's timeframe (BUG-0711).
+     * Debounced through the same timer as the lifecycle saves.
+     */
+    requestSessionSave() {
+        this.saveSession();
+    }
+
+    /**
      * Internal method to execute the session save logic.
      */
     private _performSaveSession() {
