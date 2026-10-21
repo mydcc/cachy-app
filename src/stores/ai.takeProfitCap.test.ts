@@ -18,12 +18,13 @@
 /*
  * BUG-0705 — an AI `addTakeProfit` on a full setup overwrote the last target.
  *
- * `app.addTakeProfitRow()` returns early at four targets, and `executeAction`
+ * `app.addTakeProfitRow()` returned early at four targets, and `executeAction`
  * then wrote to `targets[targets.length - 1]` — which is TP4, a row the user
  * had configured. The action is named "add", so the write has to land on a row
  * that was actually added, and a refusal has to be visible.
  */
 
+import { get } from "svelte/store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../lib/appAuth", () => ({
@@ -34,28 +35,30 @@ import { aiState } from "./ai.svelte";
 import { settingsState } from "./settings.svelte";
 import { tradeState } from "./trade.svelte";
 import { AI_ALLOWED_ACTIONS_DEFAULT } from "../lib/ai/actionPolicy";
+import { _ } from "../locales/i18n";
 
 const FULL_SETUP = [
-  { price: "100", percent: "25", isLocked: false },
+  { price: "100", percent: "20", isLocked: false },
   { price: "110", percent: "25", isLocked: false },
-  { price: "120", percent: "25", isLocked: false },
-  { price: "130", percent: "25", isLocked: false },
+  { price: "120", percent: "30", isLocked: false },
+  { price: "130", percent: "40", isLocked: false },
 ];
 
-function queueAddTakeProfit(value: string): void {
+function queue(actions: Array<Record<string, unknown>>): void {
   aiState.pendingActions.set("tp", {
     id: "tp",
-    actions: [{ action: "addTakeProfit", value, percent: "25" }],
+    actions,
     timestamp: Date.now(),
   });
 }
 
-function systemNotice(): string {
+function systemNotices(): string[] {
   return aiState.messages
     .filter((message) => message.role === "system")
-    .map((message) => message.content)
-    .join("\n");
+    .map((message) => message.content);
 }
+
+const CAP_NOTICE = `⛔ ${get(_)("settings.ai.permissions.tpCapNotice")}`;
 
 beforeEach(() => {
   aiState.messages = [];
@@ -67,26 +70,56 @@ beforeEach(() => {
 });
 
 describe("AI addTakeProfit at the four-target cap (BUG-0705)", () => {
-  it("keeps TP4 and says why when the setup is already full", () => {
-    queueAddTakeProfit("999");
+  it("keeps TP4 intact and says why when the setup is already full", () => {
+    queue([{ action: "addTakeProfit", value: "999", percent: "25" }]);
 
     aiState.confirmAction("tp");
 
-    expect(tradeState.targets).toHaveLength(4);
-    expect(tradeState.targets[3].price).toBe("130");
-    expect(tradeState.targets[3].percent).toBe("25");
-    // A refused action must not look like a no-op.
-    expect(systemNotice()).toContain("4");
+    expect(tradeState.targets).toEqual(FULL_SETUP);
+    expect(systemNotices()).toContain(CAP_NOTICE);
   });
 
-  it("writes the new price to the row that was actually added", () => {
+  it("does not let a second add overwrite the row the first one added", () => {
     tradeState.targets = structuredClone(FULL_SETUP.slice(0, 3));
-    queueAddTakeProfit("999");
+    queue([
+      { action: "addTakeProfit", value: "998", percent: "25" },
+      { action: "addTakeProfit", value: "999", percent: "25" },
+    ]);
 
     aiState.confirmAction("tp");
 
+    // The old code wrote both values to `length - 1`, so the second add
+    // replaced the row the first had just created.
     expect(tradeState.targets).toHaveLength(4);
-    expect(tradeState.targets[3].price).toBe("999");
-    expect(tradeState.targets[2].price).toBe("120");
+    expect(tradeState.targets[3].price).toBe("998");
+    expect(systemNotices()).toContain(CAP_NOTICE);
+  });
+
+  it("labels the confirmation as refused at the cap and as an addition below it", () => {
+    const action = { action: "addTakeProfit", value: "999", percent: "25" };
+
+    expect(aiState.describeAction(action)).toBe(
+      `⛔ ${get(_)("settings.ai.permissions.tpCapBadge")}`,
+    );
+
+    tradeState.targets = structuredClone(FULL_SETUP.slice(0, 3));
+    expect(aiState.describeAction(action)).toContain("TP Hinzufügen");
+
+    // A batch whose only action is refused must not render as confirmed.
+    tradeState.targets = structuredClone(FULL_SETUP);
+    aiState.messages = [
+      {
+        id: "pending-message",
+        role: "system",
+        content: "[PENDING:tp]",
+        timestamp: Date.now(),
+      },
+    ];
+    queue([action]);
+    aiState.confirmAction("tp");
+
+    const status = aiState.messages.find((m) => m.id === "pending-message")?.content ?? "";
+    expect(status).toContain("❌");
+    expect(status).not.toContain("✅");
   });
 });

@@ -90,11 +90,29 @@ Anthropic models overview):
 | OpenAI | `gpt-4o` | `gpt-5.4-mini` |
 | Anthropic | `claude-sonnet-5` | `claude-sonnet-5-5` |
 
-The retired IDs also leave the news/sentiment fallbacks, the Gemini route's
-own default and the migration pins. `KNOWN_MODELS` in `aiProviders.ts` lists
-what each built-in is known to serve; `aiProviders.defaults.test.ts` pins
-`defaultSettings` to the registry and fails on an empty or unknown default
-(verified RED by reverting the Gemini default).
+`claude-sonnet-5` was superseded, not retired (Anthropic lists it active until
+at least 2027-06-30); the change is a freshness upgrade. `gemini-1.5-flash`
+and `gemini-2.0-flash` are shut down, `gpt-4o`/`gpt-4o-mini` are deprecated
+with removal on 2027-01-14.
+
+The old IDs also leave the news/sentiment fallbacks, the route defaults and the
+migration pins. `KNOWN_MODELS` in `aiProviders.ts` lists what each built-in is
+known to serve; `aiProviders.defaults.test.ts` pins `defaultSettings` to the
+registry, requires a known entry for every shipped default, scans the live
+fallback files for retired IDs, and checks the migration targets. Verified RED
+by reverting the Gemini default, the news fallback and the migration pin.
+
+Two review findings changed the shape of the fix:
+
+- **`max_completion_tokens`**: OpenAI's GPT-5.x reasoning models reject
+  `max_tokens`, so the shipped `gpt-5.4-mini` default would have failed its
+  first request. The OpenAI route and `directRequest` now send
+  `max_completion_tokens` when the host is `api.openai.com` and keep
+  `max_tokens` for compatible relays that may not know the new name.
+- **Existing profiles keep their stored default.** The migration only rewrites
+  empty/placeholder/legacy IDs, per the "do not rewrite user-saved models" AC —
+  so an install that persisted `gemini-1.5-flash` keeps it until the user picks
+  a model. That is deliberate, not an oversight.
 
 ## Out of scope
 

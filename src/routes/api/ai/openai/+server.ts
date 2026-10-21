@@ -39,6 +39,21 @@ function isOpenRouterTarget(targetUrl: string): boolean {
   }
 }
 
+/**
+ * The built-in OpenAI endpoint refuses `max_tokens` for the GPT-5.x reasoning
+ * models ("Unsupported parameter, use max_completion_tokens"), while several
+ * OpenAI-compatible relays only accept the older name. The target decides:
+ * api.openai.com gets the new parameter, everything else keeps `max_tokens`
+ * (BUG-0707 — without this the new default 400s on its first request).
+ */
+function isOpenAiHost(targetUrl: string): boolean {
+  try {
+    return new URL(targetUrl).hostname.toLowerCase() === "api.openai.com";
+  } catch {
+    return false;
+  }
+}
+
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
@@ -99,10 +114,12 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
       method: "POST",
       headers,
       body: JSON.stringify({
-        model: model || "gpt-4o",
+        model: model || "gpt-5.4-mini",
         messages: messages,
         tools: tools && tools.length > 0 ? tools : undefined,
-        max_tokens: 2000,
+        ...(isOpenAiHost(targetUrl)
+          ? { max_completion_tokens: 2000 }
+          : { max_tokens: 2000 }),
         stream: true, // Enable streaming
         stream_options: { include_usage: true },
       }),

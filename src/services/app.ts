@@ -56,6 +56,10 @@ const calculatorService = new CalculatorService(calculator, uiState);
 let realtimeUpdatesCleanup: (() => void) | null = null;
 let isInitialized = false;
 
+/** The setup's take-profit cap. One value, read by the row button, the AI
+ *  executor and the confirmation badge (BUG-0705). */
+export const MAX_TAKE_PROFIT_TARGETS = 4;
+
 export const app = {
   calculator: calculator,
   uiManager: uiState,
@@ -539,7 +543,7 @@ export const app = {
 
   addTakeProfitRow(): number | null {
     const currentTargets = tradeState.targets;
-    if (currentTargets.length >= 4) return null;
+    if (currentTargets.length >= MAX_TAKE_PROFIT_TARGETS) return null;
 
     const newTargets = [
       ...currentTargets,

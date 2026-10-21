@@ -54,9 +54,14 @@ the index it added or `null`; `executeAction` writes to that index and, at the
 cap, refuses with a system notice instead of touching TP4. The confirmation
 badge says "refused (4 targets reached)" rather than promising an addition.
 
-`ai.takeProfitCap.test.ts` drives both halves: the full setup keeps TP4's price
-and percent, and a setup with a free slot receives the new price. The first case
-was RED before the fix (`expected '999' to be '130'`).
+`ai.takeProfitCap.test.ts` drives both halves: the full setup keeps TP4's
+price and percent, a batch of two adds cannot overwrite the row the first one
+created, and a setup with a free slot receives the new price. The full-setup
+case was RED before the fix (`expected '999' to be '130'`).
+
+Review follow-ups: the cap lives in one constant (`MAX_TAKE_PROFIT_TARGETS`,
+`app.ts`), a refused-only batch now renders as `❌ Rejected` instead of
+`✅ Confirmed`, and the badge branch has its own case.
 
 ## Notes
 

@@ -154,8 +154,8 @@ const PRESETS_BY_ID = new Map<string, BuiltinProviderPreset>(
  * of a fresh install fail.
  */
 export const KNOWN_MODELS: Record<string, readonly string[]> = {
-  openai: ["gpt-5.4-mini", "gpt-5-mini"],
-  gemini: ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.5-flash"],
+  openai: ["gpt-5.4-mini", "gpt-5.4"],
+  gemini: ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.6-flash"],
   anthropic: [
     "claude-sonnet-5-5",
     "claude-haiku-5-5",

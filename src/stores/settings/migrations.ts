@@ -91,7 +91,7 @@ export function resolveAnthropicModel(stored: string | undefined): string {
   if (!stored || /^claude-[23]/.test(stored)) {
     if (import.meta.env.DEV) {
       console.warn(
-        `[Settings] Migrating anthropicModel from "${stored}" to claude-sonnet-5-5 (retired).`,
+        `[Settings] Migrating anthropicModel from "${stored}" to claude-sonnet-5-5 (current).`,
       );
     }
     return "claude-sonnet-5-5";
