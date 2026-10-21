@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { ChartWindow } from "./ChartWindow.svelte";
 import { windowManager } from "../WindowManager.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
@@ -23,6 +23,10 @@ import { settingsState } from "../../../stores/settings.svelte";
 describe("ChartWindow.updateHeaderControls", () => {
     beforeEach(() => {
         localStorage.clear();
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     it("sorts timeframe buttons by interval size, not by favorites order", () => {
@@ -52,16 +56,33 @@ describe("ChartWindow.updateHeaderControls", () => {
         expect(labels).toEqual(["5m", "15m", "1h", "▼"]);
     });
 
+    it("restores a non-default timeframe without scheduling a save", () => {
+        const save = vi
+            .spyOn(windowManager, "requestSessionSave")
+            .mockImplementation(() => {});
+        const win = new ChartWindow("BTCUSDT", { timeframe: "4h" });
+
+        // Restore is not a user change: a save here would run while the
+        // rehydrated window is not registered yet and could write a session
+        // without it.
+        expect(win.timeframe).toBe("4h");
+        expect(
+            win.headerControls.find((control) => control.label === "4h")?.active,
+        ).toBe(true);
+        expect(save).not.toHaveBeenCalled();
+    });
+
     it("requests a session save only when the timeframe actually changes", () => {
+        const save = vi
+            .spyOn(windowManager, "requestSessionSave")
+            .mockImplementation(() => {});
         const win = new ChartWindow("BTCUSDT");
-        const save = vi.spyOn(windowManager, "requestSessionSave");
 
         win.timeframe = "1h"; // the constructor default
         expect(save).not.toHaveBeenCalled();
 
         win.timeframe = "5m";
+        win.timeframe = "5m"; // the same changed value is still a no-op
         expect(save).toHaveBeenCalledTimes(1);
-
-        save.mockRestore();
     });
 });

@@ -537,33 +537,76 @@ describe("WindowManager keeps the window a modal was opened from (BUG-0667)", ()
 });
 
 describe("BUG-0711 — a chart window's timeframe is persisted on change", () => {
-    afterEach(() => {
-        vi.useRealTimers();
-        sessionStorage.clear();
-    });
-
-    it("writes the changed timeframe to the session before another window action", () => {
-        vi.useFakeTimers();
-        const win = new ChartWindow("PERSIST-TEST", { timeframe: "1h" });
-        // Several windows of the same type are allowed here; the test only
-        // needs this one to be registered so serialize() includes it.
-        win.allowMultipleInstances = true;
-        windowManager.open(win);
-        // Let the save scheduled by open() run first: otherwise it fires after
-        // the change and would pick the new value up by accident.
-        vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 1);
-
-        win.timeframe = "5m";
-        vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 1);
-
+    function savedTimeframe(symbol: string): string | undefined {
         const saved = JSON.parse(
             sessionStorage.getItem("cachy_open_windows") ?? "[]",
         ) as Array<{ type: string; symbol?: string; timeframe?: string }>;
-        const entry = saved.find(
-            (item) => item.type === "chart" && item.symbol === "PERSIST-TEST",
-        );
-        expect(entry?.timeframe).toBe("5m");
+        return saved.find(
+            (item) => item.type === "chart" && item.symbol === symbol,
+        )?.timeframe;
+    }
 
-        windowManager.close(win.id);
+    afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+        sessionStorage.removeItem("cachy_open_windows");
+    });
+
+    it("writes the changed timeframe without another window action", () => {
+        vi.useFakeTimers();
+        const win = new ChartWindow("PERSIST-TEST", { timeframe: "15m" });
+        windowManager.open(win);
+
+        try {
+            // The open-save must already carry the restored timeframe, and the
+            // change must not need another window action to be written.
+            vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 1);
+            expect(savedTimeframe("PERSIST-TEST")).toBe("15m");
+
+            win.timeframe = "5m";
+            expect(savedTimeframe("PERSIST-TEST")).toBe("15m"); // still debounced
+
+            vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 1);
+            expect(savedTimeframe("PERSIST-TEST")).toBe("5m");
+        } finally {
+            windowManager.close(win.id);
+        }
+    });
+
+    it("flushes a pending timeframe change on beforeunload", () => {
+        vi.useFakeTimers();
+        const win = new ChartWindow("PERSIST-UNLOAD", { timeframe: "15m" });
+        windowManager.open(win);
+
+        try {
+            vi.advanceTimersByTime(SAVE_DEBOUNCE_MS + 1);
+            expect(savedTimeframe("PERSIST-UNLOAD")).toBe("15m");
+
+            win.timeframe = "5m";
+            // No timer advance: the reload path has to flush it.
+            window.dispatchEvent(new Event("beforeunload"));
+            expect(savedTimeframe("PERSIST-UNLOAD")).toBe("5m");
+        } finally {
+            windowManager.close(win.id);
+        }
+    });
+
+    it("does not throw when session storage is blocked", () => {
+        const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        const storage = vi
+            .spyOn(window, "sessionStorage", "get")
+            .mockImplementation(() => {
+                throw new DOMException("blocked", "SecurityError");
+            });
+
+        // A timeframe change must still update the chart when the browser
+        // refuses storage access; only the persistence is lost.
+        expect(() => windowManager.requestSessionSave()).not.toThrow();
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to schedule window session save"),
+            expect.any(DOMException),
+        );
+
+        storage.mockRestore();
     });
 });
