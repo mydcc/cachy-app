@@ -133,6 +133,11 @@ vi.mock("../../../services/marketWatcher", () => ({
     },
 }));
 
+// Mutable stand-in for `IndicatorManager._cachedJson` (a string in
+// production). Tests change it to prove the settings leg of the fast-path
+// guard can actually fail.
+const indicatorSettingsMock = vi.hoisted(() => ({ json: "{}" }));
+
 vi.mock("../../../stores/indicator.svelte", () => ({
     indicatorState: {
         ema: {
@@ -141,8 +146,10 @@ vi.mock("../../../stores/indicator.svelte", () => ({
             ema2: { length: 21 },
             ema3: { length: 50 },
         },
-        // The component effect tracks the full indicator state via toJSON();
-        // the layer itself is mocked below so this regression suite stays
+        get _cachedJson() {
+            return indicatorSettingsMock.json;
+        },
+        // The layer itself is mocked below so this regression suite stays
         // focused on live-tick reactivity, not indicator rendering.
         toJSON: () => ({}),
     },
@@ -150,11 +157,19 @@ vi.mock("../../../stores/indicator.svelte", () => ({
 
 // The IndicatorLayer owns the indicator overlays/sub-panes; in this component
 // regression suite it is mocked to a no-op so heavyweight chart-series
-// construction (panes, addSeries, JSIndicators) never runs under happy-dom.
+// construction (panes, addSeries) never runs under happy-dom.
+// `throwOnRender` lets one test exercise the slow path's indicator failure
+// branch without breaking the other tests.
+const indicatorLayerMock = vi.hoisted(() => ({ throwOnRender: false }));
+
 vi.mock("../../../lib/chart/indicatorLayer", () => ({
     IndicatorLayer: class {
         constructor(_chart: unknown, _getColor: unknown) {}
-        render(): void {}
+        render(): void {
+            if (indicatorLayerMock.throwOnRender) {
+                throw new Error("simulated indicator failure");
+            }
+        }
         applyTheme(): void {}
         setAvailableHeight(): void {}
         updateHeaderValues(): void {}
@@ -222,7 +237,6 @@ vi.mock("../../../services/toastService.svelte", () => ({
 }));
 
 import CandleChartView from "./CandleChartView.svelte";
-import { JSIndicators } from "../../../utils/indicators";
 import { toastService } from "../../../services/toastService.svelte";
 import { accountState } from "../../../stores/account.svelte";
 import { tpSlState } from "../../../stores/tpsl.svelte";
@@ -249,7 +263,11 @@ function makeKlines(times: number[], base = 60000) {
 
 const CANDLE_TIMES = [1700000000000, 1700000060000, 1700000120000];
 
-function seedHistory(symbol = "BTCUSDT") {
+/** Seed one market's kline series under the shared reactive store proxy. */
+function seedMarket(
+    symbol: string,
+    klines: Record<string, ReturnType<typeof makeKlines>>,
+) {
     const data: MarketData = {
         symbol,
         lastPrice: null,
@@ -257,11 +275,15 @@ function seedHistory(symbol = "BTCUSDT") {
         markPrice: null,
         fundingRate: null,
         nextFundingTime: null,
-        klines: { "1m": makeKlines(CANDLE_TIMES) },
+        klines,
         klinesBuffers: new Map(),
         lastUpdated: Date.now(),
     };
     marketState.data[symbol] = data;
+}
+
+function seedHistory(symbol = "BTCUSDT") {
+    seedMarket(symbol, { "1m": makeKlines(CANDLE_TIMES) });
 }
 
 async function settle(rounds = 4) {
@@ -304,6 +326,8 @@ beforeEach(() => {
     settingsState.accountFor("bitunix").keys = { key: "", secret: "" };
     appFetchMock.mockReset();
     paperFeedMock.current = null;
+    indicatorSettingsMock.json = "{}";
+    indicatorLayerMock.throwOnRender = false;
     // `clearAllMocks` drops call history, not implementations — restated per
     // test so an unstubbed store hydration resolves to "no plans" instead of
     // handing the store an `undefined` list.
@@ -412,11 +436,7 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
         expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
     });
 
-    it("keeps live updates flowing when the slow-path indicator step throws", async () => {
-        vi.mocked(JSIndicators.ema).mockImplementation(() => {
-            throw new Error("simulated indicator failure");
-        });
-
+    it("keeps the fast path armed when the indicator step throws during a full render", async () => {
         component = mount(CandleChartView, {
             target: host,
             props: { symbol: "BTCUSDT", timeframe: "1m", window: fakeWindow },
@@ -424,13 +444,37 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
         await settle();
         seedHistory();
         await settle();
-
-        // Slow path: setData succeeded, so the fast path is armed even though
-        // the indicator step threw.
         expect(chart.candleSeries.setData).toHaveBeenCalled();
         vi.clearAllMocks();
 
+        // Force a slow path (the batch grows) while the indicator layer
+        // throws. setData succeeded, so the series is correct and the fast
+        // path must stay armed: a broken indicator may not cost a full
+        // candle re-render on every tick.
+        const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        indicatorLayerMock.throwOnRender = true;
         const arr = marketState.data["BTCUSDT"].klines["1m"];
+        const last = arr[arr.length - 1];
+        arr.push({
+            time: last.time + 60000,
+            open: last.close,
+            high: last.close.plus(100),
+            low: last.close.minus(100),
+            close: last.close.plus(50),
+            volume: new Decimal("1000"),
+        });
+        marketState.data["BTCUSDT"].lastUpdated = Date.now();
+        await settle();
+
+        expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(
+            expect.stringContaining("Indicator render failed"),
+            expect.any(Error),
+        );
+
+        // The failed indicator does not disarm the series: the next tick is
+        // a live update, not another full render.
+        indicatorLayerMock.throwOnRender = false;
         arr[arr.length - 1] = {
             ...arr[arr.length - 1],
             close: new Decimal("70000"),
@@ -441,7 +485,8 @@ describe("BUG-0248 — CandleChartView live tick reactivity (fast path)", () => 
         expect(chart.candleSeries.update).toHaveBeenCalledWith(
             expect.objectContaining({ close: 70000 }),
         );
-        expect(chart.candleSeries.setData).not.toHaveBeenCalled();
+        expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
+        errorSpy.mockRestore();
     });
 });
 
@@ -461,27 +506,11 @@ describe("BUG-0709 — interval and market switches rebuild the series", () => {
     const TIMES_1M = [LAST_OPEN_MS - 120000, LAST_OPEN_MS - 60000, LAST_OPEN_MS];
     const TIMES_5M = [LAST_OPEN_MS - 600000, LAST_OPEN_MS - 300000, LAST_OPEN_MS];
 
-    function seedMarket(
-        symbol: string,
-        klines: Record<string, ReturnType<typeof makeKlines>>,
-    ) {
-        const data: MarketData = {
-            symbol,
-            lastPrice: null,
-            indexPrice: null,
-            markPrice: null,
-            fundingRate: null,
-            nextFundingTime: null,
-            klines,
-            klinesBuffers: new Map(),
-            lastUpdated: Date.now(),
-        };
-        marketState.data[symbol] = data;
-    }
-
-    function lastRenderedSeries(): Array<{ close: number }> {
+    function lastRenderedSeries(): Array<{ time: number; close: number }> {
         const calls = chart.candleSeries.setData.mock.calls;
-        return (calls[calls.length - 1]?.[0] ?? []) as Array<{ close: number }>;
+        const lastCall = calls[calls.length - 1];
+        if (!lastCall) throw new Error("setData was never called");
+        return lastCall[0] as Array<{ time: number; close: number }>;
     }
 
     it("re-renders when the new interval has the same last open time and length", async () => {
@@ -507,8 +536,10 @@ describe("BUG-0709 — interval and market switches rebuild the series", () => {
         // The 5m candles must replace the 1m series, not just the last point.
         expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
         const series = lastRenderedSeries();
-        expect(series).toHaveLength(TIMES_5M.length);
-        expect(series[0]?.close).toBe(61050);
+        expect(series.map((c) => c.time)).toEqual(
+            TIMES_5M.map((t) => t / 1000),
+        );
+        expect(series[0].close).toBe(61050);
     });
 
     it("re-renders when the new market has the same last open time and length", async () => {
@@ -531,8 +562,10 @@ describe("BUG-0709 — interval and market switches rebuild the series", () => {
 
         expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
         const series = lastRenderedSeries();
-        expect(series).toHaveLength(TIMES_1M.length);
-        expect(series[0]?.close).toBe(62050);
+        expect(series.map((c) => c.time)).toEqual(
+            TIMES_1M.map((t) => t / 1000),
+        );
+        expect(series[0].close).toBe(62050);
     });
 
     it("keeps the fast path armed for the interval it just rendered", async () => {
@@ -567,6 +600,114 @@ describe("BUG-0709 — interval and market switches rebuild the series", () => {
             expect.objectContaining({ close: 62000 }),
         );
         expect(chart.candleSeries.setData).not.toHaveBeenCalled();
+    });
+
+    it("re-renders when the indicator settings change between ticks", async () => {
+        const props = makeReactiveProps({
+            symbol: "BTCUSDT",
+            timeframe: "1m",
+            window: fakeWindow,
+        });
+        component = mount(CandleChartView, { target: host, props }) as never;
+        await settle();
+
+        seedMarket("BTCUSDT", { "1m": makeKlines(TIMES_1M, 60000) });
+        await settle();
+        expect(chart.candleSeries.setData).toHaveBeenCalled();
+        vi.clearAllMocks();
+
+        // A settings change must invalidate the rendered-series identity:
+        // IndicatorLayer needs the full render even when the candle batch
+        // looks unchanged.
+        indicatorSettingsMock.json = '{"ema":{"enabled":true}}';
+        const arr = marketState.data["BTCUSDT"].klines["1m"];
+        arr[arr.length - 1] = {
+            ...arr[arr.length - 1],
+            close: new Decimal("60500"),
+        };
+        marketState.data["BTCUSDT"].lastUpdated = Date.now();
+        await settle();
+
+        expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
+        expect(chart.candleSeries.update).not.toHaveBeenCalled();
+    });
+
+    it("disarms and re-renders when a live update throws", async () => {
+        const props = makeReactiveProps({
+            symbol: "BTCUSDT",
+            timeframe: "1m",
+            window: fakeWindow,
+        });
+        component = mount(CandleChartView, { target: host, props }) as never;
+        await settle();
+
+        seedMarket("BTCUSDT", { "1m": makeKlines(TIMES_1M, 60000) });
+        await settle();
+        vi.clearAllMocks();
+
+        const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+        chart.candleSeries.update.mockImplementationOnce(() => {
+            throw new Error("simulated tick failure");
+        });
+
+        const arr = marketState.data["BTCUSDT"].klines["1m"];
+        arr[arr.length - 1] = {
+            ...arr[arr.length - 1],
+            close: new Decimal("60500"),
+        };
+        marketState.data["BTCUSDT"].lastUpdated = Date.now();
+        await settle();
+
+        // The failed tick cleared the record; the next flush must resync the
+        // whole series instead of retrying the same broken update.
+        expect(chart.candleSeries.setData).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalled();
+
+        arr[arr.length - 1] = {
+            ...arr[arr.length - 1],
+            close: new Decimal("60600"),
+        };
+        marketState.data["BTCUSDT"].lastUpdated = Date.now();
+        await settle();
+
+        expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
+        errorSpy.mockRestore();
+    });
+
+    it("does not loop when a filtered batch tail can never match the guard", async () => {
+        const props = makeReactiveProps({
+            symbol: "BTCUSDT",
+            timeframe: "1m",
+            window: fakeWindow,
+        });
+        component = mount(CandleChartView, { target: host, props }) as never;
+        await settle();
+
+        seedMarket("BTCUSDT", { "1m": makeKlines(TIMES_1M, 60000) });
+        await settle();
+        vi.clearAllMocks();
+
+        // A malformed tail (reachable through unvalidated WS klines) is
+        // filtered out of the rendered series, while its time still feeds
+        // the guard. A reactive record would re-arm forever here; a plain
+        // bookkeeping variable renders once and waits for the next batch.
+        const arr = marketState.data["BTCUSDT"].klines["1m"];
+        const last = arr[arr.length - 1];
+        arr.push({
+            time: last.time + 60000,
+            open: last.close,
+            high: last.close,
+            low: last.close,
+            close: new Decimal(NaN),
+            volume: new Decimal("1000"),
+        });
+        marketState.data["BTCUSDT"].lastUpdated = Date.now();
+        await settle();
+
+        // Only the three valid candles reach the series, and the effect
+        // settled instead of hitting Svelte's effect_update_depth_exceeded.
+        expect(chart.candleSeries.setData).toHaveBeenCalledTimes(1);
+        expect(lastRenderedSeries()).toHaveLength(TIMES_1M.length);
     });
 });
 

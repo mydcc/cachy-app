@@ -79,18 +79,43 @@ defect.
 ## Fix
 
 Replace the three parallel bookkeeping fields with one record describing the
-series actually in the chart (normalized symbol, timeframe, last open time,
-length, indicator-settings snapshot). The fast path may only fire when that
-record matches the incoming klines on **all** fields. Arm it right after
-`setData()` succeeds and clear it in both error paths, so a failed render cannot
-leave a half-valid identity.
+series actually in the chart: normalized symbol, timeframe, last rendered open
+time, input-batch length, the source kline array, and the indicator-settings
+snapshot. The fast path may only fire when that record matches the incoming
+klines on **all** fields. Arm it right after `setData()` succeeds and clear it
+when `setData` fails or a live update throws, so a failed render cannot leave a
+half-valid identity.
+
+The record is a plain variable, not `$state`: it is read and written by the same
+effect, and a reactive object literal would make the effect a subscriber of its
+own output. A batch whose tail is filtered out (a malformed WS kline) can never
+match the guard, and with `$state` that re-arms the effect until Svelte throws
+`effect_update_depth_exceeded` (proven by a regression test).
+
+Additional hardening from review:
+
+- the source array reference is part of the identity, so a REST refetch that
+  rebuilds the array with corrected candles forces a full render even when the
+  last open time and length are unchanged;
+- a pending throttled tick is dropped when a full render starts, so it cannot
+  `update()` a newly switched series with the old interval's klines;
+- an indicator-layer failure no longer disarms the fast path — the series is
+  already correct, so live ticks keep flowing and the next new candle retries
+  the indicator render.
 
 Regression tests in `CandleChartView.component.test.ts`:
 
 - interval switch with identical last open time and equal length re-renders
   (`setData`, not only `update`) — fails without the fix;
 - market switch under the same collision re-renders — fails without the fix;
-- a genuine in-place tick after the switch still uses the fast path.
+- a genuine in-place tick after the switch still uses the fast path;
+- an indicator-settings change forces a full render (fails if the settings leg
+  is removed);
+- a filtered batch tail does not loop the effect (throws
+  `effect_update_depth_exceeded` with a reactive record);
+- a failed live update disarms the record and the next flush re-renders;
+- an indicator-layer failure keeps the fast path armed (the mock throws for
+  real, unlike the previous vacuous test).
 
 ## Acceptance criteria
 
@@ -98,7 +123,11 @@ Regression tests in `CandleChartView.component.test.ts`:
 - [x] A test reproduces the market-switch variant and fails without the fix
 - [x] The fix makes both tests pass
 - [x] A real in-place tick on the newly rendered interval still takes the fast path (no full re-render per tick)
-- [x] `src/lib/windows/implementations/CandleChartView.component.test.ts` passes in full (53 tests)
+- [x] An indicator-settings change forces a full render (test fails without that guard leg)
+- [x] A filtered batch tail cannot loop the effect (`$state` variant throws `effect_update_depth_exceeded`)
+- [x] A failed live update disarms the record and the next flush re-renders
+- [x] An indicator-layer failure keeps the fast path armed
+- [x] `src/lib/windows/implementations/CandleChartView.component.test.ts` passes in full (56 tests)
 
 ## Out of scope
 

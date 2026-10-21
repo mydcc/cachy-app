@@ -334,15 +334,28 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
      * whose new series starts on the same candle open time and has the same
      * length is mistaken for a tick: only the last candle is updated and the
      * rest of the series keeps the old interval (BUG-0709).
+     *
+     * Deliberately a plain variable, not `$state`: it is read and written by
+     * the same `$effect`, and a reactive record would make that effect a
+     * subscriber of its own output — every arm is a fresh object reference, so
+     * a state that can never match the guard would re-run the effect forever.
+     *
+     * The chart and its candle series are created once per component mount;
+     * if that ever becomes a per-switch recreation, add the series instance to
+     * this identity as well.
      */
     type RenderedSeries = {
         symbol: string;
         timeframe: string;
+        /** Open time (Unix seconds) of the last candle actually in the series. */
         lastTime: Time | null;
-        count: number;
+        /** Length of the input batch this series was rendered from. */
+        inputCount: number;
+        /** The store array this series was rendered from. */
+        source: readonly unknown[];
         settingsJson: string;
     };
-    let renderedSeries = $state<RenderedSeries | null>(null);
+    let renderedSeries: RenderedSeries | null = null;
     let lastRenderTimestamp = 0;
     let renderThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1321,11 +1334,12 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                 const lastTime = (lastKline.time / 1000) as Time;
                 const isLiveUpdate =
                     renderedSeries !== null &&
+                    renderedSeries.source === klines &&
                     renderedSeries.symbol === normalized &&
                     renderedSeries.timeframe === timeframe &&
                     renderedSeries.settingsJson === currentIndicatorSettingsJson &&
                     renderedSeries.lastTime === lastTime &&
-                    renderedSeries.count === klines.length;
+                    renderedSeries.inputCount === klines.length;
 
                 if (isLiveUpdate && !isInitialLoad) {
                     const renderTick = () => {
@@ -1400,6 +1414,14 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                     }
                 } else {
                     // Slow Path: Full Render (History load or New Candle)
+                    // A queued fast-path tick belongs to the batch that was on
+                    // screen before this render; firing it afterwards would
+                    // update the new series with the old interval's klines.
+                    if (renderThrottleTimer) {
+                        clearTimeout(renderThrottleTimer);
+                        renderThrottleTimer = null;
+                    }
+
                     const formatted: CandlestickData[] = klines
                         .map((k) => ({
                             time: (k.time / 1000) as Time,
@@ -1461,40 +1483,52 @@ import { pendingOrdersReadOrder, positionsReadOrder } from "../../../services/ac
                     );
                     drawingPrimitive?.update();
 
+                    let seriesRendered = false;
                     try {
                         candleSeries.setData(unique);
-
-                        // Arm the fast path immediately after the series is
-                        // rendered. If any later slow-path step (indicator
-                        // computation, visibility) throws, live ticks must
-                        // keep flowing via candleSeries.update() instead of
-                        // permanently disarming the fast path and freezing the
-                        // chart after its initial render.
-                        // The record names the series this data belongs to, so
-                        // a timeframe or market switch can never be mistaken
-                        // for a tick (BUG-0709).
-                        renderedSeries = {
-                            symbol: normalized,
-                            timeframe,
-                            lastTime:
-                                unique.length > 0
-                                    ? unique[unique.length - 1].time
-                                    : null,
-                            count: klines.length,
-                            settingsJson: currentIndicatorSettingsJson,
-                        };
-                        lastRenderTimestamp = 0;
-                        isInitialLoad = false;
-
-                        // Render the full indicator layer (overlays + sub-panes).
-                        // The layer reads indicatorState itself, so no extra
-                        // wiring beyond passing the aligned candle rows.
-                        indicatorLayer?.render(rows);
+                        seriesRendered = true;
                     } catch (e) {
                         console.error("[CandleChartView] Render error:", e);
                         // Disarm so the next cycle retries the slow path
                         // instead of silently skipping renders forever.
                         renderedSeries = null;
+                    }
+
+                    if (seriesRendered) {
+                        // Arm the fast path immediately after the series is
+                        // rendered. If the indicator step below throws, live
+                        // ticks must keep flowing via candleSeries.update()
+                        // instead of paying a full re-render on every tick,
+                        // and without permanently disarming the fast path.
+                        // The record names the series this data belongs to, so
+                        // a timeframe or market switch can never be mistaken
+                        // for a tick (BUG-0709). An empty series has nothing
+                        // identity-checkable to arm, so the next flush retries.
+                        renderedSeries =
+                            unique.length > 0
+                                ? {
+                                      symbol: normalized,
+                                      timeframe,
+                                      lastTime: unique[unique.length - 1].time,
+                                      inputCount: klines.length,
+                                      source: klines,
+                                      settingsJson: currentIndicatorSettingsJson,
+                                  }
+                                : null;
+                        lastRenderTimestamp = 0;
+                        isInitialLoad = false;
+
+                        try {
+                            // Render the full indicator layer (overlays + sub-panes).
+                            // The layer reads indicatorState itself, so no extra
+                            // wiring beyond passing the aligned candle rows.
+                            indicatorLayer?.render(rows);
+                        } catch (e) {
+                            console.error("[CandleChartView] Indicator render failed; candles stay live:", e);
+                            // The series itself is correct, so keep the fast
+                            // path armed: a broken indicator must not force a
+                            // full candle re-render on every tick (BUG-0248).
+                        }
                     }
                 }
             }
