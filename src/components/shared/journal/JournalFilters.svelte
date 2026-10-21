@@ -437,8 +437,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 34px;
-        height: 34px;
+        width: var(--control-height-sm);
+        height: var(--control-height-sm);
         border-radius: var(--radius-lg);
         border: 1px solid var(--input-border-color, var(--text-secondary));
         background: var(--bg-secondary);

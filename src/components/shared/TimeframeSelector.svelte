@@ -113,7 +113,7 @@
 
 <div class="flex flex-col relative">
   <div
-    class="flex flex-wrap gap-2 p-2 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] min-h-[42px] focus-within:ring-1 focus-within:ring-[var(--accent-color)] items-center"
+    class="flex flex-wrap gap-2 p-2 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] min-h-[var(--control-height)] focus-within:ring-1 focus-within:ring-[var(--accent-color)] items-center"
   >
     {#each selected as tf, i (tf)}
       <div

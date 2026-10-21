@@ -354,7 +354,7 @@
         <div class="flex items-center flex-wrap justify-end gap-2 md:order-1">
           <select
             id="preset-loader"
-            class="input-field px-3 py-2 rounded-md text-sm"
+            class="input-field rounded-md text-sm"
             aria-label={$_("dashboard.presetLoad")}
             onchange={handlePresetLoad}
             bind:value={presetState.selectedPreset}

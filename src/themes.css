@@ -182,6 +182,28 @@
   --space-8: 2rem;
 
   /*
+   * Control geometry (FEAT-0609).
+   *
+   * The values equal today's shipped sizes — this layer only gives them one
+   * source. A density mode (FEAT-0614) changes these numbers, never the
+   * control classes.
+   *
+   * Every theme inherits this block deliberately: custom properties inherit
+   * from `:root`, and no theme block declares a control literal (checked in
+   * `themes.controlTokens.test.ts`). A theme that wants different geometry
+   * overrides these tokens instead of re-introducing a pixel value.
+   */
+  --control-height: 42px;
+  --control-height-sm: 34px; /* one step below --control-height */
+  --control-padding-x: var(--space-3); /* 12px */
+  --control-font-size: 1rem; /* what an unstyled control inherits today */
+  --control-font-size-sm: 0.75rem; /* one step below --control-font-size */
+  --control-radius: var(--radius-md);
+  --control-number-width: 70px;
+  --control-number-padding-x: var(--space-2); /* 8px */
+  --control-number-padding-y: var(--space-1); /* 4px */
+
+  /*
    * The type scale.
    *
    * The literals live in `--type-*` so a window can re-compose `--text-*` with
@@ -2261,8 +2283,8 @@ select {
 }
 
 .input-field {
-  height: 42px;
-  max-height: 42px;
+  height: var(--control-height);
+  max-height: var(--control-height);
   background-color: var(--bg-tertiary);
   /* WCAG 1.4.11: the field fill (--bg-tertiary) sits barely above the page
      (--bg-primary) in most themes, so a --border-color stroke — which equals
@@ -2270,8 +2292,8 @@ select {
      --input-border-color defaults to --text-secondary (readable on both
      surfaces); a theme can override it if its text-secondary is dim. */
   border: 1px solid var(--input-border-color, var(--text-secondary));
-  border-radius: var(--radius-md);
-  padding: 0 var(--space-3);
+  border-radius: var(--control-radius);
+  padding: 0 var(--control-padding-x);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
@@ -2283,16 +2305,22 @@ textarea.input-field {
   min-height: 4.5rem;
 }
 
-.input-field-sm {
-  height: 34px !important;
-  max-height: 34px !important;
-  font-size: var(--text-xs);
+/*
+ * One step smaller, expressed in tokens (FEAT-0609). No `!important`: the
+ * two-class selector outranks the base `.input-field` and also
+ * `textarea.input-field` (0,2,0 vs 0,1,1), which a bare `.input-field-sm`
+ * would lose against.
+ */
+.input-field.input-field-sm {
+  height: var(--control-height-sm);
+  max-height: var(--control-height-sm);
+  font-size: var(--control-font-size-sm);
 }
 
 .settings-number-input {
-  width: 70px;
+  width: var(--control-number-width);
   text-align: left;
-  padding: 0.25rem 0.5rem;
+  padding: var(--control-number-padding-y) var(--control-number-padding-x);
   font-variant-numeric: tabular-nums;
 }
 
