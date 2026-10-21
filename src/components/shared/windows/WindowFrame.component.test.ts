@@ -29,6 +29,10 @@
  * The window used here opts into the control the same way the readers and the
  * Academy do; whether the Academy *opts in* is pinned separately in
  * `WindowRegistry.test.ts`.
+ *
+ * BUG-0710 — header controls raise their window: pressing one must reach the
+ * frame's focus handler, and keyboard activation must do the same. Escape is
+ * the one key the control group does not swallow.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -109,6 +113,7 @@ function mountFrame(win: WindowBase = new ProbeWindow()): {
 }
 
 afterEach(() => {
+    vi.restoreAllMocks();
     if (component) unmount(component as never);
     component = null;
     host?.remove();
@@ -197,7 +202,9 @@ describe("BUG-0710 — a header control raises its window", () => {
         mountFrame(win);
 
         const control = host?.querySelector<HTMLButtonElement>(".header-ctrl-btn");
+        const frame = host?.querySelector<HTMLElement>(".window-frame");
         expect(control, "the frame rendered no header control").not.toBeNull();
+        expect(frame, "the frame rendered no window element").not.toBeNull();
 
         const bringToFront = vi.spyOn(windowManager, "bringToFront");
         control!.dispatchEvent(
@@ -211,16 +218,68 @@ describe("BUG-0710 — a header control raises its window", () => {
         expect(action).not.toHaveBeenCalled();
         // ... and the header's drag guard still keeps the control from
         // starting a window drag.
-        expect(
-            host?.querySelector(".window-frame")?.classList.contains("dragging"),
-        ).toBe(false);
+        expect(frame!.classList.contains("dragging")).toBe(false);
 
-        // The pointerdown must not consume the click that runs the control.
+        // bringToFront() sets isFocused; the click guard must not raise twice.
+        win.isFocused = true;
         control!.click();
         flushSync();
         expect(action).toHaveBeenCalledTimes(1);
+        expect(bringToFront).toHaveBeenCalledTimes(1);
+    });
 
-        bringToFront.mockRestore();
+    it("brings the window to front on keyboard activation", () => {
+        const win = new ProbeWindow();
+        const action = vi.fn();
+        win.headerControls = [{ label: "5m", active: true, action }];
+        mountFrame(win);
+
+        const control = host?.querySelector<HTMLButtonElement>(".header-ctrl-btn");
+        expect(control, "the frame rendered no header control").not.toBeNull();
+
+        const bringToFront = vi.spyOn(windowManager, "bringToFront");
+        win.isFocused = false;
+        control!.focus();
+        control!.click();
+        flushSync();
+
+        // Tab/Enter produces no pointerdown, so the click handler owns the
+        // raise for the keyboard path.
+        expect(bringToFront).toHaveBeenCalledWith(win.id);
+        expect(action).toHaveBeenCalledTimes(1);
+    });
+
+    it("lets Escape through but keeps other keys inside the control group", () => {
+        const win = new ProbeWindow();
+        win.headerControls = [{ label: "5m", active: true, action: vi.fn() }];
+        mountFrame(win);
+
+        const control = host?.querySelector<HTMLButtonElement>(".header-ctrl-btn");
+        expect(control, "the frame rendered no header control").not.toBeNull();
+        control!.focus();
+
+        const reachedWindow = vi.fn();
+        window.addEventListener("keydown", reachedWindow);
+
+        control!.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "Escape",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        expect(reachedWindow).toHaveBeenCalledTimes(1);
+
+        control!.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "a",
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        expect(reachedWindow).toHaveBeenCalledTimes(1);
+
+        window.removeEventListener("keydown", reachedWindow);
     });
 
     it("still starts a drag from the header background", () => {
@@ -231,12 +290,20 @@ describe("BUG-0710 — a header control raises its window", () => {
         expect(header, "the frame rendered no header").not.toBeNull();
 
         header!.dispatchEvent(
-            new Event("pointerdown", { bubbles: true, cancelable: true }),
+            new PointerEvent("pointerdown", {
+                pointerId: 1,
+                clientX: 100,
+                clientY: 100,
+                bubbles: true,
+                cancelable: true,
+            }),
         );
         flushSync();
         expect(frame!.classList.contains("dragging")).toBe(true);
 
-        header!.dispatchEvent(new Event("pointerup", { bubbles: true }));
+        header!.dispatchEvent(
+            new PointerEvent("pointerup", { pointerId: 1, bubbles: true }),
+        );
         flushSync();
         expect(frame!.classList.contains("dragging")).toBe(false);
     });

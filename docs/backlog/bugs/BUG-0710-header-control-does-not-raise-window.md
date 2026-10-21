@@ -26,7 +26,9 @@ timeframe dropdown arrow — changes the control's value but leaves the window
 where it is in the stacking order. Clicking anywhere else in the same window
 raises and focuses it. A trader working with two chart windows can change a
 background window's timeframe while the window in front still covers most of
-it, which makes the change look like it did nothing.
+it, which makes the change look like it did nothing. Activating a control with
+the keyboard (Tab, then Enter/Space) did not raise the window either, and a
+focused control swallowed Escape before the app's global handlers saw it.
 
 ## Evidence
 
@@ -54,9 +56,22 @@ original purpose (drag prevention) and swallow the frame-level focus handler.
 ## Fix
 
 Remove the `pointerdown` stops from `.header-controls` and from the control
-button; keep the `click`, `dblclick` and `keydown` stops. The `startDrag`
-guard keeps header controls from starting a drag, and the frame root raises the
-window exactly as it does for a click on the window body.
+button; keep the `click` and `dblclick` stops. The `startDrag` guard keeps
+header controls from starting a drag, and the frame root raises the window
+exactly as it does for a click on the window body.
+
+Two follow-ups from review, both in the same control group:
+
+- The kept `keydown` stop swallowed **Escape** too, so a focused control
+  blocked the app's global Escape handlers. Only non-Escape keys are stopped
+  now; Escape reaches the window manager and the page overlays.
+- Keyboard activation (Tab + Enter/Space) produces no `pointerdown`, so the
+  click handler raises the window when `win.isFocused` is false. A mouse click
+  does not raise twice: `bringToFront` has already set the flag by then.
+
+A control press now also reaches document-level `pointerdown` dismissors
+(e.g. the account-summary/order-list popovers) — the same behaviour as a press
+on the window body, and consistent with the rest of the frame.
 
 ## Acceptance criteria
 
@@ -67,6 +82,12 @@ window exactly as it does for a click on the window body.
 - [x] A `pointerdown` on the header background still reaches `startDrag` (the
       frame gets the `dragging` class, and loses it on `pointerup`)
 - [x] The control's `click` action still runs after the change
+- [x] Keyboard activation raises the window (test "brings the window to front
+      on keyboard activation" — 0 calls before the fix)
+- [x] Escape reaches a window-level listener from a focused control, while a
+      normal key stays inside the group (test "lets Escape through but keeps
+      other keys inside the control group")
+- [x] The focus spy is restored for every test (`afterEach` → `vi.restoreAllMocks`)
 
 ## Out of scope
 

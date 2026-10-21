@@ -698,7 +698,12 @@
                     class="header-controls"
                     onclick={(e) => e.stopPropagation()}
                     ondblclick={(e) => e.stopPropagation()}
-                    onkeydown={(e) => e.stopPropagation()}
+                    onkeydown={(e) => {
+                        // Escape belongs to the app (closing the topmost
+                        // dismissible window / overlay); everything else stays
+                        // inside the control group.
+                        if (e.key !== "Escape") e.stopPropagation();
+                    }}
                     role="presentation"
                 >
                     {#each win.headerControls as ctrl}
@@ -707,6 +712,12 @@
                             class:active={ctrl.active}
                             onclick={(e) => {
                                 e.stopPropagation();
+                                // Keyboard activation produces no pointerdown
+                                // at the frame root, so a Tab/Enter press in a
+                                // background window must raise it here too.
+                                if (!win.isFocused) {
+                                    windowManager.bringToFront(win.id);
+                                }
                                 ctrl.action();
                             }}
                             ondblclick={(e) => e.stopPropagation()}
