@@ -2,7 +2,8 @@
 id: BUG-0598
 title: "The Bitget WebSocket connects to the decommissioned V1 stream, and V2 splits it into two hosts with two lifecycles"
 type: bug
-status: ready
+status: in-progress
+assignee: opencode
 priority: P1
 milestone: none
 created: "2026-09-30"
@@ -11,7 +12,7 @@ area: exchange
 data_class: none
 adr: none
 depends_on: [BUG-0581]
-branch: fix/bug-0598-ws-public-v2
+branch: fix/bug-0598-ws-private-lifecycle
 ---
 
 # Migrate the Bitget WebSocket from the V1 stream to the V2 public/private pair
@@ -87,11 +88,11 @@ against V2 without doing it risks reintroducing the mismatch.
       no `/mix/v1/stream` socket
 - [x] The public socket connects to `/v2/ws/public` and sends
       `instType: "USDT-FUTURES"`
-- [ ] The private socket connects to `/v2/ws/private` with the same `instType`
-- [ ] The connection survives the venue's 24-hour forced disconnect
-- [ ] The subscription refcount ledger is preserved **per socket**
+- [x] The private socket connects to `/v2/ws/private` with the same `instType`
+- [x] The connection survives the venue's 24-hour forced disconnect
+- [x] The subscription refcount ledger is preserved **per socket**
 - [x] Ping (25 s), watchdog (35 s) and disconnect grace (2 min) are unchanged
-- [ ] The field-name mismatch recorded in `docs/TODO.md` is resolved or
+- [x] The field-name mismatch recorded in `docs/TODO.md` is resolved or
       re-confirmed against V2
 - [x] The test passes with the fix
 
@@ -159,6 +160,35 @@ Deliberately not done here: nothing drives the instance yet (no adapter
 wiring until the subscription path is reviewed), and the live login
 handshake plus the 24 h disconnect need a trader account. The acceptance
 boxes stay unchecked until the venue has answered.
+
+## Progress — 2026-10-21: private half wired into the adapter
+
+Branch `fix/bug-0598-ws-private-lifecycle`. The 2026-10-07 note stopped at
+"nothing drives the instance yet"; this closes that gap.
+
+- `bitgetAdapter.connection` now connects and destroys both sockets. A provider
+  switch therefore tears both down, and an account/key change reconnects both
+  with the fresh credentials through the existing forced switch in
+  `appEffects`.
+- The private socket no longer drives `marketState.connectionStatus`, nor
+  `onProviderConnected`/`onProviderDisconnected`: the offline banner describes
+  market data, and an account stream alone must not raise it. `activeConnections`
+  still counts both sockets.
+- `resubscribe()` skips the account-wide channels until `isAuthenticated`; the
+  login handler adopts them once in the ledger and then replays. A reconnect
+  therefore sends one subscribe per channel instead of raising the count to N,
+  which the single unsubscribe of a teardown could never release.
+- Four new cases in `bitgetWs.private.test.ts` (no private subscribe before
+  login, re-login plus a single replay after a forced close, ledger stays at
+  one, global status untouched) and two adapter cases in
+  `exchangeAdapter.test.ts` (connect and destroy both sockets).
+- `docs/TODO.md` field mismatch: the login-schema half is already fixed
+  (`BitgetWSMessageSchema` accepts `event`/`code`); the order/position naming
+  is tracked as BUG-0589 and reads `cumExecQty` today.
+
+**Still open, and only a trader can close it:** one live login on the private
+socket. Everything up to the wire is tested; the venue's acknowledgement is
+not.
 
 ## Links
 

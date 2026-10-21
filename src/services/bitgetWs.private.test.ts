@@ -35,6 +35,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { BitgetWebSocketService } from "./bitgetWs";
 import { accountState } from "../stores/account.svelte";
+import { marketState } from "../stores/market.svelte";
 import { settingsState } from "../stores/settings.svelte";
 
 const V2_PRIVATE_URL = "wss://ws.bitget.com/v2/ws/private";
@@ -242,6 +243,82 @@ describe("Bitget private WebSocket (BUG-0598)", () => {
       // The next connect re-reads the active account anyway; anything kept
       // here could only be stale — or reachable from a dead instance.
       expect((internals as WithKeys).pendingKeys).toBeNull();
+    });
+  });
+
+  describe("reconnect and status isolation", () => {
+    it("does not ask for private channels before the login is acknowledged", () => {
+      withCredentials();
+      const opened = openPrivateSocket();
+
+      // `onopen` sends the login frame. Replaying the ledger in that same
+      // tick would put an unauthenticated subscribe on the wire, which V2
+      // answers with an error and never opens (BUG-0598).
+      expect(opened.frames().filter((f) => f.op === "subscribe")).toHaveLength(0);
+
+      internals.handleMessage({ event: "login", code: 0 });
+
+      expect(opened.frames().filter((f) => f.op === "subscribe")).toHaveLength(3);
+    });
+
+    it("re-authenticates and replays the ledger exactly once after a reconnect", async () => {
+      withCredentials();
+      openPrivateSocket();
+      internals.handleMessage({ event: "login", code: 0 });
+      expect(service.subscriptions.get("orders:default")).toBe(1);
+
+      vi.useFakeTimers();
+      try {
+        vi.stubGlobal("navigator", { onLine: true });
+        // A venue-initiated close leaves the socket CLOSED; without this the
+        // reconnect's "already open" guard would return early and the test
+        // would pass because nothing happened.
+        MockWebSocket.instances[0].readyState = MockWebSocket.CLOSED;
+        MockWebSocket.instances[0].onclose?.();
+        await vi.advanceTimersByTimeAsync(2000);
+
+        const reconnected = MockWebSocket.instances[1];
+        expect(reconnected.url).toBe(V2_PRIVATE_URL);
+
+        reconnected.onopen?.();
+        expect(reconnected.frames().some((f) => f.op === "login")).toBe(true);
+        internals.handleMessage({ event: "login", code: 0 });
+
+        // The channel was adopted once, so the reconnect replays it rather
+        // than incrementing the count to 2 — a count that would then survive
+        // the single unsubscribe a teardown sends.
+        expect(service.subscriptions.get("orders:default")).toBe(1);
+        const ordersFrames = reconnected
+          .frames()
+          .filter((f) => f.op === "subscribe" && f.args?.[0]?.channel === "orders");
+        expect(ordersFrames).toHaveLength(1);
+      } finally {
+        vi.unstubAllGlobals();
+        vi.useRealTimers();
+      }
+    });
+
+    it("does not drive the global market-data status", async () => {
+      withCredentials();
+      marketState.connectionStatus = "connected";
+
+      const opened = openPrivateSocket();
+      expect(marketState.connectionStatus).toBe("connected");
+
+      vi.useFakeTimers();
+      try {
+        vi.stubGlobal("navigator", { onLine: true });
+        opened.readyState = MockWebSocket.CLOSED;
+        opened.onclose?.();
+        await vi.advanceTimersByTimeAsync(2000);
+
+        // The private socket is reconnecting; public market data is fine. The
+        // offline banner must not appear for an account stream alone.
+        expect(marketState.connectionStatus).toBe("connected");
+      } finally {
+        vi.unstubAllGlobals();
+        vi.useRealTimers();
+      }
     });
   });
 });
