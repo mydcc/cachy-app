@@ -570,6 +570,24 @@ describe("readPersistedCiphertextState (BUG-0518)", () => {
     expect(state.verificationBlob).toEqual(cipherBlob);
   });
 
+  it("counts and verifies against the legacy venue-indexed encryptedApiKeys store", () => {
+    storeSettings({ encryptedApiKeys: { bitunix: cipherBlob } });
+
+    const state = readPersistedCiphertextState();
+    expect(state.hasOrphanedCiphertext).toBe(true);
+    expect(state.verificationBlob).toEqual(cipherBlob);
+  });
+
+  it("ignores malformed blob shapes instead of using them as a verifier", () => {
+    storeSettings({
+      encryptedSecrets: { openaiApiKey: { ciphertext: "only-ciphertext" } },
+      encryptedAccountKeys: { "acc-1": cipherBlob },
+    });
+
+    const state = readPersistedCiphertextState();
+    expect(state.verificationBlob).toEqual(cipherBlob);
+  });
+
   it("counts encryptedAccountKeys toward the guard on their own", () => {
     storeSettings({ encryptedAccountKeys: { "acc-1": cipherBlob } });
 

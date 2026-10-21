@@ -384,12 +384,22 @@ function scrubCredentialFields(parsed: Record<string, unknown>): void {
   // and "we migrated, so the old field cannot be here" is exactly the
   // assumption that leaks it (BUG-0283).
   if (Array.isArray(parsed.accounts)) {
-    parsed.accounts = parsed.accounts.map(
-      (account: Record<string, unknown>) => ({
-        ...account,
-        keys: { key: "", secret: "", passphrase: "" },
-      }),
-    );
+    for (const account of parsed.accounts) {
+      if (!account || typeof account !== "object") continue;
+      const entry = account as Record<string, unknown>;
+      const keys = entry.keys;
+      if (keys && typeof keys === "object") {
+        // Blank only the fields that exist: a Bitunix account has no
+        // passphrase, and adding one would contradict the per-venue shape
+        // `blankKeysFor` documents.
+        const keyFields = keys as Record<string, unknown>;
+        for (const field of ["key", "secret", "passphrase"]) {
+          if (field in keyFields) keyFields[field] = "";
+        }
+      } else {
+        entry.keys = { key: "", secret: "" };
+      }
+    }
   }
   if (
     parsed.apiKeys &&
@@ -404,13 +414,22 @@ function scrubCredentialFields(parsed: Record<string, unknown>): void {
       }
     }
   }
-  delete parsed.encryptedAccountKeys;
-  delete parsed.encryptedApiKeys;
-  delete parsed.encryptedSecrets;
-  // Provider credentials (FEAT-0467) are Class A too, and a device-key blob is
-  // still a credential on the wire. Omitting this leaked them in every
-  // unencrypted export (BUG-0721).
-  delete parsed.encryptedProviderConfigs;
+  // User-defined AI providers carry a live key and an endpoint. Blanking only
+  // the key is not enough: an empty key with a custom `baseUrl` still routes
+  // prompts to that host, so both go (BUG-0721).
+  if (Array.isArray(parsed.userProviders)) {
+    for (const provider of parsed.userProviders) {
+      if (!provider || typeof provider !== "object") continue;
+      const entry = provider as Record<string, unknown>;
+      if ("apiKey" in entry) entry.apiKey = "";
+      if ("baseUrl" in entry) entry.baseUrl = "";
+    }
+  }
+  // Every encrypted store, by prefix: an explicit list is exactly how
+  // `encryptedProviderConfigs` was forgotten (BUG-0721).
+  for (const key of Object.keys(parsed)) {
+    if (/^encrypted/i.test(key)) delete parsed[key];
+  }
 
   // Third-party and AI API keys (SENSITIVE_KEYS inventory + extras).
   for (const key of SENSITIVE_KEYS) {
@@ -426,6 +445,21 @@ function scrubCredentialFields(parsed: Record<string, unknown>): void {
   if ("openrouterApiKey" in parsed) parsed.openrouterApiKey = "";
   if ("imgurClientId" in parsed) parsed.imgurClientId = "";
 }
+
+/**
+ * Hosts a restored settings payload may point at. An unencrypted backup is
+ * untrusted input, and a redirect of AI prompts, alerts, or sync traffic to a
+ * host the user never chose is the other half of "restore as injection"
+ * (BUG-0721). The values are dropped, so the defaults apply again.
+ */
+const RESTORE_PIVOT_HOSTS = [
+  "spacetimedbHost",
+  "backendUrl",
+  "ollamaCustomHost",
+  "customApiUrl",
+  "proxyUrl",
+  "webhookUrl",
+];
 
 /**
  * Strips exchange credentials, API keys, and sensitive tokens from settings JSON
@@ -455,13 +489,16 @@ export function sanitizeSettingsForUnencryptedExport(settingsJson: string | null
  * Restore-time counterpart of the export scrubber (BUG-0721). An unencrypted
  * backup is untrusted input: a legitimate one already has every credential
  * blanked, so the only thing this can remove is an injected key. It never adds
- * fields, which keeps a credential-free payload byte-identical.
+ * fields, which keeps a credential-free payload semantically unchanged.
  */
 function sanitizeRestoredSettings(settingsJson: string): string | null {
   try {
     const parsed = JSON.parse(settingsJson);
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
     scrubCredentialFields(parsed);
+    for (const host of RESTORE_PIVOT_HOSTS) {
+      if (host in parsed) delete parsed[host];
+    }
     return JSON.stringify(parsed);
   } catch {
     return null;
@@ -627,7 +664,7 @@ export async function restoreFromBackup(
         // is refused rather than passed through (BUG-0721).
         const declaredKdfHash: unknown = backup.kdfHash;
         if (
-          declaredKdfHash !== undefined &&
+          declaredKdfHash != null &&
           declaredKdfHash !== "SHA-256" &&
           declaredKdfHash !== "SHA-512"
         ) {
@@ -643,7 +680,10 @@ export async function restoreFromBackup(
           salt: backup.salt,
           iv: backup.iv,
           method: method,
-          kdfHash: declaredKdfHash as "SHA-256" | "SHA-512" | undefined
+          kdfHash: (declaredKdfHash ?? undefined) as
+            | "SHA-256"
+            | "SHA-512"
+            | undefined
         }, password);
 
         data = JSON.parse(decryptedJson);
@@ -687,11 +727,12 @@ export async function restoreFromBackup(
     // credential before writing, so a legitimate unencrypted file carries
     // none; re-running the same scrubber here rejects an injected key rather
     // than writing it into localStorage (BUG-0721). Encrypted backups are
-    // trusted by the password the user just supplied.
+    // trusted by the password the user just supplied. A `null` settings
+    // section is legitimate (the exporter writes null when the live store is
+    // corrupt) and is not a reason to reject the other sections.
     let settingsPayload: string | null = data.settings ?? null;
-    if (!backup.isEncrypted) {
-      settingsPayload =
-        settingsPayload === null ? null : sanitizeRestoredSettings(settingsPayload);
+    if (!backup.isEncrypted && data.settings != null) {
+      settingsPayload = sanitizeRestoredSettings(data.settings);
       if (settingsPayload === null) {
         return {
           success: false,

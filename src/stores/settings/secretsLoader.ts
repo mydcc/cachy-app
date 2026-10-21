@@ -97,6 +97,7 @@ export function readPersistedCiphertextState(): PersistedCiphertextState {
   let parsed: {
     encryptedSecrets?: Record<string, EncryptedBlob>;
     encryptedAccountKeys?: Record<string, EncryptedBlob>;
+    encryptedApiKeys?: Record<string, EncryptedBlob>;
     encryptedProviderConfigs?: EncryptedBlob;
   } | null;
   try {
@@ -106,28 +107,51 @@ export function readPersistedCiphertextState(): PersistedCiphertextState {
     return { hasOrphanedCiphertext: true };
   }
   if (!parsed) return { hasOrphanedCiphertext: false };
+
+  const isBlob = (value: unknown): value is EncryptedBlob =>
+    !!value &&
+    typeof value === "object" &&
+    typeof (value as EncryptedBlob).ciphertext === "string" &&
+    typeof (value as EncryptedBlob).iv === "string" &&
+    typeof (value as EncryptedBlob).salt === "string";
+
   const secrets = parsed.encryptedSecrets;
-  const canaryBlob = secrets?.["_deviceKeyCanary"];
-  const hasSecrets = !!secrets && Object.keys(secrets).some((k) => k !== "_deviceKeyCanary");
+  const canaryBlob = isBlob(secrets?.["_deviceKeyCanary"])
+    ? secrets["_deviceKeyCanary"]
+    : undefined;
+  const firstSecretBlob = secrets
+    ? Object.entries(secrets).find(
+        ([key, blob]) => key !== "_deviceKeyCanary" && isBlob(blob),
+      )?.[1]
+    : undefined;
   const accountKeys = parsed.encryptedAccountKeys;
-  const hasAccountKeys = !!accountKeys && Object.keys(accountKeys).length > 0;
+  const firstAccountBlob = accountKeys
+    ? Object.values(accountKeys).find(isBlob)
+    : undefined;
+  // The venue-indexed block is the store pre-FEAT-0333, pre-canary profiles
+  // actually carry. Leaving it out of the guard let a migration run with no
+  // verifier and then delete the only legacy key (BUG-0721).
+  const legacyApiKeys = parsed.encryptedApiKeys;
+  const firstLegacyApiKeyBlob = legacyApiKeys
+    ? Object.values(legacyApiKeys).find(isBlob)
+    : undefined;
   const providerConfigs = parsed.encryptedProviderConfigs;
-  // An empty object is not a blob (the field is deleted when cleared, so
-  // this is unreachable in practice) — only real ciphertext counts.
-  const hasProviderConfigs =
-    !!providerConfigs && Object.keys(providerConfigs).length > 0;
-  // Prefer a secret blob, then an account blob, then the provider blob: any of
-  // them can prove a migrated legacy key when no canary was ever written.
+  const hasProviderConfigs = isBlob(providerConfigs);
+
   const verificationBlob =
-    (secrets
-      ? Object.entries(secrets).find(([key]) => key !== "_deviceKeyCanary")?.[1]
-      : undefined) ??
-    (accountKeys ? Object.values(accountKeys)[0] : undefined) ??
+    firstSecretBlob ??
+    firstAccountBlob ??
+    firstLegacyApiKeyBlob ??
     (hasProviderConfigs ? providerConfigs : undefined);
+
   return {
     canaryBlob,
     verificationBlob,
-    hasOrphanedCiphertext: hasSecrets || hasAccountKeys || hasProviderConfigs,
+    hasOrphanedCiphertext:
+      firstSecretBlob !== undefined ||
+      firstAccountBlob !== undefined ||
+      firstLegacyApiKeyBlob !== undefined ||
+      hasProviderConfigs,
   };
 }
 

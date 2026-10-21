@@ -14,15 +14,23 @@ depends_on: []
 
 # BUG-0721 — Security: backup export leaks encrypted provider configs and restore injects credentials without validation
 
-> **State note.** All six sub-findings are fixed. Unencrypted export and
-> restore share one scrubber (provider configs included); an unencrypted
-> restore can no longer inject a credential, while an encrypted backup keeps
-> its credentials. `unlockSession` proves the password against a stored blob
-> (canary first) and stays locked on a mismatch. Restore rejects an
-> unsupported `kdfHash`. Pre-canary migration verifies the legacy key against
-> a real ciphertext blob and refuses to persist it when it opens nothing.
-> A locked save redacts every plaintext credential and reports it as unsaved,
-> which the existing "re-enter" banner surfaces.
+> **State note.** All six sub-findings are fixed, plus the gaps the review
+> found. Unencrypted export and restore share one scrubber (every
+> `encrypted*` store by prefix, `userProviders` keys *and* endpoints,
+> per-venue account key shapes); an unencrypted restore can no longer inject
+> a credential or a pivot host, while an encrypted backup keeps its
+> credentials. `unlockSession` proves the password against a stored blob
+> (canary first, capped) and never publishes an unproven session key.
+> Restore rejects an unsupported `kdfHash` and tolerates `settings: null`.
+> Pre-canary migration verifies the legacy key against a real ciphertext blob
+> — including the legacy `encryptedApiKeys` store — and fails closed when
+> ciphertext exists that nothing can verify, so the only key material is
+> never consumed unproven. A locked save redacts every plaintext credential
+> and the count reaches `encryptionFailures`, which the existing "re-enter"
+> banner surfaces. `setMasterPassword` refuses to run while locked.
+>
+> Deliberate: restoring an unencrypted backup still full-replaces the
+> credential stores (it is a credential-free file by construction).
 
 ## Symptom
 

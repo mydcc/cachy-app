@@ -297,21 +297,32 @@ describe("CryptoService — legacy migration vs loss guard (BUG-0517/0518)", () 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     try {
+      // Nothing on disk to protect: an ephemeral key is safe, but it is still
+      // not written, so a tampered localStorage value never becomes the
+      // long-lived device key (BUG-0721).
       const migrated = await cryptoService.getOrGenerateDeviceKey({
         legacyHexKey: LEGACY_HEX,
-        hasOrphanedCiphertext: true,
       });
 
       expect(migrated).toBeDefined();
-      // Nothing verified this key. Writing it would let a tampered
-      // `cachy_device_id` become the long-lived device key; the session can
-      // still use the deterministic derivation, and the next load repeats the
-      // migration (BUG-0721).
       expect(saveSpy).not.toHaveBeenCalled();
       expect(warn).toHaveBeenCalledTimes(1);
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it("refuses a pre-canary migration when ciphertext exists but nothing can verify the key", async () => {
+    const saveSpy = stubDb();
+
+    await expect(
+      cryptoService.getOrGenerateDeviceKey({
+        legacyHexKey: LEGACY_HEX,
+        hasOrphanedCiphertext: true,
+      }),
+    ).rejects.toThrow("cannot be verified");
+    // The legacy key stays in localStorage; only a proven key is consumed.
+    expect(saveSpy).not.toHaveBeenCalled();
   });
 
   it("persists nothing and still reports DeviceKeyLost when the migrated key fails the canary", async () => {

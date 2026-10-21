@@ -136,14 +136,15 @@ class CryptoServiceImpl {
     try {
       // Import the password as a non-extractable PBKDF2 base key
       const baseKey = await this.getPasswordKey(password);
-      this.sessionBaseKey = baseKey;
-      this.sessionKeyCache.clear();
 
       if (verifiers.length > 0) {
         let opened = false;
         for (const blob of verifiers) {
           try {
-            await this.decrypt(blob);
+            // Verify against the local key, not the session key: the session
+            // must not read as unlocked while the password is still unproven.
+            // Quiet because a wrong password is an expected outcome here.
+            await this.decrypt(blob, baseKey, { quiet: true });
             opened = true;
             break;
           } catch {
@@ -156,6 +157,8 @@ class CryptoServiceImpl {
         }
       }
 
+      this.sessionBaseKey = baseKey;
+      this.sessionKeyCache.clear();
       return true;
     } catch (e) {
       console.error("Failed to unlock session", e);
@@ -302,6 +305,7 @@ class CryptoServiceImpl {
     password?: string | CryptoKey,
     hashAlgo: "SHA-512" | "SHA-256" | "SHA-1" = "SHA-512",
     iterations: number = STRONG_ITERATIONS,
+    quiet = false,
   ): Promise<string> {
     try {
       const salt = base64ToBuffer(blob.salt);
@@ -379,15 +383,25 @@ class CryptoServiceImpl {
     } catch (e) {
       // Fallback logic for legacy strings (not EncryptedBlob objects)? 
       // The old code handled raw strings. We might need a wrapper "legacyDecrypt"
-      console.error("Decryption failed", e);
+      if (!quiet) console.error("Decryption failed", e);
       throw e;
     }
   }
 
-  public async decrypt(blob: EncryptedBlob, password?: string | CryptoKey): Promise<string> {
+  public async decrypt(
+    blob: EncryptedBlob,
+    password?: string | CryptoKey,
+    options: { quiet?: boolean } = {},
+  ): Promise<string> {
     // If the blob records which hash was used, use it directly (no trial decryption).
     if (blob.kdfHash) {
-      return await this.attemptDecrypt(blob, password, blob.kdfHash);
+      return await this.attemptDecrypt(
+        blob,
+        password,
+        blob.kdfHash,
+        STRONG_ITERATIONS,
+        options.quiet,
+      );
     }
 
     // AES-CBC blobs predate the Web Crypto rewrite (commit 560a15c7). The
@@ -419,7 +433,13 @@ class CryptoServiceImpl {
       let lastError: unknown;
       for (const { iterations, hash } of legacyAttempts) {
         try {
-          return await this.attemptDecrypt(blob, password, hash, iterations);
+          return await this.attemptDecrypt(
+            blob,
+            password,
+            hash,
+            iterations,
+            options.quiet,
+          );
         } catch (e) {
           lastError = e;
         }
@@ -431,13 +451,25 @@ class CryptoServiceImpl {
     // New blobs always include kdfHash and are handled by the early return above.
     // Try SHA-256 first, fall back to SHA-512 only if needed (future-proofing).
     try {
-      return await this.attemptDecrypt(blob, password, "SHA-256");
+      return await this.attemptDecrypt(
+        blob,
+        password,
+        "SHA-256",
+        STRONG_ITERATIONS,
+        options.quiet,
+      );
     } catch (e) {
       // Only fall back to SHA-512 if the error is a decryption failure
       // (OperationError), which indicates a key mismatch due to hash algorithm.
       // Other errors (e.g., session locked, invalid base64) should fail fast.
       if (e instanceof DOMException && e.name === "OperationError") {
-        return await this.attemptDecrypt(blob, password, "SHA-512");
+        return await this.attemptDecrypt(
+          blob,
+          password,
+          "SHA-512",
+          STRONG_ITERATIONS,
+          options.quiet,
+        );
       }
       throw e;
     }
@@ -487,16 +519,29 @@ class CryptoServiceImpl {
       const verifier = options?.canaryBlob ?? options?.verificationBlob;
       if (verifier) {
         try {
-          await this.decrypt(verifier, migrated);
-        } catch {
-          throw new Error("DeviceKeyLost: Migrated legacy key cannot open the stored secrets.");
+          await this.decrypt(verifier, migrated, { quiet: true });
+        } catch (e) {
+          throw new Error(
+            "DeviceKeyLost: Migrated legacy key cannot open the stored secrets.",
+            { cause: e },
+          );
         }
         await this.saveKeyToDB(DEVICE_KEY_ALIAS, migrated);
-      } else {
-        console.warn(
-          "[crypto] legacy device key migrated without a canary or verifier; not persisting the unverified key",
+        return migrated;
+      }
+
+      // Nothing can verify this key. With ciphertext on disk, proceeding would
+      // delete the only key material and re-encrypt under an unproven key —
+      // fail closed instead. With nothing to protect, an ephemeral key is
+      // safe, but it is still not persisted (BUG-0721).
+      if (options?.hasOrphanedCiphertext) {
+        throw new Error(
+          "DeviceKeyLost: legacy device key cannot be verified against the stored ciphertext.",
         );
       }
+      console.warn(
+        "[crypto] legacy device key migrated without ciphertext or verifier; not persisting the unverified key",
+      );
       return migrated;
     }
 

@@ -590,3 +590,32 @@ describe("the venue and the active account stay in step", () => {
   });
 });
 
+
+describe("a locked save reports redacted plaintext credentials (BUG-0721)", () => {
+  it("counts a plaintext credential without a blob as unsaved", async () => {
+    const mgr = new SettingsManager();
+    mgr.isEncrypted = true;
+    mgr.isLocked = true;
+    mgr.openrouterApiKey = "sk-or-v1-legacy-plaintext";
+
+    await saveInternal(mgr);
+
+    // The value must not reach disk in cleartext...
+    expect(JSON.stringify(storedPayload())).not.toContain(
+      "sk-or-v1-legacy-plaintext",
+    );
+    // ...and the discarded value must surface through the banner count
+    // instead of vanishing silently.
+    expect(mgr.encryptionFailures).toBe(1);
+  });
+
+  it("leaves the count at zero when nothing had to be redacted", async () => {
+    const mgr = new SettingsManager();
+    mgr.isEncrypted = true;
+    mgr.isLocked = true;
+
+    await saveInternal(mgr);
+
+    expect(mgr.encryptionFailures).toBe(0);
+  });
+});

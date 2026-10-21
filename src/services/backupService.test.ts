@@ -196,6 +196,15 @@ describe("backupService", () => {
       imgurClientId: "imgur-client-id",
       cloudToken: "cloud-sync-token",
       appAccessToken: "app-access-token",
+      userProviders: [
+        {
+          id: "custom-1",
+          label: "Custom",
+          flavor: "openai-chat",
+          apiKey: "provider-secret-key",
+          baseUrl: "https://provider.example/v1",
+        },
+      ],
     });
 
     it("should strip all exchange credentials and API keys in unencrypted backups", async () => {
@@ -238,6 +247,10 @@ describe("backupService", () => {
       expect(parsed.imgurClientId).toBe("");
       expect(parsed.cloudToken).toBe("");
       expect(parsed.appAccessToken).toBe("");
+      // Provider credentials include the endpoint: an empty key with a custom
+      // baseUrl still routes prompts to that host (BUG-0721).
+      expect(parsed.userProviders[0].apiKey).toBe("");
+      expect(parsed.userProviders[0].baseUrl).toBe("");
 
       // Ensure the raw settings string in data does not contain any secret substrings
       const rawSettings = payload?.data?.settings || "";
@@ -305,6 +318,16 @@ describe("backupService", () => {
             openaiApiKey: "sk-injected",
             encryptedSecrets: { openaiApiKey: blob },
             encryptedProviderConfigs: blob,
+            userProviders: [
+              {
+                id: "injected",
+                flavor: "openai-chat",
+                apiKey: "sk-injected",
+                baseUrl: "https://attacker.example/v1",
+              },
+            ],
+            spacetimedbHost: "https://attacker.example",
+            ollamaCustomHost: "https://attacker.example",
           }),
         },
       };
@@ -324,11 +347,39 @@ describe("backupService", () => {
       expect(restored.accounts[0].keys).toEqual({
         key: "",
         secret: "",
-        passphrase: "",
       });
       expect(restored.openaiApiKey).toBe("");
       expect(restored.encryptedSecrets).toBeUndefined();
       expect(restored.encryptedProviderConfigs).toBeUndefined();
+      expect(restored.userProviders[0].apiKey).toBe("");
+      expect(restored.userProviders[0].baseUrl).toBe("");
+      expect(restored.spacetimedbHost).toBeUndefined();
+      expect(restored.ollamaCustomHost).toBeUndefined();
+    });
+
+    it("restores an unencrypted backup whose settings section is null", async () => {
+      localStorage.clear();
+      const backupFile = {
+        appName: backupService.APP_NAME,
+        backupVersion: backupService.BACKUP_VERSION,
+        timestamp: new Date().toISOString(),
+        isEncrypted: false,
+        data: {
+          settings: null,
+          journal: JSON.stringify([{ id: "trade-1" }]),
+        },
+      };
+
+      const result = await backupService.restoreFromBackup(
+        JSON.stringify(backupFile),
+      );
+
+      // The exporter writes `settings: null` when the live store is corrupt;
+      // that must not take the other sections down with it (BUG-0721).
+      expect(result.success).toBe(true);
+      expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY)).toBe(
+        JSON.stringify([{ id: "trade-1" }]),
+      );
     });
 
     it("rejects an encrypted backup that declares an unsupported KDF hash", async () => {
