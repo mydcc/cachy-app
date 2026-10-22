@@ -109,7 +109,8 @@ Sub-tab rails (6: AiTab, ConnectionsTab, SystemTab, TradingTab, VisualsTab,
 IndicatorSettings), segmented controls (19), selection-card groups (8), the
 inline alert chip (1), the inline field toggles (3), the multi-line backup
 action card (1) — 38 in total. Each comment names what the control is;
-`settingsButtons.test.ts` enforces the pattern.
+`buttonAdoption.test.ts` enforces the pattern (it was `settingsButtons.test.ts`
+until FEAT-0612 widened it to the calculator files).
 
 ### Primitive extensions
 
@@ -154,7 +155,7 @@ unused selectors).
 
 ### Checks
 
-- `settingsButtons.test.ts` — fails on any raw `<button>` under
+- `buttonAdoption.test.ts` — fails on any raw `<button>` under
   `settings/tabs/` without an `FEAT-0611 escape:` comment. Stage 2 widens its
   `ROOTS` to the whole settings directory.
 - `src/components/settings` — 18 files, 121 tests, all green.
@@ -232,7 +233,8 @@ monospace face.
 
 ### Checks
 
-- `settingsButtons.test.ts` — `ROOTS` widened to `src/components/settings`,
+- `buttonAdoption.test.ts` — `ROOTS` widened to `src/components/settings`
+  (and later to the FEAT-0612 calculator files),
   so cards and tabs are both covered (7 escapes, all named), plus a companion
   assertion that every `<Button>` carries `onClick` — the review on #4192
   found that hole (a `<Button>` without a handler passes every other check).

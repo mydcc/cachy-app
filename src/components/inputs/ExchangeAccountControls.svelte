@@ -691,6 +691,7 @@ import { Decimal } from "decimal.js";
     <span class="text-[11px] font-medium text-[var(--text-secondary)]"
       >{$_("dashboard.generalInputs.leverage")}</span
     >
+    <!-- FEAT-0612 escape: chip trigger for the leverage dialog (aria-haspopup, FEAT-0328 sync state) — not a plain action -->
     <button
       type="button"
       class="chip"
@@ -734,6 +735,7 @@ import { Decimal } from "decimal.js";
     <span class="text-[11px] font-medium text-[var(--text-secondary)]"
       >{$_("dashboard.generalInputs.marginMode")}</span
     >
+    <!-- FEAT-0612 escape: chip trigger for the margin/position-mode dialog (aria-haspopup, FEAT-0328) — not a plain action -->
     <button
       type="button"
       class="chip"

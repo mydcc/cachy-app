@@ -18,6 +18,7 @@
 <script lang="ts">
   import { icons } from "../../lib/constants";
   import Tooltip from "../shared/Tooltip.svelte";
+  import Button from "../shared/Button.svelte";
   import { _ } from "../../locales/i18n";
   import { trackCustomEvent } from "../../services/trackingService";
 
@@ -72,27 +73,31 @@
       <Tooltip text={$_("dashboard.summaryResults.positionSizeTooltip")}>
         <span>{$_("dashboard.summaryResults.positionSizeLabel")}</span>
       </Tooltip>
-      <button
+      <Button
         id="lock-position-size-btn"
-        class="copy-btn ml-2"
+        variant="ghost-muted"
+        size="sm"
+        extraClasses="copy-btn ml-2"
         title={$_("dashboard.summaryResults.lockPositionSizeTitle")}
-        aria-label={$_("dashboard.summaryResults.lockPositionSizeAriaLabel")}
-        onclick={handleToggleLock}
+        ariaLabel={$_("dashboard.summaryResults.lockPositionSizeAriaLabel")}
+        onClick={handleToggleLock}
       >
         {#if isPositionSizeLocked}
           {@html icons.lockClosed}
         {:else}
           {@html icons.lockOpen}
         {/if}
-      </button>
-      <button
+      </Button>
+      <Button
         id="copy-btn"
-        class="copy-btn"
-        aria-label={$_("dashboard.summaryResults.copyPositionSizeAriaLabel")}
-        onclick={handleCopy}
+        variant="ghost-muted"
+        size="sm"
+        extraClasses="copy-btn"
+        ariaLabel={$_("dashboard.summaryResults.copyPositionSizeAriaLabel")}
+        onClick={handleCopy}
       >
         {@html icons.copy}
-      </button>
+      </Button>
       {#if showCopyFeedback}<span
           id="copy-feedback"
           class="copy-feedback visible"

@@ -26,12 +26,15 @@
     | "warning"
     | "ghost"
     | "ghost-danger"
+    | "ghost-muted"
     | "outline"
     | "outline-accent";
   type ButtonSize = "sm" | "md" | "lg";
 
   interface Props {
-    /** Colour role, mapped to the existing `--btn-*` pairs — no new colours. */
+    /** Colour role. The filled variants map to the `--btn-*` pairs; the text
+     *  variants (`ghost`, `ghost-danger`, `ghost-muted`) use the semantic
+     *  `--accent-color` / `--danger-color` / `--text-secondary` tokens. */
     variant?: ButtonVariant;
     /** Three heights, all read from the FEAT-0609 control tokens. */
     size?: ButtonSize;

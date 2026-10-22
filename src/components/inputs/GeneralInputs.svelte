@@ -239,6 +239,7 @@
       role="radiogroup"
       aria-labelledby="trade-type-label"
     >
+      <!-- FEAT-0612 escape: segmented radio (role="radio", class:active) — the primitive has no selected state -->
       <button
         id="trade-long-btn"
         name="tradeType"
@@ -251,6 +252,7 @@
         onclick={() => setTradeType(CONSTANTS.TRADE_TYPE_LONG)}
         >{$_("dashboard.generalInputs.longButton")}</button
       >
+      <!-- FEAT-0612 escape: segmented radio (role="radio", class:active) — the primitive has no selected state -->
       <button
         id="trade-short-btn"
         name="tradeType"

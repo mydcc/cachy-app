@@ -898,7 +898,10 @@
   --btn-accent-text: var(--matrix-base);
   --btn-success-bg: var(--green-400);
   --btn-success-hover-bg: var(--green-500);
-  --btn-success-text: var(--green-700);
+  /* FEAT-0612: the paper submit is a success button on the order path. Green
+     on green measured 3.73:1; black is the theme's own success foreground and
+     restores the 15.4:1 the old `.submit-btn.paper-mode-btn` had. */
+  --btn-success-text: var(--matrix-base);
 
   /* --- Toggle & UI --- */
   --toggle-bg-off: var(--green-700);
@@ -2698,6 +2701,21 @@ input[type="number"] {
 }
 
 /*
+ * Muted icon action (FEAT-0612): the calculator's icon buttons (fetch balance,
+ * copy, lock) are transparent and quiet at rest, and they answer a hover with a
+ * colour change — not the underline `ghost` uses, which is invisible on an
+ * icon-only button.
+ */
+.btn-base.btn-ghost-muted {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-base.btn-ghost-muted:hover:not(:disabled) {
+  color: var(--accent-color);
+}
+
+/*
  * Warning fill (FEAT-0611 stage 2): the data-maintenance repairs were the
  * only `bg-warning-paired` buttons in the app, and they kept their fill and
  * their `hover:opacity-90` — both are reproduced here instead of mapping a
@@ -2814,16 +2832,6 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 
 .btn-icon-accent:hover {
   color: var(--accent-color-hover);
-}
-
-/* New class for lock icons */
-.btn-lock-icon {
-  color: var(--text-secondary);
-  transition: color 0.2s;
-}
-
-.btn-lock-icon:hover {
-  color: var(--accent-color);
 }
 
 /* New class for modal OK button */
