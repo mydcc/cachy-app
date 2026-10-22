@@ -17,7 +17,6 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
-    import { themeOptions } from "../../../lib/constants";
     import { uiState } from "../../../stores/ui.svelte";
     import type { Component } from "svelte";
     import TabBar from "../TabBar.svelte";

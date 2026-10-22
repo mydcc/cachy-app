@@ -22,12 +22,9 @@
     import { uiState } from "../../../stores/ui.svelte";
     import type { VisualQuality } from "../../../lib/three/quality";
     import { locale, setLocale } from "../../../locales/i18n";
+    import { themeOptions } from "../../../lib/constants";
     import Toggle from "../../shared/Toggle.svelte";
     import Tooltip from "../../shared/Tooltip.svelte";
-
-    let { themes } = $props<{
-        themes: Array<{ value: string; label: string }>;
-    }>();
 
     // Font Options
     const fonts = [
@@ -82,7 +79,7 @@
                     uiState.setTheme(e.currentTarget.value)}
                 class="input-field w-full"
             >
-                {#each themes as theme}
+                {#each themeOptions as theme}
                     <option value={theme.value}
                         >{theme.label}</option
                     >
