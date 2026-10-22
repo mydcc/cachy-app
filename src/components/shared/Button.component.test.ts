@@ -114,8 +114,10 @@ describe("FEAT-0346 — Button forwards its label and honours disabled", () => {
 });
 
 describe("FEAT-0610 — variants, sizes and events", () => {
-    it("takes the three heights from the control tokens", () => {
-        const expected = { sm: "34px", md: "42px", lg: "48px" } as const;
+    it("takes the heights from the control tokens", () => {
+        // `xs` joined for the window chrome (FEAT-0613): 24px is the WCAG
+        // 2.5.8 minimum target, and 34px would grow every title bar.
+        const expected = { xs: "24px", sm: "34px", md: "42px", lg: "48px" } as const;
 
         for (const [size, height] of Object.entries(expected)) {
             if (component) unmount(component as never);

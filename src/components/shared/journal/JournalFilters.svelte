@@ -20,6 +20,7 @@
     import { icons } from "../../../lib/constants";
     import Toggle from "../Toggle.svelte";
 
+  import Button from "../Button.svelte";
     interface Props {
         searchQuery?: string;
         filterStatus?: string;
@@ -201,6 +202,7 @@
         <div class="filter-actions">
             <!-- 3-Way Mode Segmented Control: Live / Paper / All -->
             <div class="mode-segmented inline-flex p-0.5 rounded-lg border border-[var(--input-border-color)] bg-[var(--bg-secondary)] text-xs font-bold shadow-xs">
+                <!-- FEAT-0613 escape: segmented trade-mode control (class:active) — the primitive has no selected state -->
                 <button
                     type="button"
                     class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -213,6 +215,7 @@
                     <span>{$_("journal.tradeMode.live")}</span>
                     <span class="text-[10px] text-[var(--text-secondary)] font-normal font-mono">({liveCount})</span>
                 </button>
+                <!-- FEAT-0613 escape: segmented trade-mode control (class:active) — the primitive has no selected state -->
                 <button
                     type="button"
                     class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -225,6 +228,7 @@
                     <span>{$_("journal.tradeMode.paper")}</span>
                     <span class="text-[10px] text-[var(--text-secondary)] font-normal font-mono">({paperCount})</span>
                 </button>
+                <!-- FEAT-0613 escape: segmented trade-mode control (class:active) — the primitive has no selected state -->
                 <button
                     type="button"
                     class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
@@ -250,14 +254,16 @@
                         {@render actions()}
                     {/if}
 
-                    <button
-                        class="settings-btn"
-                        onclick={toggleSettings}
+                    <Button
+            variant="outline"
+            size="sm"
+                        extraClasses="settings-btn"
+                        onClick={toggleSettings}
                         title={$_("journal.labels.tableSettings")}
-                        aria-label={$_("journal.labels.tableSettings")}
+                        ariaLabel={$_("journal.labels.tableSettings")}
                     >
                         {@html icons.settings}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -267,50 +273,64 @@
     <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border-color)] text-xs">
         <div class="quick-dates">
             <span class="text-[var(--text-secondary)] font-medium mr-1 shrink-0">{$_("journal.labels.from")}:</span>
-            <button
-                class="quick-date-btn"
-                onclick={() => setQuickDate("today")}
+            <Button
+            variant="outline"
+            size="xs"
+                extraClasses="quick-date-btn"
+                onClick={() => setQuickDate("today")}
             >
                 {$_("journal.filters.quickToday")}
-            </button>
-            <button
-                class="quick-date-btn"
-                onclick={() => setQuickDate("week")}
+            </Button>
+            <Button
+            variant="outline"
+            size="xs"
+                extraClasses="quick-date-btn"
+                onClick={() => setQuickDate("week")}
             >
                 {$_("journal.filters.quickWeek")}
-            </button>
-            <button
-                class="quick-date-btn"
-                onclick={() => setQuickDate("month")}
+            </Button>
+            <Button
+            variant="outline"
+            size="xs"
+                extraClasses="quick-date-btn"
+                onClick={() => setQuickDate("month")}
             >
                 {$_("journal.filters.quickMonth")}
-            </button>
-            <button
-                class="quick-date-btn"
-                onclick={() => setQuickDate("30days")}
+            </Button>
+            <Button
+            variant="outline"
+            size="xs"
+                extraClasses="quick-date-btn"
+                onClick={() => setQuickDate("30days")}
             >
                 {$_("journal.filters.quick30Days")}
-            </button>
-            <button
-                class="quick-date-btn"
-                onclick={() => setQuickDate("ytd")}
+            </Button>
+            <Button
+            variant="outline"
+            size="xs"
+                extraClasses="quick-date-btn"
+                onClick={() => setQuickDate("ytd")}
             >
                 {$_("journal.filters.quickYtd")}
-            </button>
-            <button
-                class="quick-date-btn"
-                onclick={() => setQuickDate("all")}
+            </Button>
+            <Button
+            variant="outline"
+            size="xs"
+                extraClasses="quick-date-btn"
+                onClick={() => setQuickDate("all")}
             >
                 {$_("journal.filters.quickAll")}
-            </button>
+            </Button>
 
             {#if hasActiveFilters}
-                <button
-                    class="quick-date-btn text-[var(--accent-color)] border-[var(--accent-color)] font-bold ml-2"
-                    onclick={resetFilters}
+                <Button
+            variant="outline"
+            size="xs"
+                    extraClasses="quick-date-btn text-[var(--accent-color)] border-[var(--accent-color)] font-bold ml-2"
+                    onClick={resetFilters}
                 >
                     ✕ {$_("journal.filters.reset")}
-                </button>
+                </Button>
             {/if}
         </div>
 
@@ -433,42 +453,9 @@
         white-space: nowrap;
     }
 
-    .settings-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: var(--control-height-sm);
-        height: var(--control-height-sm);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--input-border-color, var(--text-secondary));
-        background: var(--bg-secondary);
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
 
-    .settings-btn:hover {
-        background: var(--bg-tertiary);
-        color: var(--text-primary);
-    }
 
-    .quick-date-btn {
-        padding: var(--space-1) var(--space-2);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--input-border-color, var(--text-secondary));
-        background: var(--bg-secondary);
-        color: var(--text-secondary);
-        font-size: var(--text-xs);
-        flex: 0 0 auto;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
 
-    .quick-date-btn:hover {
-        background: var(--bg-tertiary);
-        color: var(--text-primary);
-        border-color: var(--accent-color);
-    }
 
     /* Quick-date presets scroll horizontally on one line instead of wrapping
        into two ragged rows on narrow screens. */

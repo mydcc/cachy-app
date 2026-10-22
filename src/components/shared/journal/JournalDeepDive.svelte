@@ -792,6 +792,7 @@
                     </h4>
                     <div class="flex gap-2">
                         {#each availableYears as year}
+                            <!-- FEAT-0613 escape: year pill with a selected state (rounded-full, class:active) -->
                             <button
                                 class="px-3 py-1 text-sm rounded-full transition-colors border border-[var(--border-color)]
                                            {selectedYear === year

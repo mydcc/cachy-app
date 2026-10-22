@@ -18,6 +18,7 @@
 <script lang="ts">
   import { clickOutside } from "../../lib/actions/clickOutside";
 
+  import Button from "./Button.svelte";
   interface Props {
     tags?: string[];
     availableTags?: string[];
@@ -82,13 +83,14 @@
       class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border border-[var(--border-color)] whitespace-nowrap"
     >
       #{tag}
-      <button
-        class="hover:text-[var(--danger-color)] cursor-pointer leading-none"
-        onclick={(e) => {
+      <Button
+            variant="ghost-danger"
+            size="xs"
+        extraClasses="hover:text-[var(--danger-color)] cursor-pointer leading-none"
+        onClick={(e) => {
           e.stopPropagation();
           removeTag(tag);
-        }}>×</button
-      >
+        }}>×</Button>
     </span>
   {/each}
   <input
@@ -113,6 +115,7 @@
     >
       {#each filteredTags as suggestion}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- FEAT-0613 escape: left-aligned list option row; the primitive centres its children -->
         <button
           type="button"
           class="w-full text-left px-2 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] cursor-pointer text-[var(--text-primary)] bg-transparent border-0"

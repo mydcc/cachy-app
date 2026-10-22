@@ -197,6 +197,9 @@
   --control-height: 42px;
   --control-height-sm: 34px; /* one step below --control-height */
   --control-height-lg: 48px; /* one step above --control-height */
+  /* Dense chrome (window title bars, FEAT-0613): 24px is the WCAG 2.5.8
+     minimum target, and the primitive's 34px would grow every title bar. */
+  --control-height-xs: 24px;
   --control-padding-x: var(--space-3); /* 12px */
   --control-font-size: 1rem; /* what an unstyled control inherits today */
   --control-font-size-sm: 0.75rem; /* one step below --control-font-size */
@@ -2613,6 +2616,12 @@ input[type="number"] {
 .btn-sm {
   height: var(--control-height-sm);
   padding: 0 var(--space-2);
+}
+
+/* Dense chrome only (FEAT-0613): window title-bar controls, 24px. */
+.btn-xs {
+  height: var(--control-height-xs);
+  padding: 0 var(--space-1);
 }
 
 .btn-md {

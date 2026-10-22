@@ -23,6 +23,7 @@
   import { coerceJournalStatus } from "../../../lib/journalStatus";
   import JournalEntryTags from "../JournalEntryTags.svelte";
 
+  import Button from "../Button.svelte";
   interface Props {
     trade: JournalEntry | null;
     currency?: string;
@@ -250,13 +251,15 @@
           <option value="Lost">{$_("journal.filterLost")}</option>
           <option value="Closed">{$_("journal.filterClosed")}</option>
         </select>
-        <button
-          class="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          onclick={onClose}
-          aria-label={$_("journal.drawer.close")}
+        <Button
+            variant="ghost-muted"
+            size="xs"
+          extraClasses="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          onClick={onClose}
+          ariaLabel={$_("journal.drawer.close")}
         >
           ✕
-        </button>
+        </Button>
       </div>
     </header>
 
@@ -479,12 +482,14 @@
             {$_("journal.drawer.notes")}
           </h4>
           {#if isEditingNotes}
-            <button
-              class="text-xs font-bold px-2 py-1 rounded bg-[var(--accent-color)] text-[var(--bg-primary)] hover:opacity-90 transition-opacity"
-              onclick={handleSaveNotes}
+            <Button
+            variant="accent"
+            size="xs"
+              extraClasses="text-xs font-bold px-2 py-1 rounded bg-[var(--accent-color)] text-[var(--bg-primary)] hover:opacity-90 transition-opacity"
+              onClick={handleSaveNotes}
             >
               {$_("journal.drawer.save")}
-            </button>
+            </Button>
           {/if}
         </div>
         <textarea
@@ -513,6 +518,7 @@
 
         {#if trade.screenshot}
           <div class="relative group rounded-lg overflow-hidden border border-[var(--border-color)] bg-[var(--bg-secondary)] max-h-52 flex items-center justify-center">
+            <!-- FEAT-0613 escape: invisible full-area image trigger; the geometry comes from the image, not a control -->
             <button
               class="w-full h-full p-0 border-none bg-transparent cursor-zoom-in"
               onclick={() => (showScreenshotModal = true)}
@@ -553,6 +559,7 @@
         }
       }}
     >
+      <!-- FEAT-0613 escape: overlay chrome (fixed dark fill, floating close) — not a themed control -->
       <button
         class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
         onclick={() => (showScreenshotModal = false)}

@@ -53,6 +53,16 @@ const SCOPES = [
       "src/components/results/PlaceOrderPanel.svelte",
     ],
   },
+  {
+    escape: "FEAT-0613 escape:",
+    roots: [
+      "src/components/shared/JournalContent.svelte",
+      "src/components/shared/JournalEntryTags.svelte",
+      "src/components/shared/DashboardNav.svelte",
+      "src/components/shared/journal",
+      "src/components/shared/windows/WindowFrame.svelte",
+    ],
+  },
 ];
 
 /**
@@ -65,6 +75,15 @@ const EXPECTED_ESCAPES: Record<string, number> = {
   "src/components/inputs/GeneralInputs.svelte": 2,
   "src/components/inputs/ExchangeAccountControls.svelte": 2,
   "src/components/results/PlaceOrderPanel.svelte": 1,
+  // FEAT-0613 — journal and window chrome.
+  "src/components/shared/JournalContent.svelte": 3,
+  "src/components/shared/journal/JournalFilters.svelte": 3,
+  "src/components/shared/journal/JournalTable.svelte": 2,
+  "src/components/shared/journal/TradeDetailDrawer.svelte": 2,
+  "src/components/shared/JournalEntryTags.svelte": 1,
+  "src/components/shared/journal/JournalDeepDive.svelte": 1,
+  "src/components/shared/DashboardNav.svelte": 1,
+  "src/components/shared/windows/WindowFrame.svelte": 2,
 };
 
 function svelteFiles(path: string): string[] {
