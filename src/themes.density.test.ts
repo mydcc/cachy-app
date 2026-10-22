@@ -36,9 +36,19 @@ import { defaultSettings } from "./stores/settings/settingsTypes";
 const CSS = readFileSync("src/themes.css", "utf8");
 
 function renderInput(): HTMLInputElement {
-  document.head.innerHTML = `<style>${CSS}</style>`;
-  document.body.innerHTML = `<input class="input-field" />`;
-  return document.querySelector("input")!;
+  // Same stylesheet, injected through a text node: the test reads computed
+  // styles, and `innerHTML` with file content is the pattern CodeQL flags as
+  // DOM XSS even in a test. `textContent` cannot execute anything.
+  document.head.replaceChildren();
+  const style = document.createElement("style");
+  style.textContent = CSS;
+  document.head.appendChild(style);
+
+  document.body.replaceChildren();
+  const input = document.createElement("input");
+  input.className = "input-field";
+  document.body.appendChild(input);
+  return input;
 }
 
 function setDensity(mode: "compact" | "default" | "wide" | null): void {
