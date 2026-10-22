@@ -32,27 +32,27 @@
     presets = [
       {
         id: "performance",
-        label: $_("journal.deepDive.performance") || "Performance",
+        label: $_("journal.deepDive.performance"),
         icon: icons.chart,
       },
       {
         id: "quality",
-        label: $_("journal.deepDive.systemQuality") || "Quality",
+        label: $_("journal.deepDive.systemQuality"),
         icon: icons.check,
       },
       {
         id: "direction",
-        label: $_("journal.deepDive.charts.labels.trends") || "Direction",
+        label: $_("journal.deepDive.charts.labels.trends"),
         icon: icons.exchange,
       },
       {
         id: "discipline",
-        label: $_("journal.deepDive.behavior") || "Discipline",
+        label: $_("journal.deepDive.behavior"),
         icon: icons.lockClosed,
       },
       {
         id: "costs",
-        label: $_("journal.deepDive.charts.labels.fees") || "Costs",
+        label: $_("journal.deepDive.charts.labels.fees"),
         icon: icons.settings,
       },
     ],
@@ -64,6 +64,8 @@
   class="flex flex-wrap gap-2 mb-4 border-b border-[var(--border-color)] pb-2 overflow-x-auto"
 >
   {#each presets as preset}
+    <!-- FEAT-0613 escape: journal deep-dive tab strip; the shared tab bar is
+         FEAT-0607's, so this strip stays journal-local until that lands -->
     <button
       class="flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap
             {activePreset === preset.id

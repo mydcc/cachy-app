@@ -39,6 +39,7 @@
     import { Decimal } from "decimal.js";
     import type { JournalEntry, JournalTableRow, JournalGroupSummary } from "../../../stores/types";
 
+  import Button from "../Button.svelte";
     interface Props {
         trades?: JournalTableRow[];
         sortField?: string;
@@ -511,13 +512,15 @@
                                 <td class="col-symbol font-bold whitespace-nowrap">
                                     <div class="flex items-center gap-1.5">
                                         {#if isGroup}
-                                            <button
-                                                class="group-toggle-btn"
-                                                onclick={() => toggleGroup(item.symbol)}
-                                                aria-label={$_("journal.clickToExpand")}
+                                            <Button
+                                                variant="ghost-muted"
+                                                size="xs"
+                                                extraClasses=""
+                                                onClick={() => toggleGroup(item.symbol)}
+                                                ariaLabel={$_("journal.clickToExpand")}
                                             >
                                                 {expandedGroups.has(item.symbol) ? "▼" : "▶"}
-                                            </button>
+                                            </Button>
                                         {/if}
                                         <span>{item.symbol}</span>
                                         {#if entryItem?.isPaper}
@@ -677,6 +680,7 @@
                             {#if visibility.screenshot && !groupBySymbol}
                                 <td class="text-center whitespace-nowrap">
                                     {#if entryItem?.screenshot}
+                                        <!-- FEAT-0613 escape: the screenshot thumbnail is the image itself; the primitive would impose height and padding -->
                                         <button
                                             type="button"
                                             class="group relative inline-block rounded overflow-hidden border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-all shadow-xs cursor-pointer align-middle"
@@ -734,22 +738,26 @@
                                 <td class="col-action text-center whitespace-nowrap">
                                     <div class="flex items-center justify-center gap-1">
                                         {#if entryItem}
-                                            <button
-                                                class="action-icon-btn"
-                                                onclick={() => onOpenTradeDetail?.(entryItem)}
+                                            <Button
+                                                variant="outline"
+                                                size="xs"
+                                                extraClasses=""
+                                                onClick={() => onOpenTradeDetail?.(entryItem)}
                                                 title={$_("journal.drawer.title")}
-                                                aria-label={$_("journal.drawer.title")}
+                                                ariaLabel={$_("journal.drawer.title")}
                                             >
                                                 🔍
-                                            </button>
-                                            <button
-                                                class="action-icon-btn text-[var(--danger-color)]"
-                                                onclick={() => onDeleteTrade?.(entryItem.id)}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="xs"
+                                                extraClasses=""
+                                                onClick={() => onDeleteTrade?.(entryItem.id)}
                                                 title={$_("journal.delete")}
-                                                aria-label={$_("journal.delete")}
+                                                ariaLabel={$_("journal.delete")}
                                             >
                                                 🗑️
-                                            </button>
+                                            </Button>
                                         {/if}
                                     </div>
                                 </td>
@@ -910,6 +918,7 @@
                                     {#if visibility.screenshot && !groupBySymbol}
                                         <td class="text-center whitespace-nowrap">
                                             {#if subTrade?.screenshot}
+                                                <!-- FEAT-0613 escape: the screenshot thumbnail is the image itself; the primitive would impose height and padding -->
                                                 <button
                                                     type="button"
                                                     class="group relative inline-block rounded overflow-hidden border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-all shadow-xs cursor-pointer align-middle"
@@ -961,14 +970,16 @@
                                     {/if}
                                     {#if visibility.action}
                                         <td class="col-action text-center">
-                                            <button
-                                                class="action-icon-btn"
-                                                onclick={() => onOpenTradeDetail?.(subTrade)}
+                                            <Button
+                                                variant="outline"
+                                                size="xs"
+                                                extraClasses=""
+                                                onClick={() => onOpenTradeDetail?.(subTrade)}
                                                 title={$_("journal.drawer.title")}
-                                                aria-label={$_("journal.drawer.title")}
+                                                ariaLabel={$_("journal.drawer.title")}
                                             >
                                                 🔍
-                                            </button>
+                                            </Button>
                                         </td>
                                     {/if}
                                 </tr>
@@ -1002,20 +1013,24 @@
                 {$_("journal.pagination.page")} {safeCurrentPage} {$_("journal.pagination.of")} {Math.max(1, totalPages)}
             </span>
             <div class="flex items-center gap-1">
-                <button
-                    class="pagination-btn"
+                <Button
+                    variant="outline"
+                    size="xs"
+                    extraClasses=""
                     disabled={safeCurrentPage <= 1}
-                    onclick={() => handlePageChange(safeCurrentPage - 1)}
+                    onClick={() => handlePageChange(safeCurrentPage - 1)}
                 >
                     ‹ {$_("journal.pagination.prev")}
-                </button>
-                <button
-                    class="pagination-btn"
+                </Button>
+                <Button
+                    variant="outline"
+                    size="xs"
+                    extraClasses=""
                     disabled={safeCurrentPage >= totalPages}
-                    onclick={() => handlePageChange(safeCurrentPage + 1)}
+                    onClick={() => handlePageChange(safeCurrentPage + 1)}
                 >
                     {$_("journal.pagination.next")} ›
-                </button>
+                </Button>
             </div>
         </div>
     </div>
@@ -1064,13 +1079,15 @@
                     <span>📷</span>
                     <span>{$_("journal.chartScreenshot", { values: { symbol: activeLightboxScreenshot.symbol } })}</span>
                 </h4>
-                <button
-                    class="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    onclick={closeLightbox}
-                    aria-label={$_("journal.closeLightbox")}
+                <Button
+                    variant="ghost-muted"
+                    size="xs"
+                    extraClasses=""
+                    onClick={closeLightbox}
+                    ariaLabel={$_("journal.closeLightbox")}
                 >
                     ✕
-                </button>
+                </Button>
             </div>
             <div class="p-2 overflow-auto flex items-center justify-center bg-black/20">
                 <img
@@ -1159,50 +1176,10 @@
         z-index: 20;
     }
 
-    .group-toggle-btn {
-        background: transparent;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: var(--text-xs);
-        padding: 0 var(--space-1);
-    }
 
-    .group-toggle-btn:hover {
-        color: var(--text-primary);
-    }
 
-    .action-icon-btn {
-        padding: 0.25rem 0.4rem;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-color);
-        background: var(--bg-secondary);
-        cursor: pointer;
-        font-size: var(--text-xs);
-        transition: all 0.15s ease;
-    }
 
-    .action-icon-btn:hover {
-        background: var(--bg-tertiary);
-    }
 
-    .pagination-btn {
-        padding: 0.35rem 0.65rem;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-color);
-        background: var(--bg-primary);
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
 
-    .pagination-btn:hover:not(:disabled) {
-        background: var(--bg-tertiary);
-        border-color: var(--accent-color);
-    }
 
-    .pagination-btn:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
 </style>

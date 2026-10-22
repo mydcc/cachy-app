@@ -42,6 +42,7 @@
     import { WINDOW_HEADER_HEIGHT } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import CachyIcon from "../CachyIcon.svelte";
+    import Button from "../Button.svelte";
 
     interface Props {
         /** The logic instance representing this window. contains state and behavioral rules. */
@@ -707,6 +708,8 @@
                     role="presentation"
                 >
                     {#each win.headerControls as ctrl}
+                        <!-- FEAT-0613 escape: per-window header control with an
+                             active/selected state; the primitive has none -->
                         <button
                             class="header-ctrl-btn"
                             class:active={ctrl.active}
@@ -747,32 +750,30 @@
         <div class="window-controls" class:hidden={win.isMinimized}>
             {#if win.allowZoom}
                 <div class="control-group">
-                    <button
-                        class="tool-btn"
-                        onclick={() => win.zoomOut()}
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        onClick={() => win.zoomOut()}
                         ondblclick={(e) => e.stopPropagation()}
                         title={$_("windows.aria.zoomOut")}
-                        aria-label={$_("windows.aria.zoomOut")}>－</button
-                    >
+                        ariaLabel={$_("windows.aria.zoomOut")}>－</Button>
                     <span class="zoom-text"
                         >{Math.round(win.zoomLevel * 100)}%</span
                     >
-                    <button
-                        class="tool-btn"
-                        onclick={() => win.zoomIn()}
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        onClick={() => win.zoomIn()}
                         ondblclick={(e) => e.stopPropagation()}
                         title={$_("windows.aria.zoomIn")}
-                        aria-label={$_("windows.aria.zoomIn")}>＋</button
-                    >
+                        ariaLabel={$_("windows.aria.zoomIn")}>＋</Button>
                 </div>
             {/if}
 
             {#if win.headerButtons.includes("export")}
-                <button
-                    class="tool-btn"
-                    onclick={() => win.onHeaderExport()}
+                <Button
+                    variant="ghost-muted" size="xs"
+                    onClick={() => win.onHeaderExport()}
                     ondblclick={(e) => e.stopPropagation()}
-                    title={$_("common.export")} aria-label={$_("common.export")}
+                    title={$_("common.export")} ariaLabel={$_("common.export")}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -791,15 +792,15 @@
                             y2="3"
                         /></svg
                     >
-                </button>
+                </Button>
             {/if}
 
             {#if win.headerButtons.includes("delete")}
-                <button
-                    class="tool-btn danger"
-                    onclick={() => win.onHeaderDelete()}
+                <Button
+                    variant="ghost-muted" size="xs"
+                    onClick={() => win.onHeaderDelete()}
                     ondblclick={(e) => e.stopPropagation()}
-                    title={$_("common.delete")} aria-label={$_("common.delete")}
+                    title={$_("common.delete")} ariaLabel={$_("common.delete")}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -813,15 +814,15 @@
                             d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
                         /></svg
                     >
-                </button>
+                </Button>
             {/if}
 
             {#if win.headerButtons.includes("openInNewTab")}
-                <button
-                    class="tool-btn"
-                    onclick={() => win.onHeaderOpenInNewTab()}
+                <Button
+                    variant="ghost-muted" size="xs"
+                    onClick={() => win.onHeaderOpenInNewTab()}
                     ondblclick={(e) => e.stopPropagation()}
-                    title={$_("dashboard.openInNewTab")} aria-label={$_("dashboard.openInNewTab")}
+                    title={$_("dashboard.openInNewTab")} ariaLabel={$_("dashboard.openInNewTab")}
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -836,40 +837,37 @@
                         stroke-linejoin="round"
                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                     /></svg>
-                </button>
+                </Button>
             {/if}
 
             {#if win.allowFontSize}
                 <div class="control-group">
-                    <button
-                        class="tool-btn"
-                        onclick={() => win.setFontSize(win.fontSize - 1)}
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        onClick={() => win.setFontSize(win.fontSize - 1)}
                         ondblclick={(e) => e.stopPropagation()}
                         title={$_("windows.aria.decreaseFont")}
-                        aria-label={$_("windows.aria.decreaseFont")}>A-</button
-                    >
-                    <button
-                        class="tool-btn"
-                        onclick={() => win.setFontSize(win.fontSize + 1)}
+                        ariaLabel={$_("windows.aria.decreaseFont")}>A-</Button>
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        onClick={() => win.setFontSize(win.fontSize + 1)}
                         ondblclick={(e) => e.stopPropagation()}
                         title={$_("windows.aria.increaseFont")}
-                        aria-label={$_("windows.aria.increaseFont")}>A+</button
-                    >
+                        ariaLabel={$_("windows.aria.increaseFont")}>A+</Button>
                 </div>
             {/if}
 
             {#if win.allowFeedDuck}
                 <div class="control-group">
-                    <button
-                        class="tool-btn success"
-                        onclick={(e) => {
+                    <Button
+                        variant="ghost-muted" size="xs"
+                        onClick={(e) => {
                             e.stopPropagation();
                             effectsState.triggerDuckEvent({ type: "feed", amount: 10 });
                         }}
                         ondblclick={(e) => e.stopPropagation()}
                         title={$_("common.feedDuck")}
-                        aria-label={$_("common.feedDuck")}>🍞</button
-                    >
+                        ariaLabel={$_("common.feedDuck")}>🍞</Button>
                 </div>
             {/if}
 
@@ -877,21 +875,21 @@
                 <div class="divider"></div>
                 <div class="control-group system-controls">
                     {#if win.showMinimizeButton}
-                        <button
-                            class="tool-btn"
-                            onclick={() => win.minimize()}
+                        <Button
+                            variant="ghost-muted" size="xs"
+                            onClick={() => win.minimize()}
                             ondblclick={(e) => e.stopPropagation()}
-                            title={$_("common.minimize")} aria-label={$_("common.minimize")}
+                            title={$_("common.minimize")} ariaLabel={$_("common.minimize")}
                         >
                             <span class="icon-min"></span>
-                        </button>
+                        </Button>
                     {/if}
                     {#if win.showMaximizeButton}
-                        <button
-                            class="tool-btn"
-                            onclick={() => win.toggleMaximize()}
+                        <Button
+                            variant="ghost-muted" size="xs"
+                            onClick={() => win.toggleMaximize()}
                             ondblclick={(e) => e.stopPropagation()}
-                            title={win.isMaximized ? $_("common.restore") : $_("common.maximize")} aria-label={win.isMaximized ? $_("common.restore") : $_("common.maximize")}
+                            title={win.isMaximized ? $_("common.restore") : $_("common.maximize")} ariaLabel={win.isMaximized ? $_("common.restore") : $_("common.maximize")}
                         >
                             <span
                                 class={win.isMaximized
@@ -901,18 +899,17 @@
                                     ? "scale(0.9) translate(-1px, -1px)"
                                     : "none"}
                             ></span>
-                        </button>
+                        </Button>
                     {/if}
                 </div>
             {/if}
 
-            <button
-                class="close-btn"
+            <Button
+                variant="ghost-muted" size="xs"
                 title={$_("common.close")}
-                aria-label={$_("common.close")}
-                onclick={() => windowManager.close(win.id)}
-                ondblclick={(e) => e.stopPropagation()}>✕</button
-            >
+                ariaLabel={$_("common.close")}
+                onClick={() => windowManager.close(win.id)}
+                ondblclick={(e) => e.stopPropagation()}>✕</Button>
         </div>
 
         {#if showSettings && win.hasContextMenu}
@@ -924,6 +921,8 @@
                 onkeydown={onMenuKeydown}
             >
                 {#each win.getContextMenuActions() as action}
+                    <!-- FEAT-0613 escape: role="menuitem" inside the context
+                         menu; menu keyboard semantics, not a button role -->
                     <button
                         class="menu-item"
                         class:danger={action.danger}
@@ -1333,24 +1332,6 @@
         margin-right: var(--space-1);
         gap: 2px;
     }
-    .tool-btn {
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: var(--text-xs);
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-sm);
-        transition: all 0.2s;
-    }
-    .tool-btn:hover {
-        background: color-mix(in srgb, var(--text-primary), transparent 90%);
-        color: var(--text-primary);
-    }
     .zoom-text {
         font-size: 0.7rem;
         min-width: 35px;
@@ -1362,24 +1343,6 @@
         height: 16px;
         background: var(--border-color);
         margin: 0 var(--space-1);
-    }
-    .close-btn {
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: var(--text-base);
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius-md);
-        transition: all 0.2s;
-    }
-    .close-btn:hover {
-        background: color-mix(in srgb, var(--danger-color), transparent 80%);
-        color: var(--danger-color);
     }
     .window-settings-popup {
         position: absolute;

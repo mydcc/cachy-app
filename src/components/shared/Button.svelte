@@ -29,7 +29,7 @@
     | "ghost-muted"
     | "outline"
     | "outline-accent";
-  type ButtonSize = "sm" | "md" | "lg";
+  type ButtonSize = "xs" | "sm" | "md" | "lg";
 
   interface Props {
     /** Colour role. The filled variants map to the `--btn-*` pairs; the text
@@ -50,6 +50,11 @@
     ariaControls?: string;
     onClick?: (event: MouseEvent) => void;
     oncontextmenu?: (event: MouseEvent) => void;
+    /**
+     * The window chrome buttons sit inside the drag handle, so they have to
+     * swallow the header's double-click-to-maximise themselves (FEAT-0613).
+     */
+    ondblclick?: (event: MouseEvent) => void;
     children?: import("svelte").Snippet;
     /**
      * Layout-only classes. The primitive's rules live unlayered in
@@ -74,6 +79,7 @@
     ariaControls,
     onClick,
     oncontextmenu,
+    ondblclick,
     children,
     extraClasses = "",
     disabled = false,
@@ -89,6 +95,7 @@
   {type}
   onclick={onClick}
   oncontextmenu={oncontextmenu}
+  ondblclick={ondblclick}
   {title}
   aria-label={ariaLabel || title}
   aria-expanded={ariaExpanded}

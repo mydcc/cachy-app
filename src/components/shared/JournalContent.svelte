@@ -45,6 +45,7 @@
     import JournalDeepDive from "./journal/JournalDeepDive.svelte";
     import TradeDetailDrawer from "./journal/TradeDetailDrawer.svelte";
 
+  import Button from "./Button.svelte";
     interface Props {
         window?: WindowBase;
     }
@@ -616,9 +617,14 @@
         <!-- Always visible; the history sync is a Pro feature, so the button
              stays present but disabled until Pro is active instead of
              silently disappearing. -->
-        <button
-            class="text-[11px] font-bold py-1.5 px-3 rounded-md flex items-center gap-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onclick={app.syncBitunixHistory}
+        <Button
+            variant="outline"
+            size="sm"
+            extraClasses="gap-1.5"
+            ariaLabel={uiState.isPriceFetching
+                ? $_("journal.messages.syncing")
+                : $_("journal.syncBitunix")}
+            onClick={app.syncBitunixHistory}
             disabled={!settingsState.entitlement.isPro || uiState.isPriceFetching || uiState.isLoading}
             title={!settingsState.entitlement.isPro
                 ? $_("journal.syncRequiresPro")
@@ -634,7 +640,7 @@
             <span>
                 {uiState.isPriceFetching ? $_("journal.messages.syncing") : $_("journal.syncBitunix")}
             </span>
-        </button>
+        </Button>
     {/if}
 {/snippet}
 
@@ -645,6 +651,7 @@
     <!-- Top-Level Tab Switcher -->
     <div class="main-tab-nav mb-6 border-b border-[var(--border-color)] pb-3">
         <div class="tab-scroll flex min-w-0 items-center gap-2 overflow-x-auto">
+            <!-- FEAT-0613 escape: journal tab strip (class:active) — the shared tab bar is FEAT-0607's; this strip stays journal-local until then -->
             <button
                 class="tab-btn"
                 class:active={activeMainTab === "table"}
@@ -655,6 +662,7 @@
                 <span class="tab-label-short">{$_("journal.presets.tableShort")}</span>
                 <span class="tab-badge">{processedTrades.length}</span>
             </button>
+            <!-- FEAT-0613 escape: journal tab strip (class:active) — the shared tab bar is FEAT-0607's; this strip stays journal-local until then -->
             <button
                 class="tab-btn"
                 class:active={activeMainTab === "overview"}
@@ -664,6 +672,7 @@
                 <span class="tab-label-long">{$_("journal.presets.overview")}</span>
                 <span class="tab-label-short">{$_("journal.presets.overviewShort")}</span>
             </button>
+            <!-- FEAT-0613 escape: journal tab strip (class:active) — the shared tab bar is FEAT-0607's; this strip stays journal-local until then -->
             <button
                 class="tab-btn"
                 class:active={activeMainTab === "deepDive"}
@@ -730,40 +739,50 @@
                             <h4 id="col-settings-heading" class="text-sm font-bold">
                                 {$_("journal.labels.tableSettings")}
                             </h4>
-                            <button
-                                class="text-xs px-3 py-1 rounded bg-[var(--accent-color)] text-[var(--bg-primary)] font-bold hover:opacity-90"
-                                onclick={() => (showColumnSettings = false)}
+                            <Button
+                                variant="accent"
+                                size="xs"
+                                extraClasses=""
+                                onClick={() => (showColumnSettings = false)}
                             >
                                 {$_("common.ok")}
-                            </button>
+                            </Button>
                         </div>
 
                         <!-- Column Presets -->
                         <div class="flex flex-wrap gap-1.5 mb-4 pb-3 border-b border-[var(--border-color)]">
-                            <button
-                                class="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
-                                onclick={() => applyColumnPreset("compact")}
+                            <Button
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
+                                onClick={() => applyColumnPreset("compact")}
                             >
                                 {$_("journal.presets.compact")}
-                            </button>
-                            <button
-                                class="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
-                                onclick={() => applyColumnPreset("standard")}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
+                                onClick={() => applyColumnPreset("standard")}
                             >
                                 {$_("journal.presets.standard")}
-                            </button>
-                            <button
-                                class="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
-                                onclick={() => applyColumnPreset("fees")}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
+                                onClick={() => applyColumnPreset("fees")}
                             >
                                 {$_("journal.presets.feesExecution")}
-                            </button>
-                            <button
-                                class="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
-                                onclick={() => applyColumnPreset("all")}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
+                                onClick={() => applyColumnPreset("all")}
                             >
                                 {$_("journal.presets.allColumns")}
-                            </button>
+                            </Button>
                         </div>
 
                         <!-- Checkboxes -->
@@ -801,20 +820,24 @@
             <!-- Bottom Action Toolbar (Export / Import / Clear) -->
             <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-[var(--border-color)]">
                 <div class="flex flex-wrap items-center gap-2">
-                    <button
-                        class="btn-success text-xs py-2 px-3 rounded-lg flex items-center gap-1.5"
-                        onclick={app.exportToCSV}
+                    <Button
+                        variant="success"
+                        size="sm"
+                        extraClasses="gap-1.5"
+                        onClick={app.exportToCSV}
                     >
                         {@html icons.export}
                         <span>{$_("journal.export")}</span>
-                    </button>
-                    <button
-                        class="btn-accent text-xs py-2 px-3 rounded-lg flex items-center gap-1.5"
-                        onclick={() => document.getElementById("import-csv-input")?.click()}
+                    </Button>
+                    <Button
+                        variant="accent"
+                        size="sm"
+                        extraClasses="gap-1.5"
+                        onClick={() => document.getElementById("import-csv-input")?.click()}
                     >
                         {@html icons.import}
                         <span>{$_("journal.import")}</span>
-                    </button>
+                    </Button>
                     <input
                         type="file"
                         id="import-csv-input"
@@ -824,13 +847,15 @@
                 </div>
 
                 <div>
-                    <button
-                        class="btn-danger text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 opacity-80 hover:opacity-100"
-                        onclick={app.clearJournal}
+                    <Button
+                        variant="danger"
+                        size="sm"
+                        extraClasses="gap-1.5 opacity-80 hover:opacity-100"
+                        onClick={app.clearJournal}
                     >
                         {@html icons.delete}
                         <span>{$_("journal.clearAll")}</span>
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
