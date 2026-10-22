@@ -252,9 +252,9 @@
           <option value="Closed">{$_("journal.filterClosed")}</option>
         </select>
         <Button
-            variant="ghost-muted"
-            size="xs"
-          extraClasses="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          variant="ghost-muted"
+          size="xs"
+          extraClasses=""
           onClick={onClose}
           ariaLabel={$_("journal.drawer.close")}
         >
@@ -483,9 +483,9 @@
           </h4>
           {#if isEditingNotes}
             <Button
-            variant="accent"
-            size="xs"
-              extraClasses="text-xs font-bold px-2 py-1 rounded bg-[var(--accent-color)] text-[var(--bg-primary)] hover:opacity-90 transition-opacity"
+              variant="accent"
+              size="xs"
+              extraClasses=""
               onClick={handleSaveNotes}
             >
               {$_("journal.drawer.save")}

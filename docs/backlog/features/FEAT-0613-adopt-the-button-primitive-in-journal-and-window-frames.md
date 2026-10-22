@@ -85,8 +85,9 @@ Branch `feature/feat-0613-journal-frames`. 38 controls migrated (27 journal,
 
 - `size="xs"` at a new `--control-height-xs: 24px`. The chrome controls were
   20–24 px; the smallest existing size (34 px) would have grown every window's
-  title bar by 10 px. 24 px is also the WCAG 2.5.8 minimum target, which the
-  20 px tool buttons did not meet.
+  title bar by 10 px. 24 px meets the WCAG 2.5.8 minimum target height, and
+  `.btn-xs` also carries `min-width: var(--control-height-xs)` so the width
+  does too (the 20 px tool buttons met neither).
 - `ondblclick` passthrough. The chrome buttons sit inside the drag handle and
   swallow the header's double-click-to-maximise themselves; without the prop
   the migration would have dropped that.
@@ -99,7 +100,7 @@ Branch `feature/feat-0613-journal-frames`. 38 controls migrated (27 journal,
 | `JournalFilters` | table settings; 7 quick-date buttons | `outline sm`; `outline xs` |
 | `JournalTable` | group toggle; 3 row actions; 2 pagination; lightbox close | `ghost-muted xs`; `outline xs`; `outline xs`; `ghost-muted xs` |
 | `TradeDetailDrawer` | close; save notes | `ghost-muted xs`; `accent xs` |
-| `JournalEntryTags` | remove tag | `ghost-danger xs` |
+| `JournalEntryTags` | remove tag | **escaped** — a 10px glyph inside a tag pill; `xs` would grow the pill from ~16 to 28 px (review) |
 | `WindowFrame` | zoom ×2, export, delete, open-in-tab, font ± , duck, minimise, maximise, close | `ghost-muted xs` |
 
 **Escaped** — journal tab strip (3), segmented trade-mode control (3),
@@ -108,17 +109,31 @@ left-aligned suggestion row (1), year pill (1), deep-dive tab strip (1),
 window header control with a selected state (1), context-menu item (1).
 
 **Dead CSS removed** — `.tool-btn`, `.close-btn` (window frame), `.settings-btn`,
-`.quick-date-btn`, `.group-toggle-btn`, `.action-icon-btn`, `.pagination-btn`
-(the journal). `svelte-check` reports 0 errors and the same 6 baseline warnings.
+`.quick-date-btn` (except its `flex: 0 0 auto` / `no-wrap`, which the primitive
+does not provide), `.group-toggle-btn`, `.action-icon-btn`, `.pagination-btn`.
+The pre-migration Tailwind strings came along as `extraClasses`; the review
+removed the declarations the primitive already wins (padding, radius, font
+size, colours), leaving only layout that still applies (`gap`, `ml-2`,
+`opacity`). The reset chip uses `outline-accent` and the row delete
+`ghost-danger`, because their inline colour classes were inert there. `svelte-check` reports 0 errors and the same 6 baseline warnings.
 
 **Normalization, stated**
 
 - Journal buttons carried 11–12 px labels; `.btn-base` is 14 px/700, so every
   migrated journal control grows to 14 px. This is the largest visible delta.
-- The window chrome keeps its title-bar height: `.close-btn` was already 24 px,
-  so a 24 px `xs` control is the tallest child in both worlds. The tool buttons
-  grow 20 → 24 px and lose their subtle hover background; hover is now the
-  accent colour (close included — it used to tint red).
+- The title bar grows by **2 px** (4 px on windows without an icon): the
+  `.control-group` wrapper is 20 + 2·2 + 2·1 = 26 px around a 20 px tool button
+  and 30 px around a 24 px one. `.window-header` has no fixed height, so its
+  content box follows. The tool buttons lose their subtle hover background;
+  hover is now the accent colour (close included — it used to tint red).
+  `WINDOW_HEADER_HEIGHT = 44` was already an estimate, not the rendered box.
+- The journal toolbar's export / import / clear buttons were **text-only** on
+  `develop`: `.btn-success` / `.btn-accent` / `.btn-danger` had no rule without
+  `.btn-base`, so the tokens the author wrote did nothing. This item gives them
+  the fills they were written for (green / accent / red). The sync button and
+  the column presets grow one size step as well.
+- The grouped-row toggle grows from a ~14 px inline glyph to a 24 px control, so
+  group header rows gain a little height on the symbol cell.
 - Quick-date chips move from `--bg-secondary` + `--text-secondary` to the
   outline pair (`--bg-tertiary` + `--text-primary`).
 - `.action-icon-btn` had `--bg-secondary`; `outline` is `--bg-tertiary`.

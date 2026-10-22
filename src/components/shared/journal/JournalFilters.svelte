@@ -255,9 +255,9 @@
                     {/if}
 
                     <Button
-            variant="outline"
-            size="sm"
-                        extraClasses="settings-btn"
+                        variant="outline"
+                        size="sm"
+                        extraClasses=""
                         onClick={toggleSettings}
                         title={$_("journal.labels.tableSettings")}
                         ariaLabel={$_("journal.labels.tableSettings")}
@@ -274,49 +274,49 @@
         <div class="quick-dates">
             <span class="text-[var(--text-secondary)] font-medium mr-1 shrink-0">{$_("journal.labels.from")}:</span>
             <Button
-            variant="outline"
-            size="xs"
-                extraClasses="quick-date-btn"
+                variant="outline"
+                size="xs"
+                extraClasses="flex-none whitespace-nowrap"
                 onClick={() => setQuickDate("today")}
             >
                 {$_("journal.filters.quickToday")}
             </Button>
             <Button
-            variant="outline"
-            size="xs"
-                extraClasses="quick-date-btn"
+                variant="outline"
+                size="xs"
+                extraClasses="flex-none whitespace-nowrap"
                 onClick={() => setQuickDate("week")}
             >
                 {$_("journal.filters.quickWeek")}
             </Button>
             <Button
-            variant="outline"
-            size="xs"
-                extraClasses="quick-date-btn"
+                variant="outline"
+                size="xs"
+                extraClasses="flex-none whitespace-nowrap"
                 onClick={() => setQuickDate("month")}
             >
                 {$_("journal.filters.quickMonth")}
             </Button>
             <Button
-            variant="outline"
-            size="xs"
-                extraClasses="quick-date-btn"
+                variant="outline"
+                size="xs"
+                extraClasses="flex-none whitespace-nowrap"
                 onClick={() => setQuickDate("30days")}
             >
                 {$_("journal.filters.quick30Days")}
             </Button>
             <Button
-            variant="outline"
-            size="xs"
-                extraClasses="quick-date-btn"
+                variant="outline"
+                size="xs"
+                extraClasses="flex-none whitespace-nowrap"
                 onClick={() => setQuickDate("ytd")}
             >
                 {$_("journal.filters.quickYtd")}
             </Button>
             <Button
-            variant="outline"
-            size="xs"
-                extraClasses="quick-date-btn"
+                variant="outline"
+                size="xs"
+                extraClasses="flex-none whitespace-nowrap"
                 onClick={() => setQuickDate("all")}
             >
                 {$_("journal.filters.quickAll")}
@@ -324,9 +324,9 @@
 
             {#if hasActiveFilters}
                 <Button
-            variant="outline"
-            size="xs"
-                    extraClasses="quick-date-btn text-[var(--accent-color)] border-[var(--accent-color)] font-bold ml-2"
+                    variant="outline"
+                    size="xs"
+                    extraClasses="flex-none whitespace-nowrap ml-2"
                     onClick={resetFilters}
                 >
                     ✕ {$_("journal.filters.reset")}

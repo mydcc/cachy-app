@@ -620,7 +620,10 @@
         <Button
             variant="outline"
             size="sm"
-            extraClasses="text-[11px] font-bold py-1.5 px-3 rounded-md flex items-center gap-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            extraClasses="gap-1.5"
+            ariaLabel={uiState.isPriceFetching
+                ? $_("journal.messages.syncing")
+                : $_("journal.syncBitunix")}
             onClick={app.syncBitunixHistory}
             disabled={!settingsState.entitlement.isPro || uiState.isPriceFetching || uiState.isLoading}
             title={!settingsState.entitlement.isPro
@@ -737,9 +740,9 @@
                                 {$_("journal.labels.tableSettings")}
                             </h4>
                             <Button
-            variant="accent"
-            size="xs"
-                                extraClasses="text-xs px-3 py-1 rounded bg-[var(--accent-color)] text-[var(--bg-primary)] font-bold hover:opacity-90"
+                                variant="accent"
+                                size="xs"
+                                extraClasses=""
                                 onClick={() => (showColumnSettings = false)}
                             >
                                 {$_("common.ok")}
@@ -749,33 +752,33 @@
                         <!-- Column Presets -->
                         <div class="flex flex-wrap gap-1.5 mb-4 pb-3 border-b border-[var(--border-color)]">
                             <Button
-            variant="outline"
-            size="xs"
-                                extraClasses="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
                                 onClick={() => applyColumnPreset("compact")}
                             >
                                 {$_("journal.presets.compact")}
                             </Button>
                             <Button
-            variant="outline"
-            size="xs"
-                                extraClasses="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
                                 onClick={() => applyColumnPreset("standard")}
                             >
                                 {$_("journal.presets.standard")}
                             </Button>
                             <Button
-            variant="outline"
-            size="xs"
-                                extraClasses="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
                                 onClick={() => applyColumnPreset("fees")}
                             >
                                 {$_("journal.presets.feesExecution")}
                             </Button>
                             <Button
-            variant="outline"
-            size="xs"
-                                extraClasses="text-[11px] px-2 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]"
+                                variant="outline"
+                                size="xs"
+                                extraClasses=""
                                 onClick={() => applyColumnPreset("all")}
                             >
                                 {$_("journal.presets.allColumns")}
@@ -818,18 +821,18 @@
             <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-[var(--border-color)]">
                 <div class="flex flex-wrap items-center gap-2">
                     <Button
-            variant="success"
-            size="sm"
-                        extraClasses="btn-success text-xs py-2 px-3 rounded-lg flex items-center gap-1.5"
+                        variant="success"
+                        size="sm"
+                        extraClasses="gap-1.5"
                         onClick={app.exportToCSV}
                     >
                         {@html icons.export}
                         <span>{$_("journal.export")}</span>
                     </Button>
                     <Button
-            variant="accent"
-            size="sm"
-                        extraClasses="btn-accent text-xs py-2 px-3 rounded-lg flex items-center gap-1.5"
+                        variant="accent"
+                        size="sm"
+                        extraClasses="gap-1.5"
                         onClick={() => document.getElementById("import-csv-input")?.click()}
                     >
                         {@html icons.import}
@@ -845,9 +848,9 @@
 
                 <div>
                     <Button
-            variant="danger"
-            size="sm"
-                        extraClasses="btn-danger text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 opacity-80 hover:opacity-100"
+                        variant="danger"
+                        size="sm"
+                        extraClasses="gap-1.5 opacity-80 hover:opacity-100"
                         onClick={app.clearJournal}
                     >
                         {@html icons.delete}

@@ -80,7 +80,7 @@ const EXPECTED_ESCAPES: Record<string, number> = {
   "src/components/shared/journal/JournalFilters.svelte": 3,
   "src/components/shared/journal/JournalTable.svelte": 2,
   "src/components/shared/journal/TradeDetailDrawer.svelte": 2,
-  "src/components/shared/JournalEntryTags.svelte": 1,
+  "src/components/shared/JournalEntryTags.svelte": 2,
   "src/components/shared/journal/JournalDeepDive.svelte": 1,
   "src/components/shared/DashboardNav.svelte": 1,
   "src/components/shared/windows/WindowFrame.svelte": 2,
@@ -142,7 +142,10 @@ describe("migrated surfaces go through the button primitive", () => {
       }
     }
 
-    expect(offenders, `raw buttons without an escape comment:\n${offenders.join("\n")}`).toEqual([]);
+    expect(
+      offenders,
+      `raw buttons without an escape comment:\n${offenders.join("\n")}`,
+    ).toEqual([]);
 
     // The guard must not pass because everything was swallowed, nor because an
     // escape went missing: the expected count is pinned per file.
@@ -180,6 +183,9 @@ describe("migrated surfaces go through the button primitive", () => {
       }
     }
 
-    expect(offenders, `<Button> without onClick:\n${offenders.join("\n")}`).toEqual([]);
+    expect(
+      offenders,
+      `<Button> without onClick:\n${offenders.join("\n")}`,
+    ).toEqual([]);
   });
 });

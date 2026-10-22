@@ -513,9 +513,9 @@
                                     <div class="flex items-center gap-1.5">
                                         {#if isGroup}
                                             <Button
-            variant="ghost-muted"
-            size="xs"
-                                                extraClasses="group-toggle-btn"
+                                                variant="ghost-muted"
+                                                size="xs"
+                                                extraClasses=""
                                                 onClick={() => toggleGroup(item.symbol)}
                                                 ariaLabel={$_("journal.clickToExpand")}
                                             >
@@ -739,9 +739,9 @@
                                     <div class="flex items-center justify-center gap-1">
                                         {#if entryItem}
                                             <Button
-            variant="outline"
-            size="xs"
-                                                extraClasses="action-icon-btn"
+                                                variant="outline"
+                                                size="xs"
+                                                extraClasses=""
                                                 onClick={() => onOpenTradeDetail?.(entryItem)}
                                                 title={$_("journal.drawer.title")}
                                                 ariaLabel={$_("journal.drawer.title")}
@@ -749,9 +749,9 @@
                                                 🔍
                                             </Button>
                                             <Button
-            variant="outline"
-            size="xs"
-                                                extraClasses="action-icon-btn text-[var(--danger-color)]"
+                                                variant="outline"
+                                                size="xs"
+                                                extraClasses=""
                                                 onClick={() => onDeleteTrade?.(entryItem.id)}
                                                 title={$_("journal.delete")}
                                                 ariaLabel={$_("journal.delete")}
@@ -971,9 +971,9 @@
                                     {#if visibility.action}
                                         <td class="col-action text-center">
                                             <Button
-            variant="outline"
-            size="xs"
-                                                extraClasses="action-icon-btn"
+                                                variant="outline"
+                                                size="xs"
+                                                extraClasses=""
                                                 onClick={() => onOpenTradeDetail?.(subTrade)}
                                                 title={$_("journal.drawer.title")}
                                                 ariaLabel={$_("journal.drawer.title")}
@@ -1014,18 +1014,18 @@
             </span>
             <div class="flex items-center gap-1">
                 <Button
-            variant="outline"
-            size="xs"
-                    extraClasses="pagination-btn"
+                    variant="outline"
+                    size="xs"
+                    extraClasses=""
                     disabled={safeCurrentPage <= 1}
                     onClick={() => handlePageChange(safeCurrentPage - 1)}
                 >
                     ‹ {$_("journal.pagination.prev")}
                 </Button>
                 <Button
-            variant="outline"
-            size="xs"
-                    extraClasses="pagination-btn"
+                    variant="outline"
+                    size="xs"
+                    extraClasses=""
                     disabled={safeCurrentPage >= totalPages}
                     onClick={() => handlePageChange(safeCurrentPage + 1)}
                 >
@@ -1080,9 +1080,9 @@
                     <span>{$_("journal.chartScreenshot", { values: { symbol: activeLightboxScreenshot.symbol } })}</span>
                 </h4>
                 <Button
-            variant="ghost-muted"
-            size="xs"
-                    extraClasses="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    variant="ghost-muted"
+                    size="xs"
+                    extraClasses=""
                     onClick={closeLightbox}
                     ariaLabel={$_("journal.closeLightbox")}
                 >

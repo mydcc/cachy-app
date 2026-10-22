@@ -2621,6 +2621,10 @@ input[type="number"] {
 /* Dense chrome only (FEAT-0613): window title-bar controls, 24px. */
 .btn-xs {
   height: var(--control-height-xs);
+  /* 24px is only the WCAG 2.5.8 minimum if the width keeps up: a 14px glyph
+     with this padding renders ~18px wide, and the chrome's 2px gap defeats the
+     spacing exception. */
+  min-width: var(--control-height-xs);
   padding: 0 var(--space-1);
 }
 
