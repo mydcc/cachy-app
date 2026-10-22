@@ -709,7 +709,7 @@
                     </h3>
                     <select
                         bind:value={settingsState.hotkeyMode}
-                        class="input-field w-auto py-1 text-xs"
+                        class="input-field w-auto py-1 text-xs input-field-xs"
                     >
                         <option value="mode2"
                             >{$_("settings.hotkeys.safetyMode")}</option

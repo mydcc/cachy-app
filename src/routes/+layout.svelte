@@ -34,6 +34,7 @@ import { afterNavigate } from "$app/navigation";
   import { trackPageView } from "../services/trackingService";
   import { initZoomPlugin } from "../lib/chartSetup";
   import { registerResetCoordinator } from "../utils/appReset";
+  import { applyDensityAttribute } from "../lib/ui/density";
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
@@ -417,7 +418,7 @@ import { afterNavigate } from "$app/navigation";
   // so no component learns the mode by name.
   $effect(() => {
     if (!browser) return;
-    document.documentElement.dataset.density = settingsState.density;
+    applyDensityAttribute(document.documentElement, settingsState.density);
   });
 
   // Window Controls Overlay (desktop PWA title bar as web content).

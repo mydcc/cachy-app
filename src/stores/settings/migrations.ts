@@ -16,7 +16,7 @@
  */
 
 import { safeLocalStorage } from "../../utils/storageWrapper";
-import type { DensityMode } from "./settingsTypes";
+import { defaultSettings, type DensityMode } from "./settingsTypes";
 
 /**
  * Versioned one-shot migrations SettingsManager.load() runs on every parsed
@@ -109,5 +109,7 @@ export function resolveAnthropicModel(stored: string | undefined): string {
 export function resolveDensity(stored: unknown): DensityMode {
   return stored === "compact" || stored === "wide" || stored === "default"
     ? stored
-    : "default";
+    // Read from the shipped defaults: a literal here would silently disagree
+    // the day the default changes.
+    : defaultSettings.density;
 }

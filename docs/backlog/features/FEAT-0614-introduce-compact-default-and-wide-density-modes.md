@@ -120,11 +120,18 @@ Branch `feature/feat-0614-density-modes`.
   third one. The touch hint sits under it (option c from the Decisions).
 - **Screenshot baseline:** `tests/e2e/density.spec.ts` captures the settings
   window in all three modes and reloads once to prove persistence. `default` was
-  compared against `dad5868c5` with `maxDiffPixels: 0`: **0 differing pixels**.
+  compared against `dad5868c5` with `maxDiffPixels: 0`: the two captures are
+  **byte-identical** (same SHA-256), not merely within tolerance. The frame's
+  geometry is pinned before the capture because the window's fractional opening
+  position otherwise shifts the rasterisation.
   The calculator and the journal were tried and dropped — both render a live
   mark price, so their screenshots compare the exchange feed, not the density
-  (observed prices differed between runs). Their geometry is covered by
-  `src/themes.density.test.ts` and by the shared tokens.
+  (observed prices differed between runs). The control tokens they consume are
+  covered by `src/themes.density.test.ts`.
+- **Found on the way:** a settings write that lands while `save()` is already
+  running is dropped rather than re-queued (`saveLock` guard, no pending
+  write). Filed as [BUG-0730](../bugs/BUG-0730-settings-change-during-save-is-dropped.md);
+  the E2E waits for the initial save so it measures persistence, not that race.
 - **Not a no-op:** compact controls are 32 px (28 px small), font 13 px/11 px,
   section padding 0.75rem/1.25rem, gap 0.5rem; wide is 48/38 px, 16 px/13 px,
   1.25rem/2.5rem, 1rem. `default` is byte-identical to the previous rendering,

@@ -212,6 +212,8 @@
   --density-section-padding: 1rem;
   --density-section-padding-md: 2rem;
   --density-section-gap: 0.75rem;
+  /* Multiplier for per-section gap steps (gap-2 … gap-6), see lib/ui/density. */
+  --density-gap-scale: 1;
 
   /*
    * The type scale.
@@ -260,9 +262,6 @@
   --z-fx: 1050000;
 }
 
-/* =================================================================
-   Light Theme
-   ================================================================= */
 /* Density modes — FEAT-0614. Applied as `data-density` on <html>; every
    value is a token override, so no component learns the mode by name. */
 html[data-density="compact"] {
@@ -274,6 +273,7 @@ html[data-density="compact"] {
   --density-section-padding: 0.75rem;
   --density-section-padding-md: 1.25rem;
   --density-section-gap: 0.5rem;
+  --density-gap-scale: 0.75;
 }
 html[data-density="wide"] {
   --control-height: 48px;
@@ -284,6 +284,7 @@ html[data-density="wide"] {
   --density-section-padding: 1.25rem;
   --density-section-padding-md: 2.5rem;
   --density-section-gap: 1rem;
+  --density-gap-scale: 1.25;
 }
 
 /* The control font only leaves the browser default in a non-default mode:
@@ -291,8 +292,8 @@ html[data-density="wide"] {
    override the per-field `text-*` utilities and break the pixel identity of
    `default` (FEAT-0609 left the token reference-only for that reason). The
    small variant keeps its own token so `input-field-sm` stays one step below. */
-html[data-density="compact"] .input-field,
-html[data-density="wide"] .input-field {
+html[data-density="compact"] .input-field:not(.input-field-xs),
+html[data-density="wide"] .input-field:not(.input-field-xs) {
   font-size: var(--control-font-size);
 }
 html[data-density="compact"] .input-field.input-field-sm,
@@ -300,6 +301,9 @@ html[data-density="wide"] .input-field.input-field-sm {
   font-size: var(--control-font-size-sm);
 }
 
+/* =================================================================
+   Light Theme
+   ================================================================= */
 .theme-light {
   /* --- Galaxy Overrides --- */
   --galaxy-stars-edge-2: var(--slate-400);

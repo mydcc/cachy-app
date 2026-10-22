@@ -753,7 +753,7 @@
           aria-label={!tifSupported
             ? $_(unsupportedTimeInForceReasonKey(exchange) as TranslationKey)
             : $_("orderEntry.timeInForce")}
-          class="input-field text-xs py-1 px-2 min-w-0"
+          class="input-field text-xs py-1 px-2 min-w-0 input-field-xs"
         >
           {#each caps.timeInForce as tif (tif)}
             <option value={tif}>{tif}</option>

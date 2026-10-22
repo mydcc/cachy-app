@@ -137,12 +137,19 @@
             </h4>
             <div class="field-group">
                 <label for="density-mode">{$_("settings.densityLabel")}</label>
-                <select id="density-mode" bind:value={settingsState.density} class="input-field w-full">
+                <select
+                    id="density-mode"
+                    bind:value={settingsState.density}
+                    class="input-field w-full"
+                    aria-describedby="density-mode-hint"
+                >
                     <option value="compact">{$_("settings.densityCompact")}</option>
                     <option value="default">{$_("settings.densityDefault")}</option>
                     <option value="wide">{$_("settings.densityWide")}</option>
                 </select>
-                <p class="text-[10px] text-[var(--text-secondary)]">{$_("settings.densityHint")}</p>
+                <p id="density-mode-hint" class="text-[10px] text-[var(--text-secondary)]">
+                    {$_("settings.densityHint")}
+                </p>
             </div>
         </div>
 

@@ -151,7 +151,7 @@
         aria-expanded={open}
         aria-controls={open ? `${id}-list` : undefined}
         aria-activedescendant={activeId}
-        class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all flex items-center justify-between gap-2"
+        class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] outline-none text-[var(--text-primary)] cursor-pointer hover:bg-[var(--bg-secondary)] transition-all flex items-center justify-between gap-2 input-field-xs"
         onclick={() => (open ? closePopup() : openPopup())}
         onkeydown={handleTriggerKeydown}
     >

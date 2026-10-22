@@ -199,7 +199,7 @@
                 aria-label={$_("indicatorLessons.searchLabel")}
                 placeholder={$_("indicatorLessons.searchPlaceholder")}
                 bind:value={searchQuery}
-                class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] focus:border-[var(--accent-color)] outline-none text-[var(--text-primary)] transition-all"
+                class="input-field w-full px-3 py-2 rounded-md text-xs bg-[var(--bg-tertiary)] border border-[var(--input-border-color)] focus:border-[var(--accent-color)] outline-none text-[var(--text-primary)] transition-all input-field-xs"
             />
             <label class="sr-only" for="indicator-lesson-group"
                 >{$_("indicatorLessons.groupLabel")}</label

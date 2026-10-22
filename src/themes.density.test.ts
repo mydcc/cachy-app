@@ -73,7 +73,7 @@ describe("density reaches a rendered control (FEAT-0614)", () => {
     ["wide", "48px"],
   ] as const)("renders .input-field at %s's height", (mode, expected) => {
     const input = renderInput();
-    setDensity(mode === "default" ? null : mode);
+    setDensity(mode);
 
     expect(getComputedStyle(input).height).toBe(expected);
   });
@@ -88,6 +88,20 @@ describe("density reaches a rendered control (FEAT-0614)", () => {
     expect(getComputedStyle(input).fontSize).toBe(expected);
   });
 
+  it.each([
+    ["compact", "0.75"],
+    ["default", "1"],
+    ["wide", "1.25"],
+  ] as const)("scales per-section gaps at %s", (mode, expected) => {
+    setDensity(mode);
+
+    expect(
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--density-gap-scale")
+        .trim(),
+    ).toBe(expected);
+  });
+
   it("leaves the control font alone in default mode", () => {
     // Applying `--control-font-size` to `.input-field` unconditionally would
     // beat the per-field `text-*` utilities (unlayered vs `@layer utilities`)
@@ -95,10 +109,11 @@ describe("density reaches a rendered control (FEAT-0614)", () => {
     // stay behind the attribute.
     expect(CSS).not.toMatch(/\n\.input-field\s*\{[^}]*font-size/);
     expect(CSS).toMatch(
-      /html\[data-density="compact"\] \.input-field,[\s\S]*?font-size: var\(--control-font-size\)/,
+      /html\[data-density="compact"\] \.input-field:not\(\.input-field-xs\),[\s\S]*?font-size: var\(--control-font-size\)/,
     );
 
     const input = renderInput();
+    setDensity("default");
     expect(getComputedStyle(input).fontSize).toBe("16px");
   });
 

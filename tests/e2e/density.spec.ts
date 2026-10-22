@@ -29,9 +29,11 @@
  * `src/themes.density.test.ts` (computed `.input-field` height per mode) and by
  * the shared tokens themselves.
  *
- * Determinism: every external request is aborted, and the disclaimer is
- * pre-accepted, so the modal cannot cover the surface. Each case seeds the
- * settings blob before the app loads — also the path a returning user takes.
+ * Determinism: the capture is scoped to `.window-frame` — the market sidebar
+ * renders a live price and would otherwise be part of the comparison.
+ * External HTTP(S) requests are aborted (websockets are not intercepted, which
+ * is another reason the element, not the page, is captured), and the
+ * disclaimer is pre-accepted so the modal cannot cover the surface.
  *
  * Playwright is a local gate — no CI workflow runs it. Generate or accept the
  * baselines with `npx playwright test tests/e2e/density.spec.ts
@@ -73,7 +75,29 @@ async function openSettings(
 
     await page.goto("/?action=settings");
     await page.waitForSelector(`html[data-density="${density}"]`);
-    await page.waitForTimeout(400);
+    await page.evaluate(() => document.fonts.ready);
+
+    // The window opens with a short animation. `animations: "disabled"` only
+    // covers CSS animations at capture time, so wait until the frame's box has
+    // stopped moving — a fixed timeout captured it mid-flight (the wide diff
+    // was a pure vertical shift).
+    const frame = page.locator(".window-frame").first();
+    await expect(frame).toBeVisible();
+
+    // Pin the frame's geometry. The window opens with a short animation and
+    // keeps whatever fractional position it settles on, so two captures of the
+    // same build can differ by a sub-pixel shift. The density of the controls
+    // is what this spec compares — not where the window manager put them.
+    await page.evaluate(() => {
+        const element = document.querySelector(".window-frame") as HTMLElement | null;
+        if (!element) return;
+        element.style.transform = "none";
+        element.style.left = "0px";
+        element.style.top = "0px";
+        element.style.width = "1024px";
+        element.style.height = "720px";
+    });
+    await page.waitForTimeout(100);
 }
 
 for (const mode of MODES) {
@@ -86,7 +110,9 @@ for (const mode of MODES) {
             `settings-${mode}.png`,
             {
                 animations: "disabled",
-                maxDiffPixelRatio: 0.01,
+                // `default` is the claim: zero pixels may move. The other modes
+                // may differ in antialiasing along re-flowed text.
+                maxDiffPixels: mode === "default" ? 0 : 40,
             },
         );
     });
@@ -94,6 +120,21 @@ for (const mode of MODES) {
 
 test("a chosen density survives a reload", async ({ page }) => {
     await openSettings(page, "default");
+
+    // The first save starts on load and holds `saveLock` while it encrypts;
+    // a change made in that window is skipped rather than re-queued
+    // (BUG-0730). Wait for the full blob before touching the control, so the
+    // test measures persistence instead of that race.
+    await expect
+        .poll(
+            () =>
+                page.evaluate(() => {
+                    const raw = localStorage.getItem("cryptoCalculatorSettings");
+                    return raw ? Object.keys(JSON.parse(raw)).length : 0;
+                }),
+            { timeout: 10_000 },
+        )
+        .toBeGreaterThan(50);
 
     // The control lives where FEAT-0607 put it: Visuals → Layout.
     await page.getByRole("tab", { name: /Visuals|Darstellung/ }).click();

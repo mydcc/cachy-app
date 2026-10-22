@@ -16,10 +16,10 @@
  *
  * Inventory for the display sub-store (ADR-0024 decision 2).
  *
- * 66 `PERSISTENCE_SCHEMA` rows carry `section: "display"`, but only 65 of
+ * 66 `PERSISTENCE_SCHEMA` rows carry `section: "display"`, but only 66 of
  * them are display-owned `$state`: `isProLicenseActive` lives on the
  * entitlement collaborator. This test pins that subtraction from all three
- * sides — schema, store, facade — so a 67th display row without a home
+ * sides — schema, store, facade — so a 68th display row without a home
  * fails here by name instead of as silent data loss. The reactivity
  * contract would catch the omission too, but only as an inert field,
  * never naming the missing home.
