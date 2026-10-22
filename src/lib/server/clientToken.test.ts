@@ -77,6 +77,35 @@ describe("issueToken / checkClientToken", () => {
     expect(overLimit?.status).toBe(429);
   });
 
+  it("keeps the per-token ceiling binding for a token older than a thousand later ones (BUG-0722)", () => {
+    // The token store holds up to TOKEN_MAP_CAP records, but the per-token
+    // limiter used to track only its default 1 000 buckets: a bucket beyond
+    // the first thousand was evicted, its counter reset, and its 300-request
+    // ceiling stopped binding. This token is issued first; then TOKEN_MAP_CAP
+    // − 1 more are issued and each used once, so under the old cap the
+    // victim's bucket was long gone before the end of the spray.
+    const victim = issueToken();
+    expect(checkClientToken(requestWithToken(victim), "10.0.0.99")).toBeNull();
+
+    for (let i = 0; i < TOKEN_MAP_CAP - 1; i++) {
+      const token = issueToken();
+      // 250 spray IPs, each used ~40 times — far under both the per-IP
+      // ceiling and the per-IP limiter's key cap, so only the per-token
+      // limiter is under pressure here.
+      const result = checkClientToken(requestWithToken(token), `10.1.0.${i % 250}`);
+      expect(result).toBeNull();
+    }
+
+    // The victim's bucket survived the pressure: it has 299 of its 300
+    // requests left, and the 301st is refused — the ceiling still binds.
+    for (let i = 0; i < 299; i++) {
+      expect(checkClientToken(requestWithToken(victim), "10.0.0.99")).toBeNull();
+    }
+    const overLimit = checkClientToken(requestWithToken(victim), "10.0.0.99");
+    expect(overLimit).not.toBeNull();
+    expect(overLimit?.status).toBe(429);
+  });
+
   it("rejects a request once its IP is over its rate limit, even across different tokens", () => {
     const ip = "9.9.9.9";
 

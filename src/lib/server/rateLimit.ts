@@ -46,7 +46,11 @@ export interface RateLimitOptions {
   windowMs: number;
   /** Requests allowed per key per window. */
   max: number;
-  /** Hard cap on distinct keys tracked at once, to bound memory under a key-spray attack. */
+  /**
+   * Hard cap on distinct live keys tracked at once, to bound memory under a
+   * key-spray attack. At capacity, a new key is refused (fail closed) instead
+   * of evicting a live bucket — see `createRateLimiter`.
+   */
   maxTrackedKeys?: number;
 }
 
@@ -56,33 +60,46 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
   const { windowMs, max, maxTrackedKeys = DEFAULT_MAX_TRACKED_KEYS } = options;
   const hits = new Map<string, RateLimitEntry>();
 
-  function evictIfCrowded(now: number) {
-    if (hits.size <= maxTrackedKeys) return;
-
-    // Expired entries first...
+  /**
+   * Drops every bucket whose window has elapsed.
+   *
+   * Expired buckets are the only ones eviction may ever touch: deleting a
+   * *live* bucket hands its owner a fresh window on the next request, which is
+   * exactly the bypass the cap exists to prevent (BUG-0722). Oldest-inserted
+   * eviction had that effect for any victim whose bucket was not the newest,
+   * and an LRU variant still does it for a victim idle across the spray.
+   */
+  function evictExpired(now: number) {
     for (const [key, entry] of hits) {
       if (now > entry.resetTime) hits.delete(key);
-    }
-    // ...then oldest-inserted, if that alone wasn't enough.
-    if (hits.size > maxTrackedKeys) {
-      const overflow = hits.size - maxTrackedKeys;
-      const toDelete = Array.from(hits.keys()).slice(0, overflow);
-      toDelete.forEach((key) => hits.delete(key));
     }
   }
 
   return {
     consume(key: string): boolean {
       const now = Date.now();
-      evictIfCrowded(now);
-
       const entry = hits.get(key);
-      if (!entry || now > entry.resetTime) {
-        hits.set(key, { count: 1, resetTime: now + windowMs });
+
+      if (entry && now <= entry.resetTime) {
+        if (entry.count >= max) return false;
+        entry.count++;
         return true;
       }
-      if (entry.count >= max) return false;
-      entry.count++;
+
+      // New or expired key: reclaim room from elapsed windows first.
+      evictExpired(now);
+      if (hits.size >= maxTrackedKeys) {
+        // The map is full of live buckets. Refusing the newcomer — instead of
+        // evicting a live bucket — is the fail-closed choice: eviction would
+        // reset the evicted key's counter and let it start over, so the
+        // ceiling would stop binding exactly when the limiter is under
+        // pressure. The cost is that a spray can turn the limiter into a
+        // deny-all for *new* keys until an existing window elapses (at most
+        // windowMs); that is preferable to a silent bypass, and the caller
+        // sees an honest 429 rather than an unlimited budget.
+        return false;
+      }
+      hits.set(key, { count: 1, resetTime: now + windowMs });
       return true;
     },
     clear(): void {

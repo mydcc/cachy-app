@@ -106,7 +106,15 @@ export function issueToken(): string {
 // market data, AI proxies). Abuse protection, not a cost gate — /api/sentiment
 // and the AI proxies are BYOK-only, so a token can never spend the operator's
 // money, only its own rate-limit budget.
-const perTokenLimiter = createRateLimiter({ windowMs: 60_000, max: 300 });
+//
+// The key cap must cover every token the store can hold: the limiter's own
+// default (1000) is a tenth of TOKEN_MAP_CAP, so a token beyond the first
+// thousand had its bucket evicted and its ceiling never bound (BUG-0722).
+const perTokenLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 300,
+  maxTrackedKeys: TOKEN_MAP_CAP,
+});
 
 // Per-IP, summed across all of that IP's tokens: catches a single actor
 // minting many tokens to route around the per-token ceiling above.

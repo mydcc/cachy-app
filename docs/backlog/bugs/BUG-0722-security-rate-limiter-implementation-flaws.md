@@ -2,7 +2,7 @@
 id: BUG-0722
 title: Security: rate limiter implementation flaws allow bypass of all abuse ceilings
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,27 @@ depends_on: []
 ---
 
 # BUG-0722 — Security: rate limiter implementation flaws allow bypass of all abuse ceilings
+
+> **State note.** All three sub-findings are addressed. `perTokenLimiter` now
+> sets `maxTrackedKeys: TOKEN_MAP_CAP` (10 000), so it covers every token the
+> store can hold and the 300/min ceiling binds for a token issued before
+> thousands of later ones. Eviction was replaced with the fail-closed
+> contract the acceptance criterion asks for: expired buckets are the only
+> ones ever dropped, and at capacity a *new* key is refused instead of
+> evicting a live bucket, so a key spray can no longer reset a victim's
+> counter. The trade-off is documented at the decision in `rateLimit.ts`:
+> while every slot is held by a live bucket, newcomers see an honest 429
+> until an existing window elapses (at most `windowMs`) — preferable to a
+> silent bypass. The IP-keying finding (#3, needs_validation) needed
+> documentation only: `DEPLOYMENT.md` §7 and `.env.example` already require
+> `ADDRESS_HEADER`/`XFF_DEPTH` for the documented proxy shape and warn that
+> setting them on a directly reachable port lets a caller spoof IPs; the
+> issuance route's comment points there.
+>
+> RED proof: the four new/changed assertions fail against the previous
+> implementation for the intended reasons (counter reset under spray,
+> newcomer admitted by eviction, newcomer admitted before expiry, per-token
+> ceiling never binding) and pass with the fix.
 
 ## Symptom
 

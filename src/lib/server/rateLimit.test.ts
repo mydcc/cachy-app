@@ -65,15 +65,48 @@ describe("createRateLimiter", () => {
     expect(limiter.consume("a")).toBe(true);
   });
 
-  it("evicts tracked keys once the cap is exceeded, rather than growing unbounded", () => {
-    const limiter = createRateLimiter({ windowMs: 60_000, max: 1, maxTrackedKeys: 5 });
+  it("does not evict a live bucket under a key spray — the ceiling keeps binding (BUG-0722)", () => {
+    const limiter = createRateLimiter({ windowMs: 60_000, max: 2, maxTrackedKeys: 5 });
 
+    // The victim spends one of its two allowed requests...
+    expect(limiter.consume("victim")).toBe(true);
+
+    // ...then an attacker sprays distinct keys past the cap. Oldest-first
+    // eviction dropped the victim's bucket here, and its next request would
+    // have started a fresh window — the counter reset this test pins down.
     for (let i = 0; i < 20; i++) {
-      limiter.consume(`key-${i}`);
+      limiter.consume(`spray-${i}`);
     }
 
-    // The limiter must not have kept all 20 keys' state — a request for a
-    // long-evicted key is treated as fresh (allowed) again.
-    expect(limiter.consume("key-0")).toBe(true);
+    // The victim's bucket survived: the second request is still the second,
+    // and the third is refused — the ceiling binds even under pressure.
+    expect(limiter.consume("victim")).toBe(true);
+    expect(limiter.consume("victim")).toBe(false);
+  });
+
+  it("refuses new keys at capacity instead of evicting live buckets (BUG-0722)", () => {
+    const limiter = createRateLimiter({ windowMs: 60_000, max: 1, maxTrackedKeys: 2 });
+
+    expect(limiter.consume("a")).toBe(true);
+    expect(limiter.consume("b")).toBe(true);
+
+    // Both slots are held by live buckets: the newcomer is refused rather
+    // than admitted by evicting one of them.
+    expect(limiter.consume("c")).toBe(false);
+  });
+
+  it("admits a new key once expired buckets free capacity", () => {
+    vi.useFakeTimers();
+    const limiter = createRateLimiter({ windowMs: 1_000, max: 1, maxTrackedKeys: 2 });
+
+    expect(limiter.consume("a")).toBe(true);
+    expect(limiter.consume("b")).toBe(true);
+    expect(limiter.consume("c")).toBe(false);
+
+    vi.advanceTimersByTime(1_001);
+
+    // The older windows elapsed; the newcomer gets a fresh budget.
+    expect(limiter.consume("c")).toBe(true);
+    expect(limiter.consume("c")).toBe(false);
   });
 });
