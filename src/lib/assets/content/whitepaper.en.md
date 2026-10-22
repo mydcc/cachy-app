@@ -512,9 +512,9 @@ Cachy acts as a pass-through entity.
 The proxy routes that can act on exchange credentials or forward AI traffic are not open to anonymous callers. Access control is **self-service and fails closed**:
 
 - `checkClientToken` (`src/lib/server/clientToken.ts`) guards the sensitive routes (28 route files under `src/routes/api/`). Requests carry the token in the `x-app-access-token` header.
-- A client obtains its token from `POST /api/auth/token`, which is **deliberately unguarded** — it is how a client gets its first token — and instead rate-limited per IP (20 issuances per hour).
+- A client obtains its token from `POST /api/auth/token`, which is **deliberately unguarded** — it is how a client gets its first token — and instead rate-limited per client network (IPv6 keys aggregated to the routed /64), 20 issuances per hour.
 - The server stores only the token's SHA-256 hash plus request counters, in memory per process. The raw token is never persisted; tokens expire 24 h after issuance and on server restart, after which clients simply re-mint.
-- Abuse protection is layered: 300 requests/minute per token, 600 requests/minute per IP summed over all of that IP's tokens. Exceeding either returns `429`.
+- Abuse protection is layered: 300 requests/minute per token, 600 requests/minute per client network (IPv6 /64) summed over all of that network's tokens. Exceeding either returns `429`.
 - An unknown or missing token gets an identical `401` regardless of the cause, so a caller learns nothing about the deployment. There is no deployment-wide secret to configure, forget, or leak — this model replaced the earlier single shared `APP_ACCESS_TOKEN` (see [ADR-0002](https://github.com/mydcc/cachy-app/blob/develop/docs/adr/0002-api-authentication-fails-closed.md) and its BUG-0052 amendment).
 
 ### Data Class Boundary: What Stays Local and What Does Not

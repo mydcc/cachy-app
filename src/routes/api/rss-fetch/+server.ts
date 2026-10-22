@@ -20,12 +20,17 @@ import type { RequestHandler } from "./$types";
 import Parser from "rss-parser";
 import { checkClientToken } from "../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../lib/server/rateLimit";
+import { normalizeClientAddress, CLIENT_ADDRESS_KEY_CAP } from "../../../lib/server/clientAddress";
 import { sanitizeHtmlToText } from "../../../lib/server/sanitizer";
 import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../lib/server/urlValidator";
 
 // checkClientToken already rate-limits per token/IP; this is defense in depth
 // on top of it (BUG-0052)
-const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 30 });
+const _rateLimits = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 30,
+  maxTrackedKeys: CLIENT_ADDRESS_KEY_CAP,
+});
 
 const parser = new Parser({
   timeout: 10000,
@@ -50,7 +55,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  if (!_rateLimits.consume(getClientAddress())) {
+  if (!_rateLimits.consume(normalizeClientAddress(getClientAddress()))) {
     return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
   }
 

@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import crypto from "node:crypto";
 import { createRateLimiter } from "./rateLimit";
+import { normalizeClientAddress, CLIENT_ADDRESS_KEY_CAP } from "./clientAddress";
 
 /**
  * Self-service, anonymous client tokens (BUG-0052), replacing the single
@@ -67,6 +68,37 @@ function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+/**
+ * Returns the rate-limit key for a request's client token, or null when the
+ * request carries none. The key is the same SHA-256 hash the store uses, so a
+ * limiter keyed on it is bounded by the token store and cannot be filled with
+ * caller-chosen strings.
+ */
+export function clientTokenKey(request: Request): string | null {
+  const raw = request.headers.get("x-app-access-token");
+  return raw ? hashToken(raw) : null;
+}
+
+type TokenEvictionListener = (hash: string) => void;
+
+const tokenEvictionListeners = new Set<TokenEvictionListener>();
+
+/**
+ * Registers a callback for every token record removed from the store.
+ *
+ * Routes that key a limiter on the token hash (the news proxy) use this to
+ * drop the matching bucket, so a dead token cannot keep a slot occupied until
+ * its window elapses.
+ */
+export function onClientTokenEvicted(listener: TokenEvictionListener): void {
+  tokenEvictionListeners.add(listener);
+}
+
+function forgetToken(hash: string): void {
+  perTokenLimiter.forget(hash);
+  for (const listener of tokenEvictionListeners) listener(hash);
+}
+
 function isExpired(record: TokenRecord, now: number): boolean {
   return now - record.createdAt >= TOKEN_TTL_MS;
 }
@@ -80,6 +112,7 @@ function evictExpired(now: number): void {
   for (const [hash, record] of tokens) {
     if (!isExpired(record, now)) break;
     tokens.delete(hash);
+    forgetToken(hash);
   }
 }
 
@@ -89,6 +122,7 @@ function makeRoom(): void {
     const oldest = tokens.keys().next().value;
     if (oldest === undefined) return;
     tokens.delete(oldest);
+    forgetToken(oldest);
   }
 }
 
@@ -106,11 +140,36 @@ export function issueToken(): string {
 // market data, AI proxies). Abuse protection, not a cost gate — /api/sentiment
 // and the AI proxies are BYOK-only, so a token can never spend the operator's
 // money, only its own rate-limit budget.
-const perTokenLimiter = createRateLimiter({ windowMs: 60_000, max: 300 });
+//
+// The cap mirrors the token store's own cap: the store never holds more than
+// TOKEN_MAP_CAP live records, and every place that removes a record also calls
+// `forget`, so a bucket never outlives its token. The limiter's old default
+// (1000) was a tenth of the store, so a token beyond the first thousand had
+// its bucket evicted and its ceiling never bound (BUG-0722).
+//
+// Deliberately soft: evicting a token record or re-minting yields a new hash
+// and therefore a fresh per-token bucket. The per-IP ceiling below is the
+// hard one; this one protects upstream quotas from a single token, not a
+// determined actor.
+const perTokenLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 300,
+  maxTrackedKeys: TOKEN_MAP_CAP,
+});
 
 // Per-IP, summed across all of that IP's tokens: catches a single actor
-// minting many tokens to route around the per-token ceiling above.
-const perIpLimiter = createRateLimiter({ windowMs: 60_000, max: 600 });
+// minting many tokens to route around the per-token ceiling above. This is
+// the hard ceiling — a new token means a new hash, but not a new address.
+//
+// The key cap is raised well above the limiter default (1000) because the map
+// is filled by distinct client addresses: an address spray must not throttle
+// honest newcomers for the rest of the window. `normalizeClientAddress` folds
+// an IPv6 /64 into one key, so the cap counts networks, not single addresses.
+const perIpLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 600,
+  maxTrackedKeys: CLIENT_ADDRESS_KEY_CAP,
+});
 
 function unauthorized(): Response {
   return json(
@@ -145,10 +204,13 @@ export function checkClientToken(request: Request, clientAddress: string): Respo
   const now = Date.now();
   if (isExpired(record, now)) {
     tokens.delete(hash);
+    forgetToken(hash);
     return unauthorized();
   }
 
-  if (!perIpLimiter.consume(clientAddress)) return rateLimited();
+  if (!perIpLimiter.consume(normalizeClientAddress(clientAddress))) {
+    return rateLimited();
+  }
   if (!perTokenLimiter.consume(hash)) return rateLimited();
 
   record.requestCount += 1;
@@ -162,6 +224,7 @@ export function _resetForTests(): void {
   tokens.clear();
   perTokenLimiter.clear();
   perIpLimiter.clear();
+  tokenEvictionListeners.clear();
 }
 
 /** Test-only escape hatch: current number of stored token records. */

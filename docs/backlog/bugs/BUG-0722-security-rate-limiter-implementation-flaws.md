@@ -2,7 +2,7 @@
 id: BUG-0722
 title: Security: rate limiter implementation flaws allow bypass of all abuse ceilings
 type: bug
-status: specced
+status: done
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +13,46 @@ depends_on: []
 ---
 
 # BUG-0722 — Security: rate limiter implementation flaws allow bypass of all abuse ceilings
+
+> **State note.** All three sub-findings are addressed. `perTokenLimiter` now
+> sets `maxTrackedKeys: TOKEN_MAP_CAP` (10 000), and every place that removes
+> a token record (`makeRoom`, `evictExpired`, expired-token rejection) calls
+> `forget` on the limiter, so a bucket never outlives its token; the 300/min
+> ceiling binds for a token issued before thousands of later ones. Eviction
+> drops only expired buckets — never a live one. At capacity, a newcomer gets
+> its own normal bucket in a bounded probation map (same `max`, expired-first,
+> at most 1 000 entries); when both maps are full of live buckets the limiter
+> fails closed rather than evicting a live bucket. That closes the
+> counter-reset bypass without granting a newcomer an extra allowance and
+> without a shared budget one caller could drain.
+>
+> Deliberate residual: an actor who can present `20 000 + min(1 000, cap/2)`
+> distinct keys can keep both maps full and refuse new admissions for one
+> window. IPv6 keys are aggregated to the routed /64 (the issuance limiter to
+> /48, because one hosting allocation holds 65 536 /64s), so a spray needs
+> distinct networks, not addresses; closing the remainder needs an admission
+> mechanism (the bot challenge already named at the issuance route), not a
+> bigger map. The per-token ceiling is soft by design — evicting a record or
+> re-minting yields a new hash — while the per-network ceiling is the hard
+> one. The news proxy is keyed on the validated client token's hash, not the
+> caller-supplied API key, so arbitrary strings cannot fill a limiter map, and
+> an eviction listener drops its bucket when the token record goes away.
+> `normalizeClientAddress` folds IPv4-mapped and IPv4-translated addresses
+> (dotted and hex), NAT64, brackets and ports, zones and leading-zero octets,
+> and bounds non-IP fallbacks.
+>
+> Finding #3 (needs_validation) is documentation plus normalization:
+> `DEPLOYMENT.md` §7 and `.env.example` require `ADDRESS_HEADER`/`XFF_DEPTH`
+> for the documented proxy shape and warn that setting them on a directly
+> reachable port lets a caller spoof IPs; `normalizeClientAddress` closes the
+> address-family rotation the docs do not cover.
+>
+> RED proof: the new/changed assertions fail against the previous
+> implementations for the intended reasons (counter reset under spray,
+> newcomer admitted by eviction, expired key routed through probation, address
+> rotation across one /64 or /48, NAT64 collapse, per-token ceiling never
+> binding, evicted tokens keeping news buckets, rotating apiKeys bypassing the
+> news limiter) and pass with the fix.
 
 ## Symptom
 
@@ -43,9 +83,9 @@ Fingerprints: `clientToken:perTokenLimiter:trackedKeyCapMismatch`, `rateLimit:ev
 
 ## Acceptance criteria
 
-- [ ] `perTokenLimiter` maxTrackedKeys >= TOKEN_MAP_CAP
-- [ ] Rate limiter does not evict non-expired keys under spray
-- [ ] Unit tests for both fixes
+- [x] `perTokenLimiter` maxTrackedKeys >= TOKEN_MAP_CAP
+- [x] Rate limiter does not evict non-expired keys under spray
+- [x] Unit tests for both fixes
 
 ## Links
 

@@ -88,7 +88,7 @@ describe('News Service Security', () => {
         expect(json2).toHaveProperty('error');
     });
 
-    it('should rate limit multiple requests from the same API key', async () => {
+    it('should rate limit upstream-bound requests from one client address', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({ status: "ok", articles: [] }),
@@ -117,5 +117,66 @@ describe('News Service Security', () => {
         expect(res.status).toBe(429);
         const body = await res.json();
         expect(body.error).toContain('Rate limit exceeded');
+    });
+
+    it('should key the rate limit on the client address, not the caller-supplied API key', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ status: "ok", articles: [] }),
+            text: async () => "",
+        });
+
+        // A caller rotating API keys must not get a fresh budget per key: the
+        // limiter is keyed on the client address, so the 11th upstream-bound
+        // request from one address is refused even when every apiKey differs.
+        for (let i = 0; i < 10; i++) {
+            const apiKey = `rotated-key-${i}`;
+            const requestMock = {
+                headers: new Headers({ 'x-api-key': apiKey }),
+                json: async () => ({ source: 'newsapi', apiKey, params: { q: `rotated-${i}` } }),
+                url: 'http://localhost/api/news'
+            } as unknown as Request;
+            const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+            expect(res.status).not.toBe(429);
+        }
+
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': 'rotated-final' }),
+            json: async () => ({ source: 'newsapi', apiKey: 'rotated-final', params: { q: 'rotated-final' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+        expect(res.status).toBe(429);
+    });
+
+    it('should key the rate limit on the client token, not the client address', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ status: "ok", articles: [] }),
+            text: async () => "",
+        });
+        const token = 'shared-client-token';
+
+        // One token, ten different addresses: the budget is per client token,
+        // so the 11th upstream-bound request is refused even though every
+        // request comes from a different address.
+        for (let i = 0; i < 10; i++) {
+            const apiKey = `token-key-${i}`;
+            const requestMock = {
+                headers: new Headers({ 'x-api-key': apiKey, 'x-app-access-token': token }),
+                json: async () => ({ source: 'newsapi', apiKey, params: { q: `token-${i}` } }),
+                url: 'http://localhost/api/news'
+            } as unknown as Request;
+            const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress: () => `10.2.0.${i}` } as unknown as Parameters<typeof POST>[0]);
+            expect(res.status).toBe(200);
+        }
+
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': 'token-final', 'x-app-access-token': token }),
+            json: async () => ({ source: 'newsapi', apiKey: 'token-final', params: { q: 'token-final' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress: () => '10.2.0.99' } as unknown as Parameters<typeof POST>[0]);
+        expect(res.status).toBe(429);
     });
 });
