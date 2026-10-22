@@ -322,8 +322,7 @@
     <!-- Indicator Configuration (moved from Trading → Chart & Data; single home for all chart-related settings) -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
-            {$_("settings.trading.indicatorConfiguration") ||
-                "Indicator Configuration"}
+            {$_("settings.chart.indicatorConfiguration")}
         </h3>
         <IndicatorSettings />
     </section>

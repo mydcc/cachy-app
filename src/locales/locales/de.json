@@ -1343,7 +1343,7 @@
         "speed": "Flussgeschwindigkeit",
         "size": "Partikelgröße",
         "reset": "Zurücksetzen",
-        "config": "Trade Flow Konfiguration",
+        "config": "Trade-Flow-Konfiguration",
         "mode": "Modus",
         "dynamicAtmosphere": "Dynamische Atmosphäre",
         "flow": "Fluss",
@@ -1472,7 +1472,7 @@
     "reset": "Daten zurücksetzen",
     "resetConfirm": "Werkseinstellung? Dies löscht ALLE lokalen Daten: Einstellungen, Trade-Journal, API-Schlüssel, den Geräte-Verschlüsselungsschlüssel und alle Caches. Dies kann nicht rückgängig gemacht werden.",
     "apiQuota": {
-      "title": "API Quota Überwachung",
+      "title": "API-Quota-Überwachung",
       "cryptopanic": "CryptoPanic",
       "newsapi": "NewsAPI",
       "totalCalls": "Calls insgesamt",
@@ -1802,7 +1802,7 @@
       "calculationEngine": "Berechnungs-Engine",
       "engine": "Engine",
       "mode": "Modus",
-      "displayPreferences": "Anzeigeeinstellungen",
+      "displayPreferences": "Darstellung",
       "calculationMode": "Berechnungsmodus",
       "obvNoParams": "On Balance Volume hat keine konfigurierbaren Parameter.",
       "volume": "Volumen",
@@ -1958,7 +1958,8 @@
       "countdownEnabled": "Countdown zur Kerzenschließung",
       "countdownDesc": "Verbleibende Zeit bis die aktuelle Kerze schließt",
       "reset": "Zurücksetzen",
-      "title": "Chart-Einstellungen"
+      "title": "Chart-Einstellungen",
+      "indicatorConfiguration": "Indikator Konfiguration"
     },
     "tabs": {
       "label": "Einstellungsbereiche",
@@ -2209,7 +2210,6 @@
       "coinankPopup": "Coinank (ProChart Popup)",
       "coinankDesc": "Ordnet den aktuellen Zeitrahmen dem Heatmap-Lookback-Zeitraum zu.",
       "coinglassDesc": "Öffnet Coinglass Liquidation Heatmap.",
-      "indicatorConfiguration": "Indikator Konfiguration",
       "managePerformance": "Leistung verwalten",
       "marketSentiment": "Marktstimmung",
       "showSentimentAnalysis": "Stimmungsanalyse-Panel anzeigen",
@@ -2469,8 +2469,8 @@
       }
     },
     "audit": {
-      "subTab": "Order-Log",
-      "title": "Order-Audit-Trail",
+      "subTab": "Order-Audit",
+      "title": "Order-Audit",
       "description": "Jede Order, die diese App zu senden versucht hat — was gesendet wurde, was zurückkam und welche Prüfungen sie bestanden hat. Auch abgelehnte Orders werden erfasst; genau die hätte keine Konsole je gezeigt, weil nichts gesendet wurde.",
       "retention": "Bleibt nur auf diesem Gerät und wird nie hochgeladen. Die letzten {max} Versuche werden aufbewahrt, ältere entfallen. API-Keys, Secrets und Signaturen werden entfernt, bevor etwas geschrieben wird.",
       "export": "Als JSON exportieren",
