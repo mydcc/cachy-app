@@ -2,7 +2,7 @@
 id: FEAT-0614
 title: Introduce compact, default and wide density modes
 type: feature
-status: in-progress
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
