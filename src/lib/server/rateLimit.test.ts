@@ -84,43 +84,57 @@ describe("createRateLimiter", () => {
     expect(limiter.consume("victim")).toBe(false);
   });
 
-  it("routes untracked keys through one shared overflow budget at capacity (BUG-0722)", () => {
+  it("gives a newcomer at capacity its own normal bucket, not an extra allowance (BUG-0722)", () => {
     const limiter = createRateLimiter({ windowMs: 60_000, max: 2, maxTrackedKeys: 2 });
 
     expect(limiter.consume("a")).toBe(true);
     expect(limiter.consume("b")).toBe(true);
 
-    // Newcomers are throttled by one shared budget (max * 10 admissions),
-    // not refused outright, so a spray cannot turn the limiter into a
-    // deny-all gate for honest clients.
-    for (let i = 0; i < 20; i++) {
-      expect(limiter.consume("c")).toBe(true);
-    }
+    // The newcomer gets a probation bucket with the same `max` as any other
+    // key — two requests, not max * 10.
+    expect(limiter.consume("c")).toBe(true);
+    expect(limiter.consume("c")).toBe(true);
     expect(limiter.consume("c")).toBe(false);
 
-    // The tracked buckets are untouched by the overflow being spent.
+    // Probation is bounded: with one slot (maxTrackedKeys / 2, at least 1),
+    // a second newcomer is refused while the first is still live.
+    expect(limiter.consume("d")).toBe(false);
+
+    // The established buckets are untouched throughout.
     expect(limiter.consume("a")).toBe(true);
     expect(limiter.consume("a")).toBe(false);
   });
 
-  it("admits a newcomer into its own bucket once expired buckets free capacity", () => {
+  it("admits a newcomer once a probation bucket expires", () => {
     vi.useFakeTimers();
     const limiter = createRateLimiter({ windowMs: 1_000, max: 1, maxTrackedKeys: 2 });
 
     expect(limiter.consume("a")).toBe(true);
     expect(limiter.consume("b")).toBe(true);
-
-    // At capacity the newcomer draws from the shared overflow budget, so its
-    // second request is still admitted — it has no per-key bucket yet.
     expect(limiter.consume("c")).toBe(true);
-    expect(limiter.consume("c")).toBe(true);
+    expect(limiter.consume("c")).toBe(false);
 
     vi.advanceTimersByTime(1_001);
 
-    // The older windows elapsed; the newcomer now has its own bucket, which
-    // binds after one request.
+    // c's probation bucket expired and is reset in place: one more request.
     expect(limiter.consume("c")).toBe(true);
     expect(limiter.consume("c")).toBe(false);
+  });
+
+  it("re-inserts an expired established key in place instead of routing it through probation", () => {
+    vi.useFakeTimers();
+    const limiter = createRateLimiter({ windowMs: 1_000, max: 1, maxTrackedKeys: 1 });
+
+    expect(limiter.consume("a")).toBe(true);
+
+    vi.advanceTimersByTime(500);
+    expect(limiter.consume("b")).toBe(true); // established full: probation
+    expect(limiter.consume("b")).toBe(false); // b at its own limit
+
+    // a's window has elapsed, b's has not, and the sweep throttle has not
+    // run: a must be reset in place, not refused for lack of a slot.
+    vi.advanceTimersByTime(501);
+    expect(limiter.consume("a")).toBe(true);
   });
 
   it("forget() drops one key's bucket, so it starts a fresh window", () => {

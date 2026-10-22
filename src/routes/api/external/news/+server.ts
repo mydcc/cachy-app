@@ -9,7 +9,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkClientToken } from "../../../../lib/server/clientToken";
+import { checkClientToken, clientTokenKey, TOKEN_MAP_CAP } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
 import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
@@ -25,7 +25,14 @@ interface CachedResponse {
 export const _newsCache = new Map<string, CachedResponse>();
 
 // Rate Limiting — shared implementation (BUG-0052), was a one-off Map here before.
-export const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 10 });
+// Keyed on the validated client token's hash, not on the caller-supplied API
+// key: arbitrary apiKey strings would fill the tracked-key map, and a token
+// hash is bounded by the token store (BUG-0722). The cap matches the store.
+export const _rateLimits = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  maxTrackedKeys: TOKEN_MAP_CAP,
+});
 
 const pendingRequests = new Map<string, Promise<unknown>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)
@@ -72,11 +79,14 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
       return json(cached.data);
     }
 
-    // Rate Limit Check (only for requests that will hit upstream). Keyed on the
-    // client address, not the user-supplied apiKey: arbitrary apiKey strings
-    // would let one caller fill the tracked-key map and throttle every other
-    // client (BUG-0722).
-    if (!_rateLimits.consume(normalizeClientAddress(getClientAddress()))) {
+    // Rate Limit Check (only for requests that will hit upstream). Keyed on
+    // the validated client token, not the user-supplied apiKey: arbitrary
+    // apiKey strings would let one caller fill the tracked-key map, while a
+    // token hash is bounded by the token store (BUG-0722). The address is a
+    // fallback for the impossible case that the guard passed without a token.
+    const limiterKey =
+      clientTokenKey(request) ?? normalizeClientAddress(getClientAddress());
+    if (!_rateLimits.consume(limiterKey)) {
       return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
     }
 

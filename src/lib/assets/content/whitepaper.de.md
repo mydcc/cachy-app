@@ -503,9 +503,9 @@ Cachy fungiert als Durchgangsinstanz.
 Die Proxy-Routen, die auf Börsen-Credentials wirken oder KI-Traffic weiterleiten, sind nicht anonym erreichbar. Die Zugriffskontrolle ist **Self-Service und fails closed**:
 
 - \`checkClientToken\` (\`src/lib/server/clientToken.ts\`) schützt jede sensible Route (28 Route-Dateien unter \`src/routes/api/\`). Der Token wird im Header \`x-app-access-token\` übertragen.
-- Den Token erhält ein Client von \`POST /api/auth/token\` — bewusst ungeschützt, denn dort zieht er sich seinen ersten Token — und stattdessen pro IP rate-limitiert (20 Ausstellungen pro Stunde).
+- Den Token erhält ein Client von \`POST /api/auth/token\` — bewusst ungeschützt, denn dort zieht er sich seinen ersten Token — und stattdessen pro Client-Netz rate-limitiert (IPv6-Schlüssel auf das geroutete /64 aggregiert), 20 Ausstellungen pro Stunde.
 - Der Server speichert nur den SHA-256-Hash des Tokens plus Request-Zähler, im Speicher des Prozesses. Der rohe Token wird nie persistiert; Tokens laufen 24 h nach Ausstellung ab sowie bei Server-Neustart, danach minten Clients einfach neu.
-- Missbrauchsschutz ist gestaffelt: 300 Anfragen/Minute pro Token, 600 Anfragen/Minute pro IP (Summe über alle Tokens dieser IP). Überschreitung antwortet mit \`429\`.
+- Missbrauchsschutz ist gestaffelt: 300 Anfragen/Minute pro Token, 600 Anfragen/Minute pro Client-Netz (IPv6 /64), Summe über alle Tokens dieses Netzes. Überschreitung antwortet mit \`429\`.
 - Ein unbekannter oder fehlender Token erhält immer dasselbe \`401\`, gleichgültig woran es liegt — ein Aufrufer erfährt nichts über das Deployment. Es gibt kein deployment-weites Geheimnis, das man konfigurieren, vergessen oder leaken könnte — dieses Modell hat das frühere gemeinsame \`APP_ACCESS_TOKEN\` abgelöst (siehe [ADR-0002](https://github.com/mydcc/cachy-app/blob/develop/docs/adr/0002-api-authentication-fails-closed.md) samt BUG-0052-Amendment).
 
 ### Datenklassen-Grenze: Was lokal bleibt und was nicht

@@ -19,17 +19,25 @@ depends_on: []
 > a token record (`makeRoom`, `evictExpired`, expired-token rejection) calls
 > `forget` on the limiter, so a bucket never outlives its token; the 300/min
 > ceiling binds for a token issued before thousands of later ones. Eviction
-> now drops only expired buckets — never a live one — and at capacity an
-> untracked key draws from one shared overflow budget (`max * 10` per window)
-> instead of gaining a bucket by eviction. That keeps the counter-reset
-> bypass closed without turning a spray into a blanket refusal: tracked
-> clients keep their own counters, newcomers are throttled, and memory stays
-> bounded at the cap. The per-token ceiling is deliberately soft — evicting a
-> record or re-minting yields a new hash — while the per-IP ceiling is the
-> hard one. IP keys are normalized (`normalizeClientAddress`: IPv6 /64
-> aggregation, IPv4-mapped unwrapping, zone stripping) so one host cannot
-> rotate addresses for fresh buckets; the news proxy is keyed on that
-> normalized address instead of the caller-supplied API key.
+> drops only expired buckets — never a live one. At capacity, a newcomer gets
+> its own normal bucket in a bounded probation map (same `max`, expired-first,
+> at most 1 000 entries); when both maps are full of live buckets the limiter
+> fails closed rather than evicting a live bucket. That closes the
+> counter-reset bypass without granting a newcomer an extra allowance and
+> without a shared budget one caller could drain.
+>
+> Deliberate residual: an actor who can present `20 000 + min(1 000, cap/2)`
+> distinct keys can keep both maps full and refuse new admissions for one
+> window. IPv6 keys are aggregated to the routed /64
+> (`normalizeClientAddress`), so a spray needs distinct networks, not
+> addresses; closing the remainder needs an admission mechanism (the bot
+> challenge already named at the issuance route), not a bigger map. The
+> per-token ceiling is soft by design — evicting a record or re-minting yields
+> a new hash — while the per-network ceiling is the hard one. The news proxy
+> is keyed on the validated client token's hash, not the caller-supplied API
+> key, so arbitrary strings cannot fill a limiter map. `normalizeClientAddress`
+> folds IPv4-mapped addresses (dotted and hex), embedded IPv4, brackets and
+> ports, zones and leading-zero octets, and bounds non-IP fallbacks.
 >
 > Finding #3 (needs_validation) is documentation plus normalization:
 > `DEPLOYMENT.md` §7 and `.env.example` require `ADDRESS_HEADER`/`XFF_DEPTH`
@@ -38,10 +46,10 @@ depends_on: []
 > address-family rotation the docs do not cover.
 >
 > RED proof: the new/changed assertions fail against the previous
-> implementation for the intended reasons (counter reset under spray,
-> newcomer admitted by eviction, address rotation across one /64, per-token
-> ceiling never binding, rotating apiKeys bypassing the news limiter) and
-> pass with the fix.
+> implementations for the intended reasons (counter reset under spray,
+> newcomer admitted by eviction, expired key routed through probation, address
+> rotation across one /64, per-token ceiling never binding, rotating apiKeys
+> bypassing the news limiter) and pass with the fix.
 
 ## Symptom
 

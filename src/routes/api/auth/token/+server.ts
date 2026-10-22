@@ -19,7 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { issueToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
-import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
+import { normalizeClientAddress, CLIENT_ADDRESS_KEY_CAP } from "../../../../lib/server/clientAddress";
 
 /**
  * Deliberately unguarded (BUG-0052): this is where a client gets its first
@@ -45,7 +45,7 @@ export const _issuanceLimiter = createRateLimiter({
   // capacity draws from the limiter's shared overflow budget instead of being
   // refused. `normalizeClientAddress` folds an IPv6 /64 into one key, so a
   // single host cannot rotate addresses to mint unlimited tokens.
-  maxTrackedKeys: 20_000,
+  maxTrackedKeys: CLIENT_ADDRESS_KEY_CAP,
 });
 
 export const POST: RequestHandler = async ({ getClientAddress }) => {

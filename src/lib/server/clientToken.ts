@@ -18,7 +18,7 @@
 import { json } from "@sveltejs/kit";
 import crypto from "node:crypto";
 import { createRateLimiter } from "./rateLimit";
-import { normalizeClientAddress } from "./clientAddress";
+import { normalizeClientAddress, CLIENT_ADDRESS_KEY_CAP } from "./clientAddress";
 
 /**
  * Self-service, anonymous client tokens (BUG-0052), replacing the single
@@ -66,6 +66,17 @@ export const TOKEN_MAP_CAP = 10_000;
 
 function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * Returns the rate-limit key for a request's client token, or null when the
+ * request carries none. The key is the same SHA-256 hash the store uses, so a
+ * limiter keyed on it is bounded by the token store and cannot be filled with
+ * caller-chosen strings.
+ */
+export function clientTokenKey(request: Request): string | null {
+  const raw = request.headers.get("x-app-access-token");
+  return raw ? hashToken(raw) : null;
 }
 
 function isExpired(record: TokenRecord, now: number): boolean {
@@ -137,7 +148,7 @@ const perTokenLimiter = createRateLimiter({
 const perIpLimiter = createRateLimiter({
   windowMs: 60_000,
   max: 600,
-  maxTrackedKeys: 20_000,
+  maxTrackedKeys: CLIENT_ADDRESS_KEY_CAP,
 });
 
 function unauthorized(): Response {

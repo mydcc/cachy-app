@@ -11,11 +11,15 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
-import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
+import { normalizeClientAddress, CLIENT_ADDRESS_KEY_CAP } from "../../../../lib/server/clientAddress";
 import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
 import { JSDOM } from "jsdom";
 
-const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 30 });
+const _rateLimits = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 30,
+  maxTrackedKeys: CLIENT_ADDRESS_KEY_CAP,
+});
 
 interface CachedArticle {
   data: {

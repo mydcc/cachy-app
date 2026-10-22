@@ -25,8 +25,30 @@ describe("normalizeClientAddress", () => {
     expect(normalizeClientAddress(" 203.0.113.7 ")).toBe("203.0.113.7");
   });
 
-  it("unwraps IPv4-mapped IPv6 addresses", () => {
+  it("unwraps IPv4-mapped IPv6 addresses in every notation", () => {
     expect(normalizeClientAddress("::ffff:203.0.113.7")).toBe("203.0.113.7");
+    expect(normalizeClientAddress("0:0:0:0:0:ffff:203.0.113.7")).toBe(
+      "203.0.113.7",
+    );
+    expect(normalizeClientAddress("::ffff:c000:201")).toBe("192.0.2.1");
+    expect(normalizeClientAddress("::ffff:203.0.113.007")).toBe("203.0.113.7");
+  });
+
+  it("canonicalizes leading-zero octets in plain IPv4", () => {
+    expect(normalizeClientAddress("203.0.113.007")).toBe("203.0.113.7");
+  });
+
+  it("strips brackets and ports", () => {
+    expect(normalizeClientAddress("[2001:db8:1:2::1]:443")).toBe(
+      "2001:db8:1:2::/64",
+    );
+    expect(normalizeClientAddress("203.0.113.7:443")).toBe("203.0.113.7");
+  });
+
+  it("folds a NAT64 address to its prefix", () => {
+    expect(normalizeClientAddress("64:ff9b::192.0.2.1")).toBe(
+      "64:ff9b:0:0::/64",
+    );
   });
 
   it("truncates IPv6 addresses to their /64 prefix", () => {
@@ -63,8 +85,9 @@ describe("normalizeClientAddress", () => {
     );
   });
 
-  it("returns unparseable values as a stable key", () => {
+  it("returns unparseable values as a stable, bounded key", () => {
     expect(normalizeClientAddress("not-an-ip")).toBe("not-an-ip");
     expect(normalizeClientAddress("2001:db8:::1")).toBe("2001:db8:::1");
+    expect(normalizeClientAddress("x".repeat(100))).toBe("x".repeat(64));
   });
 });

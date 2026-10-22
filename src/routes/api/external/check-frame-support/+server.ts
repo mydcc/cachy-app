@@ -11,10 +11,14 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
-import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
+import { normalizeClientAddress, CLIENT_ADDRESS_KEY_CAP } from "../../../../lib/server/clientAddress";
 import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
 
-const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 60 });
+const _rateLimits = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 60,
+  maxTrackedKeys: CLIENT_ADDRESS_KEY_CAP,
+});
 
 const domainCache = new Map<string, { supportsIframe: boolean; timestamp: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
