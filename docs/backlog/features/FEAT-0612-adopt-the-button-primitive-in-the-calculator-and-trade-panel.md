@@ -107,32 +107,59 @@ un-migrated components are not pulled in. It accepts `FEAT-0611 escape:` and
 
 - The submit button's label goes 14 px/600 → 16 px/700 (`.btn-lg` reads
   `--text-base` and `.btn-base` is 700) and loses its 1 px accent border
-  (`.btn-base` is borderless). Disabled opacity 0.45 → 0.6.
+  (`.btn-base` is borderless). Disabled opacity 0.45 → 0.6. Radius 6 px
+  (`--radius-md`) → 8 px (`--radius-lg`). Its hover flips direction in the
+  default theme: `--accent-color-hover` (`--sky-400`, lighter) →
+  `--btn-accent-hover-bg` (`--sky-600`, darker). Paper mode's hover is a
+  different green rather than `opacity: 0.9`.
+- **Per-theme colour divergence.** `variant="accent"`/`"success"` read the
+  `--btn-*-bg` pairs, which several themes declare independently of
+  `--accent-color`/`--success-color`: the live CTA shifts in `github-dark`
+  (`#58a6ff` → `#238636`), `github-light` (`#0969da` → `#1a7f37`) and `VIP`
+  (paper `--lime-300` → `--green-500`); `gruvbox-dark` paper moves shade. In
+  `theme-matrix` the new pair put the paper label at **3.73:1**, so this item
+  also sets `--btn-success-text: var(--matrix-base)` there — black on the
+  theme's bright green, the same 15.4:1 the old rule had. The remaining
+  divergence is filed as BUG-0728, not fixed here.
 - The icon buttons gain a 34 px hit area (they were 16 px glyphs with no
-  padding) and their copy/fetch hover goes `--success-color` → `--accent-color`.
-  Rest colour is unchanged (`--text-secondary`).
-- The pulse button is 34 px instead of 36, its scale hover is no longer
-  animated (the primitive names its transition properties), and it no longer
-  carries `btn-secondary-action` — `variant="default"` is the same colour pair.
+  padding), dim to 0.6 when disabled (they had no disabled style) and their
+  copy/fetch hover goes `--success-color` → `--accent-color`. Rest colour is
+  unchanged (`--text-secondary`).
+- The pulse button is 34 px instead of 36, its rocket renders at 14 px rather
+  than 16 (`.btn-base`'s `font-size` is unlayered and beats the `text-base`
+  utility — the same cascade fact that produced `.btn-mono`), its scale hover
+  is no longer animated (the primitive names its transition properties), and it
+  no longer carries `btn-secondary-action` — `variant="default"` is the same
+  colour pair.
 - `tracking-[0.03em]` replaces `tracking-wider` (0.05em) on the submit label, to
   keep the old letter-spacing.
+- `.copy-btn` and `.price-fetch-btn` survive for `AssistantView` and
+  `TradeSetupInputs`, and they also still apply their right padding (8 px left /
+  4 px right) and colour-only transition to the two migrated icon buttons. The
+  variant wins every colour conflict; the asymmetry is intended for now.
 
-**AC4 — the three-way action row.** Confirmed against FEAT-0606: its §8.1 lists
-the row's controls (`Language DE/EN`, Quiz, Iframe toggle and channels,
-Guide/Changelog/Privacy/Whitepaper, plus the `🚀`), and files no finding about
+**AC4 — the three-way action row.** Confirmed against FEAT-0606: §8.1 of
+`docs/backlog/assets/FEAT-0605/ui-zustandsaufnahme.md` lists the row's controls
+(`Language DE/EN`, Quiz, Iframe toggle and channels,
+Guide/Changelog/Privacy/Whitepaper, plus the `🚀`) and files no finding about
 ordering or grouping; §8.7 does not list them as cross-surface. The
 `grid-cols-[1fr_auto_1fr]` split — locale left, utility centre, power right —
 stays as it is. No BUG filed.
 
-**AC5 — tests unmodified.** The 9 `PlaceOrderPanel.*` component tests, plus
-`PortfolioInputs`, `SummaryResults`, `GeneralInputs` and
+**AC5 — tests unmodified.** The ten `PlaceOrderPanel.*` component suites, plus
+`PortfolioInputs`, `SummaryResults`, the two `GeneralInputs` suites and
 `ExchangeAccountControls`, pass without a selector change: the old class names
-remain as anchor classes on the migrated buttons. Only
-`Button.component.test.ts` grew a case.
+remain as anchor classes on the migrated buttons, each with a comment saying so.
+Only `Button.component.test.ts` grew a case.
 
 **AC6 — FEAT-0328.** Re-read before the diff. Its compact one-row shape and the
 two dialog chips are untouched (escaped, not migrated); the leverage/margin
 sync feedback lives in those chips and is not affected.
+
+**Guard scope.** `+page.svelte` is not in the guard even though its `🚀` moved:
+the five raw buttons that remain there are FEAT-0610 and FEAT-0613 leftovers,
+and escaping them here would claim coverage this item does not own. Recorded so
+the next item adds it deliberately.
 
 Audit §5 re-counted: **296** raw `<button>` across 89 files (368 before
 FEAT-0610, 302 after FEAT-0611).

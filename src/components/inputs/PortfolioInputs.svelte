@@ -423,6 +423,8 @@
           placeholder={$_("dashboard.portfolioInputs.riskAmountPlaceholder")}
           disabled={isPositionSizeLocked}
         />
+        <!-- `btn-lock-icon` has no rule any more; it stays as the anchor the
+             component test queries (FEAT-0612). -->
         <Button
           variant="ghost-muted"
           size="sm"

@@ -848,6 +848,9 @@
     <p class="note">{$_("orderEntry.notReady")}</p>
   {/if}
 
+  <!-- `submit-btn` has no rule any more; it stays as the anchor nine component
+       suites query (`button.submit-btn`), so the migration does not rewrite
+       money-path tests (FEAT-0612). -->
   <Button
     variant={paperState.enabled ? "success" : "accent"}
     size="lg"

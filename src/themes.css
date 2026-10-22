@@ -898,7 +898,10 @@
   --btn-accent-text: var(--matrix-base);
   --btn-success-bg: var(--green-400);
   --btn-success-hover-bg: var(--green-500);
-  --btn-success-text: var(--green-700);
+  /* FEAT-0612: the paper submit is a success button on the order path. Green
+     on green measured 3.73:1; black is the theme's own success foreground and
+     restores the 15.4:1 the old `.submit-btn.paper-mode-btn` had. */
+  --btn-success-text: var(--matrix-base);
 
   /* --- Toggle & UI --- */
   --toggle-bg-off: var(--green-700);
@@ -2698,10 +2701,10 @@ input[type="number"] {
 }
 
 /*
- * Muted icon action (FEAT-0612): the calculator's icon buttons (fetch price,
- * fetch balance, copy, lock) are transparent and quiet at rest, and they answer
- * a hover with a colour change — not the underline `ghost` uses, which is
- * invisible on an icon-only button.
+ * Muted icon action (FEAT-0612): the calculator's icon buttons (fetch balance,
+ * copy, lock) are transparent and quiet at rest, and they answer a hover with a
+ * colour change — not the underline `ghost` uses, which is invisible on an
+ * icon-only button.
  */
 .btn-base.btn-ghost-muted {
   background-color: transparent;

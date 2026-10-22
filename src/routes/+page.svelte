@@ -695,7 +695,7 @@
             <Button
               variant="default"
               size="sm"
-              extraClasses="w-9 flex-shrink-0 text-base hover:scale-105"
+              extraClasses="w-9 flex-shrink-0 hover:scale-105"
               title={$_("dashboard.triggerPulse")}
               ariaLabel={$_("dashboard.triggerPulse")}
               onClick={(e) =>

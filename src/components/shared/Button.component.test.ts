@@ -222,8 +222,10 @@ describe("FEAT-0610 — variants, sizes and events", () => {
 
         // The muted variant's hover is what makes it an action at all: an
         // icon-only button has no text to underline, so `ghost`'s hover would
-        // be invisible (FEAT-0612). happy-dom cannot evaluate `:hover`, so the
-        // rule is asserted from the sheet.
+        // be invisible (FEAT-0612). happy-dom cannot evaluate `:hover`, so this
+        // asserts the rule exists and names the accent colour; precedence over
+        // a site class (`.copy-btn:hover`) is a browser-level question and is
+        // not covered here.
         expect(readFileSync("src/themes.css", "utf8")).toMatch(
             /\.btn-base\.btn-ghost-muted:hover:not\(:disabled\)\s*\{\s*color:\s*var\(--accent-color\)/,
         );
