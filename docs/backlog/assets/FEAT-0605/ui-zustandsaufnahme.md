@@ -685,10 +685,453 @@ work does not rediscover them:
 
 ## 9. Reading this document
 
-Sections 1–6 are measurements. If a number drifts, the number is stale, not the
-code. Sections 7's N1–N3 and N9 are the ones that constrain *ordering* rather
+Sections 1–6 and 10–11 are measurements. If a number drifts, the number is stale,
+not the code. Sections 7's N1–N3 and N9 are the ones that constrain *ordering* rather
 than describing state — those are why the token layer precedes the density mode,
 and why the density mode precedes the settings reorganisation in execution even
 though the settings work is specced first. N4, N8 and N9 were the three open
 claims of the original brief; all three are resolved above, and N4's outcome
 lives on as [BUG-0696](../../bugs/BUG-0696-settings-window-inherits-an-inert-minwidth.md).
+
+## 10. Settings vocabulary (FEAT-0607)
+
+Recorded 2026-10-22, after FEAT-0613. Every row names the settled term in both
+languages; the six renamed terms are in §10.3. Source: `src/locales/locales/{de,en}.json`,
+read through the components in `src/components/settings/`.
+
+Scope: `<h3>`/`<h4>` headings and every `<Toggle>` label in that directory, plus the
+hotkey-category headings, which are rendered from a key list rather than literal
+markup. Four headings rendered by shared components (`PerformanceMonitor`,
+`CalculationDashboard`) are outside the scan because they are not settings
+controls.
+
+### 10.1 Section headings and labels
+
+**Trading**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| Bestätigungen | Confirmations | `settings.confirmations.title` |
+| Externe Kanäle | External channels | `settings.externalChannels.title` |
+| Benachrichtigungen | Notifications | `settings.notifications.title` |
+| Order-Audit | Order audit | `settings.audit.title` |
+| Ausführung & Daten | Execution & Data | `settings.trading.executionData` |
+| Automatisierung & Erweitert | Automation & Advanced | `settings.trading.automationTitle` |
+| Daten & Markt | Data & Market | `settings.trading.chartTitle` |
+| Kachel-Aktions-Links | Tile Action Links | `settings.trading.tileActionLinks` |
+
+**Chart**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| Skalierung | Price Scale | `settings.chart.scaleSection` |
+| Darstellung | Display | `settings.chart.displaySection` |
+| Fadenkreuz | Crosshair | `settings.chart.crosshairSection` |
+| Zeitachse & Countdown | Time Scale & Countdown | `settings.chart.timeSection` |
+| Indikator-Konfiguration | Indicator Configuration | `settings.chart.indicatorConfiguration` |
+| Panel-Konfiguration | Panel Configuration | `settings.technicals.panelConfiguration` |
+| Sichtbarkeit umschalten | Toggle visibility | `settings.technicals.toggleVisibility` |
+| Berechnungs-Engine | Calculation Engine | `settings.technicals.calculationEngine` |
+| Darstellung | Display | `settings.technicals.displayPreferences` |
+| Favorisierte Zeitrahmen | Favorite Timeframes | `settings.technicals.favorites` |
+| Oszillatoren | Oscillators | `settings.technicals.tabs.oscillators` |
+| Trend | Trend | `settings.technicals.tabs.trend` |
+| Volatilität | Volatility | `settings.technicals.tabs.volatility` |
+| Volumen | Volume | `settings.technicals.tabs.volume` |
+
+**AI**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| Eigene Provider | Custom providers | `settings.ai.customProviders.title` |
+| KI-Core | Intelligence Core | `settings.ai.intelligenceTitle` |
+| Verhalten & Persona | Behavior & Persona | `settings.ai.behavior` |
+| Autonome Agenten | Autonomous Agents | `settings.ai.agents` |
+| Discord Bot | Discord Bot | `settings.ai.discord.title` |
+
+**Connections**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| API-Quota-Überwachung | API Quota Monitoring | `settings.apiQuota.title` |
+| Börsen | Exchanges | `settings.connections.exchanges` |
+| Datendienste | Data Services | `settings.connections.dataServices` |
+| RSS Feeds | RSS Feeds | `settings.connections.rss` |
+| Eigene Feeds | Custom Feeds | `settings.connections.customFeeds` |
+
+**Automation**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| Modus | Mode | `settings.paper.modeTitle` |
+| Simulation | Simulation | `settings.paper.simulationTitle` |
+| Simulierte Fehler | Simulated failures | `settings.paper.failureTitle` |
+| Kill Switch | Kill Switch | `settings.risk.killSwitch.title` |
+| Alle Positionen schließen | Close all positions | `settings.risk.closeAll.title` |
+| Heute | Today | `settings.risk.dailyStatusTitle` |
+| Limits | Limits | `settings.risk.limitsTitle` |
+| Deine Bots | Your bots | `settings.automation.yourBots` |
+| Alarm hochstufen | Promote an alert | `settings.automation.promoteTitle` |
+| Das simulierte Konto | The simulated account | `settings.automation.account` |
+
+**System**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| Leistungsprofile | Performance Profiles | `settings.calculation.profiles` |
+| Erweiterte Einstellungen | Advanced Settings | `settings.calculation.advanced` |
+| Aktuelle Konfiguration | Current Configuration | `settings.calculation.currentConfig` |
+| Daten-Wartung | Data Maintenance | `settings.data.title` |
+| Berechnungs-Timeframe | Calculation Timeframe | `settings.data.repairTimeframe` |
+| Volatilitäts-Matrix (ATR) | Volatility Matrix (ATR) | `settings.data.atrTitle` |
+| Exekutions-Metriken (MFE/MAE) | Execution Metrics (MFE/MAE) | `settings.data.mfeMaeTitle` |
+| Symbole bereinigen | Clean Symbols | `settings.data.symbolsTitle` |
+| ⚡ Engine-Debug-Panel | ⚡ Engine Debug Panel | `settings.system.debug.panelTitle` |
+| Performance | Performance | `settings.system.performance` |
+| Schnellaktionen | Quick Actions | `settings.system.quickActions` |
+| Daten & Backup | Data & Backup | `settings.system.dataMaintenance` |
+| Onboarding-Tour starten | Start Onboarding Tour | `settings.system.startOnboardingTour` |
+| Gefahrenzone | Danger Zone | `settings.system.dangerZone` |
+| Tastenkürzel | Hotkeys | `settings.profile.hotkeysTitle` |
+| Favoriten | Favorites | `settings.hotkeys.category.favorites` |
+| Trade-Setup | Trade Setup | `settings.hotkeys.category.tradeSetup` |
+| UI & Navigation | UI & Navigation | `settings.hotkeys.category.uiNavigation` |
+| Marktdaten | Market Data | `settings.hotkeys.category.marketData` |
+| System | System | `settings.hotkeys.category.system` |
+
+**Visuals**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| Galaxie (3D) | Galaxy (3D) | `settings.visuals.bgGalaxy` |
+| Trade-Flow-Konfiguration | Trade Flow Configuration | `settings.visuals.tradeFlow.config` |
+| Fluss | Flow | `settings.visuals.tradeFlow.flow` |
+| Indikatoren | Indicators | `settings.visuals.tradeFlow.indicators` |
+| Rasterlayout | Grid Layout | `settings.visuals.tradeFlow.gridLayout` |
+| Galaxie | Galaxy | `settings.visuals.tradeFlow.galaxySection` |
+| Marktkopplung | Market Coupling | `settings.visuals.tradeFlow.marketCoupling` |
+| Kamerasteuerung | Camera Control | `settings.visuals.tradeFlow.cameraControl` |
+| Minimierter Fenster-Dock | Minimized window dock | `settings.dockingTitle` |
+
+**Cloud**
+
+| Heading (DE) | Heading (EN) | Key |
+| --- | --- | --- |
+| Community Cloud (Beta) | Community Cloud (Beta) | `cloud.title` |
+
+_72 rows._
+
+### 10.2 Toggle labels
+
+Label = the visible text of the control; hint and description keys (`…Desc`) are
+not part of the table.
+
+**Trading**
+
+| Label (DE) | Label (EN) | Key |
+| --- | --- | --- |
+| Noch nicht verfügbar — für diese Aktion gibt es keinen Bestätigungsdialog; einschalten würde sie blockieren. | Not available yet — this action has no confirmation dialog, so switching it on would block it. | `settings.confirmations.notWired` |
+| Kanal aktiv | Channel active | `settings.externalChannels.enable` |
+| Erst unten einrichten | Set this up below first | `settings.notifications.channelNeedsSetup` |
+| Stumm | Mute | `settings.notifications.soundMute` |
+| Paper Trades im Journal speichern | Save paper trades to the journal | `settings.trading.journalPaperTrades` |
+| Eingaben mit Live-Preis synchronisieren | Sync inputs with live price | `settings.trading.syncPrice` |
+| Guthaben beim Laden abrufen | Auto-fetch Balance | `settings.autoFetchBalance` |
+| Löschen bestätigen | Confirm Trade Deletion | `settings.trading.confirmDelete` |
+| Massenlöschung bestätigen | Confirm Bulk Deletion | `settings.trading.confirmBulkDelete` |
+| Veralteten Preis mit Badge zeigen | Show stale price with badge | `settings.stalePriceBadge` |
+| Nur ausgeführte Orders anzeigen | Hide Unfilled Orders | `settings.hideUnfilledOrders` |
+| Automatisierter Handel (Beta) | Auto Trading (Beta) | `settings.trading.autoTrading` |
+| Multi-Account-Verwaltung | Multi-Account Management | `settings.trading.multiAccount` |
+| Marktübersicht Kacheln | Market Overview Tiles | `settings.trading.marketTiles` |
+| Links-Footer anzeigen | Show Links Footer | `settings.trading.showLinks` |
+| Stimmungsanalyse-Panel anzeigen | Show sentiment analysis panel | `settings.trading.showSentimentAnalysis` |
+| Sidebar-Aktivität anzeigen | Show Sidebar Activity | `settings.showSidebarActivity` |
+| Technische Analyse-Panel anzeigen | Show technical analysis panel | `settings.trading.showTechnicalAnalysis` |
+| Automatische Preisaktualisierung (Eingabefeld) | Auto-update Price Input | `settings.autoUpdatePriceInput` |
+| Marktstimmung | Market Sentiment | `settings.trading.marketSentiment` |
+| Marktaktivität | Market Activity | `dashboard.marketActivity` |
+| Technicals-Panel anzeigen | Show Technicals Panel | `settings.showTechnicals` |
+
+**Chart**
+
+| Label (DE) | Label (EN) | Key |
+| --- | --- | --- |
+| Auto-Skalierung | Auto Scaling | `settings.chart.autoScale` |
+| Achse invertieren | Invert Scale | `settings.chart.invertScale` |
+| Gitterlinien | Grid Lines | `settings.chart.showGrid` |
+| Kerzenrahmen | Candle Borders | `settings.chart.candleBorders` |
+| Aktuelle-Preis-Label | Last Price Label | `settings.chart.lastValueVisible` |
+| Wasserzeichen | Watermark | `settings.chart.watermark` |
+| Sekunden anzeigen | Show Seconds | `settings.chart.secondsVisible` |
+| Ränder fixieren | Fix Edges | `settings.chart.fixEdges` |
+| Countdown zur Kerzenschließung | Candle Close Countdown | `settings.chart.countdownEnabled` |
+| Zusammenfassung | Summary | `settings.technicals.summary` |
+| Oszillatoren | Oscillators | `settings.technicals.oscillatorsTitle` |
+| Gleitende Durchschnitte | Moving Averages | `settings.technicals.movingAveragesTitle` |
+| Pivot-Punkte | Pivot Points | `settings.technicals.pivotsTitle` |
+| Markt Konfluenz | Market Confluence | `settings.technicals.marketConfluence` |
+| Volatilität | Volatility | `settings.technicals.tabs.volatility` |
+| Erweitert | Advanced | `settings.technicals.advancedTitle` |
+| Signale | Signals | `settings.technicals.signals` |
+| Volle Höhe | Full height | `settings.technicals.fullHeight` |
+| RSI-Timeframe synchronisieren | Synchronize RSI Timeframe | `settings.technicals.syncRsi` |
+| Signallinie anzeigen | Show Signal Line | `settings.technicals.rsi.showSignal` |
+| RSI | RSI | `settings.technicals.rsi.title` |
+| Stoch RSI | Stoch RSI | `settings.technicals.stochRsi.title` |
+| Stochastik | Stochastic | `settings.technicals.stochasticTitle` |
+| Williams %R | Williams %R | `settings.technicals.williamsR` |
+| CCI | CCI | `settings.technicals.cci` |
+| Momentum | Momentum | `settings.technicals.momentum` |
+| Awesome Osc. | Awesome Osc. | `settings.technicals.awesomeOsc` |
+| MFI | MFI | `settings.technicals.mfi` |
+| MACD | MACD | `settings.technicals.macd.title` |
+| ADX | ADX | `settings.technicals.adx` |
+| SuperTrend | SuperTrend | `settings.technicals.superTrend.title` |
+| Ichimoku | Ichimoku | `settings.technicals.ichimoku` |
+| Parabolic SAR | Parabolic SAR | `settings.technicals.parabolicSar` |
+| EMA | EMA | `settings.technicals.emaTitle` |
+| SMA | SMA | `settings.technicals.smaTitle` |
+| WMA | WMA | `settings.technicals.wma` |
+| VWMA | VWMA | `settings.technicals.vwma` |
+| HMA | HMA | `settings.technicals.hma` |
+| Bollinger Bänder | Bollinger Bands | `settings.technicals.bollingerBands.title` |
+| Choppiness Idx | Choppiness Idx | `settings.technicals.choppiness` |
+| ATR Trailing Stop | ATR Trailing Stop | `settings.technicals.atrStop.title` |
+| Volumen | Volume | `settings.technicals.volume` |
+| OBV | OBV | `settings.technicals.obv` |
+| VWAP | VWAP | `settings.technicals.vwap` |
+
+**AI**
+
+| Label (DE) | Label (EN) | Key |
+| --- | --- | --- |
+| Trading-Kontext teilen (Journal, Positionen & Setup) | Share Trading Context (Journal, Positions & Setup) | `settings.ai.shareTradeContext` |
+| News-Analyse aktivieren | Enable News Analysis | `settings.enableNewsAnalysis` |
+| CMC-Kontext aktivieren | Enable CMC Context | `settings.enableCmcContext` |
+| Aktionen bestätigen | Confirm Actions | `settings.ai.confirmActions` |
+| Einstellungen ändern | Allow Settings Changes | `settings.ai.allowSettingsChanges` |
+| Verlauf löschen bestätigen | Confirm Clear History | `settings.ai.confirmClearHistory` |
+
+**System**
+
+| Label (DE) | Label (EN) | Key |
+| --- | --- | --- |
+| Netzwerk-Logs | Network Logs | `settings.system.networkLogs` |
+| Debug Modus | Debug Mode | `settings.system.debugMode` |
+| Nutzungsstatistiken | Usage Statistics | `settings.system.telemetry` |
+| Vermeide die Übersetzung von Fachwörtern | Avoid translating technical words | `settings.system.avoidTranslating` |
+| Englische Fachbegriffe | English Technical Terms | `settings.system.englishTechnicalTerms` |
+
+**Visuals**
+
+| Label (DE) | Label (EN) | Key |
+| --- | --- | --- |
+| Tooltips anzeigen | Show Tooltips | `settings.showTooltips` |
+| Glassmorphismus aktivieren | Enable Glassmorphism | `settings.enableGlassmorphism` |
+| Brennende Ränder | Burning Borders | `settings.visuals.burningBorders` |
+| Marktübersicht Kacheln | Market Overview Tiles | `settings.appearance.burnMarketOverview` |
+| Flash Cards | Flash Cards | `settings.appearance.burnFlashCards` |
+| Chart Fenster | Chart Windows | `settings.appearance.burnCharts` |
+| Modale & Dialoge | Modals & Dialogs | `settings.appearance.burnModals` |
+| Kanäle & Feeds | Channels & Feeds | `settings.appearance.burnChannels` |
+| Trade Journal | Trade Journal | `settings.appearance.burnJournal` |
+| Sentiment Topline | Sentiment Topline | `settings.appearance.ambientTopline` |
+| Trade-Impulse (Bursts) | Trade Bursts | `settings.appearance.ambientToplineBursts` |
+| Auto-Zentrierung | Auto-Center | `settings.visuals.autoCenter` |
+| Gyroskop Steuerung | Gyroscope Control | `settings.visuals.gyroscope` |
+| Die Szene liest zwei Marktsignale: Stimmung (rollierendes Kauf-/Verkaufsverhältnis oder RSI) und Aktivität (Trade-Rate, Volumen, Volatilität/ATR). Die Stimmung färbt Hintergrund, Lichter und Himmel grün (bullisch) bzw. rot (bärisch); Aktivität hellt auf und verdichtet Nebel und Fog. Ruhiger Markt bleibt dunkel und still, lebhafter Markt wird lebendig. Ausschalten setzt die Szene auf einen neutralen, ruhigen Zustand zurück. | The scene reads two market signals: mood (rolling buy/sell ratio or RSI) and activity (trade rate, volume, volatility/ATR). Mood tints the background, lights and sky green (bullish) or red (bearish); activity brightens them and thickens the fog and nebula. A calm market stays dark and still, a busy one comes alive. Turning it off returns the scene to a neutral, quiet state. | `settings.visuals.tradeFlow.tooltipDynamicAtmosphere` |
+| Langsame, rein dekorative Drehung der Szene. Standardmäßig aus: Die Drehung macht die Zeit- (Tiefe) und Preisachsen (Höhe) unlesbar. | Slow, purely decorative spin of the scene. Off by default: rotation makes the time (depth) and price (height) axes unreadable. | `settings.visuals.tradeFlow.tooltipRotation` |
+| Macht den Radius der Scheibe zur Preisskala: Die Schockwelle eines Trades beginnt dort, wo dieser Trade in der jüngsten Preisspanne liegt — kernnah am unteren Ende, randnah am oberen — und Käufe laufen nach außen, Verkäufe nach innen. Aus: Jede Welle startet im Kern, der Radius trägt keine Bedeutung. | Turns the disc's radius into a price scale: a trade's shockwave starts where that trade sits in the recent price range — near the core at the bottom of the range, near the rim at the top — and buys sweep outward while sells sweep inward. Off: every wave starts at the core and radius carries no meaning. | `settings.visuals.tradeFlow.tooltipPriceAxis` |
+| Zeichnet drei Ringe auf die Preisachse: den zuletzt gehandelten Preis und ±1 ATR darum. So ist auf einen Blick erkennbar, ob die Schockwelle eines Trades innerhalb der normalen Marktspanne liegt oder daraus ausbricht. Benötigt die radiale Preisachse und einen verfügbaren ATR-Wert; mit der 2× ATR-Achsenspanne sitzen ±1 ATR-Ringe nahe den 1/4- und 3/4-Positionen, bewegen sich nur, wenn der Preis um 1+ ATR von der aktuellen Mitte abweicht — was selbst schon die Antwort ist. | Draws three rings on the price axis: the last traded price, and ±1 ATR around it. Lets you see at a glance whether a trade's shockwave sits inside the market's normal range or is breaking out of it. Needs the radial price axis and an available ATR reading; with the 2× ATR axis span, ±1 ATR rings sit near the 1/4 and 3/4 points, moving only if price wanders 1+ ATR from the recent centre — which is itself the answer. | `settings.visuals.tradeFlow.tooltipAtrBands` |
+| Seitenleisten anzeigen (Tabelle & Kacheln) | Show Sidebars | `settings.showSidebars` |
+| Markt-Chat | Market Chat | `settings.workspace.marketChat` |
+| Dock zentrieren | Center the dock | `settings.dockingCentered` |
+| Dynamische Atmosphäre | Dynamic Atmosphere | `settings.visuals.tradeFlow.dynamicAtmosphere` |
+| Szenenrotation | Scene rotation | `settings.visuals.tradeFlow.sceneRotation` |
+| Radiale Preisachse | Radial price axis | `settings.visuals.tradeFlow.priceAxis` |
+| ATR-Referenzringe | ATR reference rings | `settings.visuals.tradeFlow.atrBands` |
+| Side Panel (KI/Notizen) aktivieren | Enable Side Panel (AI/Notes) | `settings.enableSidePanel` |
+
+_102 rows._
+
+### 10.3 Renamed terms
+
+| Before (DE) | After (DE) | Before (EN) | After (EN) | Why |
+| --- | --- | --- | --- | --- |
+| Order-Audit-Trail | Order-Audit | Order audit trail | Order audit | Four names for one screen (key `audit`, sub-tab “Order-Log”, heading “Audit-Trail”); “trail” is jargon. |
+| Order-Log | Order-Audit | Order Log | Order Audit | The same screen as above; one name. |
+| Anzeigeeinstellungen | Darstellung | Display Preferences | Display | It sat next to “Darstellung” in the chart tab: two words for one concept. |
+| Kill Switch | Kill Switch | Kill switch | Kill Switch | Product name in the heading; running text keeps sentence case. |
+| API Quota Überwachung | API-Quota-Überwachung | API Quota Monitoring | API Quota Monitoring | German compounds in this window are hyphenated. |
+| Trade Flow Konfiguration | Trade-Flow-Konfiguration | Trade Flow Configuration | Trade Flow Configuration | Same rule; “Trade Flow” stays the product name. |
+
+One key changed namespace without changing its text:
+`settings.trading.indicatorConfiguration` → `settings.chart.indicatorConfiguration`.
+The heading has been rendered by the chart tab since the indicator settings moved;
+the key still named the tab it came from. Its dead `|| "Indicator Configuration"`
+fallback went with it. The rule is the product area, not the rendering tab: a key
+may keep an area name that no longer matches a tab (`profile.hotkeysTitle` is the
+known legacy case, and is not renamed here).
+
+### 10.4 Tab and sub-tab labels
+
+The eight rail tabs and every sub-tab row, both from the locale files.
+
+| Label (DE) | Label (EN) | Key |
+| --- | --- | --- |
+| Handel & Markt | Trading & Market | `settings.tabs.trading` |
+| Automation | Automation | `settings.tabs.automation` |
+| Chart | Chart | `settings.tabs.chart` |
+| Optik & Design | Visuals & Design | `settings.tabs.visuals` |
+| KI Chat | AI Chat | `settings.tabs.ai` |
+| Verbindungen | Connections | `settings.tabs.connections` |
+| System | System | `settings.tabs.system` |
+| Cloud | Cloud | `settings.tabs.cloud` |
+
+**Trading**
+
+| Handelsbereiche | Trading sections | `settings.trading.subTabLabel` |
+| Exekution & Gebühren | Execution & Fees | `settings.trading.executionTitle` |
+| Daten & Markt | Data & Market | `settings.trading.chartTitle` |
+| Risiko & Kill Switch | Risk & Kill Switch | `settings.risk.subTab` |
+| Paper Trading | Paper Trading | `settings.paper.subTab` |
+| Order-Audit | Order Audit | `settings.audit.subTab` |
+
+**AI**
+
+| KI-Bereiche | AI sections | `settings.ai.subTabLabel` |
+| KI-Assistent | AI Assistant | `settings.tabs.ai_assistant` |
+| Verhalten & Persona | Behavior & Persona | `settings.ai.behavior` |
+| Autonome Agenten | Autonomous Agents | `settings.ai.agents` |
+
+**Connections**
+
+| Verbindungsbereiche | Connection sections | `settings.connections.subTabLabel` |
+| Verbindungen | Connections | `settings.tabs.connections` |
+| Integrationen | Integrations | `settings.tabs.integrations` |
+| RSS Feeds | RSS Feeds | `settings.connections.rss` |
+
+**System**
+
+| Systembereiche | System sections | `settings.system.subTabLabel` |
+| Performance | Performance | `settings.system.performance` |
+| Dashboard | Dashboard | `settings.system.dashboard` |
+| Daten & Backup | Data & Backup | `settings.system.dataMaintenance` |
+| Wartung | Maintenance | `settings.tabs.maintenance` |
+| Tastenkürzel | Hotkeys | `settings.profile.hotkeysTitle` |
+
+**Visuals**
+
+| Unterbereiche | Sub-sections | `settings.visuals.subtabs.label` |
+| Optik & Design | Look & Feel | `settings.visuals.subtabs.appearance` |
+| Layout | Layout | `settings.visuals.subtabs.layout` |
+| Hintergrund | Background | `settings.visuals.subtabs.background` |
+
+**Technicals**
+
+| Indikatorbereiche | Indicator sections | `settings.technicals.subTabLabel` |
+| Allgemein | General | `settings.technicals.tabs.general` |
+| Oszillatoren | Oscillators | `settings.technicals.tabs.oscillators` |
+| Trend | Trend | `settings.technicals.tabs.trend` |
+| Volatilität | Volatility | `settings.technicals.tabs.volatility` |
+| Volumen | Volume | `settings.technicals.tabs.volume` |
+| Chart | Chart | `settings.technicals.tabs.chart` |
+
+### 10.5 Verification
+
+Assembled by hand from the components and cross-checked against both locale
+files; there is no generator. `npm run i18n:types` proves key parity, and the
+`settingsTabs.test.ts` suite pins the six tab lists, so a label that exists in
+only one language fails before it can reach this table.
+
+## 11. Settings placement (FEAT-0607)
+
+Expected tab follows the rule: a section belongs to the tab whose sub-tab owns
+the noun it configures. The Match column compares the rendered tab with that
+rule.
+
+| Section (DE) | Rendered in | Expected | Match | Note |
+| --- | --- | --- | --- | --- |
+| Eigene Provider | AI | AI | match | — |
+| API-Quota-Überwachung | Connections | Connections | match | — |
+| Leistungsprofile | System | System | match | — |
+| Erweiterte Einstellungen | System | System | match | — |
+| Aktuelle Konfiguration | System | System | match | — |
+| Bestätigungen | Trading | Trading | match | Grouped under Risk by FEAT-0024. |
+| Daten-Wartung | System | System | match | — |
+| Berechnungs-Timeframe | System | System | match | — |
+| Volatilitäts-Matrix (ATR) | System | System | match | — |
+| Exekutions-Metriken (MFE/MAE) | System | System | match | — |
+| Symbole bereinigen | System | System | match | — |
+| ⚡ Engine-Debug-Panel | System | System | match | — |
+| Externe Kanäle | Trading | Trading | match | Grouped under Risk by FEAT-0025. |
+| Benachrichtigungen | Trading | Trading | match | Grouped under Risk by FEAT-0025. |
+| Order-Audit | Trading | Trading | match | — |
+| Modus | Automation, Trading | Automation | match (reuse) | Reused by Automation for the simulated account. |
+| Simulation | Automation, Trading | Automation | match (reuse) | Reused by Automation for the simulated account. |
+| Simulierte Fehler | Automation, Trading | Automation | match (reuse) | Reused by Automation for the simulated account. |
+| Kill Switch | Automation, Trading | Automation | match (reuse) | Reused by Automation for the simulated account; the comment in `AutomationTab` explains why a copy would be worse. |
+| Alle Positionen schließen | Automation, Trading | Automation | match (reuse) | Reused by Automation for the simulated account; the comment in `AutomationTab` explains why a copy would be worse. |
+| Heute | Automation, Trading | Automation | match (reuse) | Reused by Automation for the simulated account; the comment in `AutomationTab` explains why a copy would be worse. |
+| Limits | Automation, Trading | Automation | match (reuse) | Reused by Automation for the simulated account; the comment in `AutomationTab` explains why a copy would be worse. |
+| KI-Core | AI | AI | match | — |
+| Verhalten & Persona | AI | AI | match | — |
+| Autonome Agenten | AI | AI | match | — |
+| Discord Bot | AI | AI | match | — |
+| Deine Bots | Automation | Automation | match | — |
+| Alarm hochstufen | Automation | Automation | match | — |
+| Das simulierte Konto | Automation | Automation | match | — |
+| Skalierung | Chart | Chart | match | — |
+| Darstellung | Chart | Chart | match | — |
+| Fadenkreuz | Chart | Chart | match | — |
+| Zeitachse & Countdown | Chart | Chart | match | — |
+| Indikator-Konfiguration | Chart | Chart | match | — |
+| Community Cloud (Beta) | Cloud | Cloud | match | — |
+| Börsen | Connections | Connections | match | — |
+| Datendienste | Connections | Connections | match | — |
+| RSS Feeds | Connections | Connections | match | — |
+| Eigene Feeds | Connections | Connections | match | — |
+| Panel-Konfiguration | Chart | Chart | match | — |
+| Sichtbarkeit umschalten | Chart | Chart | match | — |
+| Berechnungs-Engine | Chart | Chart | match | — |
+| Darstellung | Chart | Chart | match | — |
+| Favorisierte Zeitrahmen | Chart | Chart | match | — |
+| Oszillatoren | Chart | Chart | match | — |
+| Trend | Chart | Chart | match | — |
+| Volatilität | Chart | Chart | match | — |
+| Volumen | Chart | Chart | match | — |
+| Performance | System | System | match | — |
+| Schnellaktionen | System | System | match | — |
+| Daten & Backup | System | System | match | — |
+| Onboarding-Tour starten | System | System | match | — |
+| Gefahrenzone | System | System | match | — |
+| Tastenkürzel | System | System | match | — |
+| Ausführung & Daten | Trading | Trading | match | — |
+| Automatisierung & Erweitert | Trading | Trading | match | — |
+| Daten & Markt | Trading | Trading | match | — |
+| Kachel-Aktions-Links | Trading | Trading | match | — |
+| Galaxie (3D) | Visuals | Visuals | match | — |
+| Trade-Flow-Konfiguration | Visuals | Visuals | match | — |
+| Fluss | Visuals | Visuals | match | — |
+| Indikatoren | Visuals | Visuals | match | — |
+| Rasterlayout | Visuals | Visuals | match | — |
+| Galaxie | Visuals | Visuals | match | — |
+| Marktkopplung | Visuals | Visuals | match | — |
+| Kamerasteuerung | Visuals | Visuals | match | — |
+| Minimierter Fenster-Dock | Visuals | Visuals | match | — |
+| Favoriten | System | System | match | — |
+| Trade-Setup | System | System | match | — |
+| UI & Navigation | System | System | match | — |
+| Marktdaten | System | System | match | — |
+| System | System | System | match | — |
+
+**Settings without a heading.** `settings.newsOpenBehavior` is rendered twice:
+AI → Behaviour (`AiTab.svelte:343`) and Visuals → Layout (`VisualsLayout.svelte:32`,
+without a section heading). That is one setting with two homes and no owner; §8.8
+already flagged it. Filed as
+[BUG-0729](../../bugs/BUG-0729-news-open-behaviour-has-two-homes.md).
+
+**Result.** Every section with a heading matches the rule. The only mismatches are
+the header-less duplicate above and the three documented reuses, none of which is a
+pure move. No control was moved in this item.

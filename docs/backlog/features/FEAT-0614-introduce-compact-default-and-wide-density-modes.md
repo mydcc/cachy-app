@@ -2,7 +2,7 @@
 id: FEAT-0614
 title: Introduce compact, default and wide density modes
 type: feature
-status: specced
+status: ready
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -56,6 +56,24 @@ Three implementation constraints, all from the audit:
   is what [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) and
   the three adoption items exist for.
 
+## Decisions — 2026-10-22
+
+- **Mobile: apply everywhere, let the user choose (option c).** `compact` is an
+  explicit opt-in and `default` stays what a new profile gets, so the mode can
+  never surprise a touch user. The dropdown carries one sentence that compact
+  controls are harder to hit on touch. No silent clamp by `pointer: coarse`: it
+  misclassifies hybrid laptops and tablets with keyboards, and a visible setting
+  that does nothing is worse than a warning. 32 px still clears WCAG 2.5.8
+  (24 px); 44 px is 2.5.5 AAA, not the threshold this has to pass.
+- **The mode survives a theme change by construction.** Density is not a theme
+  token: FEAT-0609's guard rejects `--control-*` overrides in every non-default
+  theme block, so there is no theme interaction left to decide.
+- **"Does it look better?" is answered in the implementation PR**, with a
+  three-mode screenshot baseline of calculator, settings and journal. It needs
+  no separate gate, and it is the question this item was created for.
+- The item stays `specced` until FEAT-0607's second PR lands. The dependency is
+  the reason now, not the open question.
+
 ## Acceptance criteria
 
 - [ ] `default` renders pixel-identically to `develop`; a screenshot baseline
@@ -75,6 +93,8 @@ Three implementation constraints, all from the audit:
       compact token, and in `wide` the wide token
 - [ ] Both `de.json` and `en.json` carry the dropdown's label and the three
       option labels
+- [ ] The dropdown carries the touch hint from the Decisions section ("compact
+      is harder to hit on touch") in DE and EN.
 - [ ] The mobile policy from the open questions is implemented, or explicitly
       deferred with the decision recorded in this item
 
@@ -91,11 +111,10 @@ Three implementation constraints, all from the audit:
 
 ## Open questions
 
-- **Mobile.** 32 px clears SC 2.5.8 (24 × 24 minimum) but is well under SC
-  2.5.5 (44 × 44). On a touch-primary device compact inputs are hostile, and
-  `+page.svelte` already has a separate mobile branch. Three candidates: apply
-  the mode everywhere; clamp `compact` to pointer-fine viewports; or let the
-  user choose and accept the consequence. This blocks `ready`.
+- ~~**Mobile.**~~ **Answered — option c, apply everywhere and let the user
+  choose.** `compact` is opt-in, `default` stays what a new profile gets, and
+  the dropdown carries a sentence that compact controls are harder to hit on
+  touch. No silent clamp by `pointer: coarse`; see *Decisions* below.
 - **Does it actually look better?** The premise is untested. A screenshot
       baseline of the calculator, settings and journal at all three modes is the
       cheapest way to find out before the rollout items are written, and it is

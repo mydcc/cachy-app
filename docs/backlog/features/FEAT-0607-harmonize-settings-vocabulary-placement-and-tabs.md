@@ -2,9 +2,9 @@
 id: FEAT-0607
 title: Harmonize the settings vocabulary, placement, hierarchy and tab naming
 type: feature
-status: in-progress
+status: done
 assignee: opencode
-branch: feature/feat-0607-settings-structure
+branch: docs/feat-0607-vocabulary-placement
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -38,10 +38,11 @@ Six concrete disagreements:
    `bg-[var(--accent-color)]` active state. Both look like navigation, neither
    looks like the other.
 
-2. **Sub-tabs exist in one tab only.** `VisualsTab` has appearance / layout /
-   background. The other seven tabs are flat. That may be the right structure,
-   but it is currently an accident rather than a decision, and a reader cannot
-   tell whether the absence of sub-tabs elsewhere is intentional.
+2. **Sub-tabs existed as five hand-written copies, with a third style in a
+   sixth place.** Trading, AI, Connections, System and Visuals each had their
+   own pill row; the technicals category bar was an underline bar. That is a
+   structural inconsistency, and a reader could not tell whether a flat tab
+   was a decision or an omission.
 
 3. **One label is not translated.** The `cloud` tab label is the literal string
    `"Cloud"`; the other seven come from `$_("settings.tabs.*")` with an
@@ -101,14 +102,14 @@ belongs in — without implementing it. That is
 
 ## Acceptance criteria
 
-- [ ] A vocabulary table exists: every tab label, section header and toggle
+- [x] A vocabulary table exists: every tab label, section header and toggle
       text in its settled term, DE and EN, with the renamed terms listed
 - [x] No tab label is a literal string; the `cloud` label comes from i18n
 - [x] No label uses an `|| "English"` fallback; a missing key fails the
       i18n check instead of rendering English
-- [ ] A placement table covers every setting: current tab, expected tab, and
+- [x] A placement table covers every setting: current tab, expected tab, and
       match or mismatch
-- [ ] Every mismatch that is a pure move is moved in this item; every mismatch
+- [x] Every mismatch that is a pure move is moved in this item; every mismatch
       that needs a tab split or merge is filed as a follow-up item and linked
       here
 - [x] One tab-bar component exists and is used by `SettingsContent` and by
@@ -206,6 +207,40 @@ of the item; the vocabulary and placement tables follow separately.
 **Still open — the second PR:** the vocabulary table (AC1), the placement
 table and the pure moves (AC4/AC5). The item stays `in-progress` until those
 land.
+
+## Progress — 2026-10-22: vocabulary and placement (second PR)
+
+Branch `docs/feat-0607-vocabulary-placement`. The structural half shipped in
+PR #4199; this half closes the item.
+
+- **§10 Vokabular** in
+  [`assets/FEAT-0605/ui-zustandsaufnahme.md`](../assets/FEAT-0605/ui-zustandsaufnahme.md)
+  lists 67 section headers and 92 toggle labels with their DE/EN term and key,
+  plus the six renamed terms (§10.3). The table is generated from the locale
+  files through the usage sites, so a term that exists in only one language
+  cannot hide.
+- **§11 Platzierung** covers the same 72 headings: rendered tab, expected tab
+  and a match/mismatch column against the stated rule. The result is **no pure
+  move**; the one real mismatch is a setting without a heading — the news open
+  behaviour renders on AI and Visuals — filed as BUG-0729. The three deviations from the
+  one-tab rule are documented in the code and recorded as intentional:
+  `RiskLimitsSettings` and `PaperTradingSettings` are reused by Automation for
+  the simulated account, and Confirmations, Notifications and External Channels
+  share the Trading/Risk sub-tab (FEAT-0024/0025).
+- **Six terms renamed** (DE/EN): Order-Audit-Trail → Order-Audit, Order-Log →
+  Order-Audit, Anzeigeeinstellungen → Darstellung, „Kill switch" → „Kill
+  Switch", API Quota Überwachung → API-Quota-Überwachung, Trade Flow
+  Konfiguration → Trade-Flow-Konfiguration.
+- **One key left the wrong namespace:**
+  `settings.trading.indicatorConfiguration` → `settings.chart.indicatorConfiguration`
+  — the header has been rendered by the Chart tab since the indicator settings
+  moved, but the key still named Trading. Its `|| "Indicator Configuration"`
+  fallback went with it.
+- **71 `|| "English"` fallbacks** in `SystemTab`, `ChartTab` and
+  `DataMaintenance` are removed, so AC3 now holds for the whole settings
+  surface and not just the tab labels.
+- The tab-bar work from the first PR is unchanged; `settingsTabs.test.ts`
+  keeps the six tab lists pinned. Linked follow-up: [BUG-0729](../bugs/BUG-0729-news-open-behaviour-has-two-homes.md).
 
 ## Links
 
