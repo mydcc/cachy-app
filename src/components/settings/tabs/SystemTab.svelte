@@ -76,23 +76,23 @@
     // Backup & restore handlers (moved from SettingsContent; this tab owns them now)
     async function handleBackup() {
         const useEncryption = await modalState.show(
-            $_("settings.system.dataMaintenance") || "Data & Backup",
-            $_("app.backupEncryptQuestion") || "Encrypt backup with password?",
+            $_("settings.system.dataMaintenance"),
+            $_("app.backupEncryptQuestion"),
             "confirm",
         );
         let password = "";
 
         if (useEncryption) {
             const result = await modalState.show(
-                $_("settings.system.dataMaintenance") || "Data & Backup",
-                $_("app.backupPasswordPrompt") || "Enter password:",
+                $_("settings.system.dataMaintenance"),
+                $_("app.backupPasswordPrompt"),
                 "prompt",
             );
             password = typeof result === "string" ? result : "";
 
             if (!password) {
                 uiState.showError(
-                    $_("app.backupPasswordRequired") || "Password required.",
+                    $_("app.backupPasswordRequired"),
                 );
                 return;
             }
@@ -112,9 +112,8 @@
         reader.onload = async (event) => {
             const content = event.target?.result as string;
             const confirmed = await modalState.show(
-                $_("settings.system.dataMaintenance") || "Data & Backup",
-                $_("app.restoreConfirmMessage") ||
-                    "Restore backup? Current data will be replaced.",
+                $_("settings.system.dataMaintenance"),
+                $_("app.restoreConfirmMessage"),
                 "confirm",
             );
 
@@ -123,10 +122,8 @@
 
                 if (result.needsPassword) {
                     const pwResult = await modalState.show(
-                        $_("settings.system.dataMaintenance") ||
-                            "Data & Backup",
-                        $_("app.backupPasswordEntryPrompt") ||
-                            "Enter encryption password:",
+                        $_("settings.system.dataMaintenance"),
+                        $_("app.backupPasswordEntryPrompt"),
                         "prompt",
                     );
                     const password =
@@ -142,8 +139,7 @@
 
                 if (result.success) {
                     await modalState.show(
-                        $_("settings.system.dataMaintenance") ||
-                            "Data & Backup",
+                        $_("settings.system.dataMaintenance"),
                         result.message,
                         "alert",
                     );
@@ -169,9 +165,8 @@
 
     async function handleReset() {
         const confirmed = await modalState.show(
-            $_("settings.system.dangerZone") || "Danger Zone",
-            $_("settings.resetConfirm") ||
-                "Factory Reset? This cannot be undone.",
+            $_("settings.system.dangerZone"),
+            $_("settings.resetConfirm"),
             "confirm",
         );
         if (confirmed) {
@@ -274,7 +269,7 @@
         {#if activeSubTab === "performance"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.system.performance") || "Performance"}
+                    {$_("settings.system.performance")}
                 </h3>
 
                 <!-- Calculation Settings Component -->
@@ -292,14 +287,12 @@
                     >
                         <div>
                             <div class="font-bold text-sm">
-                                {$_("settings.system.networkLogs") ||
-                                    "Network Logging"}
+                                {$_("settings.system.networkLogs")}
                             </div>
                             <div
                                 class="text-[10px] text-[var(--text-secondary)]"
                             >
-                                {$_("settings.system.networkLogsDesc") ||
-                                    "Show API traffic in console."}
+                                {$_("settings.system.networkLogsDesc")}
                             </div>
                         </div>
                         <Toggle
@@ -313,14 +306,12 @@
                     >
                         <div>
                             <div class="font-bold text-sm">
-                                {$_("settings.system.debugMode") ||
-                                    "Debug Mode"}
+                                {$_("settings.system.debugMode")}
                             </div>
                             <div
                                 class="text-[10px] text-[var(--text-secondary)]"
                             >
-                                {$_("settings.system.debugModeDesc") ||
-                                    "Show detailed logs and hidden features."}
+                                {$_("settings.system.debugModeDesc")}
                             </div>
                         </div>
                         <Toggle bind:checked={settingsState.debugMode} />
@@ -334,8 +325,7 @@
                     >
                         <div>
                             <div class="font-bold text-sm">
-                                {$_("settings.system.telemetry") ||
-                                    "Usage Statistics"}
+                                {$_("settings.system.telemetry")}
                             </div>
                             <div
                                 class="text-[10px] text-[var(--text-secondary)]"
@@ -376,7 +366,7 @@
                                 d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
                             /></svg
                         >
-                        {$_("settings.system.clearCache") || "Clear Cache"}
+                        {$_("settings.system.clearCache")}
                     </Button>
                     <Button variant="outline" size="sm" extraClasses="w-full gap-2" onClick={reloadApp}>
                         <svg
@@ -393,7 +383,7 @@
                                 d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
                             /><path d="M3 3v5h5" /></svg
                         >
-                        {$_("settings.system.reloadApp") || "Reload App"}
+                        {$_("settings.system.reloadApp")}
                     </Button>
                 </SettingsGrid>
 
@@ -427,7 +417,7 @@
         {#if activeSubTab === "data"}
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title mb-4">
-                    {$_("settings.system.dataMaintenance") || "Data & Backup"}
+                    {$_("settings.system.dataMaintenance")}
                 </h3>
 
                 <!-- Auto-Backup OPFS Status -->
@@ -441,23 +431,23 @@
                         </div>
                         <div>
                             <div class="font-bold text-sm flex items-center gap-2">
-                                <span>{$_("settings.system.autoBackupTitle") || "Automatic OPFS Backup"}</span>
+                                <span>{$_("settings.system.autoBackupTitle")}</span>
                                 {#if autoBackupState.isOpfsSupported}
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-500">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                        {$_("settings.system.active") || "Active"}
+                                        {$_("settings.system.active")}
                                     </span>
                                 {:else}
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--warning-color)]/10 text-[var(--warning-color)]">
-                                        {$_("settings.system.unsupported") || "Not supported"}
+                                        {$_("settings.system.unsupported")}
                                     </span>
                                 {/if}
                             </div>
                             <div class="text-[10px] text-[var(--text-secondary)] mt-0.5">
-                                {$_("settings.system.autoBackupDesc") || "Silently backs up all local data (Class A) to the browser's protected file system."}
+                                {$_("settings.system.autoBackupDesc")}
                                 {#if autoBackupState.lastSnapshotTime}
                                     <span class="block text-[10px] text-[var(--text-secondary)] mt-1">
-                                        {$_("settings.system.lastSnapshot") || "Last snapshot"}: {new Date(autoBackupState.lastSnapshotTime).toLocaleTimeString()}
+                                        {$_("settings.system.lastSnapshot")}: {new Date(autoBackupState.lastSnapshotTime).toLocaleTimeString()}
                                     </span>
                                 {/if}
                             </div>
@@ -474,7 +464,7 @@
                                 toastService.success($_("settings.system.snapshotCreated"));
                             }}
                         >
-                            {$_("settings.system.snapshotNow") || "Snapshot Now"}
+                            {$_("settings.system.snapshotNow")}
                         </Button>
                     {/if}
                 </div>
@@ -504,7 +494,7 @@
                                         {#if info.isConfigured}
                                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {info.needsPermission ? 'bg-[var(--warning-color)]/10 text-[var(--warning-color)]' : 'bg-emerald-500/10 text-emerald-500'}">
                                                 <span class="w-1.5 h-1.5 rounded-full {info.needsPermission ? 'bg-[var(--warning-color)]' : 'bg-emerald-500'}"></span>
-                                                {info.needsPermission ? ($_("settings.system.unsupported") || "") : ($_("settings.system.active") || "Active")}
+                                                {info.needsPermission ? ($_("settings.system.unsupported")) : ($_("settings.system.active"))}
                                             </span>
                                         {/if}
                                     </div>
@@ -597,14 +587,12 @@
                         </div>
                         <div>
                             <div class="font-bold text-sm">
-                                {$_("settings.system.backup") ||
-                                    "Create Backup"}
+                                {$_("settings.system.backup")}
                             </div>
                             <div
                                 class="text-[10px] text-[var(--text-secondary)]"
                             >
-                                {$_("settings.system.backupDesc") ||
-                                    "Save your settings & data."}
+                                {$_("settings.system.backupDesc")}
                             </div>
                         </div>
                     </button>
@@ -637,14 +625,12 @@
                         </div>
                         <div>
                             <div class="font-bold text-sm">
-                                {$_("settings.system.restore") ||
-                                    "Restore Backup"}
+                                {$_("settings.system.restore")}
                             </div>
                             <div
                                 class="text-[10px] text-[var(--text-secondary)]"
                             >
-                                {$_("settings.system.restoreDesc") ||
-                                    "Import from file."}
+                                {$_("settings.system.restoreDesc")}
                             </div>
                         </div>
                         <input
@@ -666,7 +652,7 @@
         {#if activeSubTab === "maintenance"}
             <section class="settings-section animate-fade-in mb-6">
                 <h3 class="section-title mb-4">
-                    {$_("settings.system.startOnboardingTour") || "Onboarding Tour"}
+                    {$_("settings.system.startOnboardingTour")}
                 </h3>
 
                 <div
@@ -675,8 +661,7 @@
                     <div class="flex items-center gap-2">
                         <span aria-hidden="true">🧭</span>
                         <div class="text-xs sm:text-sm text-[var(--text-secondary)]">
-                            {$_("settings.system.onboardingTourDesc") ||
-                                "Start the interactive 4-step walkthrough of the Cachy trading workstation."}
+                            {$_("settings.system.onboardingTourDesc")}
                         </div>
                     </div>
                     <Button
@@ -686,7 +671,7 @@
                         extraClasses="shadow shrink-0"
                         onClick={() => onboardingState.triggerStartWithDelay(2000)}
                     >
-                        {$_("onboarding.start") || "Start tour"}
+                        {$_("onboarding.start")}
                     </Button>
                 </div>
             </section>
@@ -694,7 +679,7 @@
             <!-- Danger Zone -->
             <section class="settings-section animate-fade-in">
                 <h3 class="section-title text-red-500 mb-4">
-                    {$_("settings.system.dangerZone") || "Danger Zone"}
+                    {$_("settings.system.dangerZone")}
                 </h3>
 
                 <div
@@ -702,16 +687,14 @@
                 >
                     <div>
                         <div class="font-bold text-sm text-red-500">
-                            {$_("settings.system.factoryReset") ||
-                                "Factory Reset"}
+                            {$_("settings.system.factoryReset")}
                         </div>
                         <div class="text-[10px] text-[var(--text-secondary)]">
-                            {$_("settings.system.factoryResetDesc") ||
-                                "Wipe all data and start fresh. Irreversible."}
+                            {$_("settings.system.factoryResetDesc")}
                         </div>
                     </div>
                     <Button variant="danger" size="sm" onClick={handleReset}>
-                        {$_("settings.system.resetNow") || "Reset Now"}
+                        {$_("settings.system.resetNow")}
                     </Button>
                 </div>
             </section>
@@ -722,8 +705,7 @@
             <section class="settings-section animate-fade-in">
                 <div class="flex justify-between items-center gap-2 mb-4">
                     <h3 class="section-title mb-0">
-                        {$_("settings.profile.hotkeysTitle") ||
-                            "Keyboard Shortcuts"}
+                        {$_("settings.profile.hotkeysTitle")}
                     </h3>
                     <select
                         bind:value={settingsState.hotkeyMode}

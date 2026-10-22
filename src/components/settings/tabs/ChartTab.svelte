@@ -45,17 +45,17 @@
     <!-- Header with Reset Button -->
     <div class="flex justify-between items-center gap-2">
         <h2 class="text-lg font-semibold text-[var(--text-primary)]">
-            {$_("settings.chart.title") || "Chart Settings"}
+            {$_("settings.chart.title")}
         </h2>
         <Button variant="ghost" size="sm" onClick={() => settingsState.resetChartSettings()}>
-            {$_("settings.chart.reset") || "Alle zurücksetzen"}
+            {$_("settings.chart.reset")}
         </Button>
     </div>
 
     <!-- Scale Settings -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
-            {$_("settings.chart.scaleSection") || "Skalierung"}
+            {$_("settings.chart.scaleSection")}
         </h3>
 
         <div class="space-y-4">
@@ -63,7 +63,7 @@
             <SettingsGrid gap="gap-4">
                 <div class="field-group">
                     <label for="chart-scale-mode">
-                        {$_("settings.chart.scaleMode") || "Preisskala"}
+                        {$_("settings.chart.scaleMode")}
                     </label>
                     <select
                         id="chart-scale-mode"
@@ -80,7 +80,7 @@
 
                 <div class="field-group">
                     <label for="chart-decimals-mode">
-                        {$_("settings.chart.decimalsMode") || "Dezimalstellen"}
+                        {$_("settings.chart.decimalsMode")}
                     </label>
                     <select
                         id="chart-decimals-mode"
@@ -88,10 +88,10 @@
                         class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
                     >
                         <option value="auto">
-                            {$_("settings.chart.decimalsAuto") || "Auto (Börse)"}
+                            {$_("settings.chart.decimalsAuto")}
                         </option>
                         <option value="fixed">
-                            {$_("settings.chart.decimalsFixed") || "Fest"}
+                            {$_("settings.chart.decimalsFixed")}
                         </option>
                         </select>
                     </div>
@@ -99,15 +99,14 @@
 
                 <!-- Hint Text -->
             <p class="text-[10px] text-[var(--text-secondary)]">
-                {$_("settings.chart.scaleHint")
-                    || "Logarithmisch bewertet Preisabstände prozentual gleich - empfohlen für große Kursbereiche."}
+                {$_("settings.chart.scaleHint")}
             </p>
 
             <!-- Fixed Decimals Slider -->
             {#if settingsState.chartDecimalsMode === "fixed"}
                 <div class="field-group">
                     <label for="chart-fixed-decimals">
-                        {$_("settings.chart.fixedDecimals") || "Feste Dezimalstellen"}
+                        {$_("settings.chart.fixedDecimals")}
                         <span class="text-[var(--accent-color)] font-mono ml-auto"
                             >{settingsState.chartFixedDecimals}</span
                         >
@@ -129,12 +128,11 @@
                 <label class="toggle-card h-full gap-3">
                     <div class="flex flex-col min-w-0 flex-1">
                         <span class="text-sm font-medium"
-                            >{$_("settings.chart.autoScale") || "Auto-Skalierung"}</span
+                            >{$_("settings.chart.autoScale")}</span
                         >
                         <span
                             class="text-[10px] text-[var(--text-secondary)]"
-                            >{$_("settings.chart.autoScaleDesc")
-                                || "Y-Achse passt sich automatisch dem Kurs an"}</span
+                            >{$_("settings.chart.autoScaleDesc")}</span
                         >
                     </div>
                     <Toggle bind:checked={settingsState.chartAutoScale} />
@@ -147,8 +145,7 @@
                         >
                         <span
                             class="text-[10px] text-[var(--text-secondary)]"
-                            >{$_("settings.chart.invertScaleDesc")
-                                || "Preisachse umkehren (0 oben)"}</span
+                            >{$_("settings.chart.invertScaleDesc")}</span
                         >
                     </div>
                     <Toggle bind:checked={settingsState.chartInvertScale} />
@@ -160,19 +157,18 @@
     <!-- Display Settings -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
-            {$_("settings.chart.displaySection") || "Darstellung"}
+            {$_("settings.chart.displaySection")}
         </h3>
 
         <SettingsGrid>
             <label class="toggle-card h-full gap-3">
                 <div class="flex flex-col min-w-0 flex-1">
                     <span class="text-sm font-medium"
-                        >{$_("settings.chart.showGrid") || "Gitterlinien"}</span
+                        >{$_("settings.chart.showGrid")}</span
                     >
                     <span
                         class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.showGridDesc")
-                            || "Hilfslinien im Chart-Hintergrund"}</span
+                        >{$_("settings.chart.showGridDesc")}</span
                     >
                 </div>
                 <Toggle bind:checked={settingsState.chartShowGrid} />
@@ -185,8 +181,7 @@
                     >
                     <span
                         class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.candleBordersDesc")
-                            || "Rahmenlinie um jeden Kerzenkörper"}</span
+                        >{$_("settings.chart.candleBordersDesc")}</span
                     >
                 </div>
                 <Toggle bind:checked={settingsState.chartCandleBorders} />
@@ -195,13 +190,11 @@
             <label class="toggle-card h-full gap-3">
                 <div class="flex flex-col min-w-0 flex-1">
                     <span class="text-sm font-medium"
-                        >{$_("settings.chart.lastValueVisible")
-                            || "Aktuelle-Preis-Label"}</span
+                        >{$_("settings.chart.lastValueVisible")}</span
                     >
                     <span
                         class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.lastValueDesc")
-                            || "Letzter Kurs an der Preisachse"}</span
+                        >{$_("settings.chart.lastValueDesc")}</span
                     >
                 </div>
                 <Toggle bind:checked={settingsState.chartLastValueVisible} />
@@ -214,8 +207,7 @@
                     >
                     <span
                         class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.watermarkDesc")
-                            || "Symbol-Name im Chart-Hintergrund"}</span
+                        >{$_("settings.chart.watermarkDesc")}</span
                     >
                 </div>
                 <Toggle bind:checked={settingsState.chartWatermark} />
@@ -226,13 +218,13 @@
     <!-- Crosshair Settings -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
-            {$_("settings.chart.crosshairSection") || "Fadenkreuz"}
+            {$_("settings.chart.crosshairSection")}
         </h3>
 
         <SettingsGrid gap="gap-4">
             <div class="field-group">
                 <label for="chart-crosshair-mode">
-                    {$_("settings.chart.crosshairMode") || "Modus"}
+                    {$_("settings.chart.crosshairMode")}
                 </label>
                 <select
                     id="chart-crosshair-mode"
@@ -249,7 +241,7 @@
 
             <div class="field-group">
                 <label for="chart-crosshair-style">
-                    {$_("settings.chart.crosshairStyle") || "Linienstil"}
+                    {$_("settings.chart.crosshairStyle")}
                 </label>
                 <select
                     id="chart-crosshair-style"
@@ -269,7 +261,7 @@
     <!-- Time Scale Settings -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
-            {$_("settings.chart.timeSection") || "Zeitachse & Countdown"}
+            {$_("settings.chart.timeSection")}
         </h3>
 
         <SettingsGrid cols={3}>
@@ -280,8 +272,7 @@
                     >
                     <span
                         class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.secondsVisibleDesc")
-                            || "Sekunden in den Zeitstempeln der Zeitachse"}</span
+                        >{$_("settings.chart.secondsVisibleDesc")}</span
                     >
                 </div>
                 <Toggle bind:checked={settingsState.chartSecondsVisible} />
@@ -290,13 +281,11 @@
             <label class="toggle-card h-full gap-3">
                 <div class="flex flex-col min-w-0 flex-1">
                     <span class="text-sm font-medium"
-                        >{$_("settings.chart.fixEdges")
-                            || "Ränder fixieren"}</span
+                        >{$_("settings.chart.fixEdges")}</span
                     >
                     <span
                         class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.fixEdgesDesc")
-                            || "Chart kann nicht über linken/rechten Rand hinaus gescrollt werden"}</span
+                        >{$_("settings.chart.fixEdgesDesc")}</span
                     >
                 </div>
                 <Toggle bind:checked={settingsState.chartFixEdges} />
@@ -305,13 +294,11 @@
             <label class="toggle-card h-full gap-3">
                 <div class="flex flex-col min-w-0 flex-1">
                     <span class="text-sm font-medium"
-                        >{$_("settings.chart.countdownEnabled")
-                            || "Countdown zur Kerzenschließung"}</span
+                        >{$_("settings.chart.countdownEnabled")}</span
                     >
                     <span
                         class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.chart.countdownDesc")
-                            || "Verbleibende Zeit bis die aktuelle Kerze schließt"}</span
+                        >{$_("settings.chart.countdownDesc")}</span
                     >
                 </div>
                 <Toggle bind:checked={settingsState.chartCountdownEnabled} />
@@ -319,7 +306,7 @@
         </SettingsGrid>
     </section>
 
-    <!-- Indicator Configuration (moved from Trading → Chart & Data; single home for all chart-related settings) -->
+    <!-- Indicator Configuration (moved from Trading → Chart; single home for all chart-related settings) -->
     <section class="settings-section animate-fade-in">
         <h3 class="section-title">
             {$_("settings.chart.indicatorConfiguration")}

@@ -1959,7 +1959,7 @@
       "countdownDesc": "Verbleibende Zeit bis die aktuelle Kerze schließt",
       "reset": "Zurücksetzen",
       "title": "Chart-Einstellungen",
-      "indicatorConfiguration": "Indikator Konfiguration"
+      "indicatorConfiguration": "Indikator-Konfiguration"
     },
     "tabs": {
       "label": "Einstellungsbereiche",
@@ -2476,7 +2476,7 @@
       "export": "Als JSON exportieren",
       "refresh": "Aktualisieren",
       "clear": "Log leeren",
-      "clearTitle": "Order-Log leeren?",
+      "clearTitle": "Order-Audit leeren?",
       "clearMessage": "Alle erfassten Sendeversuche werden gelöscht. Das lässt sich nicht rückgängig machen und betrifft weder dein Journal noch offene Positionen. Fortfahren?",
       "empty": "Noch keine Order-Versuche erfasst.",
       "count": "{count} Versuch(e) erfasst, neueste zuerst.",

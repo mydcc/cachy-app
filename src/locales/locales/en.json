@@ -2476,7 +2476,7 @@
       "export": "Export as JSON",
       "refresh": "Refresh",
       "clear": "Clear log",
-      "clearTitle": "Clear the order log?",
+      "clearTitle": "Clear the order audit?",
       "clearMessage": "Every recorded submission attempt is deleted. This cannot be undone, and it does not affect your journal or any open position. Continue?",
       "empty": "No order attempts recorded yet.",
       "count": "{count} attempt(s) recorded, newest first.",

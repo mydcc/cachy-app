@@ -219,8 +219,10 @@ PR #4199; this half closes the item.
   plus the six renamed terms (§10.3). The table is generated from the locale
   files through the usage sites, so a term that exists in only one language
   cannot hide.
-- **§11 Platzierung** covers the same 67 sections: rendered tab, expected tab,
-  verdict. The result is **no pure move**. The three deviations from the
+- **§11 Platzierung** covers the same 72 headings: rendered tab, expected tab
+  and a match/mismatch column against the stated rule. The result is **no pure
+  move**; the one real mismatch is a setting without a heading — the news open
+  behaviour renders on AI and Visuals — filed as BUG-0729. The three deviations from the
   one-tab rule are documented in the code and recorded as intentional:
   `RiskLimitsSettings` and `PaperTradingSettings` are reused by Automation for
   the simulated account, and Confirmations, Notifications and External Channels
@@ -234,8 +236,11 @@ PR #4199; this half closes the item.
   — the header has been rendered by the Chart tab since the indicator settings
   moved, but the key still named Trading. Its `|| "Indicator Configuration"`
   fallback went with it.
+- **71 `|| "English"` fallbacks** in `SystemTab`, `ChartTab` and
+  `DataMaintenance` are removed, so AC3 now holds for the whole settings
+  surface and not just the tab labels.
 - The tab-bar work from the first PR is unchanged; `settingsTabs.test.ts`
-  keeps the six tab lists pinned.
+  keeps the six tab lists pinned. Linked follow-up: [BUG-0729](../bugs/BUG-0729-news-open-behaviour-has-two-homes.md).
 
 ## Links
 
