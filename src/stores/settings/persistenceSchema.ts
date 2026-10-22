@@ -43,7 +43,7 @@ import { sanitizeAllowedActions } from "../../lib/ai/actionPolicy";
 import { normalizeQuality } from "../../lib/three/quality";
 import { CREDENTIAL_SCHEMA_VERSION, redactAccounts } from "./accounts";
 import { redactUserProviders, sanitizeUserProviders } from "./aiProviders";
-import { resolveAnthropicModel, resolveGeminiModel } from "./migrations";
+import { resolveAnthropicModel, resolveDensity, resolveGeminiModel } from "./migrations";
 import type {
     GalaxySettings,
     Settings,
@@ -156,6 +156,7 @@ export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = Object.freeze(([
     { key: "aiShareTradeContext", save: "direct", load: "coalesce", section: "core" },
     { key: "aiConfirmClear", save: "direct", load: "assign", section: "core" },
     { key: "aiAnalysisMode", save: "direct", load: "coalesce", section: "core" },
+    { key: "density", save: "direct", load: "custom", section: "display" },
     { key: "showSpinButtons", save: "direct", load: "assign", section: "display" },
     { key: "disclaimerAccepted", save: "direct", load: "assign", section: "display" },
     { key: "useUtcDateParsing", save: "direct", load: "assign", section: "display" },
@@ -506,6 +507,9 @@ export function loadCustomValue(
             // mode. The manager routes `MARKET_MODE_WIRE_KEY` into the core
             // sub-store (see `applySchemaLoad`).
             target.set(MARKET_MODE_WIRE_KEY, merged.marketMode || defaults.marketMode);
+            return;
+        case "density":
+            target.set("density", resolveDensity(merged.density));
             return;
         case "chartPriceScaleMode":
             target.set(

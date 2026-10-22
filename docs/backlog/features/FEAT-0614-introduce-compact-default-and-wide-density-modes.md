@@ -2,7 +2,7 @@
 id: FEAT-0614
 title: Introduce compact, default and wide density modes
 type: feature
-status: ready
+status: in-progress
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,6 +12,8 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0607, FEAT-0609, FEAT-0610, FEAT-0611, FEAT-0612, FEAT-0613]
+assignee: opencode
+branch: feature/feat-0614-density-modes
 ---
 
 # FEAT-0614 — Introduce compact, default and wide density modes

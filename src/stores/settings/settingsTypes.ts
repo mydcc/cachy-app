@@ -272,6 +272,9 @@ export interface TradeFlowSettings {
   moodSource: "sentiment" | "rsi";
 }
 
+/** Control density of the settings window and the trade surfaces (FEAT-0614). */
+export type DensityMode = "compact" | "default" | "wide";
+
 export interface Settings {
   apiProvider: "bitunix" | "bitget";
   appAccessToken?: string;
@@ -354,6 +357,7 @@ export interface Settings {
   showSidebarActivity: boolean;
   sidePanelMode: "chat" | "notes" | "ai";
   chatStyle: "minimal" | "bubble" | "terminal";
+  density: DensityMode;
   maxPrivateNotes: number;
   customSystemPrompt: string;
   aiProvider: AiProvider;
@@ -612,6 +616,7 @@ export const defaultSettings: Settings = {
   cloudToken: "",
   sidePanelMode: "ai",
   chatStyle: "minimal",
+  density: "default",
   customSystemPrompt: "",
   aiProvider: "gemini",
   openaiApiKey: "",

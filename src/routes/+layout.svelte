@@ -413,6 +413,13 @@ import { afterNavigate } from "$app/navigation";
     updateThemeColor();
   });
 
+  // FEAT-0614: density is a root attribute; every token override hangs off it,
+  // so no component learns the mode by name.
+  $effect(() => {
+    if (!browser) return;
+    document.documentElement.dataset.density = settingsState.density;
+  });
+
   // Window Controls Overlay (desktop PWA title bar as web content).
   // Local visual test only: when the installed PWA runs with
   // display_override window-controls-overlay, the OS title bar is replaced

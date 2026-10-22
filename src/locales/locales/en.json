@@ -2682,7 +2682,13 @@
       "orderRefusedInFlight": "“{name}” fired, but placed nothing: this rule's previous order has not settled yet.",
       "orderRefusedPositionOpen": "“{name}” fired, but placed nothing: a position in the same direction is already open on this symbol.",
       "orderRefusedOther": "“{name}” fired, but placed nothing."
-    }
+    },
+    "densityTitle": "Density",
+    "densityLabel": "Control density",
+    "densityCompact": "Compact",
+    "densityDefault": "Default",
+    "densityWide": "Wide",
+    "densityHint": "Compact controls are harder to hit on a touch screen."
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",

@@ -38,7 +38,7 @@
     let {
         children,
         cols = 2,
-        gap = "gap-3",
+        gap = "gap-[var(--density-section-gap)]",
         extraClass = "",
     }: {
         children: Snippet;

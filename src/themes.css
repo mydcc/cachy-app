@@ -207,6 +207,11 @@
   --control-number-width: 70px;
   --control-number-padding-x: var(--space-2); /* 8px */
   --control-number-padding-y: var(--space-1); /* 4px */
+  /* Density (FEAT-0614). The defaults reproduce the pre-density rendering
+     exactly: 1rem/2rem window padding and a 0.75rem grid gap. */
+  --density-section-padding: 1rem;
+  --density-section-padding-md: 2rem;
+  --density-section-gap: 0.75rem;
 
   /*
    * The type scale.
@@ -258,6 +263,29 @@
 /* =================================================================
    Light Theme
    ================================================================= */
+/* Density modes — FEAT-0614. Applied as `data-density` on <html>; every
+   value is a token override, so no component learns the mode by name. */
+html[data-density="compact"] {
+  --control-height: 32px;
+  --control-height-sm: 28px;
+  --control-height-lg: 38px;
+  --control-font-size: 0.8125rem;
+  --control-font-size-sm: 0.6875rem;
+  --density-section-padding: 0.75rem;
+  --density-section-padding-md: 1.25rem;
+  --density-section-gap: 0.5rem;
+}
+html[data-density="wide"] {
+  --control-height: 48px;
+  --control-height-sm: 38px;
+  --control-height-lg: 56px;
+  --control-font-size: 1rem;
+  --control-font-size-sm: 0.8125rem;
+  --density-section-padding: 1.25rem;
+  --density-section-padding-md: 2.5rem;
+  --density-section-gap: 1rem;
+}
+
 .theme-light {
   /* --- Galaxy Overrides --- */
   --galaxy-stars-edge-2: var(--slate-400);

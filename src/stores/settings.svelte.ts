@@ -370,6 +370,14 @@ export class SettingsManager {
   set sidePanelMode(v: CoreSettingsStore["sidePanelMode"]) {
     this.core.sidePanelMode = v;
   }
+  get density() {
+    return this.display.density;
+  }
+
+  set density(v: Settings["density"]) {
+    this.display.density = v;
+  }
+
   get chatStyle(): CoreSettingsStore["chatStyle"] {
     return this.core.chatStyle;
   }
