@@ -56,6 +56,24 @@ Three implementation constraints, all from the audit:
   is what [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) and
   the three adoption items exist for.
 
+## Decisions — 2026-10-22
+
+- **Mobile: apply everywhere, let the user choose (option c).** `compact` is an
+  explicit opt-in and `default` stays what a new profile gets, so the mode can
+  never surprise a touch user. The dropdown carries one sentence that compact
+  controls are harder to hit on touch. No silent clamp by `pointer: coarse`: it
+  misclassifies hybrid laptops and tablets with keyboards, and a visible setting
+  that does nothing is worse than a warning. 32 px still clears WCAG 2.5.8
+  (24 px); 44 px is 2.5.5 AAA, not the threshold this has to pass.
+- **The mode survives a theme change by construction.** Density is not a theme
+  token: FEAT-0609's guard rejects `--control-*` overrides in every non-default
+  theme block, so there is no theme interaction left to decide.
+- **"Does it look better?" is answered in the implementation PR**, with a
+  three-mode screenshot baseline of calculator, settings and journal. It needs
+  no separate gate, and it is the question this item was created for.
+- The item stays `specced` until FEAT-0607's second PR lands. The dependency is
+  the reason now, not the open question.
+
 ## Acceptance criteria
 
 - [ ] `default` renders pixel-identically to `develop`; a screenshot baseline
