@@ -163,8 +163,12 @@ describe("control-geometry tokens (FEAT-0609)", () => {
         "min-h-[42px]",
       ],
       [
+        // FEAT-0613 moved this control onto the primitive, so the height now
+        // comes from `.btn-sm` in themes.css instead of a token in the markup.
+        // The guard follows the mechanism: the file has to ask for the size by
+        // name, and a revert to a raw 34px button reintroduces the literal.
         "src/components/shared/journal/JournalFilters.svelte",
-        "var(--control-height-sm)",
+        'size="sm"',
         "34px",
       ],
     ];
