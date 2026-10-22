@@ -28,6 +28,7 @@
   import { marketState } from "../../stores/market.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { keysForActiveAccount } from "../../stores/settings/accounts";
+  import Button from "../shared/Button.svelte";
   import { accountEpoch } from "../../services/accountEpoch.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { safeJsonParse } from "../../utils/safeJson";
@@ -340,12 +341,13 @@
           class="input-field w-full px-3 rounded-md text-sm"
           placeholder={$_("dashboard.portfolioInputs.accountSizePlaceholder")}
         />
-        <button
-          type="button"
-          class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance
+        <Button
+          variant="ghost-muted"
+          size="sm"
+          extraClasses="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance
             ? 'animate-spin'
             : ''}"
-          onclick={() => handleFetchBalance(false)}
+          onClick={() => handleFetchBalance(false)}
           title={!hasApiKeys && !paperState.enabled
             ? $_("dashboard.alerts.noApiKeys")
             : paperState.enabled
@@ -354,7 +356,7 @@
           disabled={isFetchingBalance || (!isConnected && !paperState.enabled)}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -421,9 +423,11 @@
           placeholder={$_("dashboard.portfolioInputs.riskAmountPlaceholder")}
           disabled={isPositionSizeLocked}
         />
-        <button
-          class="absolute top-1/2 right-2 -translate-y-1/2 btn-lock-icon"
-          onclick={handleLockClick}
+        <Button
+          variant="ghost-muted"
+          size="sm"
+          extraClasses="btn-lock-icon absolute top-1/2 right-2 -translate-y-1/2"
+          onClick={handleLockClick}
           title={$_("dashboard.portfolioInputs.toggleRiskAmountLockTitle")}
           disabled={isPositionSizeLocked}
         >
@@ -452,7 +456,7 @@
               /></svg
             >
           {/if}
-        </button>
+        </Button>
       </div>
     </div>
   </div>

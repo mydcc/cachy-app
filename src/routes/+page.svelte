@@ -692,15 +692,17 @@
           <div class="flex items-center justify-center gap-2">
             <QuizButton />
             <FloatingIframeButton />
-            <button
-              class="h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-lg btn-secondary-action transition-all duration-300 hover:scale-105 text-base"
+            <Button
+              variant="default"
+              size="sm"
+              extraClasses="w-9 flex-shrink-0 text-base hover:scale-105"
               title={$_("dashboard.triggerPulse")}
-              aria-label={$_("dashboard.triggerPulse")}
-              onclick={(e) =>
+              ariaLabel={$_("dashboard.triggerPulse")}
+              onClick={(e) =>
                 effectsState.triggerProjectile(e.currentTarget as HTMLElement)}
             >
               🚀
-            </button>
+            </Button>
           </div>
           <div class="flex items-center justify-end gap-2">
             <PowerToggle />

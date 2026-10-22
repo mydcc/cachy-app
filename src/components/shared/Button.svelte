@@ -26,6 +26,7 @@
     | "warning"
     | "ghost"
     | "ghost-danger"
+    | "ghost-muted"
     | "outline"
     | "outline-accent";
   type ButtonSize = "sm" | "md" | "lg";

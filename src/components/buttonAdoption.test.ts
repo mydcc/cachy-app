@@ -2,9 +2,9 @@
  * Copyright (C) 2026 MYDCT
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,34 +16,46 @@
  */
 
 /*
- * FEAT-0611 — a new hand-written `<button>` in the settings tabs is a
- * regression: the window has to accept a density mode, and a raw button has no
- * token height.
+ * FEAT-0611 / FEAT-0612 — a new hand-written `<button>` in a migrated surface
+ * is a regression: the app has to accept a density mode, and a raw button has
+ * no token height.
  *
  * The escape hatch is deliberate and textual: a control that is *not* a button
- * (sub-tab rail, segmented control, selection card, inline chip) carries a
+ * (sub-tab rail, segmented control, selection card, chip trigger) carries a
  * comment directly above it naming what it is instead. Anything else must go
  * through `Button.svelte`.
  *
- * Stage 1 covered `settings/tabs/`; stage 2 widened it to the whole settings
- * window, so a new card cannot slip in a raw button either.
+ * Scope grows with each adoption item. FEAT-0611 covered the settings window;
+ * FEAT-0612 added the calculator and order panel, listed here as explicit files
+ * so the neighbouring, not-yet-migrated components (TradeSetupInputs,
+ * TakeProfitTargets) are not silently pulled in.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const ROOTS = ["src/components/settings"];
-const ESCAPE = "FEAT-0611 escape:";
+const ROOTS = [
+  "src/components/settings",
+  "src/components/inputs/GeneralInputs.svelte",
+  "src/components/inputs/PortfolioInputs.svelte",
+  "src/components/inputs/ExchangeAccountControls.svelte",
+  "src/components/results/SummaryResults.svelte",
+  "src/components/results/PlaceOrderPanel.svelte",
+];
 
-function svelteFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return svelteFiles(path);
-    return entry.name.endsWith(".svelte") ? [path] : [];
+/** One token per adoption item, so the escape names the item that granted it. */
+const ESCAPES = ["FEAT-0611 escape:", "FEAT-0612 escape:"];
+
+function svelteFiles(path: string): string[] {
+  if (path.endsWith(".svelte")) return [path];
+
+  return readdirSync(path, { withFileTypes: true }).flatMap((entry) => {
+    const child = join(path, entry.name);
+    if (entry.isDirectory()) return svelteFiles(child);
+    return entry.name.endsWith(".svelte") ? [child] : [];
   });
 }
-
 
 /**
  * The comment block directly above the control, walked back to its `<!--`.
@@ -62,7 +74,7 @@ function escapeBlockAbove(lines: string[], index: number): string | null {
   return null;
 }
 
-describe("FEAT-0611 — settings controls go through the button primitive", () => {
+describe("migrated surfaces go through the button primitive", () => {
   it("has no raw <button> without an escape comment", () => {
     const offenders: string[] = [];
     let escaped = 0;
@@ -73,7 +85,8 @@ describe("FEAT-0611 — settings controls go through the button primitive", () =
         lines.forEach((line, index) => {
           if (!line.includes("<button")) return;
 
-          if (escapeBlockAbove(lines, index)?.includes(ESCAPE)) {
+          const block = escapeBlockAbove(lines, index);
+          if (block && ESCAPES.some((escape) => block.includes(escape))) {
             escaped += 1;
           } else {
             offenders.push(`${file}:${index + 1}`);

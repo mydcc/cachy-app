@@ -2698,6 +2698,21 @@ input[type="number"] {
 }
 
 /*
+ * Muted icon action (FEAT-0612): the calculator's icon buttons (fetch price,
+ * fetch balance, copy, lock) are transparent and quiet at rest, and they answer
+ * a hover with a colour change — not the underline `ghost` uses, which is
+ * invisible on an icon-only button.
+ */
+.btn-base.btn-ghost-muted {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-base.btn-ghost-muted:hover:not(:disabled) {
+  color: var(--accent-color);
+}
+
+/*
  * Warning fill (FEAT-0611 stage 2): the data-maintenance repairs were the
  * only `bg-warning-paired` buttons in the app, and they kept their fill and
  * their `hover:opacity-90` — both are reproduced here instead of mapping a
@@ -2814,16 +2829,6 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 
 .btn-icon-accent:hover {
   color: var(--accent-color-hover);
-}
-
-/* New class for lock icons */
-.btn-lock-icon {
-  color: var(--text-secondary);
-  transition: color 0.2s;
-}
-
-.btn-lock-icon:hover {
-  color: var(--accent-color);
 }
 
 /* New class for modal OK button */

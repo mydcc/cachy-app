@@ -33,6 +33,7 @@
 <script lang="ts">
   import { Decimal } from "decimal.js";
   import { untrack } from "svelte";
+  import Button from "../shared/Button.svelte";
   import { _ } from "../../locales/i18n";
   import { accountState } from "../../stores/account.svelte";
   import {
@@ -704,6 +705,7 @@
     <div class="flex items-center gap-2">
       {#each ALL_TYPES as t (t)}
         {@const exchangeSupports = supportsOrderType(exchange, t)}
+        <!-- FEAT-0612 escape: segmented control (class:active underline) — the primitive has no selected state -->
         <button
           class="type-btn"
           class:active={entryType === t}
@@ -846,11 +848,12 @@
     <p class="note">{$_("orderEntry.notReady")}</p>
   {/if}
 
-  <button
-    class="submit-btn"
-    class:paper-mode-btn={paperState.enabled}
+  <Button
+    variant={paperState.enabled ? "success" : "accent"}
+    size="lg"
+    extraClasses="submit-btn w-full uppercase tracking-[0.03em]"
     disabled={!ready || !tradeDirectionKnown || submitting}
-    onclick={submit}
+    onClick={submit}
   >
     {#if submitting}
       {$_("orderEntry.submitting")}
@@ -859,7 +862,7 @@
     {:else}
       {$_("orderEntry.submitLive")}
     {/if}
-  </button>
+  </Button>
 
   <!-- Outcome -->
   {#if result}
@@ -948,40 +951,6 @@
   }
   .note.warn {
     color: var(--warning-color);
-  }
-  .submit-btn {
-    width: 100%;
-    height: 48px;
-    padding: 0 var(--space-4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--accent-color);
-    background-color: var(--accent-color);
-    color: var(--btn-accent-text);
-    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
-    cursor: pointer;
-  }
-  .submit-btn:hover:not(:disabled) {
-    background-color: var(--accent-color-hover);
-    border-color: var(--accent-color-hover);
-  }
-  .submit-btn.paper-mode-btn {
-    background-color: var(--success-color);
-    border-color: var(--success-color);
-    color: var(--text-on-success);
-  }
-  .submit-btn.paper-mode-btn:hover:not(:disabled) {
-    opacity: 0.9;
-  }
-  .submit-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
   }
   .outcome {
     margin-top: var(--space-3);

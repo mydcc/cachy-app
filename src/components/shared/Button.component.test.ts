@@ -160,6 +160,10 @@ describe("FEAT-0610 — variants, sizes and events", () => {
         const cases: Array<[string, string]> = [
             ["ghost", "--accent-color"],
             ["ghost-danger", "--danger-color"],
+            // FEAT-0612: the calculator's icon actions are quiet at rest and
+            // answer a hover with the accent colour (asserted from the sheet
+            // below — happy-dom cannot evaluate `:hover`).
+            ["ghost-muted", "--text-secondary"],
         ];
 
         for (const [variant, colourVar] of cases) {
@@ -215,6 +219,14 @@ describe("FEAT-0610 — variants, sizes and events", () => {
         ).toContain(getComputedStyle(outlined).backgroundColor);
         expect(getComputedStyle(outlined).color).toBe(accent);
         expect(getComputedStyle(outlined).borderTopWidth).toBe("1px");
+
+        // The muted variant's hover is what makes it an action at all: an
+        // icon-only button has no text to underline, so `ghost`'s hover would
+        // be invisible (FEAT-0612). happy-dom cannot evaluate `:hover`, so the
+        // rule is asserted from the sheet.
+        expect(readFileSync("src/themes.css", "utf8")).toMatch(
+            /\.btn-base\.btn-ghost-muted:hover:not\(:disabled\)\s*\{\s*color:\s*var\(--accent-color\)/,
+        );
     });
 
     it("does not style a raw variant class without .btn-base", () => {

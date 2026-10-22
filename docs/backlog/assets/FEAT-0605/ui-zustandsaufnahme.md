@@ -236,10 +236,10 @@ designed for, control geometry was not.
 
 | Fact | Value |
 | --- | --- |
-| Raw `<button>` elements | **302** across 91 `.svelte` files (after the FEAT-0611 settings stage; 368 before FEAT-0610) |
+| Raw `<button>` elements | **296** across 89 `.svelte` files (after FEAT-0612; 302 after FEAT-0611, 368 before FEAT-0610) |
 | Uses of `btn-accent-bg` / `btn-default-bg` / `btn-danger-bg` | **16** |
 | Vertical-padding variants on `<button>` | `py-1.5` ×41, `py-2` ×25, `py-1` ×26, `py-2.5` ×8, `py-0.5` ×5, `py-3` ×4 (re-counted on the FEAT-0611 cards branch) |
-| `src/components/shared/Button.svelte` | adopted by the app shell header (5 controls, FEAT-0610) and the whole settings window (FEAT-0611, both stages); variants/sizes in tokens, `Button.component.test.ts` covers them |
+| `src/components/shared/Button.svelte` | adopted by the app shell header (5 controls, FEAT-0610), the whole settings window (FEAT-0611, both stages) and the calculator/trade panel (FEAT-0612); variants/sizes in tokens, `Button.component.test.ts` covers them |
 
 Six heights for one conceptual control. FEAT-0610 gave the primitive variants
 (`default`, `accent`, `danger`, `success`), three token-based sizes
