@@ -9,7 +9,7 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { checkClientToken, clientTokenKey, TOKEN_MAP_CAP } from "../../../../lib/server/clientToken";
+import { checkClientToken, clientTokenKey, onClientTokenEvicted, TOKEN_MAP_CAP } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
 import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
@@ -33,6 +33,10 @@ export const _rateLimits = createRateLimiter({
   max: 10,
   maxTrackedKeys: TOKEN_MAP_CAP,
 });
+
+// Drop the limiter bucket when its token record is evicted or expires, so a
+// dead token cannot keep a slot occupied until the window elapses.
+onClientTokenEvicted((hash) => _rateLimits.forget(hash));
 
 const pendingRequests = new Map<string, Promise<unknown>>();
 const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erhöht für Quota-Schonung)

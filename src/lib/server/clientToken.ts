@@ -79,6 +79,26 @@ export function clientTokenKey(request: Request): string | null {
   return raw ? hashToken(raw) : null;
 }
 
+type TokenEvictionListener = (hash: string) => void;
+
+const tokenEvictionListeners = new Set<TokenEvictionListener>();
+
+/**
+ * Registers a callback for every token record removed from the store.
+ *
+ * Routes that key a limiter on the token hash (the news proxy) use this to
+ * drop the matching bucket, so a dead token cannot keep a slot occupied until
+ * its window elapses.
+ */
+export function onClientTokenEvicted(listener: TokenEvictionListener): void {
+  tokenEvictionListeners.add(listener);
+}
+
+function forgetToken(hash: string): void {
+  perTokenLimiter.forget(hash);
+  for (const listener of tokenEvictionListeners) listener(hash);
+}
+
 function isExpired(record: TokenRecord, now: number): boolean {
   return now - record.createdAt >= TOKEN_TTL_MS;
 }
@@ -92,7 +112,7 @@ function evictExpired(now: number): void {
   for (const [hash, record] of tokens) {
     if (!isExpired(record, now)) break;
     tokens.delete(hash);
-    perTokenLimiter.forget(hash);
+    forgetToken(hash);
   }
 }
 
@@ -102,7 +122,7 @@ function makeRoom(): void {
     const oldest = tokens.keys().next().value;
     if (oldest === undefined) return;
     tokens.delete(oldest);
-    perTokenLimiter.forget(oldest);
+    forgetToken(oldest);
   }
 }
 
@@ -184,7 +204,7 @@ export function checkClientToken(request: Request, clientAddress: string): Respo
   const now = Date.now();
   if (isExpired(record, now)) {
     tokens.delete(hash);
-    perTokenLimiter.forget(hash);
+    forgetToken(hash);
     return unauthorized();
   }
 
@@ -204,6 +224,7 @@ export function _resetForTests(): void {
   tokens.clear();
   perTokenLimiter.clear();
   perIpLimiter.clear();
+  tokenEvictionListeners.clear();
 }
 
 /** Test-only escape hatch: current number of stored token records. */

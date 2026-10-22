@@ -45,10 +45,16 @@ describe("normalizeClientAddress", () => {
     expect(normalizeClientAddress("203.0.113.7:443")).toBe("203.0.113.7");
   });
 
-  it("folds a NAT64 address to its prefix", () => {
-    expect(normalizeClientAddress("64:ff9b::192.0.2.1")).toBe(
-      "64:ff9b:0:0::/64",
-    );
+  it("folds NAT64 and IPv4-translated addresses to their embedded IPv4", () => {
+    expect(normalizeClientAddress("64:ff9b::192.0.2.1")).toBe("192.0.2.1");
+    expect(normalizeClientAddress("::ffff:0:c000:201")).toBe("192.0.2.1");
+  });
+
+  it("aggregates to a /48 when the caller asks for it", () => {
+    const first = normalizeClientAddress("2001:db8:1:2::1", 48);
+    const second = normalizeClientAddress("2001:db8:1:3:ffff::1", 48);
+    expect(first).toBe("2001:db8:1::/48");
+    expect(second).toBe(first);
   });
 
   it("truncates IPv6 addresses to their /64 prefix", () => {

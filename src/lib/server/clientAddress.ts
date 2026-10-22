@@ -16,26 +16,6 @@
  */
 
 /**
- * Normalizes `event.getClientAddress()` into a rate-limit key (BUG-0722).
- *
- * A per-IP limiter is only as strong as its key space. Three properties
- * matter:
- *
- * - **One host must not present thousands of keys.** A routed IPv6 /64 gives
- *   a single host 2^64 addresses; keyed on the full address, every request
- *   gets a fresh bucket and the per-IP ceiling never binds. IPv6 keys are
- *   therefore truncated to their /64 prefix, the block normally routed to one
- *   subscriber. (A host holding a /56 or /48 can still present several /64s;
- *   closing that needs a coarser tier or an admission mechanism, not a
- *   different string.)
- * - **One address must not present two keys.** Brackets and ports, zone ids,
- *   IPv4-mapped IPv6 in dotted or hex notation, embedded dotted quads, and
- *   leading-zero octets are all folded into one canonical form.
- * - **The key must stay bounded.** Values that do not parse as an IP address
- *   are returned trimmed, lowercased and length-capped, so a forged header
- *   cannot turn every request into a multi-kilobyte Map key.
- */
-/**
  * Tracked-key cap for limiters keyed on a client address.
  *
  * Sized well above the limiter's old default (1 000) because the key space is
@@ -45,7 +25,31 @@
  */
 export const CLIENT_ADDRESS_KEY_CAP = 20_000;
 
-export function normalizeClientAddress(raw: string): string {
+/**
+ * Normalizes `event.getClientAddress()` into a rate-limit key (BUG-0722).
+ *
+ * A per-IP limiter is only as strong as its key space. Three properties
+ * matter:
+ *
+ * - **One host must not present thousands of keys.** A routed IPv6 /64 gives
+ *   a single host 2^64 addresses; keyed on the full address, every request
+ *   gets a fresh bucket and the per-IP ceiling never binds. IPv6 keys are
+ *   therefore truncated to a prefix — /64 by default, the block normally
+ *   routed to one subscriber. The issuance limiter passes `48`, because a
+ *   single hosting allocation commonly holds a /48 (65 536 /64s), enough to
+ *   fill that limiter's key map.
+ * - **One address must not present two keys.** Brackets and ports, zone ids,
+ *   IPv4-mapped IPv6 in dotted or hex notation, NAT64 and IPv4-translated
+ *   addresses, embedded dotted quads, and leading-zero octets are all folded
+ *   into one canonical form.
+ * - **The key must stay bounded.** Values that do not parse as an IP address
+ *   are returned trimmed, lowercased and length-capped, so a forged header
+ *   cannot turn every request into a multi-kilobyte Map key.
+ */
+export function normalizeClientAddress(
+  raw: string,
+  ipv6PrefixLength: 48 | 64 = 64,
+): string {
   const value = raw.trim().toLowerCase();
   if (!value) return value;
 
@@ -67,29 +71,44 @@ export function normalizeClientAddress(raw: string): string {
 
   if (!withoutZone.includes(":")) return capLength(withoutZone);
 
-  return ipv6Key(withoutZone) ?? capLength(withoutZone);
+  return ipv6Key(withoutZone, ipv6PrefixLength) ?? capLength(withoutZone);
 }
 
 /**
  * Returns the canonical rate-limit key for an IPv6 address: the embedded
- * IPv4 for IPv4-mapped addresses, otherwise the /64 prefix.
+ * IPv4 for IPv4-mapped, IPv4-translated and NAT64 addresses, otherwise the
+ * requested prefix.
  */
-function ipv6Key(address: string): string | null {
+function ipv6Key(address: string, prefixLength: 48 | 64): string | null {
   const groups = expandIpv6(address);
   if (!groups) return null;
 
-  // IPv4-mapped (::ffff:0:0/96), in either dotted or hex notation: the host
-  // is the embedded IPv4 address, so fold to it.
-  if (groups[5] === "ffff" && groups.slice(0, 5).every((g) => g === "0")) {
-    return [
-      (parseInt(groups[6], 16) >> 8) & 0xff,
-      parseInt(groups[6], 16) & 0xff,
-      (parseInt(groups[7], 16) >> 8) & 0xff,
-      parseInt(groups[7], 16) & 0xff,
-    ].join(".");
-  }
+  return embeddedIpv4(groups) ?? `${groups.slice(0, prefixLength / 16).join(":")}::/${prefixLength}`;
+}
 
-  return `${groups.slice(0, 4).join(":")}::/64`;
+/**
+ * Extracts the IPv4 address embedded in an IPv4-mapped or IPv4-translated
+ * address (`::ffff:0:0/96`, dotted or hex notation) or in the NAT64
+ * well-known prefix (`64:ff9b::/96`). Without this, all IPv4 hosts behind a
+ * NAT64 gateway or a hex-mapped form would share one limiter bucket.
+ */
+function embeddedIpv4(groups: string[]): string | null {
+  const firstFourZero = groups.slice(0, 4).every((group) => group === "0");
+  const firstFiveZero = groups.slice(0, 5).every((group) => group === "0");
+  // ::ffff:0:0/96 in its two layouts: mapped (five zero groups, then ffff)
+  // and IPv4-translated (four zero groups, ffff, one zero group).
+  const mapped = firstFiveZero && groups[5] === "ffff";
+  const translated = firstFourZero && groups[4] === "ffff";
+  const nat64 =
+    groups[0] === "64" &&
+    groups[1] === "ff9b" &&
+    groups.slice(2, 6).every((group) => group === "0");
+
+  if (!mapped && !translated && !nat64) return null;
+
+  const high = parseInt(groups[6], 16);
+  const low = parseInt(groups[7], 16);
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
 }
 
 /** Expands an IPv6 address into eight normalized 16-bit hex groups, or null. */

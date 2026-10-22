@@ -17,9 +17,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import crypto from "node:crypto";
 import {
   checkClientToken,
   issueToken,
+  onClientTokenEvicted,
   _resetForTests,
   _tokenStoreSizeForTests,
   TOKEN_TTL_MS,
@@ -137,6 +139,19 @@ describe("issueToken / checkClientToken", () => {
     );
     expect(overLimit).not.toBeNull();
     expect(overLimit?.status).toBe(429);
+  });
+
+  it("notifies eviction listeners when the store drops the oldest record (BUG-0722)", () => {
+    const evicted: string[] = [];
+    onClientTokenEvicted((hash) => evicted.push(hash));
+
+    const oldest = issueToken();
+    for (let i = 1; i < TOKEN_MAP_CAP; i++) issueToken();
+    issueToken(); // the store is full: this drops `oldest`
+
+    expect(evicted).toEqual([
+      crypto.createHash("sha256").update(oldest).digest("hex"),
+    ]);
   });
 });
 
