@@ -84,29 +84,53 @@ describe("createRateLimiter", () => {
     expect(limiter.consume("victim")).toBe(false);
   });
 
-  it("refuses new keys at capacity instead of evicting live buckets (BUG-0722)", () => {
-    const limiter = createRateLimiter({ windowMs: 60_000, max: 1, maxTrackedKeys: 2 });
+  it("routes untracked keys through one shared overflow budget at capacity (BUG-0722)", () => {
+    const limiter = createRateLimiter({ windowMs: 60_000, max: 2, maxTrackedKeys: 2 });
 
     expect(limiter.consume("a")).toBe(true);
     expect(limiter.consume("b")).toBe(true);
 
-    // Both slots are held by live buckets: the newcomer is refused rather
-    // than admitted by evicting one of them.
+    // Newcomers are throttled by one shared budget (max * 10 admissions),
+    // not refused outright, so a spray cannot turn the limiter into a
+    // deny-all gate for honest clients.
+    for (let i = 0; i < 20; i++) {
+      expect(limiter.consume("c")).toBe(true);
+    }
     expect(limiter.consume("c")).toBe(false);
+
+    // The tracked buckets are untouched by the overflow being spent.
+    expect(limiter.consume("a")).toBe(true);
+    expect(limiter.consume("a")).toBe(false);
   });
 
-  it("admits a new key once expired buckets free capacity", () => {
+  it("admits a newcomer into its own bucket once expired buckets free capacity", () => {
     vi.useFakeTimers();
     const limiter = createRateLimiter({ windowMs: 1_000, max: 1, maxTrackedKeys: 2 });
 
     expect(limiter.consume("a")).toBe(true);
     expect(limiter.consume("b")).toBe(true);
-    expect(limiter.consume("c")).toBe(false);
+
+    // At capacity the newcomer draws from the shared overflow budget, so its
+    // second request is still admitted — it has no per-key bucket yet.
+    expect(limiter.consume("c")).toBe(true);
+    expect(limiter.consume("c")).toBe(true);
 
     vi.advanceTimersByTime(1_001);
 
-    // The older windows elapsed; the newcomer gets a fresh budget.
+    // The older windows elapsed; the newcomer now has its own bucket, which
+    // binds after one request.
     expect(limiter.consume("c")).toBe(true);
     expect(limiter.consume("c")).toBe(false);
+  });
+
+  it("forget() drops one key's bucket, so it starts a fresh window", () => {
+    const limiter = createRateLimiter({ windowMs: 60_000, max: 1 });
+
+    expect(limiter.consume("a")).toBe(true);
+    expect(limiter.consume("a")).toBe(false);
+
+    limiter.forget("a");
+
+    expect(limiter.consume("a")).toBe(true);
   });
 });

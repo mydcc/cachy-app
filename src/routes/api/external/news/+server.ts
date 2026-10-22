@@ -11,6 +11,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
+import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
 import { extractApiCredentials } from "../../../../utils/server/requestUtils";
 import { NewsApiResponseSchema, CryptoPanicResponseSchema } from "../../../../types/newsSchemas";
 import { sanitizeErrorMessage } from "../../../../types/apiSchemas";
@@ -71,8 +72,11 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
       return json(cached.data);
     }
 
-    // Rate Limit Check (only for requests that will hit upstream)
-    if (!_rateLimits.consume(apiKey)) {
+    // Rate Limit Check (only for requests that will hit upstream). Keyed on the
+    // client address, not the user-supplied apiKey: arbitrary apiKey strings
+    // would let one caller fill the tracked-key map and throttle every other
+    // client (BUG-0722).
+    if (!_rateLimits.consume(normalizeClientAddress(getClientAddress()))) {
       return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
     }
 

@@ -27,6 +27,15 @@
  * multiple instances. That is an accepted limitation for a single-process
  * deployment, matching the pattern this replaces — not a regression this
  * change introduces.
+ *
+ * Capacity policy (BUG-0722): the map is bounded at `maxTrackedKeys`, and a
+ * live bucket is never evicted. Evicting one would hand its owner a fresh
+ * window on the next request — the bypass this limiter exists to prevent. At
+ * capacity, untracked keys do not get a bucket of their own; they draw from
+ * one shared overflow budget per window. That keeps memory bounded and keeps
+ * tracked clients working, while a newcomer is throttled rather than
+ * blanket-refused (refusing every newcomer turns a spray into a deny-all gate
+ * — worst on the unauthenticated token route, whose window is an hour).
  */
 
 interface RateLimitEntry {
@@ -35,8 +44,22 @@ interface RateLimitEntry {
 }
 
 export interface RateLimiter {
-  /** Records a hit for `key`. Returns false once `key` is over its limit for the current window. */
+  /**
+   * Records a hit for `key`.
+   *
+   * Returns false when the key is over its limit for the current window, or
+   * when the tracked-key cap and the shared overflow budget are both
+   * exhausted (fail closed under saturation).
+   */
   consume(key: string): boolean;
+  /**
+   * Drops a single key's bucket.
+   *
+   * For callers whose key space is managed elsewhere — `clientToken.ts`
+   * removes token records at its own cap — so a removed key does not keep
+   * occupying a slot until its window elapses.
+   */
+  forget(key: string): void;
   /** Drops all tracked state. Test-only escape hatch for isolating cases. */
   clear(): void;
 }
@@ -46,33 +69,77 @@ export interface RateLimitOptions {
   windowMs: number;
   /** Requests allowed per key per window. */
   max: number;
-  /**
-   * Hard cap on distinct live keys tracked at once, to bound memory under a
-   * key-spray attack. At capacity, a new key is refused (fail closed) instead
-   * of evicting a live bucket — see `createRateLimiter`.
-   */
+  /** Hard cap on distinct live keys tracked at once. Defaults to 1000. */
   maxTrackedKeys?: number;
 }
 
 const DEFAULT_MAX_TRACKED_KEYS = 1000;
 
+/**
+ * Requests the shared overflow budget admits per window once the tracked-key
+ * cap is reached, as a multiple of `max`.
+ *
+ * The budget is one bucket shared by every untracked key, so it throttles
+ * newcomers collectively instead of denying them outright, and cannot be used
+ * as a free bypass: it is bounded at `max * OVERFLOW_MULTIPLIER` per window.
+ */
+const OVERFLOW_MULTIPLIER = 10;
+
+/**
+ * Minimum interval between expired-bucket sweeps.
+ *
+ * Sweeping on every insertion is O(n²) for a burst, because each of n inserts
+ * scans the n entries so far. A sweep is only needed when the map is full,
+ * and once per second is enough to notice elapsed windows.
+ */
+const MIN_SWEEP_INTERVAL_MS = 1_000;
+
 export function createRateLimiter(options: RateLimitOptions): RateLimiter {
-  const { windowMs, max, maxTrackedKeys = DEFAULT_MAX_TRACKED_KEYS } = options;
+  const windowMs = options.windowMs;
+  const max = Math.max(1, options.max);
+  const maxTrackedKeys = Math.max(
+    1,
+    options.maxTrackedKeys ?? DEFAULT_MAX_TRACKED_KEYS,
+  );
+  const overflowMax = max * OVERFLOW_MULTIPLIER;
   const hits = new Map<string, RateLimitEntry>();
 
-  /**
-   * Drops every bucket whose window has elapsed.
-   *
-   * Expired buckets are the only ones eviction may ever touch: deleting a
-   * *live* bucket hands its owner a fresh window on the next request, which is
-   * exactly the bypass the cap exists to prevent (BUG-0722). Oldest-inserted
-   * eviction had that effect for any victim whose bucket was not the newest,
-   * and an LRU variant still does it for a victim idle across the spray.
-   */
+  let lastSweepAt = 0;
+  let overflowCount = 0;
+  let overflowResetTime = 0;
+  let overflowExhaustedLogged = false;
+
+  /** Drops every bucket whose window has elapsed. */
   function evictExpired(now: number) {
+    lastSweepAt = now;
     for (const [key, entry] of hits) {
       if (now > entry.resetTime) hits.delete(key);
     }
+  }
+
+  /**
+   * Admits an untracked key from the single shared overflow budget. Never
+   * inserts into `hits`, so memory stays at `maxTrackedKeys`.
+   */
+  function consumeOverflow(now: number): boolean {
+    if (now > overflowResetTime) {
+      overflowCount = 0;
+      overflowResetTime = now + windowMs;
+      overflowExhaustedLogged = false;
+    }
+
+    if (overflowCount >= overflowMax) {
+      if (!overflowExhaustedLogged) {
+        overflowExhaustedLogged = true;
+        console.warn(
+          `[rateLimit] tracked-key cap (${maxTrackedKeys}) reached and overflow budget (${overflowMax}/${windowMs}ms) exhausted; refusing new keys until the window resets.`,
+        );
+      }
+      return false;
+    }
+
+    overflowCount++;
+    return true;
   }
 
   return {
@@ -86,24 +153,26 @@ export function createRateLimiter(options: RateLimitOptions): RateLimiter {
         return true;
       }
 
-      // New or expired key: reclaim room from elapsed windows first.
-      evictExpired(now);
+      // New or expired key. A full map is only swept when it matters, and at
+      // most once per MIN_SWEEP_INTERVAL_MS, so a burst stays O(n) instead of
+      // O(n²).
       if (hits.size >= maxTrackedKeys) {
-        // The map is full of live buckets. Refusing the newcomer — instead of
-        // evicting a live bucket — is the fail-closed choice: eviction would
-        // reset the evicted key's counter and let it start over, so the
-        // ceiling would stop binding exactly when the limiter is under
-        // pressure. The cost is that a spray can turn the limiter into a
-        // deny-all for *new* keys until an existing window elapses (at most
-        // windowMs); that is preferable to a silent bypass, and the caller
-        // sees an honest 429 rather than an unlimited budget.
-        return false;
+        if (now - lastSweepAt >= MIN_SWEEP_INTERVAL_MS) evictExpired(now);
+        if (hits.size >= maxTrackedKeys) return consumeOverflow(now);
       }
+
       hits.set(key, { count: 1, resetTime: now + windowMs });
       return true;
     },
+    forget(key: string): void {
+      hits.delete(key);
+    },
     clear(): void {
       hits.clear();
+      lastSweepAt = 0;
+      overflowCount = 0;
+      overflowResetTime = 0;
+      overflowExhaustedLogged = false;
     },
   };
 }

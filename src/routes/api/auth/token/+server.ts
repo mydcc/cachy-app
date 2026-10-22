@@ -19,6 +19,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { issueToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
+import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
 
 /**
  * Deliberately unguarded (BUG-0052): this is where a client gets its first
@@ -37,10 +38,18 @@ import { createRateLimiter } from "../../../../lib/server/rateLimit";
 export const _issuanceLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 20,
+  // This is the only unauthenticated route and its window is an hour, so a
+  // capacity policy that refused every newcomer would let a 1000-address
+  // spray lock every client out for the rest of the hour (BUG-0722). The map
+  // is therefore sized for realistic traffic, and an untracked address at
+  // capacity draws from the limiter's shared overflow budget instead of being
+  // refused. `normalizeClientAddress` folds an IPv6 /64 into one key, so a
+  // single host cannot rotate addresses to mint unlimited tokens.
+  maxTrackedKeys: 20_000,
 });
 
 export const POST: RequestHandler = async ({ getClientAddress }) => {
-  if (!_issuanceLimiter.consume(getClientAddress())) {
+  if (!_issuanceLimiter.consume(normalizeClientAddress(getClientAddress()))) {
     return json(
       { error: "Rate limit exceeded. Try again later." },
       { status: 429 },

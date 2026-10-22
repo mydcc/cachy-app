@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import crypto from "node:crypto";
 import { createRateLimiter } from "./rateLimit";
+import { normalizeClientAddress } from "./clientAddress";
 
 /**
  * Self-service, anonymous client tokens (BUG-0052), replacing the single
@@ -80,6 +81,7 @@ function evictExpired(now: number): void {
   for (const [hash, record] of tokens) {
     if (!isExpired(record, now)) break;
     tokens.delete(hash);
+    perTokenLimiter.forget(hash);
   }
 }
 
@@ -89,6 +91,7 @@ function makeRoom(): void {
     const oldest = tokens.keys().next().value;
     if (oldest === undefined) return;
     tokens.delete(oldest);
+    perTokenLimiter.forget(oldest);
   }
 }
 
@@ -107,9 +110,16 @@ export function issueToken(): string {
 // and the AI proxies are BYOK-only, so a token can never spend the operator's
 // money, only its own rate-limit budget.
 //
-// The key cap must cover every token the store can hold: the limiter's own
-// default (1000) is a tenth of TOKEN_MAP_CAP, so a token beyond the first
-// thousand had its bucket evicted and its ceiling never bound (BUG-0722).
+// The cap mirrors the token store's own cap: the store never holds more than
+// TOKEN_MAP_CAP live records, and every place that removes a record also calls
+// `forget`, so a bucket never outlives its token. The limiter's old default
+// (1000) was a tenth of the store, so a token beyond the first thousand had
+// its bucket evicted and its ceiling never bound (BUG-0722).
+//
+// Deliberately soft: evicting a token record or re-minting yields a new hash
+// and therefore a fresh per-token bucket. The per-IP ceiling below is the
+// hard one; this one protects upstream quotas from a single token, not a
+// determined actor.
 const perTokenLimiter = createRateLimiter({
   windowMs: 60_000,
   max: 300,
@@ -117,8 +127,18 @@ const perTokenLimiter = createRateLimiter({
 });
 
 // Per-IP, summed across all of that IP's tokens: catches a single actor
-// minting many tokens to route around the per-token ceiling above.
-const perIpLimiter = createRateLimiter({ windowMs: 60_000, max: 600 });
+// minting many tokens to route around the per-token ceiling above. This is
+// the hard ceiling — a new token means a new hash, but not a new address.
+//
+// The key cap is raised well above the limiter default (1000) because the map
+// is filled by distinct client addresses: an address spray must not throttle
+// honest newcomers for the rest of the window. `normalizeClientAddress` folds
+// an IPv6 /64 into one key, so the cap counts networks, not single addresses.
+const perIpLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: 600,
+  maxTrackedKeys: 20_000,
+});
 
 function unauthorized(): Response {
   return json(
@@ -153,10 +173,13 @@ export function checkClientToken(request: Request, clientAddress: string): Respo
   const now = Date.now();
   if (isExpired(record, now)) {
     tokens.delete(hash);
+    perTokenLimiter.forget(hash);
     return unauthorized();
   }
 
-  if (!perIpLimiter.consume(clientAddress)) return rateLimited();
+  if (!perIpLimiter.consume(normalizeClientAddress(clientAddress))) {
+    return rateLimited();
+  }
   if (!perTokenLimiter.consume(hash)) return rateLimited();
 
   record.requestCount += 1;

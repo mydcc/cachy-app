@@ -11,6 +11,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
 import { createRateLimiter } from "../../../../lib/server/rateLimit";
+import { normalizeClientAddress } from "../../../../lib/server/clientAddress";
 import { isUrlAllowed, isUrlAllowedAsync, safeFetch } from "../../../../lib/server/urlValidator";
 
 const _rateLimits = createRateLimiter({ windowMs: 60 * 1000, max: 60 });
@@ -22,7 +23,7 @@ export const GET: RequestHandler = async ({ request, url, getClientAddress }) =>
   const authError = checkClientToken(request, getClientAddress());
   if (authError) return authError;
 
-  if (!_rateLimits.consume(getClientAddress())) {
+  if (!_rateLimits.consume(normalizeClientAddress(getClientAddress()))) {
     return json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
   }
 

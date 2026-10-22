@@ -120,6 +120,24 @@ describe("issueToken / checkClientToken", () => {
     expect(overLimit).not.toBeNull();
     expect(overLimit?.status).toBe(429);
   });
+
+  it("buckets IPv6 addresses of one /64 together (BUG-0722)", () => {
+    // 600 requests spread over two addresses in one /64 must share the per-IP
+    // ceiling; keyed on the full address, each would get its own 600 and a
+    // single host with a routed /64 could rotate addresses indefinitely.
+    for (let i = 0; i < 600; i++) {
+      const token = issueToken();
+      const ip = i % 2 === 0 ? "2001:db8:1:2::1" : "2001:db8:1:2::2";
+      expect(checkClientToken(requestWithToken(token), ip)).toBeNull();
+    }
+
+    const overLimit = checkClientToken(
+      requestWithToken(issueToken()),
+      "2001:db8:1:2::3",
+    );
+    expect(overLimit).not.toBeNull();
+    expect(overLimit?.status).toBe(429);
+  });
 });
 
 describe("token expiry and store cap (BUG-0287)", () => {
