@@ -40,6 +40,7 @@
   import type { TranslationKey } from "../../locales/schema";
   import { isOpenCodeUrl } from "../../lib/ai/opencodeTarget";
   import AiModelPicker from "./AiModelPicker.svelte";
+  import Button from "../shared/Button.svelte";
 
   const FLAVOR_LABEL_KEYS: Record<AiApiFlavor, TranslationKey> = {
     "openai-chat": "settings.ai.customProviders.flavorOpenaiChat",
@@ -97,14 +98,16 @@
           <option value={preset.id}>{preset.label}</option>
         {/each}
       </select>
-      <button
+      <Button
         type="button"
-        class="add-btn shrink-0"
-        onclick={addProvider}
-        aria-label={$_("settings.ai.customProviders.add")}
+        variant="outline-accent"
+        size="sm"
+        extraClasses="shrink-0"
+        onClick={addProvider}
+        ariaLabel={$_("settings.ai.customProviders.add")}
       >
         + {$_("settings.ai.customProviders.add")}
-      </button>
+      </Button>
     </div>
   </div>
   <p class="text-[10px] text-[var(--text-secondary)] mb-3">
@@ -128,25 +131,26 @@
               {provider.label || $_("settings.ai.customProviders.name")}
             </span>
             <div class="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
-                class="activate-btn"
-                class:is-active={settingsState.activeProviderId === provider.id}
+                variant="outline-accent"
+                size="sm"
                 disabled={settingsState.activeProviderId === provider.id}
-                onclick={() => activate(provider.id)}
+                onClick={() => activate(provider.id)}
               >
                 {settingsState.activeProviderId === provider.id
                   ? $_("settings.ai.customProviders.active")
                   : $_("settings.ai.customProviders.activate")}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                class="delete-btn"
-                onclick={() => removeProvider(provider.id)}
-                aria-label={$_("settings.ai.customProviders.delete")}
+                variant="ghost-danger"
+                size="sm"
+                onClick={() => removeProvider(provider.id)}
+                ariaLabel={$_("settings.ai.customProviders.delete")}
               >
                 ✕
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -280,20 +284,6 @@
     letter-spacing: 0.05em;
     color: var(--text-secondary);
   }
-  .add-btn {
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--accent-color);
-    background: transparent;
-    border: 1px solid var(--accent-color);
-    border-radius: var(--radius-lg);
-    padding: 0.25rem 0.6rem;
-    cursor: pointer;
-  }
-  .add-btn:hover {
-    color: var(--btn-accent-text);
-    background: var(--accent-color);
-  }
   .provider-card {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
@@ -316,31 +306,6 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.75rem;
-  }
-  .activate-btn {
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--accent-color);
-    background: transparent;
-    border: 1px solid var(--accent-color);
-    border-radius: var(--radius-sm);
-    padding: 0.2rem 0.5rem;
-    cursor: pointer;
-  }
-  .activate-btn.is-active {
-    color: var(--accent-color);
-    border-color: transparent;
-    cursor: default;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .delete-btn {
-    color: var(--danger-color);
-    background: transparent;
-    border: none;
-    font-size: var(--text-sm);
-    cursor: pointer;
-    padding: 0.2rem;
   }
   .field-group {
     display: flex;

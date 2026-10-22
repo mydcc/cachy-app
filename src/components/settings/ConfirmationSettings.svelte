@@ -27,6 +27,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import Toggle from "../shared/Toggle.svelte";
+  import Button from "../shared/Button.svelte";
   import { confirmationPolicyStore } from "../../stores/confirmationPolicy.svelte";
   import {
     CONFIRMABLE_ACTIONS,
@@ -107,12 +108,13 @@
   </ul>
 
   <div class="mt-3">
-    <button
+    <Button
       type="button"
-      class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-      onclick={() => confirmationPolicyStore.reset()}
+      variant="outline"
+      size="sm"
+      onClick={() => confirmationPolicyStore.reset()}
     >
       {$_("settings.confirmations.reset")}
-    </button>
+    </Button>
   </div>
 </section>

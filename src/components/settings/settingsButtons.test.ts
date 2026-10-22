@@ -25,15 +25,15 @@
  * comment directly above it naming what it is instead. Anything else must go
  * through `Button.svelte`.
  *
- * Stage 1 covers `settings/tabs/`; the cards move in Stage 2, which widens
- * `ROOTS`.
+ * Stage 1 covered `settings/tabs/`; stage 2 widened it to the whole settings
+ * window, so a new card cannot slip in a raw button either.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const ROOTS = ["src/components/settings/tabs"];
+const ROOTS = ["src/components/settings"];
 const ESCAPE = "FEAT-0611 escape:";
 
 function svelteFiles(dir: string): string[] {
@@ -86,5 +86,35 @@ describe("FEAT-0611 — settings controls go through the button primitive", () =
     // A check that passes because the escape list swallowed everything is
     // worthless: the migrated controls must be gone from this count.
     expect(escaped).toBeGreaterThan(0);
+  });
+
+  it("wires a click handler on every <Button>", () => {
+    // The companion hole to the check above: `<Button>` without `onClick` is
+    // a control that renders but does nothing, and it would pass every other
+    // assertion in this file (FEAT-0611 stage 2 review).
+    const offenders: string[] = [];
+
+    for (const root of ROOTS) {
+      for (const file of svelteFiles(root)) {
+        const lines = readFileSync(file, "utf8").split("\n");
+        lines.forEach((line, index) => {
+          if (!line.includes("<Button")) return;
+
+          const tag: string[] = [line];
+          for (
+            let i = index + 1;
+            i < lines.length && !tag[tag.length - 1].trim().endsWith(">");
+            i++
+          ) {
+            tag.push(lines[i]);
+          }
+          if (!tag.join("\n").includes("onClick")) {
+            offenders.push(`${file}:${index + 1}`);
+          }
+        });
+      }
+    }
+
+    expect(offenders, `<Button> without onClick:\n${offenders.join("\n")}`).toEqual([]);
   });
 });

@@ -25,6 +25,7 @@
 <script lang="ts">
     import { calculationStrategy } from "../../services/calculationStrategy";
     import { _ } from "../../locales/i18n";
+    import Button from "../shared/Button.svelte";
     
     let telemetry = $state(calculationStrategy.exportTelemetry());
     let showHistory = $state(false);
@@ -110,7 +111,7 @@
 <div class="debug-panel">
     <div class="panel-header">
         <h4 class="panel-title">{$_("settings.system.debug.panelTitle")}</h4>
-        <button type="button" class="refresh-btn" onclick={refresh} title={$_("settings.system.debug.refresh")} aria-label={$_("settings.system.debug.refresh")}>🔄</button>
+        <Button type="button" variant="ghost" size="sm" onClick={refresh} title={$_("settings.system.debug.refresh")} ariaLabel={$_("settings.system.debug.refresh")}>🔄</Button>
     </div>
 
     <!-- Capabilities -->
@@ -210,9 +211,16 @@
 
     <!-- Recent History -->
     <div class="section">
-        <button type="button" class="history-toggle" onclick={() => showHistory = !showHistory} aria-expanded={showHistory} aria-label={$_("settings.system.debug.aria.recentHistoryToggle")}>
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            ariaExpanded={showHistory}
+            ariaLabel={$_("settings.system.debug.aria.recentHistoryToggle")}
+            onClick={() => showHistory = !showHistory}
+        >
             {showHistory ? '▾' : '▸'} {$_("settings.system.debug.recentHistory")} ({telemetry.performanceHistory.length})
-        </button>
+        </Button>
         
         {#if showHistory && recentHistory.length > 0}
             <table class="stats-table history-table">
@@ -261,17 +269,6 @@
         font-weight: var(--font-bold);
         color: var(--text-primary);
         margin: 0;
-    }
-    .refresh-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 0.8rem;
-        padding: 2px 4px;
-        border-radius: var(--radius-sm);
-    }
-    .refresh-btn:hover {
-        background: var(--bg-tertiary);
     }
     .section {
         margin-bottom: var(--space-2);
@@ -370,21 +367,6 @@
         color: var(--accent-primary);
         display: flex;
         align-items: center;
-    }
-    .history-toggle {
-        background: none;
-        border: none;
-        color: var(--text-secondary);
-        font-size: 0.7rem;
-        cursor: pointer;
-        padding: 2px 0;
-        font-weight: var(--font-semibold);
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .history-toggle:hover {
-        color: var(--text-primary);
     }
     .history-table {
         margin-top: 0.35rem;

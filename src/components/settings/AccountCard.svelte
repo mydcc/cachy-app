@@ -152,6 +152,7 @@
 </script>
 
 {#snippet revealButton(part: string)}
+    <!-- FEAT-0611 escape: icon-only reveal toggle absolutely positioned inside the input; the primitive's padding would shift the icon out of the field -->
     <button
         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
         onclick={() => toggle(part)}

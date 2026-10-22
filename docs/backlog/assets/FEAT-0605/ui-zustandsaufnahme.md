@@ -236,16 +236,19 @@ designed for, control geometry was not.
 
 | Fact | Value |
 | --- | --- |
-| Raw `<button>` elements | **335** across 103 `.svelte` files (after the FEAT-0611 tabs stage; 368 before FEAT-0610) |
+| Raw `<button>` elements | **302** across 91 `.svelte` files (after the FEAT-0611 settings stage; 368 before FEAT-0610) |
 | Uses of `btn-accent-bg` / `btn-default-bg` / `btn-danger-bg` | **16** |
-| Vertical-padding variants on `<button>` | `py-1.5` ×49, `py-2` ×44, `py-1` ×38, `py-2.5` ×8, `py-0.5` ×5, `py-3` ×4 (post-pilot, re-counted at `189045285`) |
-| `src/components/shared/Button.svelte` | adopted by the app shell header (5 controls) in FEAT-0610; variants/sizes in tokens, `Button.component.test.ts` covers both |
+| Vertical-padding variants on `<button>` | `py-1.5` ×41, `py-2` ×25, `py-1` ×26, `py-2.5` ×8, `py-0.5` ×5, `py-3` ×4 (re-counted on the FEAT-0611 cards branch) |
+| `src/components/shared/Button.svelte` | adopted by the app shell header (5 controls, FEAT-0610) and the whole settings window (FEAT-0611, both stages); variants/sizes in tokens, `Button.component.test.ts` covers them |
 
 Six heights for one conceptual control. FEAT-0610 gave the primitive variants
 (`default`, `accent`, `danger`, `success`), three token-based sizes
 (34 / 42 / 48 px) and named transitions, then moved the five header controls
-onto it. That cluster is now one height (42 px, matching `#preset-loader`);
-the other surfaces still carry the six padding variants until FEAT-0611–0613.
+onto it. FEAT-0611 added `ghost`, `ghost-danger`, `outline`, `outline-accent`
+and `warning` for the settings window's secondary and destructive actions.
+That cluster is now one height (42 px, matching `#preset-loader`); the
+calculator, journal and window surfaces still carry the padding variants until
+FEAT-0612–0613.
 
 ### 5.1 Navigation is distributed, not designed
 

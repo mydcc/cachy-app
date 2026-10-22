@@ -32,6 +32,7 @@
   import SettingsGrid from "./shared/SettingsGrid.svelte";
   import { journalState } from "../../stores/journal.svelte";
   import { confirmAndCloseAllPositions } from "../../stores/closeAllFlow";
+  import Button from "../shared/Button.svelte";
 
   // Recomputed whenever the journal changes, so the figure the user reads is
   // the same one the gate will measure against.
@@ -207,19 +208,21 @@
 
       <div class="mt-3">
         {#if riskState.isKillSwitchEngaged}
-          <button
-            class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-            onclick={release}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={release}
           >
             {$_("settings.risk.killSwitch.release")}
-          </button>
+          </Button>
         {:else}
-          <button
-            class="px-4 py-2 text-xs font-bold rounded-lg bg-danger-paired border border-[var(--danger-color)] transition-colors"
-            onclick={engage}
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={engage}
           >
             {$_("settings.risk.killSwitch.engage")}
-          </button>
+          </Button>
         {/if}
       </div>
     </div>
@@ -235,13 +238,14 @@
         {$_("settings.risk.closeAll.description")}
       </p>
       <div class="mt-3">
-        <button
-          class="px-4 py-2 text-xs font-bold rounded-lg bg-danger-paired border border-[var(--danger-color)] transition-colors disabled:opacity-50"
+        <Button
+          variant="danger"
+          size="sm"
           disabled={closingAll}
-          onclick={closeAll}
+          onClick={closeAll}
         >
           {$_("settings.risk.closeAll.button")}
-        </button>
+        </Button>
       </div>
     </div>
   </section>
@@ -360,12 +364,14 @@
       </div>
     </SettingsGrid>
 
-    <button
-      class="mt-4 px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-      onclick={resetAll}
+    <Button
+      variant="outline"
+      size="sm"
+      extraClasses="mt-4"
+      onClick={resetAll}
     >
       {$_("settings.risk.resetLimits")}
-    </button>
+    </Button>
   </section>
 </div>
 

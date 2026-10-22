@@ -26,6 +26,7 @@
   import { _ } from "../../locales/i18n";
   import { paperState, type PaperFailureMode } from "../../stores/paperTrading.svelte";
   import { paperTradingService } from "../../services/paperTradingService";
+  import Button from "../shared/Button.svelte";
     import { modalState } from "../../stores/modal.svelte";
     import SettingsGrid from "./shared/SettingsGrid.svelte";
 
@@ -133,20 +134,22 @@
       {/if}
 
       <div class="mt-3 flex gap-2">
-        <button
-          class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-          onclick={toggleMode}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleMode}
         >
           {paperState.enabled
             ? $_("settings.paper.switchToLive")
             : $_("settings.paper.switchToPaper")}
-        </button>
-        <button
-          class="px-4 py-2 text-xs font-bold rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)] transition-colors"
-          onclick={resetBook}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={resetBook}
         >
           {$_("settings.paper.resetBook")}
-        </button>
+        </Button>
       </div>
     </div>
   </section>
@@ -192,6 +195,7 @@
     </p>
     <div class="flex flex-wrap gap-2">
       {#each failureModes as mode (mode.id)}
+        <!-- FEAT-0611 escape: segmented failure-mode selector with a selected state; FEAT-0607 owns the segmented pattern -->
         <button
           class="px-3 py-2 text-xs font-bold rounded-lg border transition-all {paperState
             .config.failureMode === mode.id

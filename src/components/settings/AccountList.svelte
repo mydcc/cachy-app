@@ -45,6 +45,7 @@
     } from "../../stores/settings/accounts";
     import AccountCard from "./AccountCard.svelte";
     import ConfirmActionModal from "../shared/ConfirmActionModal.svelte";
+    import Button from "../shared/Button.svelte";
 
     /** The switch waiting on a human, when the policy asks first. */
     let pendingSwitch = $state<ExchangeAccount | null>(null);
@@ -150,27 +151,31 @@
                 </div>
 
                 <div class="flex items-end gap-2">
-                    <button
+                    <Button
                         type="button"
-                        class="action bg-accent-paired"
+                        variant="accent"
+                        size="sm"
+                        extraClasses="whitespace-nowrap"
                         disabled={account.id === settingsState.activeAccountId}
-                        onclick={() => handleSwitch(account)}
+                        onClick={() => handleSwitch(account)}
                     >
                         {$_("settings.connections.accounts.makeActive")}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        class="action bg-danger-paired"
+                        variant="danger"
+                        size="sm"
+                        extraClasses="whitespace-nowrap"
                         disabled={!canRemove}
                         title={canRemove
                             ? undefined
                             : $_(
                                   "settings.connections.accounts.removeLastHint",
                               )}
-                        onclick={() => handleRemove(account)}
+                        onClick={() => handleRemove(account)}
                     >
                         {$_("settings.connections.accounts.remove")}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -181,13 +186,14 @@
             >{$_("settings.connections.accounts.addLabel")}</span
         >
         {#each EXCHANGES as exchange (exchange)}
-            <button
+            <Button
                 type="button"
-                class="action bg-accent-paired"
-                onclick={() => settingsState.addAccount(exchange)}
+                variant="accent"
+                size="sm"
+                onClick={() => settingsState.addAccount(exchange)}
             >
                 + {exchange === "bitget" ? "Bitget" : "Bitunix"}
-            </button>
+            </Button>
         {/each}
     </div>
 </div>
@@ -213,17 +219,6 @@
         flex-wrap: wrap;
         gap: 0.75rem;
         align-items: flex-end;
-    }
-    .action {
-        padding: 0.4rem 0.75rem;
-        border-radius: var(--radius-sm);
-        font-size: var(--text-xs);
-        font-weight: var(--font-semibold);
-        white-space: nowrap;
-    }
-    .action:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
     }
     .api-input {
         width: 100%;
