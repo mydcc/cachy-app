@@ -61,6 +61,7 @@
         type HotkeyAction,
         type HotkeyCategory,
     } from "../../../services/hotkeyService";
+    import TabBar from "../TabBar.svelte";
 
     function clearAppCache() {
         localStorage.removeItem("cachy_news_cache");
@@ -238,45 +239,35 @@
     const subTabs = [
         {
             id: "performance",
-            label: $_("settings.system.performance") || "Performance",
+            label: $_("settings.system.performance"),
         },
         {
             id: "dashboard",
-            label: $_("settings.system.dashboard") || "Dashboard",
+            label: $_("settings.system.dashboard"),
         },
         {
             id: "data",
-            label: $_("settings.system.dataMaintenance") || "Data & Backup",
+            label: $_("settings.system.dataMaintenance"),
         },
         {
             id: "maintenance",
-            label: $_("settings.tabs.maintenance") || "Maintenance",
+            label: $_("settings.tabs.maintenance"),
         },
         {
             id: "controls",
-            label: $_("settings.profile.hotkeysTitle") || "Hotkeys",
+            label: $_("settings.profile.hotkeysTitle"),
         },
     ];
 </script>
 
 <div class="system-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-system">
-    <!-- Sub-Navigation -->
-    <div
-        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
-    >
-        {#each subTabs as tab}
-            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
-            <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
-                tab.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (uiState.settingsSystemSubTab = tab.id)}
-            >
-                {tab.label}
-            </button>
-        {/each}
-    </div>
+    <TabBar
+        tabs={subTabs}
+        active={activeSubTab}
+        onSelect={(id) => (uiState.settingsSystemSubTab = id)}
+        variant="pills"
+        ariaLabel={$_("settings.system.subTabLabel")}
+    />
 
     <div class="min-w-0">
         <!-- Performance & Resources -->

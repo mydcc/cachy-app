@@ -26,6 +26,7 @@
     import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
     import IndicatorCard from "./IndicatorCard.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
+    import TabBar from "../TabBar.svelte";
 
     // Tabs
     const tabs = [
@@ -53,25 +54,13 @@
 </script>
 
 <div class="flex flex-col gap-3 sm:gap-4 md:gap-6 h-full bg-[var(--bg-primary)] text-[var(--text-primary)]">
-    <!-- Tabs -->
-    <div class="flex border-b border-[var(--border-color)] overflow-x-auto no-scrollbar bg-[var(--bg-tertiary)] pt-1 px-2">
-        {#each tabs as tab}
-            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
-            <button
-                class="px-5 py-3 text-sm font-semibold whitespace-nowrap transition-all duration-200 relative {activeCategory === tab.id
-                    ? 'text-[var(--accent-color)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded-t-lg'}"
-                onclick={() => (activeCategory = tab.id)}
-            >
-                {tab.label}
-                {#if activeCategory === tab.id}
-                    <div
-                        class="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent-color)] shadow-[0_-1px_4px_var(--accent-color)]"
-                    ></div>
-                {/if}
-            </button>
-        {/each}
-    </div>
+    <TabBar
+        tabs={tabs}
+        active={activeCategory}
+        onSelect={(id) => (activeCategory = id)}
+        variant="pills"
+        ariaLabel={$_("settings.technicals.subTabLabel")}
+    />
 
     <!-- Content -->
     <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
@@ -552,12 +541,5 @@
     }
     .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
-    }
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-    .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
     }
 </style>

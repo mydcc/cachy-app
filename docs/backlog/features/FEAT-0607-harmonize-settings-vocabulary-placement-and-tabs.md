@@ -2,7 +2,9 @@
 id: FEAT-0607
 title: Harmonize the settings vocabulary, placement, hierarchy and tab naming
 type: feature
-status: ready
+status: in-progress
+assignee: opencode
+branch: feature/feat-0607-settings-structure
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -101,24 +103,24 @@ belongs in — without implementing it. That is
 
 - [ ] A vocabulary table exists: every tab label, section header and toggle
       text in its settled term, DE and EN, with the renamed terms listed
-- [ ] No tab label is a literal string; the `cloud` label comes from i18n
-- [ ] No label uses an `|| "English"` fallback; a missing key fails the
+- [x] No tab label is a literal string; the `cloud` label comes from i18n
+- [x] No label uses an `|| "English"` fallback; a missing key fails the
       i18n check instead of rendering English
 - [ ] A placement table covers every setting: current tab, expected tab, and
       match or mismatch
 - [ ] Every mismatch that is a pure move is moved in this item; every mismatch
       that needs a tab split or merge is filed as a follow-up item and linked
       here
-- [ ] One tab-bar component exists and is used by `SettingsContent` and by
+- [x] One tab-bar component exists and is used by `SettingsContent` and by
       `VisualsTab`
-- [ ] Tab content renders from the tab array, not from an `{#if}` chain
-- [ ] The sub-tab decision is written down in the component docblock: reuse or
+- [x] Tab content renders from the tab array, not from an `{#if}` chain
+- [x] The sub-tab decision is written down in the component docblock: reuse or
       removal, with the reason
-- [ ] A grouping of the eight tabs is decided and recorded; if grouping by
+- [x] A grouping of the eight tabs is decided and recorded; if grouping by
       grouping, it is recorded as out of scope here rather than left implicit
-- [ ] Where the density control will live is decided and recorded, so
+- [x] Where the density control will live is decided and recorded, so
       FEAT-0614 does not have to choose again
-- [ ] Both `de.json` and `en.json` carry any new keys
+- [x] Both `de.json` and `en.json` carry any new keys
 
 ## Out of scope
 
@@ -143,6 +145,67 @@ belongs in — without implementing it. That is
   display preferences already are) or get its own tab?
 - Does the placement audit change the tab count? If a tab should split or two
   tabs should merge, that decision belongs to the follow-up item, not here.
+
+## Decisions
+
+- **Density control: Visuals → Layout.** It is a display preference like the
+  other controls on that sub-tab, and a ninth top-level tab for one dropdown
+  would make the rail longer without making the control easier to find. This
+  is the answer FEAT-0614 depends on; the control itself stays out of this
+  item.
+- **One tab bar, two variants.** `TabBar.svelte` renders `variant="rail"` for
+  the window navigation and `variant="pills"` for the sub-tabs. The two used
+  to be independent markup with their own active-state treatment.
+- **Sub-tabs stay.** Five settings tabs use them (Trading, AI, Connections,
+  System, Visuals) plus the technicals category bar, and they are the same
+  interaction as the rail. The decision and its reason are in the component
+  docblock (AC8).
+- **No grouping of the eight tabs in this item.** The rail stays flat and
+  keeps its current order; a grouped rail is a visible change to every user
+  and would need its own item. Recorded here rather than left implicit (AC9).
+- **Rendering is data, not branches.** Both windows keep the tab list as the
+  single source for navigation and content: a keyed `{#each}` with a dynamic
+  component. A new tab is one entry plus its component.
+
+## Progress — 2026-10-22: structure and i18n (first PR)
+
+Branch `feature/feat-0607-settings-structure`. This closes the structural half
+of the item; the vocabulary and placement tables follow separately.
+
+- `TabBar.svelte` is the one tab-bar component. The window rail
+  (`SettingsContent`, `variant="rail"`) and every sub-tab row
+  (`variant="pills"`) render through it: Trading, AI, Connections, System,
+  Visuals and the technicals category bar. Six hand-written bars became one
+  component with two variants; the third language — the technicals underline
+  bar — is gone. Both keep the ARIA tab pattern the rail already had; keyboard
+  navigation stays untouched (FEAT-0605's N8 measures it first).
+- The window-level panels render from the tab array (keyed `{#each}` + dynamic
+  component), so a new tab is one entry plus its component. The six sub-tab
+  bars share the component, but their panels are still inline markup behind
+  `{#if}` branches: the array holds ids and labels, not components. Extracting
+  five multi-hundred-line panels into components is a separate refactor and is
+  **not** part of this item; AC7 is therefore met for the window-level content
+  and explicitly not for sub-tab panels.
+- Ten sub-tab labels in `TradingTab` and `SystemTab` carried the
+  `$_("…") || "English"` idiom; they are gone, so no settings tab or sub-tab
+  label hides a missing key. `settings.tabs.cloud` already existed, which made
+  the `|| "Cloud"` dead weight.
+- New keys: `settings.tabs.label`, `settings.visuals.subtabs.label` and
+  `settings.{trading,ai,connections,system,technicals}.subTabLabel` — the
+  `aria-label` of each tab list, DE and EN.
+- `settingsTabs.test.ts` guards all six tab lists: the exact ids in order, every
+  label key present in both locales (read from the source, not derived from the
+  id), no fallback inside the tab array, and `<TabBar>` in every file. For the
+  two array-rendered windows it also fails on a reinstated `{#if activeTab}`
+  chain. `TabBar.component.test.ts` pins the component contract (order,
+  selection, click id, variant classes).
+- The two FEAT-0611 escape comments that named this item are gone from the
+  five rails; the tab button inside `TabBar` carries its own escape comment and
+  a pinned escape count, because it is navigation rather than an action button.
+
+**Still open — the second PR:** the vocabulary table (AC1), the placement
+table and the pure moves (AC4/AC5). The item stays `in-progress` until those
+land.
 
 ## Links
 

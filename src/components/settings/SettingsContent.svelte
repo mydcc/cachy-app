@@ -17,8 +17,8 @@
 
 <script lang="ts">
     import { uiState } from "../../stores/ui.svelte";
-    import { themeOptions } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
+    import TabBar from "./TabBar.svelte";
 
     // New Tab Components
     import TradingTab from "./tabs/TradingTab.svelte";
@@ -33,135 +33,93 @@
     // Tab State
     const activeTab = $derived(uiState.settingsTab || "trading");
 
-    function selectTab(tab: string, e?: MouseEvent) {
-        uiState.settingsTab = tab;
-        // Mobile: the tab bar scrolls horizontally — keep the active tab in view.
-        (e?.currentTarget as HTMLElement | undefined)?.scrollIntoView({
-            inline: "center",
-            block: "nearest",
-        });
-    }
-
-    const tabs = [
+    /**
+     * A tab is one entry: id, icon, translated label and the component that
+     * renders it. Adding a tab used to mean editing the array, the `{#if}`
+     * chain and the i18n keys (FEAT-0607); now it is this entry.
+     *
+     * The label comes from i18n without a fallback string: a missing key has
+     * to fail the i18n check, not render English into a German window.
+     */
+    // `$derived`: a live language switch has to move the rail labels too.
+    const tabs = $derived([
         {
             id: "trading",
             icon: `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07"/>`,
-            label: $_("settings.tabs.trading") || "Trading",
+            label: $_("settings.tabs.trading"),
+            component: TradingTab,
         },
         {
             id: "automation",
             icon: `<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>`,
-            label: $_("settings.tabs.automation") || "Automation",
+            label: $_("settings.tabs.automation"),
+            component: AutomationTab,
         },
         {
             id: "chart",
             icon: `<path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-6"/>`,
-            label: $_("settings.tabs.chart") || "Chart",
+            label: $_("settings.tabs.chart"),
+            component: ChartTab,
         },
         {
             id: "visuals",
             icon: `<path d="M2.05 13.9a9.96 9.96 0 0 1 0-7.8"/> <path d="M8.2 21.8c-1.3-.2-2.5-.6-3.7-1.3"/> <path d="M15.8 2.2c1.3.2 2.5.6 3.7 1.3"/> <path d="M21.95 10.1a9.96 9.96 0 0 1 0 7.8"/> <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/> <path d="M12 2a10 10 0 0 1 10 10"/>`,
-            label: $_("settings.tabs.visuals") || "Visuals",
+            label: $_("settings.tabs.visuals"),
+            component: VisualsTab,
         },
         {
             id: "ai",
             icon: `<path d="M12 2a2 2 0 0 1 2 2c0 2.21-1.79 4-4 4s-4-1.79-4-4a2 2 0 0 1 2-2z"/><path d="M12 10c-3.31 0-6 2.69-6 6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2c0-3.31-2.69-6-6-6z"/>`,
-            label: $_("settings.tabs.ai") || "Intelligence",
+            label: $_("settings.tabs.ai"),
+            component: AiTab,
         },
         {
             id: "connections",
             icon: `<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,
-            label: $_("settings.tabs.connections") || "Connections",
+            label: $_("settings.tabs.connections"),
+            component: ConnectionsTab,
         },
         {
             id: "system",
             icon: `<path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 22v-2"/><path d="m17 7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/><path d="M22 12h-2"/><path d="M2 12h2"/><path d="m4.9 19.1 1.4-1.4"/><path d="m7 17 1.4 1.4"/>`,
-            label: $_("settings.tabs.system") || "System",
+            label: $_("settings.tabs.system"),
+            component: SystemTab,
         },
         {
             id: "cloud",
             icon: `<path d="M17.5 19c0-1.7-1.3-3-3-3h-1.5c-2.8 0-5-2.2-5-5 0-2.3 1.5-4.3 3.7-4.8.8-1.8 2.6-3.2 4.8-3.2 3 0 5.5 2.5 5.5 5.5 0 .2 0 .5-.1.7 2.1.8 3.6 2.8 3.6 5.3 0 2.8-2.2 5-5 5h-4.5c-.3 0-.5-.2-.5-.5z"/>`,
-            label: $_("settings.tabs.cloud") || "Cloud",
+            label: $_("settings.tabs.cloud"),
+            component: CloudTab,
         },
-    ];
+    ]);
+
 </script>
 
 <div
     class="flex flex-col md:flex-row flex-1 w-full h-full overflow-hidden bg-[var(--bg-primary)]"
 >
     <!-- Sidebar Navigation -->
-    <div
-        class="flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible md:overflow-y-auto w-full md:w-52 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-0 md:py-2 custom-scrollbar"
-        role="tablist"
-    >
-        {#each tabs as tab}
-            <!-- FEAT-0611 escape: settings tab rail with role="tab"/aria-selected; FEAT-0607 owns the navigation pattern -->
-            <button
-                class="flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 text-sm font-semibold transition-all text-left focus:outline-none whitespace-nowrap group
-               {activeTab === tab.id
-                    ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)] shadow-inner'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/50 border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-                onclick={(e) => selectTab(tab.id, e)}
-                role="tab"
-                aria-selected={activeTab === tab.id}
-            >
-                <div
-                    class="tab-icon transition-transform group-hover:scale-110 {activeTab ===
-                    tab.id
-                        ? 'text-[var(--accent-color)]'
-                        : 'text-[var(--text-secondary)]'}"
-                >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        {@html tab.icon}
-                    </svg>
-                </div>
-                {tab.label}
-            </button>
-        {/each}
-    </div>
+    <TabBar
+        {tabs}
+        active={activeTab}
+        onSelect={(id) => (uiState.settingsTab = id)}
+        ariaLabel={$_("settings.tabs.label")}
+    />
 
     <!-- Tab Content Area -->
     <!-- Container queries below measure THIS width (the settings window),
          not the viewport: @container makes the content a query container. -->
     <div class="@container flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-
-        {#if activeTab === "trading"}
-            <TradingTab />
-        {:else if activeTab === "automation"}
-            <AutomationTab />
-        {:else if activeTab === "chart"}
-            <ChartTab />
-        {:else if activeTab === "visuals"}
-            <VisualsTab themes={themeOptions} />
-        {:else if activeTab === "ai"}
-            <AiTab />
-        {:else if activeTab === "connections"}
-            <ConnectionsTab />
-        {:else if activeTab === "system"}
-            <SystemTab />
-        {:else if activeTab === "cloud"}
-            <CloudTab />
-        {/if}
+        {#each tabs as tab (tab.id)}
+            {#if tab.id === activeTab}
+                {@const ActiveTab = tab.component}
+                <ActiveTab />
+            {/if}
+        {/each}
     </div>
 </div>
 
 <style>
-    .tab-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-    }
     .custom-scrollbar::-webkit-scrollbar {
         width: 4px;
     }

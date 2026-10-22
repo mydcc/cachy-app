@@ -72,6 +72,7 @@ const SCOPES = [
  * silently dropped.
  */
 const EXPECTED_ESCAPES: Record<string, number> = {
+  "src/components/settings/TabBar.svelte": 1,
   "src/components/inputs/GeneralInputs.svelte": 2,
   "src/components/inputs/ExchangeAccountControls.svelte": 2,
   "src/components/results/PlaceOrderPanel.svelte": 1,

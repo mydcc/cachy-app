@@ -1289,6 +1289,7 @@
     },
     "visuals": {
       "subtabs": {
+        "label": "Sub-sections",
         "appearance": "Look & Feel",
         "layout": "Layout",
         "background": "Background"
@@ -1662,7 +1663,8 @@
       "aria": {
         "removeChannel": "Remove channel",
         "addChannel": "Add Channel"
-      }
+      },
+      "subTabLabel": "AI sections"
     },
     "technicals": {
       "tabs": {
@@ -1831,7 +1833,8 @@
       "vaHighLow": "VA High/Low",
       "marketStructureHigh": "Market Structure High",
       "marketStructureLow": "Market Structure Low",
-      "customTimeframePlaceholder": "e.g. 3m, 1W"
+      "customTimeframePlaceholder": "e.g. 3m, 1W",
+      "subTabLabel": "Indicator sections"
     },
     "candlestickPatterns": {
       "title": "Candlestick Patterns"
@@ -1936,6 +1939,7 @@
       "title": "Chart Settings"
     },
     "tabs": {
+      "label": "Settings sections",
       "general": "General",
       "api": "API & Connection",
       "ai": "AI Chat",
@@ -2174,7 +2178,8 @@
       },
       "imgbbRequired": "Required for screenshot uploads.",
       "imgbbExpirationDesc": "Lifetime of uploaded screenshots. Permanent is recommended for journal images.",
-      "imgbbGetKey": "Get your API key →"
+      "imgbbGetKey": "Get your API key →",
+      "subTabLabel": "Connection sections"
     },
     "imgbbExpiration": "Expiration Time",
     "integrations": {
@@ -2290,7 +2295,8 @@
         "aria": {
           "recentHistoryToggle": "Recent History — show or hide"
         }
-      }
+      },
+      "subTabLabel": "System sections"
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -2376,7 +2382,8 @@
       "journalPaperTrades": "Save paper trades to the journal",
       "journalPaperTradesDesc": "Simulated fills are recorded so you can review them. They are always marked PAPER and never counted in your statistics or the daily loss limit.",
       "feeMaker": "MAKER",
-      "feeTaker": "TAKER"
+      "feeTaker": "TAKER",
+      "subTabLabel": "Trading sections"
     },
     "toggleMarketTiles": "Toggle Market Tiles",
     "toggleMarketSentiment": "Toggle Market Sentiment",
