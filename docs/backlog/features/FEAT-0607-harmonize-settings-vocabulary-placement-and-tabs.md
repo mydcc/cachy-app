@@ -156,9 +156,10 @@ belongs in — without implementing it. That is
 - **One tab bar, two variants.** `TabBar.svelte` renders `variant="rail"` for
   the window navigation and `variant="pills"` for the sub-tabs. The two used
   to be independent markup with their own active-state treatment.
-- **Sub-tabs stay.** They are the same interaction as the rail, and
-  `VisualsAppearance`/`Layout`/`Background` are three genuinely different
-  panels. The decision and its reason are in the component docblock (AC8).
+- **Sub-tabs stay.** Five settings tabs use them (Trading, AI, Connections,
+  System, Visuals) plus the technicals category bar, and they are the same
+  interaction as the rail. The decision and its reason are in the component
+  docblock (AC8).
 - **No grouping of the eight tabs in this item.** The rail stays flat and
   keeps its current order; a grouped rail is a visible change to every user
   and would need its own item. Recorded here rather than left implicit (AC9).
@@ -171,23 +172,36 @@ belongs in — without implementing it. That is
 Branch `feature/feat-0607-settings-structure`. This closes the structural half
 of the item; the vocabulary and placement tables follow separately.
 
-- `TabBar.svelte` is the one tab-bar component. `SettingsContent` uses the rail
-  variant, `VisualsTab` the pills variant. Both keep the ARIA tab pattern the
-  rail already had; keyboard navigation is deliberately untouched (FEAT-0605's
-  N8 measures it first).
-- `SettingsContent` and `VisualsTab` render their active panel from the tab
-  array (keyed `{#each}` + dynamic component). The `{#if}`/`{:else if}` chains
-  are gone, so a new tab is one entry.
-- All eight tab labels and the three sub-tab labels come from `$_()` with no
-  fallback string. `settings.tabs.cloud` already existed; the `|| "Cloud"` was
-  dead weight, and the other seven fallbacks were the idiom AC3 removes.
-- New keys: `settings.tabs.label` and `settings.visuals.subtabs.label` (the
-  `aria-label` of each tab list), DE and EN.
-- `settingsTabs.test.ts` guards the wiring: every tab id has a label in both
-  locales, no `$_(...) ||` fallback, and both windows render from the array.
-  `TabBar.component.test.ts` pins the component contract (order, selection,
-  click id, variant classes). The two FEAT-0611 escape comments that named
-  this item are gone because the controls now go through the component.
+- `TabBar.svelte` is the one tab-bar component. The window rail
+  (`SettingsContent`, `variant="rail"`) and every sub-tab row
+  (`variant="pills"`) render through it: Trading, AI, Connections, System,
+  Visuals and the technicals category bar. Six hand-written bars became one
+  component with two variants; the third language — the technicals underline
+  bar — is gone. Both keep the ARIA tab pattern the rail already had; keyboard
+  navigation stays untouched (FEAT-0605's N8 measures it first).
+- The window-level panels render from the tab array (keyed `{#each}` + dynamic
+  component), so a new tab is one entry plus its component. The six sub-tab
+  bars share the component, but their panels are still inline markup behind
+  `{#if}` branches: the array holds ids and labels, not components. Extracting
+  five multi-hundred-line panels into components is a separate refactor and is
+  **not** part of this item; AC7 is therefore met for the window-level content
+  and explicitly not for sub-tab panels.
+- Ten sub-tab labels in `TradingTab` and `SystemTab` carried the
+  `$_("…") || "English"` idiom; they are gone, so no settings tab or sub-tab
+  label hides a missing key. `settings.tabs.cloud` already existed, which made
+  the `|| "Cloud"` dead weight.
+- New keys: `settings.tabs.label`, `settings.visuals.subtabs.label` and
+  `settings.{trading,ai,connections,system,technicals}.subTabLabel` — the
+  `aria-label` of each tab list, DE and EN.
+- `settingsTabs.test.ts` guards all six tab lists: the exact ids in order, every
+  label key present in both locales (read from the source, not derived from the
+  id), no fallback inside the tab array, and `<TabBar>` in every file. For the
+  two array-rendered windows it also fails on a reinstated `{#if activeTab}`
+  chain. `TabBar.component.test.ts` pins the component contract (order,
+  selection, click id, variant classes).
+- The two FEAT-0611 escape comments that named this item are gone from the
+  five rails; the tab button inside `TabBar` carries its own escape comment and
+  a pinned escape count, because it is navigation rather than an action button.
 
 **Still open — the second PR:** the vocabulary table (AC1), the placement
 table and the pure moves (AC4/AC5). The item stays `in-progress` until those

@@ -17,16 +17,13 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+    import { themeOptions } from "../../../lib/constants";
     import { uiState } from "../../../stores/ui.svelte";
     import type { Component } from "svelte";
     import TabBar from "../TabBar.svelte";
     import VisualsLayout from "./VisualsLayout.svelte";
     import VisualsAppearance from "./VisualsAppearance.svelte";
     import VisualsBackground from "./VisualsBackground.svelte";
-
-    let { themes } = $props<{
-        themes: Array<{ value: string; label: string }>;
-    }>();
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
@@ -35,20 +32,11 @@
      * rendered through the same component. The list is also the render order,
      * so a fourth sub-tab is one entry rather than another `{#if}` branch.
      */
-    type SubTabDef = {
-        id: string;
-        label: string;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        component: Component<any>;
-        props?: Record<string, unknown>;
-    };
-
-    const subTabs: SubTabDef[] = $derived([
+    const subTabs = $derived([
         {
             id: "appearance",
             label: $_("settings.visuals.subtabs.appearance"),
             component: VisualsAppearance,
-            props: { themes },
         },
         {
             id: "layout",
@@ -75,8 +63,10 @@
     <div class="min-w-0">
         {#each subTabs as tab (tab.id)}
             {#if tab.id === activeSubTab}
-                {@const ActiveTab = tab.component}
-                <ActiveTab {...tab.props} />
+                <!-- The cast collapses the union of prop-less components;
+                     rendering without it trips Svelte's prop checker. -->
+                {@const ActiveTab = tab.component as Component}
+                <ActiveTab />
             {/if}
         {/each}
     </div>

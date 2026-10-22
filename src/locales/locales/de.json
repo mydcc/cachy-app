@@ -1688,7 +1688,8 @@
       "aria": {
         "removeChannel": "Kanal entfernen",
         "addChannel": "Kanal hinzufügen"
-      }
+      },
+      "subTabLabel": "KI-Bereiche"
     },
     "technicals": {
       "tabs": {
@@ -1857,7 +1858,8 @@
       "vaHighLow": "VA Hoch/Tief",
       "marketStructureHigh": "Marktstruktur-Hoch",
       "marketStructureLow": "Marktstruktur-Tief",
-      "customTimeframePlaceholder": "z.B. 3m, 1W"
+      "customTimeframePlaceholder": "z.B. 3m, 1W",
+      "subTabLabel": "Indikatorbereiche"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
@@ -2072,7 +2074,8 @@
         "aria": {
           "recentHistoryToggle": "Verlauf — ein- oder ausblenden"
         }
-      }
+      },
+      "subTabLabel": "Systembereiche"
     },
     "performance": {
       "monitor": "Performance Monitor",
@@ -2177,7 +2180,8 @@
       },
       "imgbbRequired": "Erforderlich für Screenshot-Uploads.",
       "imgbbExpirationDesc": "Ablaufzeit für hochgeladene Screenshots. Dauerhaft empfiehlt sich für Journal-Bilder.",
-      "imgbbGetKey": "API-Key anfordern →"
+      "imgbbGetKey": "API-Key anfordern →",
+      "subTabLabel": "Verbindungsbereiche"
     },
     "trading": {
       "executionTitle": "Exekution & Gebühren",
@@ -2229,7 +2233,8 @@
       "journalPaperTrades": "Paper Trades im Journal speichern",
       "journalPaperTradesDesc": "Simulierte Ausführungen werden gespeichert, damit du sie auswerten kannst. Sie sind immer mit PAPER markiert und zählen nie in deine Statistiken oder das Tagesverlust-Limit.",
       "feeMaker": "MAKER",
-      "feeTaker": "TAKER"
+      "feeTaker": "TAKER",
+      "subTabLabel": "Handelsbereiche"
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",

@@ -17,9 +17,7 @@
 
 <script lang="ts">
     import { uiState } from "../../stores/ui.svelte";
-    import { themeOptions } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
-    import type { Component } from "svelte";
     import TabBar from "./TabBar.svelte";
 
     // New Tab Components
@@ -43,18 +41,8 @@
      * The label comes from i18n without a fallback string: a missing key has
      * to fail the i18n check, not render English into a German window.
      */
-    type TabDef = {
-        id: string;
-        icon: string;
-        label: string;
-        /* The tab components have different prop shapes (only VisualsTab takes
-           `themes`), so the entry carries them opaquely. */
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        component: Component<any>;
-        props?: Record<string, unknown>;
-    };
-
-    const tabs: TabDef[] = [
+    // `$derived`: a live language switch has to move the rail labels too.
+    const tabs = $derived([
         {
             id: "trading",
             icon: `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07"/>`,
@@ -78,7 +66,6 @@
             icon: `<path d="M2.05 13.9a9.96 9.96 0 0 1 0-7.8"/> <path d="M8.2 21.8c-1.3-.2-2.5-.6-3.7-1.3"/> <path d="M15.8 2.2c1.3.2 2.5.6 3.7 1.3"/> <path d="M21.95 10.1a9.96 9.96 0 0 1 0 7.8"/> <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/> <path d="M12 2a10 10 0 0 1 10 10"/>`,
             label: $_("settings.tabs.visuals"),
             component: VisualsTab,
-            props: { themes: themeOptions },
         },
         {
             id: "ai",
@@ -104,7 +91,7 @@
             label: $_("settings.tabs.cloud"),
             component: CloudTab,
         },
-    ];
+    ]);
 
 </script>
 
@@ -126,7 +113,7 @@
         {#each tabs as tab (tab.id)}
             {#if tab.id === activeTab}
                 {@const ActiveTab = tab.component}
-                <ActiveTab {...tab.props} />
+                <ActiveTab />
             {/if}
         {/each}
     </div>

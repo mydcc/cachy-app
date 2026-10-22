@@ -29,6 +29,7 @@
     import OrderAuditSettings from "../OrderAuditSettings.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
     import { uiState } from "../../../stores/ui.svelte";
+    import TabBar from "../TabBar.svelte";
 
     // "hotkeys" lived here until it moved to System → Controls; unknown
     // persisted values fall back to "market" so the tab never renders blank.
@@ -48,45 +49,35 @@
         {
             id: "market",
             label:
-                $_("settings.trading.executionTitle") || "Market & Execution",
+                $_("settings.trading.executionTitle"),
         },
         {
             id: "chart",
-            label: $_("settings.trading.chartTitle") || "Chart & Technicals",
+            label: $_("settings.trading.chartTitle"),
         },
         {
             id: "risk",
-            label: $_("settings.risk.subTab") || "Risk & Kill Switch",
+            label: $_("settings.risk.subTab"),
         },
         {
             id: "paper",
-            label: $_("settings.paper.subTab") || "Paper Trading",
+            label: $_("settings.paper.subTab"),
         },
         {
             id: "audit",
-            label: $_("settings.audit.subTab") || "Order Log",
+            label: $_("settings.audit.subTab"),
         },
     ];
 </script>
 
 <div class="trading-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-trading">
-    <!-- Sub-Navigation -->
-    <div
-        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
-    >
-        {#each subTabs as tab}
-            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
-            <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
-                tab.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}"
-                onclick={() => (uiState.settingsTradingSubTab = tab.id)}
-            >
-                {tab.label}
-            </button>
-        {/each}
-    </div>
+    <TabBar
+        tabs={subTabs}
+        active={activeSubTab}
+        onSelect={(id) => (uiState.settingsTradingSubTab = id)}
+        variant="pills"
+        ariaLabel={$_("settings.trading.subTabLabel")}
+    />
 
     <div class="min-w-0">
         <!-- Execution & Fees -->
@@ -401,7 +392,7 @@
                     <!-- Automation & Advanced (moved from Chart & Data; execution behaviour lives with execution) -->
                     <div class="border-t border-[var(--border-color)] pt-4 mt-4 mb-4 col-span-full">
                         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-                             {$_("settings.trading.automationTitle") || "Automation & Advanced"}
+                             {$_("settings.trading.automationTitle")}
                         </h4>
 
                         <label class="toggle-card mb-4 gap-3">
@@ -429,7 +420,7 @@
             <section class="settings-section animate-fade-in">
                 <div class="flex justify-between items-center gap-2 mb-4">
                     <h3 class="section-title mb-0">
-                        {$_("settings.trading.chartTitle") || "Chart & Data"}
+                        {$_("settings.trading.chartTitle")}
                     </h3>
                     <Button
                         variant="ghost"
@@ -473,7 +464,7 @@
                     <!-- Chart Render Update Interval -->
                     <div class="field-group">
                         <label for="render-interval">
-                            {$_("settings.trading.chartUpdateInterval") || "Kerzenchart Aktualisierungsrate"}
+                            {$_("settings.trading.chartUpdateInterval")}
                         </label>
                         <select
                             id="render-interval"
@@ -488,7 +479,7 @@
                             <option value={500}>{$_("settings.trading.renderEco")}</option>
                         </select>
                         <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                            {$_("settings.trading.chartUpdateIntervalDesc") || "Steuert wie oft Kerzen-Echtzeitkurse neu gezeichnet werden."}
+                            {$_("settings.trading.chartUpdateIntervalDesc")}
                         </p>
                     </div>
                 </SettingsGrid>
@@ -686,7 +677,7 @@
                                     bind:checked={settingsState.showTechnicalsSummary}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.summaryAction") || "Summary"}
+                                    {$_("settings.technicals.summaryAction")}
                                 </span>
                             </label>
 
@@ -697,7 +688,7 @@
                                     bind:checked={settingsState.showTechnicalsOscillators}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.oscillators") || "Oscillators"}
+                                    {$_("settings.technicals.oscillators")}
                                 </span>
                             </label>
 
@@ -708,7 +699,7 @@
                                     bind:checked={settingsState.showTechnicalsMAs}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.movingAverages") || "Moving Avgs"}
+                                    {$_("settings.technicals.movingAverages")}
                                 </span>
                             </label>
 
@@ -723,7 +714,7 @@
                                     }}
                                 />
                                 <span class="text-xs">
-                                    {$_("settings.technicals.pivots") || "Pivots"}
+                                    {$_("settings.technicals.pivots")}
                                 </span>
                             </label>
                         </SettingsGrid>

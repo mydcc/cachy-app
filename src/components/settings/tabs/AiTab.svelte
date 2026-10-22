@@ -39,6 +39,7 @@
     import ProviderCard from "../ProviderCard.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
+    import TabBar from "../TabBar.svelte";
 
     interface ProviderTab {
         id: string;
@@ -214,23 +215,13 @@
 </script>
 
 <div class="ai-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-ai">
-    <!-- Sub-Navigation -->
-    <div
-        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
-    >
-        {#each subTabs as tab}
-            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
-            <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
-                tab.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (uiState.settingsAiSubTab = tab.id)}
-            >
-                {tab.label}
-            </button>
-        {/each}
-    </div>
+    <TabBar
+        tabs={subTabs}
+        active={activeSubTab}
+        onSelect={(id) => (uiState.settingsAiSubTab = id)}
+        variant="pills"
+        ariaLabel={$_("settings.ai.subTabLabel")}
+    />
 
     <div class="min-w-0">
         {#if settingsState.decryptionFailures > 0 || settingsState.deviceKeyLost}

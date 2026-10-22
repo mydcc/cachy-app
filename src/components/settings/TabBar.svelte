@@ -31,16 +31,21 @@
   side effect of a styling item.
 
   The sub-tab decision (FEAT-0607 AC8): keep sub-tabs, as this same component
-  with `variant="pills"`. `VisualsTab` is the only user today; the reason to
-  share the component is that the sub-tab row and the main rail are the same
-  interaction, not that a second caller already exists.
+  with `variant="pills"`. Five tabs use them — Trading, AI, Connections,
+  System and Visuals — and all five render the row through this component.
+  The reason to share it is that a sub-tab row and the main rail are the same
+  interaction, not that the markup merely looks alike.
 -->
 
 <script lang="ts">
   export interface TabEntry {
     id: string;
     label: string;
-    /** Inline SVG path markup. Rail only; pills render labels alone. */
+    /**
+     * Trusted inline SVG markup, rendered with `{@html}`. Every caller passes
+     * a repo constant; never forward user input here.
+     * Rail only — pills render labels alone.
+     */
     icon?: string;
   }
 
@@ -76,7 +81,7 @@
     {@const isActive = active === tab.id}
     <!-- FEAT-0611 escape: navigation tab carrying role="tab" and aria-selected; this is the tab-bar component itself (FEAT-0607), not an action button -->
     <button
-      class="tab-btn {variant === 'rail'
+      class="{variant === 'rail'
         ? 'flex items-center gap-2 md:gap-3 px-4 md:px-4 py-3 text-sm font-semibold transition-all text-left focus:outline-none whitespace-nowrap group ' +
           (isActive
             ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)] shadow-inner'
@@ -84,8 +89,9 @@
         : 'px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 ' +
           (isActive
             ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]')}"
+            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]')}"
       onclick={(event) => select(tab.id, event)}
+      type="button"
       role="tab"
       aria-selected={isActive}
     >

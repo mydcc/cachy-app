@@ -23,8 +23,6 @@ import VisualsTab from "./VisualsTab.svelte";
 import { uiState } from "../../../stores/ui.svelte";
 import { settingsState } from "../../../stores/settings.svelte";
 
-const themes = [{ value: "dark", label: "Dark" }];
-
 let host: HTMLElement;
 let component: Record<string, unknown> | null = null;
 
@@ -50,7 +48,7 @@ describe("VisualsTab — section split", () => {
     it("renders the appearance section by default", async () => {
         component = mount(VisualsTab, {
             target: host,
-            props: { themes },
+            
         }) as never;
         settle();
 
@@ -61,7 +59,7 @@ describe("VisualsTab — section split", () => {
     it("renders the layout section on demand", async () => {
         component = mount(VisualsTab, {
             target: host,
-            props: { themes },
+            
         }) as never;
         settle();
 
@@ -79,7 +77,7 @@ describe("VisualsTab — section split", () => {
     it("renders the background section on demand", async () => {
         component = mount(VisualsTab, {
             target: host,
-            props: { themes },
+            
         }) as never;
         settle();
 

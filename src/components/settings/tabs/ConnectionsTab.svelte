@@ -25,6 +25,7 @@
     import ApiQuotaStatus from "../ApiQuotaStatus.svelte";
     import AccountList from "../AccountList.svelte";
     import SettingsGrid from "../shared/SettingsGrid.svelte";
+    import TabBar from "../TabBar.svelte";
 
     // Helper for masking inputs
     let showKeys: Record<string, boolean> = $state({});
@@ -102,23 +103,13 @@
     role="tabpanel"
     id="tab-connections"
 >
-    <!-- Sub-Navigation -->
-    <div
-        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
-    >
-        {#each subTabs as tab}
-            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
-            <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
-                tab.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (uiState.settingsConnectionsSubTab = tab.id)}
-            >
-                {tab.label}
-            </button>
-        {/each}
-    </div>
+    <TabBar
+        tabs={subTabs}
+        active={activeSubTab}
+        onSelect={(id) => (uiState.settingsConnectionsSubTab = id)}
+        variant="pills"
+        ariaLabel={$_("settings.connections.subTabLabel")}
+    />
 
     <div class="min-w-0">
         {#if settingsState.decryptionFailures > 0 || settingsState.deviceKeyLost}

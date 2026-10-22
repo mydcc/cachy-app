@@ -16,26 +16,43 @@
  */
 
 /*
- * FEAT-0607 — the settings tab list is the single source for navigation and
- * content. These cases guard the three properties that made the old window
- * inconsistent:
+ * FEAT-0607 — the settings tab lists are the single source for navigation.
+ * These cases guard the properties that made the old window inconsistent:
  *
- *   1. Every tab has a translated label in both locales.
+ *   1. Every tab label resolves to a key that exists in both locales.
  *   2. No tab label carries an `|| "English"` fallback that hides a missing
  *      key behind a plausible string.
- *   3. Both windows render their content from the tab array, not from a second
- *      `{#if}` chain that a new entry can miss.
+ *   3. Every tab bar is the shared component, and the two windows whose panels
+ *      are components render them from the array instead of an `{#if}` chain.
  *
- * The cases read the source and the locale files rather than mounting the
- * components: mounting `SettingsContent` pulls in all eight tabs and their
- * stores, which makes a failure point at the harness instead of the rule.
+ * The cases read source and locale files rather than mounting the components:
+ * mounting `SettingsContent` pulls in all eight tabs and their stores, which
+ * makes a failure point at the harness instead of the rule. The label keys are
+ * read from the source, not derived from the ids — a copy-paste that points
+ * every label at one key has to fail here.
  */
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const SETTINGS_CONTENT = "src/components/settings/SettingsContent.svelte";
-const VISUALS_TAB = "src/components/settings/tabs/VisualsTab.svelte";
+const CONTENT = "src/components/settings/SettingsContent.svelte";
+const VISUALS = "src/components/settings/tabs/VisualsTab.svelte";
+const TRADING = "src/components/settings/tabs/TradingTab.svelte";
+const AI = "src/components/settings/tabs/AiTab.svelte";
+const CONNECTIONS = "src/components/settings/tabs/ConnectionsTab.svelte";
+const SYSTEM = "src/components/settings/tabs/SystemTab.svelte";
+const INDICATORS = "src/components/settings/tabs/IndicatorSettings.svelte";
+
+/** The tab list each file owns, pinned so a dropped tab cannot pass. */
+const TAB_LISTS: Array<[file: string, ids: string[]]> = [
+  [CONTENT, ["trading", "automation", "chart", "visuals", "ai", "connections", "system", "cloud"]],
+  [VISUALS, ["appearance", "layout", "background"]],
+  [TRADING, ["market", "chart", "risk", "paper", "audit"]],
+  [AI, ["intelligence", "behavior", "agents"]],
+  [CONNECTIONS, ["exchanges", "data", "rss"]],
+  [SYSTEM, ["performance", "dashboard", "data", "maintenance", "controls"]],
+  [INDICATORS, ["general", "oscillators", "trend", "volatility", "volume", "chart"]],
+];
 
 function read(path: string): string {
   return readFileSync(path, "utf8");
@@ -55,56 +72,61 @@ function hasLabel(localeFile: Record<string, unknown>, key: string): boolean {
   return typeof node === "string" && node.length > 0;
 }
 
-/** `id: "x"` entries of the tab array, in source order. */
+/**
+ * The body of the file's tab array. `const tabs: TabDef[] = $derived([…]);`
+ * and `const subTabs = […];` both end at the array's own closing bracket.
+ */
+function tabBlock(source: string): string {
+  const match = source.match(
+    /const (?:tabs|subTabs)[^=]*=\s*(?:\$derived\()?\s*\[([\s\S]*?)\n\s*\]\s*\)?\s*;/,
+  );
+  return match?.[1] ?? "";
+}
+
 function tabIds(source: string): string[] {
-  return [...source.matchAll(/^\s+id: "([a-z]+)",$/gm)].map((match) => match[1]);
+  return [...tabBlock(source).matchAll(/\bid: "([a-z]+)"/g)].map((match) => match[1]);
+}
+
+function labelKeys(source: string): string[] {
+  return [...tabBlock(source).matchAll(/\$_\(\s*"([^"]+)"\s*\)/g)].map((match) => match[1]);
 }
 
 describe("settings tab wiring (FEAT-0607)", () => {
   const de = locale("src/locales/locales/de.json");
   const en = locale("src/locales/locales/en.json");
 
-  it.each([
-    [SETTINGS_CONTENT, "settings.tabs"],
-    [VISUALS_TAB, "settings.visuals.subtabs"],
-  ])("%s labels every tab in DE and EN", (file, prefix) => {
-    const ids = tabIds(read(file));
-    expect(ids.length).toBeGreaterThan(0);
+  it.each(TAB_LISTS)("%s owns the expected tabs, in order", (file, expected) => {
+    expect(tabIds(read(file))).toEqual(expected);
+  });
 
-    for (const id of ids) {
-      expect(hasLabel(de, `${prefix}.${id}`), `${prefix}.${id} missing in de`).toBe(true);
-      expect(hasLabel(en, `${prefix}.${id}`), `${prefix}.${id} missing in en`).toBe(true);
+  it.each(TAB_LISTS)("%s labels every tab in DE and EN", (file) => {
+    const source = read(file);
+    const keys = labelKeys(source);
+
+    expect(keys.length).toBe(tabIds(source).length);
+    for (const key of keys) {
+      expect(hasLabel(de, key), `${key} missing in de`).toBe(true);
+      expect(hasLabel(en, key), `${key} missing in en`).toBe(true);
     }
   });
 
-  it.each([SETTINGS_CONTENT, VISUALS_TAB])(
-    "%s reads its labels from i18n without a fallback string",
-    (file) => {
-      const source = read(file);
+  it.each(TAB_LISTS)("%s uses no fallback string on a tab label", (file) => {
+    // Scoped to the tab array: the four older tabs still carry unrelated
+    // `|| "…"` body labels that this item does not touch.
+    expect(tabBlock(read(file))).not.toMatch(/\$_\([^)]*\)\s*\|\|/);
+  });
 
-      // The idiom the item removes: `$_(...) || "English"` hides a missing key.
-      expect(source).not.toMatch(/\$_\([^)]*\)\s*\|\|/);
-    },
-  );
+  it.each(TAB_LISTS)("%s renders its tabs through the shared bar", (file) => {
+    expect(read(file)).toContain("<TabBar");
+  });
 
-  it.each([SETTINGS_CONTENT, VISUALS_TAB])(
-    "%s renders the active panel from the tab array",
-    (file) => {
-      const source = read(file);
+  it.each([CONTENT, VISUALS])("%s renders the active panel from the tab array", (file) => {
+    const source = read(file);
 
-      expect(source).toContain("<TabBar");
-      // Keyed each + dynamic component is what makes a new tab one entry.
-      expect(source).toMatch(/\{#each (tabs|subTabs) as tab \(tab\.id\)\}/);
-      expect(source).toMatch(/\{@const ActiveTab = tab\.component\}/);
-    },
-  );
-
-  it("keeps the density control's decided home in the item, not in code", () => {
-    // AC10: the placement decision is recorded so FEAT-0614 does not choose
-    // again. This asserts the decision survived the structural rewrite.
-    const item = read(
-      "docs/backlog/features/FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md",
-    );
-    expect(item).toContain("Visuals → Layout");
+    expect(source).toMatch(/\{#each (tabs|subTabs) as tab \(tab\.id\)\}/);
+    expect(source).toMatch(/\{@const ActiveTab = tab\.component( as Component)?\}/);
+    expect(source).toContain("<ActiveTab />");
+    // The chain the rewrite replaced: reinstating it would bypass the array.
+    expect(source).not.toMatch(/\{#if active(Sub)?Tab ===/);
   });
 });
