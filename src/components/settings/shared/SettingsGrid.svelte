@@ -34,17 +34,22 @@
 -->
 <script lang="ts">
     import type { Snippet } from "svelte";
+    import { densityGap } from "../../../lib/ui/density";
 
     let {
         children,
         cols = 2,
-        gap = "gap-3",
+        gap = "gap-[var(--density-section-gap)]",
         extraClass = "",
     }: {
         children: Snippet;
         /** Column count at/above the threshold. Below 560px always 1 column. */
         cols?: 2 | 3;
-        /** Gap utility, kept per section rhythm (default gap-3). */
+        /**
+         * Per-section rhythm. Numeric steps are scaled by the density mode
+         * (`densityGap`), so `gap-4` stays 1rem in default and follows the
+         * mode everywhere else; the default is the density token itself.
+         */
         gap?: string;
         /**
          * Escape hatch for non-column extras (e.g. section bottom spacing).
@@ -55,8 +60,8 @@
 
     const gridClass = $derived(
         cols === 3
-            ? `grid grid-cols-1 @min-[560px]:grid-cols-2 @min-[960px]:grid-cols-3 ${gap} ${extraClass}`
-            : `grid grid-cols-1 @min-[560px]:grid-cols-2 ${gap} ${extraClass}`,
+            ? `grid grid-cols-1 @min-[560px]:grid-cols-2 @min-[960px]:grid-cols-3 ${densityGap(gap)} ${extraClass}`
+            : `grid grid-cols-1 @min-[560px]:grid-cols-2 ${densityGap(gap)} ${extraClass}`,
     );
 </script>
 

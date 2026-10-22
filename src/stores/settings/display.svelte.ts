@@ -48,9 +48,11 @@ import type {
     HeatmapMode,
     Settings,
     TradeFlowSettings,
+    DensityMode,
 } from "./settingsTypes";
 
 export class DisplaySettingsStore {
+  density = $state<DensityMode>(defaultSettings.density);
   showSpinButtons = $state<boolean | "hover">(defaultSettings.showSpinButtons);
   disclaimerAccepted = $state<boolean>(defaultSettings.disclaimerAccepted);
   useUtcDateParsing = $state<boolean>(defaultSettings.useUtcDateParsing);

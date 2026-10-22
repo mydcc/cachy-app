@@ -16,6 +16,7 @@
  */
 
 import { safeLocalStorage } from "../../utils/storageWrapper";
+import { defaultSettings, type DensityMode } from "./settingsTypes";
 
 /**
  * Versioned one-shot migrations SettingsManager.load() runs on every parsed
@@ -97,4 +98,18 @@ export function resolveAnthropicModel(stored: string | undefined): string {
     return "claude-sonnet-5-5";
   }
   return stored;
+}
+
+/**
+ * Restores the density mode, defaulting a missing or unknown value to
+ * `default` (FEAT-0614). A stored profile from before the setting existed has
+ * no key at all; anything else that is not one of the three modes is treated
+ * the same way rather than reaching the DOM as an unknown attribute value.
+ */
+export function resolveDensity(stored: unknown): DensityMode {
+  return stored === "compact" || stored === "wide" || stored === "default"
+    ? stored
+    // Read from the shipped defaults: a literal here would silently disagree
+    // the day the default changes.
+    : defaultSettings.density;
 }

@@ -129,6 +129,30 @@
             />
         </label>
 
+        <!-- Density (FEAT-0614). Tokens move height, type, padding and gap
+             together; the select uses .input-field so it follows the mode. -->
+        <div class="col-span-full border-t border-[var(--border-color)] pt-4">
+            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                {$_("settings.densityTitle")}
+            </h4>
+            <div class="field-group">
+                <label for="density-mode">{$_("settings.densityLabel")}</label>
+                <select
+                    id="density-mode"
+                    bind:value={settingsState.density}
+                    class="input-field w-full"
+                    aria-describedby="density-mode-hint"
+                >
+                    <option value="compact">{$_("settings.densityCompact")}</option>
+                    <option value="default">{$_("settings.densityDefault")}</option>
+                    <option value="wide">{$_("settings.densityWide")}</option>
+                </select>
+                <p id="density-mode-hint" class="text-[10px] text-[var(--text-secondary)]">
+                    {$_("settings.densityHint")}
+                </p>
+            </div>
+        </div>
+
         <!-- Window docking -->
         <div class="col-span-full border-t border-[var(--border-color)] pt-4">
             <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">

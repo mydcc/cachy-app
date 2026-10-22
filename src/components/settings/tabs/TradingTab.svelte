@@ -586,7 +586,7 @@
                                                     bind:value={
                                                         settingsState.heatmapMode
                                                     }
-                                                    class="input-field py-1.5 text-xs w-full"
+                                                    class="input-field py-1.5 text-xs w-full input-field-xs"
                                                 >
                                                     <option
                                                         value="coinglass_new_tab"

@@ -33,7 +33,10 @@ const CSS = readFileSync("src/themes.css", "utf8");
 
 /** The first top-level rule body for a selector. */
 function rule(selector: string): string {
-  const start = CSS.indexOf(`${selector} {`);
+  // Anchored to a line start: a compound selector such as
+  // `html[data-density="wide"] .input-field {` also contains `.input-field {`
+  // and would otherwise be returned for `.input-field` (FEAT-0614).
+  const start = CSS.indexOf(`\n${selector} {`);
   expect(start, `${selector} missing from themes.css`).toBeGreaterThan(-1);
   const open = CSS.indexOf("{", start);
   const close = CSS.indexOf("\n}", open);
@@ -132,10 +135,15 @@ describe("control-geometry tokens (FEAT-0609)", () => {
   });
 
   it("leaves the token set in :root and lets the shipped themes inherit it", () => {
-    // One declaration, one source. The shipped themes inherit; a theme that
-    // wants different geometry has to override these tokens, which fails this
-    // test until the deliberate exception is written down here.
-    expect(CSS.match(/--control-height:/g)).toHaveLength(1);
+    // FEAT-0614 added the one deliberate exception this guard was written to
+    // force into the open: density is not a theme, so its two blocks on
+    // `html[data-density]` may restate the geometry. Every shipped theme still
+    // inherits, and the count pin below catches a fourth, unexplained block.
+    const declarations = [
+      ...CSS.matchAll(/(^|[^\w-])--control-height:/gm),
+    ].length;
+    expect(declarations).toBe(3);
+    expect(CSS.match(/html\[data-density="(compact|wide)"\]\s*\{/g)).toHaveLength(2);
 
     const themeBlocks = [
       ...CSS.matchAll(/\.theme-(?!default\b)[a-z0-9-]+\s*\{([\s\S]*?)\n\}/gi),

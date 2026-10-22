@@ -109,7 +109,7 @@
     <!-- Tab Content Area -->
     <!-- Container queries below measure THIS width (the settings window),
          not the viewport: @container makes the content a query container. -->
-    <div class="@container flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+    <div class="@container flex-1 overflow-y-auto p-[var(--density-section-padding)] md:p-[var(--density-section-padding-md)] custom-scrollbar">
         {#each tabs as tab (tab.id)}
             {#if tab.id === activeTab}
                 {@const ActiveTab = tab.component}

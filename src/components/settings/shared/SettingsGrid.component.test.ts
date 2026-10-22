@@ -76,7 +76,11 @@ describe("FEAT-0346 — SettingsGrid keeps column rules in one place", () => {
     it("applies the gap and the caller's escape hatch", () => {
         render({ gap: "gap-6", extraClass: "mb-4" });
 
-        expect(grid().className).toContain("gap-6");
+        // Numeric steps go through densityGap, so the same call keeps the
+        // section rhythm in every density mode.
+        expect(grid().className).toContain(
+            "gap-[calc(var(--density-gap-scale)*1.5rem)]",
+        );
         expect(grid().className).toContain("mb-4");
     });
 

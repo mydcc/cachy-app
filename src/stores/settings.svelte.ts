@@ -252,7 +252,7 @@ export class SettingsManager {
   set hotkeyMode(v: CoreSettingsStore["hotkeyMode"]) {
     this.core.hotkeyMode = v;
   }
-  /** Display section (ADR-0024 decision 2): 65 display-owned `$state` fields live here (66 display schema rows minus entitlement-owned `isProLicenseActive`); the getters/setters below keep `settingsState.<field>` working. Private on purpose — consumers use the manager spelling, never `settingsState.display.*`. Declared above `entitlement` so no lazy closure can ever observe it uninitialised. */
+  /** Display section (ADR-0024 decision 2): 66 display-owned `$state` fields live here (67 display schema rows minus entitlement-owned `isProLicenseActive`); the getters/setters below keep `settingsState.<field>` working. Private on purpose — consumers use the manager spelling, never `settingsState.display.*`. Declared above `entitlement` so no lazy closure can ever observe it uninitialised. */
   private readonly display = new DisplaySettingsStore();
   /** Core section (ADR-0024 decision 2): 97 core-owned `$state` fields live here (98 core schema rows minus entitlement-owned `isPro`); same facade pattern as `display`, same privacy rule. */
   private readonly core = new CoreSettingsStore();
@@ -547,6 +547,12 @@ export class SettingsManager {
     this.core.rssFilterBySymbol = v;
   }
 
+  get density(): DisplaySettingsStore["density"] {
+    return this.display.density;
+  }
+  set density(v: DisplaySettingsStore["density"]) {
+    this.display.density = v;
+  }
   get showSpinButtons(): DisplaySettingsStore["showSpinButtons"] {
     return this.display.showSpinButtons;
   }

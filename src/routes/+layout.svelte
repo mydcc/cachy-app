@@ -34,6 +34,7 @@ import { afterNavigate } from "$app/navigation";
   import { trackPageView } from "../services/trackingService";
   import { initZoomPlugin } from "../lib/chartSetup";
   import { registerResetCoordinator } from "../utils/appReset";
+  import { applyDensityAttribute } from "../lib/ui/density";
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
@@ -411,6 +412,13 @@ import { afterNavigate } from "$app/navigation";
     // Track the theme so the meta tag follows every switch (incl. mount).
     void uiState.currentTheme;
     updateThemeColor();
+  });
+
+  // FEAT-0614: density is a root attribute; every token override hangs off it,
+  // so no component learns the mode by name.
+  $effect(() => {
+    if (!browser) return;
+    applyDensityAttribute(document.documentElement, settingsState.density);
   });
 
   // Window Controls Overlay (desktop PWA title bar as web content).
