@@ -33,7 +33,10 @@ const CSS = readFileSync("src/themes.css", "utf8");
 
 /** The first top-level rule body for a selector. */
 function rule(selector: string): string {
-  const start = CSS.indexOf(`${selector} {`);
+  // Anchored to a line start: a compound selector such as
+  // `html[data-density="wide"] .input-field {` also contains `.input-field {`
+  // and would otherwise be returned for `.input-field` (FEAT-0614).
+  const start = CSS.indexOf(`\n${selector} {`);
   expect(start, `${selector} missing from themes.css`).toBeGreaterThan(-1);
   const open = CSS.indexOf("{", start);
   const close = CSS.indexOf("\n}", open);

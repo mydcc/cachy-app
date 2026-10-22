@@ -286,6 +286,20 @@ html[data-density="wide"] {
   --density-section-gap: 1rem;
 }
 
+/* The control font only leaves the browser default in a non-default mode:
+   applying `--control-font-size` to `.input-field` unconditionally would
+   override the per-field `text-*` utilities and break the pixel identity of
+   `default` (FEAT-0609 left the token reference-only for that reason). The
+   small variant keeps its own token so `input-field-sm` stays one step below. */
+html[data-density="compact"] .input-field,
+html[data-density="wide"] .input-field {
+  font-size: var(--control-font-size);
+}
+html[data-density="compact"] .input-field.input-field-sm,
+html[data-density="wide"] .input-field.input-field-sm {
+  font-size: var(--control-font-size-sm);
+}
+
 .theme-light {
   /* --- Galaxy Overrides --- */
   --galaxy-stars-edge-2: var(--slate-400);

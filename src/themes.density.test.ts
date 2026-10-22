@@ -78,6 +78,30 @@ describe("density reaches a rendered control (FEAT-0614)", () => {
     expect(getComputedStyle(input).height).toBe(expected);
   });
 
+  it.each([
+    ["compact", "13px"],
+    ["wide", "16px"],
+  ] as const)("renders .input-field text at %s's size", (mode, expected) => {
+    const input = renderInput();
+    setDensity(mode);
+
+    expect(getComputedStyle(input).fontSize).toBe(expected);
+  });
+
+  it("leaves the control font alone in default mode", () => {
+    // Applying `--control-font-size` to `.input-field` unconditionally would
+    // beat the per-field `text-*` utilities (unlayered vs `@layer utilities`)
+    // and silently resize fields the mode never meant to touch. The rule must
+    // stay behind the attribute.
+    expect(CSS).not.toMatch(/\n\.input-field\s*\{[^}]*font-size/);
+    expect(CSS).toMatch(
+      /html\[data-density="compact"\] \.input-field,[\s\S]*?font-size: var\(--control-font-size\)/,
+    );
+
+    const input = renderInput();
+    expect(getComputedStyle(input).fontSize).toBe("16px");
+  });
+
   it("moves the section rhythm with the same attribute", () => {
     renderInput();
 
