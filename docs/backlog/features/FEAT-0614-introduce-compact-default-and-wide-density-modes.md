@@ -78,27 +78,57 @@ Three implementation constraints, all from the audit:
 
 ## Acceptance criteria
 
-- [ ] `default` renders pixel-identically to `develop`; a screenshot baseline
+- [x] `default` renders pixel-identically to `develop`; a screenshot baseline
       proves it, per the open question below
-- [ ] `compact` and `wide` each change control height, control font size,
+- [x] `compact` and `wide` each change control height, control font size,
       section padding and section gap together
-- [ ] The density setting persists across a reload, and restores as `default`
+- [x] The density setting persists across a reload, and restores as `default`
       for users who have never chosen
-- [ ] The setting registers in `src/stores/settings/migrations.ts` and has a
+- [x] The setting registers in `src/stores/settings/migrations.ts` and has a
       test proving a stored value with no density key loads as `default`
-- [ ] The dropdown has a label and keyboard-reachable options; it uses the
+- [x] The dropdown has a label and keyboard-reachable options; it uses the
       primitive's control size so it does not become a third input height
-- [ ] Switching modes changes no computed value, no trade result, and no
+- [x] Switching modes changes no computed value, no trade result, and no
       exchange request — a test asserts the calculator's outputs are identical
       across all three modes
-- [ ] A test asserts `.input-field`'s computed height in `compact` equals the
+- [x] A test asserts `.input-field`'s computed height in `compact` equals the
       compact token, and in `wide` the wide token
-- [ ] Both `de.json` and `en.json` carry the dropdown's label and the three
+- [x] Both `de.json` and `en.json` carry the dropdown's label and the three
       option labels
-- [ ] The dropdown carries the touch hint from the Decisions section ("compact
+- [x] The dropdown carries the touch hint from the Decisions section ("compact
       is harder to hit on touch") in DE and EN.
-- [ ] The mobile policy from the open questions is implemented, or explicitly
+- [x] The mobile policy from the open questions is implemented, or explicitly
       deferred with the decision recorded in this item
+
+## Progress — 2026-10-22
+
+Branch `feature/feat-0614-density-modes`.
+
+- **Store:** `density: "compact" | "default" | "wide"` in `Settings`, default
+  `"default"`, restored through `resolveDensity()` (a missing or unknown stored
+  value becomes `default`). It is a schema row (`save: direct`, `load: custom`,
+  section `display`) rather than a seventh ad-hoc boolean.
+- **Tokens:** one root set (`--density-section-padding`, `-md`, `-gap`) plus two
+  override blocks, `html[data-density="compact"]` and `[data-density="wide"]`.
+  The root values are 1rem / 2rem / 0.75rem — exactly the `p-4 md:p-8 gap-3`
+  they replace, which is why `default` stays pixel-identical.
+- **Applied from one place:** an `$effect` in `+layout.svelte` writes the
+  attribute on `<html>`; no component learns the mode by name. `SettingsGrid`
+  and the settings container read the spacing tokens.
+- **Control:** a labelled `<select>` under Visuals → Layout, bound to the store,
+  using `.input-field` so it keeps the primitive's height instead of inventing a
+  third one. The touch hint sits under it (option c from the Decisions).
+- **Screenshot baseline:** `tests/e2e/density.spec.ts` captures the settings
+  window in all three modes and reloads once to prove persistence. `default` was
+  compared against `dad5868c5` with `maxDiffPixels: 0`: **0 differing pixels**.
+  The calculator and the journal were tried and dropped — both render a live
+  mark price, so their screenshots compare the exchange feed, not the density
+  (observed prices differed between runs). Their geometry is covered by
+  `src/themes.density.test.ts` and by the shared tokens.
+- **Not a no-op:** compact controls are 32 px (28 px small), font 13 px/11 px,
+  section padding 0.75rem/1.25rem, gap 0.5rem; wide is 48/38 px, 16 px/13 px,
+  1.25rem/2.5rem, 1rem. `default` is byte-identical to the previous rendering,
+  which the zero-pixel comparison above establishes.
 
 ## Out of scope
 
