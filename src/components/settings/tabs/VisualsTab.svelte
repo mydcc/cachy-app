@@ -18,6 +18,8 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { uiState } from "../../../stores/ui.svelte";
+    import type { Component } from "svelte";
+    import TabBar from "../TabBar.svelte";
     import VisualsLayout from "./VisualsLayout.svelte";
     import VisualsAppearance from "./VisualsAppearance.svelte";
     import VisualsBackground from "./VisualsBackground.svelte";
@@ -28,51 +30,54 @@
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
-    const subTabs = [
+    /**
+     * FEAT-0607: sub-tabs stay — they are the same navigation as the main rail,
+     * rendered through the same component. The list is also the render order,
+     * so a fourth sub-tab is one entry rather than another `{#if}` branch.
+     */
+    type SubTabDef = {
+        id: string;
+        label: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        component: Component<any>;
+        props?: Record<string, unknown>;
+    };
+
+    const subTabs: SubTabDef[] = $derived([
         {
             id: "appearance",
             label: $_("settings.visuals.subtabs.appearance"),
+            component: VisualsAppearance,
+            props: { themes },
         },
-        { id: "layout", label: $_("settings.visuals.subtabs.layout") },
+        {
+            id: "layout",
+            label: $_("settings.visuals.subtabs.layout"),
+            component: VisualsLayout,
+        },
         {
             id: "background",
             label: $_("settings.visuals.subtabs.background"),
+            component: VisualsBackground,
         },
-        // We can add a dedicated tab if it gets too crowded, 
-        // but for now sticking to "Background" sub-section is fine.
-    ];
+    ]);
 </script>
 
 <div class="visuals-tab flex flex-col gap-3 sm:gap-4 md:gap-6" role="tabpanel" id="tab-visuals">
-    <!-- Sub-Navigation -->
-    <div
-        class="flex gap-2 overflow-x-auto border-b border-[var(--border-color)] pb-2 shrink-0 custom-scrollbar"
-    >
-        {#each subTabs as tab}
-            <!-- FEAT-0611 escape: sub-tab rail — FEAT-0607 owns the tab-bar component. -->
-            <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 {activeSubTab ===
-                tab.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (uiState.settingsVisualsSubTab = tab.id)}
-            >
-                {tab.label}
-            </button>
-        {/each}
-    </div>
+    <TabBar
+        tabs={subTabs}
+        active={activeSubTab}
+        onSelect={(id) => (uiState.settingsVisualsSubTab = id)}
+        variant="pills"
+        ariaLabel={$_("settings.visuals.subtabs.label")}
+    />
 
     <div class="min-w-0">
-        {#if activeSubTab === "appearance"}
-            <VisualsAppearance {themes} />
-        {/if}
-
-        {#if activeSubTab === "layout"}
-            <VisualsLayout />
-        {/if}
-
-        {#if activeSubTab === "background"}
-            <VisualsBackground />
-        {/if}
+        {#each subTabs as tab (tab.id)}
+            {#if tab.id === activeSubTab}
+                {@const ActiveTab = tab.component}
+                <ActiveTab {...tab.props} />
+            {/if}
+        {/each}
     </div>
 </div>

@@ -1289,6 +1289,7 @@
     },
     "visuals": {
       "subtabs": {
+        "label": "Unterbereiche",
         "appearance": "Optik & Design",
         "layout": "Layout",
         "background": "Hintergrund"
@@ -1958,6 +1959,7 @@
       "title": "Chart-Einstellungen"
     },
     "tabs": {
+      "label": "Einstellungsbereiche",
       "general": "Allgemein",
       "api": "API & Verbindung",
       "ai": "KI Chat",

@@ -1289,6 +1289,7 @@
     },
     "visuals": {
       "subtabs": {
+        "label": "Sub-sections",
         "appearance": "Look & Feel",
         "layout": "Layout",
         "background": "Background"
@@ -1936,6 +1937,7 @@
       "title": "Chart Settings"
     },
     "tabs": {
+      "label": "Settings sections",
       "general": "General",
       "api": "API & Connection",
       "ai": "AI Chat",

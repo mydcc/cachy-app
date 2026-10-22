@@ -2,7 +2,9 @@
 id: FEAT-0607
 title: Harmonize the settings vocabulary, placement, hierarchy and tab naming
 type: feature
-status: ready
+status: in-progress
+assignee: opencode
+branch: feature/feat-0607-settings-structure
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -101,24 +103,24 @@ belongs in — without implementing it. That is
 
 - [ ] A vocabulary table exists: every tab label, section header and toggle
       text in its settled term, DE and EN, with the renamed terms listed
-- [ ] No tab label is a literal string; the `cloud` label comes from i18n
-- [ ] No label uses an `|| "English"` fallback; a missing key fails the
+- [x] No tab label is a literal string; the `cloud` label comes from i18n
+- [x] No label uses an `|| "English"` fallback; a missing key fails the
       i18n check instead of rendering English
 - [ ] A placement table covers every setting: current tab, expected tab, and
       match or mismatch
 - [ ] Every mismatch that is a pure move is moved in this item; every mismatch
       that needs a tab split or merge is filed as a follow-up item and linked
       here
-- [ ] One tab-bar component exists and is used by `SettingsContent` and by
+- [x] One tab-bar component exists and is used by `SettingsContent` and by
       `VisualsTab`
-- [ ] Tab content renders from the tab array, not from an `{#if}` chain
-- [ ] The sub-tab decision is written down in the component docblock: reuse or
+- [x] Tab content renders from the tab array, not from an `{#if}` chain
+- [x] The sub-tab decision is written down in the component docblock: reuse or
       removal, with the reason
-- [ ] A grouping of the eight tabs is decided and recorded; if grouping by
+- [x] A grouping of the eight tabs is decided and recorded; if grouping by
       grouping, it is recorded as out of scope here rather than left implicit
-- [ ] Where the density control will live is decided and recorded, so
+- [x] Where the density control will live is decided and recorded, so
       FEAT-0614 does not have to choose again
-- [ ] Both `de.json` and `en.json` carry any new keys
+- [x] Both `de.json` and `en.json` carry any new keys
 
 ## Out of scope
 
@@ -143,6 +145,53 @@ belongs in — without implementing it. That is
   display preferences already are) or get its own tab?
 - Does the placement audit change the tab count? If a tab should split or two
   tabs should merge, that decision belongs to the follow-up item, not here.
+
+## Decisions
+
+- **Density control: Visuals → Layout.** It is a display preference like the
+  other controls on that sub-tab, and a ninth top-level tab for one dropdown
+  would make the rail longer without making the control easier to find. This
+  is the answer FEAT-0614 depends on; the control itself stays out of this
+  item.
+- **One tab bar, two variants.** `TabBar.svelte` renders `variant="rail"` for
+  the window navigation and `variant="pills"` for the sub-tabs. The two used
+  to be independent markup with their own active-state treatment.
+- **Sub-tabs stay.** They are the same interaction as the rail, and
+  `VisualsAppearance`/`Layout`/`Background` are three genuinely different
+  panels. The decision and its reason are in the component docblock (AC8).
+- **No grouping of the eight tabs in this item.** The rail stays flat and
+  keeps its current order; a grouped rail is a visible change to every user
+  and would need its own item. Recorded here rather than left implicit (AC9).
+- **Rendering is data, not branches.** Both windows keep the tab list as the
+  single source for navigation and content: a keyed `{#each}` with a dynamic
+  component. A new tab is one entry plus its component.
+
+## Progress — 2026-10-22: structure and i18n (first PR)
+
+Branch `feature/feat-0607-settings-structure`. This closes the structural half
+of the item; the vocabulary and placement tables follow separately.
+
+- `TabBar.svelte` is the one tab-bar component. `SettingsContent` uses the rail
+  variant, `VisualsTab` the pills variant. Both keep the ARIA tab pattern the
+  rail already had; keyboard navigation is deliberately untouched (FEAT-0605's
+  N8 measures it first).
+- `SettingsContent` and `VisualsTab` render their active panel from the tab
+  array (keyed `{#each}` + dynamic component). The `{#if}`/`{:else if}` chains
+  are gone, so a new tab is one entry.
+- All eight tab labels and the three sub-tab labels come from `$_()` with no
+  fallback string. `settings.tabs.cloud` already existed; the `|| "Cloud"` was
+  dead weight, and the other seven fallbacks were the idiom AC3 removes.
+- New keys: `settings.tabs.label` and `settings.visuals.subtabs.label` (the
+  `aria-label` of each tab list), DE and EN.
+- `settingsTabs.test.ts` guards the wiring: every tab id has a label in both
+  locales, no `$_(...) ||` fallback, and both windows render from the array.
+  `TabBar.component.test.ts` pins the component contract (order, selection,
+  click id, variant classes). The two FEAT-0611 escape comments that named
+  this item are gone because the controls now go through the component.
+
+**Still open — the second PR:** the vocabulary table (AC1), the placement
+table and the pure moves (AC4/AC5). The item stays `in-progress` until those
+land.
 
 ## Links
 
