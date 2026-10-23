@@ -2341,6 +2341,8 @@ export type TranslationKey =
   | "settings.densityDefault"
   | "settings.densityWide"
   | "settings.densityHint"
+  | "settings.sidebarResizeHandle"
+  | "settings.sidebarWidthReset"
   | "positionsList.noOpenPositions"
   | "positionsList.closeAll"
   | "positionsList.size"
