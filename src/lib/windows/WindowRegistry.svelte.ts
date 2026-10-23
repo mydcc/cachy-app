@@ -76,7 +76,6 @@ class WindowRegistry {
             isTransparent: false,
             enableGlassmorphism: true,
             enableBurningBorders: true,
-            showCachyIcon: true,
             allowZoom: false,
             allowFontSize: false,
             allowMaximize: true,
@@ -84,7 +83,6 @@ class WindowRegistry {
             canMinimizeToPanel: true,
             showIcon: false,
             hasContextMenu: false,
-            doubleClickAction: 'maximize' as const,
             maxInstances: 0,
             closeOnBlur: false,
         };
@@ -295,7 +293,6 @@ class WindowRegistry {
                 flags: {
                     ...baseFlags,
                     enableBurningBorders: false,
-                    showCachyIcon: false
                 },
                 layout: {
                     ...baseLayout,
