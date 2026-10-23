@@ -43,7 +43,12 @@ import { sanitizeAllowedActions } from "../../lib/ai/actionPolicy";
 import { normalizeQuality } from "../../lib/three/quality";
 import { CREDENTIAL_SCHEMA_VERSION, redactAccounts } from "./accounts";
 import { redactUserProviders, sanitizeUserProviders } from "./aiProviders";
-import { resolveAnthropicModel, resolveDensity, resolveGeminiModel } from "./migrations";
+import {
+  resolveAnthropicModel,
+  resolveDensity,
+  resolveGeminiModel,
+  resolveSidebarWidth,
+} from "./migrations";
 import type {
     GalaxySettings,
     Settings,
@@ -157,6 +162,7 @@ export const PERSISTENCE_SCHEMA: readonly FieldSchema[] = Object.freeze(([
     { key: "aiConfirmClear", save: "direct", load: "assign", section: "core" },
     { key: "aiAnalysisMode", save: "direct", load: "coalesce", section: "core" },
     { key: "density", save: "direct", load: "custom", section: "display" },
+    { key: "sidebarWidth", save: "direct", load: "custom", section: "display" },
     { key: "showSpinButtons", save: "direct", load: "assign", section: "display" },
     { key: "disclaimerAccepted", save: "direct", load: "assign", section: "display" },
     { key: "useUtcDateParsing", save: "direct", load: "assign", section: "display" },
@@ -510,6 +516,9 @@ export function loadCustomValue(
             return;
         case "density":
             target.set("density", resolveDensity(merged.density));
+            return;
+        case "sidebarWidth":
+            target.set("sidebarWidth", resolveSidebarWidth(merged.sidebarWidth));
             return;
         case "chartPriceScaleMode":
             target.set(

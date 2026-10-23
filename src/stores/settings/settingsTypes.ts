@@ -358,6 +358,13 @@ export interface Settings {
   sidePanelMode: "chat" | "notes" | "ai";
   chatStyle: "minimal" | "bubble" | "terminal";
   density: DensityMode;
+  /**
+   * Left sidebar width in px (FEAT-0617). Sanitized through
+   * `clampSidebarWidth` on load; the rendered width is capped by the
+   * viewport in `+page.svelte` so a value chosen on a wide monitor cannot
+   * squeeze the calculator on a narrow one.
+   */
+  sidebarWidth: number;
   maxPrivateNotes: number;
   customSystemPrompt: string;
   aiProvider: AiProvider;
@@ -617,6 +624,7 @@ export const defaultSettings: Settings = {
   sidePanelMode: "ai",
   chatStyle: "minimal",
   density: "default",
+  sidebarWidth: 384,
   customSystemPrompt: "",
   aiProvider: "gemini",
   openaiApiKey: "",

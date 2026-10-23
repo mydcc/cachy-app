@@ -34,6 +34,14 @@
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { windowManager } from "../lib/windows/WindowManager.svelte";
+  import SidebarResizeHandle from "../components/layout/SidebarResizeHandle.svelte";
+  import {
+    SIDEBAR_WIDTH_DEFAULT,
+    SIDEBAR_WIDTH_MAX,
+    SIDEBAR_WIDTH_MIN,
+    SIDEBAR_WIDTH_STEP,
+    clampSidebarWidth,
+  } from "../lib/layout/sidebar";
   import { favoritesState } from "../stores/favorites.svelte";
   import { onMount } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
@@ -249,6 +257,25 @@
   let isTechnicalsDocked = $derived(
     !settingsState.showMarketOverview && settingsState.showTechnicals,
   );
+
+  /**
+   * FEAT-0617: the drag preview. Committing on every pointermove would write
+   * the settings store (and its autosave) dozens of times per gesture, so the
+   * live width is local and only the release persists it.
+   */
+  let sidebarWidthDraft = $state<number | null>(null);
+  let sidebarWidth = $derived(
+    clampSidebarWidth(sidebarWidthDraft ?? settingsState.sidebarWidth),
+  );
+
+  function previewSidebarWidth(width: number) {
+    sidebarWidthDraft = width;
+  }
+
+  function commitSidebarWidth(width: number) {
+    settingsState.sidebarWidth = clampSidebarWidth(width);
+    sidebarWidthDraft = null;
+  }
   let sidebarWidthClass = $derived(
     isTechnicalsDocked
       ? settingsState.showIndicatorParams
@@ -303,11 +330,12 @@
   class:xl:grid={settingsState.showSidebars}
   class:xl:grid-cols-[1fr_auto_1fr]={settingsState.showSidebars}
   class:xl:flex={!settingsState.showSidebars}
+  style="--sidebar-width: {sidebarWidth}px"
 >
   {#if settingsState.showSidebars}
     <!-- Left Sidebar: Positions Table & Sentiment (Sticky) -->
-    <div class="hidden xl:flex justify-self-end self-stretch">
-      <div class="sticky top-8 flex flex-col gap-3 w-96 shrink-0 z-40 h-fit">
+    <div class="relative hidden xl:flex justify-self-end self-stretch max-w-full min-w-0">
+      <div class="sidebar-shell sticky top-8 flex flex-col gap-3 shrink-0 z-40 h-fit">
         {#if settingsState.showMarketSentiment}
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
         {/if}
@@ -315,6 +343,17 @@
           <PositionsSidebar fetchEnabled={isDesktopXl} />
         {/if}
       </div>
+      <SidebarResizeHandle
+        width={sidebarWidth}
+        min={SIDEBAR_WIDTH_MIN}
+        max={SIDEBAR_WIDTH_MAX}
+        step={SIDEBAR_WIDTH_STEP}
+        defaultWidth={SIDEBAR_WIDTH_DEFAULT}
+        label={$_("settings.sidebarResizeHandle")}
+        resetLabel={$_("settings.sidebarWidthReset")}
+        onResize={previewSidebarWidth}
+        onCommit={commitSidebarWidth}
+      />
     </div>
   {/if}
 
@@ -881,6 +920,15 @@
      user switches the Pro mode via the footer PowerToggle. Pure CSS, no
      three.js needed; the sweep uses the theme accent variable so it works
      in every palette. */
+  .sidebar-shell {
+    width: var(--sidebar-width, 384px);
+    /* Never wider than the grid column: the column is 1fr and the calculator
+       keeps its xl:min-w-3xl, so an oversized stored width has to shrink here
+       rather than push the main column off the viewport. */
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .calculator-wrapper.panel-tilt {
     animation: panel-tilt-move 0.65s cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform;

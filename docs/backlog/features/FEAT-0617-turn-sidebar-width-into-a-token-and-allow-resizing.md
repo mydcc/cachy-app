@@ -2,7 +2,7 @@
 id: FEAT-0617
 title: Turn the sidebar width into a token and allow resizing it
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,6 +12,8 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0609]
+assignee: opencode
+branch: feature/feat-0617-sidebar-width
 ---
 
 # FEAT-0617 — Turn the sidebar width into a token and allow resizing it
@@ -46,21 +48,21 @@ that makes the arrangement user-owned.
 
 ## Acceptance criteria
 
-- [ ] The sidebar width comes from a layout token in `src/themes.css`, not from
+- [x] The sidebar width comes from a layout token in `src/themes.css`, not from
       a `w-*` utility in `+page.svelte`
-- [ ] The width is user-adjustable with a pointer drag, bounded by a named
+- [x] The width is user-adjustable with a pointer drag, bounded by a named
       minimum and maximum constant
-- [ ] The chosen width persists across a reload and is restored exactly
-- [ ] A reset control restores the default width, and the control is reachable
+- [x] The chosen width persists across a reload and is restored exactly
+- [x] A reset control restores the default width, and the control is reachable
       by keyboard
-- [ ] The resize handle is keyboard-operable, not pointer-only
-- [ ] With the sidebar at its maximum width the main calculator column keeps its
+- [x] The resize handle is keyboard-operable, not pointer-only
+- [x] With the sidebar at its maximum width the main calculator column keeps its
       `max-w-3xl` and does not collapse or overflow
-- [ ] `TechPanel`'s absolute positioning is re-verified at compact and wide
+- [x] `TechPanel`'s absolute positioning is re-verified at compact and wide
       density — if density changes its height, it must not overlap
-- [ ] The shell is verified at a viewport narrower than the sidebar's maximum
+- [x] The shell is verified at a viewport narrower than the sidebar's maximum
       width, including the existing `xl` breakpoint and the mobile branch
-- [ ] `BUG-0410` (mode state must not depend on sidebar) is not reintroduced:
+- [x] `BUG-0410` (mode state must not depend on sidebar) is not reintroduced:
       switching the sidebar off and on restores the mode, and a test asserts it
 
 ## Out of scope
@@ -93,3 +95,24 @@ that makes the arrangement user-owned.
 - [FEAT-0609](FEAT-0609-introduce-control-and-density-tokens.md) — prereq
 - [BUG-0410](../bugs/BUG-0410-mode-state-must-not-depend-on-sidebar.md)
 - [FEAT-0616](FEAT-0616-add-magnetic-snapping-and-edge-tiling-for-windows.md)
+
+## Progress — 2026-10-23
+
+- `--sidebar-width` ships in `src/themes.css`; `src/lib/layout/sidebar.ts` owns
+  the default (384), bounds (280–640) and the clamp shared by the drag preview,
+  the load path (`resolveSidebarWidth`) and the reset.
+- The width persists as `settings.sidebarWidth` in the display section.
+- `SidebarResizeHandle.svelte` is a focusable `separator` (Arrow keys, Home/End,
+  pointer drag) with a sticky reset button that appears only while the width
+  differs from the default.
+- The shell caps at its grid column, so a stored maximum cannot push the
+  calculator off the `xl` grid. Measured with Playwright at 1280/1440/1920/2560:
+  `scrollWidth === viewport`, the main column stays 768 px, and `TechPanel`
+  stays right of the sidebar at compact and wide density. Below `xl` (1024) no
+  shell or handle renders.
+- BUG-0410 stays covered by `ExchangeAccountControls.component.test.ts`
+  ("fetches position mode on mount when the sidebar never did").
+- Pre-existing, not introduced here: an autosave that lands while another
+  `save()` holds `saveLock` is dropped (`settings.svelte.ts`), so a change in
+  the first seconds after boot can be lost until the next settings write. It
+  was visible while verifying this item and deserves its own bug entry.

@@ -2688,7 +2688,9 @@
     "densityCompact": "Kompakt",
     "densityDefault": "Standard",
     "densityWide": "Weit",
-    "densityHint": "Kompakt ist auf Touch-Geräten schwerer zu treffen."
+    "densityHint": "Kompakt ist auf Touch-Geräten schwerer zu treffen.",
+    "sidebarResizeHandle": "Breite der Seitenleiste",
+    "sidebarWidthReset": "Breite der Seitenleiste zurücksetzen"
   },
   "calculationDashboard": {
     "liveAnalysisStatus": "Live Analyse Status",

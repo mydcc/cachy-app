@@ -553,6 +553,12 @@ export class SettingsManager {
   set density(v: DisplaySettingsStore["density"]) {
     this.display.density = v;
   }
+  get sidebarWidth(): DisplaySettingsStore["sidebarWidth"] {
+    return this.display.sidebarWidth;
+  }
+  set sidebarWidth(v: DisplaySettingsStore["sidebarWidth"]) {
+    this.display.sidebarWidth = v;
+  }
   get showSpinButtons(): DisplaySettingsStore["showSpinButtons"] {
     return this.display.showSpinButtons;
   }

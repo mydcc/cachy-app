@@ -214,6 +214,13 @@
   --density-section-gap: 0.75rem;
   /* Multiplier for per-section gap steps (gap-2 … gap-6), see lib/ui/density. */
   --density-gap-scale: 1;
+  /* Left sidebar width (FEAT-0617). The app overrides it on the layout
+     wrapper with the user's value; this is the fallback before the store
+     hydrates. Its 384px matches SIDEBAR_WIDTH_DEFAULT in
+     src/lib/layout/sidebar.ts, which the reset button restores. Not a
+     density token: density changes control geometry, not the shell's
+     proportions. */
+  --sidebar-width: 384px;
 
   /*
    * The type scale.
