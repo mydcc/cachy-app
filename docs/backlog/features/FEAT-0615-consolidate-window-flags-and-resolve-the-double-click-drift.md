@@ -2,7 +2,7 @@
 id: FEAT-0615
 title: Consolidate the window flags and resolve the double-click state drift
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,6 +12,8 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0605]
+assignee: opencode
+branch: feature/feat-0615-window-flags
 ---
 
 # FEAT-0615 — Consolidate the window flags and resolve the double-click drift
@@ -40,6 +42,12 @@ persisted state can still carry. A user who saved window state before the
 narrowing has a value the type no longer admits, and their window can behave
 differently on reload than it did before.
 
+> **Corrected during implementation:** the window snapshot never carried
+> `doubleClickBehavior` — `persistedSnapshot` has no such key, and neither
+> `saveState` nor `restoreState` reads one. The drift was real in the type and
+> the resolver, but not persisted. The fix still normalizes at the config
+> boundary, because a hand-written registry config can carry it. See Progress.
+
 This is not cosmetic. Magnetic tiling has to decide what a window's edge
 behaviour is, and it cannot while two flags mean the same thing.
 
@@ -55,19 +63,20 @@ is migrated in the same PR.
 
 ## Acceptance criteria
 
-- [ ] `WindowFlags` has exactly one key per concern; every merged or removed key
-      is listed in the PR description with its replacement
-- [ ] All 17 window implementations compile against the reduced flag set
-- [ ] The persisted `doubleClickBehavior: 'minimize'` case is handled by an
-      explicit migration, with a test that feeds stored state containing it and
-      asserts the resolved behaviour
-- [ ] The migration runs on load for existing users without data loss; a test
-      covers a stored state written by the previous version
-- [ ] `WindowBase.saveState()` / `restoreState()` write and read the reduced set
-- [ ] Every window implementation's existing test passes unmodified
-- [ ] A docblock on `WindowFlags` states the precedence rule for the remaining
+- [x] `WindowFlags` has exactly one key per concern, with the capability/chrome
+      pairs (`allowMaximize`/`showMaximizeButton`, same for minimize) documented
+      as a split rather than a duplicate; every merged or removed key is listed
+      in the PR description with its replacement
+- [x] All 17 window implementations compile against the reduced flag set
+- [x] The legacy `doubleClickBehavior: 'minimize'` case is handled explicitly at
+      the `applyConfig` boundary, with a test that feeds the value there
+- [x] The load path carries existing users without data loss; a test covers a
+      stored state written by the previous version
+- [x] `WindowBase.saveState()` / `restoreState()` write and read the reduced set
+- [x] Every window implementation's existing test passes unmodified
+- [x] A docblock on `WindowFlags` states the precedence rule for the remaining
       keys, so the next overlapping flag is caught in review
-- [ ] No window's observable behaviour changes, except that a persisted
+- [x] No window's observable behaviour changes, except that a legacy
       `minimize` now resolves deterministically
 
 ## Out of scope
@@ -82,6 +91,32 @@ is migrated in the same PR.
       (`done`) already settled.
 - `zLayers.ts`, whose duplication against 29 raw z-index literals is catalogued
       as C3 in the audit and not yet filed as work.
+
+## Progress — 2026-10-23
+
+**The premise about persistence was wrong, and the fix follows the code.**
+`doubleClickBehavior` was never part of `WindowBase.persistedSnapshot` — the
+snapshot has always been position, size, maximize/minimize/pin, opacity, font
+size, zoom, price-in-title and symbol. The old value can therefore only arrive
+from a registry config, not from localStorage. `applyConfig` now normalizes it
+through `normalizeDoubleClickBehavior()`, so the resolver is total over
+`'maximize' | 'pin'` and a legacy `minimize` deterministically maximizes
+instead of silently minimizing. The stored-state case is covered by a test that
+writes the exact previous-version snapshot shape and asserts both the restored
+layout and the resolved action.
+
+**What actually overlapped:**
+
+| Key | Verdict |
+| --- | --- |
+| `doubleClickAction` | Removed — write-only, never read. `doubleClickBehavior` is the one double-click key. |
+| `showCachyIcon` | Removed — never read. `showIcon` is the one icon switch. |
+| `allowMaximize` + `showMaximizeButton` | Kept as a pair: capability vs. chrome. Reader windows maximize on double-click with the button hidden, so merging would change behaviour either way. |
+| `allowMinimize` + `showMinimizeButton` | Same reasoning. |
+| `isTransparent`, `enableGlassmorphism`, `showBackdrop`, `enableBurningBorders` | Kept: four independent effects, not aliases. |
+| `headerAction`, `headerButtons` | Kept: title-click action vs. the button list. |
+
+The precedence rule is now the first paragraph of the `WindowFlags` docblock.
 
 ## Open questions
 

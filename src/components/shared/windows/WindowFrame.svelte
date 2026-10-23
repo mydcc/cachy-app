@@ -628,7 +628,6 @@
                 const action = win.resolveDoubleClickAction();
                 if (action === "maximize") win.toggleMaximize();
                 else if (action === "pin") win.togglePin();
-                else if (action === "minimize") win.minimize();
             }
         }}
     >
@@ -644,8 +643,7 @@
                     const action = win.resolveDoubleClickAction();
                     if (action === "maximize") win.toggleMaximize();
                     else if (action === "pin") win.togglePin();
-                    else if (action === "minimize") win.minimize();
-                }
+                    }
             }}
         >
             {#if win.showIcon && !win.isMinimized}

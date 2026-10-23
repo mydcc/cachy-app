@@ -53,6 +53,18 @@ export interface WindowSerializedState {
 }
 
 /**
+ * `doubleClickBehavior` used to admit `'minimize'` before its type narrowed.
+ * The value never lived in the window snapshot (`persistedSnapshot` has no
+ * such key), so the only way it can still arrive is a hand-written or stale
+ * registry config. Normalizing at that boundary keeps the resolver total and
+ * makes the outcome deterministic: a legacy value maximizes, it does not
+ * silently minimize.
+ */
+export function normalizeDoubleClickBehavior(value: unknown): 'maximize' | 'pin' {
+    return value === 'pin' ? 'pin' : 'maximize';
+}
+
+/**
  * WindowBase is the abstract foundation for all windows in the application.
  * It leverages Svelte 5 Runes ($state, $effect) for reactive property management.
  * 
@@ -109,7 +121,6 @@ export abstract class WindowBase {
     private lastHeight = 480;
 
     // --- CONFIG FLAGS (Usually set via Registry Defaults) ---
-    showCachyIcon = $state(false);
     allowZoom = $state(false);
     allowFontSize = $state(false);
     allowMaximize = $state(true);
@@ -147,7 +158,6 @@ export abstract class WindowBase {
     // --- HARMONIZATION & INTERACTION ---
     showIcon = $state(true);
     hasContextMenu = $state(false);
-    doubleClickAction: 'maximize' | 'edgeToEdge' = $state('maximize');
     /** Max instances of this SPECIFIC window type. (0 = no limit) */
     maxInstances = $state(0);
     autoScaling = $state(false);
@@ -475,7 +485,6 @@ export abstract class WindowBase {
         this.isTransparent = f.isTransparent ?? false;
         this.enableGlassmorphism = f.enableGlassmorphism ?? true;
         this.enableBurningBorders = f.enableBurningBorders ?? true;
-        this.showCachyIcon = f.showCachyIcon ?? false;
         this.allowZoom = f.allowZoom ?? false;
         this.allowFontSize = f.allowFontSize ?? false;
         this.allowMaximize = f.allowMaximize ?? true;
@@ -494,7 +503,6 @@ export abstract class WindowBase {
 
         this.showIcon = f.showIcon ?? true;
         this.hasContextMenu = f.hasContextMenu ?? false;
-        this.doubleClickAction = f.doubleClickAction ?? 'maximize';
         this.maxInstances = f.maxInstances ?? 0;
         this.closeOnBlur = f.closeOnBlur ?? this.closeOnBlur;
         this.autoScaling = f.autoScaling ?? false;
@@ -504,7 +512,7 @@ export abstract class WindowBase {
         this.headerAction = f.headerAction ?? 'none';
         this.headerButtons = f.headerButtons ?? [];
         this.pinSide = f.pinSide ?? 'none';
-        this.doubleClickBehavior = f.doubleClickBehavior ?? 'maximize';
+        this.doubleClickBehavior = normalizeDoubleClickBehavior(f.doubleClickBehavior);
 
         const l = config.layout;
         if (l.x !== undefined) this.x = l.x;
@@ -726,15 +734,12 @@ export abstract class WindowBase {
      * WindowFrame.svelte, which previously duplicated this exact three-way
      * check in two separate double-click handlers.
      *
-     * Widened to accept a persisted `doubleClickBehavior` of `'minimize'`:
-     * the type narrowed to `'maximize' | 'pin'` after that value could
-     * already have been written, so a window restored from state saved
-     * before the narrowing can still carry it.
+     * Total over the declared type: `applyConfig` normalizes a legacy
+     * `'minimize'` before it can reach this method, so there is no cast here.
      */
-    resolveDoubleClickAction(): 'maximize' | 'pin' | 'minimize' | null {
+    resolveDoubleClickAction(): 'maximize' | 'pin' | null {
         if (this.doubleClickBehavior === 'maximize' && this.allowMaximize) return 'maximize';
         if (this.doubleClickBehavior === 'pin') return 'pin';
-        if (this.allowMinimize && (this.doubleClickBehavior as string) === 'minimize') return 'minimize';
         return null;
     }
 

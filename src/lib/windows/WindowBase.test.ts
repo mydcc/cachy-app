@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { WindowBase } from "./WindowBase.svelte";
+import { WindowBase, normalizeDoubleClickBehavior } from "./WindowBase.svelte";
 
 class TestWindow extends WindowBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,22 +213,75 @@ describe("WindowBase.resolveDoubleClickAction (FEAT-0044)", () => {
         expect(win.resolveDoubleClickAction()).toBe("pin");
     });
 
-    it("returns 'minimize' for a legacy persisted 'minimize' value when minimizing is allowed", () => {
+    it("normalizes a legacy value at the applyConfig boundary", () => {
         const win = makeTestWindow();
-        // The type narrowed to 'maximize' | 'pin' after this value could
-        // already have been written to localStorage by an older session --
-        // cast past the narrowed type the same way restoreState() would
-        // read it back from JSON.
-        win.doubleClickBehavior = "minimize" as "maximize" | "pin";
-        win.allowMinimize = true;
-        expect(win.resolveDoubleClickAction()).toBe("minimize");
+
+        // `applyConfig` is private and the registry has no register API, so the
+        // only honest way to pin the boundary is to call it as the constructor does.
+        (win as unknown as { applyConfig(config: unknown): void }).applyConfig({
+            type: "window",
+            flags: { doubleClickBehavior: "minimize" },
+            layout: {},
+        });
+
+        expect(win.doubleClickBehavior).toBe("maximize");
     });
 
-    it("returns null for a legacy 'minimize' value when minimizing is disallowed", () => {
+    it("normalizes a legacy 'minimize' before it reaches the resolver", () => {
         const win = makeTestWindow();
-        win.doubleClickBehavior = "minimize" as "maximize" | "pin";
-        win.allowMinimize = false;
-        expect(win.resolveDoubleClickAction()).toBeNull();
+        win.doubleClickBehavior = normalizeDoubleClickBehavior("minimize");
+        win.allowMinimize = true;
+
+        expect(win.doubleClickBehavior).toBe("maximize");
+        expect(win.resolveDoubleClickAction()).toBe("maximize");
+    });
+});
+
+describe("normalizeDoubleClickBehavior (FEAT-0615)", () => {
+    it("keeps 'pin' and maps every other value to 'maximize'", () => {
+        expect(normalizeDoubleClickBehavior("pin")).toBe("pin");
+        expect(normalizeDoubleClickBehavior("minimize")).toBe("maximize");
+        expect(normalizeDoubleClickBehavior(undefined)).toBe("maximize");
+        expect(normalizeDoubleClickBehavior("edgeToEdge")).toBe("maximize");
+    });
+});
+
+describe("WindowBase restores state written by the previous version (FEAT-0615)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it("restores the layout snapshot and keeps a deterministic double click", () => {
+        const id = "previous-version-window";
+        // Exactly the shape `persistedSnapshot` has always written: no
+        // double-click key, because that flag was never part of the snapshot.
+        localStorage.setItem(
+            `cachy_win_${id}`,
+            JSON.stringify({
+                x: 120,
+                y: 64,
+                width: 720,
+                height: 480,
+                isMaximized: false,
+                isMinimized: false,
+                isPinned: false,
+                pinSide: "none",
+                opacity: 1,
+                fontSize: 14,
+                zoomLevel: 1,
+                showPriceInTitle: false,
+                symbol: "",
+            }),
+        );
+
+        const win = new TestWindow({ id });
+
+        expect(win.x).toBe(120);
+        expect(win.y).toBe(64);
+        expect(win.width).toBe(720);
+        expect(win.height).toBe(480);
+        expect(win.doubleClickBehavior).toBe("maximize");
+        expect(win.resolveDoubleClickAction()).toBe("maximize");
     });
 });
 

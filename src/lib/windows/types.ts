@@ -19,6 +19,23 @@
  * WindowFlags define the behavioral and visual capabilities of a window.
  * These flags are used by WindowBase and WindowFrame to determine how a window
  * interacts with the user and the environment.
+ *
+ * Precedence, so a new flag does not silently duplicate an existing one:
+ *
+ * - A capability and its chrome are different concerns. `allowMaximize` /
+ *   `allowMinimize` decide what the window may do (double-click, API);
+ *   `showMaximizeButton` / `showMinimizeButton` decide whether the button is
+ *   drawn. Reader windows keep the capability and hide the button, which is
+ *   why the pair is not merged.
+ * - Double-click has exactly one key: `doubleClickBehavior`. The old
+ *   `doubleClickAction` was write-only and is removed; `pin` is the assistant
+ *   window's experimental tiling, every other window maximizes.
+ * - The chrome effects are independent, not aliases: `isTransparent` is the
+ *   alpha of frame and content, `enableGlassmorphism` the blur over it,
+ *   `showBackdrop` the dim behind the window, `enableBurningBorders` the glow.
+ * - `showIcon` is the only icon switch. The legacy `showCachyIcon` was never
+ *   read and is removed.
+ * - `headerAction` is the title-text click; `headerButtons` is the button list.
  */
 export interface WindowFlags {
     /** Whether the window can be resized by the user via handles. */
@@ -31,15 +48,16 @@ export interface WindowFlags {
     enableGlassmorphism?: boolean;
     /** Enables glowing/pulsing border effects (Burn effect). */
     enableBurningBorders?: boolean;
-    /** Legacy flag for Cachy icon visibility. */
-    showCachyIcon?: boolean;
     /** Whether the user can zoom the content via header buttons. */
     allowZoom?: boolean;
     /** Whether the font size can be adjusted via header buttons. */
     allowFontSize?: boolean;
-    /** Enables the maximize button and double-click to maximize behavior. */
+    /** Whether the window may be maximized at all (double-click, API). The
+     *  header button is gated separately by `showMaximizeButton`, which
+     *  defaults to this. */
     allowMaximize?: boolean;
-    /** Enables the minimize button. */
+    /** Whether the window may be minimized at all. The header button is gated
+     *  separately by `showMinimizeButton`, which defaults to this. */
     allowMinimize?: boolean;
     /** Whether the window can minimize into a docking bar (usually top bar). */
     canMinimizeToPanel?: boolean;
@@ -82,8 +100,6 @@ export interface WindowFlags {
     showIcon?: boolean;
     /** Whether a right-click on the header opens a settings/context menu. */
     hasContextMenu?: boolean;
-    /** Action triggered on double click. */
-    doubleClickAction?: 'maximize' | 'edgeToEdge';
     /** Maximum number of instances allowed globally for this type. */
     maxInstances?: number;
     /** If true, clicking outside the window or pressing Escape closes it. */
