@@ -2688,7 +2688,9 @@
     "densityCompact": "Compact",
     "densityDefault": "Default",
     "densityWide": "Wide",
-    "densityHint": "Compact controls are harder to hit on a touch screen."
+    "densityHint": "Compact controls are harder to hit on a touch screen.",
+    "sidebarResizeHandle": "Sidebar width",
+    "sidebarWidthReset": "Reset sidebar width"
   },
   "positionsList": {
     "noOpenPositions": "No open positions.",

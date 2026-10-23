@@ -15,6 +15,7 @@
 
 import type { AiAnalysisMode } from "../../types/ai";
 import { VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
+import { SIDEBAR_WIDTH_DEFAULT } from "../../lib/layout/sidebar";
 import { AI_ALLOWED_ACTIONS_DEFAULT } from "../../lib/ai/actionPolicy";
 import type { EncryptedBlob } from "../../services/cryptoService";
 import type { ExchangeAccount } from "./accounts";
@@ -358,6 +359,13 @@ export interface Settings {
   sidePanelMode: "chat" | "notes" | "ai";
   chatStyle: "minimal" | "bubble" | "terminal";
   density: DensityMode;
+  /**
+   * Left sidebar width in px (FEAT-0617). Sanitized through
+   * `clampSidebarWidth` on load; the rendered width is capped by the
+   * viewport in `+page.svelte` so a value chosen on a wide monitor cannot
+   * squeeze the calculator on a narrow one.
+   */
+  sidebarWidth: number;
   maxPrivateNotes: number;
   customSystemPrompt: string;
   aiProvider: AiProvider;
@@ -617,6 +625,7 @@ export const defaultSettings: Settings = {
   sidePanelMode: "ai",
   chatStyle: "minimal",
   density: "default",
+  sidebarWidth: SIDEBAR_WIDTH_DEFAULT,
   customSystemPrompt: "",
   aiProvider: "gemini",
   openaiApiKey: "",

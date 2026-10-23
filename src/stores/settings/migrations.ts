@@ -16,6 +16,7 @@
  */
 
 import { safeLocalStorage } from "../../utils/storageWrapper";
+import { clampSidebarWidth } from "../../lib/layout/sidebar";
 import { defaultSettings, type DensityMode } from "./settingsTypes";
 
 /**
@@ -112,4 +113,14 @@ export function resolveDensity(stored: unknown): DensityMode {
     // Read from the shipped defaults: a literal here would silently disagree
     // the day the default changes.
     : defaultSettings.density;
+}
+
+/**
+ * Restores the sidebar width (FEAT-0617). A profile written before the setting
+ * existed has no key; a hand-edited blob can hold anything. Both go through the
+ * same clamp as the drag handle, so the layout never receives a width the
+ * controls cannot produce.
+ */
+export function resolveSidebarWidth(stored: unknown): number {
+  return clampSidebarWidth(stored);
 }

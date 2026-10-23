@@ -53,6 +53,7 @@ import type {
 
 export class DisplaySettingsStore {
   density = $state<DensityMode>(defaultSettings.density);
+  sidebarWidth = $state<number>(defaultSettings.sidebarWidth);
   showSpinButtons = $state<boolean | "hover">(defaultSettings.showSpinButtons);
   disclaimerAccepted = $state<boolean>(defaultSettings.disclaimerAccepted);
   useUtcDateParsing = $state<boolean>(defaultSettings.useUtcDateParsing);
