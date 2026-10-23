@@ -37,7 +37,7 @@ might never trigger. It does trigger, at the 1000 px floating width — and it i
 lost again below the container threshold, which is reachable through responsive
 auto-maximize (`WindowBase.svelte.ts:364`, `edgeToEdgeBreakpoint: 768`, `:333`)
 and through a double-click maximize (`allowMaximize` `:326`,
-`doubleClickAction: 'maximize'` `:87`).
+`doubleClickBehavior` `:87`).
 
 Two things are actually open:
 

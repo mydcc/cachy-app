@@ -42,6 +42,12 @@ persisted state can still carry. A user who saved window state before the
 narrowing has a value the type no longer admits, and their window can behave
 differently on reload than it did before.
 
+> **Corrected during implementation:** the window snapshot never carried
+> `doubleClickBehavior` — `persistedSnapshot` has no such key, and neither
+> `saveState` nor `restoreState` reads one. The drift was real in the type and
+> the resolver, but not persisted. The fix still normalizes at the config
+> boundary, because a hand-written registry config can carry it. See Progress.
+
 This is not cosmetic. Magnetic tiling has to decide what a window's edge
 behaviour is, and it cannot while two flags mean the same thing.
 
@@ -57,11 +63,13 @@ is migrated in the same PR.
 
 ## Acceptance criteria
 
-- [x] `WindowFlags` has exactly one key per concern; every merged or removed key
-      is listed in the PR description with its replacement
+- [x] `WindowFlags` has exactly one key per concern, with the capability/chrome
+      pairs (`allowMaximize`/`showMaximizeButton`, same for minimize) documented
+      as a split rather than a duplicate; every merged or removed key is listed
+      in the PR description with its replacement
 - [x] All 17 window implementations compile against the reduced flag set
-- [x] The legacy `doubleClickBehavior: 'minimize'` case is handled explicitly,
-      with a test that feeds the value and asserts the resolved behaviour
+- [x] The legacy `doubleClickBehavior: 'minimize'` case is handled explicitly at
+      the `applyConfig` boundary, with a test that feeds the value there
 - [x] The load path carries existing users without data loss; a test covers a
       stored state written by the previous version
 - [x] `WindowBase.saveState()` / `restoreState()` write and read the reduced set

@@ -53,18 +53,6 @@ export interface WindowSerializedState {
 }
 
 /**
- * WindowBase is the abstract foundation for all windows in the application.
- * It leverages Svelte 5 Runes ($state, $effect) for reactive property management.
- * 
- * Responsibilities:
- * - Geometric state (x, y, width, height)
- * - Window state (maximized, minimized, focused, pinned)
- * - Configuration inheritance from WindowRegistry
- * - State persistence to LocalStorage
- * - Responsive behavior (auto-maximize on mobile)
- * - Core feature logic (zoom, font size, headers)
- */
-/**
  * `doubleClickBehavior` used to admit `'minimize'` before its type narrowed.
  * The value never lived in the window snapshot (`persistedSnapshot` has no
  * such key), so the only way it can still arrive is a hand-written or stale
@@ -76,6 +64,18 @@ export function normalizeDoubleClickBehavior(value: unknown): 'maximize' | 'pin'
     return value === 'pin' ? 'pin' : 'maximize';
 }
 
+/**
+ * WindowBase is the abstract foundation for all windows in the application.
+ * It leverages Svelte 5 Runes ($state, $effect) for reactive property management.
+ * 
+ * Responsibilities:
+ * - Geometric state (x, y, width, height)
+ * - Window state (maximized, minimized, focused, pinned)
+ * - Configuration inheritance from WindowRegistry
+ * - State persistence to LocalStorage
+ * - Responsive behavior (auto-maximize on mobile)
+ * - Core feature logic (zoom, font size, headers)
+ */
 export abstract class WindowBase {
     /** Unique ID for this instance. Defaults to a random UUID. */
     id: string = generateId();

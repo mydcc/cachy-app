@@ -52,9 +52,12 @@ export interface WindowFlags {
     allowZoom?: boolean;
     /** Whether the font size can be adjusted via header buttons. */
     allowFontSize?: boolean;
-    /** Enables the maximize button and double-click to maximize behavior. */
+    /** Whether the window may be maximized at all (double-click, API). The
+     *  header button is gated separately by `showMaximizeButton`, which
+     *  defaults to this. */
     allowMaximize?: boolean;
-    /** Enables the minimize button. */
+    /** Whether the window may be minimized at all. The header button is gated
+     *  separately by `showMinimizeButton`, which defaults to this. */
     allowMinimize?: boolean;
     /** Whether the window can minimize into a docking bar (usually top bar). */
     canMinimizeToPanel?: boolean;

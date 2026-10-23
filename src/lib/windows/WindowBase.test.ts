@@ -213,6 +213,20 @@ describe("WindowBase.resolveDoubleClickAction (FEAT-0044)", () => {
         expect(win.resolveDoubleClickAction()).toBe("pin");
     });
 
+    it("normalizes a legacy value at the applyConfig boundary", () => {
+        const win = makeTestWindow();
+
+        // `applyConfig` is private and the registry has no register API, so the
+        // only honest way to pin the boundary is to call it as the constructor does.
+        (win as unknown as { applyConfig(config: unknown): void }).applyConfig({
+            type: "window",
+            flags: { doubleClickBehavior: "minimize" },
+            layout: {},
+        });
+
+        expect(win.doubleClickBehavior).toBe("maximize");
+    });
+
     it("normalizes a legacy 'minimize' before it reaches the resolver", () => {
         const win = makeTestWindow();
         win.doubleClickBehavior = normalizeDoubleClickBehavior("minimize");
