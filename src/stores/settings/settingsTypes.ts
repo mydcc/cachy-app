@@ -15,6 +15,7 @@
 
 import type { AiAnalysisMode } from "../../types/ai";
 import { VENUE_DEFAULT_FEE_RATES } from "../../lib/constants";
+import { SIDEBAR_WIDTH_DEFAULT } from "../../lib/layout/sidebar";
 import { AI_ALLOWED_ACTIONS_DEFAULT } from "../../lib/ai/actionPolicy";
 import type { EncryptedBlob } from "../../services/cryptoService";
 import type { ExchangeAccount } from "./accounts";
@@ -624,7 +625,7 @@ export const defaultSettings: Settings = {
   sidePanelMode: "ai",
   chatStyle: "minimal",
   density: "default",
-  sidebarWidth: 384,
+  sidebarWidth: SIDEBAR_WIDTH_DEFAULT,
   customSystemPrompt: "",
   aiProvider: "gemini",
   openaiApiKey: "",

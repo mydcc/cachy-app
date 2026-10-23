@@ -103,16 +103,24 @@ that makes the arrangement user-owned.
   the load path (`resolveSidebarWidth`) and the reset.
 - The width persists as `settings.sidebarWidth` in the display section.
 - `SidebarResizeHandle.svelte` is a focusable `separator` (Arrow keys, Home/End,
-  pointer drag) with a sticky reset button that appears only while the width
-  differs from the default.
+  pointer drag) with a reset button that appears while the *stored* preference
+  differs from the default. It sits in the grid gap, returns focus to the
+  separator, and its pointer handling lives on the window so a lost pointerup
+  cannot leave it dragging.
+- The parent measures the grid track with a `ResizeObserver` and passes the
+  effective ceiling to the handle. The ARIA range is therefore the range the
+  layout can render: when the track is not wider than the 280 px floor (1280 and
+  1440 in the measurements), no separator is drawn — there is nothing to drag.
+  A stored non-default width still offers reset.
 - The shell caps at its grid column, so a stored maximum cannot push the
   calculator off the `xl` grid. Measured with Playwright at 1280/1440/1920/2560:
-  `scrollWidth === viewport`, the main column stays 768 px, and `TechPanel`
-  stays right of the sidebar at compact and wide density. Below `xl` (1024) no
-  shell or handle renders.
+  `scrollWidth === viewport`, the main column stays 768 px, the handle reaches
+  520 px at 1920 and the full 640 at 2560, and `TechPanel` stays right of the
+  sidebar at compact and wide density. Below `xl` (1024) no shell or handle
+  renders.
 - BUG-0410 stays covered by `ExchangeAccountControls.component.test.ts`
   ("fetches position mode on mount when the sidebar never did").
 - Pre-existing, not introduced here: an autosave that lands while another
   `save()` holds `saveLock` is dropped (`settings.svelte.ts`), so a change in
-  the first seconds after boot can be lost until the next settings write. It
-  was visible while verifying this item and deserves its own bug entry.
+  the first seconds after boot can be lost until the next settings write. It is
+  tracked as [BUG-0730](../bugs/BUG-0730-settings-change-during-save-is-dropped.md).

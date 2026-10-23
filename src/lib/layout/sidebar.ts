@@ -44,6 +44,15 @@ export const SIDEBAR_WIDTH_MAX = 640;
 export const SIDEBAR_WIDTH_STEP = 16;
 
 /**
+ * Rounds a value into an arbitrary range. The handle needs the same rounding
+ * and ordering as the stored-width clamp, but against the range the layout can
+ * actually render at the current viewport (FEAT-0617 review).
+ */
+export function clampToRange(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+/**
  * Rounds a stored or dragged value into the supported range. Anything that is
  * not a finite number (a missing key from an older profile, a hand-edited blob)
  * falls back to the shipped default rather than reaching the layout as `NaN`.
@@ -51,8 +60,5 @@ export const SIDEBAR_WIDTH_STEP = 16;
 export function clampSidebarWidth(value: unknown): number {
   const width = typeof value === "number" ? value : Number.NaN;
   if (!Number.isFinite(width)) return SIDEBAR_WIDTH_DEFAULT;
-  return Math.min(
-    SIDEBAR_WIDTH_MAX,
-    Math.max(SIDEBAR_WIDTH_MIN, Math.round(width)),
-  );
+  return clampToRange(width, SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX);
 }

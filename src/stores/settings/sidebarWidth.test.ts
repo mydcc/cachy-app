@@ -96,10 +96,12 @@ describe("sidebarWidth migration (FEAT-0617)", () => {
 
 describe("sidebarWidth serialization (FEAT-0617)", () => {
   it("writes the chosen width through the manager", () => {
-    settingsState.sidebarWidth = 420;
-    expect(settingsState.sidebarWidth).toBe(420);
-    expect(settingsState.toJSON().sidebarWidth).toBe(420);
-
-    settingsState.sidebarWidth = SIDEBAR_WIDTH_DEFAULT;
+    try {
+      settingsState.sidebarWidth = 420;
+      expect(settingsState.sidebarWidth).toBe(420);
+      expect(settingsState.toJSON().sidebarWidth).toBe(420);
+    } finally {
+      settingsState.sidebarWidth = SIDEBAR_WIDTH_DEFAULT;
+    }
   });
 });

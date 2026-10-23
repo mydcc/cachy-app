@@ -262,11 +262,37 @@
    * FEAT-0617: the drag preview. Committing on every pointermove would write
    * the settings store (and its autosave) dozens of times per gesture, so the
    * live width is local and only the release persists it.
+   *
+   * The grid track is the hard ceiling. Below it the calculator loses its
+   * `xl:min-w-3xl`, so the handle must report that ceiling instead of a range
+   * the layout can never render (review finding on the first version).
    */
   let sidebarWidthDraft = $state<number | null>(null);
-  let sidebarWidth = $derived(
-    clampSidebarWidth(sidebarWidthDraft ?? settingsState.sidebarWidth),
+  let sidebarColumn = $state<HTMLElement | null>(null);
+  let sidebarTrackWidth = $state(0);
+  let sidebarStoredWidth = $derived(clampSidebarWidth(settingsState.sidebarWidth));
+  let sidebarMaxWidth = $derived(
+    sidebarTrackWidth > 0
+      ? Math.min(SIDEBAR_WIDTH_MAX, sidebarTrackWidth)
+      : SIDEBAR_WIDTH_MAX,
   );
+  let sidebarMinWidth = $derived(Math.min(SIDEBAR_WIDTH_MIN, sidebarMaxWidth));
+  let sidebarWidth = $derived(
+    Math.min(
+      clampSidebarWidth(sidebarWidthDraft ?? sidebarStoredWidth),
+      sidebarMaxWidth,
+    ),
+  );
+
+  $effect(() => {
+    const column = sidebarColumn;
+    if (!column || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      sidebarTrackWidth = Math.round(entries[0]?.contentRect.width ?? 0);
+    });
+    observer.observe(column);
+    return () => observer.disconnect();
+  });
 
   function previewSidebarWidth(width: number) {
     sidebarWidthDraft = width;
@@ -276,7 +302,12 @@
     settingsState.sidebarWidth = clampSidebarWidth(width);
     sidebarWidthDraft = null;
   }
-  let sidebarWidthClass = $derived(
+
+  function cancelSidebarWidth() {
+    sidebarWidthDraft = null;
+  }
+
+  let rightSidebarWidthClass = $derived(
     isTechnicalsDocked
       ? settingsState.showIndicatorParams
         ? "w-[22rem]"
@@ -334,7 +365,10 @@
 >
   {#if settingsState.showSidebars}
     <!-- Left Sidebar: Positions Table & Sentiment (Sticky) -->
-    <div class="relative hidden xl:flex justify-self-end self-stretch max-w-full min-w-0">
+    <div
+      bind:this={sidebarColumn}
+      class="relative hidden xl:flex justify-end self-stretch w-full min-w-0"
+    >
       <div class="sidebar-shell sticky top-8 flex flex-col gap-3 shrink-0 z-40 h-fit">
         {#if settingsState.showMarketSentiment}
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
@@ -342,18 +376,20 @@
         {#if settingsState.effectiveShowSidebarActivity}
           <PositionsSidebar fetchEnabled={isDesktopXl} />
         {/if}
+        <SidebarResizeHandle
+          width={sidebarWidth}
+          min={sidebarMinWidth}
+          max={sidebarMaxWidth}
+          step={SIDEBAR_WIDTH_STEP}
+          defaultWidth={SIDEBAR_WIDTH_DEFAULT}
+          showReset={sidebarStoredWidth !== SIDEBAR_WIDTH_DEFAULT}
+          label={$_("settings.sidebarResizeHandle")}
+          resetLabel={$_("settings.sidebarWidthReset")}
+          onResize={previewSidebarWidth}
+          onCommit={commitSidebarWidth}
+          onCancel={cancelSidebarWidth}
+        />
       </div>
-      <SidebarResizeHandle
-        width={sidebarWidth}
-        min={SIDEBAR_WIDTH_MIN}
-        max={SIDEBAR_WIDTH_MAX}
-        step={SIDEBAR_WIDTH_STEP}
-        defaultWidth={SIDEBAR_WIDTH_DEFAULT}
-        label={$_("settings.sidebarResizeHandle")}
-        resetLabel={$_("settings.sidebarWidthReset")}
-        onResize={previewSidebarWidth}
-        onCommit={commitSidebarWidth}
-      />
     </div>
   {/if}
 
@@ -791,7 +827,7 @@
     <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
     <div class="hidden xl:flex justify-self-start self-stretch">
       <div
-        class="sticky top-8 flex flex-col gap-3 shrink-0 transition-colors duration-300 z-40 h-fit {sidebarWidthClass}"
+        class="sticky top-8 flex flex-col gap-3 shrink-0 transition-colors duration-300 z-40 h-fit {rightSidebarWidthClass}"
       >
         <!-- Main current symbol -->
         {#if settingsState.showMarketOverview}
