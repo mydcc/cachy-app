@@ -18,7 +18,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@playwright/mcp@latest"
+        "@playwright/mcp@0.0.83"
       ],
       "env": {}
     },
@@ -27,7 +27,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-filesystem",
+        "@modelcontextprotocol/server-filesystem@1.0.0",
         "/home/pat/Dokumente/GitHub/cachy-app"
       ],
       "env": {}
