@@ -1407,6 +1407,12 @@ export class SettingsManager {
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
   private effectCleanup: (() => void) | null = null;
   private saveLock = false; // Prevents concurrent saves
+  /**
+   * BUG-0730: a save that arrives while `saveLock` is held is queued, not
+   * dropped. One follow-up is enough — it reads the whole store, so it covers
+   * every change made during the in-flight save.
+   */
+  private savePending = false;
   private storageListener: ((e: StorageEvent) => void) | null = null;
 
   /**
@@ -2114,7 +2120,14 @@ export class SettingsManager {
   }
 
   private async save() {
-    if (!browser || !this.effectActive || this.saveLock) return;
+    if (!browser || !this.effectActive) return;
+
+    if (this.saveLock) {
+      // Do not drop the autosave effect's call: the change would stay in the
+      // store until some later edit happened to schedule another write.
+      this.savePending = true;
+      return;
+    }
 
     this.saveLock = true;
 
@@ -2209,6 +2222,15 @@ export class SettingsManager {
       }
     } finally {
       this.saveLock = false;
+
+      // Drain the one queued write after the lock releases, while the store is
+      // still active (`destroy()` deliberately stops writing). This is not a
+      // loop: a change during the follow-up sets `savePending` again and gets
+      // exactly one more follow-up of its own.
+      if (this.savePending) {
+        this.savePending = false;
+        void this.save();
+      }
     }
   }
 
