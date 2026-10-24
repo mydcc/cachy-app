@@ -2,7 +2,7 @@
 id: BUG-0708
 title: Changing the English technical-terms setting has no effect until reload
 type: bug
-status: specced
+status: done
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -10,6 +10,8 @@ area: ui
 data_class: A
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/ui-small-defects-0708-0696
 size: XS
 estimate: 1
 ---
@@ -63,12 +65,12 @@ The settings input has no trigger.
 
 ## Acceptance criteria
 
-- [ ] Toggling the setting switches the effective locale between `de` and
+- [x] Toggling the setting switches the effective locale between `de` and
       `de-tech` immediately, with no reload.
-- [ ] A test reproduces the current behaviour first (setting change alone
+- [x] A test reproduces the current behaviour first (setting change alone
       leaves the locale at `de`) and passes after the fix.
-- [ ] Existing `buildDeTechDict` tests stay green.
-- [ ] `<html lang>` remains `de` in both `de` and `de-tech` (WCAG 3.1.1).
+- [x] Existing `buildDeTechDict` tests stay green.
+- [x] `<html lang>` remains `de` in both `de` and `de-tech` (WCAG 3.1.1).
 
 ## Out of scope
 
@@ -83,3 +85,19 @@ The settings input has no trigger.
 - `src/locales/i18n.loaders.test.ts` — dictionary overlay tests
 - `src/components/settings/tabs/SystemTab.svelte` — the toggle
 - `src/stores/settings/settingsTypes.ts` — `forceEnglishTechnicalTerms`
+
+## Progress — 2026-10-24
+
+`updateEffectiveLocale` is exported. `LocaleSync.svelte`, mounted once in
+`+layout.svelte`, tracks `settingsState.forceEnglishTechnicalTerms` and calls
+it; the sequence token inside the function keeps rapid toggles race-safe.
+
+`<html lang>` needed a second fix: svelte-i18n mirrors the *applied* locale into
+the attribute, so the hybrid `de-tech` overwrote the `de` set by the public
+locale subscription. The i18n module now subscribes to the applied svelte-i18n
+locale and maps `de*` to `de`.
+
+Covered by `LocaleSync.component.test.ts`: the pre-fix baseline (a setting
+change without the sync leaves the locale at `de`) and the mounted sync
+(`de` → `de-tech` → `de`, with `lang="de"` both times).
+`i18n.loaders.test.ts` stays green.

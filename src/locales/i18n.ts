@@ -228,7 +228,7 @@ export const locale = writable<string | null>(initialLocaleValue);
 // makes superseded switches a no-op, so the previously loaded dictionary keeps
 // rendering while the new one streams in — no raw $key flashes.
 let applySeq = 0;
-async function updateEffectiveLocale() {
+export async function updateEffectiveLocale() {
   if (typeof window === "undefined") return;
   const currentLocale = get(locale);
   const settings = settingsState;
@@ -260,6 +260,13 @@ function syncDocumentLang(value: string) {
   if (typeof document === "undefined") return;
   document.documentElement.lang = value.startsWith("de") ? "de" : "en";
 }
+
+// svelte-i18n mirrors the locale into <html lang> asynchronously (it flushes
+// the dictionary before setting the internal store). Subscribe to the applied
+// value so the hybrid "de-tech" is corrected after it lands, not before.
+svelteLocale.subscribe((value) => {
+  if (value) syncDocumentLang(value);
+});
 
 // Subscribe to the public 'locale' store
 locale.subscribe((value) => {

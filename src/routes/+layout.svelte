@@ -49,6 +49,7 @@ import { afterNavigate } from "$app/navigation";
 
   import WindowContainer from "../components/shared/windows/WindowContainer.svelte";
   import GlobalTracker from "../components/shared/GlobalTracker.svelte";
+  import LocaleSync from "../components/shared/LocaleSync.svelte";
 
   import "../app.css";
 
@@ -589,6 +590,7 @@ import { afterNavigate } from "$app/navigation";
   {/if}
   <OfflineBanner />
   <BackgroundRenderer />
+  <LocaleSync />
   <!-- Rendering Layers for Visual Effects -->
   {#if settingsState.enableAmbientTopline && AmbientToplineComponent}
     <AmbientToplineComponent />
