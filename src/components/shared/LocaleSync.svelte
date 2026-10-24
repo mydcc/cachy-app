@@ -29,9 +29,9 @@
   import { updateEffectiveLocale } from "../../locales/i18n";
 
   $effect(() => {
-    // Read the flag so this effect subscribes to it; the function also reads
-    // it synchronously, but the explicit read documents the dependency.
-    settingsState.forceEnglishTechnicalTerms;
-    void updateEffectiveLocale();
+    // Passing the flag subscribes this effect to it; reading it inside
+    // `updateEffectiveLocale` alone would not create a dependency for the
+    // caller, and a bare expression trips no-unused-expressions.
+    void updateEffectiveLocale(settingsState.forceEnglishTechnicalTerms);
   });
 </script>

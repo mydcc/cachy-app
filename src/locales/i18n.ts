@@ -228,13 +228,24 @@ export const locale = writable<string | null>(initialLocaleValue);
 // makes superseded switches a no-op, so the previously loaded dictionary keeps
 // rendering while the new one streams in — no raw $key flashes.
 let applySeq = 0;
-export async function updateEffectiveLocale() {
+export async function updateEffectiveLocale(forceTechnicalTerms?: boolean) {
+  // Keep the window guard before every settings read: the locale store's
+  // subscription fires during module initialisation, where the settings
+  // singleton can still be undefined in a circular import (and `window` is
+  // absent in the unit project).
   if (typeof window === "undefined") return;
   const currentLocale = get(locale);
-  const settings = settingsState;
+
+  // `locale.subscribe` fires during module evaluation. In the
+  // settings -> ui -> i18n cycle the singleton can still be undefined at that
+  // point; the startup timeout runs again once the graph is complete.
+  const settings = settingsState as typeof settingsState | undefined;
+  if (!settings) return;
+
+  const force = forceTechnicalTerms ?? settings.forceEnglishTechnicalTerms;
 
   let target: string | null = currentLocale;
-  if (currentLocale === "de" && settings.forceEnglishTechnicalTerms) {
+  if (currentLocale === "de" && force) {
     // If user wants German but with English tech terms, switch to our hybrid locale
     target = "de-tech";
   }
@@ -249,7 +260,11 @@ export async function updateEffectiveLocale() {
   }
   // Superseded while loading — never apply; the newer switch will.
   if (seq !== applySeq) return;
-  svelteLocale.set(target);
+  // svelte-i18n flushes the dictionary and then sets its internal locale; wait
+  // for that before correcting <html lang>, or the library's own `de-tech`
+  // write lands after ours.
+  await Promise.resolve(svelteLocale.set(target));
+  syncDocumentLang(target);
 }
 
 // WCAG 3.1.1 (Language of Page): the <html lang> attribute must follow the
@@ -260,13 +275,6 @@ function syncDocumentLang(value: string) {
   if (typeof document === "undefined") return;
   document.documentElement.lang = value.startsWith("de") ? "de" : "en";
 }
-
-// svelte-i18n mirrors the locale into <html lang> asynchronously (it flushes
-// the dictionary before setting the internal store). Subscribe to the applied
-// value so the hybrid "de-tech" is corrected after it lands, not before.
-svelteLocale.subscribe((value) => {
-  if (value) syncDocumentLang(value);
-});
 
 // Subscribe to the public 'locale' store
 locale.subscribe((value) => {
