@@ -2,7 +2,9 @@
 id: FEAT-0616
 title: Add magnetic edge snapping and tiling to the window system
 type: feature
-status: specced
+status: done
+assignee: opencode
+branch: feature/feat-0616-window-snapping
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -53,27 +55,57 @@ folded in here.
 
 ## Acceptance criteria
 
-- [ ] Dragging a window within the snap threshold of an edge shows a visible
+- [x] Dragging a window within the snap threshold of an edge shows a visible
       preview of the zone it will occupy; leaving the threshold cancels it
-- [ ] Releasing inside the zone pins the window; releasing outside leaves the
+- [x] Releasing inside the zone pins the window; releasing outside leaves the
       position untouched
-- [ ] The snap threshold is a named constant, not a literal, and the value is
-      recorded in this item
-- [ ] Left and right edge snapping are implemented; top and bottom are either
-      implemented or explicitly deferred with the reason recorded here
-- [ ] Snapping never collides with the app shell's left and right sidebars: a
+- [x] The snap threshold is a named constant, not a literal, and the value is
+      recorded in this item (`SNAP_EDGE_THRESHOLD_PX = 48`)
+- [x] Left and right edge snapping are implemented; top and bottom are
+      explicitly deferred (see Progress)
+- [x] Snapping never collides with the app shell's left and right sidebars: a
       pinned window's geometry accounts for the visible sidebars at snap time
-- [ ] A pinned window restores its pinned geometry across a reload, and the
+- [x] A pinned window restores its pinned geometry across a reload, and the
       restored state matches what was saved
-- [ ] Every `$effect` that registers the drag listeners returns a cleanup
+- [x] Every `$effect` that registers the drag listeners returns a cleanup
       function
-- [ ] Keyboard operation exists for every snap action — a drag gesture alone is
+- [x] Keyboard operation exists for every snap action — a drag gesture alone is
       not reachable by keyboard
-- [ ] Every existing window implementation's test passes; new tests cover the
+- [x] Every existing window implementation's test passes; new tests cover the
       threshold, the preview, the cancel path and the reload path
-- [ ] `WindowFrame.svelte` grows by a defensible amount or the snapping logic
+- [x] `WindowFrame.svelte` grows by a defensible amount or the snapping logic
       is extracted to its own module; a 1373-line file does not become a
       1600-line file without comment
+
+## Progress
+
+Implemented. The geometry lives in `src/lib/windows/snapping.ts`:
+`detectSnapSide` uses `SNAP_EDGE_THRESHOLD_PX = 48`; `computeSnapGeometry`
+returns half of the usable width, inset by the visible cast shell sidebars.
+`readShellInsets` measures `[data-snap-sidebar="left"|"right"]`, which the app
+shell now exposes on the two sidebar containers.
+
+`WindowBase.snapToSide()` records the floating geometry, pins the side, tiles
+the window and saves the normal persisted snapshot, so a reload restores the
+same x/y/width/height. `togglePin()` restores the recorded floating geometry
+when unpinned. `WindowFrame` shows a fixed preview while the pointer is within
+the threshold, cancels it when the pointer leaves, and only snaps on
+`pointerup` (a `pointercancel` never commits). The frame keeps its geometry
+inline, so the saved pinned rectangle is exactly what renders.
+
+Keyboard: a focused window listens for `Alt+ArrowLeft` / `Alt+ArrowRight`;
+`focusin` raises a window when a keyboard user tabs into its header, and typing
+targets keep their native Option/Alt+Arrow behavior. The keydown effect
+registers on `window` only while the window is focused and returns its
+cleanup.
+
+Top/bottom are deferred: the shell has no vertical sidebar, but the top bar and
+the minimized dock would need their own collision rules; half-tiling left and
+right is the scope that actually interacts with the existing shell.
+
+Tests: `snapping.test.ts` (threshold, geometry, sidebar insets, typing target),
+`WindowBase.snapping.test.ts` (pin, persistence/reload, unpin restore, sidebar
+inset), `WindowFrame.component.test.ts` (preview, cancel, release, keyboard).
 
 ## Out of scope
 

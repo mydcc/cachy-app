@@ -310,6 +310,132 @@ describe("BUG-0710 — a header control raises its window", () => {
     });
 });
 
+describe("FEAT-0616 — magnetic edge snapping", () => {
+    it("previews an edge, cancels when leaving it, and pins on release", () => {
+        const oldWidth = window.innerWidth;
+        const oldHeight = window.innerHeight;
+        Object.defineProperty(window, "innerWidth", {
+            value: 1024,
+            configurable: true,
+        });
+        Object.defineProperty(window, "innerHeight", {
+            value: 768,
+            configurable: true,
+        });
+
+        try {
+            const { win } = mountFrame();
+            win.isPinned = false;
+            win.pinSide = "none";
+            win.x = 100;
+            win.y = 100;
+            win.width = 640;
+            win.height = 480;
+            flushSync();
+
+            const header = host!.querySelector<HTMLElement>(".window-header");
+            expect(header).not.toBeNull();
+            header!.dispatchEvent(
+                new PointerEvent("pointerdown", {
+                    pointerId: 1,
+                    clientX: 500,
+                    clientY: 100,
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+            flushSync();
+
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 10,
+                    clientY: 100,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            const preview =
+                host!.querySelector<HTMLElement>(".snap-preview");
+            expect(preview).not.toBeNull();
+            expect(preview!.style.width).toBe("512px");
+            expect(preview!.style.height).toBe("768px");
+
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 500,
+                    clientY: 100,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+            expect(host!.querySelector(".snap-preview")).toBeNull();
+
+            header!.dispatchEvent(
+                new PointerEvent("pointermove", {
+                    pointerId: 1,
+                    clientX: 10,
+                    clientY: 100,
+                    bubbles: true,
+                }),
+            );
+            header!.dispatchEvent(
+                new PointerEvent("pointerup", {
+                    pointerId: 1,
+                    clientX: 10,
+                    clientY: 100,
+                    bubbles: true,
+                }),
+            );
+            flushSync();
+
+            expect(host!.querySelector(".snap-preview")).toBeNull();
+            expect(win.isPinned).toBe(true);
+            expect(win.pinSide).toBe("left");
+            expect(win.x).toBe(0);
+            expect(win.y).toBe(0);
+            expect(win.width).toBe(512);
+            expect(win.height).toBe(768);
+        } finally {
+            Object.defineProperty(window, "innerWidth", {
+                value: oldWidth,
+                configurable: true,
+            });
+            Object.defineProperty(window, "innerHeight", {
+                value: oldHeight,
+                configurable: true,
+            });
+        }
+    });
+
+    it("offers the same snap actions from the keyboard", () => {
+        const { win } = mountFrame();
+        const frame = host!.querySelector<HTMLElement>(".window-frame");
+        expect(frame).not.toBeNull();
+        expect(frame!.getAttribute("aria-keyshortcuts")).toContain(
+            "Alt+ArrowRight",
+        );
+
+        win.isFocused = true;
+        flushSync();
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+                key: "ArrowRight",
+                altKey: true,
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        flushSync();
+
+        expect(win.isPinned).toBe(true);
+        expect(win.pinSide).toBe("right");
+        expect(win.x).toBe(window.innerWidth / 2);
+    });
+});
+
 describe("FEAT-0545 — the feed control follows the duck master switch", () => {
     it("hides the feed button while the companion is off", () => {
         const previous = settingsState.showDuck;

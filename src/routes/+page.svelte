@@ -369,7 +369,10 @@
       bind:this={sidebarColumn}
       class="relative hidden xl:flex justify-end self-stretch w-full min-w-0"
     >
-      <div class="sidebar-shell sticky top-8 flex flex-col gap-3 shrink-0 z-40 h-fit">
+      <div
+        class="sidebar-shell sticky top-8 flex flex-col gap-3 shrink-0 z-40 h-fit"
+        data-snap-sidebar="left"
+      >
         {#if settingsState.showMarketSentiment}
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
         {/if}
@@ -828,6 +831,7 @@
     <div class="hidden xl:flex justify-self-start self-stretch">
       <div
         class="sticky top-8 flex flex-col gap-3 shrink-0 transition-colors duration-300 z-40 h-fit {rightSidebarWidthClass}"
+        data-snap-sidebar="right"
       >
         <!-- Main current symbol -->
         {#if settingsState.showMarketOverview}

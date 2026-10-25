@@ -36,6 +36,16 @@
     import { windowManager, SAVE_DEBOUNCE_MS } from "../../../lib/windows/WindowManager.svelte";
     import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
     import { computeFittedHeight } from "../../../lib/windows/fitContentHeight";
+    import {
+        computeSnapGeometry,
+        detectSnapSide,
+        isTypingTarget,
+        readShellInsets,
+    } from "../../../lib/windows/snapping";
+    import type {
+        SnapGeometry,
+        SnapSide,
+    } from "../../../lib/windows/snapping";
     import { effectsState } from "../../../stores/effects.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
@@ -73,6 +83,8 @@
     let isDragging = $state(false);
     let showSettings = $state(false);
     let isResizing = $state(false);
+    let snapPreview = $state<SnapGeometry | null>(null);
+    let snapSide = $state<SnapSide | null>(null);
 
     // One-shot content fit (BUG-0411). Bound below; read once when the fit
     // effect runs. fitApplied suppresses the frame's size transition until
@@ -147,6 +159,35 @@
     }
 
     /**
+     * Keyboard parity for snapping. The frame is a tab stop, so Alt+Left /
+     * Alt+Right reach the same actions as a drag; typing targets keep their
+     * native Option/Alt+Arrow behaviour.
+     */
+    function handleFrameKeydown(e: KeyboardEvent) {
+        if (!e.altKey) return;
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        if (isTypingTarget(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        snapSide = null;
+        snapPreview = null;
+        win.snapToSide(e.key === "ArrowLeft" ? "left" : "right");
+    }
+
+    function handleFocusIn() {
+        if (!win.isFocused) windowManager.bringToFront(win.id);
+    }
+
+    // Only the focused window owns the shortcut; focusin above makes tabbing
+    // into a header button establish that focus without a pointer.
+    $effect(() => {
+        if (!win.isFocused) return;
+        const handler = (e: KeyboardEvent) => handleFrameKeydown(e);
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    });
+
+    /**
      * Stacking & Focus Management
      * Ensures the window is brought to the front when clicked.
      */
@@ -159,6 +200,23 @@
      * Uses Pointer Capture to allow movement across the entire screen once initiated
      * from the header bar.
      */
+    function updateSnapPreview(clientX: number) {
+        const side = detectSnapSide(clientX, window.innerWidth);
+        if (!side) {
+            snapSide = null;
+            snapPreview = null;
+            return;
+        }
+        snapSide = side;
+        snapPreview = computeSnapGeometry(
+            side,
+            window.innerWidth,
+            window.innerHeight,
+            readShellInsets(),
+            win.minWidth,
+        );
+    }
+
     function startDrag(e: PointerEvent) {
         if ((e.target as HTMLElement).closest(".window-controls") || (e.target as HTMLElement).closest(".header-controls")) return;
 
@@ -175,24 +233,34 @@
                 moveEvent.clientX - startX,
                 moveEvent.clientY - startY,
             );
+            updateSnapPreview(moveEvent.clientX);
         };
 
-        const endDrag = (endEvent: PointerEvent) => {
+        const endDrag = (endEvent: PointerEvent, commit: boolean) => {
             isDragging = false;
             target.releasePointerCapture(endEvent.pointerId);
             target.removeEventListener("pointermove", onPointerMove);
-            target.removeEventListener("pointerup", endDrag);
-            target.removeEventListener("pointercancel", endDrag);
+            target.removeEventListener("pointerup", onPointerUp);
+            target.removeEventListener("pointercancel", onPointerCancel);
+
+            if (commit && snapSide) {
+                win.snapToSide(snapSide);
+            }
+            snapSide = null;
+            snapPreview = null;
             flushSaveState();
         };
+        const onPointerUp = (endEvent: PointerEvent) => endDrag(endEvent, true);
+        const onPointerCancel = (endEvent: PointerEvent) =>
+            endDrag(endEvent, false);
 
         target.addEventListener("pointermove", onPointerMove);
-        target.addEventListener("pointerup", endDrag);
+        target.addEventListener("pointerup", onPointerUp);
         // The browser can cancel pointer capture mid-gesture (a system
         // gesture, a long-press menu) without ever firing pointerup. Without
         // this, isDragging and the listeners above never clear, and the
-        // window keeps following stray pointer input.
-        target.addEventListener("pointercancel", endDrag);
+        // window keeps following stray pointer input. A cancel never snaps.
+        target.addEventListener("pointercancel", onPointerCancel);
     }
 
     /**
@@ -539,10 +607,24 @@
     });
 </script>
 
+{#if snapPreview}
+    <div
+        class="snap-preview"
+        aria-hidden="true"
+        style:left={`${snapPreview.x}px`}
+        style:top={`${snapPreview.y}px`}
+        style:width={`${snapPreview.width}px`}
+        style:height={`${snapPreview.height}px`}
+        style:z-index={win.zIndex - 1}
+    ></div>
+{/if}
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
     bind:this={frameEl}
     class={extraClasses}
+    aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
+    onfocusin={handleFocusIn}
     class:window-frame={true}
     class:glass-panel={true}
     class:focused={win.isFocused}
@@ -559,16 +641,12 @@
         ? "auto"
         : win.isMaximized
           ? "0"
-          : win.isPinned && win.pinSide === "left"
-            ? "0"
-            : `${win.x}px`}
+          : `${win.x}px`}
     style:top={win.isMinimized
         ? "auto"
         : win.isMaximized
           ? "0"
-          : win.isPinned && (win.pinSide === "left" || win.pinSide === "top")
-            ? "0"
-            : `${win.y}px`}
+          : `${win.y}px`}
     style:width={win.isMinimized
         ? "210px"
         : win.isMaximized
@@ -578,9 +656,7 @@
         ? "34px"
         : win.isMaximized
           ? "100vh"
-          : win.isPinned && (win.pinSide === "left" || win.pinSide === "right")
-            ? "100vh"
-            : `${win.height}px`}
+          : `${win.height}px`}
     style:z-index={win.isMaximized ? win.maximizedZIndex : win.zIndex}
     style:opacity={win.opacity}
     style:transition={win.fitContentOnce && !fitApplied ? "none" : undefined}
@@ -1061,6 +1137,18 @@
     }
     .window-controls.hidden {
         display: none;
+    }
+    .snap-preview {
+        position: fixed;
+        pointer-events: none;
+        box-sizing: border-box;
+        background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+        border: 2px dashed var(--accent-color);
+        border-radius: var(--radius-lg);
+    }
+    .window-frame:focus-visible {
+        outline: 2px solid var(--accent-color);
+        outline-offset: -2px;
     }
     .window-frame.pinned-left {
         border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
