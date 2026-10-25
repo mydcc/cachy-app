@@ -19,19 +19,28 @@
   BUG-0708 — the effective locale depends on two inputs: the chosen UI locale
   and the "technical terms in English" flag. `i18n.ts` only re-evaluated it
   when the locale store changed, so flipping the flag left the screen on the
-  old dictionary until the next startup. Track the flag here, where a rune
-  effect is available, and re-run the same mapping the locale subscription
-  uses. The sequence token inside `updateEffectiveLocale` keeps rapid toggles
-  race-safe.
+  old dictionary until the next startup. This component is the bridge: it
+  tracks both inputs, owns the startup apply, and calls the same mapping the
+  locale subscription used to call. The sequence token inside
+  `updateEffectiveLocale` keeps rapid toggles race-safe.
 -->
 <script lang="ts">
   import { settingsState } from "../../stores/settings.svelte";
-  import { updateEffectiveLocale } from "../../locales/i18n";
+  import {
+    locale as requestedLocale,
+    updateEffectiveLocale,
+  } from "../../locales/i18n";
 
   $effect(() => {
-    // Passing the flag subscribes this effect to it; reading it inside
-    // `updateEffectiveLocale` alone would not create a dependency for the
-    // caller, and a bare expression trips no-unused-expressions.
-    void updateEffectiveLocale(settingsState.forceEnglishTechnicalTerms);
+    const force = settingsState.forceEnglishTechnicalTerms;
+    const selected = $requestedLocale;
+    if (!selected) return;
+
+    let live = true;
+    void updateEffectiveLocale(force, () => live);
+    return () => {
+      // A layout remount must not let the old apply overwrite the new one.
+      live = false;
+    };
   });
 </script>

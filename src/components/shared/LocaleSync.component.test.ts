@@ -27,13 +27,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mount, unmount, flushSync } from "svelte";
 import { get } from "svelte/store";
 import { locale as svelteLocale } from "svelte-i18n";
-import { i18nReady, setLocale } from "../../locales/i18n";
+import {
+  i18nReady,
+  setLocale,
+  updateEffectiveLocale,
+} from "../../locales/i18n";
 import { settingsState } from "../../stores/settings.svelte";
 import LocaleSync from "./LocaleSync.svelte";
-
-vi.mock("$app/env", () => ({
-  browser: true,
-}));
 
 vi.mock("../../services/cryptoService", () => ({
   cryptoService: {
@@ -60,6 +60,7 @@ beforeEach(async () => {
   await i18nReady;
   settingsState.forceEnglishTechnicalTerms = false;
   setLocale("de");
+  await updateEffectiveLocale(false);
   await vi.waitFor(() => expect(get(svelteLocale)).toBe("de"), {
     timeout: 3_000,
   });
@@ -68,23 +69,46 @@ beforeEach(async () => {
   document.body.appendChild(host);
 });
 
-afterEach(() => {
+afterEach(async () => {
   if (component) unmount(component as never);
   component = null;
   host.remove();
   settingsState.forceEnglishTechnicalTerms = false;
   setLocale("en");
+  await updateEffectiveLocale(false);
+  // The apply is async; wait for it so a late switch cannot leak into the
+  // next test's expected locale.
+  await vi.waitFor(() => expect(get(svelteLocale)).toBe("en"), {
+    timeout: 3_000,
+  });
 });
 
 describe("LocaleSync (BUG-0708)", () => {
-  it("leaves the effective locale at de when nothing tracks the flag", async () => {
+  it("keeps de when the flag changes without LocaleSync mounted", async () => {
+    // Characterization, not the regression guard: this pins that the setting
+    // write alone has no reaction and would go red if a module-level
+    // subscription were reintroduced. The mounted tests below are the
+    // RED/GREEN guards for the fix.
     settingsState.forceEnglishTechnicalTerms = true;
     flushSync();
+    // Negative assertion: wait longer than the deferred subscription
+    // microtask so an accidental reaction would have landed.
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(get(svelteLocale), "the pre-fix behaviour, kept as a baseline").toBe(
-      "de",
-    );
+    expect(get(svelteLocale)).toBe("de");
+  });
+
+  it("applies a flag that was already set when the sync mounts", async () => {
+    settingsState.forceEnglishTechnicalTerms = true;
+    component = mount(LocaleSync, { target: host }) as never;
+    flushSync();
+
+    // 3 s is the bound for a cold dynamic-import of the de/en chunks in CI,
+    // not a user-perceived delay: the switch takes one microtask once loaded.
+    await vi.waitFor(() => expect(get(svelteLocale)).toBe("de-tech"), {
+      timeout: 3_000,
+    });
+    expect(document.documentElement.lang).toBe("de");
   });
 
   it("switches de to de-tech and back without a reload", async () => {
@@ -103,6 +127,24 @@ describe("LocaleSync (BUG-0708)", () => {
     await vi.waitFor(() => expect(get(svelteLocale)).toBe("de"), {
       timeout: 3_000,
     });
+    expect(document.documentElement.lang).toBe("de");
+  });
+
+  it("keeps the newest toggle when the setting flips twice quickly", async () => {
+    component = mount(LocaleSync, { target: host }) as never;
+    flushSync();
+
+    settingsState.forceEnglishTechnicalTerms = true;
+    flushSync();
+    settingsState.forceEnglishTechnicalTerms = false;
+    flushSync();
+
+    await vi.waitFor(() => expect(get(svelteLocale)).toBe("de"), {
+      timeout: 3_000,
+    });
+    // A late older apply must not win after the newer one settled.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(get(svelteLocale)).toBe("de");
     expect(document.documentElement.lang).toBe("de");
   });
 });

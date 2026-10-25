@@ -68,7 +68,8 @@ The settings input has no trigger.
 - [x] Toggling the setting switches the effective locale between `de` and
       `de-tech` immediately, with no reload.
 - [x] A test reproduces the current behaviour first (setting change alone
-      leaves the locale at `de`) and passes after the fix.
+      leaves the locale at `de`; characterization), and the mounted toggle test
+      fails before the fix and passes after it.
 - [x] Existing `buildDeTechDict` tests stay green.
 - [x] `<html lang>` remains `de` in both `de` and `de-tech` (WCAG 3.1.1).
 
@@ -89,15 +90,20 @@ The settings input has no trigger.
 ## Progress — 2026-10-24
 
 `updateEffectiveLocale` is exported. `LocaleSync.svelte`, mounted once in
-`+layout.svelte`, tracks `settingsState.forceEnglishTechnicalTerms` and calls
-it; the sequence token inside the function keeps rapid toggles race-safe.
+`+layout.svelte`, tracks both the public locale store and
+`settingsState.forceEnglishTechnicalTerms`, owns the startup apply, and calls
+it; the sequence token and the serialized apply chain keep rapid toggles
+race-safe. `i18n.ts` no longer imports the settings store, so the
+settings -> ui -> i18n cycle is gone.
 
 `<html lang>` needed a second fix: svelte-i18n mirrors the *applied* locale into
 the attribute, so the hybrid `de-tech` overwrote the `de` set by the public
-locale subscription. The i18n module now subscribes to the applied svelte-i18n
-locale and maps `de*` to `de`.
+locale subscription. The i18n module now corrects the attribute after
+`svelteLocale.set` resolves and maps `de*` to `de`. A failed dictionary load
+keeps the previous dictionary instead of leaving an unhandled rejection.
 
-Covered by `LocaleSync.component.test.ts`: the pre-fix baseline (a setting
-change without the sync leaves the locale at `de`) and the mounted sync
-(`de` → `de-tech` → `de`, with `lang="de"` both times).
-`i18n.loaders.test.ts` stays green.
+Covered by `LocaleSync.component.test.ts`: a characterization baseline (a
+setting change without the sync leaves the locale at `de`), the mounted sync
+(`de` → `de-tech` → `de`, with `lang="de"` both times), the startup path with
+the flag already set, and a rapid true→false toggle whose final locale must be
+`de`. `i18n.loaders.test.ts` stays green.

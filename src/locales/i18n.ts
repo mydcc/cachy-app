@@ -23,7 +23,6 @@ import {
 } from "svelte-i18n";
 import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
-import { settingsState } from "../stores/settings.svelte";
 
 
 
@@ -228,21 +227,18 @@ export const locale = writable<string | null>(initialLocaleValue);
 // makes superseded switches a no-op, so the previously loaded dictionary keeps
 // rendering while the new one streams in — no raw $key flashes.
 let applySeq = 0;
-export async function updateEffectiveLocale(forceTechnicalTerms?: boolean) {
-  // Keep the window guard before every settings read: the locale store's
-  // subscription fires during module initialisation, where the settings
-  // singleton can still be undefined in a circular import (and `window` is
-  // absent in the unit project).
+// Applies are serialized: a superseded set() that already started must finish
+// before the newer one starts, otherwise it can land last and leave the
+// library on the older locale (BUG-0708 review).
+let applyChain: Promise<void> = Promise.resolve();
+
+export async function updateEffectiveLocale(
+  forceTechnicalTerms: boolean,
+  isCurrent: () => boolean = () => true,
+) {
   if (typeof window === "undefined") return;
   const currentLocale = get(locale);
-
-  // `locale.subscribe` fires during module evaluation. In the
-  // settings -> ui -> i18n cycle the singleton can still be undefined at that
-  // point; the startup timeout runs again once the graph is complete.
-  const settings = settingsState as typeof settingsState | undefined;
-  if (!settings) return;
-
-  const force = forceTechnicalTerms ?? settings.forceEnglishTechnicalTerms;
+  const force = forceTechnicalTerms;
 
   let target: string | null = currentLocale;
   if (currentLocale === "de" && force) {
@@ -252,19 +248,45 @@ export async function updateEffectiveLocale(forceTechnicalTerms?: boolean) {
   if (!target) return;
 
   const seq = ++applySeq;
-  if (target === "de-tech") {
-    await loadDict("de");
-    await loadDict("en");
-  } else {
-    await loadDict(target as BaseLocale);
+  try {
+    if (target === "de-tech") {
+      await loadDict("de");
+      await loadDict("en");
+    } else {
+      await loadDict(target as BaseLocale);
+    }
+
+    // Superseded while loading — never apply; the newer switch will.
+    if (seq !== applySeq || !isCurrent()) return;
+
+    // Wait for any in-flight apply. Its set() may still be running even when
+    // this call already has the newer sequence number.
+    await applyChain;
+    if (seq !== applySeq || !isCurrent()) return;
+
+    if (get(svelteLocale) === target) {
+      syncDocumentLang(target);
+      return;
+    }
+
+    const run = (async () => {
+      try {
+        await svelteLocale.set(target);
+      } finally {
+        // svelte-i18n mirrors the locale into <html lang> synchronously when
+        // its internal store is set; correct the hybrid de-tech afterwards.
+        if (seq === applySeq && isCurrent()) syncDocumentLang(target);
+      }
+    })();
+    applyChain = run.catch(() => undefined);
+    await run;
+  } catch (error) {
+    // A dictionary chunk can fail to load (offline, deploy). Keep the previous
+    // dictionary, report it once, and let the next switch retry.
+    if (import.meta.env.DEV) {
+      console.error("[i18n] Failed to apply the effective locale", error);
+    }
   }
-  // Superseded while loading — never apply; the newer switch will.
-  if (seq !== applySeq) return;
-  // svelte-i18n flushes the dictionary and then sets its internal locale; wait
-  // for that before correcting <html lang>, or the library's own `de-tech`
-  // write lands after ours.
-  await Promise.resolve(svelteLocale.set(target));
-  syncDocumentLang(target);
 }
 
 // WCAG 3.1.1 (Language of Page): the <html lang> attribute must follow the
@@ -276,23 +298,18 @@ function syncDocumentLang(value: string) {
   document.documentElement.lang = value.startsWith("de") ? "de" : "en";
 }
 
-// Subscribe to the public 'locale' store
+// Subscribe to the public 'locale' store. The effective locale (including the
+// de-tech hybrid) is applied by LocaleSync: it is the only place that can read
+// the settings store without pulling it into i18n's module graph, and it owns
+// the startup apply as well.
 locale.subscribe((value) => {
   if (value) {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("locale", value);
     }
     syncDocumentLang(value);
-    updateEffectiveLocale();
   }
 });
-
-// Use a simple function instead of store subscription for top-level initialization
-// to avoid $effect.root issues in module scope.
-// The SettingsManager will call this if needed, or we rely on the component mount.
-if (typeof window !== "undefined") {
-  setTimeout(updateEffectiveLocale, 0);
-}
 
 export function setLocale(newLocale: string) {
   locale.set(newLocale);
