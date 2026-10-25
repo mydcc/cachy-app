@@ -729,6 +729,10 @@ export abstract class WindowBase {
     snapToSide(side: SnapSide) {
         if (typeof window === 'undefined' || this.isMinimized) return;
 
+        // A snap from a maximized window records the pre-maximize floating
+        // rectangle as the unpin target, not the full-viewport geometry.
+        if (this.isMaximized) this.restore();
+
         if (!this.isPinned) {
             this.pinRestore = {
                 x: this.x,

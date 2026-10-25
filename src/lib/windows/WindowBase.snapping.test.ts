@@ -89,6 +89,24 @@ describe("WindowBase.snapToSide", () => {
         expect(restored.height).toBe(800);
     });
 
+    it("records the pre-maximize rectangle when snapping from maximized", () => {
+        const win = makeWindow();
+        win.x = 120;
+        win.y = 90;
+        win.width = 600;
+        win.height = 480;
+        win.maximize();
+
+        win.snapToSide("right");
+        win.togglePin();
+
+        expect(win.isPinned).toBe(false);
+        expect(win.x).toBe(120);
+        expect(win.y).toBe(90);
+        expect(win.width).toBe(600);
+        expect(win.height).toBe(480);
+    });
+
     it("returns to the floating geometry when unpinned", () => {
         const win = makeWindow();
         win.x = 120;
