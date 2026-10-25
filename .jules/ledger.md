@@ -1,8 +1,20 @@
-# Ledger Journal
+# Ledger Audit
+
+**Coverage Date:** 2026-10-25
+
+## Subsystem Audited
+
+Derived Data: `src/services/mdaService.ts`
 
 ## Coverage
 
-| Date | Subsystem | Findings Filed | Notes |
-| --- | --- | --- | --- |
-| 2026-08-12 | Store lifecycles (`src/stores/`) | BUG-0078, BUG-0079 | BUG-0078: missing HMR disposal for store `$effect.root` auto-saves. BUG-0079: legacy `subscribe()` leaks timers and has race conditions. |
-| 2026-08-12 | Exchange ingestion (`bitgetWs.ts`) | BUG-0080 | BitgetWS decimal initializations crash WebSocket processing loop due to unvalidated inputs. |
+Derived coverage from `docs/backlog/INDEX.md` and `git log -- docs/backlog/`.
+
+## Learnings
+
+- `mdaService.normalizeKlines` had an unprotected numeric conversion of kline timestamps where `Number(undefined)` evaluated to `NaN` if the original object lacked a timestamp.
+- We need to be careful with `parseFloat` and `Number` calls where missing attributes can propagate `NaN` into calculations downstream (like technical indicators and charts).
+
+## Action
+
+Created BUG-0250 for `mdaService.normalizeKlines` producing `NaN` timestamps.
