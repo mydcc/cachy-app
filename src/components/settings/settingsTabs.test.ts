@@ -46,7 +46,7 @@ const INDICATORS = "src/components/settings/tabs/IndicatorSettings.svelte";
 /** The tab list each file owns, pinned so a dropped tab cannot pass. */
 const TAB_LISTS: Array<[file: string, ids: string[]]> = [
   [CONTENT, ["trading", "automation", "chart", "visuals", "ai", "connections", "system", "cloud"]],
-  [VISUALS, ["appearance", "layout", "background"]],
+  [VISUALS, ["appearance", "layout", "background", "duck"]],
   [TRADING, ["market", "chart", "risk", "paper", "audit"]],
   [AI, ["intelligence", "behavior", "agents"]],
   [CONNECTIONS, ["exchanges", "data", "rss"]],
