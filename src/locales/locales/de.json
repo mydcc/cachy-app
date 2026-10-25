@@ -1292,7 +1292,22 @@
         "label": "Unterbereiche",
         "appearance": "Optik & Design",
         "layout": "Layout",
-        "background": "Hintergrund"
+        "background": "Hintergrund",
+        "duck": "Ente"
+      },
+      "duck": {
+        "title": "Enten-Begleiter",
+        "description": "Ein kleiner Begleiter, der auf Trades, Streaks und die Tour reagiert. Rein lokal — nichts verlässt dieses Gerät.",
+        "show": "Ente anzeigen",
+        "showDesc": "Ausblenden entfernt die Ente aus der Szene. Der Fortschritt bleibt erhalten und wird beim Wiedereinschalten fortgesetzt.",
+        "notifications": "Enten-Benachrichtigungen",
+        "notificationsDesc": "Erfolge werden weiterhin freigeschaltet; schalte dies aus, um die Hinweise zu verbergen.",
+        "reactToTrades": "Auf Trades reagieren",
+        "reactToTradesDesc": "Aus: Gewinn- und Verlust-Trades lösen keine Animationen und keine Trade-XP mehr aus.",
+        "reset": "Enten-Fortschritt zurücksetzen",
+        "resetDesc": "Löscht nur XP, Level, Streaks, Fütterungen und Erfolge der Ente. Alles andere bleibt unberührt.",
+        "resetConfirm": "Den Fortschritt der Ente zurücksetzen? XP, Level, Streaks, Fütterungen und Erfolge gehen verloren.",
+        "resetDone": "Enten-Fortschritt zurückgesetzt."
       },
       "visualQuality": "Bildqualität",
       "visualQualityDesc": "Renderauflösung der 3D-Hintergründe und -Effekte. Auto passt sich an die gemessene Bildrate an.",

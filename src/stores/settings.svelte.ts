@@ -559,6 +559,24 @@ export class SettingsManager {
   set sidebarWidth(v: DisplaySettingsStore["sidebarWidth"]) {
     this.display.sidebarWidth = v;
   }
+  get showDuck(): DisplaySettingsStore["showDuck"] {
+    return this.display.showDuck;
+  }
+  set showDuck(v: DisplaySettingsStore["showDuck"]) {
+    this.display.showDuck = v;
+  }
+  get duckNotifications(): DisplaySettingsStore["duckNotifications"] {
+    return this.display.duckNotifications;
+  }
+  set duckNotifications(v: DisplaySettingsStore["duckNotifications"]) {
+    this.display.duckNotifications = v;
+  }
+  get duckReactToTrades(): DisplaySettingsStore["duckReactToTrades"] {
+    return this.display.duckReactToTrades;
+  }
+  set duckReactToTrades(v: DisplaySettingsStore["duckReactToTrades"]) {
+    this.display.duckReactToTrades = v;
+  }
   get showSpinButtons(): DisplaySettingsStore["showSpinButtons"] {
     return this.display.showSpinButtons;
   }

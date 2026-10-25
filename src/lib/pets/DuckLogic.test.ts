@@ -311,3 +311,20 @@ describe("handleEvent transitions", () => {
         expect(reborn.getXp()).toBe(ONBOARDING_XP_REWARD);
     });
 });
+
+describe("scene lifecycle", () => {
+    it("removes the duck group on destroy without resetting progress", () => {
+        localStorage.clear();
+        const scene = new THREE.Scene();
+        const logic = new DuckLogic(scene);
+        logic.handleEvent({ type: "feed", amount: 10 });
+        logic.init();
+
+        expect(scene.children).toContain(logic.getGroup());
+
+        logic.destroy();
+
+        expect(scene.children).not.toContain(logic.getGroup());
+        expect(logic.getXp()).toBe(10);
+    });
+});

@@ -16,13 +16,13 @@
  *
  * Inventory for the display sub-store (ADR-0024 decision 2).
  *
- * 66 `PERSISTENCE_SCHEMA` rows carry `section: "display"`, but only 66 of
- * them are display-owned `$state`: `isProLicenseActive` lives on the
- * entitlement collaborator. This test pins that subtraction from all three
- * sides — schema, store, facade — so a 68th display row without a home
- * fails here by name instead of as silent data loss. The reactivity
- * contract would catch the omission too, but only as an inert field,
- * never naming the missing home.
+ * `PERSISTENCE_SCHEMA` rows with `section: "display"` are the source of
+ * truth, except `isProLicenseActive`, which lives on the entitlement
+ * collaborator. This test pins that subtraction from all three sides —
+ * schema, store, facade — so a display row without a home fails here by
+ * name instead of as silent data loss. The reactivity contract would catch
+ * the omission too, but only as an inert field, never naming the missing
+ * home.
  */
 
 import { describe, expect, it } from "vitest";
@@ -69,5 +69,12 @@ describe("display sub-store inventory", () => {
         expectTypeOf<DisplaySettingsStore>().toEqualTypeOf<
             Pick<Settings, keyof DisplaySettingsStore>
         >();
+    });
+
+    it("keeps the duck companion on by default for existing installs", () => {
+        const display = new DisplaySettingsStore();
+        expect(display.showDuck).toBe(true);
+        expect(display.duckNotifications).toBe(true);
+        expect(display.duckReactToTrades).toBe(true);
     });
 });

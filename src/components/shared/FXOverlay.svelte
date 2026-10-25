@@ -27,7 +27,11 @@
     import { effectsState } from "../../stores/effects.svelte";
     import { uiState } from "../../stores/ui.svelte";
     import { StressLogic } from "../../lib/physics/StressLogic";
-    import { DuckLogic } from "../../lib/pets/DuckLogic";
+    import { DuckLogic, type DuckNotifier } from "../../lib/pets/DuckLogic";
+    import {
+        DUCK_PROGRESS_RESET_EVENT,
+        shouldHandleDuckEvent,
+    } from "../../lib/pets/duckState";
     import { toastService } from "../../services/toastService.svelte";
     import { getThemePalette, invalidateThemePalette } from "../../lib/themeColors";
     import { concreteQuality, retainAutoQuality } from "./backgrounds/qualityController.svelte";
@@ -42,6 +46,42 @@
     let clock = new THREE.Clock();
     let stressLogic: StressLogic | null = null;
     let duckLogic: DuckLogic | null = null;
+    let sceneReady = $state(false);
+
+    // The duck owns a notifier port; decide at emit time so the setting can
+    // change without rebuilding the instance (and its progress).
+    const duckNotifier: DuckNotifier = {
+        success(message) {
+            if (settingsState.duckNotifications) toastService.success(message);
+        },
+        warning(message) {
+            if (settingsState.duckNotifications) toastService.warning(message);
+        },
+    };
+
+    function ensureDuck() {
+        if (!scene || duckLogic) return;
+        duckLogic = new DuckLogic(scene, duckNotifier);
+        duckLogic.init();
+    }
+
+    function removeDuck() {
+        if (!duckLogic) return;
+        duckLogic.destroy();
+        duckLogic = null;
+    }
+
+    function renderFrame() {
+        if (!renderer || !scene || !camera || animationId) return;
+        renderer.render(scene, camera);
+    }
+
+    function recreateDuck() {
+        removeDuck();
+        if (settingsState.showDuck) ensureDuck();
+        renderFrame();
+    }
+
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -469,16 +509,42 @@
         }
     });
 
+    // Rebuild/remove the duck when the master switch changes. Declared before
+    // the event effect so an event arriving in the same flush already sees the
+    // current instance.
     $effect(() => {
-        const duck = effectsState.duckEvents[0];
-        if (duck && duckLogic) {
-            duckLogic.handleEvent(duck);
-            effectsState.consumeDuckEvent();
+        if (!sceneReady) return;
+        if (settingsState.showDuck) {
+            ensureDuck();
+        } else {
+            removeDuck();
+        }
+        renderFrame();
+    });
 
-            if (!animationId) {
-                clock.start();
-                animationId = requestAnimationFrame(animate);
-            }
+    // Consume every queued event, even while the duck is off: otherwise a
+    // disabled companion would grow an unbounded backlog and replay stale
+    // trade/login events the moment it is re-enabled.
+    $effect(() => {
+        if (!sceneReady) return;
+        const duck = effectsState.duckEvents[0];
+        if (!duck) return;
+
+        const showDuck = settingsState.showDuck;
+        const reactToTrades = settingsState.duckReactToTrades;
+        effectsState.consumeDuckEvent();
+
+        if (
+            !duckLogic ||
+            !shouldHandleDuckEvent(duck, showDuck, reactToTrades)
+        ) {
+            return;
+        }
+
+        duckLogic.handleEvent(duck);
+        if (!animationId) {
+            clock.start();
+            animationId = requestAnimationFrame(animate);
         }
     });
 
@@ -599,19 +665,24 @@
             console.error("Failed to initialize physics", e);
         });
 
-        // Init Duck
-        duckLogic = new DuckLogic(scene, toastService);
-        duckLogic.init();
+        // The master switch owns duck init. Flipping sceneReady lets the
+        // effect below create it, so first mount and later toggles share one
+        // path instead of two subtly different initialisations.
+        sceneReady = true;
 
         // Render initial static frame
         renderer.render(scene, camera);
 
         window.addEventListener("resize", onWindowResize);
         document.addEventListener("click", onDocumentClick);
+        window.addEventListener(DUCK_PROGRESS_RESET_EVENT, recreateDuck);
         return () => {
             if (animationId) cancelAnimationFrame(animationId);
             window.removeEventListener("resize", onWindowResize);
             document.removeEventListener("click", onDocumentClick);
+            window.removeEventListener(DUCK_PROGRESS_RESET_EVENT, recreateDuck);
+            removeDuck();
+            sceneReady = false;
             detachRecovery();
             renderer?.dispose();
         };

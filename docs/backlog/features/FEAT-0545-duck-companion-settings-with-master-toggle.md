@@ -2,7 +2,9 @@
 id: FEAT-0545
 title: Duck companion settings with master toggle in Visuals
 type: feature
-status: ready
+status: done
+assignee: opencode
+branch: feature/feat-0545-duck-toggle
 priority: P2
 milestone: none
 editions: [community, pro, private]
@@ -56,18 +58,18 @@ sleep timeout (niche value, extra test surface), feed/pet frequency controls.
 
 ## Acceptance criteria
 
-- [ ] With the master toggle off: no duck object in the scene, no XP growth
+- [x] With the master toggle off: no duck object in the scene, no XP growth
   across all event sources (feed, pet, trades, login, academy, onboarding),
   no duck toasts, pet clicks do nothing
-- [ ] Re-enabling resumes from the previously stored `duck_dao_state`
+- [x] Re-enabling resumes from the previously stored `duck_dao_state`
   (level, XP, achievements intact)
-- [ ] With notifications off: achievements still unlock and persist, but no
+- [x] With notifications off: achievements still unlock and persist, but no
   toast is shown
-- [ ] With trade reactions off: closing/flash-closing a position triggers no
+- [x] With trade reactions off: closing/flash-closing a position triggers no
   duck animation and grants no trade XP
-- [ ] Reset clears only the duck key and asks for confirmation first; other
+- [x] Reset clears only the duck key and asks for confirmation first; other
   local data is untouched
-- [ ] New strings exist in DE and EN; component test covers toggle wiring
+- [x] New strings exist in DE and EN; component test covers toggle wiring
   (`*.component.test.ts` in the `components` Vitest project)
 
 ## Out of scope
@@ -83,6 +85,30 @@ sleep timeout (niche value, extra test surface), feed/pet frequency controls.
 None blocking. If the settings store gains a schema version, the three
 booleans default to `true` for existing installs so current behaviour is
 preserved.
+
+## Progress
+
+Implemented as a fourth Visuals sub-tab (`VisualsDuck.svelte`). The three
+switches live in the display store (`showDuck`, `duckNotifications`,
+`duckReactToTrades`, all default `true`) and ride the normal
+`PERSISTENCE_SCHEMA` path.
+
+`FXOverlay` now owns the lifecycle: the master switch creates or destroys the
+`DuckLogic` instance, `DuckLogic.destroy()` removes the group and releases its
+GPU resources, and queued events are always consumed — dropped without effect
+while the duck is off, and filtered through `shouldHandleDuckEvent` so trade
+reactions cannot accrue trade XP. The notifier is a proxy that reads
+`duckNotifications` at emit time, so achievements still save while their
+toasts stay silent.
+
+Reset removes only `duck_dao_state` and dispatches an in-page reset event;
+`FXOverlay` rebuilds from the now-empty key, while every other local key stays
+untouched. A confirmation is required first.
+
+Tests: `duckState.test.ts` (event gating), `DuckLogic.test.ts` (scene removal),
+`VisualsDuck.component.test.ts` (toggle wiring, disabled dependants, scoped
+reset with and without confirmation), `VisualsTab.component.test.ts` (sub-tab
+rendering), plus the settings schema/inventory tests.
 
 ## Links
 
