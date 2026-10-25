@@ -16,6 +16,10 @@ stated as such instead of being silently folded into “defer”.
 `browser-impossible` = depends on the OS compositor/desktop and cannot be
 reached from a web app. “Already” means the current code already has it.
 
+**Limitation.** The comparison is documentation-based; no KWin session was
+run. `browser-impossible` verdicts follow from the browser platform, not from
+a test of this app against KWin.
+
 ## Comparison
 
 | # | Feature | KWin behaviour | Cachy today | Verdict |
