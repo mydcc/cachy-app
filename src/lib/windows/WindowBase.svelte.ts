@@ -24,6 +24,8 @@ import type { Snippet } from "svelte";
 import type { WindowType, WindowOptions, WindowConfig, ContextMenuAction } from "./types";
 import { windowRegistry } from "./WindowRegistry.svelte";
 import { Z_LAYERS } from "./zLayers";
+import { computeSnapGeometry, readShellInsets } from "./snapping";
+import type { SnapSide } from "./snapping";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../constants";
 import { generateId } from "../../utils/utils";
 
@@ -119,6 +121,8 @@ export abstract class WindowBase {
     private lastY = 0;
     private lastWidth = 640;
     private lastHeight = 480;
+    /** Floating geometry to return to when a pinned window is unpinned. */
+    private pinRestore: { x: number; y: number; width: number; height: number } | null = null;
 
     // --- CONFIG FLAGS (Usually set via Registry Defaults) ---
     allowZoom = $state(false);
@@ -717,13 +721,66 @@ export abstract class WindowBase {
         this.saveState();
     }
 
+    /**
+     * Pin the window to a vertical side and tile it into half of the usable
+     * viewport (FEAT-0616). The shell's visible sidebars are measured at snap
+     * time so the window never sits under them.
+     */
+    snapToSide(side: SnapSide) {
+        if (typeof window === 'undefined' || this.isMinimized) return;
+
+        if (!this.isPinned) {
+            this.pinRestore = {
+                x: this.x,
+                y: this.y,
+                width: this.width,
+                height: this.height,
+            };
+        }
+
+        const geometry = computeSnapGeometry(
+            side,
+            window.innerWidth,
+            window.innerHeight,
+            readShellInsets(),
+            this.minWidth,
+        );
+        this.pinSide = side;
+        this.isPinned = true;
+        this.isMaximized = false;
+        this.x = geometry.x;
+        this.y = geometry.y;
+        this.width = geometry.width;
+        this.height = geometry.height;
+        this.saveState();
+    }
+
     /** Pinning logic (experimental tiling). */
     togglePin() {
         if (this.pinSide === 'none') return;
-        this.isPinned = !this.isPinned;
+
         if (this.isPinned) {
-            this.isMaximized = false;
+            this.isPinned = false;
+            if (this.pinRestore) {
+                this.x = this.pinRestore.x;
+                this.y = this.pinRestore.y;
+                this.width = this.pinRestore.width;
+                this.height = this.pinRestore.height;
+                this.pinRestore = null;
+            }
+            this.saveState();
+            return;
         }
+
+        if (this.pinSide === 'left' || this.pinSide === 'right') {
+            this.snapToSide(this.pinSide);
+            return;
+        }
+
+        // Top/bottom pinning is deferred (FEAT-0616); keep the flag behaviour
+        // for configurations that declare it without a vertical tiler.
+        this.isPinned = true;
+        this.isMaximized = false;
         this.saveState();
     }
 
