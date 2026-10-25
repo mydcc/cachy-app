@@ -57,6 +57,7 @@ vi.mock("../../../locales/i18n", async () => {
 import WindowFrame from "./WindowFrame.svelte";
 import { WindowBase } from "../../../lib/windows/WindowBase.svelte";
 import { windowManager } from "../../../lib/windows/WindowManager.svelte";
+import { settingsState } from "../../../stores/settings.svelte";
 import { DEFAULT_WINDOW_FONT_SIZE } from "../../../lib/constants";
 import EmptyStub from "../../../tests/helpers/EmptyStub.svelte";
 
@@ -306,5 +307,32 @@ describe("BUG-0710 — a header control raises its window", () => {
         );
         flushSync();
         expect(frame!.classList.contains("dragging")).toBe(false);
+    });
+});
+
+describe("FEAT-0545 — the feed control follows the duck master switch", () => {
+    it("hides the feed button while the companion is off", () => {
+        const previous = settingsState.showDuck;
+        try {
+            const win = new ProbeWindow();
+            win.allowFeedDuck = true;
+            settingsState.showDuck = false;
+            mountFrame(win);
+
+            const feed = () =>
+                host!.querySelector(
+                    'button[aria-label="Feed Duck (Profit)"]',
+                );
+
+            expect(feed()).toBeNull();
+
+            settingsState.showDuck = true;
+            flushSync();
+            expect(win.allowFeedDuck).toBe(true);
+            expect(settingsState.showDuck).toBe(true);
+            expect(feed()).not.toBeNull();
+        } finally {
+            settingsState.showDuck = previous;
+        }
     });
 });

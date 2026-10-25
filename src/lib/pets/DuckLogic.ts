@@ -96,6 +96,7 @@ export class DuckLogic {
     private achievements: string[] = [];
     private onboardingCompleted = false;
     private notifier: DuckNotifier;
+    private destroyed = false;
 
     constructor(scene: THREE.Scene, notifier: DuckNotifier = silentNotifier) {
         this.scene = scene;
@@ -326,26 +327,37 @@ export class DuckLogic {
      * state, which is why this must not clear `duck_dao_state`.
      */
     public destroy(): void {
+        if (this.destroyed) return;
+        this.destroyed = true;
+
         this.scene.remove(this.group);
         const geometries = new Set<THREE.BufferGeometry>();
         const materials = new Set<THREE.Material>();
         this.group.traverse((object) => {
-            if (!(object instanceof THREE.Mesh)) return;
-            geometries.add(object.geometry);
-            const material = object.material;
+            // Line/Points/Sprite carry the same geometry/material pair as
+            // Mesh; collect structurally so a future accessory cannot leak.
+            const renderable = object as THREE.Mesh;
+            if (renderable.geometry instanceof THREE.BufferGeometry) {
+                geometries.add(renderable.geometry);
+            }
+            const material = renderable.material;
             if (Array.isArray(material)) {
                 for (const entry of material) materials.add(entry);
-            } else {
+            } else if (material instanceof THREE.Material) {
                 materials.add(material);
             }
         });
         for (const geometry of geometries) geometry.dispose();
         for (const material of materials) material.dispose();
+        this.group.clear();
     }
 
     // ─── Initialisierung ──────────────────────────────────────────────────────
 
     public init(): void {
+        if (this.destroyed) {
+            throw new Error("DuckLogic: cannot init after destroy");
+        }
         console.log("DuckLogic: Initializing 🦆");
         this.createDuckGeometry();
         this.scene.add(this.group);

@@ -61,3 +61,60 @@ export function shouldHandleDuckEvent(
     }
     return true;
 }
+
+/** Structural port so this module stays independent of the toast service. */
+export interface DuckToastPort {
+    success(message: string): void;
+    warning(message: string): void;
+}
+
+/**
+ * The duck's notifier is decided at emit time, not at construction time: a
+ * notification toggle must not rebuild the instance (and re-save its state).
+ */
+export function createDuckNotifier(
+    isEnabled: () => boolean,
+    toasts: DuckToastPort,
+): DuckToastPort {
+    return {
+        success(message) {
+            if (isEnabled()) toasts.success(message);
+        },
+        warning(message) {
+            if (isEnabled()) toasts.warning(message);
+        },
+    };
+}
+
+/**
+ * Forwards one already-drained event to the live companion.
+ *
+ * Returns whether the event was handled, so the caller can start its render
+ * loop only for real animation work. Extracted from the component because the
+ * master/notification/trade gates are the feature's core behaviour and must
+ * not live only in untested WebGL-owning code.
+ */
+export function forwardDuckEvent(
+    logic: { handleEvent(event: DuckTriggerEvent): void } | null,
+    event: DuckTriggerEvent,
+    showDuck: boolean,
+    reactToTrades: boolean,
+): boolean {
+    if (!logic || !shouldHandleDuckEvent(event, showDuck, reactToTrades)) {
+        return false;
+    }
+    logic.handleEvent(event);
+    return true;
+}
+
+/**
+ * Cross-tab reset detection. `resetDuckProgress()` fires a same-document
+ * event; other tabs only observe the key removal. A re-seed (non-null
+ * `newValue`) must be ignored or two tabs would ping-pong writes.
+ */
+export function isDuckResetStorageEvent(event: {
+    key: string | null;
+    newValue: string | null;
+}): boolean {
+    return event.key === DUCK_STATE_STORAGE_KEY && event.newValue === null;
+}

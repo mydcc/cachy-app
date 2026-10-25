@@ -109,14 +109,20 @@ describe("VisualsDuck — settings wiring", () => {
 
     it("leaves the duck key alone when confirmation is declined", () => {
         localStorage.setItem(DUCK_STATE_STORAGE_KEY, '{"xp":120,"level":3}');
-        vi.stubGlobal("confirm", vi.fn(() => false));
+        const confirm = vi.fn(() => false);
+        vi.stubGlobal("confirm", confirm);
 
         component = mount(VisualsDuck, { target: host });
         settle();
 
-        host.querySelector<HTMLButtonElement>("#duck-reset-button")?.click();
+        const button = host.querySelector<HTMLButtonElement>(
+            "#duck-reset-button",
+        );
+        expect(button).not.toBeNull();
+        button!.click();
         settle();
 
+        expect(confirm).toHaveBeenCalledOnce();
         expect(localStorage.getItem(DUCK_STATE_STORAGE_KEY)).not.toBeNull();
     });
 });

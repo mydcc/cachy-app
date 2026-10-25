@@ -20,6 +20,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as THREE from "three";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
 import { applyOnboardingReward, ONBOARDING_XP_REWARD, DuckLogic } from "./DuckLogic";
+import { DUCK_STATE_STORAGE_KEY } from "./duckState";
 import { DuckState, DUCK_STATE_PRIORITY } from "./types";
 import type { DuckDaoState } from "./types";
 
@@ -303,7 +304,7 @@ describe("handleEvent transitions", () => {
         logic.handleEvent({ type: "onboarding_complete" });
         expect(logic.getXp()).toBe(ONBOARDING_XP_REWARD);
 
-        localStorage.removeItem("duck_dao_state");
+        localStorage.removeItem(DUCK_STATE_STORAGE_KEY);
         const reborn = new DuckLogic(new THREE.Scene());
         expect(reborn.hasCompletedOnboarding()).toBe(false);
 

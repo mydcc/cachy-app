@@ -60,6 +60,11 @@ export class EffectsState {
     consumeDuckEvent() {
         this.duckEvents = this.duckEvents.slice(1);
     }
+
+    /** Drop the whole queue, e.g. while the companion is switched off. */
+    clearDuckEvents() {
+        this.duckEvents = [];
+    }
 }
 
 export const effectsState = new EffectsState();

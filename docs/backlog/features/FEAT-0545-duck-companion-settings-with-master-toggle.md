@@ -102,8 +102,15 @@ reactions cannot accrue trade XP. The notifier is a proxy that reads
 toasts stay silent.
 
 Reset removes only `duck_dao_state` and dispatches an in-page reset event;
-`FXOverlay` rebuilds from the now-empty key, while every other local key stays
-untouched. A confirmation is required first.
+`FXOverlay` rebuilds from defaults, while every other local key stays
+untouched. A confirmation is required first. A `storage` listener also reacts
+to the key removal in other tabs, so a live pet there cannot rewrite the old
+progress. While the master switch is off the layout skips the 3D overlay
+import and drains duck events, so a hidden duck costs no renderer.
+
+Tests: `duckState.test.ts` (event gating and forwarding), `DuckLogic.test.ts`
+(scene removal), `DuckLogic.component.test.ts` (resume across destroy),
+`VisualsDuck.component.test.ts` (toggle wiring, disabled dependants, scoped
 
 Tests: `duckState.test.ts` (event gating), `DuckLogic.test.ts` (scene removal),
 `VisualsDuck.component.test.ts` (toggle wiring, disabled dependants, scoped

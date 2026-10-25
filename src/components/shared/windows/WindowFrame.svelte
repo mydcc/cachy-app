@@ -855,7 +855,7 @@
                 </div>
             {/if}
 
-            {#if win.allowFeedDuck}
+            {#if win.allowFeedDuck && settingsState.showDuck}
                 <div class="control-group">
                     <Button
                         variant="ghost-muted" size="xs"

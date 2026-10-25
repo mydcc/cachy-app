@@ -27,10 +27,12 @@
     import { effectsState } from "../../stores/effects.svelte";
     import { uiState } from "../../stores/ui.svelte";
     import { StressLogic } from "../../lib/physics/StressLogic";
-    import { DuckLogic, type DuckNotifier } from "../../lib/pets/DuckLogic";
+    import { DuckLogic } from "../../lib/pets/DuckLogic";
     import {
+        createDuckNotifier,
         DUCK_PROGRESS_RESET_EVENT,
-        shouldHandleDuckEvent,
+        forwardDuckEvent,
+        isDuckResetStorageEvent,
     } from "../../lib/pets/duckState";
     import { toastService } from "../../services/toastService.svelte";
     import { getThemePalette, invalidateThemePalette } from "../../lib/themeColors";
@@ -50,14 +52,10 @@
 
     // The duck owns a notifier port; decide at emit time so the setting can
     // change without rebuilding the instance (and its progress).
-    const duckNotifier: DuckNotifier = {
-        success(message) {
-            if (settingsState.duckNotifications) toastService.success(message);
-        },
-        warning(message) {
-            if (settingsState.duckNotifications) toastService.warning(message);
-        },
-    };
+    const duckNotifier = createDuckNotifier(
+        () => settingsState.duckNotifications,
+        toastService,
+    );
 
     function ensureDuck() {
         if (!scene || duckLogic) return;
@@ -80,6 +78,10 @@
         removeDuck();
         if (settingsState.showDuck) ensureDuck();
         renderFrame();
+    }
+
+    function onDuckStorage(event: StorageEvent) {
+        if (isDuckResetStorageEvent(event)) recreateDuck();
     }
 
     const raycaster = new THREE.Raycaster();
@@ -534,14 +536,14 @@
         const reactToTrades = settingsState.duckReactToTrades;
         effectsState.consumeDuckEvent();
 
-        if (
-            !duckLogic ||
-            !shouldHandleDuckEvent(duck, showDuck, reactToTrades)
-        ) {
+        // Creation-order is not a Svelte guarantee. If an enable and an event
+        // land in the same flush, this idempotent call closes the gap.
+        if (showDuck && !duckLogic) ensureDuck();
+
+        if (!forwardDuckEvent(duckLogic, duck, showDuck, reactToTrades)) {
             return;
         }
 
-        duckLogic.handleEvent(duck);
         if (!animationId) {
             clock.start();
             animationId = requestAnimationFrame(animate);
@@ -676,11 +678,13 @@
         window.addEventListener("resize", onWindowResize);
         document.addEventListener("click", onDocumentClick);
         window.addEventListener(DUCK_PROGRESS_RESET_EVENT, recreateDuck);
+        window.addEventListener("storage", onDuckStorage);
         return () => {
             if (animationId) cancelAnimationFrame(animationId);
             window.removeEventListener("resize", onWindowResize);
             document.removeEventListener("click", onDocumentClick);
             window.removeEventListener(DUCK_PROGRESS_RESET_EVENT, recreateDuck);
+            window.removeEventListener("storage", onDuckStorage);
             removeDuck();
             sceneReady = false;
             detachRecovery();
