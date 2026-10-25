@@ -143,13 +143,13 @@ describe("WindowRegistry: the alert panel is not a modal (FEAT-0389)", () => {
  * declares the effective minimum explicitly as 0.
  */
 describe("WindowRegistry: the settings window has no inert minimum (BUG-0696)", () => {
-    const config = windowRegistry.getConfig("settings");
-
     it("is not resizable, so no minimum can be acted on", () => {
+        const config = windowRegistry.getConfig("settings");
         expect(config.flags.isResizable).toBe(false);
     });
 
     it("declares no minimum instead of inheriting the 200px default", () => {
+        const config = windowRegistry.getConfig("settings");
         expect(config.layout.minWidth).toBe(0);
     });
 });

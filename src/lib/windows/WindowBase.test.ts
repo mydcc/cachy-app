@@ -672,3 +672,15 @@ describe("WindowBase clampToViewport (opt-in)", () => {
         expect(win.height).toBe(900);
     });
 });
+
+/**
+ * BUG-0696 — the settings window declares `minWidth: 0` because it is not
+ * resizable. The registry assertion alone would stay green if `applyConfig`
+ * fell back to 200 (`l.minWidth || 200`); this pins the propagation.
+ */
+describe("WindowBase registry geometry (BUG-0696)", () => {
+    it("keeps an explicit minWidth of 0", () => {
+        const win = new TestWindow({ windowType: "settings" });
+        expect(win.minWidth).toBe(0);
+    });
+});
