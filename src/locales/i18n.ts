@@ -23,7 +23,6 @@ import {
 } from "svelte-i18n";
 import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
-import { settingsState } from "../stores/settings.svelte";
 
 
 
@@ -228,28 +227,66 @@ export const locale = writable<string | null>(initialLocaleValue);
 // makes superseded switches a no-op, so the previously loaded dictionary keeps
 // rendering while the new one streams in — no raw $key flashes.
 let applySeq = 0;
-async function updateEffectiveLocale() {
+// Applies are serialized: a superseded set() that already started must finish
+// before the newer one starts, otherwise it can land last and leave the
+// library on the older locale (BUG-0708 review).
+let applyChain: Promise<void> = Promise.resolve();
+
+export async function updateEffectiveLocale(
+  forceTechnicalTerms: boolean,
+  isCurrent: () => boolean = () => true,
+) {
   if (typeof window === "undefined") return;
   const currentLocale = get(locale);
-  const settings = settingsState;
+  const force = forceTechnicalTerms;
 
   let target: string | null = currentLocale;
-  if (currentLocale === "de" && settings.forceEnglishTechnicalTerms) {
+  if (currentLocale === "de" && force) {
     // If user wants German but with English tech terms, switch to our hybrid locale
     target = "de-tech";
   }
   if (!target) return;
 
   const seq = ++applySeq;
-  if (target === "de-tech") {
-    await loadDict("de");
-    await loadDict("en");
-  } else {
-    await loadDict(target as BaseLocale);
+  try {
+    if (target === "de-tech") {
+      await loadDict("de");
+      await loadDict("en");
+    } else {
+      await loadDict(target as BaseLocale);
+    }
+
+    // Superseded while loading — never apply; the newer switch will.
+    if (seq !== applySeq || !isCurrent()) return;
+
+    // Wait for any in-flight apply. Its set() may still be running even when
+    // this call already has the newer sequence number.
+    await applyChain;
+    if (seq !== applySeq || !isCurrent()) return;
+
+    if (get(svelteLocale) === target) {
+      syncDocumentLang(target);
+      return;
+    }
+
+    const run = (async () => {
+      try {
+        await svelteLocale.set(target);
+      } finally {
+        // svelte-i18n mirrors the locale into <html lang> synchronously when
+        // its internal store is set; correct the hybrid de-tech afterwards.
+        if (seq === applySeq && isCurrent()) syncDocumentLang(target);
+      }
+    })();
+    applyChain = run.catch(() => undefined);
+    await run;
+  } catch (error) {
+    // A dictionary chunk can fail to load (offline, deploy). Keep the previous
+    // dictionary, report it once, and let the next switch retry.
+    if (import.meta.env.DEV) {
+      console.error("[i18n] Failed to apply the effective locale", error);
+    }
   }
-  // Superseded while loading — never apply; the newer switch will.
-  if (seq !== applySeq) return;
-  svelteLocale.set(target);
 }
 
 // WCAG 3.1.1 (Language of Page): the <html lang> attribute must follow the
@@ -261,23 +298,19 @@ function syncDocumentLang(value: string) {
   document.documentElement.lang = value.startsWith("de") ? "de" : "en";
 }
 
-// Subscribe to the public 'locale' store
+// Subscribe to the public 'locale' store. Apply the base locale immediately
+// (unit tests and the first paint rely on it); LocaleSync upgrades it to the
+// de-tech hybrid when the flag is on. The subscription never reads the settings
+// store, so the settings -> ui -> i18n cycle stays gone.
 locale.subscribe((value) => {
   if (value) {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("locale", value);
     }
     syncDocumentLang(value);
-    updateEffectiveLocale();
+    void updateEffectiveLocale(false);
   }
 });
-
-// Use a simple function instead of store subscription for top-level initialization
-// to avoid $effect.root issues in module scope.
-// The SettingsManager will call this if needed, or we rely on the component mount.
-if (typeof window !== "undefined") {
-  setTimeout(updateEffectiveLocale, 0);
-}
 
 export function setLocale(newLocale: string) {
   locale.set(newLocale);

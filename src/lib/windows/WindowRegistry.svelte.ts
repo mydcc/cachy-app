@@ -333,7 +333,13 @@ class WindowRegistry {
                 layout: {
                     ...baseLayout,
                     width: 1000,
-                    height: 800
+                    height: 800,
+                    // BUG-0696: isResizable is false, so the inherited 200px
+                    // minimum is never consulted — the grips are gated on the
+                    // flag and maximize bypasses the clamp. Declare the
+                    // effective minimum explicitly as 0; do not inherit a
+                    // constraint the window cannot act on.
+                    minWidth: 0
                 }
             },
 

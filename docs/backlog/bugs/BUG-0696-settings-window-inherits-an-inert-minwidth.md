@@ -2,7 +2,7 @@
 id: BUG-0696
 title: The settings window inherits a minWidth it can never use
 type: bug
-status: ready
+status: done
 priority: P3
 milestone: none
 created: "2026-10-18"
@@ -11,6 +11,8 @@ area: ui
 data_class: none
 adr: none
 depends_on: []
+assignee: opencode
+branch: fix/ui-small-defects-0708-0696
 ---
 
 # BUG-0696 — The settings window inherits a minWidth it can never use
@@ -60,17 +62,14 @@ Two things are actually open:
 
 ## Acceptance criteria
 
-- The `settings` window's *effective* minimum width stops being an inert
-  default. Deleting the `minWidth` key alone does not achieve this:
-  `src/lib/windows/WindowBase.svelte.ts:514` falls back to `l.minWidth ?? 200`,
-  and the class default is `200` (`:194`). Either set a value the window can act
-  on, or stop declaring a minimum the window cannot use.
-- The single-column band is asserted at a resolution that can observe it. A
-  Vitest component test cannot: `gridClass` is derived from the `cols` prop
-  (`src/components/settings/shared/SettingsGrid.svelte:56`) and the class string
-  is identical at every container width, which is all
-  `SettingsGrid.component.test.ts:61` checks. Use a Playwright assertion, or
-  reword this criterion to the class contract the component does promise.
+- [x] The `settings` window's *effective* minimum width is no longer the
+      inherited 200px default: `isResizable` is false, and the layout declares
+      `minWidth: 0` explicitly. The registry test pins the flag and the value.
+- [x] The single-column contract is asserted at the class level: the existing
+      `SettingsGrid.component.test.ts` pins `grid-cols-1` plus the
+      `@min-[560px]:grid-cols-2` promotion. The container-width band itself is
+      not observable from a Vitest class-string test and is not claimed here
+      (the item allowed this reword).
 
 ## Out of scope
 
@@ -81,3 +80,14 @@ Two things are actually open:
   block of `src/components/settings/shared/SettingsGrid.svelte` (`:18-34`); the
   code line is `:56`. It is not up for renegotiation here.
 - The geometry of every other window in the registry.
+
+## Progress — 2026-10-24
+
+The settings layout now declares `minWidth: 0` explicitly instead of inheriting
+`baseLayout`'s 200px. `isResizable` is false, so no minimum was ever consulted;
+0 is the honest effective value, and the new registry assertion fails on the old
+inherited 200.
+
+The single-column band is covered by the component's class contract in
+`SettingsGrid.component.test.ts`, as the item allowed; no Playwright test was
+added.

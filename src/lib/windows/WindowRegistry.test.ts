@@ -134,3 +134,22 @@ describe("WindowRegistry: the alert panel is not a modal (FEAT-0389)", () => {
         expect(config.flags.maxInstances).toBe(1);
     });
 });
+
+/**
+ * BUG-0696 — the settings window is not resizable, so the `minWidth: 200`
+ * inherited from `baseLayout` was never consulted: the grips are gated on
+ * `isResizable` and maximize bypasses the clamp. It read as a real constraint
+ * in the one file every window takes its geometry from. The registry now
+ * declares the effective minimum explicitly as 0.
+ */
+describe("WindowRegistry: the settings window has no inert minimum (BUG-0696)", () => {
+    it("is not resizable, so no minimum can be acted on", () => {
+        const config = windowRegistry.getConfig("settings");
+        expect(config.flags.isResizable).toBe(false);
+    });
+
+    it("declares no minimum instead of inheriting the 200px default", () => {
+        const config = windowRegistry.getConfig("settings");
+        expect(config.layout.minWidth).toBe(0);
+    });
+});

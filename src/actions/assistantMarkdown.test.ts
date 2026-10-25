@@ -22,17 +22,24 @@
  * keys. These tests go through the real action and the real locale files.
  */
 
-import { afterEach, describe, expect, it } from "vitest";
-import { waitLocale } from "svelte-i18n";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { get } from "svelte/store";
+import { locale as svelteLocale, waitLocale } from "svelte-i18n";
 import { setLocale } from "../locales/i18n";
 import { assistantMarkdown } from "./assistantMarkdown";
+
+/** `waitLocale` only waits for the dictionary; the apply is async. */
+async function waitEffective(locale: string) {
+    await waitLocale(locale);
+    await vi.waitFor(() => expect(get(svelteLocale)).toBe(locale));
+}
 
 afterEach(() => setLocale("en"));
 
 describe("assistantMarkdown action", () => {
     it("renders the assistant's source footer as words, not keys", async () => {
         setLocale("en");
-        await waitLocale("en");
+        await waitEffective("en");
 
         const node = document.createElement("div");
         assistantMarkdown(node, "Check: BTCUSDT.\n\n---\nQuellen: REAL_TIME_PRICE, marketDetails.high24h");
@@ -46,7 +53,7 @@ describe("assistantMarkdown action", () => {
 
     it("uses the German labels when the UI language is German", async () => {
         setLocale("de");
-        await waitLocale("de");
+        await waitEffective("de");
 
         const node = document.createElement("div");
         assistantMarkdown(node, "Check.\n\nQuellen: REAL_TIME_PRICE, marketDetails.high24h");
@@ -56,14 +63,14 @@ describe("assistantMarkdown action", () => {
 
     it("re-renders the footer when the language changes", async () => {
         setLocale("en");
-        await waitLocale("en");
+        await waitEffective("en");
 
         const node = document.createElement("div");
         assistantMarkdown(node, "Quellen: REAL_TIME_PRICE");
         expect(node.textContent).toContain("Sources: Real-time price");
 
         setLocale("de");
-        await waitLocale("de");
+        await waitEffective("de");
 
         // The action subscribes to the locale; without that this stays English.
         expect(node.textContent).toContain("Quellen: Echtzeitkurs");
@@ -71,7 +78,7 @@ describe("assistantMarkdown action", () => {
 
     it("leaves a code sample that shows the keys untouched", async () => {
         setLocale("en");
-        await waitLocale("en");
+        await waitEffective("en");
 
         const node = document.createElement("div");
         assistantMarkdown(node, "```\nQuellen: REAL_TIME_PRICE\n```");
