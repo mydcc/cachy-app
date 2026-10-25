@@ -58,7 +58,6 @@ jobs:
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           # Swap for a stronger model here once a provider key is configured.
           model: opencode/deepseek-v4.1-flash-free
@@ -72,7 +71,6 @@ jobs:
   #
   # Only PRs from branches in this repo are reviewed. Fork PRs are skipped:
   # GitHub does not pass secrets to fork-triggered workflows, so the opencode
-  # action would fail without OPENCODE_API_KEY, and external PRs should not
   # drive the agent.
   review:
     if: |
@@ -99,7 +97,6 @@ jobs:
       - name: Run opencode review
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: opencode/deepseek-v4.1-flash-free
           # Keep the session private even on this public repo.
@@ -149,7 +146,6 @@ jobs:
       - name: Run opencode weekly maintenance
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: opencode/deepseek-v4.1-flash-free
           # Keep the session private even on this public repo.
@@ -186,7 +182,6 @@ jobs:
       - name: Run opencode manual task
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: opencode/deepseek-v4.1-flash-free
           # Keep the session private even on this public repo.
