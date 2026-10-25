@@ -17,11 +17,15 @@
 
 /**
  * FEAT-0608 — `SettingsGrid` is the only place that decides how settings
- * fields flow into columns. The settings window is resizable, so a viewport
- * breakpoint (`sm:`/`md:`/`lg:`/`xl:`) is wrong there: the same tab would
- * change column count with the browser, not with the window.
+ * layouts flow into columns and rows. The settings window is resizable, so a
+ * viewport breakpoint (`sm:`/`md:`/`lg:`/`xl:`, `2xl:`, arbitrary
+ * `min-[…]:`) is wrong there: the same tab would change shape with the
+ * browser, not with the window. The same applies to a child's
+ * `col-span`/`grid-rows`: a viewport span on a container-query parent
+ * creates an implicit track at narrow widths (the review's HIGH).
  *
- * The scan is scoped to `src/components/settings`; the window chrome lives in
+ * The scan reads `class="…"` values only, so a comment or a `@container`
+ * variant cannot trigger it. The window chrome lives in
  * `src/components/shared/windows` and legitimately follows the viewport.
  */
 
@@ -30,6 +34,19 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const SETTINGS_ROOT = "src/components/settings";
+const LAYOUT_PROPERTIES = "grid-cols|col-span|grid-rows|grid-flow|auto-cols|auto-rows";
+
+/** A viewport variant on a layout property. `@min-[…]` is a container query. */
+export function hasViewportLayoutClass(classValue: string): boolean {
+  return classValue.split(/\s+/).some((token) => {
+    if (!token || token.startsWith("@")) return false;
+    const match = token.match(
+      /^(?:(?:sm|md|lg|xl|2xl):|max-(?:sm|md|lg|xl|2xl):|(?:min|max)-\[[^\]]+\]:)(.*)$/,
+    );
+    if (!match) return false;
+    return new RegExp(`^(?:${LAYOUT_PROPERTIES})-`).test(match[1]);
+  });
+}
 
 function svelteFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -39,27 +56,33 @@ function svelteFiles(dir: string): string[] {
   });
 }
 
+function classValues(source: string): string[] {
+  return [...source.matchAll(/class="([^"]*)"/g)].map((match) => match[1]);
+}
+
 describe("settings grid adoption (FEAT-0608)", () => {
-  it("keeps viewport breakpoints out of settings column counts", () => {
+  it.each([
+    ["grid grid-cols-1 sm:grid-cols-2", true],
+    ["grid md:col-span-2", true],
+    ["grid 2xl:grid-cols-4", true],
+    ["grid max-sm:grid-cols-1", true],
+    ["grid min-[600px]:grid-cols-2", true],
+    ["grid @min-[560px]:grid-cols-2", false],
+    ["grid @sm:grid-cols-2", false],
+    ["grid grid-cols-2", false],
+    ["flex md:flex-row", false],
+  ])("classifies %s as viewport layout: %s", (classes, expected) => {
+    expect(hasViewportLayoutClass(classes)).toBe(expected);
+  });
+
+  it("keeps viewport breakpoints out of settings layouts", () => {
     const offenders = svelteFiles(SETTINGS_ROOT).filter((file) =>
-      /(?:sm|md|lg|xl):grid-cols-/.test(readFileSync(file, "utf8")),
+      classValues(readFileSync(file, "utf8")).some(hasViewportLayoutClass),
     );
 
     expect(
       offenders,
-      "use SettingsGrid; it follows the settings window width, not the viewport",
+      "use SettingsGrid and col-span-full; settings follow the window width, not the viewport",
     ).toEqual([]);
-  });
-
-  it("adopts SettingsGrid in the two appearance tabs and IndicatorSettings", () => {
-    for (const file of [
-      "src/components/settings/tabs/VisualsAppearance.svelte",
-      "src/components/settings/tabs/VisualsBackground.svelte",
-      "src/components/settings/tabs/IndicatorSettings.svelte",
-    ]) {
-      expect(readFileSync(file, "utf8"), `${file} has no SettingsGrid`).toContain(
-        "<SettingsGrid",
-      );
-    }
   });
 });

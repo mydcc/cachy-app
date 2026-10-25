@@ -19,7 +19,6 @@
   lists; a column grid would only add empty tracks.
 -->
 
-
 <!--
   FEAT-0396 — the Automation tab.
 

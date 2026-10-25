@@ -273,7 +273,7 @@
                 </Button>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <SettingsGrid cols={2}>
                 <div class="field-group">
                     <label for="galaxy-count"
                         >{$_("settings.visuals.particles")}: {settingsState
@@ -311,9 +311,9 @@
                         class="range-input"
                     />
                 </div>
-            </div>
+            </SettingsGrid>
 
-            <div class="grid grid-cols-2 gap-4">
+            <SettingsGrid cols={2}>
                 <div class="field-group">
                     <label for="galaxy-radius"
                         >{$_("settings.visuals.radius")}: {settingsState.galaxySettings.radius.toFixed(
@@ -349,9 +349,9 @@
                         class="range-input"
                     />
                 </div>
-            </div>
+            </SettingsGrid>
 
-            <div class="grid grid-cols-2 gap-4">
+            <SettingsGrid cols={2}>
                 <div class="field-group">
                     <label for="galaxy-spin"
                         >{$_("settings.visuals.spinSpeed")}: {settingsState.galaxySettings.spin.toFixed(
@@ -388,9 +388,9 @@
                         class="range-input"
                     />
                 </div>
-            </div>
+            </SettingsGrid>
 
-            <div class="grid grid-cols-2 gap-4">
+            <SettingsGrid cols={2}>
                 <div class="field-group">
                     <label for="galaxy-randomness-power"
                         >{$_("settings.visuals.spread")}: {settingsState.galaxySettings.randomnessPower.toFixed(
@@ -429,9 +429,9 @@
                         class="range-input"
                     />
                 </div>
-            </div>
+            </SettingsGrid>
 
-            <div class="grid grid-cols-2 gap-4">
+            <SettingsGrid cols={2}>
                 <div class="field-group">
                     <label for="galaxy-rotation-speed"
                         >{$_("settings.visuals.rotationSpeed")}: {settingsState.galaxySettings.rotationSpeed.toFixed(
@@ -451,7 +451,7 @@
                         class="range-input"
                     />
                 </div>
-            </div>
+            </SettingsGrid>
 
             <!-- Auto-Center Control -->
             <div
@@ -473,13 +473,13 @@
 
             <!-- Camera & Rotation -->
             <div
-                class="grid grid-cols-1 gap-4 border-t border-[var(--border-color)] pt-4 mt-2"
+                class="flex flex-col gap-4 border-t border-[var(--border-color)] pt-4 mt-2"
             >
                 <span
                     class="text-xs font-semibold text-[var(--text-secondary)]"
                     >{$_("settings.visuals.cameraPos")}</span
                 >
-                <div class="grid grid-cols-3 gap-2">
+                <SettingsGrid cols={3} gap="gap-2">
                     <div class="field-group">
                         <label for="cam-x"
                             >{$_("settings.visuals.coordinates.x")}: {settingsState.galaxySettings.camPos.x.toFixed(
@@ -537,13 +537,13 @@
                             class="range-input"
                         />
                     </div>
-                </div>
+                </SettingsGrid>
 
                 <span
                     class="text-xs font-semibold text-[var(--text-secondary)]"
                     >{$_("settings.visuals.rotation")}</span
                 >
-                <div class="grid grid-cols-3 gap-2">
+                <SettingsGrid cols={3} gap="gap-2">
                     <div class="field-group">
                         <label for="rot-x"
                             >{$_("settings.visuals.coordinates.x")}: {settingsState.galaxySettings.galaxyRot.x.toFixed(
@@ -601,7 +601,7 @@
                             class="range-input"
                         />
                     </div>
-                </div>
+                </SettingsGrid>
             </div>
 
             <!-- Gyroscope Control -->
@@ -688,7 +688,7 @@
 
             <!-- Custom Colors (only visible in custom mode) -->
             {#if settingsState.tradeFlowSettings.colorMode === "custom"}
-                <div class="grid grid-cols-2 gap-4">
+                <SettingsGrid cols={2}>
                     <div class="field-group">
                         <label for="tf-color-up">{$_("settings.visuals.tradeFlow.buyColor")}</label>
                         <div class="flex items-center gap-2">
@@ -717,7 +717,7 @@
                             </span>
                         </div>
                     </div>
-                </div>
+                </SettingsGrid>
             {/if}
 
             <!-- Color Mode & Atmosphere -->
@@ -867,7 +867,7 @@
 
                     <!-- Scene Rotation (Block only, decorative) -->
                     {#if settingsState.tradeFlowSettings.flowMode === 'block'}
-                    <div class="field-group flex items-center justify-between gap-2 md:col-span-2">
+                    <div class="field-group flex items-center justify-between gap-2 col-span-full">
                         <span class="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]">
                             {$_("settings.visuals.tradeFlow.sceneRotation")}
                             <InfoTip text={$_("settings.visuals.tradeFlow.tooltipRotation")} />
@@ -909,7 +909,7 @@
                     </div>
 
                     {#if settingsState.tradeFlowSettings.volatilitySource === 'atr' || settingsState.tradeFlowSettings.moodSource === 'rsi'}
-                    <div class="field-group md:col-span-2">
+                    <div class="field-group col-span-full">
                         <div class="flex items-center gap-1.5">
                             <label for="tf-indicator-tf">{$_("settings.visuals.tradeFlow.indicatorTimeframe")}</label>
                             <InfoTip text={$_("settings.visuals.tradeFlow.tooltipIndicatorTimeframe")} />
@@ -1046,9 +1046,9 @@
                 </div>
 
                 <!-- Camera & Rotation — same controls and units as the 3D galaxy -->
-                <div class="grid grid-cols-1 gap-4 border-t border-[var(--border-color)] pt-4 mt-2">
+                <div class="flex flex-col gap-4 border-t border-[var(--border-color)] pt-4 mt-2">
                     <span class="text-xs font-semibold text-[var(--text-secondary)]">{$_("settings.visuals.cameraPos")}</span>
-                    <div class="grid grid-cols-3 gap-2">
+                    <SettingsGrid cols={3} gap="gap-2">
                         <div class="field-group">
                             <label for="tfg-cam-x">{$_("settings.visuals.coordinates.x")}: {settingsState.tradeFlowSettings.galaxyFlow.camPos.x.toFixed(1)}</label>
                             <input id="tfg-cam-x" type="range" min="-15" max="15" step="0.1"
@@ -1067,10 +1067,10 @@
                                 bind:value={settingsState.tradeFlowSettings.galaxyFlow.camPos.z}
                                 class="range-input" />
                         </div>
-                    </div>
+                    </SettingsGrid>
 
                     <span class="text-xs font-semibold text-[var(--text-secondary)]">{$_("settings.visuals.rotation")}</span>
-                    <div class="grid grid-cols-3 gap-2">
+                    <SettingsGrid cols={3} gap="gap-2">
                         <div class="field-group">
                             <label for="tfg-rot-x">{$_("settings.visuals.coordinates.x")}: {settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.x.toFixed(1)}{$_("settings.visuals.coordinates.deg")}</label>
                             <input id="tfg-rot-x" type="range" min="0" max="360" step="0.1"
@@ -1089,7 +1089,7 @@
                                 bind:value={settingsState.tradeFlowSettings.galaxyFlow.galaxyRot.z}
                                 class="range-input" />
                         </div>
-                    </div>
+                    </SettingsGrid>
                 </div>
 
                 <!-- Gyroscope -->
@@ -1172,7 +1172,7 @@
                             bind:value={settingsState.tradeFlowSettings.galaxyFlow.sentimentTint}
                             class="range-input" />
                     </div>
-                    <div class="field-group md:col-span-2">
+                    <div class="field-group col-span-full">
                         <div class="flex items-center gap-1.5">
                             <label for="tfg-activity">{$_("settings.visuals.tradeFlow.activityRotation")}: {settingsState.tradeFlowSettings.galaxyFlow.activityRotation.toFixed(1)}x</label>
                             <InfoTip text={$_("settings.visuals.tradeFlow.tooltipActivityRotation")} />
@@ -1191,7 +1191,7 @@
                 <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.cameraControl")}</h3>
 
                 <!-- Position -->
-                <div class="grid grid-cols-3 gap-2 mb-4">
+                <SettingsGrid cols={3} gap="gap-2" extraClass="mb-4">
                     <div class="field-group">
                         <label for="tf-cam-posx">{$_("settings.visuals.tradeFlow.positionX")}: {settingsState.tradeFlowSettings.cameraPositionX || 0}</label>
                         <input id="tf-cam-posx" type="range" min="-500" max="500" step="1"
@@ -1213,10 +1213,10 @@
                             oninput={handleCamDistanceChange}
                             class="range-input" />
                     </div>
-                </div>
+                </SettingsGrid>
 
                 <!-- Rotation (grid modes; the galaxy has its own camera block above) -->
-                 <div class="grid grid-cols-3 gap-2 mb-4">
+                 <SettingsGrid cols={3} gap="gap-2" extraClass="mb-4">
                     <div class="field-group">
                         <label for="tf-cam-rx">{$_("settings.visuals.tradeFlow.rotationX")}: {settingsState.tradeFlowSettings.cameraRotationX}°</label>
                         <input id="tf-cam-rx" type="range" min="-180" max="180" step="1"
@@ -1238,7 +1238,7 @@
                             oninput={handleRotZChange}
                             class="range-input" />
                     </div>
-                </div>
+                </SettingsGrid>
             </div>
             {/if}
         </div>

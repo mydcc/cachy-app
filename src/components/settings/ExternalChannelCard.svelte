@@ -30,7 +30,7 @@
 -->
 
 <script lang="ts">
-    import SettingsGrid from "./shared/SettingsGrid.svelte";
+  import SettingsGrid from "./shared/SettingsGrid.svelte";
   import type { Snippet } from "svelte";
   import { _ } from "../../locales/i18n";
   import Toggle from "../shared/Toggle.svelte";
