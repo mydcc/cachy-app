@@ -30,6 +30,7 @@
 -->
 
 <script lang="ts">
+  import SettingsGrid from "./shared/SettingsGrid.svelte";
   import type { Snippet } from "svelte";
   import { _ } from "../../locales/i18n";
   import Toggle from "../shared/Toggle.svelte";
@@ -106,9 +107,9 @@
   <span class="block text-sm font-semibold text-[var(--text-primary)]">{title}</span>
   <p class="mt-1 text-[11px] text-[var(--text-secondary)]">{hint}</p>
 
-  <div class="mt-2 grid gap-2 sm:grid-cols-2">
+  <SettingsGrid cols={2} gap="gap-2" extraClass="mt-2">
     {@render fields()}
-  </div>
+  </SettingsGrid>
 
   <div class="mt-2 flex flex-wrap items-center gap-3">
     <label class="text-[11px] text-[var(--text-secondary)] cursor-pointer" for="ext-{channel}-enabled">

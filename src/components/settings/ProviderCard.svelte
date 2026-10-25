@@ -67,7 +67,7 @@
 </script>
 
 {#if entry}
-    <div class="grid grid-cols-1 gap-4">
+    <div class="flex flex-col gap-4">
         {#if showApiKey}
             <div class="field-group">
                 <div class="field-label-row">

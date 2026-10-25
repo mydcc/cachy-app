@@ -171,7 +171,7 @@
     onClear={() => externalChannelsStore.clear("discord")}
   >
     {#snippet fields()}
-      <label class="block text-[11px] text-[var(--text-secondary)] sm:col-span-2">
+      <label class="block text-[11px] text-[var(--text-secondary)] col-span-full">
         {$_("settings.externalChannels.discord.webhookUrl")}
         <input
           class={FIELD_CLASS}
@@ -240,7 +240,7 @@
         />
       </label>
 
-      <div class="sm:col-span-2">
+      <div class="col-span-full">
         <p class="text-[11px] text-[var(--text-secondary)]">
           {$_("settings.externalChannels.telegram.lookupChatsHint")}
         </p>

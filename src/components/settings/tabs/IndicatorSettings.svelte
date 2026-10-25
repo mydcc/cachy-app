@@ -285,7 +285,7 @@
                 </IndicatorCard>
 
                 <IndicatorCard title={$_("settings.technicals.pivotsTitle")} bind:enabled={indicatorState.pivots.enabled} alertKey="pivots">
-                    <div class="grid grid-cols-1 gap-2">
+                    <div class="flex flex-col gap-2">
                         <span class="text-xs text-[var(--text-secondary)]">{$_("settings.technicals.calculationMode")}</span>
                         <SettingsGrid gap="gap-2">
                             {#each pivotTypes as pType}
@@ -374,7 +374,7 @@
                 </IndicatorCard>
 
                 <IndicatorCard title={$_("settings.technicals.vwap")} bind:enabled={indicatorState.vwap.enabled} alertKey="vwap">
-                     <div class="grid grid-cols-1 gap-2">
+                     <div class="flex flex-col gap-2">
                          <Select id="vwap-anchor" label={$_("settings.technicals.anchor")} bind:value={indicatorState.vwap.anchor} options={[{value: "session", label: $_("settings.technicals.anchorSession")}, {value: "fixed", label: $_("settings.technicals.anchorFixed")}]} />
                     </div>
                 </IndicatorCard>
