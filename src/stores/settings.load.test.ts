@@ -107,6 +107,32 @@ describe("SettingsManager.load() -- legacy-shape tolerance", () => {
     expect(settings.technicalsCacheTTL).toBe(60);
   });
 
+  it("defaults the duck switches to on for an older blob and keeps an explicit off", () => {
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ apiProvider: "bitget" }),
+    );
+    localStorageMock.setItem(MIGRATION_KEY, "true");
+
+    const legacy = new SettingsManager();
+    expect(legacy.showDuck).toBe(true);
+    expect(legacy.duckNotifications).toBe(true);
+    expect(legacy.duckReactToTrades).toBe(true);
+
+    localStorageMock.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        showDuck: false,
+        duckNotifications: false,
+        duckReactToTrades: false,
+      }),
+    );
+    const explicit = new SettingsManager();
+    expect(explicit.showDuck).toBe(false);
+    expect(explicit.duckNotifications).toBe(false);
+    expect(explicit.duckReactToTrades).toBe(false);
+  });
+
   it("deep-merges nested objects instead of replacing them wholesale", () => {
     // galaxySettings blob predating camPos/galaxyRot -- exactly the case the
     // load() comment above the merge calls out.

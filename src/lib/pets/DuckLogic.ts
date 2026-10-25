@@ -24,11 +24,10 @@ import type { DuckAccessories } from "./DuckAccessories";
 import { applyStateAnimation, resetToIdle } from "./DuckAnimations";
 import type { DuckMeshRefs } from "./DuckAnimations";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
+import { DUCK_STATE_STORAGE_KEY } from "./duckState";
 import { _ } from "../../locales/i18n";
 import { get } from "svelte/store";
 import type { TranslationKey } from "../../locales/schema";
-
-const STORAGE_KEY = "duck_dao_state";
 const XP_PER_LEVEL = 50;
 const SLEEP_AFTER_SECONDS = 300; // 5 Minuten Inaktivität
 
@@ -97,6 +96,7 @@ export class DuckLogic {
     private achievements: string[] = [];
     private onboardingCompleted = false;
     private notifier: DuckNotifier;
+    private destroyed = false;
 
     constructor(scene: THREE.Scene, notifier: DuckNotifier = silentNotifier) {
         this.scene = scene;
@@ -112,7 +112,7 @@ export class DuckLogic {
 
     private loadState(): void {
         if (!browser) return;
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = localStorage.getItem(DUCK_STATE_STORAGE_KEY);
         if (stored) {
             try {
                 const data: Partial<DuckDaoState> = JSON.parse(stored);
@@ -145,7 +145,7 @@ export class DuckLogic {
             achievements: this.achievements,
             onboardingCompleted: this.onboardingCompleted,
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(DUCK_STATE_STORAGE_KEY, JSON.stringify(state));
     }
 
     private updateStreak(): void {
@@ -321,9 +321,43 @@ export class DuckLogic {
         }
     }
 
+    /**
+     * Removes the duck from the scene and releases its GPU resources.
+     * Re-enabling the master switch builds a new instance from the stored
+     * state, which is why this must not clear `duck_dao_state`.
+     */
+    public destroy(): void {
+        if (this.destroyed) return;
+        this.destroyed = true;
+
+        this.scene.remove(this.group);
+        const geometries = new Set<THREE.BufferGeometry>();
+        const materials = new Set<THREE.Material>();
+        this.group.traverse((object) => {
+            // Line/Points/Sprite carry the same geometry/material pair as
+            // Mesh; collect structurally so a future accessory cannot leak.
+            const renderable = object as THREE.Mesh;
+            if (renderable.geometry instanceof THREE.BufferGeometry) {
+                geometries.add(renderable.geometry);
+            }
+            const material = renderable.material;
+            if (Array.isArray(material)) {
+                for (const entry of material) materials.add(entry);
+            } else if (material instanceof THREE.Material) {
+                materials.add(material);
+            }
+        });
+        for (const geometry of geometries) geometry.dispose();
+        for (const material of materials) material.dispose();
+        this.group.clear();
+    }
+
     // ─── Initialisierung ──────────────────────────────────────────────────────
 
     public init(): void {
+        if (this.destroyed) {
+            throw new Error("DuckLogic: cannot init after destroy");
+        }
         console.log("DuckLogic: Initializing 🦆");
         this.createDuckGeometry();
         this.scene.add(this.group);

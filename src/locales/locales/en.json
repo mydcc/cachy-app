@@ -1292,7 +1292,22 @@
         "label": "Sub-sections",
         "appearance": "Look & Feel",
         "layout": "Layout",
-        "background": "Background"
+        "background": "Background",
+        "duck": "Duck"
+      },
+      "duck": {
+        "title": "Duck companion",
+        "description": "A small companion that reacts to trades, streaks and the tour. Purely local — nothing leaves this device.",
+        "show": "Show duck",
+        "showDesc": "Turn the companion off to remove it from the scene. Progress is kept and resumes when you turn it back on.",
+        "notifications": "Duck notifications",
+        "notificationsDesc": "Achievements keep unlocking in the background; turn this off to hide the toasts.",
+        "reactToTrades": "React to trades",
+        "reactToTradesDesc": "Off: winning and losing trades no longer trigger animations or trade XP.",
+        "reset": "Reset duck progress",
+        "resetDesc": "Clears XP, level, streaks, feeds and achievements for the duck only. Everything else stays untouched.",
+        "resetConfirm": "Reset the duck's progress? XP, level, streaks, feeds and achievements will be lost.",
+        "resetDone": "Duck progress reset."
       },
       "visualQuality": "Visual quality",
       "visualQualityDesc": "Render resolution of the 3D backgrounds and effects. Auto adapts to the measured frame rate.",

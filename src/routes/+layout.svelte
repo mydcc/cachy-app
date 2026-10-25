@@ -128,14 +128,24 @@ import { afterNavigate } from "$app/navigation";
   // consumes them, so nothing is lost while the chunk loads; if the import
   // fails, the next event retries it.
   $effect(() => {
+    const hasDuckEvents =
+      settingsState.showDuck && effectsState.duckEvents.length > 0;
     const hasEvents =
       effectsState.projectileEvents.length > 0 ||
       effectsState.smashEvents.length > 0 ||
-      effectsState.duckEvents.length > 0;
+      hasDuckEvents;
     if (!hasEvents || FXOverlayComponent) return;
     import("../components/shared/FXOverlay.svelte")
       .then((m) => (FXOverlayComponent = m.default))
       .catch((err) => console.error("Failed to load FXOverlay", err));
+  });
+
+  // A disabled duck never needs the 3D overlay. Drain its queue here so it
+  // cannot grow while no overlay exists to consume it.
+  $effect(() => {
+    if (settingsState.showDuck) return;
+    if (effectsState.duckEvents.length === 0) return;
+    effectsState.clearDuckEvents();
   });
 
   // --- Automated OPFS Local Backup (FEAT-0212 Phase 1) ---

@@ -366,6 +366,12 @@ export interface Settings {
    * squeeze the calculator on a narrow one.
    */
   sidebarWidth: number;
+  /** Master switch for the local duck companion (FEAT-0545). */
+  showDuck: boolean;
+  /** Achievement/full/annoyed toasts from the duck (FEAT-0545). */
+  duckNotifications: boolean;
+  /** Duck animations and trade XP on close/flash-close (FEAT-0545). */
+  duckReactToTrades: boolean;
   maxPrivateNotes: number;
   customSystemPrompt: string;
   aiProvider: AiProvider;
@@ -626,6 +632,9 @@ export const defaultSettings: Settings = {
   chatStyle: "minimal",
   density: "default",
   sidebarWidth: SIDEBAR_WIDTH_DEFAULT,
+  showDuck: true,
+  duckNotifications: true,
+  duckReactToTrades: true,
   customSystemPrompt: "",
   aiProvider: "gemini",
   openaiApiKey: "",

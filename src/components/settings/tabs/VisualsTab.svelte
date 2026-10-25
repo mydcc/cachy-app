@@ -23,6 +23,7 @@
     import VisualsLayout from "./VisualsLayout.svelte";
     import VisualsAppearance from "./VisualsAppearance.svelte";
     import VisualsBackground from "./VisualsBackground.svelte";
+    import VisualsDuck from "./VisualsDuck.svelte";
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
@@ -46,6 +47,11 @@
             id: "background",
             label: $_("settings.visuals.subtabs.background"),
             component: VisualsBackground,
+        },
+        {
+            id: "duck",
+            label: $_("settings.visuals.subtabs.duck"),
+            component: VisualsDuck,
         },
     ]);
 </script>

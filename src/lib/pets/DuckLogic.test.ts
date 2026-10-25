@@ -20,6 +20,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import * as THREE from "three";
 import { checkNewAchievements, DUCK_ACHIEVEMENTS } from "./DuckAchievements";
 import { applyOnboardingReward, ONBOARDING_XP_REWARD, DuckLogic } from "./DuckLogic";
+import { DUCK_STATE_STORAGE_KEY } from "./duckState";
 import { DuckState, DUCK_STATE_PRIORITY } from "./types";
 import type { DuckDaoState } from "./types";
 
@@ -303,11 +304,28 @@ describe("handleEvent transitions", () => {
         logic.handleEvent({ type: "onboarding_complete" });
         expect(logic.getXp()).toBe(ONBOARDING_XP_REWARD);
 
-        localStorage.removeItem("duck_dao_state");
+        localStorage.removeItem(DUCK_STATE_STORAGE_KEY);
         const reborn = new DuckLogic(new THREE.Scene());
         expect(reborn.hasCompletedOnboarding()).toBe(false);
 
         reborn.handleEvent({ type: "onboarding_complete" });
         expect(reborn.getXp()).toBe(ONBOARDING_XP_REWARD);
+    });
+});
+
+describe("scene lifecycle", () => {
+    it("removes the duck group on destroy without resetting progress", () => {
+        localStorage.clear();
+        const scene = new THREE.Scene();
+        const logic = new DuckLogic(scene);
+        logic.handleEvent({ type: "feed", amount: 10 });
+        logic.init();
+
+        expect(scene.children).toContain(logic.getGroup());
+
+        logic.destroy();
+
+        expect(scene.children).not.toContain(logic.getGroup());
+        expect(logic.getXp()).toBe(10);
     });
 });

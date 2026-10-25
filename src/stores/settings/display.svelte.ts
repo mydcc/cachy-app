@@ -16,13 +16,13 @@
  *
  * Display settings sub-store — ADR-0024 decision 2, first group.
  *
- * Holds the 65 display-owned `$state` fields: 66 `PERSISTENCE_SCHEMA` rows
- * carry `section: "display"`, but `isProLicenseActive` lives on the
- * entitlement collaborator (never a manager field), so 65 land here. An
- * inventory test below the schema pins that subtraction — a 67th display
- * row without a store field fails there, not as silent data loss.
- * `SettingsManager` keeps all 65 names via delegating getters/setters, so
- * the 97 consumer files do not change.
+ * Holds the display-owned `$state` fields. `PERSISTENCE_SCHEMA` rows with
+ * `section: "display"` are the source of truth, minus `isProLicenseActive`,
+ * which lives on the entitlement collaborator (never a manager field). An
+ * inventory test below the schema pins that subtraction — a display row
+ * without a store field fails there, not as silent data loss.
+ * `SettingsManager` keeps every name via delegating getters/setters, so the
+ * consumer files do not change.
  *
  * Import rule for sub-stores: defaults and types come from
  * `./settingsTypes` only, never from `settings.svelte.ts` (the manager
@@ -54,6 +54,9 @@ import type {
 export class DisplaySettingsStore {
   density = $state<DensityMode>(defaultSettings.density);
   sidebarWidth = $state<number>(defaultSettings.sidebarWidth);
+  showDuck = $state<boolean>(defaultSettings.showDuck);
+  duckNotifications = $state<boolean>(defaultSettings.duckNotifications);
+  duckReactToTrades = $state<boolean>(defaultSettings.duckReactToTrades);
   showSpinButtons = $state<boolean | "hover">(defaultSettings.showSpinButtons);
   disclaimerAccepted = $state<boolean>(defaultSettings.disclaimerAccepted);
   useUtcDateParsing = $state<boolean>(defaultSettings.useUtcDateParsing);

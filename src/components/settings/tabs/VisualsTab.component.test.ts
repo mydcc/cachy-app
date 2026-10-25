@@ -88,4 +88,17 @@ describe("VisualsTab — section split", () => {
         // TradeFlow grid width slider lives in the background section.
         expect(host.querySelector("#tf-width")).toBeTruthy();
     });
+
+    it("renders the duck section on demand", async () => {
+        component = mount(VisualsTab, {
+            target: host,
+        }) as never;
+        settle();
+
+        uiState.settingsVisualsSubTab = "duck";
+        settle();
+
+        expect(host.querySelector("#duck-show-toggle")).toBeTruthy();
+        expect(host.querySelector("#theme-select")).toBeNull();
+    });
 });
