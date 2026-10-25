@@ -14,6 +14,11 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
+<!--
+  FEAT-0608: no SettingsGrid. The rows in this tab are full-width fields and
+  lists; a column grid would only add empty tracks.
+-->
+
 
 <!--
   FEAT-0396 — the Automation tab.

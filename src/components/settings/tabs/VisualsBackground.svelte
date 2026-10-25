@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import SettingsGrid from "../shared/SettingsGrid.svelte";
     import Button from "../../shared/Button.svelte";
     import { _ } from "../../../locales/i18n";
     import type { TranslationKey } from "../../../locales/schema";
@@ -751,7 +752,7 @@
                 </div>
 
                 {#if settingsState.tradeFlowSettings.enableAtmosphere}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <SettingsGrid cols={2} extraClass="mt-3">
                     <div class="field-group">
                         <div class="flex items-center gap-1.5">
                             <label for="tf-atmo-intensity">{$_("settings.visuals.tradeFlow.atmosphereIntensity")}: {settingsState.tradeFlowSettings.atmosphereIntensity.toFixed(1)}x</label>
@@ -770,7 +771,7 @@
                             bind:value={settingsState.tradeFlowSettings.atmosphereSpeed}
                             class="range-input" />
                     </div>
-                </div>
+                </SettingsGrid>
                 {/if}
             </div>
 
@@ -795,7 +796,7 @@
                     </select>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <SettingsGrid cols={2} extraClass="mb-4">
                     <!-- Volume Scale (Eq, City, Sonar, Block) -->
                     {#if ['equalizer', 'city', 'raindrops', 'sonar', 'block', 'galaxy'].includes(settingsState.tradeFlowSettings.flowMode)}
                     <div class="field-group">
@@ -874,7 +875,7 @@
                         <Toggle bind:checked={settingsState.tradeFlowSettings.enableRotation} />
                     </div>
                     {/if}
-                </div>
+                </SettingsGrid>
             </div>
 
             <!-- Section: Indicators (ATR / RSI) -->
@@ -884,7 +885,7 @@
                     <InfoTip text={$_("settings.visuals.tradeFlow.tooltipIndicators")} />
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingsGrid cols={2}>
                     <div class="field-group">
                         <div class="flex items-center gap-1.5">
                             <label for="tf-volsource">{$_("settings.visuals.tradeFlow.volatilitySource")}</label>
@@ -920,7 +921,7 @@
                         </select>
                     </div>
                     {/if}
-                </div>
+                </SettingsGrid>
             </div>
 
             <!-- Section: Grid Layout (grid-based modes only; the galaxy has no grid) -->
@@ -928,7 +929,7 @@
             <div class="mb-4 pt-4 border-t border-[var(--border-color)]">
                 <h3 class="text-sm font-semibold mb-3 text-[var(--text-primary)]">{$_("settings.visuals.tradeFlow.gridLayout")}</h3>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <SettingsGrid cols={2} extraClass="mb-4">
                     <div class="field-group">
                         <div class="flex items-center gap-1.5">
                             <label for="tf-width">{$_("settings.visuals.tradeFlow.gridPointsX")}: {settingsState.tradeFlowSettings.gridWidth}</label>
@@ -963,7 +964,7 @@
                             oninput={handleSizeChange}
                             class="range-input" />
                     </div>
-                </div>
+                </SettingsGrid>
             </div>
 
             {/if}
@@ -976,7 +977,7 @@
                     <InfoTip text={$_("settings.visuals.tradeFlow.tooltipGalaxy")} />
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <SettingsGrid cols={2} extraClass="mb-4">
                     <div class="field-group">
                         <label for="tfg-count">{$_("settings.visuals.particles")}: {settingsState.tradeFlowSettings.galaxyFlow.particleCount}</label>
                         <input id="tfg-count" type="range" min="1000" max="100000" step="1000"
@@ -1031,7 +1032,7 @@
                             bind:value={settingsState.tradeFlowSettings.galaxyFlow.rotationSpeed}
                             class="range-input" />
                     </div>
-                </div>
+                </SettingsGrid>
 
                 <!-- Auto-Center -->
                 <div
@@ -1129,7 +1130,7 @@
                 </div>
 
                 {#if settingsState.tradeFlowSettings.galaxyFlow.atrBands}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <SettingsGrid cols={2} extraClass="mb-4">
                     <div class="field-group">
                         <div class="flex items-center gap-1.5">
                             <label for="tfg-atr-width">{$_("settings.visuals.tradeFlow.atrBandWidth")}: {settingsState.tradeFlowSettings.galaxyFlow.atrBandWidth.toFixed(2)}x</label>
@@ -1148,11 +1149,11 @@
                             bind:value={settingsState.tradeFlowSettings.galaxyFlow.atrBandStrength}
                             class="range-input" />
                     </div>
-                </div>
+                </SettingsGrid>
                 {/if}
                 {/if}
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <SettingsGrid cols={2}>
                     <div class="field-group">
                         <div class="flex items-center gap-1.5">
                             <label for="tfg-reactivity">{$_("settings.visuals.tradeFlow.marketReactivity")}: {settingsState.tradeFlowSettings.galaxyFlow.marketReactivity.toFixed(1)}x</label>
@@ -1180,7 +1181,7 @@
                             bind:value={settingsState.tradeFlowSettings.galaxyFlow.activityRotation}
                             class="range-input" />
                     </div>
-                </div>
+                </SettingsGrid>
             </div>
             {/if}
 
@@ -1244,7 +1245,7 @@
     {/if}
 
     {#if settingsState.backgroundType !== "none"}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SettingsGrid cols={2}>
             <div class="field-group">
                 <label for="bg-opacity"
                     >{$_("settings.profile.background.opacity")}: {Math.round(
@@ -1275,7 +1276,7 @@
                     class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
                 />
             </div>
-        </div>
+        </SettingsGrid>
     {/if}
 </section>
 

@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+    import SettingsGrid from "../shared/SettingsGrid.svelte";
     import { _ } from "../../../locales/i18n";
     import type { TranslationKey } from "../../../locales/schema";
     import { settingsState } from "../../../stores/settings.svelte";
@@ -52,7 +53,7 @@
 </script>
 
 <section class="settings-section animate-fade-in">
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <SettingsGrid cols={3}>
         <!-- Language -->
         <div class="field-group">
             <label for="lang-select"
@@ -104,7 +105,7 @@
                 {/each}
             </select>
         </div>
-    </div>
+    </SettingsGrid>
 
     <!-- Tooltips -->
     <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
@@ -139,9 +140,7 @@
             </div>
 
             {#if settingsState.enableGlassmorphism}
-                <div
-                    class="w-full grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-[var(--border-color)] animate-fade-in"
-                >
+                <SettingsGrid cols={3} extraClass="w-full pt-3 border-t border-[var(--border-color)] animate-fade-in">
                     <div class="field-group">
                         <label
                             for="glass-blur"
@@ -194,7 +193,7 @@
                             class="w-full h-1 bg-[var(--border-color)] rounded-lg appearance-none cursor-pointer"
                         />
                     </div>
-                </div>
+                </SettingsGrid>
             {/if}
         </div>
     </div>
@@ -221,7 +220,7 @@
             {#if settingsState.enableBurningBorders}
                 <div class="w-full flex flex-col gap-3.5 pt-3 border-t border-[var(--border-color)] animate-fade-in">
                     <!-- Style & Intensity in 2 Columns -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <SettingsGrid cols={2}>
                         <div class="field-group">
                             <span
                                 class="text-xs font-semibold text-[var(--text-secondary)] mb-1 block"
@@ -284,7 +283,7 @@
                                 {/each}
                             </div>
                         </div>
-                    </div>
+                    </SettingsGrid>
 
                     <!-- Color Mode -->
                     <div class="field-group">
@@ -294,7 +293,7 @@
                             {$_("settings.visuals.colorMode")}
                         </span>
                         <div class="flex flex-wrap items-center gap-2">
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
+                            <div class="grid grid-cols-2 gap-2 flex-1">
                                 {#each ["theme", "interactive", "custom", "classic"] as const as mode}
                                     <!-- FEAT-0611 escape: segmented control — one choice among peers, not an action button. -->
                                     <button
@@ -342,9 +341,7 @@
                         >
                             {$_("settings.appearance.burnTargets" as TranslationKey)}
                         </span>
-                        <div
-                            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2.5 rounded-lg bg-[var(--bg-primary)]/40 border border-[var(--border-color)]/60"
-                        >
+                        <SettingsGrid cols={3} gap="gap-2" extraClass="p-2.5 rounded-lg bg-[var(--bg-primary)]/40 border border-[var(--border-color)]/60">
                             <label
                                 class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)]/50 cursor-pointer group transition-colors"
                             >
@@ -437,7 +434,7 @@
                                     bind:checked={settingsState.burnJournal}
                                 />
                             </label>
-                        </div>
+                        </SettingsGrid>
                     </div>
                 </div>
             {/if}

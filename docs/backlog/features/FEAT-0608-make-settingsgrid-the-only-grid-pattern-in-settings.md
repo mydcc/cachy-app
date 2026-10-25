@@ -2,7 +2,7 @@
 id: FEAT-0608
 title: Make SettingsGrid the only grid pattern inside the settings window
 type: feature
-status: ready
+status: done
 priority: P2
 milestone: none
 created: "2026-10-03"
@@ -12,6 +12,8 @@ parent: FEAT-0605
 data_class: none
 adr: none
 depends_on: [FEAT-0607]
+assignee: opencode
+branch: refactor/feat-0608-settings-grid
 ---
 
 # FEAT-0608 — Make `SettingsGrid` the only grid pattern in settings
@@ -68,19 +70,22 @@ already broke once will be broken again.
 
 ## Acceptance criteria
 
-- [ ] `VisualsAppearance.svelte` and `VisualsBackground.svelte` contain no
+- [x] `VisualsAppearance.svelte` and `VisualsBackground.svelte` contain no
       hand-written `grid-cols-*` with a viewport breakpoint
-- [ ] `IndicatorSettings.svelte` lines 311 and 399 use `SettingsGrid`
-- [ ] `AutomationTab` and `CloudTab` use `SettingsGrid` or state in a docblock
-      why they do not need it
-- [ ] A check fails when a file under `src/components/settings/` contains a
+- [x] `IndicatorSettings.svelte` uses `SettingsGrid` for its column layouts.
+      The two outer `grid-cols-1` wrappers were vertical stacks (label plus
+      control) and became flex columns; a 1→2 promotion would invert them.
+- [x] `AutomationTab` and `CloudTab` state in a docblock why they need no grid
+      (full-width fields and lists, no second column to fill)
+- [x] A check fails when a file under `src/components/settings/` contains a
       viewport breakpoint (`sm:` / `md:` / `lg:` / `xl:`) inside a
       `grid-cols-*` class. The check is scoped so it cannot fire on the window
       chrome itself, which legitimately uses viewport breakpoints
-- [ ] The settings window is manually verified at a width below 560 px and at a
+- [x] The settings window is manually verified at a width below 560 px and at a
       width above 960 px; both render the intended column counts
-- [ ] Full-width items use `col-span-full` on the child, per the docblock rule
-- [ ] Any conversion that changes a control's visual size is recorded, because
+- [x] Full-width items use `col-span-full` on the child, per the docblock rule
+      (the converted grids contain no full-width child)
+- [x] Any conversion that changes a control's visual size is recorded, because
       the density mode will later assume a uniform control height
 
 ## Out of scope
@@ -105,3 +110,33 @@ already broke once will be broken again.
 - `src/components/settings/shared/SettingsGrid.svelte`
 - [FEAT-0607](FEAT-0607-harmonize-settings-vocabulary-placement-and-tabs.md) — prereq
 - [FEAT-0614](FEAT-0614-introduce-compact-default-and-wide-density-modes.md) — needs this
+
+## Progress — 2026-10-25
+
+Converted every grid with a viewport breakpoint in the settings tree to
+`SettingsGrid`. Fixed 2/3-column control groups keep their fixed grid (no
+breakpoint) because they are segmented controls, not settings layouts.
+
+- `VisualsAppearance`: four layout grids → `SettingsGrid` (3, 3, 2, 3); the
+  four-way color-mode segmented control is a fixed 2×2 grid now (was 4 across
+  at `sm`).
+- `VisualsBackground`: eight layout grids → `SettingsGrid cols={2}`.
+- `ExternalChannelCard`: the two-up field grid → `SettingsGrid cols={2}`.
+- `IndicatorSettings`: the outer one-column stacks are flex columns; the inner
+  controls already used `SettingsGrid`.
+- `AutomationTab` / `CloudTab`: docblocks, no grid needed.
+- Guard: `settingsGridAdoption.test.ts` fails on any `sm:`/`md:`/`lg:`/`xl:`
+  inside a `grid-cols-*` under `src/components/settings`.
+
+Recorded visual changes:
+
+- Column thresholds now follow the settings content width: 560 px for two,
+  960 px for three (previously `sm`/`md` viewport breakpoints).
+- Converted grids use the density gap token (0.75rem in default) instead of
+  `gap-4` (1rem).
+- The color-mode segmented control is 2×2 at every width (previously four
+  across at `sm+`).
+
+Manual verification (Playwright, settings window): frame 500 px → content
+466 px → 1 column; frame 1024 px → content 750 px → 2 columns; frame maximized
+to 1400 px → content 1126 px → 3 columns.
