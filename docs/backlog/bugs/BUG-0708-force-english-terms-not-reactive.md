@@ -91,10 +91,11 @@ The settings input has no trigger.
 
 `updateEffectiveLocale` is exported. `LocaleSync.svelte`, mounted once in
 `+layout.svelte`, tracks both the public locale store and
-`settingsState.forceEnglishTechnicalTerms`, owns the startup apply, and calls
-it; the sequence token and the serialized apply chain keep rapid toggles
-race-safe. `i18n.ts` no longer imports the settings store, so the
-settings -> ui -> i18n cycle is gone.
+`settingsState.forceEnglishTechnicalTerms`, owns the effective (de-tech) apply
+on startup, and calls it; the sequence token and the serialized apply chain keep
+rapid toggles race-safe. The public locale subscription applies the base locale
+so plain language switches and unit tests still work. `i18n.ts` no longer
+imports the settings store, so the settings -> ui -> i18n cycle is gone.
 
 `<html lang>` needed a second fix: svelte-i18n mirrors the *applied* locale into
 the attribute, so the hybrid `de-tech` overwrote the `de` set by the public

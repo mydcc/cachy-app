@@ -298,16 +298,17 @@ function syncDocumentLang(value: string) {
   document.documentElement.lang = value.startsWith("de") ? "de" : "en";
 }
 
-// Subscribe to the public 'locale' store. The effective locale (including the
-// de-tech hybrid) is applied by LocaleSync: it is the only place that can read
-// the settings store without pulling it into i18n's module graph, and it owns
-// the startup apply as well.
+// Subscribe to the public 'locale' store. Apply the base locale immediately
+// (unit tests and the first paint rely on it); LocaleSync upgrades it to the
+// de-tech hybrid when the flag is on. The subscription never reads the settings
+// store, so the settings -> ui -> i18n cycle stays gone.
 locale.subscribe((value) => {
   if (value) {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("locale", value);
     }
     syncDocumentLang(value);
+    void updateEffectiveLocale(false);
   }
 });
 
