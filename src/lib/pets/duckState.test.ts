@@ -126,6 +126,9 @@ describe("isDuckResetStorageEvent", () => {
             }),
         ).toBe(false);
         expect(
+            isDuckResetStorageEvent({ key: null, newValue: null }),
+        ).toBe(true);
+        expect(
             isDuckResetStorageEvent({ key: "other-key", newValue: null }),
         ).toBe(false);
     });

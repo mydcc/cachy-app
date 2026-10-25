@@ -116,5 +116,8 @@ export function isDuckResetStorageEvent(event: {
     key: string | null;
     newValue: string | null;
 }): boolean {
-    return event.key === DUCK_STATE_STORAGE_KEY && event.newValue === null;
+    // `key === null` is `localStorage.clear()` (the Danger Zone wipe).
+    const removedDuckState =
+        event.key === DUCK_STATE_STORAGE_KEY || event.key === null;
+    return removedDuckState && event.newValue === null;
 }
