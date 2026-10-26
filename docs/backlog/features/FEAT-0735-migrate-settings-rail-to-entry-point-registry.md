@@ -2,7 +2,7 @@
 id: FEAT-0735
 title: Migrate the settings rail to the entry-point registry
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0735-settings-rail
 priority: P3
@@ -46,22 +46,42 @@ This is step 5 of the FEAT-0618 migration and the last surface.
 
 ## Acceptance criteria
 
-- [ ] The rail renders exactly the registry's eight `settings-rail`
+- [x] The rail renders exactly the registry's eight `settings-rail`
       placements, in registry order.
-- [ ] Labels and icons come from the entries; `SettingsContent` has no tab
+- [x] Labels and icons come from the entries; `SettingsContent` has no tab
       label keys, icon paths or destination ids left.
-- [ ] Every `settings-*` icon key resolves to the same SVG the old inline
+- [x] Every `settings-*` icon key resolves to the same SVG the old inline
       paths drew.
-- [ ] Clicking a tab selects it; selection goes through
+- [x] Clicking a tab selects it; selection goes through
       `openEntry(entry, { selectTab })`, and a tab opener without the handler
       throws.
-- [ ] The content map covers every registry id; a missing component fails at
+- [x] The content map covers every registry id; a missing component fails at
       init instead of rendering an empty panel.
-- [ ] The settings sub-tab pills (Trading, Visuals, AI, Connections, System,
+- [x] The settings sub-tab pills (Trading, Visuals, AI, Connections, System,
       Indicators) are untouched.
-- [ ] Component tests cover order, labels, icons, active state and selection;
+- [x] Component tests cover order, labels, icons, active state and selection;
       the settings wiring test verifies the content map against the registry.
-- [ ] No header, rail or journal-tab behavior changes.
+- [x] No header, rail or journal-tab behavior changes.
+
+## Progress
+
+`SettingsTabBar` reads `getSurfaceEntries("settings-rail", STATIC_ENTRY_CONTEXT)`,
+maps labels and icons and executes selection through
+`openEntry(entry, { selectTab })`. The eight inline path sets moved from
+`SettingsContent` into the central icon map as full `settings-*` SVGs;
+`TabBar` now renders the resolved `<svg>` directly instead of wrapping caller
+markup in its own element.
+
+`SettingsContent` keeps only the id → content-component map. It is validated
+against the registry ids at init, so a tab without a body fails instead of
+rendering an empty panel. The static-context test now pins the header, the
+journal tab strip and the settings rail (14 placements).
+
+Tests: 3 `settings-tabs` cases (order, icons, non-tab rejection), 2
+`SettingsTabBar` component cases (order/labels/icons, active state and
+selection), the `TabBar` suite with a full-SVG fixture, the updated settings
+wiring test (registry labels, content-map parity, no fallback strings) and the
+extended registry test. The sub-tab pills are untouched.
 
 ## Out of scope
 

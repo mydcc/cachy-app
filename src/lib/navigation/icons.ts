@@ -33,6 +33,42 @@ const RAIL_ICONS: Record<string, string> = {
     "rail-market-sentiment": `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`,
 };
 
+/**
+ * The settings rail's inline paths used to live in `SettingsContent`, wrapped
+ * by `TabBar` in this exact `<svg>`. They moved here so the registry's
+ * `settings-*` keys resolve to full SVG markup like every other icon key.
+ */
+function settingsIcon(paths: string): string {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+}
+
+const SETTINGS_ICONS: Record<string, string> = {
+    "settings-trading": settingsIcon(
+        `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07"/>`,
+    ),
+    "settings-automation": settingsIcon(
+        `<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>`,
+    ),
+    "settings-chart": settingsIcon(
+        `<path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-6"/>`,
+    ),
+    "settings-visuals": settingsIcon(
+        `<path d="M2.05 13.9a9.96 9.96 0 0 1 0-7.8"/> <path d="M8.2 21.8c-1.3-.2-2.5-.6-3.7-1.3"/> <path d="M15.8 2.2c1.3.2 2.5.6 3.7 1.3"/> <path d="M21.95 10.1a9.96 9.96 0 0 1 0 7.8"/> <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/> <path d="M12 2a10 10 0 0 1 10 10"/>`,
+    ),
+    "settings-ai": settingsIcon(
+        `<path d="M12 2a2 2 0 0 1 2 2c0 2.21-1.79 4-4 4s-4-1.79-4-4a2 2 0 0 1 2-2z"/><path d="M12 10c-3.31 0-6 2.69-6 6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2c0-3.31-2.69-6-6-6z"/>`,
+    ),
+    "settings-connections": settingsIcon(
+        `<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,
+    ),
+    "settings-system": settingsIcon(
+        `<path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 22v-2"/><path d="m17 7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/><path d="M22 12h-2"/><path d="M2 12h2"/><path d="m4.9 19.1 1.4-1.4"/><path d="m7 17 1.4 1.4"/>`,
+    ),
+    "settings-cloud": settingsIcon(
+        `<path d="M17.5 19c0-1.7-1.3-3-3-3h-1.5c-2.8 0-5-2.2-5-5 0-2.3 1.5-4.3 3.7-4.8.8-1.8 2.6-3.2 4.8-3.2 3 0 5.5 2.5 5.5 5.5 0 .2 0 .5-.1.7 2.1.8 3.6 2.8 3.6 5.3 0 2.8-2.2 5-5 5h-4.5c-.3 0-.5-.2-.5-.5z"/>`,
+    ),
+};
+
 const ICONS: Record<string, string> = {
     // Every `icons.*` constant is a valid registry key; enumerating them by
     // hand already missed `icons.check`, `icons.exchange` and
@@ -44,6 +80,7 @@ const ICONS: Record<string, string> = {
         ]),
     ),
     ...RAIL_ICONS,
+    ...SETTINGS_ICONS,
 };
 
 /** Returns trusted SVG markup for an entry icon key, or an empty string. */

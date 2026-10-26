@@ -125,11 +125,15 @@ describe("entry-point registry data", () => {
 
 describe("surface resolver", () => {
     it("keeps the static-context surfaces condition-free", () => {
-        // The header and the journal tab strip share `STATIC_ENTRY_CONTEXT`
-        // because their placements have no conditions. A condition added to
-        // one of them would silently evaluate against zeroed values, so pin
-        // the contract here before that can ship.
-        const staticSurfaces: SurfaceId[] = ["header", "journal-tabs"];
+        // The header, the journal tab strip and the settings rail share
+        // `STATIC_ENTRY_CONTEXT` because their placements have no conditions.
+        // A condition added to one of them would silently evaluate against
+        // zeroed values, so pin the contract here before that can ship.
+        const staticSurfaces: SurfaceId[] = [
+            "header",
+            "journal-tabs",
+            "settings-rail",
+        ];
         const placements = ENTRY_POINTS.flatMap((entry) =>
             entry.placements.filter((placement) =>
                 staticSurfaces.includes(placement.surface),
@@ -139,7 +143,7 @@ describe("surface resolver", () => {
         const isContextFree = (condition: { kind: string } | undefined) =>
             condition === undefined || condition.kind === "always";
 
-        expect(placements).toHaveLength(6);
+        expect(placements).toHaveLength(14);
         for (const placement of placements) {
             expect(isContextFree(placement.visibleWhen)).toBe(true);
             expect(isContextFree(placement.enabledWhen)).toBe(true);
