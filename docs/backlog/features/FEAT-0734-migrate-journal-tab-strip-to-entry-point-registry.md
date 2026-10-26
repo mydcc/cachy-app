@@ -2,7 +2,7 @@
 id: FEAT-0734
 title: Migrate the journal tab strip to the entry-point registry
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0734-journal-tabs
 priority: P3
@@ -49,21 +49,45 @@ different surfaces and stay untouched.
 
 ## Acceptance criteria
 
-- [ ] The strip renders exactly the registry's five `journal-tabs`
+- [x] The strip renders exactly the registry's five `journal-tabs`
       placements, in registry order.
-- [ ] Labels, icons and tab ids come from the entries; `DashboardNav` has no
+- [x] Labels, icons and tab ids come from the entries; `DashboardNav` has no
       default preset list and no journal label keys left.
-- [ ] The ids `performance`, `quality`, `direction`, `discipline`, `costs` and
+- [x] The ids `performance`, `quality`, `direction`, `discipline`, `costs` and
       the existing active styling are unchanged.
-- [ ] Clicking a tab selects it; selection goes through
+- [x] Clicking a tab selects it; selection goes through
       `openEntry(entry, { selectTab })`.
-- [ ] A tab opener without a `selectTab` handler throws instead of silently
+- [x] A tab opener without a `selectTab` handler throws instead of silently
       doing nothing.
-- [ ] The journal's main tab switch and `JournalDeepDive`'s ten-preset strip
+- [x] The journal's main tab switch and `JournalDeepDive`'s ten-preset strip
       are untouched.
-- [ ] Component tests cover order, labels, icons, active state and selection;
+- [x] Component tests cover order, labels, icons, active state and selection;
       adapter tests cover the tab handler and the missing-handler error.
-- [ ] No header, rail or settings-rail behavior changes.
+- [x] No header, rail or settings-rail behavior changes.
+
+## Progress
+
+`DashboardNav` is now a dumb tab bar: `presets` is required and the default
+five-tab list with its label/icon imports is gone. `JournalContent` renders
+`JournalTabStrip`, which reads `getSurfaceEntries("journal-tabs", …)`, maps
+each entry to `{ id: tabId, label, icon }` and executes selection through
+`openEntry(entry, { selectTab })`. `JournalDeepDive` keeps its own ten-preset
+list through the same primitive.
+
+The static `EntryContext` moved into `entry-points.ts` as
+`STATIC_ENTRY_CONTEXT`; the header uses it too, and the registry test pins both
+surfaces as condition-free. `openEntry` gained the optional `selectTab`
+handler; a tab opener without it throws. The strip also exposed that
+`resolveEntryIcon` only mapped `icons.book/settings/chart`: it now maps every
+`icons.*` constant, so `icons.check`, `icons.exchange` and `icons.lockClosed`
+resolve.
+
+Tests: 3 `journal-tabs` cases (order, icons, non-tab rejection), 2
+`JournalTabStrip` component cases (order/labels/icons, active state and
+selection), one new `openEntry` tab-handler case, and the extended registry
+context-free test. The existing `DashboardNav` XSS cases and the button
+adoption scan stay green. The journal's main tab switch and the ten deep-dive
+presets are untouched.
 
 ## Out of scope
 

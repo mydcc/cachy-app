@@ -69,24 +69,13 @@
   import { effectsState } from "../stores/effects.svelte";
   import HeaderJournalButton from "../components/shared/HeaderJournalButton.svelte";
   import {
+    STATIC_ENTRY_CONTEXT,
     getSurfaceEntries,
-    type EntryContext,
   } from "../lib/navigation/entry-points";
 
-  // The header placement is condition-free by registry contract: the header
-  // carries only the journal destination, always visible. If that changes,
-  // this context must start reading the stores the way the rail does.
-  const HEADER_CONTEXT: EntryContext = {
-    settings: {},
-    entitlement: { pro: false },
-    accounts: { activeId: null, activeExchange: null, count: 0 },
-    windows: {},
-    viewportWidth: 0,
-    ui: {},
-    derived: {},
-    data: {},
-  };
-  const headerEntries = getSurfaceEntries("header", HEADER_CONTEXT);
+  // The header placement is condition-free by registry contract (pinned in
+  // entry-points.test.ts), so it shares the static context.
+  const headerEntries = getSurfaceEntries("header", STATIC_ENTRY_CONTEXT);
 
   let changelogContent = $state("");
   let guideContent = $state("");

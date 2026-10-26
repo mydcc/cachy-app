@@ -136,6 +136,24 @@ export interface EntryContext {
     data: Record<string, boolean>;
 }
 
+/**
+ * Context for surfaces whose placements are condition-free by contract: the
+ * header and the journal tab strip. `entry-points.test.ts` pins both, so a
+ * condition added to one of those surfaces fails there before it can silently
+ * evaluate against these zeroed values. Every other surface builds its own
+ * context from the stores.
+ */
+export const STATIC_ENTRY_CONTEXT: EntryContext = {
+    settings: {},
+    entitlement: { pro: false },
+    accounts: { activeId: null, activeExchange: null, count: 0 },
+    windows: {},
+    viewportWidth: 0,
+    ui: {},
+    derived: {},
+    data: {},
+};
+
 export interface SurfaceEntry {
     entry: Entry;
     placement: Placement;

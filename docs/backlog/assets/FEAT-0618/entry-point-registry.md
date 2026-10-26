@@ -82,9 +82,12 @@ the registry does not accept inline SVG from features.
 | `route` | `{ kind: "route"; path: string }` | Navigate to a route. No current shell destination uses it; SEO pages are out of scope. |
 
 `ToggleTarget` and `windowType` are closed unions. A surface never calls a
-component directly; one `openEntry(entry)` adapter switches on `opener.kind`.
-That adapter is the only place that knows `uiState`, `windowManager` or router
-APIs.
+component directly; one `openEntry(entry, handlers?)` adapter switches on
+`opener.kind`. That adapter is the only place that knows `uiState`,
+`windowManager` or router APIs. The optional handlers carry what only the host
+can know: `selectTab` executes a `tab` opener inside the surface that owns the
+selected-tab state. A tab opener without that handler throws; the adapter never
+guesses.
 
 The journal is the one state-dependent `window` opener: a minimized journal is
 restored, otherwise the adapter toggles it open/closed. The rail shortcut only
@@ -147,6 +150,11 @@ condition, so a surface does not need its own selected-state rules. The rail
 uses it for the assistant, the four panel toggles and the minimized-journal
 shortcut; the journal condition repeats its `visibleWhen` because the shortcut
 is selected exactly while it is offered.
+
+Surfaces whose placements are all condition-free share
+`STATIC_ENTRY_CONTEXT` (the header and the journal tab strip). The registry
+tests pin that list, so a condition added to one of those surfaces fails there
+before it can silently read zeroed values.
 
 ## Keyboard contract
 
@@ -221,6 +229,10 @@ always visible; `tab-order`.
 | `journal.direction` | `journal.deepDive.charts.labels.trends` | `icons.exchange` | `direction` |
 | `journal.discipline` | `journal.deepDive.behavior` | `icons.lockClosed` | `discipline` |
 | `journal.costs` | `journal.deepDive.charts.labels.fees` | `icons.settings` | `costs` |
+
+The strip executes selection through `openEntry(entry, { selectTab })`; the
+host passes its own selected-tab setter, and the tab id comes from the entry's
+opener.
 
 ### Settings rail tabs (8)
 

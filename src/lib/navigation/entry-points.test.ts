@@ -124,21 +124,23 @@ describe("entry-point registry data", () => {
 });
 
 describe("surface resolver", () => {
-    it("keeps the header placements condition-free", () => {
-        // `+page.svelte` builds a static entry context for the header because
-        // its only placement has no conditions. A conditional header entry
-        // would silently evaluate against zeroed values, so pin the contract.
-        const headerPlacements = ENTRY_POINTS.flatMap((entry) =>
-            entry.placements.filter(
-                (placement) => placement.surface === "header",
+    it("keeps the static-context surfaces condition-free", () => {
+        // The header and the journal tab strip share `STATIC_ENTRY_CONTEXT`
+        // because their placements have no conditions. A condition added to
+        // one of them would silently evaluate against zeroed values, so pin
+        // the contract here before that can ship.
+        const staticSurfaces: SurfaceId[] = ["header", "journal-tabs"];
+        const placements = ENTRY_POINTS.flatMap((entry) =>
+            entry.placements.filter((placement) =>
+                staticSurfaces.includes(placement.surface),
             ),
         );
 
         const isContextFree = (condition: { kind: string } | undefined) =>
             condition === undefined || condition.kind === "always";
 
-        expect(headerPlacements).toHaveLength(1);
-        for (const placement of headerPlacements) {
+        expect(placements).toHaveLength(6);
+        for (const placement of placements) {
             expect(isContextFree(placement.visibleWhen)).toBe(true);
             expect(isContextFree(placement.enabledWhen)).toBe(true);
             expect(isContextFree(placement.activeWhen)).toBe(true);

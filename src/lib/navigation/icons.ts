@@ -34,9 +34,15 @@ const RAIL_ICONS: Record<string, string> = {
 };
 
 const ICONS: Record<string, string> = {
-    "icons.book": icons.book,
-    "icons.settings": icons.settings,
-    "icons.chart": icons.chart,
+    // Every `icons.*` constant is a valid registry key; enumerating them by
+    // hand already missed `icons.check`, `icons.exchange` and
+    // `icons.lockClosed` when the journal tab strip arrived.
+    ...Object.fromEntries(
+        Object.entries(icons).map(([key, value]): [string, string] => [
+            `icons.${key}`,
+            value,
+        ]),
+    ),
     ...RAIL_ICONS,
 };
 
