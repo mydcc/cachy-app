@@ -149,6 +149,28 @@ describe('News Service Security', () => {
         expect(res.status).toBe(429);
     });
 
+    it('URL-encodes the CryptoPanic auth token so it cannot inject a parameter', async () => {
+        const apiKey = 'key&injected=1';
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({ results: [] }),
+            text: async () => "",
+        });
+
+        const requestMock = {
+            headers: new Headers({ 'x-api-key': apiKey }),
+            json: async () => ({ source: 'cryptopanic', apiKey, params: { q: 'bitcoin' } }),
+            url: 'http://localhost/api/news'
+        } as unknown as Request;
+
+        const res = await POST({ request: requestMock, fetch: fetchMock, getClientAddress } as unknown as Parameters<typeof POST>[0]);
+
+        expect(res.status).toBe(200);
+        const [calledUrl] = fetchMock.mock.calls[0];
+        expect(calledUrl).toContain('auth_token=key%26injected%3D1');
+        expect(calledUrl).not.toContain('&injected=1');
+    });
+
     it('should key the rate limit on the client token, not the client address', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,

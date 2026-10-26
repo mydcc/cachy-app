@@ -451,6 +451,31 @@ describe("exchangeSignedFetch", () => {
     expect(captured["x-api-sign"]).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  // BUG-0723: TypeScript cannot require a callee to accept the third
+  // parameter, so a two-argument `fetchFn` can ignore the hook. The dispatcher
+  // therefore runs it itself, after the signing await and before the request
+  // leaves. Without that call the order below is `["fetch"]`.
+  it("runs beforeAttempt after signing even when fetchFn ignores the third argument", async () => {
+    const order: string[] = [];
+    const fetchFn = vi.fn(async () => {
+      order.push("fetch");
+      return new Response("{}", { status: 200 });
+    });
+
+    await exchangeSignedFetch({
+      cachyPath: "/api/orders",
+      keys: KEYS,
+      venue: "bitunix",
+      payload: PLACE_ORDER_BITUNIX,
+      now: NOW,
+      beforeAttempt: () => order.push("guard"),
+      fetchFn,
+    });
+
+    expect(order).toEqual(["guard", "fetch"]);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
   it("carries a declared action in the request URL the server reads", async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     const fetchFn = (async (url: string, init: RequestInit) => {

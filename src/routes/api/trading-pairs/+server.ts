@@ -21,11 +21,21 @@ import { cache } from "#lib/server/cache.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
 import { isStatusError } from "../../../utils/server/httpErrors";
+import { sanitizeSymbolList } from "../../../utils/server/symbolParam";
 
 // Public, no auth. Precision/limits/leverage-range/status per symbol change
 // rarely, so a longer TTL than tickers/klines is fine.
 export const GET: RequestHandler = async ({ url, fetch }) => {
-  const symbols = url.searchParams.get("symbols");
+  const rawSymbols = url.searchParams.get("symbols");
+  // Sanitised before both sinks — the upstream URL and the cache key. A caller
+  // used to be able to add `&limit=…` to the proxied query, and the raw string
+  // became part of the cache key (BUG-0723). An explicit filter that sanitises
+  // to nothing is refused rather than widened to "all pairs".
+  const symbols = rawSymbols === null ? null : sanitizeSymbolList(rawSymbols);
+  if (rawSymbols !== null && symbols === "") {
+    return json({ message: "Invalid 'symbols' parameter" }, { status: 400 });
+  }
+
   const cacheKey = `trading-pairs:${symbols || "ALL"}`;
 
   try {

@@ -18,16 +18,20 @@
 import { describe, it, expect } from "vitest";
 import {
   PRESIGNED_ERRORS,
+  PRESIGNED_TIMESTAMP_WINDOW_MS,
   assertPresignedConsistency,
   bitunixCallHeaders,
   checkPresignedRequest,
   readPresignedEnvelope,
 } from "./presignedEnvelope";
 
+/** A clock the freshness check can be pinned to. */
+const NOW = Date.now();
+
 const VALID_HEADERS = {
   "x-api-key": "key-0001",
   "x-api-sign": "deadbeef",
-  "x-api-timestamp": "1700000000000",
+  "x-api-timestamp": String(NOW),
 };
 
 function requestWith(headers: Record<string, string>): Request {
@@ -41,7 +45,7 @@ describe("readPresignedEnvelope", () => {
     expect(envelope).toMatchObject({
       apiKey: "key-0001",
       signature: "deadbeef",
-      timestamp: "1700000000000",
+      timestamp: String(NOW),
     });
   });
 
@@ -83,7 +87,7 @@ describe("assertPresignedConsistency — query-signed routes", () => {
   const consistency = (query: string | undefined, rebuilt: string) =>
     assertPresignedConsistency({
       cachyPath: "/api/sync",
-      envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query },
+      envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n", query },
       rebuilt,
     });
 
@@ -122,7 +126,7 @@ describe("assertPresignedConsistency — body-signed routes", () => {
   const consistency = (rawBody: string | undefined, rebuilt: string) =>
     assertPresignedConsistency({
       cachyPath: "/api/orders",
-      envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n" },
+      envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n" },
       rebuilt,
       rawBody,
     });
@@ -145,7 +149,7 @@ describe("assertPresignedConsistency — body-signed routes", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/orders",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n", query: "a=1" },
         rebuilt: "{}",
         rawBody: "{}",
       }),
@@ -158,7 +162,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/tpsl",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1", passphrase: "p" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n", query: "a=1", passphrase: "p" },
         rebuilt: "a=1",
       }),
     ).toThrow(PRESIGNED_ERRORS.UNEXPECTED_PASSPHRASE);
@@ -179,7 +183,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
       expect(() =>
         assertPresignedConsistency({
           cachyPath,
-          envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "q", passphrase: "p" },
+          envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n", query: "q", passphrase: "p" },
           rebuilt: "q",
           rawBody: shape === "body" ? "q" : undefined,
         }),
@@ -191,7 +195,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/balance",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1", passphrase: "p" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n", query: "a=1", passphrase: "p" },
         rebuilt: "a=1",
       }),
     ).not.toThrow();
@@ -201,7 +205,7 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/sync",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", nonce: "n", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n", query: "a=1" },
         rebuilt: "a=1",
       }),
     ).not.toThrow();
@@ -209,19 +213,63 @@ describe("assertPresignedConsistency — passphrase boundary", () => {
 });
 
 describe("assertPresignedConsistency — unmigrated routes", () => {
-  it("stays out of the way until the route is cut over", () => {
+  it("fails closed when a route calls the guard without a plan row", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/klines",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW) },
         rebuilt: "",
       }),
+    ).toThrow(PRESIGNED_ERRORS.ROUTE_NOT_MIGRATED);
+  });
+});
+
+describe("assertPresignedConsistency — timestamp freshness", () => {
+  const consistency = (timestamp: string, nowMs: number = NOW) =>
+    assertPresignedConsistency({
+      cachyPath: "/api/sync",
+      envelope: { apiKey: "k", signature: "s", timestamp, nonce: "n", query: "a=1" },
+      rebuilt: "a=1",
+      nowMs,
+    });
+
+  it("accepts a timestamp inside the window", () => {
+    expect(() => consistency(String(NOW - 1_000))).not.toThrow();
+  });
+
+  it("accepts the exact window edge, so a slow request is not refused early", () => {
+    expect(() =>
+      consistency(String(NOW - PRESIGNED_TIMESTAMP_WINDOW_MS)),
     ).not.toThrow();
+  });
+
+  it("rejects a timestamp older than the window", () => {
+    expect(() =>
+      consistency(String(NOW - PRESIGNED_TIMESTAMP_WINDOW_MS - 1)),
+    ).toThrow(PRESIGNED_ERRORS.TIMESTAMP_STALE);
+  });
+
+  it("rejects a timestamp further in the future than the window", () => {
+    expect(() =>
+      consistency(String(NOW + PRESIGNED_TIMESTAMP_WINDOW_MS + 1)),
+    ).toThrow(PRESIGNED_ERRORS.TIMESTAMP_STALE);
+  });
+
+  it("rejects a non-numeric timestamp as malformed, not as stale", () => {
+    expect(() => consistency("not-a-timestamp")).toThrow(
+      PRESIGNED_ERRORS.TIMESTAMP_INVALID,
+    );
+  });
+
+  it("rejects a seconds-based timestamp, which parses as 1970 in milliseconds", () => {
+    expect(() => consistency("1700000000")).toThrow(
+      PRESIGNED_ERRORS.TIMESTAMP_STALE,
+    );
   });
 });
 
 describe("assertPresignedConsistency — a route whose shape follows the action", () => {
-  const envelope = { apiKey: "k", signature: "s", timestamp: "1", nonce: "n" };
+  const envelope = { apiKey: "k", signature: "s", timestamp: String(NOW), nonce: "n" };
 
   it("checks the query on a read action", () => {
     expect(() =>
@@ -281,7 +329,7 @@ describe("assertPresignedConsistency — the nonce Bitunix signs with", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/sync",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), query: "a=1" },
         rebuilt: "a=1",
       }),
     ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
@@ -291,7 +339,7 @@ describe("assertPresignedConsistency — the nonce Bitunix signs with", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/balance",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), query: "a=1" },
         rebuilt: "a=1",
         venue: "bitunix",
       }),
@@ -302,7 +350,7 @@ describe("assertPresignedConsistency — the nonce Bitunix signs with", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/balance",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), query: "a=1" },
         rebuilt: "a=1",
         venue: "bitget",
       }),
@@ -313,7 +361,7 @@ describe("assertPresignedConsistency — the nonce Bitunix signs with", () => {
     expect(() =>
       assertPresignedConsistency({
         cachyPath: "/api/balance",
-        envelope: { apiKey: "k", signature: "s", timestamp: "1", query: "a=1" },
+        envelope: { apiKey: "k", signature: "s", timestamp: String(NOW), query: "a=1" },
         rebuilt: "a=1",
       }),
     ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
@@ -324,7 +372,7 @@ describe("checkPresignedRequest", () => {
   const headers = {
     "x-api-key": "key-0001",
     "x-api-sign": "deadbeef",
-    "x-api-timestamp": "1700000000000",
+    "x-api-timestamp": String(NOW),
     "x-api-nonce": "abcd",
     "x-api-query": "a=1",
   };
@@ -361,6 +409,18 @@ describe("checkPresignedRequest", () => {
 
     expect(check).toEqual({ ok: false, code: PRESIGNED_ERRORS.DIVERGENCE });
   });
+
+  it("reports a stale timestamp rather than throwing", () => {
+    const check = checkPresignedRequest(
+      post({
+        ...headers,
+        "x-api-timestamp": String(NOW - PRESIGNED_TIMESTAMP_WINDOW_MS - 1),
+      }),
+      { cachyPath: "/api/sync", rebuilt: "a=1" },
+    );
+
+    expect(check).toEqual({ ok: false, code: PRESIGNED_ERRORS.TIMESTAMP_STALE });
+  });
 });
 
 describe("bitunixCallHeaders", () => {
@@ -368,14 +428,14 @@ describe("bitunixCallHeaders", () => {
     const headers = bitunixCallHeaders({
       apiKey: "key-0001",
       signature: "deadbeef",
-      timestamp: "1700000000000",
+      timestamp: String(NOW),
       nonce: "abcd",
       passphrase: "must-not-travel",
     });
 
     expect(headers).toEqual({
       "api-key": "key-0001",
-      timestamp: "1700000000000",
+      timestamp: String(NOW),
       nonce: "abcd",
       sign: "deadbeef",
       "Content-Type": "application/json",
@@ -385,7 +445,7 @@ describe("bitunixCallHeaders", () => {
 
   it("refuses an envelope with no nonce", () => {
     expect(() =>
-      bitunixCallHeaders({ apiKey: "k", signature: "s", timestamp: "1" }),
+      bitunixCallHeaders({ apiKey: "k", signature: "s", timestamp: String(NOW) }),
     ).toThrow(PRESIGNED_ERRORS.MISSING_ENVELOPE);
   });
 });

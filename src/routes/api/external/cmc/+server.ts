@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { checkClientToken } from "../../../../lib/server/clientToken";
+import { safeFetch } from "../../../../lib/server/urlValidator";
 
 const CMC_BASE_URL = "https://pro-api.coinmarketcap.com";
 
@@ -60,7 +61,12 @@ export const GET: RequestHandler = async ({ url, request, getClientAddress }) =>
   const targetUrl = `${CMC_BASE_URL}${endpoint}?${queryParams.toString()}`;
 
   try {
-    const response = await fetch(targetUrl, {
+    // `safeFetch`, not the native fetch: the base URL is fixed, but a CMC
+    // response/redirect could still send the proxy elsewhere, and the
+    // dial-time guard is what refuses a private or loopback target after DNS
+    // resolution (BUG-0723). CMC follows no redirects today; this is the guard
+    // that keeps that true if it ever starts.
+    const response = await safeFetch(targetUrl, {
       method: "GET",
       headers: {
         "X-CMC_PRO_API_KEY": cmcApiKey,

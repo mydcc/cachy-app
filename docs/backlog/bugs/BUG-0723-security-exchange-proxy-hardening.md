@@ -2,7 +2,8 @@
 id: BUG-0723
 title: Security: exchange proxy and order placement hardening (passphrase, fail-open, replay, type safety)
 type: bug
-status: specced
+status: done
+assignee: opencode
 priority: P1
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +14,29 @@ depends_on: []
 ---
 
 # BUG-0723 — Security: exchange proxy and order placement hardening
+
+> **State note.** Fixed on `fix/security-exchange-proxy-hardening`
+> (session worktree `.worktrees/sec-p1-0723`). All seven findings are
+> addressed: `/api/orders` answers a missing Bitget passphrase with 400
+> instead of letting `executeOrder` turn it into a 500; the envelope guard
+> fails closed on an unmapped route and rejects timestamps outside a
+> five-minute window; `exchangeSignedFetch` runs the caller's before-attempt
+> guard itself, so a two-argument wrapper cannot drop it; funding-rate,
+> position-tiers and trading-pairs share one sanitiser that runs before the
+> cache key and the upstream URL; the CryptoPanic token is URL-encoded; CMC
+> proxies through `safeFetch`.
+>
+> Deliberate residuals: the timestamp window is wider than Bitget's 30-second
+> venue window on purpose, so the proxy never refuses a trade the venue would
+> accept; a per-process nonce cache was declined (one instance only, Bitget
+> has no nonce field, and it would look like replay protection without being
+> one). The venue remains the authority for replays inside its own window.
+>
+> Verification: 74 tests across the changed guard/routes, 213 across the
+> orders route and every `exchangeSignedFetch` caller; RED proofs for the
+> passphrase, freshness and sanitising guards by reverting each fix and
+> watching the new assertions fail. `npm run backlog:check` — 611 items,
+> front matter valid.
 
 ## Symptom
 

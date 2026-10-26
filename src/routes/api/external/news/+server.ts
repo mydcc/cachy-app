@@ -122,7 +122,11 @@ export const POST: RequestHandler = async ({ request, fetch, getClientAddress })
         for (const p of plans) {
           // CryptoPanic requires auth_token in query.
           // Logging handles redaction via logger.ts usually, but here we construct it manually.
-          const url = `https://cryptopanic.com/api/${p}/v2/posts/?auth_token=${apiKey}&${query}`;
+          // The token is encoded: `&`, `=` or `#` in a caller-supplied key
+          // would otherwise end the parameter and inject another one
+          // (BUG-0723). The plan is whitelisted above; `query` is built by
+          // `URLSearchParams`, so only this interpolation was raw.
+          const url = `https://cryptopanic.com/api/${p}/v2/posts/?auth_token=${encodeURIComponent(apiKey)}&${query}`;
           try {
             const response = await fetch(url);
             if (response.ok) {

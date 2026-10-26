@@ -19,6 +19,7 @@
  */
 
 import { appFetch } from "../../lib/appAuth";
+import type { SignedFetch } from "../../utils/exchange/browserSigning";
 import type { AccountSession } from "../accountEpoch.svelte";
 import { OrderRefusedError, type TransportContext } from "../orderGate";
 
@@ -41,7 +42,7 @@ export type SessionCurrentCheck = (session: AccountSession) => boolean;
 export type DispatchUnderSession = (
     session: AccountSession,
     expected: DispatchContext,
-) => (input: string, init?: RequestInit) => Promise<Response>;
+) => SignedFetch;
 
 /**
  * BUG-0551 — the last check before a write leaves the device.
@@ -103,9 +104,15 @@ export function createSessionDispatch(
     return function dispatchUnderSession(
         session: AccountSession,
         expected: DispatchContext,
-    ): (input: string, init?: RequestInit) => Promise<Response> {
-        return (input, init) =>
-            appFetch(input, init, () => assertSessionIntact(session, expected));
+    ): SignedFetch {
+        // The caller's hook runs alongside the session check, not instead of
+        // it: `exchangeSignedFetch` passes its own `beforeAttempt` here so a
+        // guard survives even when this wrapper is the fetchFn (BUG-0723).
+        return (input, init, beforeAttempt) =>
+            appFetch(input, init, () => {
+                assertSessionIntact(session, expected);
+                beforeAttempt?.();
+            });
     };
 }
 

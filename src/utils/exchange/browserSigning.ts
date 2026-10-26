@@ -324,6 +324,19 @@ export async function signCachyRequest(
 }
 
 /**
+ * The dispatch shape `exchangeSignedFetch` calls.
+ *
+ * The third parameter is the per-attempt hook `appFetch` already accepts
+ * (BUG-0551): `dispatchUnderSession` refuses a write whose account, venue or
+ * mode moved while the signature was being computed.
+ */
+export type SignedFetch = (
+  input: string,
+  init?: RequestInit,
+  beforeAttempt?: () => void,
+) => Promise<Response>;
+
+/**
  * Signs and dispatches one Cachy request.
  *
  * `headers` is merged before the envelope, so a caller can add `x-provider` or
@@ -333,21 +346,26 @@ export async function exchangeSignedFetch(
   input: SignCachyRequestInput & {
     /**
      * Typed to the call this function actually makes — a string path plus
-     * `RequestInit` — not to `typeof fetch`. The app's authenticated fetch
-     * takes only a string, so the wider type rejected every real caller while
-     * this one describes nothing the function needs.
+     * `RequestInit` and the before-attempt hook — not to `typeof fetch`.
      *
-     * A `fetchFn` that needs an invariant checked before every attempt may
-     * carry it by accepting `appFetch`'s third `beforeAttempt` argument — see
-     * `dispatchUnderSession` in `tradeService.ts` (BUG-0551). The narrower type
-     * above accepts such a function unchanged, so the hook is a convention this
-     * comment carries, not one the compiler enforces: wrapping `appFetch` in a
-     * two-argument lambda would type-check and drop the guard.
+     * TypeScript cannot require a callee to accept all three parameters: a
+     * two-argument lambda is assignable to any function type that calls it with
+     * more. So the guard is not enforced by this annotation alone (BUG-0723).
+     * What is enforced is that `exchangeSignedFetch` runs the caller's
+     * `beforeAttempt` itself after the signing await and before the dispatch;
+     * a wrapper that drops the third argument can no longer drop the check
+     * entirely, and a wrapper that forwards it still covers `appFetch`'s retry.
      */
-    fetchFn?: (input: string, init?: RequestInit) => Promise<Response>;
+    fetchFn?: SignedFetch;
     headers?: Record<string, string>;
     /** Passed through to `fetch`; a caller with its own deadline needs it. */
     signal?: AbortSignal;
+    /**
+     * Invariant to re-check after signing and before every dispatch attempt.
+     * `appFetch`'s third argument is the place for a retry-safe guard; this
+     * one is the belt-and-braces call that survives a two-argument wrapper.
+     */
+    beforeAttempt?: () => void;
   },
 ): Promise<Response> {
   const signed = await signCachyRequest(input);
@@ -362,11 +380,22 @@ export async function exchangeSignedFetch(
     ...signed.headers,
   };
 
-  const doFetch = input.fetchFn ?? fetch;
-  return doFetch(requestPathFor(input.cachyPath, input.action), {
-    method: "POST",
-    headers,
-    body: signed.body ?? JSON.stringify(input.payload ?? {}),
-    signal: input.signal,
-  });
+  // The signing await is the window BUG-0551 exists for. Running the check
+  // here means it happens even when `fetchFn` ignores its third argument.
+  input.beforeAttempt?.();
+
+  // Wrapped rather than assigned directly: `typeof fetch` takes two
+  // parameters, and a union call would refuse the third argument at the type
+  // level even though the runtime ignores it.
+  const doFetch: SignedFetch = input.fetchFn ?? ((url, init) => fetch(url, init));
+  return doFetch(
+    requestPathFor(input.cachyPath, input.action),
+    {
+      method: "POST",
+      headers,
+      body: signed.body ?? JSON.stringify(input.payload ?? {}),
+      signal: input.signal,
+    },
+    input.beforeAttempt,
+  );
 }

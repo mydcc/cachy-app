@@ -43,11 +43,12 @@ export const TEST_SIGNING_KEYS = {
 };
 
 /**
- * Fixed so the envelope is reproducible across runs. The timestamp inside it is
- * forwarded to the venue verbatim and never recomputed, so nothing downstream
- * depends on the clock being real.
+ * The signing time is the current clock, because the server guard now rejects
+ * an envelope outside `PRESIGNED_TIMESTAMP_WINDOW_MS` (BUG-0723). Nothing
+ * downstream depends on the value: it is forwarded to the venue verbatim and
+ * every assertion reads it back off the request that was built.
  */
-const FIXED_NOW = 1_700_000_000_000;
+const requestNow = () => Date.now();
 
 export interface SignedEnvelopeRequest {
   request: Request;
@@ -67,7 +68,7 @@ export async function signedEnvelopeRequest(
     venue,
     payload,
     queryParams,
-    now: () => FIXED_NOW,
+    now: requestNow,
   });
 
   const url = new URL(`http://localhost${cachyPath}`);

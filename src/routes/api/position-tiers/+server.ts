@@ -21,12 +21,20 @@ import { cache } from "#lib/server/cache.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
 import { isStatusError } from "../../../utils/server/httpErrors";
+import { sanitizeSymbol } from "../../../utils/server/symbolParam";
 
 // Public, no auth. Maintenance-margin tiers per symbol change rarely.
 export const GET: RequestHandler = async ({ url, fetch }) => {
-  const symbol = url.searchParams.get("symbol");
-  if (!symbol) {
+  const rawSymbol = url.searchParams.get("symbol");
+  if (!rawSymbol) {
     return json({ message: "Missing required 'symbol' parameter" }, { status: 400 });
+  }
+
+  // Sanitised before both sinks: the upstream URL and the cache key used to
+  // interpolate the caller's string verbatim (BUG-0723).
+  const symbol = sanitizeSymbol(rawSymbol);
+  if (!symbol) {
+    return json({ message: "Invalid 'symbol' parameter" }, { status: 400 });
   }
 
   const cacheKey = `position-tiers:${symbol}`;
