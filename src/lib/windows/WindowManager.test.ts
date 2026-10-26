@@ -209,6 +209,28 @@ describe("WindowManager keep-above stacking (FEAT-0742)", () => {
         expect(keep.lastFocusOrder).toBeGreaterThan(normal.lastFocusOrder);
     });
 
+    it("restores the flag and the band after close/reopen", () => {
+        const id = `manager-test-keep-above-reopen-${nextTestId++}`;
+        const first = new TestWindow({ id });
+        first.isKeepAbove = true;
+        first.saveState();
+        windowManager.open(first);
+        openedIds.push(first.id);
+
+        windowManager.close(first.id);
+        openedIds.splice(openedIds.indexOf(first.id), 1);
+
+        const second = new TestWindow({ id });
+        second.allowMultipleInstances = true;
+        windowManager.open(second);
+        openedIds.push(second.id);
+
+        expect(second.isKeepAbove).toBe(true);
+        expect(second.zIndex).toBeGreaterThanOrEqual(
+            Z_LAYERS.windowKeepAbove,
+        );
+    });
+
     it("keeps a modal above a keep-above window", () => {
         const keep = openTestWindow();
         keep.isKeepAbove = true;
