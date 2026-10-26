@@ -117,6 +117,9 @@ that dynamic layout change stays outside this item.
 - Window-to-window snapping and screen-centre snapping.
 - Multi-monitor placement.
 - Resizing a snapped window by dragging its inner edges.
+- Re-tiling a restored pinned snapshot when the chrome changed across
+  sessions; the saved rectangle is restored as-is until the window is
+  re-snapped.
 - Moving or resizing the dock.
 - Touch gestures and window rules.
 
