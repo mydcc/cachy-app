@@ -15,50 +15,61 @@ depends_on: []
 
 # BUG-0726 — Security: SpacetimeDB global chat hardening
 
-> **State note.** Fixed on `fix/security-spacetimedb-hardening` (worktree
-> `.worktrees/sec-audit-2`, PR pending). All seven findings are addressed as
-> far as the module model allows:
+> **State note.** The first pass merged as PR #4370
+> (`fix/security-spacetimedb-hardening`); the follow-up branch
+> `fix/security-chat-followup-v2` closes the remaining review gaps. All seven
+> findings are addressed as far as the module model allows:
 >
 > 1. **Client-only auth** is inherent: SpacetimeDB issues an identity to every
 >    connection. Documented in `docs/GLOBAL-CHAT.md` §8 and at
 >    `clientConnected`; the global cap is the abuse mitigation.
-> 2. **Identity-rotation bypass** — a global cap of 180 messages/minute lives
->    in a reserved `__global__` row of the existing `sender_activity` table (no
->    schema change). Per-sender and global decisions are evaluated before
->    either counter is written.
-> 3. **Empty/whitespace** — `sanitizeMessageText` trims, strips C0/C1 and
->    U+2028/U+2029, and rejects an empty result in the reducer;
->    `cloudService.sendMessage` refuses locally too.
+> 2. **Identity-rotation bypass** — a global cap of 180 messages per fixed
+>    60-second window lives in a reserved `__global__` row of the existing
+>    `sender_activity` table (no schema change). Per-sender and global decisions
+>    are evaluated before either counter is written.
+> 3. **Empty/whitespace** — `sanitizeMessageText` replaces control characters,
+>    bidi controls, zero-width characters and blank glyphs (braille blank,
+>    Hangul fillers) with spaces, keeps ZWJ/ZWNJ, and rejects a result with no
+>    visible character. `cloudService.sendMessage` mirrors the same sanitizer
+>    before the text leaves the device.
 > 4. **Stored XSS** — text interpolation only, with a comment at the render
->    site and `src/tests/security/chat_rendering.test.ts` pinning the chat-log
->    block against an HTML directive.
-> 5. **`cloudEnabled`** — `connect()` refuses while the opt-in switch is off,
->    even for a direct caller.
-> 6. **Transport** — `https://` required for remote hosts, `http://` only for
->    loopback; shared `cloudHost.ts` enforces it in the service and the settings
->    tab warns before Connect.
-> 7. **Scheduled reducer** — documented as public; it only deletes rows past
->    the retention window, so an early call is a no-op.
+>    site and `src/tests/security/chat_rendering.test.ts` pinning both chat
+>    renderers against an HTML directive and `innerHTML`.
+> 5. **`cloudEnabled`** — `connect()`, `sendMessage()` and
+>    `deleteMyMessages()` refuse while the opt-in switch is off; turning it off
+>    closes a live connection from both the chat store and the settings tab.
+> 6. **Transport** — `https://` (or `wss://`) required for remote hosts,
+>    `http://` only for loopback (`localhost`, `127.0.0.0/8`, `[::1]`); shared
+>    `cloudHost.ts` enforces it in the service and the settings tab warns before
+>    Connect.
+> 7. **Scheduled reducer** — documented as public; a `__cleanup__` marker limits
+>    a client-invoked run to one scan per hour, and it only deletes rows past
+>    the retention window. The first run after a fresh module still scans the
+>    tables.
 >
-> Review round: turning the opt-in off now closes a live connection and refuses
-> sends/erasure; invisible format characters and bidi overrides are stripped and
-> a message with no visible character is rejected; the cleanup reducer is
-> throttled to one scan per hour by a `__cleanup__` marker; the public cleanup
-> wording states its cost; both chat renderers are pinned; host warnings map
-> the actual reason and expose it via `aria-describedby`; `wss://`, trailing-dot
-> loopback and `127.0.0.0/8` are accepted; an oversized raw payload is rejected
-> before the sanitizer runs; tests assert that a rejection consumes neither
-> counter and that erasure leaves the aggregate rows.
+> Review round: the first pass added `disconnect()`, the stronger sanitizer,
+> the cleanup throttle and the wider renderer guard. A second adversarial pass
+> added the remaining blank glyphs (braille blank, Hangul fillers), the
+> settings-tab disconnect path, an identity-only connection log, the
+> builder-not-called ordering assertion and a client/server sanitizer parity
+> test. Host warnings map the actual reason and expose it via
+> `aria-describedby`; an oversized raw payload is rejected before the sanitizer
+> runs; tests assert that a rejection consumes neither counter and that erasure
+> leaves the aggregate rows.
 >
 > Residual: server-side authentication is impossible in the current module
-> model; the 180/min global cap reduces flooding but can be occupied by two
-> determined identities (availability trade-off, documented). The first cleanup
-> run after a fresh module still performs a full scan. The reducer change needs
-> a module republish, not a schema migration.
+> model; the 180-per-fixed-minute global cap reduces flooding but a determined
+> client can occupy it by rotating identities or erasing its own per-sender
+> row (availability trade-off, documented). The first cleanup run after a fresh
+> module still performs a full scan, and `delete_my_messages` is an unthrottled
+> full scan that any client can call. The reducer change needs a module
+> republish, not a schema migration.
 >
-> Verification: 62 tests across the reducer, host policy, cloud service, chat
-> store and chat rendering; `tsc --noEmit` clean; ESLint clean; translation
-> check passes; `npm run backlog:check` — 613 items valid.
+> Verification: targeted Vitest suites across the reducer, host policy, cloud
+> service, chat store and chat rendering; root `tsc --noEmit` clean; ESLint on
+> every changed file; translation check passes; `npm run backlog:check` — 613
+> items valid. The module's own `tsc -p server/spacetimedb` runs in CI (the root
+> tsconfig does not include the module).
 
 ## Symptom
 

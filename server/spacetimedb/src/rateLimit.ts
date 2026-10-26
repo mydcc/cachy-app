@@ -28,6 +28,10 @@ export const CLEANUP_INTERVAL_MICROS = 60n * 60n * 1_000_000n; // hourly
 export const RATE_LIMIT_WINDOW_MS = 10_000; // 10-second fixed window
 export const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per fixed window
 
+/** Throttles the public cleanup reducer; see `handleDeleteExpiredMessages`. */
+export const CLEANUP_ACTIVITY_SENDER = '__cleanup__';
+export const CLEANUP_MIN_INTERVAL_MS = Number(CLEANUP_INTERVAL_MICROS / 1000n);
+
 /**
  * Global floor (BUG-0726). SpacetimeDB issues an identity to any connection,
  * so a per-sender limit is bypassed by reconnecting. This one is keyed on a
@@ -35,15 +39,11 @@ export const RATE_LIMIT_MAX_MESSAGES = 5;   // max 5 messages per fixed window
  *
  * The key cannot collide with a real sender: identities are 64 hex characters.
  */
-/** Throttles the public cleanup reducer; see `handleDeleteExpiredMessages`. */
-export const CLEANUP_ACTIVITY_SENDER = '__cleanup__';
-export const CLEANUP_MIN_INTERVAL_MS = Number(CLEANUP_INTERVAL_MICROS / 1000n);
-
 export const GLOBAL_RATE_LIMIT_WINDOW_MS = 60_000;
-// 180/min, not 60: a 60 ceiling is only twelve per-sender windows, so two
-// identities could starve every other user for a minute with one message per
-// second. This still bounds a flood while leaving room for normal multi-user
-// traffic. The availability trade-off is documented in docs/GLOBAL-CHAT.md §8.
+// 180 per fixed minute, not 60: a 60 ceiling is only twelve per-sender windows,
+// so two identities could starve every other user with one message per second.
+// This still bounds a flood while leaving room for normal multi-user traffic.
+// The availability trade-off is documented in docs/GLOBAL-CHAT.md §8.
 export const GLOBAL_RATE_LIMIT_MAX_MESSAGES = 180;
 export const GLOBAL_RATE_LIMIT_SENDER = '__global__';
 
@@ -116,25 +116,31 @@ export const MAX_MESSAGE_LENGTH = 1000;
 /**
  * One-line chat text (BUG-0726).
  *
- * Control characters and invisible format characters become a space, runs of
- * whitespace collapse, and the edges are trimmed. The invisible set is explicit
- * rather than all of `\p{Cf}`: ZWJ/ZWNJ (U+200C/U+200D) must survive so emoji
- * clusters and joining scripts still render.
+ * Control characters, bidi controls, zero-width characters and blank glyphs
+ * (braille blank, Hangul fillers) become a space; runs of whitespace collapse
+ * and the edges are trimmed. The set is explicit rather than all of `\p{Cf}`:
+ * ZWJ/ZWNJ (U+200C/U+200D) must survive so emoji clusters and joining scripts
+ * still render.
  *
  * Bidi overrides (U+202A–U+202E, U+2066–U+2069) are removed because they let a
  * sender reorder or spoof the visible text. A result with no visible character
- * is returned as an empty string, which the caller rejects.
+ * is returned as an empty string, which the caller rejects. Braille blank
+ * (U+2800) and the Hangul fillers (U+115F/U+1160) are `So`/`Lo`, so the class
+ * check alone would accept them as visible; they are in the removal set for
+ * exactly that reason.
  */
 const INVISIBLE_OR_CONTROL =
-  /[\p{Cc}\u200B\u200E\u200F\u202A-\u202E\u2028\u2029\u2066-\u2069\u3164\uFEFF\uFFA0]/gu;
+  /[\p{Cc}\u00AD\u061C\u115F\u1160\u180E\u200B\u200E\u200F\u202A-\u202E\u2028\u2029\u2060-\u2064\u2066-\u2069\u2800\u3164\uFEFF\uFFA0\uFFF9-\uFFFB]/gu;
+
+/** At least one glyph a reader can see; combining marks alone do not count. */
+const VISIBLE_CHARACTER = /[\p{L}\p{N}\p{P}\p{S}]/u;
 
 export function sanitizeMessageText(text: string): string {
   const collapsed = text
     .replace(INVISIBLE_OR_CONTROL, ' ')
     .replace(/\s+/gu, ' ')
     .trim();
-  if (!/[\p{L}\p{N}\p{P}\p{S}]/u.test(collapsed)) return '';
-  return collapsed;
+  return VISIBLE_CHARACTER.test(collapsed) ? collapsed : '';
 }
 
 export interface GlobalMessageRecord {
@@ -159,15 +165,22 @@ export interface MessageDb {
 }
 
 /**
- * Handles message validation, rate limiting, and insertion into the database.
- * Thrown errors are surfaced to the caller (e.g. SenderError in SpacetimeDB).
+ * Writes a non-rejecting decision. A rejection here is a caller bug: it must
+ * already have been thrown with its specific message, so dropping it silently
+ * would hide the failure.
  */
 function applyActivity(db: MessageDb, decision: RateLimitDecision): void {
-  if (decision.action === 'reject') return;
+  if (decision.action === 'reject') {
+    throw new Error(decision.error);
+  }
   if (decision.action === 'insert') db.senderActivity.insert(decision.record);
   else db.senderActivity.update(decision.record);
 }
 
+/**
+ * Handles message validation, rate limiting, and insertion into the database.
+ * Thrown errors are surfaced to the caller (e.g. SenderError in SpacetimeDB).
+ */
 export function handleSendMessage(
   db: MessageDb,
   senderId: string,

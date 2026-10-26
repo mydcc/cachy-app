@@ -25,6 +25,7 @@ import type { Infer } from 'spacetimedb';
 import { logger } from './logger';
 import { settingsState } from '../stores/settings.svelte';
 import { cloudHostSecurityIssue } from './cloudHost';
+import { sanitizeChatText } from '../lib/utils/chatText';
 
 type GlobalMessage = Infer<typeof GlobalMessageType>;
 
@@ -130,7 +131,9 @@ class CloudService {
    * `http://127.0.0.1:3000` / `cachy-server` defaults now live in
    * `defaultSettings`, where the user can see and change them.
    *
-   * Anonymous access stays prohibited: Class B condition 2 in ADR-0001.
+   * Anonymous access is a client policy: the token gate below enforces Class B
+   * condition 2 for this app, but SpacetimeDB itself issues an identity to any
+   * connection. The inherent limitation is documented in docs/GLOBAL-CHAT.md §8.
    */
   async connect(host?: string, dbName?: string, token?: string) {
     // Class B condition 1: the feature is opt-in and default off. The chat
@@ -163,8 +166,14 @@ class CloudService {
         .withUri(uri)
         .withDatabaseName(moduleName)
         .withToken(token) // Enforce token
-        .onConnect((connection, identity) => {
-          logger.log('network', 'Connected to SpacetimeDB!', connection);
+        .onConnect((_connection, identity) => {
+          // Log the identity, never the connection object: the SDK keeps the
+          // bearer token on it, and a debug log must not become a token leak.
+          logger.log(
+            'network',
+            'Connected to SpacetimeDB!',
+            identity ? senderIdOf(identity) : 'unknown identity',
+          );
           this.connected = true;
           this.lastError = null;
           this.mySenderId = identity ? senderIdOf(identity) : null;
@@ -247,10 +256,11 @@ class CloudService {
       throw new Error('Global Chat is disabled. Enable it in Settings before sending.');
     }
     // The reducer also rejects this, but refusing locally saves a round trip
-    // and gives the UI a legible message. The visible-character check mirrors
-    // the server's, so a zero-width-only message never leaves the device.
-    const sanitized = text.trim();
-    if (sanitized.length === 0 || !/[\p{L}\p{N}\p{P}\p{S}]/u.test(sanitized)) {
+    // and gives the UI a legible message. The shared sanitizer mirrors the
+    // server's, so an invisible-only message never leaves the device and the
+    // text sent is already the text the module stores.
+    const sanitized = sanitizeChatText(text);
+    if (sanitized.length === 0) {
       throw new Error('Message cannot be empty');
     }
     if (!this.connected) {

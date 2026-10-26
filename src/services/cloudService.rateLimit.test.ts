@@ -33,6 +33,7 @@ import {
   type GlobalMessageRecord,
   type MessageDb,
 } from "../../server/spacetimedb/src/rateLimit";
+import { sanitizeChatText } from "../lib/utils/chatText";
 
 /**
  * FEAT-0375: Rate-limiting the send_message reducer in Global Chat.
@@ -287,17 +288,59 @@ describe("FEAT-0375: send_message rate limiting reducer integration", () => {
     expect(sanitizeMessageText("a\tb\nc")).toBe("a b c");
   });
 
-  it("rejects invisible-only and bidi-only messages (BUG-0726 review)", () => {
-    const memDb = createInMemoryDb();
+  const INVISIBLE_MESSAGES: Array<[string, string]> = [
+    ["zero-width space", "\u200B"],
+    ["bidi override", "\u202E"],
+    ["braille blank", "\u2800"],
+    ["Hangul choseong filler", "\u115F"],
+    ["Hangul jungseong filler", "\u1160"],
+    ["Arabic letter mark", "\u061C"],
+    ["word joiner", "\u2060"],
+    ["soft hyphen", "\u00AD"],
+    ["Mongolian vowel separator", "\u180E"],
+    ["halfwidth Hangul filler", "\uFFA0"],
+    ["Hangul filler", "\u3164"],
+    ["BOM", "\uFEFF"],
+    ["line separator", "\u2028"],
+    ["control character", "\u0000"],
+  ];
 
-    expect(() =>
-      handleSendMessage(memDb.db, "sender", 1_000_000, " \u200B "),
-    ).toThrow("Message cannot be empty");
-    expect(() =>
-      handleSendMessage(memDb.db, "sender", 1_000_000, "\u202E"),
-    ).toThrow("Message cannot be empty");
+  it.each(INVISIBLE_MESSAGES)(
+    "rejects a message made only of %s (BUG-0726 review)",
+    (_name, text) => {
+      const memDb = createInMemoryDb();
 
-    expect(memDb.globalMessage).toHaveLength(0);
+      expect(() =>
+        handleSendMessage(memDb.db, "sender", 1_000_000, text),
+      ).toThrow("Message cannot be empty");
+      expect(sanitizeMessageText(text)).toBe("");
+      expect(memDb.globalMessage).toHaveLength(0);
+    },
+  );
+
+  it("replaces blank glyphs with spaces and keeps the visible text", () => {
+    expect(sanitizeMessageText("a\u2800b")).toBe("a b");
+    expect(sanitizeMessageText("a\u115Fb")).toBe("a b");
+    expect(sanitizeMessageText("a\u061Cb")).toBe("a b");
+    expect(sanitizeMessageText("a\u2060b")).toBe("a b");
+  });
+
+  it("keeps the client-side sanitizer in lockstep with the reducer", () => {
+    const cases = [
+      "hello",
+      "  hello  ",
+      "a\tb\nc",
+      "ab\u202Ecd",
+      "\u200B",
+      "\u2800",
+      "\u115F",
+      "👨\u200D👩",
+      "a\u2800b",
+    ];
+
+    for (const input of cases) {
+      expect(sanitizeChatText(input)).toBe(sanitizeMessageText(input));
+    }
   });
 
   it("strips bidi overrides but keeps the visible text around them (BUG-0726 review)", () => {

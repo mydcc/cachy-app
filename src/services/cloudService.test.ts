@@ -107,7 +107,7 @@ vi.mock('../lib/spacetimedb', () => {
 
 // Import service AFTER mocks
 import { cloudService } from './cloudService';
-import { tables } from '../lib/spacetimedb';
+import { DbConnection, tables } from '../lib/spacetimedb';
 import { settingsState } from '../stores/settings.svelte';
 
 describe('CloudService', () => {
@@ -170,6 +170,9 @@ describe('CloudService', () => {
     await expect(
       cloudService.connect('http://chat.example', 'cachy-server', 'token'),
     ).rejects.toThrow(/https/);
+
+    // The token must not reach a builder that would put it on the wire.
+    expect(DbConnection.builder).not.toHaveBeenCalled();
   });
 
   it('should use logger service instead of console', async () => {
@@ -180,12 +183,18 @@ describe('CloudService', () => {
     // 1. Verify connection log
     expect(mockLogger.log).toHaveBeenCalledWith('network', 'Connecting to SpacetimeDB...', host);
 
-    // 2. Simulate connection success
+    // 2. Simulate connection success. Only the identity is logged; the
+    // connection object carries the bearer token and must not be.
     expect(mockCallbacks.onConnect).toBeDefined();
     const ctx = { id: 1 };
-    mockCallbacks.onConnect!(ctx);
+    const identity = { toHexString: () => 'abc123' };
+    mockCallbacks.onConnect!(ctx, identity);
 
-    expect(mockLogger.log).toHaveBeenCalledWith('network', 'Connected to SpacetimeDB!', ctx);
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      'network',
+      'Connected to SpacetimeDB!',
+      'abc123',
+    );
 
     // 3. Simulate subscription applied
     // The onConnect callback should have triggered subscription builder

@@ -173,19 +173,21 @@ caller cannot erase another's messages. This makes the right to erasure
 self-service: a user exercises it directly, without going through the operator.
 
 **Rate limiting** — `server/spacetimedb/src/rateLimit.ts` allows 5
-messages per fixed 10-second window per sender **and** 180 messages per minute
-across all senders. The global counter is a reserved row (`__global__`) in the
-same `sender_activity` table, because identities are self-issued and a per-sender
-limit alone is bypassed by reconnecting. Every send writes an identity-keyed
-`sender_activity` row, which the retention sweep prunes at 90 days and
-`delete_my_messages` erases together with the messages. The global and cleanup
-rows carry no identity and are deliberately not covered by erasure. The window
-counter is user data for exactly as long as the messages are, which is why it is
-listed in the policy table above and not treated as a transient.
+messages per fixed 10-second window per sender **and** 180 messages per fixed
+60-second window across all senders. The global counter is a reserved row
+(`__global__`) in the same `sender_activity` table, because identities are
+self-issued and a per-sender limit alone is bypassed by reconnecting. Every send
+writes an identity-keyed `sender_activity` row, which the retention sweep prunes
+at 90 days and `delete_my_messages` erases together with the messages. The global
+and cleanup rows carry no identity and are deliberately not covered by erasure.
+The window counter is user data for exactly as long as the messages are, which is
+why it is listed in the policy table above and not treated as a transient.
 
-**Text** — a message is trimmed and stripped of C0/C1 control characters and
-the Unicode line/paragraph separators before it is stored. Empty and
-whitespace-only messages are rejected by the reducer and by the client.
+**Text** — a message is trimmed and its control characters, bidi controls,
+zero-width characters and blank glyphs (braille blank, Hangul fillers) are
+replaced with spaces before it is stored. Zero-width joiners survive so emoji
+clusters and joining scripts still render. A message with no visible character
+is rejected by the reducer and by the client.
 
 ### What still needs a machine this repository does not have
 
@@ -219,10 +221,10 @@ that touches `server/spacetimedb/`, so this is enforced rather than remembered.
 It covers the typecheck only — the CLI steps below stay a manual gate, because
 the SpacetimeDB CLI is not vendored here.
 
-The committed bindings do include `delete_my_messages` (`src/lib/spacetimedb/index.ts:52`),
-though `tablesSchema` (line 47) is empty, so `cloudService.ts:183` is already on
-a runtime `as any` fallback and incoming messages do not render until
-`spacetime generate` regenerates the table bindings. Before relying on the policy:
+The committed bindings do include `delete_my_messages`, though `tablesSchema`
+is empty, so `cloudService.canDeleteMyMessages()` is already on a runtime
+`as any` fallback and incoming messages do not render until `spacetime generate`
+regenerates the table bindings. Before relying on the policy:
 
 1. `spacetime publish` the module against a live SpacetimeDB instance — publishing needs the SpacetimeDB CLI, which is not vendored here. The retention sweep is armed in `init`, so a module published before this change keeps its old messages until republished.
 2. If the bindings ever lag behind the module, `spacetime generate` to regenerate `src/lib/spacetimedb/`.
@@ -302,10 +304,11 @@ the endpoint Cachy's choice rather than the user's. They are settings now
 (roadmap item 14) — the defaults describe a local development instance, not a
 server anyone else operates.
 
-`https://` is required for a remote host. Plain `http://` is accepted only for
-`localhost`, `127.0.0.1` and `[::1]`, because the connection token is a bearer
-credential and would otherwise travel in clear text. The settings tab warns
-before Connect and `cloudService.connect()` enforces the same rule.
+`https://` (or `wss://`) is required for a remote host. Plain `http://` is
+accepted only for loopback (`localhost`, `127.0.0.0/8` and `[::1]`), because the
+connection token is a bearer credential and would otherwise travel in clear
+text. The settings tab warns before Connect and `cloudService.connect()`
+enforces the same rule.
 
 ---
 
@@ -321,15 +324,21 @@ can decide whether to enable the feature.
   server control, and anyone who knows the host can read the public table and
   call the reducers. Mitigations: per-sender and global rate caps, 90-day
   retention, self-service erasure, and a schema that carries no Class A data.
-- **The global cap is an availability trade-off.** 180 messages/minute across
-  all senders bounds a flood, but two determined identities can occupy that
-  budget and make every other sender wait for the window to reset. It reduces
-  flooding; it is not access control.
+- **The global cap is an availability trade-off.** 180 messages per fixed
+  60-second window across all senders bounds a flood, but a determined client
+  can occupy that budget — by rotating identities, or by erasing its own
+  per-sender activity row and continuing — and make every other sender wait for
+  the window to reset. Because the window is fixed, up to two ceilings can land
+  around a boundary. It reduces flooding; it is not access control and does not
+  guarantee fair access.
 - **Scheduled reducers are public.** A client can invoke
   `delete_expired_messages`. The `__cleanup__` marker limits it to one scan per
   hour, and it only deletes rows older than the retention window, so an early
   call cannot erase live messages. The first run after a fresh module still
   performs a full scan.
+- **Erasure is a full scan as well.** `delete_my_messages` walks both tables and
+  any client can call it; only the cleanup reducer is throttled. A deployment
+  with a large table should treat repeated erasure calls as an operator concern.
 - **Rendering is text-only.** Chat text is remote input. `{@html}` is forbidden
   for it; the architecture test pins the current renderer.
 - **Transport.** `https://` (or `wss://`) is required for remote hosts; loopback
