@@ -32,15 +32,43 @@ import { settingsState } from "../stores/settings.svelte";
  */
 
 /**
+ * Whether the request target belongs to this origin (BUG-0727).
+ *
+ * A relative path and a network-path reference are resolved against the current
+ * location; an absolute URL is compared by origin. When no location exists
+ * (SSR), an absolute URL cannot be verified and is treated as foreign.
+ */
+function isSameOriginRequest(input: string): boolean {
+  const absolute = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(input) || input.startsWith("//");
+  if (!absolute) return true;
+
+  const base = globalThis.location?.href;
+  if (!base) return false;
+
+  try {
+    return new URL(input, base).origin === new URL(base).origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Headers for a request to a guarded route, merged over `extra`.
  *
  * The token is omitted when empty rather than sent as an empty string. An empty
  * header is not a credential, and `settingsState` holds `""` both before the
  * user has configured a token and while the settings are locked — neither is a
  * request worth labelling as authenticated.
+ *
+ * `requestUrl` is the URL about to be fetched. When it is supplied, the token is
+ * only attached to a same-origin target: a caller can pass an absolute URL
+ * (exchange/proxy helper, user-configured base URL), and the bearer token must
+ * not follow it off-origin. Direct callers that omit the argument keep the old
+ * behaviour; every fetch in this module supplies it.
  */
 export function appAuthHeaders(
   extra?: HeadersInit,
+  requestUrl?: string,
 ): Record<string, string> {
   const headers: Record<string, string> = {};
 
@@ -53,7 +81,7 @@ export function appAuthHeaders(
   }
 
   const token = settingsState.appAccessToken;
-  if (token) {
+  if (token && (!requestUrl || isSameOriginRequest(requestUrl))) {
     headers["x-app-access-token"] = token;
   }
 
@@ -148,7 +176,10 @@ export async function appFetch(
   }
 
   beforeAttempt?.();
-  const response = await fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
+  const response = await fetch(input, {
+    ...init,
+    headers: appAuthHeaders(init.headers, input),
+  });
   if (response.status !== 401) return response;
 
   let body: unknown;
@@ -161,5 +192,8 @@ export async function appFetch(
 
   await issueAccessToken();
   beforeAttempt?.();
-  return fetch(input, { ...init, headers: appAuthHeaders(init.headers) });
+  return fetch(input, {
+    ...init,
+    headers: appAuthHeaders(init.headers, input),
+  });
 }

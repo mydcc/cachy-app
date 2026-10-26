@@ -2,7 +2,8 @@
 id: BUG-0727
 title: Security: defense-in-depth hygiene (error leakage, token attachment, sanitizer cleanup, CSV validation, gitignore)
 type: bug
-status: specced
+status: done
+assignee: opencode
 priority: P3
 milestone: none
 editions: [community, pro, private]
@@ -13,6 +14,40 @@ depends_on: []
 ---
 
 # BUG-0727 — Security: defense-in-depth hygiene
+
+> **State note.** Fixed on `fix/security-defense-in-depth` (worktree
+> `.worktrees/sec-audit-2`, PR pending). Dispositions:
+>
+> 1. **Market-data error bodies** — `marketDataErrorResponse` keeps the upstream
+>    status but returns our `Upstream market data request failed` and logs the
+>    raw body server-side. Used by funding-rate, position-tiers, trading-pairs,
+>    tickers, bitget/contracts and klines. Tickers keeps its own
+>    `Symbol not found` 404. The AI routes were already converted in BUG-0724.
+> 2. **Token attachment** — `appAuthHeaders(extra, requestUrl)` attaches
+>    `x-app-access-token` only to a relative, same-origin or network-path
+>    same-origin target; an absolute foreign URL gets no token. `appFetch`
+>    passes the URL on both attempts.
+> 3. **sanitizer.ts** — already clean: one `sanitizeHtml` declaration in 53
+>    lines. The audit finding described an older revision; verified, no change.
+> 4. **CSV import** — `normalizeTradeType` accepts only `long`/`short` (an
+>    unknown row is dropped by the existing per-row guard);
+>    `safeScreenshotUrl` drops anything that is not `http(s):`, so a
+>    `javascript:`/`data:` value cannot reach `<img src>`.
+> 5. **.gitignore** — `*.pem`, `*.key`, `*.crt`, `*.p12`, `credentials.json`,
+>    `secrets.*`.
+> 6. **JSON-LD** — `serializeJsonLd` escapes `<`, `>`, `&`, U+2028/U+2029; the
+>    layout uses it for the structured-data block.
+> 7. **ToastItem** — `toastIcon` is an own-property allowlist over the four
+>    static icons, with the info icon as fallback; `constructor`/`__proto__`
+>    cannot reach the HTML sink.
+> 8. **Health endpoint** — the `environment` field is gone; an unauthenticated
+>    scanner no longer learns whether the host is development.
+> 9. **Locked-session openrouterApiKey** — already fixed in BUG-0721.
+>
+> Verification: the changed route/service tests, `tsc --noEmit` clean, ESLint
+> clean, `npm run backlog:check` — 613 items valid. RED proofs: the cross-origin
+> token test, the invalid trade-type row and the `javascript:` screenshot fail
+> with the old code restored.
 
 ## Symptom
 
@@ -53,14 +88,14 @@ Low-severity hygiene findings from the security audit:
 
 ## Acceptance criteria
 
-- [ ] No upstream error text forwarded to clients
-- [ ] Token only attached to same-origin URLs
-- [ ] sanitizer.ts has single declaration per function
-- [ ] CSV import validates tradeType and screenshot scheme
-- [ ] .gitignore covers secret file patterns
-- [ ] JSON-LD escapes HTML-special characters
-- [ ] ToastItem uses explicit allowlist
-- [ ] Regression tests where applicable
+- [x] No upstream error text forwarded to clients
+- [x] Token only attached to same-origin URLs
+- [x] sanitizer.ts has single declaration per function
+- [x] CSV import validates tradeType and screenshot scheme
+- [x] .gitignore covers secret file patterns
+- [x] JSON-LD escapes HTML-special characters
+- [x] ToastItem uses explicit allowlist
+- [x] Regression tests where applicable
 
 ## Links
 

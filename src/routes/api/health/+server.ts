@@ -20,11 +20,13 @@ import { APP_VERSION } from '#lib/version.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async () => {
+    // No `environment` field: the health endpoint is unauthenticated, and
+    // "development" / a deployment name tells a scanner which host it found
+    // (BUG-0727). The version is already public in the release artifacts.
     const status = {
         status: 'ok',
         timestamp: Date.now(),
-        version: APP_VERSION,
-        environment: process.env.NODE_ENV || 'development'
+        version: APP_VERSION
     };
 
     return json(status);

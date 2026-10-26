@@ -30,6 +30,37 @@ import {
 } from "../lib/journalStatus";
 import { Decimal } from "decimal.js";
 
+/**
+ * CSV import validation (BUG-0727).
+ *
+ * The journal only has two directions; anything else would render as "short"
+ * in the table while carrying an arbitrary string. The screenshot becomes an
+ * `<img src>`, so a `javascript:` or `data:` URL must not survive the import.
+ */
+const ALLOWED_TRADE_TYPES = new Set(["long", "short"]);
+
+function normalizeTradeType(raw: string): string {
+  const value = raw.trim().toLowerCase();
+  if (!ALLOWED_TRADE_TYPES.has(value)) {
+    throw new Error(`Invalid trade type: ${raw}`);
+  }
+  return value;
+}
+
+function safeScreenshotUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const value = raw.trim();
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const csvService = {
   /**
    * Generates a CSV string from an array of JournalEntry objects.
@@ -392,7 +423,7 @@ export const csvService = {
               ? rowDate
               : undefined,
             symbol: entry.Symbol,
-            tradeType: entry.Typ.toLowerCase(),
+            tradeType: normalizeTradeType(entry.Typ),
             status: rowStatus,
             accountSize: parseDecimal(entry["Konto Guthaben"] || "0"),
             riskPercentage: parseDecimal(entry["Risiko %"] || "0"),
@@ -421,7 +452,7 @@ export const csvService = {
                 .map((t) => t.trim())
                 .filter(Boolean)
               : [],
-            screenshot: entry.Screenshot || undefined,
+            screenshot: safeScreenshotUrl(entry.Screenshot),
             targets: targets,
             // HARDENING: Always store original large ID in tradeId (string)
             tradeId:

@@ -20,7 +20,7 @@ import { json } from "@sveltejs/kit";
 import { cache } from "#lib/server/cache.js";
 import { safeJsonParse } from "../../../utils/safeJson";
 import { fetchWithTimeout, DEFAULT_UPSTREAM_TIMEOUT_MS } from "../../../utils/server/fetchWithTimeout";
-import { isStatusError } from "../../../utils/server/httpErrors";
+import { marketDataErrorResponse } from "../../../utils/server/marketDataError";
 import { sanitizeSymbolList } from "../../../utils/server/symbolParam";
 
 // Public, no auth. Precision/limits/leverage-range/status per symbol change
@@ -63,10 +63,6 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
     return json(data);
   } catch (error: unknown) {
-    if (isStatusError(error)) {
-      return new Response(error.message, { status: error.status });
-    }
-    const message = error instanceof Error ? error.message : "An unknown error occurred.";
-    return json({ message: `Internal server error: ${message}` }, { status: 500 });
+    return marketDataErrorResponse(error, "trading-pairs");
   }
 };

@@ -109,22 +109,25 @@ export const GET: RequestHandler = async ({ url }) => {
     );
     return json(klines);
   } catch (e: unknown) {
+    // Keep the raw detail in the server log; the client gets our text and the
+    // upstream status (BUG-0727).
     console.error(`Error fetching klines from ${provider}:`, e);
 
     let status = 500;
-    let message = "Failed to fetch klines";
-
     if (e instanceof Error) {
-      message = e.message;
       const apiError = e as ApiError;
       if (typeof apiError.status === 'number') {
         status = apiError.status;
       }
-    } else if (typeof e === 'object' && e !== null && 'message' in e) {
-      // Fallback for non-Error objects that might have a message
-      message = String((e as { message: unknown }).message);
+    } else if (typeof e === 'object' && e !== null && 'status' in e) {
+      const candidate = (e as { status?: unknown }).status;
+      if (typeof candidate === 'number') status = candidate;
     }
 
+    // The timeout text is ours (`fetchWithTimeout`), not an upstream body, and
+    // the UI distinguishes "slow venue" from "venue refused".
+    const message =
+      status === 504 ? "Upstream market data request timed out" : "Failed to fetch klines";
     return json({ error: message }, { status });
   }
 };

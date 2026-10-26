@@ -45,6 +45,30 @@ describe("appAuthHeaders", () => {
       "x-app-access-token": "secret-token",
     });
   });
+
+  it("attaches the token to a relative or same-origin request", () => {
+    settingsState.appAccessToken = "secret-token";
+
+    expect(appAuthHeaders(undefined, "/api/balance")["x-app-access-token"]).toBe(
+      "secret-token",
+    );
+    expect(
+      appAuthHeaders(undefined, `${window.location.origin}/api/balance`)[
+        "x-app-access-token"
+      ],
+    ).toBe("secret-token");
+  });
+
+  it("does not attach the token to a cross-origin URL (BUG-0727)", () => {
+    settingsState.appAccessToken = "secret-token";
+
+    expect(
+      appAuthHeaders(undefined, "https://evil.example/collect"),
+    ).not.toHaveProperty("x-app-access-token");
+    expect(
+      appAuthHeaders(undefined, "//evil.example/collect"),
+    ).not.toHaveProperty("x-app-access-token");
+  });
 });
 
 describe("appFetch", () => {
