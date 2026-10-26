@@ -3655,6 +3655,7 @@ export type TranslationKey =
   | "cloud.eraseNeedsConnection"
   | "cloud.eraseUnavailable"
   | "cloud.insecureHostWarning"
+  | "cloud.invalidHostWarning"
   | "cloud.tokenPlaceholder"
   | "marketAnalyst.analysisFailed"
   | "calculationStrategy.criticalLag"
