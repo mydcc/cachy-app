@@ -2,7 +2,7 @@
 id: FEAT-0738
 title: Tile windows to top/bottom halves and corners
 type: feature
-status: in-progress
+status: done
 assignee: opencode
 branch: feature/feat-0738-tiling
 priority: P2
@@ -34,9 +34,10 @@ cover:
   measured on the side it currently occupies.
 
 The page's own `py-4`/`md:py-8` is content padding, not chrome; there is no
-global app header otherwise. Top and bottom halves span the usable width
-between the sidebars and the usable height between the titlebar/dock insets.
-Corners are the four quadrants of that same rectangle.
+global app header otherwise. The same usable rectangle applies to all eight
+zones: top and bottom halves span the usable width, and the left/right halves
+also stop at the vertical chrome instead of covering it. Corners are the four
+quadrants of that rectangle.
 
 ## Proposal
 
@@ -63,21 +64,46 @@ Corners are the four quadrants of that same rectangle.
 
 ## Acceptance criteria
 
-- [ ] Dragging within 48 px of the left/right/top/bottom edge snaps the
+- [x] Dragging within 48 px of the left/right/top/bottom edge snaps the
       corresponding half; a corner (both axes in range) wins over an edge.
-- [ ] The snap preview and the committed geometry are identical for all eight
+- [x] The snap preview and the committed geometry are identical for all eight
       zones.
-- [ ] Top/bottom halves and corners use the usable rectangle: sidebars,
+- [x] Top/bottom halves and corners use the usable rectangle: sidebars,
       `#wco-titlebar` and a top/bottom dock are not covered.
-- [ ] `Alt+Arrow` follows the state machine above; a perpendicular arrow from
+- [x] `Alt+Arrow` follows the state machine above; a perpendicular arrow from
       a half produces a corner, a second arrow collapses to the half.
-- [ ] `pinSide` persists all eight zones; legacy `left`/`right`/`top`/`bottom`
+- [x] `pinSide` persists all eight zones; legacy `left`/`right`/`top`/`bottom`
       snapshots load; unpin restores the pre-snap rectangle and re-pin returns
       to the last zone.
-- [ ] All eight zones render the correct `pinned-*` class and edge styling.
-- [ ] Geometry, detection, state machine, insets, persistence and the frame
+- [x] All eight zones render the correct `pinned-*` class and edge styling.
+- [x] Geometry, detection, state machine, insets, persistence and the frame
       gesture have targeted tests; `npm run check` stays at 0 errors.
-- [ ] No hardcoded colours; no `as` cast is needed to read a persisted zone.
+- [x] No hardcoded colours; no `as` cast is needed to read a persisted zone.
+
+## Progress
+
+`SnapZone` now covers the four halves and four corners. `computeSnapGeometry`
+splits the usable rectangle (sidebars, PWA titlebar and minimized dock
+excluded) and applies `minWidth`/`minHeight` last. `detectSnapZone` checks
+corners before edges at the existing 48 px threshold; the drag preview and the
+committed geometry share one call.
+
+`Alt+Arrow` uses `nextSnapZone`: an arrow selects a half from no snap or from
+a corner, a perpendicular arrow refines a half into a corner, and a same-axis
+arrow switches halves. `pinSide` accepts all eight zones, validates persisted
+values through `isSnapZone`, and `togglePin` re-snaps any known zone instead of
+the old left/right-only branch. Legacy vertical zones load unchanged.
+
+The frame adds the eight `pinned-*` classes and their edge styling. Tests: 17
+geometry/detection/state-machine/inset cases, 30 `WindowBase.snapping` cases
+(top/bottom/corner geometry, persistence, legacy zones, minimums, shell
+insets) and 31 `WindowFrame` cases (top and corner drag previews/commits, the
+keyboard state machine, existing half/pin regressions); the broader
+`WindowBase`/`WindowManager` suites stay at 71. `npm run check` reports 0
+errors and the existing 6 warnings; ESLint is clean.
+
+A dock that appears after a window has already been tiled is not re-flowed;
+that dynamic layout change stays outside this item.
 
 ## Out of scope
 
