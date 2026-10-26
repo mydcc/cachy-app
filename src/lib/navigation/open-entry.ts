@@ -114,12 +114,18 @@ function toggle(target: ToggleTarget): void {
     }
 }
 
+export interface EntryHandlers {
+    /** Executes a `tab` opener; the host owns the selected-tab state. */
+    selectTab?: (tabId: string) => void;
+}
+
 /**
- * Executes one registry entry. Only the opener kinds a migrated surface really
- * uses are implemented; the rest fail loudly instead of rendering a dead
+ * Executes one registry entry. Window and toggle openers are handled here; a
+ * tab opener needs the host's selector because the selected tab is host-local
+ * state. An opener without a handler fails loudly instead of rendering a dead
  * control that silently swallows its click.
  */
-export function openEntry(entry: Entry): void {
+export function openEntry(entry: Entry, handlers: EntryHandlers = {}): void {
     switch (entry.opener.kind) {
         case "window":
             openWindow(entry.opener);
@@ -128,9 +134,16 @@ export function openEntry(entry: Entry): void {
             toggle(entry.opener.target);
             return;
         case "tab":
+            if (!handlers.selectTab) {
+                throw new Error(
+                    `openEntry cannot execute a tab opener without a selectTab handler (${entry.id})`,
+                );
+            }
+            handlers.selectTab(entry.opener.tabId);
+            return;
         case "route":
             throw new Error(
-                `openEntry cannot execute a ${entry.opener.kind} opener yet (${entry.id})`,
+                `openEntry cannot execute a route opener yet (${entry.id})`,
             );
     }
 }

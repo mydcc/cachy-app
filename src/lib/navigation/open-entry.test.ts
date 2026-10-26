@@ -191,6 +191,14 @@ describe("FEAT-0733: openEntry", () => {
     expect(toggle).toHaveBeenCalledWith(true);
   });
 
+  it("selects a tab through the host handler", () => {
+    const selectTab = vi.fn();
+
+    openEntry(entry("journal.performance"), { selectTab });
+
+    expect(selectTab).toHaveBeenCalledWith("performance");
+  });
+
   it("throws for an opener kind it cannot execute", () => {
     const tabEntry = ENTRY_POINTS.find((item) => item.opener.kind === "tab");
 

@@ -17,47 +17,16 @@
 
 <script lang="ts">
   import DOMPurify from "dompurify";
-  import { icons } from "../../lib/constants";
 
   interface Props {
     activePreset: string;
-    presets?: { id: string; label: string; icon?: string }[];
+    /** The strip's destinations. The owning surface reads them from the
+     *  entry-point registry; this primitive does not own a default list. */
+    presets: { id: string; label: string; icon?: string }[];
     onselect?: (id: string) => void;
   }
 
-  import { _ } from "../../locales/i18n";
-
-  let {
-    activePreset,
-    presets = [
-      {
-        id: "performance",
-        label: $_("journal.deepDive.performance"),
-        icon: icons.chart,
-      },
-      {
-        id: "quality",
-        label: $_("journal.deepDive.systemQuality"),
-        icon: icons.check,
-      },
-      {
-        id: "direction",
-        label: $_("journal.deepDive.charts.labels.trends"),
-        icon: icons.exchange,
-      },
-      {
-        id: "discipline",
-        label: $_("journal.deepDive.behavior"),
-        icon: icons.lockClosed,
-      },
-      {
-        id: "costs",
-        label: $_("journal.deepDive.charts.labels.fees"),
-        icon: icons.settings,
-      },
-    ],
-    onselect,
-  }: Props = $props();
+  let { activePreset, presets, onselect }: Props = $props();
 </script>
 
 <div

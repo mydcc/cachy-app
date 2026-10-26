@@ -33,7 +33,7 @@
     import type { Snippet } from "svelte";
     import type { JournalEntry, JournalTableRow, JournalGroupSummary } from "../../stores/types";
 
-    import DashboardNav from "./DashboardNav.svelte";
+    import JournalTabStrip from "./journal/JournalTabStrip.svelte";
     import { Decimal } from "decimal.js";
     import { onMount, untrack } from "svelte";
 
@@ -694,7 +694,7 @@
                 isPro={true}
                 minimal={false}
             />
-            <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
+            <JournalTabStrip {activePreset} onselect={(id) => (activePreset = id)} />
             <JournalCharts {activePreset} {themeColors} />
         </div>
     {/if}
