@@ -92,6 +92,9 @@
      * down starts the drag, and the first move would otherwise be the click.
      */
     const DRAG_DETACH_THRESHOLD_PX = 4;
+    /** Ignore the double-click that can follow a real drag gesture. */
+    const DOUBLE_CLICK_AFTER_DRAG_MS = 400;
+    let lastDragMovedAt = 0;
 
     // One-shot content fit (BUG-0411). Bound below; read once when the fit
     // effect runs. fitApplied suppresses the frame's size transition until
@@ -166,9 +169,9 @@
     }
 
     /**
-     * Keyboard parity for snapping. The frame is a tab stop, so Alt+Left /
-     * Alt+Right reach the same actions as a drag; typing targets keep their
-     * native Option/Alt+Arrow behaviour.
+     * Keyboard parity for snapping. The shortcut belongs to the focused
+     * window; `handleFocusIn` raises it when a child is focused, and typing
+     * targets keep their native Option/Alt+Arrow behaviour.
      */
     function handleFrameKeydown(e: KeyboardEvent) {
         if (!e.altKey) return;
@@ -183,6 +186,30 @@
 
     function handleFocusIn() {
         if (!win.isFocused) windowManager.bringToFront(win.id);
+    }
+
+    /**
+     * One double-click rule for the outer header and the title/logo area.
+     * The inner area passes its event so it can stop propagation; the outer
+     * does not need to. A drag that actually moved the window suppresses the
+     * follow-up double-click: otherwise a 5 px drift during the first click
+     * detaches, and the dblclick then maximizes (or re-pins the assistant).
+     */
+    function handleHeaderDoubleClick(event?: MouseEvent) {
+        event?.stopPropagation();
+        if (Date.now() - lastDragMovedAt < DOUBLE_CLICK_AFTER_DRAG_MS) return;
+        if (win.isMinimized) {
+            win.restore();
+            windowManager.bringToFront(win.id);
+            return;
+        }
+        if (win.isPinned) {
+            win.togglePin();
+            return;
+        }
+        const action = win.resolveDoubleClickAction();
+        if (action === "maximize") win.toggleMaximize();
+        else if (action === "pin") win.togglePin();
     }
 
     // Only the focused window owns the shortcut; focusin above makes tabbing
@@ -224,7 +251,7 @@
         );
     }
 
-    function startDrag(e: PointerEvent, detachPin = false) {
+    function startDrag(e: PointerEvent, fromPinned = false) {
         if ((e.target as HTMLElement).closest(".window-controls") || (e.target as HTMLElement).closest(".header-controls")) return;
 
         isDragging = true;
@@ -233,32 +260,34 @@
 
         const startX = e.clientX - win.x;
         const startY = e.clientY - win.y;
-        let pinDetached = !detachPin;
+        let pendingPinDetach = fromPinned;
 
         const onPointerMove = (moveEvent: PointerEvent) => {
             if (!isDragging) return;
-            if (!pinDetached) {
-                const movedX = Math.abs(moveEvent.clientX - e.clientX);
-                const movedY = Math.abs(moveEvent.clientY - e.clientY);
-                if (
-                    movedX <= DRAG_DETACH_THRESHOLD_PX &&
-                    movedY <= DRAG_DETACH_THRESHOLD_PX
-                ) {
+            if (pendingPinDetach) {
+                const moved = Math.hypot(
+                    moveEvent.clientX - e.clientX,
+                    moveEvent.clientY - e.clientY,
+                );
+                if (moved <= DRAG_DETACH_THRESHOLD_PX) {
                     return;
                 }
-                pinDetached = true;
+                pendingPinDetach = false;
                 win.detachPin();
             }
             win.updatePosition(
                 moveEvent.clientX - startX,
                 moveEvent.clientY - startY,
             );
+            lastDragMovedAt = Date.now();
             updateSnapPreview(moveEvent.clientX);
         };
 
         const endDrag = (endEvent: PointerEvent, commit: boolean) => {
             isDragging = false;
-            target.releasePointerCapture(endEvent.pointerId);
+            if (target.hasPointerCapture?.(endEvent.pointerId)) {
+                target.releasePointerCapture(endEvent.pointerId);
+            }
             target.removeEventListener("pointermove", onPointerMove);
             target.removeEventListener("pointerup", onPointerUp);
             target.removeEventListener("pointercancel", onPointerCancel);
@@ -399,7 +428,9 @@
 
         const endResize = (endEvent: PointerEvent) => {
             isResizing = false;
-            target.releasePointerCapture(endEvent.pointerId);
+            if (target.hasPointerCapture?.(endEvent.pointerId)) {
+                target.releasePointerCapture(endEvent.pointerId);
+            }
             target.removeEventListener("pointermove", onPointerMove);
             target.removeEventListener("pointerup", endResize);
             target.removeEventListener("pointercancel", endResize);
@@ -716,35 +747,11 @@
                 startDrag(e, win.isPinned);
             }
         }}
-        ondblclick={() => {
-            if (win.isMinimized) {
-                win.restore();
-                windowManager.bringToFront(win.id);
-            } else if (win.isPinned) {
-                win.togglePin();
-            } else {
-                const action = win.resolveDoubleClickAction();
-                if (action === "maximize") win.toggleMaximize();
-                else if (action === "pin") win.togglePin();
-            }
-        }}
+        ondblclick={() => handleHeaderDoubleClick()}
     >
         <div
             class="header-content"
-            ondblclick={(e) => {
-                // Symbol/Logo/Title area double-click: Maximize/Restore/Pin
-                e.stopPropagation();
-                if (win.isMinimized) {
-                    win.restore();
-                    windowManager.bringToFront(win.id);
-                } else if (win.isPinned) {
-                    win.togglePin();
-                } else {
-                    const action = win.resolveDoubleClickAction();
-                    if (action === "maximize") win.toggleMaximize();
-                    else if (action === "pin") win.togglePin();
-                    }
-            }}
+            ondblclick={handleHeaderDoubleClick}
         >
             {#if win.showIcon && !win.isMinimized}
                 <div
@@ -969,15 +976,25 @@
                 </div>
             {/if}
 
-            {#if win.isPinned}
+            {#if !win.isMinimized && (win.isPinned || win.pinSide !== "none")}
                 <div class="control-group">
                     <Button
                         variant="ghost-muted" size="xs"
-                        onClick={() => win.togglePin()}
+                        onClick={(e) => {
+                            // The control stays mounted across the toggle, so a
+                            // double-click hits the same button; only the first
+                            // click may toggle the pin.
+                            if (e.detail > 1) return;
+                            win.togglePin();
+                        }}
                         ondblclick={(e) => e.stopPropagation()}
-                        title={$_("windows.aria.unpin")}
-                        ariaLabel={$_("windows.aria.unpin")}
-                    >📌</Button>
+                        title={win.isPinned
+                            ? $_("windows.aria.unpin")
+                            : $_("windows.aria.pin")}
+                        ariaLabel={win.isPinned
+                            ? $_("windows.aria.unpin")
+                            : $_("windows.aria.pin")}
+                    >{win.isPinned ? "📌" : "📍"}</Button>
                 </div>
             {/if}
 

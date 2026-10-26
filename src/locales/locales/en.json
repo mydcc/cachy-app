@@ -11,7 +11,8 @@
       "zoomIn": "Zoom In",
       "decreaseFont": "Decrease Font Size",
       "increaseFont": "Increase Font Size",
-      "unpin": "Unpin window"
+      "unpin": "Unpin window",
+      "pin": "Pin window"
     },
     "contextMenu": {
       "closeWindow": "Close Window",

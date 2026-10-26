@@ -84,8 +84,8 @@ parallel `touchstart`/`touchmove` path.
 
 Implemented as written, plus one addition not anticipated in the plan above:
 `saveState()`'s field list (`x`, `y`, `width`, `height`, `isMaximized`,
-`isMinimized`, `isPinned`, `pinSide`, `opacity`, `fontSize`, `zoomLevel`,
-`showPriceInTitle`, `symbol`) now lives in one place —
+`isMinimized`, `isPinned`, `pinSide`, `pinRestore`, `opacity`, `fontSize`,
+`zoomLevel`, `showPriceInTitle`, `symbol`) now lives in one place —
 `WindowBase.persistedSnapshot` (`WindowBase.svelte.ts`) — instead of being
 hand-duplicated between `saveState()` and the debounced effect. The effect
 reads `win.persistedSnapshot` to establish the same reactive dependencies

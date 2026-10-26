@@ -11,7 +11,8 @@
       "zoomIn": "Vergrößern",
       "decreaseFont": "Schriftgröße verkleinern",
       "increaseFont": "Schriftgröße vergrößern",
-      "unpin": "Fenster lösen"
+      "unpin": "Fenster lösen",
+      "pin": "Fenster anheften"
     },
     "contextMenu": {
       "closeWindow": "Fenster schließen",
