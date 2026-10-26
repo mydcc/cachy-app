@@ -43,9 +43,11 @@
         nextSnapZone,
         readShellInsets,
     } from "../../../lib/windows/snapping";
+    import { snapToWindows } from "../../../lib/windows/windowSnapping";
     import type {
         SnapDirection,
         SnapGeometry,
+        SnapInsets,
         SnapZone,
     } from "../../../lib/windows/snapping";
     import { effectsState } from "../../../stores/effects.svelte";
@@ -251,27 +253,75 @@
      * Uses Pointer Capture to allow movement across the entire screen once initiated
      * from the header bar.
      */
-    function updateSnapPreview(clientX: number, clientY: number) {
+    function updateSnapPreview(
+        clientX: number,
+        clientY: number,
+        insets: SnapInsets,
+        viewportWidth: number,
+        viewportHeight: number,
+    ): SnapZone | null {
         const zone = detectSnapZone(
             clientX,
             clientY,
-            window.innerWidth,
-            window.innerHeight,
+            viewportWidth,
+            viewportHeight,
         );
         if (!zone) {
             snapZone = null;
             snapPreview = null;
-            return;
+            return null;
         }
         snapZone = zone;
         snapPreview = computeSnapGeometry(
             zone,
-            window.innerWidth,
-            window.innerHeight,
-            readShellInsets(),
+            viewportWidth,
+            viewportHeight,
+            insets,
             win.minWidth,
             win.minHeight,
         );
+        return zone;
+    }
+
+    /**
+     * Other floating windows are alignment targets, not tiling targets:
+     * minimized, modal and dialog windows stay out, and the dragged window
+     * never targets itself. The screen-edge preview has priority and skips
+     * this pass entirely, so an active edge zone suppresses both axes.
+     */
+    function updateWindowSnap(
+        rawX: number,
+        rawY: number,
+        insets: SnapInsets,
+        viewportWidth: number,
+        viewportHeight: number,
+    ): void {
+        const targets = windowManager.windows
+            .filter(
+                (candidate) =>
+                    candidate.id !== win.id &&
+                    !candidate.isMinimized &&
+                    candidate.windowType !== "modal" &&
+                    candidate.windowType !== "dialog",
+            )
+            .map((candidate) => ({
+                x: candidate.x,
+                y: candidate.y,
+                width: candidate.width,
+                height: candidate.height,
+            }));
+
+        const snapped = snapToWindows(
+            rawX,
+            rawY,
+            win.width,
+            win.height,
+            targets,
+            viewportWidth,
+            viewportHeight,
+            insets,
+        );
+        win.updatePosition(snapped.x, snapped.y);
     }
 
     function startDrag(e: PointerEvent, fromPinned = false) {
@@ -283,6 +333,11 @@
 
         const startX = e.clientX - win.x;
         const startY = e.clientY - win.y;
+        // Shell geometry is stable for the gesture; reading it on every
+        // pointermove would add DOM queries to the common off-edge path.
+        const dragInsets = readShellInsets();
+        const dragViewportWidth = window.innerWidth;
+        const dragViewportHeight = window.innerHeight;
         let pendingPinDetach = fromPinned;
 
         const onPointerMove = (moveEvent: PointerEvent) => {
@@ -298,12 +353,27 @@
                 pendingPinDetach = false;
                 win.detachPin();
             }
-            win.updatePosition(
-                moveEvent.clientX - startX,
-                moveEvent.clientY - startY,
+            const rawX = moveEvent.clientX - startX;
+            const rawY = moveEvent.clientY - startY;
+            const zone = updateSnapPreview(
+                moveEvent.clientX,
+                moveEvent.clientY,
+                dragInsets,
+                dragViewportWidth,
+                dragViewportHeight,
             );
+            if (zone) {
+                win.updatePosition(rawX, rawY);
+            } else {
+                updateWindowSnap(
+                    rawX,
+                    rawY,
+                    dragInsets,
+                    dragViewportWidth,
+                    dragViewportHeight,
+                );
+            }
             lastDragMovedAt = Date.now();
-            updateSnapPreview(moveEvent.clientX, moveEvent.clientY);
         };
 
         const endDrag = (endEvent: PointerEvent, commit: boolean) => {

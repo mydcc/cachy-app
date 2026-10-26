@@ -68,6 +68,36 @@ export interface SnapGeometry {
     height: number;
 }
 
+/** The rectangle left for windows after the shell chrome. */
+export interface SnapBounds {
+    /** Absolute viewport x of the usable left edge. */
+    left: number;
+    /** Absolute viewport x of the usable right edge (not an inset distance). */
+    right: number;
+    /** Absolute viewport y of the usable top edge. */
+    top: number;
+    /** Absolute viewport y of the usable bottom edge (not an inset distance). */
+    bottom: number;
+}
+
+export function getUsableBounds(
+    viewportWidth: number,
+    viewportHeight: number,
+    insets: SnapInsets,
+): SnapBounds {
+    const left = Math.max(0, Math.min(viewportWidth, insets.left));
+    const right = Math.max(
+        left,
+        Math.min(viewportWidth, viewportWidth - insets.right),
+    );
+    const top = Math.max(0, Math.min(viewportHeight, insets.top ?? 0));
+    const bottom = Math.max(
+        top,
+        Math.min(viewportHeight, viewportHeight - (insets.bottom ?? 0)),
+    );
+    return { left, right, top, bottom };
+}
+
 const SNAP_ZONE_SET: ReadonlySet<string> = new Set(SNAP_ZONES);
 
 /** Narrows a persisted `pinSide` without trusting JSON. */
@@ -155,15 +185,10 @@ export function computeSnapGeometry(
     minWidth = 0,
     minHeight = 0,
 ): SnapGeometry {
-    const left = Math.max(0, Math.min(viewportWidth, insets.left));
-    const right = Math.max(
-        left,
-        Math.min(viewportWidth, viewportWidth - insets.right),
-    );
-    const top = Math.max(0, Math.min(viewportHeight, insets.top ?? 0));
-    const bottom = Math.max(
-        top,
-        Math.min(viewportHeight, viewportHeight - (insets.bottom ?? 0)),
+    const { left, right, top, bottom } = getUsableBounds(
+        viewportWidth,
+        viewportHeight,
+        insets,
     );
 
     const availableWidth = right - left;
